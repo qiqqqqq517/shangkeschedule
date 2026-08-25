@@ -1,0 +1,16 @@
+新功能：
+
+引入 MaterialKolor 动态配色，优化主题与 UI 细节
+
+Bug 修复：
+
+优化 WebView 状态栏适配，实现软键盘自动避让
+
+体验优化：
+
+优化深色/浅色模式切换体验
+
+优化“学期结束”状态显示，将超出周数改为更精确的已结束天数
+
+完整更新日志：
+https://github.com/XingHeYuZhuan/shangkeschedule/releases/tag/v2.0.0

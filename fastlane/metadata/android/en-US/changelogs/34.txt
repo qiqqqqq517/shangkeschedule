@@ -1,0 +1,16 @@
+New Features:
+
+Introduced MaterialKolor dynamic theming and polished theme/UI details
+
+Bug Fixes:
+
+Optimized WebView status bar adaptation and implemented soft keyboard auto-resize
+
+Improvements:
+
+Enhanced dark/light mode switching UI experience
+
+Refined semester end status display: replaced weeks-overrun with precise days-elapsed count
+
+Full release notes:
+https://github.com/XingHeYuZhuan/shangkeschedule/releases/tag/v2.0.0

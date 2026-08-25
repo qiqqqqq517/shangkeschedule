@@ -1,0 +1,50 @@
+name: 'Changelog Generator'
+description: 'Generates a formatted changelog from Git history.'
+
+inputs:
+  version_title:
+    description: '版本标题 (例: v1.0.0 或 v2.0.0-rc1)'
+    required: true
+  previous_tag:
+    description: '手动指定的基准对比 Tag (可选，留空则由 Python 脚本自动推导)'
+    required: false
+    default: ''
+  is_prerelease:
+    description: '是否为预发布版本 (true/false)'
+    required: false
+    default: 'false'
+
+outputs:
+  changelog_content:
+    description: "生成的 Markdown 格式更新日志内容"
+    value: ${{ steps.generate_content.outputs.changelog_content }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: 强制获取完整标签历史
+      shell: bash
+      run: git fetch --tags
+
+    - name: 生成更新日志并设置输出
+      id: generate_content
+      shell: bash
+      run: |
+        VERSION_TITLE="${{ inputs.version_title }}"
+        PREVIOUS_TAG="${{ inputs.previous_tag }}"
+        IS_PRERELEASE="${{ inputs.is_prerelease }}"
+        
+        python "$GITHUB_ACTION_PATH/generate_changelog.py" "$VERSION_TITLE" "$PREVIOUS_TAG" "$IS_PRERELEASE"
+        
+        # 读取生成的 CHANGELOG.md 内容
+        if [ -f CHANGELOG.md ]; then
+          CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        else
+          echo "警告：CHANGELOG.md 未生成，可能该范围内没有有效提交。"
+          CHANGELOG_CONTENT=""
+        fi
+        
+        # 输出给 GitHub Actions 上下文
+        echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT

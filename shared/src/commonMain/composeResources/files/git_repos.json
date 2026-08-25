@@ -1,0 +1,37 @@
+[
+  {
+    "name": "官方Github仓库",
+    "type": "OFFICIAL",
+    "url": "https://github.com/XingHeYuZhuan/shiguang_warehouse.git",
+    "branch": "main",
+    "editable": false
+  },
+  {
+    "name": "Gitee官方仓库镜像站(CN)",
+    "type": "PUBLIC_FORK",
+    "url": "https://gitee.com/XingHeYuZhuan-gh/shiguang_warehouse.git",
+    "branch": "main",
+    "editable": false
+  },
+  {
+    "name": "ITDONG镜像库(三网优化)",
+    "type": "PUBLIC_FORK",
+    "url": "https://git.itdong.me/XingHeYuZhuan/shiguang_warehouse.git",
+    "branch": "main",
+    "editable": false
+  },
+  {
+    "name": "自定义仓库",
+    "type": "CUSTOM",
+    "url": "",
+    "branch": "",
+    "editable": true
+  },
+  {
+    "name": "私有仓库",
+    "type": "PRIVATE_REPO",
+    "url": "",
+    "branch": "",
+    "editable": true
+  }
+]
