@@ -1,0 +1,75 @@
+// src/main/proto/schedule_style.proto
+
+syntax = "proto3";
+
+package com.shangkeschedule.data.model;
+
+option java_package = "com.shangkeschedule.data.model.schedule_style";
+option java_multiple_files = true;
+
+// 颜色对：包含浅色和深色模式下的 ARGB 值
+message DualColorProto {
+  int64 light_color = 1;
+  int64 dark_color = 2;
+}
+
+// 定义边框类型的枚举
+enum BorderTypeProto {
+  BORDER_TYPE_NONE = 0;   // 无边框
+  BORDER_TYPE_SOLID = 1;  // 实线
+  BORDER_TYPE_DASHED = 2; // 虚线
+}
+
+// 定义课表展示模式的枚举
+enum ScheduleModeProto {
+  SECTION_MODE = 0;    // 传统节次模式
+  TIME_24H_MODE = 1;   // 24小时绝对时间轴模式
+}
+
+// 课表网格样式配置
+message ScheduleGridStyleProto {
+
+  // 基础布局尺寸 (单位: DP)
+  optional float time_column_width_dp = 1;   // 时间列宽度
+  optional float day_header_height_dp = 2;   // 星期表头高度
+  optional float section_height_dp = 3;      // 每节课格子的高度
+
+  // 课程块外观 (单位: DP / 比例)
+  // 使用 optional 以支持在代码中区分“0值”与“未配置状态”
+  optional float course_block_corner_radius_dp = 4; // 圆角半径
+  optional float course_block_outer_padding_dp = 5; // 块与网格线的间距
+  optional float course_block_inner_padding_dp = 6; // 块内文字填充
+  optional float course_block_alpha_float = 7;      // 不透明度 (0.0 - 1.0)
+
+  // 重叠/堆叠颜色配置 (ARGB Long)
+  // 已经废弃:删除旧颜色字段并保留编号
+  reserved 9, 10;
+  reserved "overlap_course_color_long", "overlap_course_color_dark_long";
+
+  // 将不再需要的重叠样式切换开关字段（编号 24）声明为保留
+  reserved 24;
+  reserved "overlap_style_toggle";
+
+  // 课程颜色池：用于循环分配或自定义颜色方案
+  repeated DualColorProto course_color_maps = 11;
+
+  // 界面开关
+  optional bool hide_section_time = 12;   // 隐藏具体时间段 (如 08:00-08:45)
+  optional bool hide_date_under_day = 13; // 隐藏日期 (如 06-23)
+  optional bool show_start_time = 14;     // 课程格内是否显示开始时间
+  optional bool hide_grid_lines = 20;     // 是否隐藏网格线
+  optional int64 page_text_color_long = 25;   // 页面文字颜色 (ARGB Long)
+
+  // 字体配置
+  optional float course_block_font_scale = 15; // 文字缩放比例 (默认 1.0)
+  optional bool hide_location = 16;       // 是否隐藏上课地点
+  optional bool hide_teacher = 17;        // 是否隐藏授课老师
+  optional bool remove_location_at = 18;  // 是否移除地点前的 @ 符号
+  optional bool text_align_center_horizontal = 21; // 水平居中开关
+  optional bool text_align_center_vertical = 22;   // 垂直居中开关
+  optional BorderTypeProto border_type = 23;  // 边框类型
+  optional int64 course_text_color_long = 26; // 课程块文字颜色
+  optional ScheduleModeProto schedule_mode = 27; // 课表时间段模式
+
+  optional string background_image_path = 19; // 存储图片在私有目录下的绝对路径
+}

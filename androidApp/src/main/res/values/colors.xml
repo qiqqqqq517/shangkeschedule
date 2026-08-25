@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="loading_text_color">#FF000000</color>
+    <color name="widget_bg">#FEF7FF</color> # 小组件最底层的圆角卡片背景色
+    <color name="widget_text_primary">#2C3E50</color> # 主文字颜色：用于课程名、日期标题、假期大标题
+    <color name="widget_text_secondary">#5D6D7E</color> # 次要文字颜色：用于周次、教师名、上课地点
+    <color name="widget_text_hint">#808B96</color> # 提示文字颜色：用于无课提示、底部的统计页脚
+    <color name="widget_divider">#EAECEE</color> # 分割线颜色：用于垂直分割线和课程间的水平线
+    <color name="widget_course_fallback">#F2F4F4</color> # 课程指示条兜底色：数据异常时的默认灰色
+</resources>

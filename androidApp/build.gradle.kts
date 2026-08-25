@@ -1,0 +1,133 @@
+import com.android.build.api.variant.FilterConfiguration
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.koin.compiler)
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+// 读取 release 签名配置（密码等敏感信息存于 keystore.properties，不硬编码进脚本）
+val keystoreProperties = Properties().apply {
+    val propsFile = file("keystore.properties")
+    if (propsFile.exists()) {
+        propsFile.inputStream().use { load(it) }
+    }
+}
+
+android {
+    namespace = "com.shangkeschedule"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    defaultConfig {
+        applicationId = "com.shangkeschedule"
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        versionCode = 46
+        versionName = "2.12.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            exclude("mips", "mips64", "armeabi", "riscv64", "x86")
+            isUniversalApk = false
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    androidResources {
+        generateLocaleConfig = true
+        localeFilters += listOf("zh", "zh-rCN", "zh-rTW", "en")
+    }
+}
+
+dependencies {
+    implementation(project(":shared"))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.animation)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.components.resources)
+    implementation(libs.androidx.datastore.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.datetime)
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.workmanager)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
+    implementation(libs.koin.annotations)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    debugImplementation(libs.compose.ui.tooling)
+}
+
+configurations.all {
+    exclude(group = "io.opencensus", module = "opencensus-api")
+    exclude(group = "io.opencensus", module = "opencensus-proto")
+    exclude(group = "io.opentelemetry", module = "opentelemetry-api")
+    exclude(group = "io.opentelemetry", module = "opentelemetry-context")
+}
+
+androidComponents {
+    onVariants { variant ->
+        val buildType = variant.buildType ?: ""
+        val versionName = android.defaultConfig.versionName ?: ""
+
+        variant.outputs.forEach { output ->
+            val abiFilter = output.filters.find {
+                it.filterType == FilterConfiguration.FilterType.ABI
+            }?.identifier ?: "universal"
+
+            // 动态设置输出的 APK 文件名
+            output.outputFileName.set("shangke-v${versionName}-${abiFilter}-${buildType}.apk")
+        }
+    }
+}

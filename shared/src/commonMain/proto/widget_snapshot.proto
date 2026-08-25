@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.shangkeschedule.widget;
+
+// 1. 确保导入路径正确（如果两个文件在同一目录下，直接写文件名）
+import "schedule_style.proto";
+
+option java_package = "com.shangkeschedule.widget";
+option java_multiple_files = true;
+
+message WidgetCourseProto {
+  string id = 1;
+  string name = 2;
+  string position = 3;
+  string start_time = 4;
+  string end_time = 5;
+  int32 color_int = 6;
+  bool is_skipped = 7;
+  string teacher = 8;
+  string date = 9;
+}
+
+message WidgetSnapshot {
+  repeated WidgetCourseProto courses = 1;
+  int32 current_week = 2;
+
+  .com.shangkeschedule.data.model.ScheduleGridStyleProto style = 3;
+}
