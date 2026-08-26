@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +45,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -168,6 +171,9 @@ fun DayHeader(
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth().height(style.dayHeaderHeight)) {
         val shouldShowDate = !style.hideDateUnderDay && maxHeight >= 42.dp
+        val themePreset = LocalThemePreset.current
+        val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+        val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
 
         Row(Modifier.fillMaxSize()) {
             Box(
@@ -225,17 +231,32 @@ fun DayHeader(
                     }
             ) {
                 displayDays.forEachIndexed { index, day ->
+                    val isToday = index == todayIndex
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .background(if (index == todayIndex) MaterialTheme.colorScheme.primaryContainer.copy(0.4f) else Color.Transparent),
+                            .background(
+                                if (isToday && !isSleepyPreset && !isTimetablePreset) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(0.4f)
+                                } else {
+                                    Color.Transparent
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .padding(vertical = 1.dp),
+                                .then(
+                                    if (isSleepyPreset && isToday) {
+                                        Modifier
+                                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    } else {
+                                        Modifier.padding(vertical = 1.dp)
+                                    }
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -243,7 +264,7 @@ fun DayHeader(
                                 text = day,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = textColor,
+                                color = if (isSleepyPreset && isToday) Color.White else textColor,
                                 maxLines = 1,
                                 style = TextStyle(
                                     lineHeight = 16.sp
@@ -255,8 +276,14 @@ fun DayHeader(
                                 Text(
                                     text = dates[index],
                                     fontSize = 10.sp,
-                                    color = subTextColor,
+                                    color = when {
+                                        isSleepyPreset && isToday -> Color.White
+                                        isTimetablePreset && isToday -> MaterialTheme.colorScheme.primary
+                                        else -> subTextColor
+                                    },
+                                    fontWeight = if (isTimetablePreset && isToday) FontWeight.ExtraBold else FontWeight.Normal,
                                     maxLines = 1,
+                                    modifier = Modifier,
                                     style = TextStyle(
                                         lineHeight = 12.sp
                                     )
@@ -297,6 +324,16 @@ fun TimeColumn(
         }
     }
 
+    val themePreset = LocalThemePreset.current
+    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+    val activeSectionBackground = when {
+        isSleepyPreset -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+        isTimetablePreset -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+    }
+    val activeLeftBorderColor = MaterialTheme.colorScheme.primary
+
     Column(modifier.width(style.timeColumnWidth)) {
         for (index in 0 until maxGridSections) {
             val isCurrentHourActive = if (is24HourMode) {
@@ -310,13 +347,21 @@ fun TimeColumn(
                     .fillMaxWidth()
                     .height(style.sectionHeight)
                     .clickable { onTimeSlotClicked() }
-                    .background(if (isCurrentHourActive) MaterialTheme.colorScheme.primaryContainer.copy(0.4f) else Color.Transparent)
+                    .background(if (isCurrentHourActive) activeSectionBackground else Color.Transparent)
                     .drawBehind {
                         if (!style.hideGridLines) {
                             drawLine(lineColor, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidthPx)
                             if (!is24HourMode) {
                                 drawLine(lineColor, Offset(0f, size.height), Offset(size.width, size.height), strokeWidthPx)
                             }
+                        }
+                        if (isTimetablePreset && isCurrentHourActive) {
+                            drawLine(
+                                color = activeLeftBorderColor,
+                                start = Offset(0f, 0f),
+                                end = Offset(0f, size.height),
+                                strokeWidth = 2.dp.toPx()
+                            )
                         }
                     },
                 contentAlignment = if (is24HourMode) Alignment.TopCenter else Alignment.Center
@@ -357,8 +402,8 @@ fun TimeColumn(
                             Text(
                                 text = slot.alias ?: slot.number.toString(),
                                 fontSize = if (h < 32.dp) 11.sp else 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = textColor,
+                                fontWeight = if (isCurrentHourActive) FontWeight.ExtraBold else FontWeight.Bold,
+                                color = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor,
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (!style.hideSectionTime) {

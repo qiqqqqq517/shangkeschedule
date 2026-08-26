@@ -78,6 +78,7 @@ import shangkeschedule.shared.generated.resources.desc_first_day_of_week
 import shangkeschedule.shared.generated.resources.desc_manage_course_tables
 import shangkeschedule.shared.generated.resources.desc_more_options
 import shangkeschedule.shared.generated.resources.desc_notification_settings
+import shangkeschedule.shared.generated.resources.desc_appearance_settings
 import shangkeschedule.shared.generated.resources.desc_personalization
 import shangkeschedule.shared.generated.resources.desc_quick_actions
 import shangkeschedule.shared.generated.resources.desc_set_start_date
@@ -95,6 +96,7 @@ import shangkeschedule.shared.generated.resources.item_course_management
 import shangkeschedule.shared.generated.resources.item_current_week
 import shangkeschedule.shared.generated.resources.item_first_day_of_week
 import shangkeschedule.shared.generated.resources.item_more_options
+import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_personalization
 import shangkeschedule.shared.generated.resources.item_quick_actions
 import shangkeschedule.shared.generated.resources.item_set_start_date
@@ -102,7 +104,6 @@ import shangkeschedule.shared.generated.resources.item_show_non_current_week
 import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.item_total_weeks
-import shangkeschedule.shared.generated.resources.item_update_repo
 import shangkeschedule.shared.generated.resources.theme_settings_title
 import shangkeschedule.shared.generated.resources.more_horiz_24px
 import shangkeschedule.shared.generated.resources.section_title_advanced_features
@@ -128,6 +129,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val courseColorMaps by viewModel.courseColorMaps.collectAsState()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
@@ -199,6 +201,7 @@ fun SettingsScreen(
                             onCoupleScheduleEnabledChanged = { viewModel.onCoupleScheduleEnabledChanged(it) },
                             selfCourseColorIndex = appSettings.selfCourseColorIndex,
                             crushCourseColorIndex = appSettings.crushCourseColorIndex,
+                            courseColorMaps = courseColorMaps,
                             onSelfCourseColorIndexChanged = { viewModel.onSelfCourseColorIndexChanged(it) },
                             onCrushCourseColorIndexChanged = { viewModel.onCrushCourseColorIndexChanged(it) }
                         )
@@ -286,6 +289,7 @@ private fun GeneralSettingsSection(
     onCoupleScheduleEnabledChanged: (Boolean) -> Unit,
     selfCourseColorIndex: Int,
     crushCourseColorIndex: Int,
+    courseColorMaps: List<DualColor>,
     onSelfCourseColorIndexChanged: (Int) -> Unit,
     onCrushCourseColorIndexChanged: (Int) -> Unit
 ) {
@@ -400,7 +404,7 @@ private fun GeneralSettingsSection(
                     subtitle = stringResource(Res.string.desc_self_course_color),
                     onClick = { showSelfColorDialog = true }
                 ) {
-                    ColorPreviewDot(colorIndex = selfCourseColorIndex)
+                    ColorPreviewDot(colorIndex = selfCourseColorIndex, colorMaps = courseColorMaps)
                 }
 
                 SettingItem(
@@ -408,7 +412,7 @@ private fun GeneralSettingsSection(
                     subtitle = stringResource(Res.string.desc_crush_course_color),
                     onClick = { showCrushColorDialog = true }
                 ) {
-                    ColorPreviewDot(colorIndex = crushCourseColorIndex)
+                    ColorPreviewDot(colorIndex = crushCourseColorIndex, colorMaps = courseColorMaps)
                 }
             }
 
@@ -424,6 +428,7 @@ private fun GeneralSettingsSection(
         ColorPickerDialog(
             title = stringResource(Res.string.item_self_course_color),
             selectedIndex = selfCourseColorIndex,
+            colorMaps = courseColorMaps,
             onDismiss = { showSelfColorDialog = false },
             onSelect = { index ->
                 onSelfCourseColorIndexChanged(index)
@@ -436,6 +441,7 @@ private fun GeneralSettingsSection(
         ColorPickerDialog(
             title = stringResource(Res.string.item_crush_course_color),
             selectedIndex = crushCourseColorIndex,
+            colorMaps = courseColorMaps,
             onDismiss = { showCrushColorDialog = false },
             onSelect = { index ->
                 onCrushCourseColorIndexChanged(index)
@@ -489,19 +495,9 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
                 onClick = { onNavigate(Destination.TimeSlotSettings) }
             )
             SettingItem(
-                title = stringResource(Res.string.item_personalization),
-                subtitle = stringResource(Res.string.desc_personalization),
-                onClick = { onNavigate(Destination.StyleSettings) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.theme_settings_title),
-                subtitle = stringResource(Res.string.desc_theme_settings),
-                onClick = { onNavigate(Destination.ThemeSettings) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_update_repo),
-                subtitle = stringResource(Res.string.desc_update_repo),
-                onClick = { onNavigate(Destination.UpdateRepo) }
+                title = stringResource(Res.string.item_appearance_settings),
+                subtitle = stringResource(Res.string.desc_appearance_settings),
+                onClick = { onNavigate(Destination.AppearanceSettings) }
             )
             SettingItem(
                 title = stringResource(Res.string.item_more_options),
@@ -516,10 +512,11 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
 /**
  * 颜色预览圆点。
  * 展示当前选中的课程颜色（浅色背景 + 深色描边），点击可弹出颜色选择器。
+ * 使用当前主题的 courseColorMaps，确保与课程块实际渲染一致。
  */
 @Composable
-private fun ColorPreviewDot(colorIndex: Int) {
-    val dualColor = ScheduleGridStyle.DEFAULT_COLOR_MAPS.getOrNull(colorIndex) ?: return
+private fun ColorPreviewDot(colorIndex: Int, colorMaps: List<DualColor>) {
+    val dualColor = colorMaps.getOrNull(colorIndex) ?: return
     val isDarkTheme = LocalIsDarkTheme.current
     val bgColor = if (isDarkTheme) dualColor.dark else dualColor.light
     val borderColor = if (isDarkTheme) dualColor.light.copy(alpha = 0.7f) else dualColor.dark.copy(alpha = 0.6f)
@@ -539,15 +536,17 @@ private fun ColorPreviewDot(colorIndex: Int) {
 /**
  * 课程颜色选择对话框。
  * 以 4 列网格展示颜色池，选中项用对勾 + 主色边框标记。
+ * 使用当前主题的 courseColorMaps，确保与课程块实际渲染一致。
  */
 @Composable
 private fun ColorPickerDialog(
     title: String,
     selectedIndex: Int,
+    colorMaps: List<DualColor>,
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit
 ) {
-    val colors = ScheduleGridStyle.DEFAULT_COLOR_MAPS
+    val colors = colorMaps
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },

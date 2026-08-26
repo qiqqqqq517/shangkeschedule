@@ -7,14 +7,18 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.StyleSettingsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -37,7 +41,8 @@ data class SettingsUiState(
 
 @KoinViewModel
 class SettingsViewModel(
-    private val appSettingsRepository: AppSettingsRepository
+    private val appSettingsRepository: AppSettingsRepository,
+    private val styleSettingsRepository: StyleSettingsRepository
 ) : ViewModel() {
 
     // 1. 基础配置流 (DataStore)
@@ -80,6 +85,18 @@ class SettingsViewModel(
         started = SharingStarted.Lazily,
         initialValue = SettingsUiState()
     )
+
+    /**
+     * 当前主题的课程配色表，供情侣课表颜色选择器使用。
+     * 随主题切换和个性化配置实时更新，确保选择器显示的颜色与课程块实际渲染一致。
+     */
+    val courseColorMaps: StateFlow<List<DualColor>> = styleSettingsRepository.styleFlow
+        .map { it.courseColorMaps }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.shangkeschedule.data.model.ScheduleGridStyle.DEFAULT_COLOR_MAPS
+        )
 
     /**
      * 是否显示非本周课程
@@ -175,6 +192,17 @@ class SettingsViewModel(
             val currentSettings = uiState.value.appSettings
             val updatedSettings = currentSettings.copy(themeMode = newMode)
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+        }
+    }
+
+    /**
+     * 主题预设 (经典/云舒/利落)：保存主题选择，并把预设样式「一键应用」到个性化配置。
+     * applyStylePreset 内部会保留用户壁纸与时间轴模式。
+     */
+    fun onThemePresetChanged(preset: AppThemePreset) {
+        viewModelScope.launch {
+            appSettingsRepository.updateThemePreset(preset)
+            styleSettingsRepository.applyStylePreset(preset.gridStyle)
         }
     }
 

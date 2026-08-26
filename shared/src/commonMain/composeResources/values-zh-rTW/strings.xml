@@ -33,6 +33,11 @@
     <string name="nav_settings">我的</string>
     <string name="title_today_schedule">今日課表</string>
     <string name="text_no_courses_today">今天沒有課程</string>
+    <string name="label_crush_course">TA的課</string>
+    <string name="text_course_in_progress">正在上課</string>
+    <string name="text_courses_finished">今日課程已結束</string>
+    <string name="text_countdown_start">%1$s 分鐘後開始</string>
+    <string name="text_countdown_remaining">還剩 %1$s 分鐘</string>
     <string name="title_vacation_until_start">假期中（距離開學還有%1$s天）</string>
     <string name="title_semester_not_set">請設定開學日期</string>
     <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
@@ -77,6 +82,7 @@
     <string name="label_assessment_method">考核方式</string>
     <string name="label_is_lab">實驗課</string>
     <string name="course_time_description">時間: 第%1$s-%2$s節 (%3$s-%4$s)</string>
+    <string name="course_section_range">第%1$s-%2$s節</string>
     <string name="course_position_prefix">地點: %1$s</string>
     <string name="course_teacher_prefix">老師: %1$s</string>
     <string name="title_course_overlap">重疊課程列表</string>
@@ -502,6 +508,12 @@
     <string name="style_category_grid_size">網格尺寸</string>
     <string name="style_category_course_block">課程塊配置</string>
     <string name="style_category_color_scheme">顏色方案 (點擊圓形編輯)</string>
+    <string name="label_ui_style_preset">課表介面風格</string>
+    <string name="label_view_mode_week">週視圖</string>
+    <string name="label_view_mode_list">列表視圖</string>
+    <string name="ui_style_preset_original">原版（自由選擇）</string>
+    <string name="ui_style_preset_sleepy">Sleepy 參考風格</string>
+    <string name="ui_style_preset_timetable">Timetable 參考風格</string>
     <string name="label_wallpaper">課表背景桌布</string>
     <string name="desc_wallpaper_set">已設置 (長按可清除)</string>
     <string name="desc_wallpaper_unset">未設置 (點擊選擇圖片)</string>
@@ -563,6 +575,13 @@
     <string name="theme_light">淺色模式</string>
     <string name="theme_dark">深色模式</string>
     <string name="theme_settings_title">主題設置</string>
+    <string name="item_appearance_settings">外觀與樣式</string>
+    <string name="desc_appearance_settings">主題風格、深色模式與課表外觀微調</string>
+    <string name="theme_preset_classic">經典</string>
+    <string name="theme_preset_cloud">雲舒</string>
+    <string name="theme_preset_clean">利落</string>
+    <string name="theme_style_section">主題風格</string>
+    <string name="theme_style_desc">每個主題同時套用配色與課表樣式</string>
     <string name="desc_theme_settings">自訂應用程式主題與配色</string>
     <string name="theme_mode_label">主題模式切換</string>
     <string name="dynamic_color_title">動態取色 (Material You)</string>
@@ -571,6 +590,7 @@
     <string name="light_primary_color">淺色模式主色</string>
     <string name="dark_primary_color">深色模式主色</string>
     <string name="theme_color_hint">說明：改變此顏色後，系統將作為種子色重新計算全應用配色方案。</string>
+    <string name="theme_color_disabled_hint">動態取色開啟時不可自定義</string>
     <string name="label_page_text_color">課表頁面文字顏色</string>
     <string name="widget_course_remaining_count">剩餘 %1$d 節</string>
     <string name="section_sync">同步</string>

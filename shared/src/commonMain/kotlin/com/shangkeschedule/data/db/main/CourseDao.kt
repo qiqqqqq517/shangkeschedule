@@ -112,18 +112,16 @@ interface CourseDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM courses AS c
-        INNER JOIN course_weeks AS cw ON c.id = cw.courseId
-        WHERE c.courseTableId = :courseTableId
-          AND c.isCrush = 0
-          AND c.day = :day
-          AND cw.weekNumber = :weekNumber
+        SELECT * FROM courses
+        WHERE courseTableId = :courseTableId
+          AND isCrush = 0
+          AND day = :day
+          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
         ORDER BY 
-            CASE WHEN c.isCustomTime = 0 THEN c.startSection ELSE 99 END ASC,  
-            CASE WHEN c.isCustomTime = 1 THEN c.customStartTime ELSE '99:99' END ASC
+            CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
+            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
         """
     )
-    @Suppress(RoomWarnings.QUERY_MISMATCH)
     fun getCoursesWithWeeksByDayAndWeek(
         courseTableId: String,
         day: Int,
@@ -154,18 +152,16 @@ interface CourseDao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT c.* FROM courses AS c
-        INNER JOIN course_weeks AS cw ON c.id = cw.courseId
-        WHERE c.courseTableId = :courseTableId
-          AND c.isCrush = 0
-          AND cw.weekNumber = :weekNumber
+        SELECT * FROM courses
+        WHERE courseTableId = :courseTableId
+          AND isCrush = 0
+          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
         ORDER BY 
-            c.day ASC,
-            CASE WHEN c.isCustomTime = 0 THEN c.startSection ELSE 99 END ASC,  
-            CASE WHEN c.isCustomTime = 1 THEN c.customStartTime ELSE '99:99' END ASC
+            day ASC,
+            CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
+            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
         """
     )
-    @Suppress(RoomWarnings.QUERY_MISMATCH)
     fun getCoursesWithWeeksByTableAndWeek(
         courseTableId: String,
         weekNumber: Int
@@ -178,18 +174,16 @@ interface CourseDao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT c.* FROM courses AS c
-        INNER JOIN course_weeks AS cw ON c.id = cw.courseId
-        WHERE c.courseTableId = :courseTableId
-          AND c.isCrush = 1
-          AND cw.weekNumber = :weekNumber
+        SELECT * FROM courses
+        WHERE courseTableId = :courseTableId
+          AND isCrush = 1
+          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
         ORDER BY 
-            c.day ASC,
-            CASE WHEN c.isCustomTime = 0 THEN c.startSection ELSE 99 END ASC,  
-            CASE WHEN c.isCustomTime = 1 THEN c.customStartTime ELSE '99:99' END ASC
+            day ASC,
+            CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
+            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
         """
     )
-    @Suppress(RoomWarnings.QUERY_MISMATCH)
     fun getCrushCoursesWithWeeksByTableAndWeek(
         courseTableId: String,
         weekNumber: Int
@@ -220,18 +214,16 @@ interface CourseDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM courses AS c
-        INNER JOIN course_weeks AS cw ON c.id = cw.courseId
-        WHERE c.courseTableId = :courseTableId
-          AND c.isCrush = 1
-          AND c.day = :day
-          AND cw.weekNumber = :weekNumber
+        SELECT * FROM courses
+        WHERE courseTableId = :courseTableId
+          AND isCrush = 1
+          AND day = :day
+          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
         ORDER BY 
-            CASE WHEN c.isCustomTime = 0 THEN c.startSection ELSE 99 END ASC,  
-            CASE WHEN c.isCustomTime = 1 THEN c.customStartTime ELSE '99:99' END ASC
+            CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
+            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
         """
     )
-    @Suppress(RoomWarnings.QUERY_MISMATCH)
     fun getCrushCoursesWithWeeksByDayAndWeek(
         courseTableId: String,
         day: Int,

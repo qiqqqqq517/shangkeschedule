@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -64,6 +65,7 @@ fun ScheduleGrid(
 
         val totalGridHeight = style.sectionHeight * maxGridSections
         val gridLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        val currentTimeLineColor = MaterialTheme.colorScheme.primary
         val strokeWidthPx = 1f
 
         val singleSchedulables = remember(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends) {
@@ -371,15 +373,28 @@ fun ScheduleGrid(
                         .height(totalGridHeight).weight(1f)
                         .onSizeChanged { state.gridWidthPx = it.width.toFloat() }
                         .drawBehind {
-                            if (style.hideGridLines) return@drawBehind
-                            val cellWidth = size.width / displayDaysCount
-                            for (i in 1..displayDaysCount) {
-                                val x = i * cellWidth
-                                drawLine(gridLineColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = strokeWidthPx)
+                            if (!style.hideGridLines) {
+                                val cellWidth = size.width / displayDaysCount
+                                for (i in 1..displayDaysCount) {
+                                    val x = i * cellWidth
+                                    drawLine(gridLineColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = strokeWidthPx)
+                                }
+                                for (i in 1..maxGridSections) {
+                                    val y = i * sectionHeightPx
+                                    drawLine(gridLineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = strokeWidthPx)
+                                }
                             }
-                            for (i in 1..maxGridSections) {
-                                val y = i * sectionHeightPx
-                                drawLine(gridLineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = strokeWidthPx)
+
+                            // 当前时间指示线：仅在本周页显示，圆头横线 + 主题色
+                            if (viewState.todayIndex >= 0 && viewState.currentSectionIndex >= 0) {
+                                val indicatorY = (viewState.currentSectionIndex - 1) * sectionHeightPx
+                                drawLine(
+                                    color = currentTimeLineColor,
+                                    start = Offset(0f, indicatorY),
+                                    end = Offset(size.width, indicatorY),
+                                    strokeWidth = 2.dp.toPx(),
+                                    cap = StrokeCap.Round
+                                )
                             }
                         }
                         .pointerInput(displayDaysCount, sectionHeightPx, viewState.firstDayOfWeek, maxGridSections, is24HourMode, state.expandedItem) {

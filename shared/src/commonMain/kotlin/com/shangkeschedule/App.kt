@@ -40,14 +40,13 @@ import com.shangkeschedule.ui.settings.course.AddEditCourseScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.shangkeschedule.ui.settings.coursetables.ManageCourseTablesScreen
+import com.shangkeschedule.ui.settings.import.TextImportScreen
 import com.shangkeschedule.ui.settings.notification.NotificationSettingsScreen
 import com.shangkeschedule.ui.settings.quickactions.QuickActionsScreen
 import com.shangkeschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.shangkeschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
-import com.shangkeschedule.ui.settings.style.StyleSettingsScreen
-import com.shangkeschedule.ui.settings.themesettings.ThemeSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.AppearanceSettingsScreen
 import com.shangkeschedule.ui.settings.time.TimeSlotManagementScreen
-import com.shangkeschedule.ui.settings.update.UpdateRepoScreen
 import com.shangkeschedule.ui.theme.ShangKeScheduleTheme
 import com.shangkeschedule.ui.today.TodayScheduleScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -102,7 +101,7 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
 
-    val animSpec = tween<IntOffset>(300)
+    val animSpec = remember { tween<IntOffset>(300) }
 
     NavDisplay(
         backStack = backStack,
@@ -168,22 +167,21 @@ fun ScreenContent(
         Destination.Settings -> SettingsScreen(onNavigate, onBack)
         Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
         Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack)
-        Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack)
+        Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack, onNavigate)
         is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack, targetDest.isCrushImport)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
         Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
-        Destination.UpdateRepo -> UpdateRepoScreen(onBack)
         Destination.QuickActions -> QuickActionsScreen(onNavigate, onBack)
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
         Destination.ContributionList -> ContributionScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
-        Destination.StyleSettings -> StyleSettingsScreen(onBack)
+        Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
-        Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
+        Destination.TextImport -> TextImportScreen(onBack, onImportSuccess = { onNavigate(Destination.ManageCourseTables) })
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(
             onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder, targetDest.isCrushImport

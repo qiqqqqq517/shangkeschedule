@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.*
+import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.DefaultThemeColor
 
 /**
@@ -107,6 +108,9 @@ data class AppSettingsModel(
     /** 应用主题模式 */
     val themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
 
+    /** 应用主题预设：同时决定全局配色种子色与课表视觉样式 */
+    val themePreset: AppThemePreset = AppThemePreset.ORIGINAL,
+
     /** 是否开启动态取色 (Material You) */
     val useDynamicColor: Boolean = false,
 
@@ -127,6 +131,9 @@ data class AppSettingsModel(
 
     /** crush 课表课程颜色索引（默认 1 = 粉色） */
     val crushCourseColorIndex: Int = DEFAULT_CRUSH_COLOR_INDEX,
+
+    /** 周课表视图模式（默认周视图） */
+    val scheduleViewMode: ScheduleViewMode = ScheduleViewMode.WEEK,
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -148,6 +155,7 @@ data class AppSettingsModel(
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_THEME_PRESET = stringPreferencesKey("theme_preset")
         val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
@@ -155,6 +163,7 @@ data class AppSettingsModel(
         val KEY_COUPLE_SCHEDULE_ENABLED = booleanPreferencesKey("couple_schedule_enabled")
         val KEY_SELF_COURSE_COLOR_INDEX = intPreferencesKey("self_course_color_index")
         val KEY_CRUSH_COURSE_COLOR_INDEX = intPreferencesKey("crush_course_color_index")
+        val KEY_SCHEDULE_VIEW_MODE = stringPreferencesKey("schedule_view_mode")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -172,6 +181,7 @@ data class AppSettingsModel(
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,
+                themePreset = AppThemePreset.fromString(prefs[KEY_THEME_PRESET]),
                 useDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
                 customLightPrimary = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customLightPrimary,
                 customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
@@ -179,6 +189,7 @@ data class AppSettingsModel(
                 coupleScheduleEnabled = prefs[KEY_COUPLE_SCHEDULE_ENABLED] ?: d.coupleScheduleEnabled,
                 selfCourseColorIndex = prefs[KEY_SELF_COURSE_COLOR_INDEX] ?: d.selfCourseColorIndex,
                 crushCourseColorIndex = prefs[KEY_CRUSH_COURSE_COLOR_INDEX] ?: d.crushCourseColorIndex,
+                scheduleViewMode = ScheduleViewMode.fromString(prefs[KEY_SCHEDULE_VIEW_MODE]),
             )
         }
     }

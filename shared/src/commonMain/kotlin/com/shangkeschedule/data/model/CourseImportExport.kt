@@ -132,4 +132,38 @@ object CourseImportExport {
         val alias: String? = null
     )
 
+    /**
+     * 应用设置备份信封
+     * 枚举类型统一用字符串存储，避免跨版本序列化问题
+     */
+    @Serializable
+    data class AppSettingsBackupEnvelope(
+        val backupTimestamp: Long,
+        val appVersionCode: Int,
+        val settings: AppSettingsBackupModel
+    )
+
+    @Serializable
+    data class AppSettingsBackupModel(
+        val currentCourseTableId: String = "",
+        val reminderEnabled: Boolean = false,
+        val remindBeforeMinutes: Int = 15,
+        val skippedDates: Set<String> = emptySet(),
+        val autoModeEnabled: Boolean = false,
+        val autoControlMode: String = "DND",
+        val compatWearableSync: Boolean = false,
+        val showNonCurrentWeekCourses: Boolean = false,
+        val startScreen: String = "COURSE_SCHEDULE",
+        val themeMode: String = "FOLLOW_SYSTEM",
+        val themePreset: String = "ORIGINAL",
+        val useDynamicColor: Boolean = false,
+        val customLightPrimary: Long = 0,
+        val customDarkPrimary: Long = 0,
+        val developerModeEnabled: Boolean = false,
+        val coupleScheduleEnabled: Boolean = false,
+        val selfCourseColorIndex: Int = 5,
+        val crushCourseColorIndex: Int = 1,
+        val scheduleViewMode: String = "WEEK"
+    )
+
 }

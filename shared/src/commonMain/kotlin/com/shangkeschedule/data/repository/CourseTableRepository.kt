@@ -99,7 +99,7 @@ class CourseTableRepository(
      * @param name 新课表的名称
      */
     @Transaction
-    suspend fun createNewCourseTable(name: String) {
+    suspend fun createNewCourseTable(name: String): String {
         val newTable = CourseTable(
             id = Uuid.random().toString(),
             name = name,
@@ -117,6 +117,8 @@ class CourseTableRepository(
         // 3. 插入默认课表配置
         val newConfig = CourseTableConfig(courseTableId = newTable.id)
         appSettingsRepository.insertOrUpdateCourseConfig(newConfig)
+
+        return newTable.id
     }
 
     /**

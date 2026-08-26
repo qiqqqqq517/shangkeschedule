@@ -41,16 +41,15 @@ sealed interface Destination : NavKey {
     @Serializable data object NotificationSettings : Destination
     @Serializable data object MoreOptions : Destination
     @Serializable data object OpenSourceLicenses : Destination
-    @Serializable data object UpdateRepo : Destination
     @Serializable data object QuickActions : Destination
     @Serializable data object TweakSchedule : Destination
     @Serializable data object QuickDelete : Destination
     @Serializable data object ContributionList : Destination
     @Serializable data object CourseManagementList : Destination
-    @Serializable data object StyleSettings : Destination
-    @Serializable data object ThemeSettings : Destination
+    @Serializable data object AppearanceSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
+    @Serializable data object TextImport : Destination
 
     // --- 动态传参页面 ---
     @Serializable
@@ -101,16 +100,15 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.NotificationSettings::class)
         subclass(Destination.MoreOptions::class)
         subclass(Destination.OpenSourceLicenses::class)
-        subclass(Destination.UpdateRepo::class)
         subclass(Destination.QuickActions::class)
         subclass(Destination.TweakSchedule::class)
         subclass(Destination.QuickDelete::class)
         subclass(Destination.ContributionList::class)
         subclass(Destination.CourseManagementList::class)
-        subclass(Destination.StyleSettings::class)
-        subclass(Destination.ThemeSettings::class)
+        subclass(Destination.AppearanceSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
+        subclass(Destination.TextImport::class)
 
         // 带参数据类
         subclass(Destination.AdapterSelection::class)

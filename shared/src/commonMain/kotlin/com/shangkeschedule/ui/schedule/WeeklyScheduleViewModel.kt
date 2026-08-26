@@ -7,21 +7,26 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.ScheduleGridStyle
+import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
+import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
-import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -54,7 +59,7 @@ data class MergedCourseBlock(
 )
 
 data class WeeklyScheduleUiState(
-    val style: ScheduleGridStyle = ScheduleGridStyle(),
+    val style: ScheduleGridStyleComposed = ScheduleGridStyle().toComposedStyle(),
     val showWeekends: Boolean = false,
     val totalWeeks: Int = 20,
     val timeSlots: List<TimeSlot> = emptyList(),
@@ -79,6 +84,26 @@ private data class NormalizedCourse(
     val raw: CourseWithWeeks,
     val start: Float,
     val end: Float
+)
+
+/**
+ * 预解析后的节次时间，避免同一批 timeSlots 被反复 LocalTime.parse。
+ */
+private data class ParsedTimeSlot(
+    val slot: TimeSlot,
+    val startTime: LocalTime,
+    val endTime: LocalTime
+)
+
+/**
+ * 五路基础流聚合的源快照，把三层 combine 压缩为小幅中间载体。
+ */
+private data class ScheduleSourceSnapshot(
+    val settings: AppSettingsModel,
+    val config: CourseTableConfig?,
+    val style: ScheduleGridStyle,
+    val mondayDate: LocalDate,
+    val timeSlots: List<TimeSlot>
 )
 
 /**
@@ -114,6 +139,15 @@ private fun LocalTime.formatToHHmm(): String {
     return "$hourStr:$minuteStr"
 }
 
+private fun List<TimeSlot>.sortedParsedTimeSlots(): List<ParsedTimeSlot> =
+    map { slot ->
+        ParsedTimeSlot(
+            slot = slot,
+            startTime = LocalTime.parse(slot.startTime),
+            endTime = LocalTime.parse(slot.endTime)
+        )
+    }.sortedBy { it.slot.number }
+
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
 @KoinViewModel
 class WeeklyScheduleViewModel (
@@ -131,7 +165,18 @@ class WeeklyScheduleViewModel (
     )
 
     private val appSettingsFlow = appSettingsRepository.getAppSettings()
+
+    /** 运行时课表样式完全以用户个性化配置为准，主题预设仅在切换时写入。 */
     private val styleFlow = styleSettingsRepository.styleFlow
+
+    /** 周课表视图模式，持久化到 AppSettings。 */
+    val scheduleViewModeState: StateFlow<ScheduleViewMode> = appSettingsFlow
+        .map { it.scheduleViewMode }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ScheduleViewMode.WEEK
+        )
 
     private val courseTableConfigFlow = appSettingsFlow.flatMapLatest { settings ->
         val tableId = settings.currentCourseTableId
@@ -157,7 +202,7 @@ class WeeklyScheduleViewModel (
         styleFlow
     ) { date, settings, config, slots, style ->
         val tableId = settings.currentCourseTableId
-        val mode = style.toComposedStyle().scheduleMode
+        val mode = style.scheduleMode
 
         if (config != null) {
             val window = listOf(
@@ -213,18 +258,24 @@ class WeeklyScheduleViewModel (
     }.flatMapLatest { it }
 
     init {
+        // 1. 扁平化组合：先合并 5 路基础流，再并入课程缓存流，避免三层 configAndTimeFlow 中间流。
         viewModelScope.launch {
-            val configAndTimeFlow = combine(
+            val sourceFlow = combine(
                 appSettingsFlow,
                 courseTableConfigFlow,
                 styleFlow,
-                _pagerMondayDate
-            ) { settings, config, style, mondayDate ->
-                ScheduleConfigPackage(settings, config, style, mondayDate)
+                _pagerMondayDate,
+                timeSlotsFlow
+            ) { settings, config, style, mondayDate, timeSlots ->
+                ScheduleSourceSnapshot(settings, config, style, mondayDate, timeSlots)
             }
 
-            combine(configAndTimeFlow, currentCoursesFlow, timeSlotsFlow) { configPkg, cache, timeSlots ->
-                val config = configPkg.config
+            combine(sourceFlow, currentCoursesFlow) { source, cache ->
+                val config = source.config
+                val style = source.style
+                val mondayDate = source.mondayDate
+                val timeSlots = source.timeSlots
+                val composedStyle = style.toComposedStyle()
                 val startDate = config?.semesterStartDate?.let { LocalDate.parse(it) }
                 val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
                 val totalWeeks = config?.semesterTotalWeeks ?: 20
@@ -237,7 +288,7 @@ class WeeklyScheduleViewModel (
                 )
 
                 val weekIndex = appSettingsRepository.getWeekIndexAtDate(
-                    targetDate = configPkg.mondayDate,
+                    targetDate = mondayDate,
                     startDateStr = config?.semesterStartDate,
                     firstDayOfWeekInt = firstDayOfWeekInt
                 )
@@ -248,30 +299,49 @@ class WeeklyScheduleViewModel (
                     today.daysUntil(startDate).toLong()
                 } else 0L
 
-                val currentWeekCourses = cache[configPkg.mondayDate.toString()] ?: emptyList()
-                fixInvalidCourseColors(currentWeekCourses.flatMap { it.courses }, configPkg.style)
-
                 val previousState = _uiState.value
 
                 WeeklyScheduleUiState(
-                    style = configPkg.style,
+                    style = composedStyle,
                     showWeekends = config?.showWeekends ?: false,
                     totalWeeks = totalWeeks,
                     courseCache = cache,
-                    currentMergedCourses = cache[configPkg.mondayDate.toString()] ?: emptyList(),
+                    currentMergedCourses = cache[mondayDate.toString()] ?: emptyList(),
                     timeSlots = timeSlots,
                     isSemesterSet = startDate != null,
                     semesterStartDate = startDate,
                     firstDayOfWeek = firstDayOfWeekInt,
                     weekIndexInPager = weekIndex,
                     currentWeekNumber = currentWeekNum,
-                    pagerMondayDate = configPkg.mondayDate,
+                    pagerMondayDate = mondayDate,
                     currentSectionIndex = currentSectionIndex,
                     daysUntilStart = daysUntil,
                     floatingCourse = previousState.floatingCourse,
                     floatingSourceWeek = previousState.floatingSourceWeek
                 )
             }.collect { _uiState.value = it }
+        }
+
+        // 2. 颜色修复只在“课程列表变化”后执行，避免每次样式变更都重复扫描。
+        viewModelScope.launch {
+            currentCoursesFlow
+                .map { cache -> cache.values.flatten().flatMap { it.courses } }
+                .distinctUntilChanged()
+                .collect { courses ->
+                    val style = styleFlow.firstOrNull() ?: return@collect
+                    fixInvalidCourseColors(courses, style)
+                }
+        }
+
+        // 3. 当前节次指示每分钟刷新一次。
+        viewModelScope.launch {
+            while (true) {
+                delay(60_000)
+                val slots = _uiState.value.timeSlots
+                _uiState.update { state ->
+                    state.copy(currentSectionIndex = calculateCurrentSectionIndex(slots))
+                }
+            }
         }
     }
 
@@ -298,6 +368,11 @@ class WeeklyScheduleViewModel (
 
     fun updatePagerDate(newDate: LocalDate) = _pagerMondayDate.update { newDate }
 
+    /** 更新并持久化周课表视图模式。 */
+    fun updateScheduleViewMode(mode: ScheduleViewMode) = viewModelScope.launch {
+        appSettingsRepository.updateScheduleViewMode(mode)
+    }
+
     fun switchCourseTable(tableId: String) {
         viewModelScope.launch {
             val currentSettings = appSettingsRepository.getAppSettingsOnce()
@@ -306,24 +381,24 @@ class WeeklyScheduleViewModel (
         }
     }
 
-    private fun fixInvalidCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
-        viewModelScope.launch {
-            val validRange = style.courseColorMaps.indices
-            courses.forEach { cw ->
-                if (cw.course.colorInt !in validRange) {
-                    courseTableRepository.updateCourseColor(cw.course.id, style.generateRandomColorIndex())
-                }
+    private suspend fun fixInvalidCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
+        val validRange = style.courseColorMaps.indices
+        courses.forEach { cw ->
+            // 跳过 crush 课程：其颜色由 crushCourseColorIndex 统一控制，不应被随机修复
+            if (cw.course.isCrush) return@forEach
+            if (cw.course.colorInt !in validRange) {
+                courseTableRepository.updateCourseColor(cw.course.id, style.generateRandomColorIndex())
             }
         }
     }
 
     /**
-     * 核心统一时间换算器：将任意 [LocalTime] 转化为网格上的 Float 纵坐标
-     * @return 距离网格最顶部的浮点偏置量（1.0f 代表第 1 个格子的顶部起点）
+     * 核心统一时间换算器：将任意 [LocalTime] 转化为网格上的 Float 纵坐标。
+     * [parsedSlots] 为入口处预解析并排序后的节次时间，避免函数内重复 parse。
      */
     private fun timeToGridScale(
         time: LocalTime,
-        timeSlots: List<TimeSlot>,
+        parsedSlots: List<ParsedTimeSlot>,
         mode: ScheduleModeProto
     ): Float {
         return when (mode) {
@@ -333,43 +408,39 @@ class WeeklyScheduleViewModel (
                 1.0f + hourOffset
             }
             ScheduleModeProto.SECTION_MODE -> {
-                if (timeSlots.isEmpty()) return 1.0f
-                val sortedSlots = timeSlots.sortedBy { it.number }
+                if (parsedSlots.isEmpty()) return 1.0f
 
-                val firstSlotStart = LocalTime.parse(sortedSlots.first().startTime)
-                val lastSlotEnd = LocalTime.parse(sortedSlots.last().endTime)
+                val firstSlotStart = parsedSlots.first().startTime
+                val lastSlotEnd = parsedSlots.last().endTime
 
                 if (time <= firstSlotStart) return 1.0f
-                if (time >= lastSlotEnd) return (sortedSlots.size + 1).toFloat()
+                if (time >= lastSlotEnd) return (parsedSlots.size + 1).toFloat()
 
-                val currentSlot = sortedSlots.find {
-                    val s = LocalTime.parse(it.startTime)
-                    val e = LocalTime.parse(it.endTime)
-                    time in s..e
+                val currentSlot = parsedSlots.find {
+                    time in it.startTime..it.endTime
                 }
 
                 if (currentSlot != null) {
-                    val sTime = LocalTime.parse(currentSlot.startTime)
-                    val eTime = LocalTime.parse(currentSlot.endTime)
+                    val sTime = currentSlot.startTime
+                    val eTime = currentSlot.endTime
                     val duration = (eTime.toSecondOfDay() - sTime.toSecondOfDay()) / 60
                     val safeDuration = if (duration <= 0) 1 else duration
                     val elapsedMinutes = (time.toSecondOfDay() - sTime.toSecondOfDay()) / 60
-                    return currentSlot.number.toFloat() + (elapsedMinutes.toFloat() / safeDuration)
+                    return currentSlot.slot.number.toFloat() + (elapsedMinutes.toFloat() / safeDuration)
                 }
 
-                val nextSlot = sortedSlots.find { LocalTime.parse(it.startTime) > time }
-                nextSlot?.number?.toFloat() ?: (sortedSlots.size + 1).toFloat()
+                val nextSlot = parsedSlots.find { it.startTime > time }
+                nextSlot?.slot?.number?.toFloat() ?: (parsedSlots.size + 1).toFloat()
             }
         }
     }
 
     /**
-     * 反向坐标时间换算器
-     * 将 Layout 的浮点偏移量 (0f..maxSection) 完美逆向转换为真实的物理 LocalTime
+     * 反向坐标时间换算器。
      */
     private fun gridScaleToTime(
         gridSection: Float,
-        timeSlots: List<TimeSlot>,
+        parsedSlots: List<ParsedTimeSlot>,
         mode: ScheduleModeProto
     ): LocalTime {
         return when (mode) {
@@ -380,17 +451,16 @@ class WeeklyScheduleViewModel (
                 LocalTime(hour, minute)
             }
             ScheduleModeProto.SECTION_MODE -> {
-                if (timeSlots.isEmpty()) return LocalTime(8, 0)
-                val sortedSlots = timeSlots.sortedBy { it.number }
+                if (parsedSlots.isEmpty()) return LocalTime(8, 0)
 
                 val targetScale = gridSection + 1.0f
                 val integerPart = targetScale.toInt()
                 val fraction = targetScale - integerPart
 
-                val matchedSlot = sortedSlots.find { it.number == integerPart }
+                val matchedSlot = parsedSlots.find { it.slot.number == integerPart }
                 if (matchedSlot != null) {
-                    val sTime = LocalTime.parse(matchedSlot.startTime)
-                    val eTime = LocalTime.parse(matchedSlot.endTime)
+                    val sTime = matchedSlot.startTime
+                    val eTime = matchedSlot.endTime
                     val totalDuration = (eTime.toSecondOfDay() - sTime.toSecondOfDay()) / 60
                     val addedMinutes = (fraction * totalDuration).toInt()
                     val totalSeconds = sTime.toSecondOfDay() + addedMinutes * 60
@@ -398,10 +468,10 @@ class WeeklyScheduleViewModel (
                     val finalMinute = (totalSeconds % 3600) / 60
                     LocalTime(finalHour, finalMinute)
                 } else {
-                    if (integerPart < sortedSlots.first().number) {
-                        LocalTime.parse(sortedSlots.first().startTime)
+                    if (integerPart < parsedSlots.first().slot.number) {
+                        parsedSlots.first().startTime
                     } else {
-                        LocalTime.parse(sortedSlots.last().endTime)
+                        parsedSlots.last().endTime
                     }
                 }
             }
@@ -447,7 +517,7 @@ class WeeklyScheduleViewModel (
                 val state = _uiState.value
                 val courseWrapper = state.floatingCourse ?: return@launch
                 val sourceWeek = state.floatingSourceWeek ?: return@launch
-                val mode = state.style.toComposedStyle().scheduleMode
+                val mode = state.style.scheduleMode
                 val slots = state.timeSlots
 
                 val currentSettings = appSettingsRepository.getAppSettingsOnce()
@@ -457,7 +527,8 @@ class WeeklyScheduleViewModel (
                 val originalCourse = courseWrapper.course
 
                 val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
-                    val baseStartTime = gridScaleToTime(startSection, slots, mode)
+                    val parsedSlots = slots.sortedParsedTimeSlots()
+                    val baseStartTime = gridScaleToTime(startSection, parsedSlots, mode)
                     val origStart = LocalTime.parse(originalCourse.customStartTime ?: "08:00")
                     val origEnd = LocalTime.parse(originalCourse.customEndTime ?: "09:00")
                     val originalDurationMinutes = ((origEnd.toSecondOfDay() - origStart.toSecondOfDay()) / 60).coerceAtLeast(1)
@@ -555,7 +626,7 @@ class WeeklyScheduleViewModel (
         viewModelScope.launch {
             try {
                 val state = _uiState.value
-                val mode = state.style.toComposedStyle().scheduleMode
+                val mode = state.style.scheduleMode
                 val slots = state.timeSlots
                 val currentWeek = state.weekIndexInPager ?: state.currentWeekNumber ?: return@launch
 
@@ -568,8 +639,9 @@ class WeeklyScheduleViewModel (
                 val originalCourse = targetWrapper.course
 
                 val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
-                    val newStartTime = gridScaleToTime(startSection, slots, mode)
-                    val newEndTime = gridScaleToTime(endSection, slots, mode)
+                    val parsedSlots = slots.sortedParsedTimeSlots()
+                    val newStartTime = gridScaleToTime(startSection, parsedSlots, mode)
+                    val newEndTime = gridScaleToTime(endSection, parsedSlots, mode)
 
                     originalCourse.copy(
                         day = targetDay,
@@ -627,7 +699,7 @@ class WeeklyScheduleViewModel (
     }
 
     /**
-     * 无损展平排版调度引擎保持原有完美逻辑
+     * 展平排版调度引擎：入口只负责统一预解析时间，具体排版拆给下面的私有函数。
      */
     fun mergeCourses(
         courses: List<CourseWithWeeks>,
@@ -637,50 +709,23 @@ class WeeklyScheduleViewModel (
     ): List<MergedCourseBlock> {
         if (timeSlots.isEmpty() && mode == ScheduleModeProto.SECTION_MODE) return emptyList()
 
-        val maxSection = if (mode == ScheduleModeProto.TIME_24H_MODE) 24f else timeSlots.size.toFloat()
+        val parsedSlots = timeSlots.sortedParsedTimeSlots()
+        return buildMergedBlocks(courses, parsedSlots, currentWeek, mode)
+    }
+
+    private fun buildMergedBlocks(
+        courses: List<CourseWithWeeks>,
+        parsedSlots: List<ParsedTimeSlot>,
+        currentWeek: Int,
+        mode: ScheduleModeProto
+    ): List<MergedCourseBlock> {
+        val maxSection = if (mode == ScheduleModeProto.TIME_24H_MODE) 24f else parsedSlots.size.toFloat()
         val limit = maxSection + 1.0f
         val minSafeHeight = if (mode == ScheduleModeProto.TIME_24H_MODE) 0.0f else 0.3f
 
-        val normalizedList = courses.mapNotNull { cw ->
-            try {
-                val c = cw.course
-
-                val (sTime, eTime) = if (c.isCustomTime) {
-                    LocalTime.parse(c.customStartTime ?: return@mapNotNull null) to
-                            LocalTime.parse(c.customEndTime ?: return@mapNotNull null)
-                } else {
-                    val startSlot = timeSlots.find { it.number == c.startSection } ?: return@mapNotNull null
-                    val endSlot = timeSlots.find { it.number == c.endSection } ?: return@mapNotNull null
-                    LocalTime.parse(startSlot.startTime) to LocalTime.parse(endSlot.endTime)
-                }
-
-                val s = timeToGridScale(sTime, timeSlots, mode)
-                val e = timeToGridScale(eTime, timeSlots, mode)
-
-                var finalStart = s
-                var finalEnd = e
-                if (finalStart >= limit) {
-                    finalEnd = limit
-                    finalStart = limit - minSafeHeight
-                } else if (finalEnd <= 1.0f) {
-                    finalStart = 1.0f
-                    finalEnd = 1.0f + minSafeHeight
-                }
-
-                if (finalEnd - finalStart < minSafeHeight) {
-                    if (finalEnd + minSafeHeight <= limit) {
-                        finalEnd = finalStart + minSafeHeight
-                    } else {
-                        finalStart = finalEnd - minSafeHeight
-                    }
-                }
-
-                NormalizedCourse(cw, finalStart.coerceIn(1.0f, limit - 0.1f), finalEnd.coerceIn(1.0f + 0.1f, limit))
-            } catch (e: Exception) { null }
-        }
+        val normalizedList = normalizeCourses(courses, parsedSlots, mode, limit, minSafeHeight)
 
         val result = mutableListOf<MergedCourseBlock>()
-
         normalizedList.groupBy { it.raw.course.day }.forEach { (day, dailyCourses) ->
             if (dailyCourses.isEmpty()) return@forEach
 
@@ -691,64 +736,144 @@ class WeeklyScheduleViewModel (
                     .thenByDescending { it.end - it.start }
             )
 
-            val currentClusters = mutableListOf<MutableList<NormalizedCourse>>()
+            val clusters = buildOverlappingClusters(sorted)
 
-            for (item in sorted) {
-                val targetCluster = currentClusters.find { cluster ->
-                    cluster.any { existing ->
-                        item.start < existing.end - 0.01f && item.end > existing.start + 0.01f &&
-                                weeksOverlap(item.raw, existing.raw)
-                    }
-                }
-                if (targetCluster != null) {
-                    targetCluster.add(item)
-                } else {
-                    currentClusters.add(mutableListOf(item))
-                }
-            }
-
-            for (cluster in currentClusters) {
-                val columnEnds = mutableListOf<Float>()
-                val itemToColumnIndex = mutableMapOf<NormalizedCourse, Int>()
-
-                for (item in cluster) {
-                    var assignedIndex = -1
-                    for (i in columnEnds.indices) {
-                        if (columnEnds[i] <= item.start + 0.01f) {
-                            assignedIndex = i
-                            columnEnds[i] = item.end
-                            break
-                        }
-                    }
-                    if (assignedIndex == -1) {
-                        columnEnds.add(item.end)
-                        assignedIndex = columnEnds.size - 1
-                    }
-                    itemToColumnIndex[item] = assignedIndex
-                }
-
-                val totalSubColumns = columnEnds.size
-
-                for (item in cluster) {
-                    val cw = item.raw
-                    val isCurrentWeekActive = cw.weeks.any { it.weekNumber == currentWeek }
-                    val myColumnIndex = itemToColumnIndex[item] ?: 0
-
-                    result.add(
-                        MergedCourseBlock(
-                            day = day,
-                            startSection = (item.start - 1f).coerceIn(0f, maxSection),
-                            endSection = (item.end - 1f).coerceIn(0f, maxSection),
-                            courses = listOf(cw),
-                            needsProportionalRendering = (mode == ScheduleModeProto.TIME_24H_MODE) || cw.course.isCustomTime,
-                            isVisualDemoted = !isCurrentWeekActive,
-                            nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat())
-                        )
-                    )
-                }
+            for (cluster in clusters) {
+                result.addAll(buildClusterBlocks(day, cluster, mode, maxSection, currentWeek))
             }
         }
         return result
+    }
+
+    private fun normalizeCourses(
+        courses: List<CourseWithWeeks>,
+        parsedSlots: List<ParsedTimeSlot>,
+        mode: ScheduleModeProto,
+        limit: Float,
+        minSafeHeight: Float
+    ): List<NormalizedCourse> {
+        val normalizedList = mutableListOf<NormalizedCourse>()
+        for (cw in courses) {
+            val normalized = normalizeCourse(cw, parsedSlots, mode, limit, minSafeHeight)
+            if (normalized != null) {
+                normalizedList.add(normalized)
+            }
+        }
+        return normalizedList
+    }
+
+    private fun normalizeCourse(
+        cw: CourseWithWeeks,
+        parsedSlots: List<ParsedTimeSlot>,
+        mode: ScheduleModeProto,
+        limit: Float,
+        minSafeHeight: Float
+    ): NormalizedCourse? {
+        return try {
+            val c = cw.course
+
+            val (sTime, eTime) = if (c.isCustomTime) {
+                LocalTime.parse(c.customStartTime ?: return null) to
+                        LocalTime.parse(c.customEndTime ?: return null)
+            } else {
+                val startSlot = parsedSlots.find { it.slot.number == c.startSection } ?: return null
+                val endSlot = parsedSlots.find { it.slot.number == c.endSection } ?: return null
+                startSlot.startTime to endSlot.endTime
+            }
+
+            val s = timeToGridScale(sTime, parsedSlots, mode)
+            val e = timeToGridScale(eTime, parsedSlots, mode)
+
+            var finalStart = s
+            var finalEnd = e
+            if (finalStart >= limit) {
+                finalEnd = limit
+                finalStart = limit - minSafeHeight
+            } else if (finalEnd <= 1.0f) {
+                finalStart = 1.0f
+                finalEnd = 1.0f + minSafeHeight
+            }
+
+            if (finalEnd - finalStart < minSafeHeight) {
+                if (finalEnd + minSafeHeight <= limit) {
+                    finalEnd = finalStart + minSafeHeight
+                } else {
+                    finalStart = finalEnd - minSafeHeight
+                }
+            }
+
+            NormalizedCourse(cw, finalStart.coerceIn(1.0f, limit - 0.1f), finalEnd.coerceIn(1.0f + 0.1f, limit))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun buildOverlappingClusters(sorted: List<NormalizedCourse>): List<List<NormalizedCourse>> {
+        val clusters = mutableListOf<MutableList<NormalizedCourse>>()
+
+        for (item in sorted) {
+            val targetCluster = clusters.find { cluster ->
+                cluster.any { existing ->
+                    item.start < existing.end - 0.01f && item.end > existing.start + 0.01f &&
+                            weeksOverlap(item.raw, existing.raw)
+                }
+            }
+            if (targetCluster != null) {
+                targetCluster.add(item)
+            } else {
+                clusters.add(mutableListOf(item))
+            }
+        }
+        return clusters
+    }
+
+    private fun buildClusterBlocks(
+        day: Int,
+        cluster: List<NormalizedCourse>,
+        mode: ScheduleModeProto,
+        maxSection: Float,
+        currentWeek: Int
+    ): List<MergedCourseBlock> {
+        val columnEnds = mutableListOf<Float>()
+        val itemToColumnIndex = mutableMapOf<NormalizedCourse, Int>()
+
+        for (item in cluster) {
+            var assignedIndex = -1
+            for (i in columnEnds.indices) {
+                if (columnEnds[i] <= item.start + 0.01f) {
+                    assignedIndex = i
+                    columnEnds[i] = item.end
+                    break
+                }
+            }
+            if (assignedIndex == -1) {
+                columnEnds.add(item.end)
+                assignedIndex = columnEnds.size - 1
+            }
+            itemToColumnIndex[item] = assignedIndex
+        }
+
+        val totalSubColumns = columnEnds.size
+        val blocks = mutableListOf<MergedCourseBlock>()
+
+        for (item in cluster) {
+            val cw = item.raw
+            val isCurrentWeekActive = cw.weeks.any { it.weekNumber == currentWeek }
+            val myColumnIndex = itemToColumnIndex[item] ?: 0
+
+            blocks.add(
+                MergedCourseBlock(
+                    day = day,
+                    startSection = (item.start - 1f).coerceIn(0f, maxSection),
+                    endSection = (item.end - 1f).coerceIn(0f, maxSection),
+                    courses = listOf(cw),
+                    needsProportionalRendering = (mode == ScheduleModeProto.TIME_24H_MODE) || cw.course.isCustomTime,
+                    isVisualDemoted = !isCurrentWeekActive,
+                    nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat())
+                )
+            )
+        }
+        return blocks
     }
 
     /**
@@ -761,10 +886,3 @@ class WeeklyScheduleViewModel (
         return a.weeks.any { it.weekNumber in bWeeks }
     }
 }
-
-private data class ScheduleConfigPackage(
-    val settings: AppSettingsModel,
-    val config: CourseTableConfig?,
-    val style: ScheduleGridStyle,
-    val mondayDate: LocalDate
-)

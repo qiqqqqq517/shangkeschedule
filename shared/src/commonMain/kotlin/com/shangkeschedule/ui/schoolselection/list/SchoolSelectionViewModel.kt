@@ -59,7 +59,7 @@ class SchoolSelectionViewModel(
             school.adapters.any { adapter -> adapter.category == category }
         }
 
-        if (query.isBlank()) {
+        val searched = if (query.isBlank()) {
             categoryFiltered
         } else {
             categoryFiltered.filter { school ->
@@ -67,6 +67,12 @@ class SchoolSelectionViewModel(
                         school.initial.contains(query, ignoreCase = true)
             }
         }
+
+        // 按 initial 首字母 ABCD 排序，同首字母按学校名称排序
+        searched.sortedWith(
+            compareBy<School> { it.initial.firstOrNull()?.uppercase() ?: "#" }
+                .thenBy { it.name }
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

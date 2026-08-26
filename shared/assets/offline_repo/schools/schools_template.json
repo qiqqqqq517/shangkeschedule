@@ -1,0 +1,32 @@
+{
+  "_comment": "拾光课程表 - 学校配置表模板。用于生成 school_index.pb。adapterType 对应通用适配器目录。",
+  "_version": 1,
+  "adapterTypes": {
+    "chaoxing": "超星教务系统",
+    "zhengfang": "正方教务系统",
+    "urp": "URP教务系统",
+    "qingguo": "青果教务系统",
+    "qiangzhi": "强智教务系统",
+    "wisedu": "金智(Wisedu)教务系统",
+    "nuanruan": "南软教务系统",
+    "custom": "专用适配器"
+  },
+  "categories": {
+    "BACHELOR_AND_ASSOCIATE": "本专科",
+    "POSTGRADUATE": "研究生",
+    "GENERAL_TOOL": "通用工具"
+  },
+  "schools": [
+    {
+      "name": "示例大学",
+      "shortName": "示例",
+      "code": "EXAMPLE",
+      "adapterType": "chaoxing",
+      "resourceFolder": "chaoxing_jiaowu",
+      "loginUrl": "https://jwxt.example.edu.cn/",
+      "category": "BACHELOR_AND_ASSOCIATE",
+      "province": "江苏",
+      "city": "南通"
+    }
+  ]
+}

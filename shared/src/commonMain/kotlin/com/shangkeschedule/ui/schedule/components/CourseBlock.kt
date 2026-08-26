@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,14 +29,88 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.LocalThemePreset
+
+/**
+ * 主题预设相关渲染参数：在 CourseBlock 入口统一计算一次，
+ * 背景色、文字色、色条、阴影、内边距、虚化遮罩等均直接引用，避免多处重复判断主题。
+ */
+private data class CourseBlockPresetRender(
+    val isSleepyPreset: Boolean,
+    val isTimetablePreset: Boolean,
+    val blockBackgroundColor: Color,
+    val stripColor: Color,
+    val textColor: Color,
+    val sleepyShadowModifier: Modifier,
+    val timetableStartPadding: Dp,
+    val demotedOverlayAlpha: Float
+)
+
+@Composable
+private fun buildPresetRenderSpec(
+    themePreset: AppThemePreset,
+    isDarkTheme: Boolean,
+    colorInt: Int,
+    isFloating: Boolean,
+    currentAlpha: Float,
+    courseColorAdapted: Color?,
+    fallbackColorAdapted: Color,
+    blockColor: Color,
+    style: ScheduleGridStyleComposed
+): CourseBlockPresetRender {
+    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+
+    // 利落主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light/strip=dark，深色模式 bg=dark半透明/strip=dark
+    // 这样用户在个性化配置中修改课程颜色后，利落主题的背景和色条都会同步变化。
+    val timetableDual = style.courseColorMaps.getOrNull(colorInt)
+        ?: style.courseColorMaps.firstOrNull()
+        ?: DualColor(light = Color(0xFFE0F7FA), dark = Color(0xFF006064))
+    val timetableBg = if (isDarkTheme) {
+        timetableDual.dark.copy(alpha = 0.15f)
+    } else {
+        timetableDual.light
+    }
+    val timetableStrip = timetableDual.dark
+    val timetableText = if (isDarkTheme) Color(0xFFE0E0E0) else timetableDual.dark
+
+    val blockBackgroundColor = if (isTimetablePreset) timetableBg else blockColor
+    val stripColor = if (isTimetablePreset) timetableStrip
+        else (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
+    val textColor = if (isTimetablePreset) timetableText
+        else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
+
+    val shape = RoundedCornerShape(style.courseBlockCornerRadius)
+    val sleepyShadowModifier = if (isSleepyPreset && !isFloating) {
+        Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
+    } else {
+        Modifier
+    }
+    val timetableStartPadding = if (isTimetablePreset) 3.dp else 0.dp
+    val demotedOverlayAlpha = if (isSleepyPreset) 0.5f else 0.618f
+
+    return CourseBlockPresetRender(
+        isSleepyPreset = isSleepyPreset,
+        isTimetablePreset = isTimetablePreset,
+        blockBackgroundColor = blockBackgroundColor,
+        stripColor = stripColor,
+        textColor = textColor,
+        sleepyShadowModifier = sleepyShadowModifier,
+        timetableStartPadding = timetableStartPadding,
+        demotedOverlayAlpha = demotedOverlayAlpha
+    )
+}
 
 @Composable
 fun CourseBlock(
@@ -58,7 +134,18 @@ fun CourseBlock(
 
     val currentAlpha = if (isFloating) 0.95f else style.courseBlockAlpha
     val blockColor = (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
-    val textColor = style.courseTextColor ?: MaterialTheme.colorScheme.onSurface
+    val themePreset = LocalThemePreset.current
+    val presetRender = buildPresetRenderSpec(
+        themePreset = themePreset,
+        isDarkTheme = isDarkTheme,
+        colorInt = course.colorInt,
+        isFloating = isFloating,
+        currentAlpha = currentAlpha,
+        courseColorAdapted = courseColorAdapted,
+        fallbackColorAdapted = fallbackColorAdapted,
+        blockColor = blockColor,
+        style = style
+    )
 
     // 字体基础大小（在 BoxWithConstraints 内根据块实际宽度做自适应缩放）
     val baseNameFontSize = 13f * style.fontScale
@@ -127,17 +214,33 @@ fun CourseBlock(
         Modifier
     }
 
+    // SLEEPY 预设：普通课程块叠加轻微悬浮阴影，视觉更接近参考项目
+    val sleepyShadowModifier = presetRender.sleepyShadowModifier
+
     BoxWithConstraints(
         modifier = modifier
             .then(floatingShadowModifier)
+            .then(sleepyShadowModifier)
             .fillMaxSize()
             .then(borderModifier)
             .clip(shape)
-            .background(color = blockColor)
+            .background(color = presetRender.blockBackgroundColor)
     ) {
+        // TIMETABLE 左侧色条：宽 3dp，贯穿整个块高度
+        if (presetRender.isTimetablePreset) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(presetRender.stripColor)
+            )
+        }
+
         // 可用文字区域尺寸（扣除内边距）
         val innerPadding = style.courseBlockInnerPadding
-        val contentWidth = maxWidth - innerPadding * 2
+        val timetableStartPadding = presetRender.timetableStartPadding
+        val contentWidth = maxWidth - innerPadding * 2 - timetableStartPadding
         val contentHeight = maxHeight - innerPadding * 2
 
         // 字号自适应：以单排标准内容宽度(约 48dp)为基准，窄块等比缩小，宽块（空间充足）适量放大，设下限避免过小、上限避免过大
@@ -154,7 +257,14 @@ fun CourseBlock(
 
         // 课程文字内容容器
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = innerPadding + timetableStartPadding,
+                    top = innerPadding,
+                    end = innerPadding,
+                    bottom = innerPadding
+                ),
             horizontalAlignment = horizontalAlignment,
             verticalArrangement = verticalArrangement
         ) {
@@ -162,7 +272,7 @@ fun CourseBlock(
                 Text(
                     text = timeTextToShow,
                     fontSize = metaFontSize,
-                    color = textColor.copy(alpha = 0.8f),
+                    color = presetRender.textColor.copy(alpha = 0.8f),
                     fontWeight = FontWeight.SemiBold,
                     textAlign = textAlign,
                     style = TextStyle(lineHeight = 1.em)
@@ -174,7 +284,7 @@ fun CourseBlock(
                 text = course.name,
                 fontSize = nameFontSize,
                 fontWeight = FontWeight.Bold,
-                color = textColor,
+                color = presetRender.textColor,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = textAlign,
                 modifier = Modifier.weight(1f, fill = false),
@@ -191,7 +301,7 @@ fun CourseBlock(
                     Text(
                         text = "$prefix$breakablePosition",
                         fontSize = metaFontSize,
-                        color = textColor.copy(alpha = 0.82f),
+                        color = presetRender.textColor.copy(alpha = 0.82f),
                         textAlign = textAlign,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 4,
@@ -207,7 +317,7 @@ fun CourseBlock(
                     Text(
                         text = teacher,
                         fontSize = metaFontSize,
-                        color = textColor.copy(alpha = 0.82f),
+                        color = presetRender.textColor.copy(alpha = 0.82f),
                         textAlign = textAlign,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
@@ -222,7 +332,10 @@ fun CourseBlock(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color = (if (isDarkTheme) Color.Black else Color.White).copy(alpha = 0.618f))
+                    .background(
+                        color = (if (isDarkTheme) Color.Black else Color.White)
+                            .copy(alpha = presetRender.demotedOverlayAlpha)
+                    )
                     .drawBehind {
                         val stripeWidth = 5.dp.toPx()
                         val stripeColor = (if (isDarkTheme) Color.White else Color.Black).copy(alpha = 0.06f)
