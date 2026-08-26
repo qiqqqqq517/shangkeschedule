@@ -40,8 +40,8 @@ class SyncManager(
             }
             .launchIn(scope)
 
-        // 2. 监听 Android 端专属的样式更新事件
-        styleSettingsRepository.styleUpdatedFlow
+        // 2. 监听 Android 端专属的样式更新事件（styleFlow 本身即响应式数据流）
+        styleSettingsRepository.styleFlow
             .onEach {
                 Log.d("SyncManager", "收到样式更改通知，正在刷新小组件...")
                 updateAllWidgets(appContext)

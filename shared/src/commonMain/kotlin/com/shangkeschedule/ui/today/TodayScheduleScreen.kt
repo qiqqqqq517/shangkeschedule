@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,12 +23,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -35,8 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.ScheduleGridStyle
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.LocalThemePreset
+import kotlinx.coroutines.delay
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -52,8 +64,13 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.course_position_prefix
 import shangkeschedule.shared.generated.resources.course_teacher_prefix
 import shangkeschedule.shared.generated.resources.date_format_year_month_day
+import shangkeschedule.shared.generated.resources.label_crush_course
 import shangkeschedule.shared.generated.resources.label_remark
 import shangkeschedule.shared.generated.resources.status_semester_ended
+import shangkeschedule.shared.generated.resources.text_countdown_remaining
+import shangkeschedule.shared.generated.resources.text_countdown_start
+import shangkeschedule.shared.generated.resources.text_course_in_progress
+import shangkeschedule.shared.generated.resources.text_courses_finished
 import shangkeschedule.shared.generated.resources.text_no_courses_today
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
@@ -114,7 +131,17 @@ fun TodayContent(
     gridStyle: ScheduleGridStyle,
     isDark: Boolean
 ) {
-    val currentTime = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time }
+    var currentTime by remember {
+        mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time)
+    }
+
+    // 每分钟刷新一次，让「下节课」卡片的倒计时保持更新
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            currentTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
+        }
+    }
 
     val targetScrollIndex = remember(state.courses, currentTime) {
         val firstActiveIndex = state.courses.indexOfFirst { model ->
@@ -190,6 +217,16 @@ fun TodayContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        if (state.courses.isNotEmpty() && state.status == TodayStatus.Normal) {
+            NextCourseCard(
+                courses = state.courses,
+                gridStyle = gridStyle,
+                isDark = isDark,
+                now = currentTime
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         if (state.courses.isEmpty()) {
             EmptyStateView()
         } else {
@@ -204,6 +241,189 @@ fun TodayContent(
                 item {
                     Spacer(modifier = Modifier.height(32.dp))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NextCourseCard(
+    courses: List<CourseDisplayModel>,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime
+) {
+    fun parseOrNull(text: String?): LocalTime? = try {
+        text?.let { LocalTime.parse(it) }
+    } catch (e: Exception) {
+        null
+    }
+
+    fun LocalTime.toMinutes(): Int = hour * 60 + minute
+    fun LocalTime.toHHmm(): String =
+        "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+
+    val ongoing = courses.firstOrNull { model ->
+        val start = parseOrNull(model.startTime)
+        val end = parseOrNull(model.endTime)
+        start != null && end != null && start <= now && now < end
+    }
+
+    val next = if (ongoing == null) {
+        courses.firstOrNull { model ->
+            val start = parseOrNull(model.startTime)
+            start != null && start > now
+        }
+    } else {
+        null
+    }
+
+    val target = ongoing ?: next
+    if (target == null) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            )
+        ) {
+            Text(
+                text = stringResource(Res.string.text_courses_finished),
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    val colorPair = gridStyle.courseColorMaps.getOrElse(target.course.colorInt) {
+        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
+    }
+
+    val themePreset = LocalThemePreset.current
+    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+
+    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
+    val themeColor = if (isTimetablePreset) {
+        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
+    } else {
+        if (isDark) colorPair.dark else colorPair.light
+    }
+    val stripColor = colorPair.dark
+    val textColor = if (isTimetablePreset) {
+        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+    } else {
+        adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
+    }
+
+    val start = parseOrNull(target.startTime)
+    val end = parseOrNull(target.endTime)
+
+    val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
+    val shape = RoundedCornerShape(cornerRadius)
+    val shadowModifier = if (isSleepyPreset) {
+        Modifier.shadow(elevation = 3.dp, shape = shape, clip = false)
+    } else Modifier
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(shadowModifier)
+            .clip(shape)
+            .background(color = themeColor)
+    ) {
+        // 利落主题：左侧色条
+        if (isTimetablePreset) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(stripColor)
+            )
+        }
+
+        val startPadding = if (isTimetablePreset) 19.dp else 16.dp
+        Column(modifier = Modifier.padding(start = startPadding, end = 16.dp, top = 16.dp, bottom = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = target.course.name,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = textColor,
+                    modifier = Modifier.weight(1f)
+                )
+                if (target.course.isCrush) {
+                    Text(
+                        text = stringResource(Res.string.label_crush_course),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor.copy(alpha = 0.85f),
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .background(textColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            if (ongoing != null) {
+                Text(
+                    text = stringResource(Res.string.text_course_in_progress),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            if (target.course.position.isNotBlank()) {
+                Text(
+                    text = stringResource(Res.string.course_position_prefix, target.course.position),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor.copy(alpha = 0.82f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            if (target.course.teacher.isNotBlank()) {
+                Text(
+                    text = stringResource(Res.string.course_teacher_prefix, target.course.teacher),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor.copy(alpha = 0.82f)
+                )
+            }
+
+            if (start != null && end != null) {
+                Text(
+                    text = "${start.toHHmm()} - ${end.toHHmm()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            val countdownText = if (ongoing != null && end != null) {
+                val remaining = (end.toMinutes() - now.toMinutes()).coerceAtLeast(0)
+                stringResource(Res.string.text_countdown_remaining, remaining.toString())
+            } else if (next != null && start != null) {
+                val minutesUntilStart = (start.toMinutes() - now.toMinutes()).coerceAtLeast(0)
+                stringResource(Res.string.text_countdown_start, minutesUntilStart.toString())
+            } else {
+                null
+            }
+
+            if (countdownText != null) {
+                Text(
+                    text = countdownText,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = textColor,
+                    modifier = Modifier.padding(top = 10.dp)
+                )
             }
         }
     }
@@ -225,7 +445,29 @@ fun CourseTimelineItem(
     val colorPair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
         ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
     }
-    val themeColor = if (isDark) colorPair.dark else colorPair.light
+
+    val themePreset = LocalThemePreset.current
+    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+
+    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
+    val themeColor = if (isTimetablePreset) {
+        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
+    } else {
+        if (isDark) colorPair.dark else colorPair.light
+    }
+    val stripColor = colorPair.dark
+    val textColor = if (isTimetablePreset) {
+        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+    } else {
+        adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
+    }
+
+    val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
+    val shape = RoundedCornerShape(cornerRadius)
+    val cardShadowModifier = if (isSleepyPreset && !isFinished) {
+        Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
+    } else Modifier
 
     Row(
         modifier = Modifier
@@ -255,23 +497,33 @@ fun CourseTimelineItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = themeColor
-                ),
-                shape = MaterialTheme.shapes.medium,
-                elevation = if (isFinished) CardDefaults.cardElevation(defaultElevation = 0.dp)
-                else CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(cardShadowModifier)
+                    .clip(shape)
+                    .background(color = themeColor)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                // 利落主题：左侧色条
+                if (isTimetablePreset) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .width(3.dp)
+                            .fillMaxHeight()
+                            .background(stripColor)
+                    )
+                }
+
+                val startPadding = if (isTimetablePreset) 15.dp else 12.dp
+                Column(modifier = Modifier.padding(start = startPadding, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
                     Text(
                         text = model.course.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             textDecoration = if (isFinished) TextDecoration.LineThrough else null
                         ),
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = textColor,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -279,7 +531,7 @@ fun CourseTimelineItem(
                         Text(
                             text = stringResource(Res.string.course_position_prefix, model.course.position),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = textColor.copy(alpha = 0.82f),
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -288,7 +540,7 @@ fun CourseTimelineItem(
                         Text(
                             text = stringResource(Res.string.course_teacher_prefix, model.course.teacher),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = textColor.copy(alpha = 0.82f)
                         )
                     }
                 }

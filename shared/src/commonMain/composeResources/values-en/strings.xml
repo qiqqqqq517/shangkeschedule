@@ -33,6 +33,11 @@
     <string name="nav_settings">Settings</string>
     <string name="title_today_schedule">Today\'s schedule</string>
     <string name="text_no_courses_today">No courses today</string>
+    <string name="label_crush_course">Partner's class</string>
+    <string name="text_course_in_progress">In class now</string>
+    <string name="text_courses_finished">All done for today</string>
+    <string name="text_countdown_start">Starts in %1$s min</string>
+    <string name="text_countdown_remaining">%1$s min left</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
     <string name="date_format_year_month_day">%2$s/%3$s/%1$s</string>
@@ -77,6 +82,7 @@
     <string name="label_assessment_method">Assessment</string>
     <string name="label_is_lab">Lab course</string>
     <string name="course_time_description">Time: Period %1$s-%2$s (%3$s-%4$s)</string>
+    <string name="course_section_range">Period %1$s-%2$s</string>
     <string name="course_position_prefix">Location: %1$s</string>
     <string name="course_teacher_prefix">Instructor: %1$s</string>
     <string name="title_course_overlap">Overlapping Courses</string>
@@ -506,6 +512,12 @@
     <string name="style_category_grid_size">Grid Size</string>
     <string name="style_category_course_block">Course Block Settings</string>
     <string name="style_category_color_scheme">Color Scheme (Tap circle to edit)</string>
+    <string name="label_ui_style_preset">Schedule UI Style</string>
+    <string name="label_view_mode_week">Week</string>
+    <string name="label_view_mode_list">List</string>
+    <string name="ui_style_preset_original">Original (Free)</string>
+    <string name="ui_style_preset_sleepy">Sleepy Style</string>
+    <string name="ui_style_preset_timetable">Timetable Style</string>
     <string name="label_wallpaper">Schedule Wallpaper</string>
     <string name="desc_wallpaper_set">Set (Long press to clear)</string>
     <string name="desc_wallpaper_unset">Not set (Tap to select image)</string>
@@ -567,6 +579,13 @@
     <string name="theme_light">Light Mode</string>
     <string name="theme_dark">Dark Mode</string>
     <string name="theme_settings_title">Theme Settings</string>
+    <string name="item_appearance_settings">Appearance &amp; Style</string>
+    <string name="desc_appearance_settings">Theme style, dark mode and schedule appearance tuning</string>
+    <string name="theme_preset_classic">Classic</string>
+    <string name="theme_preset_cloud">Cloud</string>
+    <string name="theme_preset_clean">Clean</string>
+    <string name="theme_style_section">Theme Style</string>
+    <string name="theme_style_desc">Applies both color scheme and schedule style</string>
     <string name="desc_theme_settings">Customize the app theme and colors</string>
     <string name="theme_mode_label">Theme Mode</string>
     <string name="dynamic_color_title">Dynamic Color (Material You)</string>
@@ -575,6 +594,7 @@
     <string name="light_primary_color">Light Primary Color</string>
     <string name="dark_primary_color">Dark Primary Color</string>
     <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app\\\'s color scheme.</string>
+    <string name="theme_color_disabled_hint">Custom color is unavailable while dynamic color is on</string>
     <string name="label_page_text_color">Schedule text color</string>
     <string name="widget_course_remaining_count">%1$d left</string>
 

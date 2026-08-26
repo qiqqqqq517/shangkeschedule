@@ -2,11 +2,18 @@ package com.shangkeschedule.data.repository
 
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
+import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.data.model.AppThemeMode
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.CourseImportExport
+import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupEnvelope
+import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
 import com.shangkeschedule.data.model.CourseImportExport.ImportCourseJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.SingleTablePack
 import com.shangkeschedule.data.model.CourseImportExport.TotalAppBackupEnvelope
+import com.shangkeschedule.data.model.StartScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.first
@@ -27,7 +34,8 @@ import kotlin.time.Clock
  */
 enum class BackupModule(val key: String) {
     COURSE("course"),
-    STYLE("style")
+    STYLE("style"),
+    APP_SETTINGS("app_settings")
 }
 
 /**
@@ -89,6 +97,12 @@ class BackupRepository(
                             moduleInfos.add(ModuleInfo(module.key, StyleSettingsRepository.STYLE_SCHEMA_VERSION))
                         }
                     }
+                    BackupModule.APP_SETTINGS -> {
+                        exportAppSettingsBytes()?.let {
+                            payloadMap[module.key] = it
+                            moduleInfos.add(ModuleInfo(module.key, APP_SETTINGS_SCHEMA_VERSION))
+                        }
+                    }
                 }
             }
 
@@ -125,6 +139,11 @@ class BackupRepository(
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
                     }
+                    BackupModule.APP_SETTINGS.key -> {
+                        if (info.schemaVersion > APP_SETTINGS_SCHEMA_VERSION) {
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+                        }
+                    }
                 }
             }
             backupPackage.meta.modules.forEach { info ->
@@ -132,6 +151,7 @@ class BackupRepository(
                 val result = when (info.key) {
                     BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
                     BackupModule.STYLE.key -> restoreAppStyleBytes(data)
+                    BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
                     else -> Result.success(Unit)
                 }
                 if (result.isFailure) return@withContext result
@@ -186,31 +206,58 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            courseTableRepository.getAllCourseTables().first().forEach { courseTableDao.delete(it) }
+            // 事务保护：先备份当前所有课表到内存，恢复失败时可回滚
+            val currentTables = courseTableRepository.getAllCourseTables().first()
+            val backupSnapshot = currentTables.mapNotNull { table ->
+                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id) ?: return@mapNotNull null
+                Triple(table.id, table.name, table.createdAt) to exportModel
+            }.toMap()
+            val backupCurrentTableId = appSettingsRepository.getAppSettingsOnce().currentCourseTableId
 
-            envelope.allTables.forEach { pack ->
-                courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
-                val importModel = CourseTableImportModel(
-                    courses = pack.tableData.courses.map {
-                        ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
-                    },
-                    timeSlots = pack.tableData.timeSlots,
-                    config = pack.tableData.config
-                )
-                courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+            try {
+                // 清空现有课表
+                currentTables.forEach { courseTableDao.delete(it) }
+
+                // 导入备份中的课表
+                envelope.allTables.forEach { pack ->
+                    courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
+                    val importModel = CourseTableImportModel(
+                        courses = pack.tableData.courses.map {
+                            ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
+                        },
+                        timeSlots = pack.tableData.timeSlots,
+                        config = pack.tableData.config
+                    )
+                    courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+                }
+
+                val backupTargetTableId = envelope.currentCourseTableId
+                val finalTableId = if (envelope.allTables.any { it.tableId == backupTargetTableId }) {
+                    backupTargetTableId
+                } else {
+                    envelope.allTables.firstOrNull()?.tableId ?: ""
+                }
+
+                val currentSettings = appSettingsRepository.getAppSettingsOnce()
+                appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = finalTableId))
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                // 回滚：恢复备份的课表
+                backupSnapshot.forEach { (tableInfo, exportModel) ->
+                    courseTableDao.insert(CourseTable(tableInfo.first, tableInfo.second, tableInfo.third))
+                    courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
+                        courses = exportModel.courses.map {
+                            ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
+                        },
+                        timeSlots = exportModel.timeSlots,
+                        config = exportModel.config
+                    ))
+                }
+                val settings = appSettingsRepository.getAppSettingsOnce()
+                appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = backupCurrentTableId))
+                Result.failure(e)
             }
-
-            val backupTargetTableId = envelope.currentCourseTableId
-            val finalTableId = if (envelope.allTables.any { it.tableId == backupTargetTableId }) {
-                backupTargetTableId
-            } else {
-                envelope.allTables.firstOrNull()?.tableId ?: ""
-            }
-
-            val currentSettings = appSettingsRepository.getAppSettingsOnce()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = finalTableId))
-
-            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -256,12 +303,104 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            val migratedProtoBytes = if (envelope.appVersionCode < StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
-                envelope.styleProtoBytes
-            } else {
-                envelope.styleProtoBytes
-            }
+            // TODO: 样式版本迁移逻辑待实现（当前版本兼容，直接使用原始字节）
+            val migratedProtoBytes = envelope.styleProtoBytes
             styleSettingsRepository.restoreRawStyleBytes(migratedProtoBytes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 3. 应用设置备份通道
+
+    companion object {
+        const val APP_SETTINGS_SCHEMA_VERSION = 1
+    }
+
+    /**
+     * 导出应用设置为 CBOR 字节
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun exportAppSettingsBytes(): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val settings = appSettingsRepository.getAppSettingsOnce()
+            val backupModel = AppSettingsBackupModel(
+                currentCourseTableId = settings.currentCourseTableId,
+                reminderEnabled = settings.reminderEnabled,
+                remindBeforeMinutes = settings.remindBeforeMinutes,
+                skippedDates = settings.skippedDates,
+                autoModeEnabled = settings.autoModeEnabled,
+                autoControlMode = settings.autoControlMode.name,
+                compatWearableSync = settings.compatWearableSync,
+                showNonCurrentWeekCourses = settings.showNonCurrentWeekCourses,
+                startScreen = settings.startScreen.name,
+                themeMode = settings.themeMode.name,
+                themePreset = settings.themePreset.name,
+                useDynamicColor = settings.useDynamicColor,
+                customLightPrimary = settings.customLightPrimary,
+                customDarkPrimary = settings.customDarkPrimary,
+                developerModeEnabled = settings.developerModeEnabled,
+                coupleScheduleEnabled = settings.coupleScheduleEnabled,
+                selfCourseColorIndex = settings.selfCourseColorIndex,
+                crushCourseColorIndex = settings.crushCourseColorIndex,
+                scheduleViewMode = settings.scheduleViewMode.name
+            )
+            val envelope = AppSettingsBackupEnvelope(
+                backupTimestamp = Clock.System.now().toEpochMilliseconds(),
+                appVersionCode = APP_SETTINGS_SCHEMA_VERSION,
+                settings = backupModel
+            )
+            CourseImportExport.cbor.encodeToByteArray(AppSettingsBackupEnvelope.serializer(), envelope)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 从 CBOR 字节恢复应用设置
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun restoreAppSettingsBytes(settingsBytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (settingsBytes.isEmpty()) {
+                return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
+            }
+
+            val envelope = try {
+                CourseImportExport.cbor.decodeFromByteArray(AppSettingsBackupEnvelope.serializer(), settingsBytes)
+            } catch (_: Exception) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
+            }
+
+            if (envelope.appVersionCode > APP_SETTINGS_SCHEMA_VERSION) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            }
+
+            val bm = envelope.settings
+            val currentSettings = appSettingsRepository.getAppSettingsOnce()
+            val restoredSettings = currentSettings.copy(
+                currentCourseTableId = bm.currentCourseTableId,
+                reminderEnabled = bm.reminderEnabled,
+                remindBeforeMinutes = bm.remindBeforeMinutes,
+                skippedDates = bm.skippedDates,
+                autoModeEnabled = bm.autoModeEnabled,
+                autoControlMode = runCatching { AutoControlMode.valueOf(bm.autoControlMode) }.getOrNull() ?: currentSettings.autoControlMode,
+                compatWearableSync = bm.compatWearableSync,
+                showNonCurrentWeekCourses = bm.showNonCurrentWeekCourses,
+                startScreen = runCatching { StartScreen.valueOf(bm.startScreen) }.getOrNull() ?: currentSettings.startScreen,
+                themeMode = runCatching { AppThemeMode.valueOf(bm.themeMode) }.getOrNull() ?: currentSettings.themeMode,
+                themePreset = runCatching { AppThemePreset.valueOf(bm.themePreset) }.getOrNull() ?: currentSettings.themePreset,
+                useDynamicColor = bm.useDynamicColor,
+                customLightPrimary = bm.customLightPrimary,
+                customDarkPrimary = bm.customDarkPrimary,
+                developerModeEnabled = bm.developerModeEnabled,
+                coupleScheduleEnabled = bm.coupleScheduleEnabled,
+                selfCourseColorIndex = bm.selfCourseColorIndex,
+                crushCourseColorIndex = bm.crushCourseColorIndex,
+                scheduleViewMode = runCatching { com.shangkeschedule.ui.schedule.ScheduleViewMode.valueOf(bm.scheduleViewMode) }.getOrNull() ?: currentSettings.scheduleViewMode
+            )
+            appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

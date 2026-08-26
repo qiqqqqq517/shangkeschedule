@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +93,7 @@ import shangkeschedule.shared.generated.resources.action_reset_style
 import shangkeschedule.shared.generated.resources.border_type_dashed
 import shangkeschedule.shared.generated.resources.border_type_solid
 import shangkeschedule.shared.generated.resources.check_24px
+import shangkeschedule.shared.generated.resources.check_circle_24px
 import shangkeschedule.shared.generated.resources.desc_wallpaper_set
 import shangkeschedule.shared.generated.resources.desc_wallpaper_unset
 import shangkeschedule.shared.generated.resources.dialog_reset_message
@@ -141,6 +143,8 @@ fun SettingsListContent(
     currentStyle: ScheduleGridStyleComposed,
     viewModel: StyleSettingsViewModel,
     onWallpaperClick: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxSize(),
+    scrollable: Boolean = true,
     onPick: (isDark: Boolean, index: Int) -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
@@ -162,8 +166,14 @@ fun SettingsListContent(
         )
     }
 
+    val contentModifier = if (scrollable) {
+        modifier.verticalScroll(rememberScrollState())
+    } else {
+        modifier
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = contentModifier.padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         OutlinedButton(
@@ -174,8 +184,6 @@ fun SettingsListContent(
         ) {
             Text(stringResource(Res.string.action_reset_style))
         }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Text(stringResource(Res.string.style_category_interface), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         WallpaperItem(

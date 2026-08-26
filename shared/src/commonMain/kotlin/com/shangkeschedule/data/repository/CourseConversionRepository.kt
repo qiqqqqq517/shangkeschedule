@@ -144,18 +144,24 @@ class CourseConversionRepository(
         return finalColor
     }
 
-    @Transaction
-    suspend fun importCoursesFromList(
+    /**
+     * 公共课程实体构建函数：消除4个导入函数中的重复逻辑。
+     * 统一处理颜色分配、属性提取、课程和周次实体构建。
+     *
+     * @param coursesJsonModel 导入的课程 JSON 列表
+     * @param tableId 课表 ID
+     * @param colorSize 当前主题的颜色数量
+     * @param isCrush 是否为情侣课表（crush 课程）
+     * @param preserveId 是否保留 JSON 中的课程 ID（用于完整导入，false 时生成新 UUID）
+     * @return Pair(课程实体列表, 周次实体列表)
+     */
+    private fun buildCourseEntities(
+        coursesJsonModel: List<ImportCourseJsonModel>,
         tableId: String,
-        coursesJsonModel: List<ImportCourseJsonModel>
-    ) {
-        coursesJsonModel.forEach { validateCustomCourseTimeOrThrow(it) }
-
-        val currentStyle = styleSettingsRepository.styleFlow.first()
-        val colorSize = currentStyle.courseColorMaps.size
-
-        courseDao.deleteCoursesByTableId(tableId)
-
+        colorSize: Int,
+        isCrush: Boolean,
+        preserveId: Boolean
+    ): Pair<List<Course>, List<CourseWeek>> {
         val courseEntities = ArrayList<Course>(coursesJsonModel.size)
         val courseWeekEntities = mutableListOf<CourseWeek>()
 
@@ -163,7 +169,7 @@ class CourseConversionRepository(
         var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
 
         coursesJsonModel.forEach { jsonCourse ->
-            val courseId = Uuid.random().toString()
+            val courseId = if (preserveId && jsonCourse.id != null) jsonCourse.id else Uuid.random().toString()
 
             val courseIndex = getOrAssignColorByName(
                 jsonCourse = jsonCourse,
@@ -194,7 +200,8 @@ class CourseConversionRepository(
                     remark = jsonCourse.remark?.take(300),
                     credit = jsonCourse.credit ?: extracted.credit,
                     assessmentMethod = jsonCourse.assessmentMethod ?: extracted.assessmentMethod,
-                    isLab = jsonCourse.isLab || extracted.isLab
+                    isLab = jsonCourse.isLab || extracted.isLab,
+                    isCrush = isCrush
                 )
             )
 
@@ -204,6 +211,29 @@ class CourseConversionRepository(
                 )
             }
         }
+
+        return Pair(courseEntities, courseWeekEntities)
+    }
+
+    @Transaction
+    suspend fun importCoursesFromList(
+        tableId: String,
+        coursesJsonModel: List<ImportCourseJsonModel>
+    ) {
+        coursesJsonModel.forEach { validateCustomCourseTimeOrThrow(it) }
+
+        val currentStyle = styleSettingsRepository.styleFlow.first()
+        val colorSize = currentStyle.courseColorMaps.size
+
+        courseDao.deleteCoursesByTableId(tableId)
+
+        val (courseEntities, courseWeekEntities) = buildCourseEntities(
+            coursesJsonModel = coursesJsonModel,
+            tableId = tableId,
+            colorSize = colorSize,
+            isCrush = false,
+            preserveId = false
+        )
 
         if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
         if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
@@ -230,56 +260,13 @@ class CourseConversionRepository(
         // 处理课程数据（始终清空原有课程）
         courseDao.deleteCoursesByTableId(tableId)
 
-        val courseEntities = ArrayList<Course>(courseTableJsonModel.courses.size)
-        val courseWeekEntities = mutableListOf<CourseWeek>()
-
-        val nameToColorMap = mutableMapOf<String, Int>()
-        var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
-
-        courseTableJsonModel.courses.forEach { jsonCourse ->
-            val courseId = jsonCourse.id ?: Uuid.random().toString()
-
-            val courseIndex = getOrAssignColorByName(
-                jsonCourse = jsonCourse,
-                colorSize = colorSize,
-                nameToColorMap = nameToColorMap,
-                getNextAutoColor = {
-                    val next = if (colorSize > 0) colorOffset % colorSize else 0
-                    colorOffset++
-                    next
-                }
-            )
-
-            val extracted = extractCourseAttributes(jsonCourse.remark)
-            courseEntities.add(
-                Course(
-                    id = courseId,
-                    courseTableId = tableId,
-                    name = jsonCourse.name,
-                    teacher = jsonCourse.teacher,
-                    position = jsonCourse.position,
-                    day = jsonCourse.day,
-                    startSection = jsonCourse.startSection,
-                    endSection = jsonCourse.endSection,
-                    isCustomTime = jsonCourse.isCustomTime,
-                    customStartTime = jsonCourse.customStartTime,
-                    customEndTime = jsonCourse.customEndTime,
-                    colorInt = courseIndex,
-                    remark = jsonCourse.remark?.take(300),
-                    credit = jsonCourse.credit ?: extracted.credit,
-                    assessmentMethod = jsonCourse.assessmentMethod ?: extracted.assessmentMethod,
-                    isLab = jsonCourse.isLab || extracted.isLab
-                )
-            )
-
-            jsonCourse.weeks.forEach { week ->
-                courseWeekEntities.add(
-                    CourseWeek(courseId = courseId, weekNumber = week)
-                )
-            }
-        }
-
-        // 处理时间段数据（仅在有数据时覆盖）
+        val (courseEntities, courseWeekEntities) = buildCourseEntities(
+            coursesJsonModel = courseTableJsonModel.courses,
+            tableId = tableId,
+            colorSize = colorSize,
+            isCrush = false,
+            preserveId = true
+        )
 
         // 处理时间段数据（仅在有数据时覆盖）
         val jsonTimeSlots = courseTableJsonModel.timeSlots
@@ -448,55 +435,13 @@ class CourseConversionRepository(
         // 仅删除 crush 课程，本人课程保持不变
         courseDao.deleteCrushCoursesByTableId(tableId)
 
-        val courseEntities = ArrayList<Course>(coursesJsonModel.size)
-        val courseWeekEntities = mutableListOf<CourseWeek>()
-
-        val nameToColorMap = mutableMapOf<String, Int>()
-        var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
-
-        coursesJsonModel.forEach { jsonCourse ->
-            val courseId = Uuid.random().toString()
-
-            val courseIndex = getOrAssignColorByName(
-                jsonCourse = jsonCourse,
-                colorSize = colorSize,
-                nameToColorMap = nameToColorMap,
-                getNextAutoColor = {
-                    val next = if (colorSize > 0) colorOffset % colorSize else 0
-                    colorOffset++
-                    next
-                }
-            )
-
-            val extracted = extractCourseAttributes(jsonCourse.remark)
-            courseEntities.add(
-                Course(
-                    id = courseId,
-                    courseTableId = tableId,
-                    name = jsonCourse.name,
-                    teacher = jsonCourse.teacher,
-                    position = jsonCourse.position,
-                    day = jsonCourse.day,
-                    startSection = jsonCourse.startSection,
-                    endSection = jsonCourse.endSection,
-                    isCustomTime = jsonCourse.isCustomTime,
-                    customStartTime = jsonCourse.customStartTime,
-                    customEndTime = jsonCourse.customEndTime,
-                    colorInt = courseIndex,
-                    remark = jsonCourse.remark?.take(300),
-                    credit = jsonCourse.credit ?: extracted.credit,
-                    assessmentMethod = jsonCourse.assessmentMethod ?: extracted.assessmentMethod,
-                    isLab = jsonCourse.isLab || extracted.isLab,
-                    isCrush = true
-                )
-            )
-
-            jsonCourse.weeks.forEach { week ->
-                courseWeekEntities.add(
-                    CourseWeek(courseId = courseId, weekNumber = week)
-                )
-            }
-        }
+        val (courseEntities, courseWeekEntities) = buildCourseEntities(
+            coursesJsonModel = coursesJsonModel,
+            tableId = tableId,
+            colorSize = colorSize,
+            isCrush = true,
+            preserveId = false
+        )
 
         if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
         if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
@@ -520,55 +465,13 @@ class CourseConversionRepository(
         // 仅删除 crush 课程，本人课程保持不变
         courseDao.deleteCrushCoursesByTableId(tableId)
 
-        val courseEntities = ArrayList<Course>(courseTableJsonModel.courses.size)
-        val courseWeekEntities = mutableListOf<CourseWeek>()
-
-        val nameToColorMap = mutableMapOf<String, Int>()
-        var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
-
-        courseTableJsonModel.courses.forEach { jsonCourse ->
-            val courseId = jsonCourse.id ?: Uuid.random().toString()
-
-            val courseIndex = getOrAssignColorByName(
-                jsonCourse = jsonCourse,
-                colorSize = colorSize,
-                nameToColorMap = nameToColorMap,
-                getNextAutoColor = {
-                    val next = if (colorSize > 0) colorOffset % colorSize else 0
-                    colorOffset++
-                    next
-                }
-            )
-
-            val extracted = extractCourseAttributes(jsonCourse.remark)
-            courseEntities.add(
-                Course(
-                    id = courseId,
-                    courseTableId = tableId,
-                    name = jsonCourse.name,
-                    teacher = jsonCourse.teacher,
-                    position = jsonCourse.position,
-                    day = jsonCourse.day,
-                    startSection = jsonCourse.startSection,
-                    endSection = jsonCourse.endSection,
-                    isCustomTime = jsonCourse.isCustomTime,
-                    customStartTime = jsonCourse.customStartTime,
-                    customEndTime = jsonCourse.customEndTime,
-                    colorInt = courseIndex,
-                    remark = jsonCourse.remark?.take(300),
-                    credit = jsonCourse.credit ?: extracted.credit,
-                    assessmentMethod = jsonCourse.assessmentMethod ?: extracted.assessmentMethod,
-                    isLab = jsonCourse.isLab || extracted.isLab,
-                    isCrush = true
-                )
-            )
-
-            jsonCourse.weeks.forEach { week ->
-                courseWeekEntities.add(
-                    CourseWeek(courseId = courseId, weekNumber = week)
-                )
-            }
-        }
+        val (courseEntities, courseWeekEntities) = buildCourseEntities(
+            coursesJsonModel = courseTableJsonModel.courses,
+            tableId = tableId,
+            colorSize = colorSize,
+            isCrush = true,
+            preserveId = true
+        )
 
         // crush 课表导入不覆盖时间段，避免影响本人课表的作息时间设置
 

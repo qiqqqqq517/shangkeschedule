@@ -7,6 +7,8 @@ import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -93,6 +95,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES] = newSettings.showNonCurrentWeekCourses
             prefs[AppSettingsModel.KEY_START_SCREEN] = newSettings.startScreen.value
             prefs[AppSettingsModel.KEY_THEME_MODE] = newSettings.themeMode.value
+            prefs[AppSettingsModel.KEY_THEME_PRESET] = newSettings.themePreset.value
             prefs[AppSettingsModel.KEY_USE_DYNAMIC_COLOR] = newSettings.useDynamicColor
             prefs[AppSettingsModel.KEY_CUSTOM_LIGHT_PRIMARY] = newSettings.customLightPrimary
             prefs[AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY] = newSettings.customDarkPrimary
@@ -100,6 +103,21 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_COUPLE_SCHEDULE_ENABLED] = newSettings.coupleScheduleEnabled
             prefs[AppSettingsModel.KEY_SELF_COURSE_COLOR_INDEX] = newSettings.selfCourseColorIndex
             prefs[AppSettingsModel.KEY_CRUSH_COURSE_COLOR_INDEX] = newSettings.crushCourseColorIndex
+            prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = newSettings.scheduleViewMode.value
+        }
+    }
+
+    /** 单独持久化应用主题预设。 */
+    suspend fun updateThemePreset(preset: AppThemePreset) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_THEME_PRESET] = preset.value
+        }
+    }
+
+    /** 单独持久化周课表视图模式。 */
+    suspend fun updateScheduleViewMode(mode: ScheduleViewMode) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = mode.value
         }
     }
 

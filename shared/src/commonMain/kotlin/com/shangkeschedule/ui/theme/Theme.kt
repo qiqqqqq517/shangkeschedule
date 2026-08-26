@@ -7,15 +7,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
+import com.shangkeschedule.data.model.AppThemePreset
 
 /**
  * 定义一个用于全局同步深色模式状态的 Local 变量
  */
 val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
+/**
+ * 当前 App 主题预设（经典 / 云舒 / 利落）。
+ * 供课表课程块等 UI 层直接读取，避免通过样式参数反推预设。
+ */
+val LocalThemePreset = staticCompositionLocalOf { AppThemePreset.ORIGINAL }
 
 /**
  * 外部调用的快捷主题函数
@@ -32,12 +40,23 @@ fun ShangKeScheduleTheme(
         AppThemeMode.DARK -> true
     }
 
-    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+    // 配色优先级：动态取色 > 自定义主色 > 主题预设种子色
+    val seedColor: Color? = when {
+        settings.useDynamicColor && supportsDynamicColor -> null
+        settings.customLightPrimary != DefaultThemeColor.toArgb().toLong() ->
+            Color(if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary)
+        else -> settings.themePreset.seedColor
+    }
+
+    CompositionLocalProvider(
+        LocalIsDarkTheme provides darkTheme,
+        LocalThemePreset provides settings.themePreset
+    ) {
         ShangKeScheduleTheme(
             darkTheme = darkTheme,
-            dynamicColor = settings.useDynamicColor,
-            customLightPrimary = Color(settings.customLightPrimary),
-            customDarkPrimary = Color(settings.customDarkPrimary),
+            dynamicColor = settings.useDynamicColor && seedColor == null,
+            customLightPrimary = seedColor ?: DefaultThemeColor,
+            customDarkPrimary = seedColor ?: DefaultThemeColor,
             themeMode = settings.themeMode,
             content = content
         )

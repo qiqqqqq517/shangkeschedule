@@ -7,6 +7,7 @@ import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.repository.AppSettingsRepository
@@ -46,12 +47,13 @@ class StyleSettingsViewModel(
 ) : ViewModel() {
 
     // 订阅样式设置
-    val styleState: StateFlow<ScheduleGridStyleComposed?> = styleRepository.styleFlow
+    // 优先使用内存缓存作为初始值，避免进入外观设置页时的加载闪烁
+    val styleState: StateFlow<ScheduleGridStyleComposed> = styleRepository.styleFlow
         .map { it.toComposedStyle() }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = (styleRepository.getCachedStyle() ?: ScheduleGridStyle.DEFAULT).toComposedStyle()
         )
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -67,7 +69,7 @@ class StyleSettingsViewModel(
                 val todayDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
                 WeeklyScheduleUiState(
-                    style = currentStyle,
+                    style = currentStyle.toComposedStyle(),
                     currentMergedCourses = createDemoCourses(dummyTableId, is24HourMode),
                     timeSlots = createDemoTimeSlots(dummyTableId),
                     showWeekends = config?.showWeekends ?: true,

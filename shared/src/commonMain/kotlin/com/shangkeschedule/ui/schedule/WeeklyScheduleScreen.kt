@@ -1,20 +1,35 @@
 package com.shangkeschedule.ui.schedule
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,17 +49,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
@@ -57,6 +77,9 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
+import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -66,6 +89,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,12 +97,18 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_select_table
 import shangkeschedule.shared.generated.resources.arrow_drop_down_24px
 import shangkeschedule.shared.generated.resources.format_week_display
+import shangkeschedule.shared.generated.resources.label_view_mode_list
+import shangkeschedule.shared.generated.resources.label_view_mode_week
+import shangkeschedule.shared.generated.resources.course_section_range
 import shangkeschedule.shared.generated.resources.snackbar_add_course_within_semester
 import shangkeschedule.shared.generated.resources.swap_horiz_24px
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
 import shangkeschedule.shared.generated.resources.title_vacation
 import shangkeschedule.shared.generated.resources.title_vacation_until_start
+import shangkeschedule.shared.generated.resources.view_agenda_24px
+import shangkeschedule.shared.generated.resources.view_week_24px
+import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
 
 /**
@@ -138,9 +168,7 @@ fun WeeklyScheduleScreen(
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
-    val composedStyle by remember(uiState.style) {
-        derivedStateOf { with(ScheduleGridStyleComposed) { uiState.style.toComposedStyle() } }
-    }
+    val composedStyle = uiState.style
 
     val floatingCourse = uiState.floatingCourse
 
@@ -185,6 +213,7 @@ fun WeeklyScheduleScreen(
     }
 
     val collapseFraction = scrollBehavior.state.collapsedFraction
+    val scheduleViewMode by viewModel.scheduleViewModeState.collectAsStateWithLifecycle()
 
     AdaptiveNavigationScaffold(
         currentDestination = Destination.CourseSchedule,
@@ -243,6 +272,34 @@ fun WeeklyScheduleScreen(
                                 )
                             }
                         },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                val newMode = if (scheduleViewMode == ScheduleViewMode.WEEK) {
+                                    ScheduleViewMode.LIST
+                                } else {
+                                    ScheduleViewMode.WEEK
+                                }
+                                viewModel.updateScheduleViewMode(newMode)
+                            }) {
+                                Icon(
+                                    imageVector = vectorResource(
+                                        if (scheduleViewMode == ScheduleViewMode.WEEK) {
+                                            Res.drawable.view_agenda_24px
+                                        } else {
+                                            Res.drawable.view_week_24px
+                                        }
+                                    ),
+                                    contentDescription = stringResource(
+                                        if (scheduleViewMode == ScheduleViewMode.WEEK) {
+                                            Res.string.label_view_mode_list
+                                        } else {
+                                            Res.string.label_view_mode_week
+                                        }
+                                    ),
+                                    tint = customTextColor
+                                )
+                            }
+                        },
                         actions = {
                             IconButton(onClick = { showTableSwitcher = true }) {
                                 Icon(
@@ -273,19 +330,22 @@ fun WeeklyScheduleScreen(
                     }
                 }
 
-                HorizontalPager(
-                    state = pagerState,
+                Column(
                     modifier = Modifier
+                        .fillMaxSize()
                         .padding(
                             start = scaffoldInnerPadding.calculateStartPadding(LayoutDirection.Ltr),
                             top = scaffoldInnerPadding.calculateTopPadding(),
                             end = scaffoldInnerPadding.calculateEndPadding(LayoutDirection.Ltr),
                             bottom = dynamicBottomPadding
                         )
-                        .fillMaxSize(),
-                    beyondViewportPageCount = 1,
-                    userScrollEnabled = !isGridHolding
-                ) { pageIndex ->
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        beyondViewportPageCount = 1,
+                        userScrollEnabled = !isGridHolding
+                    ) { pageIndex ->
 
                     val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek) {
                         val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
@@ -312,31 +372,53 @@ fun WeeklyScheduleScreen(
                     }
 
                     val pageCourses = uiState.courseCache[pageMondayDate.toString()] ?: emptyList()
-                    val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
 
-                    val weekIndex = uiState.weekIndexInPager
-                    val totalWeeks = uiState.totalWeeks
-                    val weekStr = if (weekIndex != null && weekIndex in 1..totalWeeks) {
-                        stringResource(Res.string.format_week_display, weekIndex)
-                    } else {
-                        null
-                    }
-
-                    val gridViewState = remember(pageDateStrings, pageYearString, uiState, pageCourses, pageTodayIndex, weekStr) {
-                        ScheduleGridViewState(
-                            dates = pageDateStrings,
-                            currentYear = pageYearString,
-                            currentWeek = weekStr,
+                    if (scheduleViewMode == ScheduleViewMode.LIST) {
+                        ScheduleListView(
+                            pageCourses = pageCourses,
+                            pageMondayDate = pageMondayDate,
                             timeSlots = uiState.timeSlots,
-                            mergedCourses = pageCourses,
                             showWeekends = uiState.showWeekends,
-                            todayIndex = pageTodayIndex,
                             firstDayOfWeek = uiState.firstDayOfWeek,
-                            currentSectionIndex = if (pageTodayIndex >= 0) uiState.currentSectionIndex else -1
+                            composedStyle = composedStyle,
+                            onClickedBlock = { block -> selectedBlockForDetail = block },
+                            onLongClickedBlock = { block ->
+                                val targetCourseWrapper = block.courses.firstOrNull()
+                                val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber
+                                if (targetCourseWrapper != null && currentWeek != null) {
+                                    viewModel.enterFloatingMode(
+                                        course = targetCourseWrapper,
+                                        sourceWeek = currentWeek
+                                    )
+                                }
+                            }
                         )
-                    }
+                    } else {
+                        val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
 
-                    val gridActions = remember(uiState, floatingDuration, snackbarMsg) {
+                        val weekIndex = uiState.weekIndexInPager
+                        val totalWeeks = uiState.totalWeeks
+                        val weekStr = if (weekIndex != null && weekIndex in 1..totalWeeks) {
+                            stringResource(Res.string.format_week_display, weekIndex)
+                        } else {
+                            null
+                        }
+
+                        val gridViewState = remember(pageDateStrings, pageYearString, uiState, pageCourses, pageTodayIndex, weekStr) {
+                            ScheduleGridViewState(
+                                dates = pageDateStrings,
+                                currentYear = pageYearString,
+                                currentWeek = weekStr,
+                                timeSlots = uiState.timeSlots,
+                                mergedCourses = pageCourses,
+                                showWeekends = uiState.showWeekends,
+                                todayIndex = pageTodayIndex,
+                                firstDayOfWeek = uiState.firstDayOfWeek,
+                                currentSectionIndex = if (pageTodayIndex >= 0) uiState.currentSectionIndex else -1
+                            )
+                        }
+
+                        val gridActions = remember(uiState, floatingDuration, snackbarMsg) {
                         object : ScheduleGridActions {
                             override fun onCourseBlockClicked(block: MergedCourseBlock) {
                                 selectedBlockForDetail = block
@@ -475,8 +557,10 @@ fun WeeklyScheduleScreen(
                         style = composedStyle,
                         modifier = Modifier
                     )
-                }
-            }
+                    } // end HorizontalPager page lambda
+                    } // end else
+                } // end Column
+            } // end Scaffold content
             FloatingCourseBar(
                 floatingCourse = floatingCourse,
                 onCancelClick = { viewModel.exitFloatingMode() },
@@ -527,5 +611,231 @@ fun WeeklyScheduleScreen(
                 onNavigate(Destination.AddEditCourse(courseId = courseId))
             }
         )
+    }
+}
+
+
+/**
+ * 参考 sleepy 的列表视图：按天分组展示本周课程。
+ *
+ * 直接接收当前 pager 页的课程与日期，与 [HorizontalPager] 共用同一周次位置，
+ * 因此列表视图同样支持左右滑动切周。仅渲染有课的天，空天不显示占位文案。
+ */
+@Composable
+private fun ScheduleListView(
+    pageCourses: List<MergedCourseBlock>,
+    pageMondayDate: LocalDate,
+    timeSlots: List<com.shangkeschedule.data.db.main.TimeSlot>,
+    showWeekends: Boolean,
+    firstDayOfWeek: Int,
+    composedStyle: ScheduleGridStyleComposed,
+    onClickedBlock: (MergedCourseBlock) -> Unit,
+    onLongClickedBlock: (MergedCourseBlock) -> Unit
+) {
+    val weekDays = stringArrayResource(Res.array.week_days_full_names)
+    val dayCount = if (showWeekends) 7 else 5
+    val firstDay = firstDayOfWeek.coerceIn(1, 7)
+    val orderedDays = (0 until dayCount).map { offset ->
+        (firstDay - 1 + offset) % 7 + 1
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        orderedDays.forEach { day ->
+            val dayBlocks = pageCourses.filter { it.day == day }
+            if (dayBlocks.isEmpty()) return@forEach
+
+            val dayOffset = (day - firstDay + 7) % 7
+            val dayDate = pageMondayDate.plus(dayOffset.toLong(), DateTimeUnit.DAY)
+
+            item(key = "day-header-$day") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = weekDays.getOrNull((day - 1).coerceAtLeast(0)).orEmpty(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${dayDate.month.number.toString().padStart(2, '0')}-${dayDate.day.toString().padStart(2, '0')}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            items(items = dayBlocks, key = { block -> block.hashCode() }) { block ->
+                ScheduleListViewBlock(
+                    block = block,
+                    timeSlots = timeSlots,
+                    composedStyle = composedStyle,
+                    onClick = { onClickedBlock(block) },
+                    onLongClick = { onLongClickedBlock(block) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ScheduleListViewBlock(
+    block: MergedCourseBlock,
+    timeSlots: List<com.shangkeschedule.data.db.main.TimeSlot>,
+    composedStyle: ScheduleGridStyleComposed,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+    val themePreset = LocalThemePreset.current
+    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+
+    val firstCourse = block.courses.firstOrNull()?.course
+    val colorIndex = firstCourse?.colorInt ?: 0
+    val colorPair = composedStyle.courseColorMaps.getOrElse(colorIndex) {
+        composedStyle.courseColorMaps.firstOrNull()
+            ?: com.shangkeschedule.data.model.DualColor(
+                light = androidx.compose.ui.graphics.Color(0xFFE0F7FA),
+                dark = androidx.compose.ui.graphics.Color(0xFF006064)
+            )
+    }
+
+    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
+    val bg = if (isTimetablePreset) {
+        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
+    } else {
+        if (isDark) colorPair.dark else colorPair.light
+    }
+    val stripColor = colorPair.dark
+    val textColor = if (isTimetablePreset) {
+        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+    } else {
+        adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
+    }
+    val demotedAlpha = if (block.isVisualDemoted) 0.5f else 1f
+    val cornerRadius = composedStyle.courseBlockCornerRadius
+    val shape = RoundedCornerShape(cornerRadius)
+
+    // 云舒主题加阴影；利落/经典不加
+    val shadowModifier = if (isSleepyPreset && !block.isVisualDemoted) {
+        Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
+    } else Modifier
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(shadowModifier)
+            .graphicsLayer(alpha = demotedAlpha)
+            .clip(shape)
+            .background(color = bg)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    ) {
+        // 利落主题：左侧色条
+        if (isTimetablePreset) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(stripColor)
+            )
+        }
+
+        val startPadding = if (isTimetablePreset) 15.dp else 12.dp
+        Column(
+            modifier = Modifier.padding(
+                start = startPadding,
+                end = 12.dp,
+                top = 10.dp,
+                bottom = 10.dp
+            )
+        ) {
+            block.courses.forEachIndexed { index, courseWrapper ->
+                if (index > 0) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        color = textColor.copy(alpha = 0.15f)
+                    )
+                }
+
+                val course = courseWrapper.course
+                Text(
+                    text = course.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+
+                val timeText = buildCourseTimeText(course, timeSlots)
+                if (timeText.isNotBlank()) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = textColor.copy(alpha = 0.82f),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                // 节次模式显示「第 x-y 节」；自定义时间课程不显示节次
+                if (course.customStartTime == null && course.startSection != null && course.endSection != null) {
+                    Text(
+                        text = stringResource(
+                            Res.string.course_section_range,
+                            course.startSection.toString(),
+                            course.endSection.toString()
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                val infoParts = buildList {
+                    if (course.position.isNotBlank()) {
+                        add(if (composedStyle.removeLocationAt) course.position else "@${course.position}")
+                    }
+                    if (!composedStyle.hideTeacher && course.teacher.isNotBlank()) add(course.teacher)
+                }
+                if (infoParts.isNotEmpty()) {
+                    Text(
+                        text = infoParts.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor.copy(alpha = 0.78f),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 根据 TimeSlot 或自定义时间生成列表视图中的时间字符串。
+ */
+private fun buildCourseTimeText(
+    course: com.shangkeschedule.data.db.main.Course,
+    timeSlots: List<com.shangkeschedule.data.db.main.TimeSlot>
+): String {
+    val customStart = course.customStartTime
+    val customEnd = course.customEndTime
+    if (customStart != null && customEnd != null) return "$customStart - $customEnd"
+
+    val first = course.startSection ?: return ""
+    val last = course.endSection ?: return ""
+    val startSlot = timeSlots.find { it.number == first }
+    val endSlot = timeSlots.find { it.number == last }
+    return if (startSlot != null && endSlot != null) {
+        "${startSlot.startTime} - ${endSlot.endTime}"
+    } else {
+        ""
     }
 }

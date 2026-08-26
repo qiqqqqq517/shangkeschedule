@@ -11,11 +11,14 @@ import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.model.toCompose
 import com.shangkeschedule.data.model.toProto
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import okio.BufferedSink
 import okio.BufferedSource
@@ -85,8 +88,20 @@ class StyleSettingsRepository(
         const val STYLE_SCHEMA_VERSION = 1
     }
 
-    private val _styleUpdatedChannel = Channel<Unit>(Channel.CONFLATED)
-    val styleUpdatedFlow: Flow<Unit> = _styleUpdatedChannel.receiveAsFlow()
+    // 内存缓存：避免进入外观设置页时因异步加载导致初始值闪烁
+    private val styleCache = MutableStateFlow<ScheduleGridStyle?>(null)
+
+    init {
+        // 异步预热缓存
+        GlobalScope.launch(Dispatchers.Default) {
+            try {
+                val current = dataStore.data.map { it.toCompose() }.first()
+                styleCache.value = current
+            } catch (_: Exception) {
+                // 预热失败，后续仍可从 dataStore 读取
+            }
+        }
+    }
 
     // --- 备份与恢复扩展 API ---
 
@@ -110,7 +125,6 @@ class StyleSettingsRepository(
         val finalProto = backupProto.copy(background_image_path = localWallpaperPath)
 
         dataStore.updateData { finalProto }
-        _styleUpdatedChannel.trySend(Unit)
     }
 
     /**
@@ -122,9 +136,16 @@ class StyleSettingsRepository(
 
     /**
      * 响应式样式数据流。
+     * 每次发射时同步更新内存缓存，供 ViewModel 作为初始值避免闪烁。
      */
     val styleFlow: Flow<ScheduleGridStyle> = dataStore.data
         .map { proto -> proto.toCompose() }
+        .onEach { style -> styleCache.value = style }
+
+    /**
+     * 获取内存缓存的样式（可能为 null，用于 ViewModel 初始值）。
+     */
+    fun getCachedStyle(): ScheduleGridStyle? = styleCache.value
 
     private suspend fun updateStyle(
         transform: (ScheduleGridStyleProto) -> ScheduleGridStyleProto
@@ -132,7 +153,6 @@ class StyleSettingsRepository(
         dataStore.updateData { currentProto ->
             transform(currentProto)
         }
-        _styleUpdatedChannel.trySend(Unit)
     }
 
     // --- 原子化公共写入 API (Setters) ---
@@ -184,7 +204,21 @@ class StyleSettingsRepository(
         dataStore.updateData {
             ScheduleGridStyleProto()
         }
-        _styleUpdatedChannel.trySend(Unit)
+    }
+
+    /**
+     * 一键应用某个完整视觉预设。
+     *
+     * 保留用户自己的壁纸与时间轴模式（传统节次/24小时），避免切换外观时
+     * 意外清掉背景图或改变展示逻辑。
+     */
+    suspend fun applyStylePreset(style: ScheduleGridStyle) = updateStyle { currentProto ->
+        val wallpaper = currentProto.background_image_path
+        val scheduleMode = currentProto.schedule_mode
+        style.toProto().copy(
+            background_image_path = wallpaper,
+            schedule_mode = scheduleMode
+        )
     }
 
     /** 设置是否隐藏左侧时间列的具体时间 */
@@ -268,6 +302,5 @@ class StyleSettingsRepository(
             val currentPath = currentProto.background_image_path
             ScheduleGridStyleProto().copy(background_image_path = currentPath)
         }
-        _styleUpdatedChannel.trySend(Unit)
     }
 }

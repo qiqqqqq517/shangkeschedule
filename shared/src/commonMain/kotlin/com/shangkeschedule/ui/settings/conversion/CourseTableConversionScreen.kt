@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -97,6 +99,7 @@ fun CourseTableConversionScreen(
 
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
     var pendingCrushImport by remember { mutableStateOf(false) }
+    var showDeleteCrushConfirm by remember { mutableStateOf(false) }
 
     // 用于暂存导出的缓存路径和触发 ShareDialog 的路径状态
     var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
@@ -266,6 +269,12 @@ fun CourseTableConversionScreen(
                     )
                     HorizontalDivider()
                     ConversionRow(
+                        title = "文本/粘贴导入",
+                        desc = "支持 WakeUp文本/JSON/ICS/CSV/HTML/纯文本，先预览再导入",
+                        onClick = { onNavigate(Destination.TextImport) }
+                    )
+                    HorizontalDivider()
+                    ConversionRow(
                         title = stringResource(Res.string.item_import_crush_schedule),
                         desc = stringResource(Res.string.desc_import_crush_schedule),
                         onClick = { viewModel.onImportCrushClick() }
@@ -274,7 +283,7 @@ fun CourseTableConversionScreen(
                     ConversionRow(
                         title = stringResource(Res.string.item_delete_crush_schedule),
                         desc = stringResource(Res.string.desc_delete_crush_schedule),
-                        onClick = { viewModel.onDeleteCrushClick() }
+                        onClick = { showDeleteCrushConfirm = true }
                     )
                 }
             }
@@ -314,6 +323,27 @@ fun CourseTableConversionScreen(
         onCrushImportViaSchool = { viewModel.onCrushImportViaSchool() },
         onCrushImportViaJson = { viewModel.onCrushImportViaJson() }
     )
+
+    if (showDeleteCrushConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteCrushConfirm = false },
+            title = { Text(stringResource(Res.string.item_delete_crush_schedule)) },
+            text = { Text("确定要删除情侣课表吗？此操作不可恢复。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteCrushConfirm = false
+                    viewModel.onDeleteCrushClick()
+                }) {
+                    Text("确定删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteCrushConfirm = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     shareFilePath?.let { path ->
         ShareDialog(

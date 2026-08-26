@@ -33,6 +33,11 @@
     <string name="nav_settings">我的</string>
     <string name="title_today_schedule">今日课表</string>
     <string name="text_no_courses_today">今天没有课程</string>
+    <string name="label_crush_course">TA的课</string>
+    <string name="text_course_in_progress">正在上课</string>
+    <string name="text_courses_finished">今日课程已结束</string>
+    <string name="text_countdown_start">%1$s 分钟后开始</string>
+    <string name="text_countdown_remaining">还剩 %1$s 分钟</string>
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>
     <string name="title_semester_not_set">请设置开学日期</string>
     <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
@@ -77,6 +82,7 @@
 
     <!-- 课程相关 -->
     <string name="course_time_description">时间: 第%1$s-%2$s节 (%3$s-%4$s)</string>
+    <string name="course_section_range">第%1$s-%2$s节</string>
     <string name="course_position_prefix">地点: %1$s</string>
     <string name="course_teacher_prefix">老师: %1$s</string>
     <string name="title_course_overlap">重叠课程列表</string>
@@ -505,6 +511,12 @@
     <string name="style_category_grid_size">网格尺寸</string>
     <string name="style_category_course_block">课程块配置</string>
     <string name="style_category_color_scheme">颜色方案 (点击圆形编辑)</string>
+    <string name="label_ui_style_preset">课表界面风格</string>
+    <string name="label_view_mode_week">周视图</string>
+    <string name="label_view_mode_list">列表视图</string>
+    <string name="ui_style_preset_original">原版（自由选择）</string>
+    <string name="ui_style_preset_sleepy">Sleepy 参考风格</string>
+    <string name="ui_style_preset_timetable">Timetable 参考风格</string>
     <string name="label_wallpaper">课表背景壁纸</string>
     <string name="desc_wallpaper_set">已设置 (长按可清除)</string>
     <string name="desc_wallpaper_unset">未设置 (点击选择图片)</string>
@@ -569,6 +581,13 @@
     <string name="theme_light">浅色模式</string>
     <string name="theme_dark">深色模式</string>
     <string name="theme_settings_title">主题设置</string>
+    <string name="item_appearance_settings">外观与样式</string>
+    <string name="desc_appearance_settings">主题风格、深色模式与课表外观微调</string>
+    <string name="theme_preset_classic">经典</string>
+    <string name="theme_preset_cloud">云舒</string>
+    <string name="theme_preset_clean">利落</string>
+    <string name="theme_style_section">主题风格</string>
+    <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>
     <string name="theme_mode_label">主题模式切换</string>
     <string name="dynamic_color_title">动态取色 (Material You)</string>
@@ -577,6 +596,7 @@
     <string name="light_primary_color">浅色模式主色</string>
     <string name="dark_primary_color">深色模式主色</string>
     <string name="theme_color_hint">说明：改变此颜色后，系统将作为种子色重新计算全应用配色方案。</string>
+    <string name="theme_color_disabled_hint">动态取色开启时不可自定义</string>
 
     <!-- 备份和还原 -->
     <string name="backup_err_empty">备份文件为空，无法恢复</string>

@@ -212,7 +212,7 @@ private fun SchoolContent(
         else -> {
             AlphabetIndexerList(
                 data = filteredSchools,
-                getInitial = { it.initial },
+                getInitial = { it.initial.firstOrNull()?.uppercase() ?: "#" },
                 lazyListState = lazyListState,
                 headerContent = {
                     if (recentRecord != null && !recentRecord.isEmpty) {

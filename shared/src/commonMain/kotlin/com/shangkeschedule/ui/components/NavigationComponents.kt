@@ -60,6 +60,9 @@ fun AdaptiveNavigationScaffold(
     showNavigation: Boolean = true,
     isTransparent: Boolean = false,
     contentColor: Color? = null,
+    bottomBarContainerColor: Color? = null,
+    bottomBarSelectedColor: Color? = null,
+    bottomBarUnselectedColor: Color? = null,
     navigationModifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -90,20 +93,33 @@ fun AdaptiveNavigationScaffold(
     val finalContentColor = contentColor ?: MaterialTheme.colorScheme.onSurface
     val finalSubTextColor = finalContentColor.copy(alpha = 0.7f)
 
+    val resolvedContainerColor = bottomBarContainerColor ?: MaterialTheme.colorScheme.surface
+    val resolvedSelectedColor = bottomBarSelectedColor
+        ?: (if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSecondaryContainer)
+    val resolvedSelectedTextColor = bottomBarSelectedColor
+        ?: (if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSurface)
+    val resolvedUnselectedColor = bottomBarUnselectedColor
+        ?: (if (contentColor != null) finalSubTextColor else MaterialTheme.colorScheme.onSurfaceVariant)
+    val resolvedIndicatorColor = if (isTransparent) {
+        Color.Transparent
+    } else {
+        bottomBarSelectedColor?.copy(alpha = 0.12f) ?: MaterialTheme.colorScheme.secondaryContainer
+    }
+
     val itemColors: NavigationSuiteItemColors = NavigationSuiteDefaults.itemColors(
         navigationBarItemColors = NavigationBarItemDefaults.colors(
-            indicatorColor = if (isTransparent) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-            selectedIconColor = if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedTextColor = if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSurface,
-            unselectedIconColor = if (contentColor != null) finalSubTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
-            unselectedTextColor = if (contentColor != null) finalSubTextColor else MaterialTheme.colorScheme.onSurfaceVariant
+            indicatorColor = resolvedIndicatorColor,
+            selectedIconColor = resolvedSelectedColor,
+            selectedTextColor = resolvedSelectedTextColor,
+            unselectedIconColor = resolvedUnselectedColor,
+            unselectedTextColor = resolvedUnselectedColor
         ),
         navigationRailItemColors = NavigationRailItemDefaults.colors(
-            indicatorColor = if (isTransparent) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-            selectedIconColor = if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedTextColor = if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.onSurface,
-            unselectedIconColor = if (contentColor != null) finalSubTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
-            unselectedTextColor = if (contentColor != null) finalSubTextColor else MaterialTheme.colorScheme.onSurfaceVariant
+            indicatorColor = resolvedIndicatorColor,
+            selectedIconColor = resolvedSelectedColor,
+            selectedTextColor = resolvedSelectedTextColor,
+            unselectedIconColor = resolvedUnselectedColor,
+            unselectedTextColor = resolvedUnselectedColor
         )
     )
 
@@ -118,7 +134,7 @@ fun AdaptiveNavigationScaffold(
             NavigationSuiteType.NavigationRail -> {
                 Row(modifier = Modifier.fillMaxSize()) {
                     NavigationRail(
-                        containerColor = if (isTransparent) Color.Transparent else MaterialTheme.colorScheme.surface,
+                        containerColor = if (isTransparent) Color.Transparent else resolvedContainerColor,
                         modifier = Modifier.fillMaxHeight()
                     ) {
                         navItems.forEach { item ->
@@ -149,7 +165,7 @@ fun AdaptiveNavigationScaffold(
                     containerColor = Color.Transparent,
                     bottomBar = {
                         NavigationBar(
-                            containerColor = if (isTransparent) Color.Transparent else MaterialTheme.colorScheme.surface,
+                            containerColor = if (isTransparent) Color.Transparent else resolvedContainerColor,
                             modifier = navigationModifier
                         ) {
                             navItems.forEach { item ->

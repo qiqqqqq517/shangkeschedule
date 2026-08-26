@@ -46,12 +46,10 @@ import shangkeschedule.shared.generated.resources.item_github_repo
 import shangkeschedule.shared.generated.resources.item_language_settings
 import shangkeschedule.shared.generated.resources.item_open_source_licenses
 import shangkeschedule.shared.generated.resources.item_start_screen_settings
-import shangkeschedule.shared.generated.resources.item_update_repo
 import shangkeschedule.shared.generated.resources.label_version_prefix
 import shangkeschedule.shared.generated.resources.language_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.title_more_options
-import shangkeschedule.shared.generated.resources.update_24px
 
 private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shangkeschedule"
 
@@ -175,14 +173,6 @@ fun MoreOptionsScreen(
                         icon = vectorResource(Res.drawable.list_alt_24px),
                         title = stringResource(Res.string.item_open_source_licenses),
                         onClick = { onNavigate(Destination.OpenSourceLicenses) }
-                    )
-
-                    // 更新适配仓库
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.update_24px),
-                        title = stringResource(Res.string.item_update_repo),
-                        onClick = { onNavigate(Destination.UpdateRepo) },
-                        showDivider = false
                     )
 
                     // 鸣谢内容
