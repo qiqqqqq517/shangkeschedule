@@ -16,8 +16,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -343,12 +345,19 @@ class CourseTableRepository(
         weekNumber: Int,
         day: Int
     ): Flow<List<CourseWithWeeks>> {
-        // 直接调用底层的 DAO 方法
-        return courseDao.getCoursesWithWeeksByDayAndWeek(
-            courseTableId = courseTableId,
-            day = day,
-            weekNumber = weekNumber
-        )
+        // 使用简单查询获取全部课程，再在代码中过滤周次和星期
+        // 避免子查询/EXISTS + @Relation 在 Room 3.0.1 下可能导致的结果丢失问题
+        return courseDao.getCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
+            allCourses.filter { cw ->
+                cw.course.day == day && cw.weeks.any { it.weekNumber == weekNumber }
+            }.sortedWith(
+                compareBy<CourseWithWeeks> {
+                    if (it.course.isCustomTime) 99 else it.course.startSection ?: 99
+                }.thenBy {
+                    if (it.course.isCustomTime) it.course.customStartTime ?: "99:99" else "99:99"
+                }
+            )
+        }
     }
 
     /**
@@ -371,8 +380,14 @@ class CourseTableRepository(
             return flowOf(emptyList())
         }
 
-        // 3. 调用 DAO 层的精准查询方法（按周次过滤）
-        return courseDao.getCoursesWithWeeksByTableAndWeek(courseTableId, weekNumber)
+        // 使用简单查询获取全部课程，再在代码中过滤周次
+        // 避免子查询/EXISTS + @Relation 在 Room 3.0.1 下可能导致的结果丢失问题
+        val dayOfWeek = targetDate.dayOfWeek.isoDayNumber
+        return courseDao.getCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
+            allCourses.filter { cw ->
+                cw.course.day == dayOfWeek && cw.weeks.any { it.weekNumber == weekNumber }
+            }
+        }
     }
 
     /**
@@ -394,7 +409,13 @@ class CourseTableRepository(
             return flowOf(emptyList())
         }
 
-        return courseDao.getCrushCoursesWithWeeksByTableAndWeek(courseTableId, weekNumber)
+        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次
+        val dayOfWeek = targetDate.dayOfWeek.isoDayNumber
+        return courseDao.getCrushCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
+            allCourses.filter { cw ->
+                cw.course.day == dayOfWeek && cw.weeks.any { it.weekNumber == weekNumber }
+            }
+        }
     }
 
     /**
@@ -406,11 +427,18 @@ class CourseTableRepository(
         weekNumber: Int,
         day: Int
     ): Flow<List<CourseWithWeeks>> {
-        return courseDao.getCrushCoursesWithWeeksByDayAndWeek(
-            courseTableId = courseTableId,
-            day = day,
-            weekNumber = weekNumber
-        )
+        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次和星期
+        return courseDao.getCrushCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
+            allCourses.filter { cw ->
+                cw.course.day == day && cw.weeks.any { it.weekNumber == weekNumber }
+            }.sortedWith(
+                compareBy<CourseWithWeeks> {
+                    if (it.course.isCustomTime) 99 else it.course.startSection ?: 99
+                }.thenBy {
+                    if (it.course.isCustomTime) it.course.customStartTime ?: "99:99" else "99:99"
+                }
+            )
+        }
     }
 }
 

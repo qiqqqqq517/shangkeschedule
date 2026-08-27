@@ -116,7 +116,7 @@ interface CourseDao {
         WHERE courseTableId = :courseTableId
           AND isCrush = 0
           AND day = :day
-          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
+          AND EXISTS (SELECT 1 FROM course_weeks WHERE courseId = courses.id AND weekNumber = :weekNumber)
         ORDER BY 
             CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
             CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
@@ -155,7 +155,7 @@ interface CourseDao {
         SELECT * FROM courses
         WHERE courseTableId = :courseTableId
           AND isCrush = 0
-          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
+          AND EXISTS (SELECT 1 FROM course_weeks WHERE courseId = courses.id AND weekNumber = :weekNumber)
         ORDER BY 
             day ASC,
             CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
@@ -177,7 +177,7 @@ interface CourseDao {
         SELECT * FROM courses
         WHERE courseTableId = :courseTableId
           AND isCrush = 1
-          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
+          AND EXISTS (SELECT 1 FROM course_weeks WHERE courseId = courses.id AND weekNumber = :weekNumber)
         ORDER BY 
             day ASC,
             CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
@@ -218,7 +218,7 @@ interface CourseDao {
         WHERE courseTableId = :courseTableId
           AND isCrush = 1
           AND day = :day
-          AND id IN (SELECT courseId FROM course_weeks WHERE weekNumber = :weekNumber)
+          AND EXISTS (SELECT 1 FROM course_weeks WHERE courseId = courses.id AND weekNumber = :weekNumber)
         ORDER BY 
             CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,  
             CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
