@@ -77,11 +77,8 @@ private fun buildPresetRenderSpec(
     val timetableDual = style.courseColorMaps.getOrNull(colorInt)
         ?: style.courseColorMaps.firstOrNull()
         ?: DualColor(light = Color(0xFFE0F7FA), dark = Color(0xFF006064))
-    val timetableBg = if (isDarkTheme) {
-        timetableDual.dark.copy(alpha = 0.15f)
-    } else {
-        timetableDual.light
-    }
+    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
+    val timetableBg = timetableDual.dark.copy(alpha = if (isDarkTheme) 0.25f else 0.18f)
     val timetableStrip = timetableDual.dark
     val timetableText = if (isDarkTheme) Color(0xFFE0E0E0) else timetableDual.dark
 

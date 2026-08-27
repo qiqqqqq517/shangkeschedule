@@ -243,19 +243,24 @@ class BackupRepository(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                // 回滚：恢复备份的课表
-                backupSnapshot.forEach { (tableInfo, exportModel) ->
-                    courseTableDao.insert(CourseTable(tableInfo.first, tableInfo.second, tableInfo.third))
-                    courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
-                        courses = exportModel.courses.map {
-                            ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
-                        },
-                        timeSlots = exportModel.timeSlots,
-                        config = exportModel.config
-                    ))
+                // 回滚：恢复备份的课表。回滚本身也可能失败（例如失败源于同一个脏数据），
+                // 因此包一层 try/catch，避免回滚异常覆盖原始异常并把用户留在半恢复状态。
+                try {
+                    backupSnapshot.forEach { (tableInfo, exportModel) ->
+                        courseTableDao.insert(CourseTable(tableInfo.first, tableInfo.second, tableInfo.third))
+                        courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
+                            courses = exportModel.courses.map {
+                                ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
+                            },
+                            timeSlots = exportModel.timeSlots,
+                            config = exportModel.config
+                        ))
+                    }
+                    val settings = appSettingsRepository.getAppSettingsOnce()
+                    appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = backupCurrentTableId))
+                } catch (_: Exception) {
+                    // 回滚失败：至少保留原始失败原因，避免把二次异常抛给上层
                 }
-                val settings = appSettingsRepository.getAppSettingsOnce()
-                appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = backupCurrentTableId))
                 Result.failure(e)
             }
         } catch (e: Exception) {

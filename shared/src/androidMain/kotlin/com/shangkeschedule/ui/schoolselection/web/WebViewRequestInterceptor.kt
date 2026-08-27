@@ -51,6 +51,9 @@ class WebViewRequestInterceptor {
         private val postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
 
         fun registerPostData(id: String, body: String, contentType: String) {
+            // 容量防护：防止恶意页面无限注册 POST 体撑爆内存；
+            // 单条 body 也限制在 1MB 内（正常表单提交远小于此）。
+            if (postBodyRegistry.size >= 16 || body.length > 1_000_000) return
             postBodyRegistry[id] = RegisteredPostData(body, contentType)
         }
 

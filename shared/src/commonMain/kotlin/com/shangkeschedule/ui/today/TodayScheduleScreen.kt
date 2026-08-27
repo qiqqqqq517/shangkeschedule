@@ -1,12 +1,12 @@
 package com.shangkeschedule.ui.today
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,12 +34,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -143,25 +150,7 @@ fun TodayContent(
         }
     }
 
-    val targetScrollIndex = remember(state.courses, currentTime) {
-        val firstActiveIndex = state.courses.indexOfFirst { model ->
-            try {
-                LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) >= currentTime
-            } catch (e: Exception) {
-                true
-            }
-        }
-
-        if (firstActiveIndex == -1) {
-            (state.courses.size - 1).coerceAtLeast(0)
-        } else {
-            firstActiveIndex
-        }
-    }
-
-    val scrollState = rememberLazyListState(
-        initialFirstVisibleItemIndex = targetScrollIndex
-    )
+    val scrollState = rememberLazyListState()
 
     Column(
         modifier = Modifier
@@ -232,11 +221,11 @@ fun TodayContent(
         } else {
             LazyColumn(
                 state = scrollState,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 itemsIndexed(state.courses) { _, model ->
-                    CourseTimelineItem(model, gridStyle, isDark)
+                    CourseTimelineItem(model, gridStyle, isDark, now = currentTime)
                 }
                 item {
                     Spacer(modifier = Modifier.height(32.dp))
@@ -306,9 +295,10 @@ private fun NextCourseCard(
     val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
-    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
+    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，
+    // 改用 dark 半透明作为背景，保证对比度。
     val themeColor = if (isTimetablePreset) {
-        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
+        colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
     } else {
         if (isDark) colorPair.dark else colorPair.light
     }
@@ -316,7 +306,7 @@ private fun NextCourseCard(
     val textColor = if (isTimetablePreset) {
         if (isDark) Color(0xFFE0E0E0) else colorPair.dark
     } else {
-        adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
+        gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
     }
 
     val start = parseOrNull(target.startTime)
@@ -328,24 +318,26 @@ private fun NextCourseCard(
         Modifier.shadow(elevation = 3.dp, shape = shape, clip = false)
     } else Modifier
 
+    // 利落主题：左侧色条用 drawBehind 绘制，不参与测量。
+    // 若用子 Box + fillMaxHeight，在 Column 宽松 max 高度约束下会把整个卡片撑到剩余全部高度，
+    // 挤掉下方课程列表（今日课表只显示一个课程的根因）。
+    val stripDrawModifier = if (isTimetablePreset) {
+        Modifier.drawBehind {
+            drawRect(
+                color = stripColor,
+                size = Size(width = 3.dp.toPx(), height = size.height)
+            )
+        }
+    } else Modifier
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .then(shadowModifier)
             .clip(shape)
             .background(color = themeColor)
+            .then(stripDrawModifier)
     ) {
-        // 利落主题：左侧色条
-        if (isTimetablePreset) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .width(3.dp)
-                    .fillMaxHeight()
-                    .background(stripColor)
-            )
-        }
-
         val startPadding = if (isTimetablePreset) 19.dp else 16.dp
         Column(modifier = Modifier.padding(start = startPadding, end = 16.dp, top = 16.dp, bottom = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -433,12 +425,14 @@ private fun NextCourseCard(
 fun CourseTimelineItem(
     model: CourseDisplayModel,
     gridStyle: ScheduleGridStyle,
-    isDark: Boolean
+    isDark: Boolean,
+    now: LocalTime
 ) {
-    val currentTime = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time }
-    val isFinished = remember(model.endTime, currentTime) {
+    // 用 TodayContent 里每分钟跳动的 now，而不是组合期固定快照，
+    // 否则「已结束」状态（删除线/透明度）在页面停留期间永不更新。
+    val isFinished = remember(model.endTime, now) {
         try {
-            LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) < currentTime
+            LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) < now
         } catch (e: Exception) { false }
     }
 
@@ -450,29 +444,59 @@ fun CourseTimelineItem(
     val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
-    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
+    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，
+    // 改用 dark 半透明作为背景，保证对比度。
     val themeColor = if (isTimetablePreset) {
-        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
+        colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
     } else {
         if (isDark) colorPair.dark else colorPair.light
     }
     val stripColor = colorPair.dark
+    // 与主课表 CourseBlock 一致：利落主题用 dark，其他主题优先用自定义 courseTextColor
     val textColor = if (isTimetablePreset) {
         if (isDark) Color(0xFFE0E0E0) else colorPair.dark
     } else {
-        adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
+        gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
     }
 
     val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
     val shape = RoundedCornerShape(cornerRadius)
-    val cardShadowModifier = if (isSleepyPreset && !isFinished) {
+    val cardShadowModifier = if (isSleepyPreset) {
         Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
     } else Modifier
+
+    // 与主课表 CourseBlock 一致：边框样式 + 课程块透明度
+    val borderColor = MaterialTheme.colorScheme.outline
+    val borderWidth = 1.dp
+    val borderAlpha = gridStyle.courseBlockAlphaFloat
+    val borderModifier = when (gridStyle.borderType) {
+        BorderTypeProto.BORDER_TYPE_SOLID -> {
+            Modifier.border(borderWidth, borderColor.copy(alpha = borderAlpha), shape)
+        }
+        BorderTypeProto.BORDER_TYPE_DASHED -> {
+            Modifier.drawBehind {
+                val strokeWidth = borderWidth.toPx()
+                val dashPathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
+                drawOutline(
+                    outline = shape.createOutline(size, layoutDirection, this),
+                    color = borderColor.copy(alpha = borderAlpha),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth, pathEffect = dashPathEffect)
+                )
+            }
+        }
+        else -> Modifier
+    }
+    // 已结束课程整体降透明；但利落主题背景本身 alpha=0.18，再乘 0.5 会近乎隐形，
+    // 故利落主题下抬升到 0.7 只做轻微淡化。
+    val blockAlpha = when {
+        isFinished && isTimetablePreset -> 0.7f
+        isFinished -> 0.5f
+        else -> gridStyle.courseBlockAlphaFloat
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer(alpha = if (isFinished) 0.5f else 1f)
     ) {
         Column(
             modifier = Modifier.width(65.dp).padding(top = 4.dp),
@@ -497,50 +521,76 @@ fun CourseTimelineItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
+            // 利落主题：左侧色条用 drawBehind 绘制，不参与测量（同 NextCourseCard，
+            // 避免 fillMaxHeight 子 Box 在宽松高度约束下撑爆父容器）
+            val itemStripDrawModifier = if (isTimetablePreset) {
+                Modifier.drawBehind {
+                    drawRect(
+                        color = stripColor,
+                        size = Size(width = 3.dp.toPx(), height = size.height)
+                    )
+                }
+            } else Modifier
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .graphicsLayer(alpha = blockAlpha)
                     .then(cardShadowModifier)
+                    .then(borderModifier)
                     .clip(shape)
                     .background(color = themeColor)
+                    .then(itemStripDrawModifier)
             ) {
-                // 利落主题：左侧色条
-                if (isTimetablePreset) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .width(3.dp)
-                            .fillMaxHeight()
-                            .background(stripColor)
-                    )
-                }
 
-                val startPadding = if (isTimetablePreset) 15.dp else 12.dp
-                Column(modifier = Modifier.padding(start = startPadding, end = 12.dp, top = 12.dp, bottom = 12.dp)) {
+                // 与主课表 CourseBlock 一致的内边距和字号
+                val innerPadding = gridStyle.courseBlockInnerPaddingDp.dp
+                val timetableStartPad = if (isTimetablePreset) 3.dp else 0.dp
+                val nameFontSize = (13f * gridStyle.courseBlockFontScale).sp
+                val metaFontSize = (10f * gridStyle.courseBlockFontScale).sp
+                val horizontalAlignment = if (gridStyle.textAlignCenterHorizontal) Alignment.CenterHorizontally else Alignment.Start
+                val textAlign = if (gridStyle.textAlignCenterHorizontal) TextAlign.Center else TextAlign.Start
+                Column(
+                    modifier = Modifier.padding(
+                        start = innerPadding + timetableStartPad,
+                        top = innerPadding,
+                        end = innerPadding,
+                        bottom = innerPadding
+                    ),
+                    horizontalAlignment = horizontalAlignment
+                ) {
                     Text(
                         text = model.course.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            textDecoration = if (isFinished) TextDecoration.LineThrough else null
-                        ),
+                        fontSize = nameFontSize,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
-                        modifier = Modifier.fillMaxWidth()
+                        textDecoration = if (isFinished) TextDecoration.LineThrough else null,
+                        textAlign = textAlign,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = TextStyle(lineHeight = 1.2.em)
                     )
 
-                    if (model.course.position.isNotBlank()) {
+                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                        val prefix = if (gridStyle.removeLocationAt) "" else "@\u200B"
+                        val breakablePos = model.course.position.replace(Regex("([@\\-（(）)])"), "\u200B$1\u200B")
                         Text(
-                            text = stringResource(Res.string.course_position_prefix, model.course.position),
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "$prefix$breakablePos",
+                            fontSize = metaFontSize,
                             color = textColor.copy(alpha = 0.82f),
-                            modifier = Modifier.padding(top = 2.dp)
+                            textAlign = textAlign,
+                            modifier = Modifier.padding(top = 2.dp),
+                            maxLines = 4,
+                            style = TextStyle(lineHeight = 1.1.em)
                         )
                     }
 
-                    if (model.course.teacher.isNotBlank()) {
+                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
                         Text(
-                            text = stringResource(Res.string.course_teacher_prefix, model.course.teacher),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = textColor.copy(alpha = 0.82f)
+                            text = model.course.teacher,
+                            fontSize = metaFontSize,
+                            color = textColor.copy(alpha = 0.82f),
+                            textAlign = textAlign,
+                            maxLines = 1,
+                            style = TextStyle(lineHeight = 1.1.em)
                         )
                     }
                 }
