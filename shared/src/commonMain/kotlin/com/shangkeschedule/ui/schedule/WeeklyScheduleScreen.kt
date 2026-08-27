@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,7 +49,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -730,6 +731,17 @@ private fun ScheduleListViewBlock(
         Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
     } else Modifier
 
+    // 利落主题：左侧色条用 drawBehind 绘制，不参与测量
+    // （fillMaxHeight 子 Box 在宽松/无限高度约束下会失效或撑爆父容器）
+    val stripDrawModifier = if (isTimetablePreset) {
+        Modifier.drawBehind {
+            drawRect(
+                color = stripColor,
+                size = Size(width = 3.dp.toPx(), height = size.height)
+            )
+        }
+    } else Modifier
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -737,18 +749,9 @@ private fun ScheduleListViewBlock(
             .graphicsLayer(alpha = demotedAlpha)
             .clip(shape)
             .background(color = bg)
+            .then(stripDrawModifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
-        // 利落主题：左侧色条
-        if (isTimetablePreset) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .width(3.dp)
-                    .fillMaxHeight()
-                    .background(stripColor)
-            )
-        }
 
         val startPadding = if (isTimetablePreset) 15.dp else 12.dp
         Column(

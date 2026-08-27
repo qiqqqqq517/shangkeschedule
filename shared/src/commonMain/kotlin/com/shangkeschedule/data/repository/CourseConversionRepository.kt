@@ -183,6 +183,13 @@ class CourseConversionRepository(
             )
 
             val extracted = extractCourseAttributes(jsonCourse.remark)
+            // 防护：钳制 day / 节次 / 周次范围，防止恶意或异常导入数据产生越界下标、
+            // 负高度课程块（startSection > endSection）等隐患。
+            val rawStart = jsonCourse.startSection?.coerceIn(1, 24)
+            val rawEnd = jsonCourse.endSection?.coerceIn(1, 24)
+            val (safeStart, safeEnd) =
+                if (rawStart != null && rawEnd != null && rawStart > rawEnd) rawEnd to rawStart
+                else rawStart to rawEnd
             courseEntities.add(
                 Course(
                     id = courseId,
@@ -190,9 +197,9 @@ class CourseConversionRepository(
                     name = jsonCourse.name,
                     teacher = jsonCourse.teacher,
                     position = jsonCourse.position,
-                    day = jsonCourse.day,
-                    startSection = jsonCourse.startSection,
-                    endSection = jsonCourse.endSection,
+                    day = jsonCourse.day.coerceIn(1, 7),
+                    startSection = safeStart,
+                    endSection = safeEnd,
                     isCustomTime = jsonCourse.isCustomTime,
                     customStartTime = jsonCourse.customStartTime,
                     customEndTime = jsonCourse.customEndTime,
@@ -207,7 +214,7 @@ class CourseConversionRepository(
 
             jsonCourse.weeks.forEach { week ->
                 courseWeekEntities.add(
-                    CourseWeek(courseId = courseId, weekNumber = week)
+                    CourseWeek(courseId = courseId, weekNumber = week.coerceAtLeast(1))
                 )
             }
         }

@@ -80,7 +80,9 @@ data class SaveTimeSlotsPayload(
  * @param resultRawJs 原生 JS 字符串或 JSON 对象字面量
  */
 fun buildJsCallbackScript(callbackId: String, isSuccess: Boolean, resultRawJs: String): String {
-    return "window._shangkeNativeCallback('$callbackId', $isSuccess, $resultRawJs);"
+    // callbackId 来自网页，必须 JSON 转义后再拼进脚本，避免闭合引号注入任意 JS 片段
+    val safeCallbackId = bridgeJson.encodeToString(callbackId)
+    return "window._shangkeNativeCallback($safeCallbackId, $isSuccess, $resultRawJs);"
 }
 
 // =========================================================================
