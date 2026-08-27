@@ -1,0 +1,56 @@
+﻿Starting a Gradle Daemon, 1 incompatible and 9 stopped Daemons could not be reused, use --status for details
+Reusing configuration cache.
+> Task :shared:androidPreBuild UP-TO-DATE
+> Task :shared:preAndroidMainBuild UP-TO-DATE
+> Task :shared:convertXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :shared:kmpPartiallyResolvedDependenciesChecker
+> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:convertXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :shared:generateCommonMainProtos UP-TO-DATE
+> Task :shared:generateExpectResourceCollectorsForCommonMain UP-TO-DATE
+> Task :shared:prepareLibraryDefinitionsAndroidMain UP-TO-DATE
+> Task :shared:generateAndroidMainEmptyResourceFiles UP-TO-DATE
+> Task :shared:packSchoolsZip UP-TO-DATE
+> Task :shared:exportLibraryDefinitions UP-TO-DATE
+> Task :shared:copyNonXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :shared:generateComposeResClass UP-TO-DATE
+> Task :shared:prepareComposeResourcesTaskForAndroidMain NO-SOURCE
+> Task :shared:generateResourceAccessorsForAndroidMain NO-SOURCE
+> Task :shared:copyNonXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :shared:prepareComposeResourcesTaskForCommonMain UP-TO-DATE
+> Task :shared:generateResourceAccessorsForCommonMain UP-TO-DATE
+> Task :shared:generateActualResourceCollectorsForAndroidMain UP-TO-DATE
+> Task :shared:copyAndroidMainComposeResourcesToAndroidAssets UP-TO-DATE
+> Task :shared:packageAndroidMainResources UP-TO-DATE
+> Task :shared:parseAndroidMainLocalResources UP-TO-DATE
+> Task :shared:generateAndroidMainRFile UP-TO-DATE
+> Task :shared:kspAndroidMain
+> Task :shared:copyRoomSchemas NO-SOURCE
+
+> Task :shared:compileAndroidMain
+w: [Koin] compile-safety validation skipped — no Koin entry point in this compilation.
+w: file:///D:/01课程表/shangkeschedule/shared/build/generated/ksp/android/androidMain/kotlin/com/shangkeschedule/data/db/main/MainAppDatabaseConstructor.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/build/generated/ksp/android/androidMain/kotlin/com/shangkeschedule/data/db/widget/WidgetDatabaseConstructor.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/tool/CalendarAccountManager.android.kt.kt:26:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/tool/SecureCrypto.android.kt:13:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/tool/UpdateTool.android.kt:10:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/tool/ZipUtils.android.kt:7:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/ui/schoolselection/web/WebCompatDelegate.kt:29:13 'var databaseEnabled: Boolean' is deprecated. Deprecated in Java.
+w: file:///D:/01课程表/shangkeschedule/shared/src/androidMain/kotlin/com/shangkeschedule/ui/settings/additional/LanguageSettingScreen.android.kt:6:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/data/db/main/MainAppDatabase.kt:50:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/data/db/widget/WidgetDatabase.kt:30:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/data/repository/StyleSettingsRepository.kt:96:9 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/data/repository/TimeSlotRepository.kt:106:30 'val monthNumber: Int' is deprecated. Use the 'month' property instead.
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/data/repository/TimeSlotRepository.kt:106:56 'val dayOfMonth: Int' is deprecated. Use the 'day' property instead.
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/tool/CalendarAccountManager.kt:7:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/tool/ScheduleExporter.kt:46:32 Unnecessary safe call on a non-null receiver of type 'Int'.
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/tool/SecureCrypto.kt:8:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/tool/UpdateTool.kt:50:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/tool/ZipUtils.kt:6:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///D:/01课程表/shangkeschedule/shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/additional/LanguageSettingScreen.kt:39:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+[Incubating] Problems report is available at: file:///D:/01%E8%AF%BE%E7%A8%8B%E8%A1%A8/shangkeschedule/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 39s
+19 actionable tasks: 3 executed, 16 up-to-date
+Configuration cache entry reused.
