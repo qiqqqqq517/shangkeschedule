@@ -380,12 +380,11 @@ class CourseTableRepository(
             return flowOf(emptyList())
         }
 
-        // 使用简单查询获取全部课程，再在代码中过滤周次
+        // 使用简单查询获取全部课程，再在代码中过滤周次（返回整周课程，不按天过滤）
         // 避免子查询/EXISTS + @Relation 在 Room 3.0.1 下可能导致的结果丢失问题
-        val dayOfWeek = targetDate.dayOfWeek.isoDayNumber
         return courseDao.getCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
             allCourses.filter { cw ->
-                cw.course.day == dayOfWeek && cw.weeks.any { it.weekNumber == weekNumber }
+                cw.weeks.any { it.weekNumber == weekNumber }
             }
         }
     }
@@ -409,11 +408,10 @@ class CourseTableRepository(
             return flowOf(emptyList())
         }
 
-        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次
-        val dayOfWeek = targetDate.dayOfWeek.isoDayNumber
+        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次（返回整周课程）
         return courseDao.getCrushCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
             allCourses.filter { cw ->
-                cw.course.day == dayOfWeek && cw.weeks.any { it.weekNumber == weekNumber }
+                cw.weeks.any { it.weekNumber == weekNumber }
             }
         }
     }
