@@ -1,7 +1,7 @@
 # 上课课程表 · shangkeschedule
 
-> 一款面向中国高校师生的开源课程表 App，基于 [拾光课程表（shiguangschedule）](https://github.com/XingHeYuZhuan/shiguangschedule) 二次开发。
-> 在完整保留原项目功能的基础上，重点优化了**课表排版体验**，并新增多作息方案、情侣课表、课程属性识别、离线教务适配仓库等能力。
+> 一款面向中国高校师生的开源课程表 App
+> 重点优化了**课表排版体验**，并新增多作息方案、情侣课表、课程属性识别、离线教务适配仓库等能力。
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
