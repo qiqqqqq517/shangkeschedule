@@ -362,6 +362,26 @@
         return 'N253508';
     }
 
+    // 从浏览器资源计时里找到页面自己已经请求过的课表接口地址（对 WebVPN 反代最有效）
+    function findCourseApiFromPerformance() {
+        var entries = [];
+        try { entries = performance.getEntriesByType('resource') || []; } catch (e) { return null; }
+        var candidates = [];
+        for (var i = 0; i < entries.length; i++) {
+            var name = entries[i].name || '';
+            if (!name) continue;
+            if (/xskbcx_cxXsgrkb/i.test(name)) return name;
+            if (/xskbcx/i.test(name) && /gnmkdm=/.test(name)) candidates.push(name);
+        }
+        if (candidates.length) {
+            for (var j = 0; j < candidates.length; j++) {
+                if (!/xskbcx_cxXskbcxIndex/i.test(candidates[j])) return candidates[j];
+            }
+            return candidates[0];
+        }
+        return null;
+    }
+
     // 从 API 获取课程数据（页面无课表表格时兜底）
     function fetchCoursesFromApi() {
         if (!isZhengfangPage()) {
@@ -376,6 +396,11 @@
         var kbcxIdx = basePath.indexOf('/kbcx/');
         if (kbcxIdx !== -1) {
             apiPath = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+        }
+
+        var knownApi = findCourseApiFromPerformance();
+        if (knownApi) {
+            apiPath = knownApi;
         }
 
         Bridge.showToast('正在从教务接口获取课程数据...');
@@ -398,7 +423,9 @@
                         Bridge.showToast('课程数据获取失败：返回的不是数据页面，请确认已登录并停留在课表页');
                     }
                 } else {
-                    Bridge.showToast('课程数据请求失败（状态码 ' + xhr.status + '），请刷新课表页后重试');
+                    var respUrl = xhr.responseURL || apiPath;
+                    var respHead = xhr.responseText ? String(xhr.responseText).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120) : '';
+                    Bridge.showToast('课程数据请求失败（状态码 ' + xhr.status + '）｜请求:' + respUrl + '｜页面:' + window.location.href + '｜返回:' + respHead);
                 }
             }
         };
