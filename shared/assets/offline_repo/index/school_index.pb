@@ -3380,10 +3380,11 @@ u_7174ff8f阳江职业技术学院yjzyjsxy"qiangzhi*�
 u_7174ff8f_01强智教务系统"qiangzhi.js*Hhttps://www.yjpt.edu.cn/User/login?=1938f148-a8ba-45b0-82f0-245a4ad3f8fd2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
 u_04c0dfad银川科技学院yckjxy"qiangzhi*�
-u_04c0dfad_01强智教务系统"qiangzhi.js*/http://cumtycjw.yinghuaonline.com/yckjxy_jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+u_04c0dfad_01强智教务系统"qiangzhi.js*/http://cumtycjw.yinghuaonline.com/yckjxy_jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
-u_d6ea120c盐城师范学院ycsfxy"	zhengfang*�
-u_d6ea120c_01正方教务系统"zhengfang.js*http://ehall.yctu.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_d6ea120c盐城师范学院ycsfxy"	zhengfang*�
+u_d6ea120c_intranet正方教务系统（内网）"zhengfang.js*0http://211.65.1.60/jwglxt/xtgl/login_slogin.html2*多入口：正方教务系统（内网）:manual-multi-entry*�
+u_d6ea120c_webvpnX-Web校外直连"zhengfang.js* https://webvpn.yctu.edu.cn:4433/2多入口：X-Web校外直连:manual-multi-entry�
 
 u_97927b4d盐城工学院ycgxy"	zhengfang*�
 u_97927b4d_01正方教务系统"zhengfang.js*1https://jwglxt.ycit.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
