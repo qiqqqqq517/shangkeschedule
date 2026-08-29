@@ -1,4 +1,4 @@
-general-platforms-20260827�
+general-platforms-20260830�
 GENERAL_ZHENGFANG正方教务系统（通用）zfjwxt"	zhengfang*�
 GENERAL_ZHENGFANG正方教务系统"zhengfang.js2N适用于所有正方教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_URPURP教务系统（通用）urpjwxt"urp*�
@@ -1523,10 +1523,10 @@ u_fbad33a8河北水利电力学院hbsldlxy"	zhengfang*�
 u_fbad33a8_01正方教务系统"zhengfang.js*6https://jwxt.hbwe.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_5dee7c7b河北政法职业学院hbzfzyxy"	zhengfang*�
-u_5dee7c7b_01正方教务系统"zhengfang.js*.http://jwxt.helc.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_5dee7c7b_01正方教务系统"zhengfang.js*.http://jwxt.helc.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_a0dc7a01河北建筑工程学院hbjzgcxy"	zhengfang*�
-u_a0dc7a01_01正方教务系统"zhengfang.js*'http://jws.hebiace.edu.cn/default2.aspx21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_a0dc7a01河北建筑工程学院hbjzgcxy"	zhengfang*�
+u_a0dc7a01_01正方教务系统"zhengfang.js*https://jwx.hebiace.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_49329807河北建材职业技术学院
 hbjczyjsxy"	zhengfang*�
@@ -4976,6 +4976,6 @@ u_da307d13中原工学院zygxy"wisedu*�
 u_da307d13_01金智(Wisedu)教务系统"	wisedu.js*http://xsxk.zut.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_abf16b19中南民族大学znmzdx"SCUEC*�
-u_abf16b19_01金智(Wisedu)教务系统"scuec.js*https://webvpn.scuec.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
-u_hbtcm2026河北中医药大学hbzyydx"HBTCM*�
-u_hbtcm2026_01康普教务系统"hbtcm.js*http://211.143.57.195:8042/2?康普科技「全新教务」系统（河北中医药大学）:shangkeschedule
+u_abf16b19_01金智(Wisedu)教务系统"scuec.js*https://webvpn.scuec.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+u_hbtcm2026河北中医药大学hbzyydx"HBTCM*�
+u_hbtcm2026_01康普教务系统"hbtcm.js*http://211.143.57.195:8042/2*自动导入自 timetable，类型: kangpu:auto-import
