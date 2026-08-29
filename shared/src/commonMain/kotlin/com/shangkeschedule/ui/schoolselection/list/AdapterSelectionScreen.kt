@@ -144,7 +144,19 @@ fun AdapterSelectionScreen(
                             AdapterCard(
                                 adapter = adapter,
                                 onClick = { selectedAdapter ->
-                                    val initialUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
+                                    val rawUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
+                                    // 学校数据中的 import_url 可能不带协议（如 ehall.szit.edu.cn/...），
+                                    // 而 WebView 对无协议地址会按 http 发起，会被 network_security_config
+                                    // 的"禁止明文 HTTP"策略拦截，导致"浏览器能进、App 进不去"。
+                                    // 这里统一补全为 https，与地址栏手动输入的行为保持一致。
+                                    val initialUrl = if (rawUrl != "about:blank" &&
+                                        !rawUrl.startsWith("http://") &&
+                                        !rawUrl.startsWith("https://")
+                                    ) {
+                                        "https://$rawUrl"
+                                    } else {
+                                        rawUrl
+                                    }
                                     val jsFileName = selectedAdapter.asset_js_path
 
                                     // 构建正确的 JS 路径
