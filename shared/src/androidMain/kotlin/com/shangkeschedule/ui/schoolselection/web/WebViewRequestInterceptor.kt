@@ -65,6 +65,21 @@ class WebViewRequestInterceptor {
     fun intercept(request: WebResourceRequest, isDesktopMode: Boolean): WebResourceResponse? {
         val rawUrl = request.url.toString()
 
+        // 0. 康普「全新教务」等教务登录页依赖微信 wxLogin.js；
+        //    WebView 请求该脚本常被拒绝/失败，页面内联脚本在 new WxLogin 处抛
+        //    ReferenceError 而整体中断，导致「立即登录」按钮事件未绑定、点击无反应。
+        //    这里在任意模式下都用本地无害 stub 兜底，确保账号密码登录可正常使用。
+        if (rawUrl.contains("res.wx.qq.com") && rawUrl.contains("wxLogin.js")) {
+            return WebResourceResponse(
+                "application/javascript",
+                "UTF-8",
+                200,
+                "OK",
+                emptyMap(),
+                "window.WxLogin = function () {};".byteInputStream()
+            )
+        }
+
         // 1. 基础校验：只在 Desktop 模式且 http/https 请求下工作
         if (!rawUrl.startsWith("http") || !isDesktopMode) return null
 
