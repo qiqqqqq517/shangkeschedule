@@ -9250,5 +9250,11 @@
     "name": "中南民族大学",
     "type": "wisedu",
     "url": "https://webvpn.scuec.edu.cn/"
+  },
+  {
+    "id": "u_hbtcm2026",
+    "name": "河北中医药大学",
+    "type": "kangpu",
+    "url": "http://211.143.57.195:8042/"
   }
 ]
