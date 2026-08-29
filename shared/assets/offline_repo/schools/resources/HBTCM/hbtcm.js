@@ -89,23 +89,46 @@
         return grid;
     }
 
+    // 收集顶层文档与所有同源 iframe 文档（教务系统常把功能页放在 iframe 内）
+    function collectDocuments() {
+        var docs = [document];
+        var frames = [];
+        try { frames = document.querySelectorAll('iframe'); } catch (e) { frames = []; }
+        for (var i = 0; i < frames.length; i++) {
+            try {
+                var d = frames[i].contentDocument;
+                if (!d) {
+                    var w = frames[i].contentWindow;
+                    if (w) d = w.document;
+                }
+                if (d) docs.push(d);
+            } catch (e) {
+                // 跨域 iframe 无法访问，忽略
+            }
+        }
+        return docs;
+    }
+
     function findScheduleTable() {
-        var tables = document.querySelectorAll('table');
+        var docs = collectDocuments();
         var best = null;
         var bestScore = 0;
         var bestRows = -1;
-        for (var i = 0; i < tables.length; i++) {
-            var text = tables[i].innerText || tables[i].textContent || '';
-            var score = 0;
-            if (text.indexOf('星期一') !== -1) score += 4;
-            if (text.indexOf('节') !== -1) score += 2;
-            if (text.indexOf('周') !== -1) score += 1;
-            // 课表常被外层布局表格包裹，评分相同时选行数更多（更内层）的表格
-            var rows = tables[i].rows ? tables[i].rows.length : 0;
-            if (score > bestScore || (score === bestScore && rows > bestRows)) {
-                bestScore = score;
-                bestRows = rows;
-                best = tables[i];
+        for (var di = 0; di < docs.length; di++) {
+            var tables = docs[di].querySelectorAll('table');
+            for (var i = 0; i < tables.length; i++) {
+                var text = tables[i].innerText || tables[i].textContent || '';
+                var score = 0;
+                if (text.indexOf('星期一') !== -1) score += 4;
+                if (text.indexOf('节') !== -1) score += 2;
+                if (text.indexOf('周') !== -1) score += 1;
+                // 课表常被外层布局表格包裹，评分相同时选行数更多（更内层）的表格
+                var rows = tables[i].rows ? tables[i].rows.length : 0;
+                if (score > bestScore || (score === bestScore && rows > bestRows)) {
+                    bestScore = score;
+                    bestRows = rows;
+                    best = tables[i];
+                }
             }
         }
         return bestScore >= 5 ? best : null;
@@ -183,7 +206,7 @@
                 var text = cellText(cell);
                 if (!text) continue;
 
-                if (sectionCol === -1 && /第?\s*\d+\s*节/.test(text)) {
+                if (sectionCol === -1 && /^第\s*\d+\s*节/.test(text)) {
                     sectionCol = c;
                 }
                 for (var d = 0; d < WEEK_NAMES.length; d++) {
@@ -216,7 +239,7 @@
             var domRow = table.rows[r2];
             if (domRow) {
                 for (var ci = 0; ci < domRow.cells.length; ci++) {
-                    if (/第?\s*\d+\s*节/.test(cellText(domRow.cells[ci]))) {
+                    if (/^第\s*\d+\s*节/.test(cellText(domRow.cells[ci]))) {
                         secCellIndex = ci;
                         break;
                     }
@@ -229,9 +252,8 @@
                 if (!isNaN(sn) && sn >= 1 && sn <= 24) fallbackSection = sn;
             }
 
-            // 该行第一个「新出现」课程单元格的视觉列相对星期一的偏移；
+            // 该行第一个「新出现」课程单元格的视觉星期相对星期一的偏移；
             // 当周一/周二等列被上一行 rowspan 占位时，行内序号会比真实星期少若干位。
-            var mondayCol = dayColByDay[1];
             var rowDelta = 0;
             for (var cc = 0; cc < row2.length; cc++) {
                 if (cc === sectionCol) continue;
@@ -240,7 +262,8 @@
                 if (handled.indexOf(fc) !== -1) continue;
                 var fct = cellText(fc);
                 if (!fct || /上午|下午|晚上/.test(fct)) continue;
-                if (mondayCol !== undefined) rowDelta = cc - mondayCol;
+                var fcd = dayByCol[cc];
+                if (fcd !== undefined) rowDelta = fcd - 1;
                 break;
             }
 
