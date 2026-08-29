@@ -11,9 +11,9 @@
 GENERAL_WISEDU金智(Wisedu)教务系统"	wisedu.js2N适用于所有金智教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_SOUTHSOFT南软教务系统（通用）nrjwxt"
 south_soft*�
-GENERAL_SOUTHSOFT南软教务系统"south_soft.js2N适用于所有南软教务系统高校，输入学校教务网址即可导入:general-platform�
-GENERAL_CHAOXING超星教务系统（通用）cxjwxt"chaoxing_jiaowu*�
-GENERAL_CHAOXING超星教务系统"chaoxing_jiaowu.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
+GENERAL_SOUTHSOFT南软教务系统"south_soft.js2N适用于所有南软教务系统高校，输入学校教务网址即可导入:general-platform�
+GENERAL_CHAOXING超星教务系统（通用）cxjwxt"chaoxing_jiaowu*�
+GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
 pku北京大学bjdx"urp*w
 pku_01URP教务系统"urp.js*https://elective.pku.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 tsinghua清华大学qhdx"urp*�
@@ -4456,20 +4456,20 @@ u_2647a015$安徽电气工程职业技术学院ahdqgczyjsxy"wisedu*�
 
 u_ec4ec8d4安徽林业职业技术学院
 ahlyzyjsxy"wisedu*�
-u_ec4ec8d4_01金智(Wisedu)教务系统"	wisedu.js*yhttps://sso.ahlyxy.edu.cn/cas/login?service=http%3A%2F%2Fehall.ahlyxy.edu.cn%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_ec4ec8d4_01金智(Wisedu)教务系统"	wisedu.js*yhttps://sso.ahlyxy.edu.cn/cas/login?service=http%3A%2F%2Fehall.ahlyxy.edu.cn%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_7066b057安徽艺术学院ahysxy"chaoxing_jiaowu*�
-u_7066b057_01超星教务系统"chaoxing_jiaowu.js*)https://ahuac.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_7066b057安徽艺术学院ahysxy"chaoxing_jiaowu*�
+u_7066b057_01超星教务系统"chaoxing.js*)https://ahuac.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_e45c2f6e鞍山师范学院assfxy"chaoxing_jiaowu*�
-u_e45c2f6e_01超星教务系统"chaoxing_jiaowu.js*(https://assh.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_e45c2f6e鞍山师范学院assfxy"chaoxing_jiaowu*�
+u_e45c2f6e_01超星教务系统"chaoxing.js*(https://assh.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_cc34dff4北京信息科技大学bjxxkjdx"wisedu*�
-u_cc34dff4_01金智(Wisedu)教务系统"	wisedu.js*http://jwxt.bistu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+u_cc34dff4_01金智(Wisedu)教务系统"	wisedu.js*http://jwxt.bistu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_ef4feca8北京工业大学耿丹学院
-bjgydxgdxy"chaoxing_jiaowu*�
-u_ef4feca8_01超星教务系统"chaoxing_jiaowu.js*'https://bgd.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+bjgydxgdxy"chaoxing_jiaowu*�
+u_ef4feca8_01超星教务系统"chaoxing.js*'https://bgd.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_9fc7ee8b北京理工大学bjlgdx"wisedu*�
 u_9fc7ee8b_01金智(Wisedu)教务系统"	wisedu.js*http://jwms.bit.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4483,44 +4483,44 @@ u_20ffd41f北京大学医学部bjdxyxb"wisedu*�
 u_20ffd41f_01金智(Wisedu)教务系统"	wisedu.js*http://elective.pku.edu.cn2*自动导入自 timetable，类型: wisedu:auto-import�
 u_fbb030bd_pg北京林业大学bjlydx"
 south_soft*�
-u_fbb030bd_pg_01南软教务系统(研究生)"south_soft.js*https://graduate.bjfu.edu.cn2*研究生教务系统，类型: south_soft:timetable-postgrad�
+u_fbb030bd_pg_01南软教务系统(研究生)"south_soft.js*https://graduate.bjfu.edu.cn2*研究生教务系统，类型: south_soft:timetable-postgrad�
 
-u_fce83d4a成都大学cddx"chaoxing_jiaowu*�
-u_fce83d4a_01超星教务系统"chaoxing_jiaowu.js*http://cdujx.mh.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_fce83d4a成都大学cddx"chaoxing_jiaowu*�
+u_fce83d4a_01超星教务系统"chaoxing.js*http://cdujx.mh.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_f1724584成都航空职业技术学院
 cdhkzyjsxy"wisedu*�
 u_f1724584_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.cap.edu.cn/authserver/login?service=https%3A%2F%2Fauthserver.cap.edu.cn%2Fauthserver%2Foauth2.0%2FcallbackAuthorize%3Fclient_id%3DcWsbtG8U%26redirect_uri%3Dhttps%253A%252F%252Frhmh.cap.edu.cn%252F%26response_type%3Dcode%26state%3DcapAuth%26client_name%3DCasOAuthClient2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_8ac12b44重庆三峡职业学院cqsxzyxy"wisedu*�
-u_8ac12b44_01金智(Wisedu)教务系统"	wisedu.js*'http://ehall.cqsxedu.com/new/index.html2*自动导入自 timetable，类型: wisedu:auto-import�
+u_8ac12b44_01金智(Wisedu)教务系统"	wisedu.js*'http://ehall.cqsxedu.com/new/index.html2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_10898587长春中医药大学cczyydx"chaoxing_jiaowu*�
-u_10898587_01超星教务系统"chaoxing_jiaowu.js*Vhttp://125.223.201.17:8071/sso/login?service=http%3A%2F%2F125.223.201.18%2Fweb%2Fguest2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_10898587长春中医药大学cczyydx"chaoxing_jiaowu*�
+u_10898587_01超星教务系统"chaoxing.js*Vhttp://125.223.201.17:8071/sso/login?service=http%3A%2F%2F125.223.201.18%2Fweb%2Fguest2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_c20cc3ba长春大学旅游学院ccdxlyxy"chaoxing_jiaowu*�
-u_c20cc3ba_01超星教务系统"chaoxing_jiaowu.js*(https://cdly.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_c20cc3ba长春大学旅游学院ccdxlyxy"chaoxing_jiaowu*�
+u_c20cc3ba_01超星教务系统"chaoxing.js*(https://cdly.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_afb9c197_pg重庆理工大学cqlgdx"CQUT*�
 u_afb9c197_pg_01南软教务系统(研究生)"
-cqut_01.js*Nhttps://uis.cqut.edu.cn/unified_identity_logon/#/login?applicationCode=XZim7152*研究生教务系统，类型: south_soft:timetable-postgrad�
+cqut_01.js*Nhttps://uis.cqut.edu.cn/unified_identity_logon/#/login?applicationCode=XZim7152*研究生教务系统，类型: south_soft:timetable-postgrad�
 
-u_35f68319长春科技学院cckjxy"chaoxing_jiaowu*�
-u_35f68319_01超星教务系统"chaoxing_jiaowu.js**https://cckjxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_35f68319长春科技学院cckjxy"chaoxing_jiaowu*�
+u_35f68319_01超星教务系统"chaoxing.js**https://cckjxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_080d4c9b常州工业职业技术学院
-czgyzyjsxy"chaoxing_jiaowu*�
-u_080d4c9b_01超星教务系统"chaoxing_jiaowu.js*(https://ciit.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+czgyzyjsxy"chaoxing_jiaowu*�
+u_080d4c9b_01超星教务系统"chaoxing.js*(https://ciit.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_28a83fd2重庆健康职业学院cqjkzyxy"chaoxing_jiaowu*�
-u_28a83fd2_01超星教务系统"chaoxing_jiaowu.js*https://www.cqhve.cn/#2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_28a83fd2重庆健康职业学院cqjkzyxy"chaoxing_jiaowu*�
+u_28a83fd2_01超星教务系统"chaoxing.js*https://www.cqhve.cn/#2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_8e3709d9_pg东南大学dndx"wisedu*�
 u_8e3709d9_pg_01%金智(Wisedu)教务系统(研究生)"	wisedu.js*6http://ehall.seu.edu.cn/appShow?appId=49795689477622162&研究生教务系统，类型: wisedu:timetable-postgrad�
 
 u_b6df876c东南大学成贤学院dndxcxxy"wisedu*�
-u_b6df876c_01金智(Wisedu)教务系统"	wisedu.js*http://my.cxxy.seu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+u_b6df876c_01金智(Wisedu)教务系统"	wisedu.js*http://my.cxxy.seu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_ce3bc36a大连工业大学dlgydx"chaoxing_jiaowu*�
-u_ce3bc36a_01超星教务系统"chaoxing_jiaowu.js*http://jwgl.dlpu.edu.cn/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_ce3bc36a大连工业大学dlgydx"chaoxing_jiaowu*�
+u_ce3bc36a_01超星教务系统"chaoxing.js*http://jwgl.dlpu.edu.cn/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_f6d3b9cf大连财经学院dlcjxy"DLU*�
 u_f6d3b9cf_01金智(Wisedu)教务系统"dlu.js*http://jw.dlufe.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4530,35 +4530,35 @@ u_20a9867b滇西科技师范学院dxkjsfxy"wisedu*�
 
 u_d250b49a大连理工大学城市学院
 dllgdxcsxy"DLU*�
-u_d250b49a_01金智(Wisedu)教务系统"dlu.js*:http://jw.dlutci.edu.cn/jwapp/sys/emaphome/portal/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_d250b49a_01金智(Wisedu)教务系统"dlu.js*:http://jw.dlutci.edu.cn/jwapp/sys/emaphome/portal/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_eed7465b东营科技职业学院dykjzyxy"chaoxing_jiaowu*�
-u_eed7465b_01超星教务系统"chaoxing_jiaowu.js*http://jw.dykj.edu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_eed7465b东营科技职业学院dykjzyxy"chaoxing_jiaowu*�
+u_eed7465b_01超星教务系统"chaoxing.js*http://jw.dykj.edu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_d0afd63c大连职业技术学院dlzyjsxy"chaoxing_jiaowu*�
-u_d0afd63c_01超星教务系统"chaoxing_jiaowu.js*%https://jwgl.dlvtc.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d0afd63c大连职业技术学院dlzyjsxy"chaoxing_jiaowu*�
+u_d0afd63c_01超星教务系统"chaoxing.js*%https://jwgl.dlvtc.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_b3e3ef44$抚州幼儿师范高等专科学校fzyesfgdzkxx"chaoxing_jiaowu*�
-u_b3e3ef44_01超星教务系统"chaoxing_jiaowu.js*�http://cas.fzpec.cn/authserver/login?service=http%3A%2F%2Fehall.fzpec.cn%2Flogin%3Fservice%3Dhttp%3A%2F%2Fehall.fzpec.cn%2Fywtb-portal%2Fstandard%2Findex.html#/hall2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_b3e3ef44$抚州幼儿师范高等专科学校fzyesfgdzkxx"chaoxing_jiaowu*�
+u_b3e3ef44_01超星教务系统"chaoxing.js*�http://cas.fzpec.cn/authserver/login?service=http%3A%2F%2Fehall.fzpec.cn%2Flogin%3Fservice%3Dhttp%3A%2F%2Fehall.fzpec.cn%2Fywtb-portal%2Fstandard%2Findex.html#/hall2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_90420bdb福建警察学院fjjcxy"chaoxing_jiaowu*�
-u_90420bdb_01超星教务系统"chaoxing_jiaowu.js*)https://fjpsc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_90420bdb福建警察学院fjjcxy"chaoxing_jiaowu*�
+u_90420bdb_01超星教务系统"chaoxing.js*)https://fjpsc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_bce2fbd8阜阳科技职业学院fykjzyxy"chaoxing_jiaowu*�
-u_bce2fbd8_01超星教务系统"chaoxing_jiaowu.js*&https://fykjzy.gzkz.chaoxing.com/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_bce2fbd8阜阳科技职业学院fykjzyxy"chaoxing_jiaowu*�
+u_bce2fbd8_01超星教务系统"chaoxing.js*&https://fykjzy.gzkz.chaoxing.com/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_9cb9fd54福建艺术职业学院fjyszyxy"chaoxing_jiaowu*�
-u_9cb9fd54_01超星教务系统"chaoxing_jiaowu.js*,https://fjyszyxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_9cb9fd54福建艺术职业学院fjyszyxy"chaoxing_jiaowu*�
+u_9cb9fd54_01超星教务系统"chaoxing.js*,https://fjyszyxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_c846256b贵州理工学院gzlgxy"chaoxing_jiaowu*�
-u_c846256b_01超星教务系统"chaoxing_jiaowu.js*https://gzlgxy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_c846256b贵州理工学院gzlgxy"chaoxing_jiaowu*�
+u_c846256b_01超星教务系统"chaoxing.js*https://gzlgxy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_c8fdcbe8贵州装备制造职业学院
-gzzbzzzyxy"chaoxing_jiaowu*�
-u_c8fdcbe8_01超星教务系统"chaoxing_jiaowu.js* https://3ymo6xfi.mh.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
+gzzbzzzyxy"chaoxing_jiaowu*�
+u_c8fdcbe8_01超星教务系统"chaoxing.js* https://3ymo6xfi.mh.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_cfdd022b赣南医学院gnyxy"chaoxing_jiaowu*�
-u_cfdd022b_01超星教务系统"chaoxing_jiaowu.js*'https://gmu.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_cfdd022b赣南医学院gnyxy"chaoxing_jiaowu*�
+u_cfdd022b_01超星教务系统"chaoxing.js*'https://gmu.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_fef2f9c9赣南师范大学科技学院
 gnsfdxkjxy"USTC*�
@@ -4572,40 +4572,40 @@ gxwlzyjsxy"wisedu*�
 u_9f7c5a38_01金智(Wisedu)教务系统"	wisedu.js*http://jw.gxlvtc.edu.cn2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_f03e6347!广东江门中医药职业学院gdjmzyyzyxy"CMC*�
-u_f03e6347_01金智(Wisedu)教务系统"	cmc_01.js*�http://jw.gdjmcmc.edu.cn:9091/jwapp/sys/emapfunauth/pages/welcome.do?service=http%3A%2F%2Fjw.gdjmcmc.edu.cn%3A9091%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_f03e6347_01金智(Wisedu)教务系统"	cmc_01.js*�http://jw.gdjmcmc.edu.cn:9091/jwapp/sys/emapfunauth/pages/welcome.do?service=http%3A%2F%2Fjw.gdjmcmc.edu.cn%3A9091%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_e9d5dcc3贵阳人文科技学院gyrwkjxy"chaoxing_jiaowu*�
-u_e9d5dcc3_01超星教务系统"chaoxing_jiaowu.js**https://gzmyrw.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_e9d5dcc3贵阳人文科技学院gyrwkjxy"chaoxing_jiaowu*�
+u_e9d5dcc3_01超星教务系统"chaoxing.js**https://gzmyrw.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_2a85055f$贵阳康养职业大学（超星）gykyzydx（cx）"chaoxing_jiaowu*�
-u_2a85055f_01超星教务系统"chaoxing_jiaowu.js*'https://gkd.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_2a85055f$贵阳康养职业大学（超星）gykyzydx（cx）"chaoxing_jiaowu*�
+u_2a85055f_01超星教务系统"chaoxing.js*'https://gkd.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_2f6adf6a$广西农业工程职业技术学院gxnygczyjsxy"wisedu*�
-u_2f6adf6a_01金智(Wisedu)教务系统"	wisedu.js*8http://jw.gxngy.cn/jwapp/sys/yjsrzfwapp/dbLogin/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_2f6adf6a_01金智(Wisedu)教务系统"	wisedu.js*8http://jw.gxngy.cn/jwapp/sys/yjsrzfwapp/dbLogin/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_8e1d458e$广西安全工程职业技术学院gxaqgczyjsxy"chaoxing_jiaowu*�
-u_8e1d458e_01超星教务系统"chaoxing_jiaowu.js**https://gxaqzy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_8e1d458e$广西安全工程职业技术学院gxaqgczyjsxy"chaoxing_jiaowu*�
+u_8e1d458e_01超星教务系统"chaoxing.js**https://gxaqzy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_9d25ed5e广州科技职业技术大学
-gzkjzyjsdx"chaoxing_jiaowu*�
-u_9d25ed5e_01超星教务系统"chaoxing_jiaowu.js*_https://cas.gkd.edu.cn/lyuapServer/login?service=https%3A%2F%2Fjw.gkd.edu.cn%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
+gzkjzyjsdx"chaoxing_jiaowu*�
+u_9d25ed5e_01超星教务系统"chaoxing.js*_https://cas.gkd.edu.cn/lyuapServer/login?service=https%3A%2F%2Fjw.gkd.edu.cn%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_d9357160甘孜职业学院gzzyxy"chaoxing_jiaowu*�
-u_d9357160_01超星教务系统"chaoxing_jiaowu.js*http://web.scgzzyxy.com/#/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d9357160甘孜职业学院gzzyxy"chaoxing_jiaowu*�
+u_d9357160_01超星教务系统"chaoxing.js*http://web.scgzzyxy.com/#/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_d0505268赣南医科大学gnykdx"chaoxing_jiaowu*�
-u_d0505268_01超星教务系统"chaoxing_jiaowu.js*'https://gmu.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d0505268赣南医科大学gnykdx"chaoxing_jiaowu*�
+u_d0505268_01超星教务系统"chaoxing.js*'https://gmu.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_17fcaaad湖北工业大学hbgydx"chaoxing_jiaowu*�
-u_17fcaaad_01超星教务系统"chaoxing_jiaowu.js*$https://jwxt.hbut.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_17fcaaad湖北工业大学hbgydx"chaoxing_jiaowu*�
+u_17fcaaad_01超星教务系统"chaoxing.js*$https://jwxt.hbut.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_98394019湖南工业职业技术学院
 hngyzyjsxy"wisedu*�
-u_98394019_01金智(Wisedu)教务系统"	wisedu.js*&http://jwc.hunangy.com/SSJWC/index.asp2*自动导入自 timetable，类型: wisedu:auto-import�
+u_98394019_01金智(Wisedu)教务系统"	wisedu.js*&http://jwc.hunangy.com/SSJWC/index.asp2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_81818dcc湖南理工职业技术学院
-hnlgzyjsxy"chaoxing_jiaowu*�
-u_81818dcc_01超星教务系统"chaoxing_jiaowu.js*https://hnlgzy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+hnlgzyjsxy"chaoxing_jiaowu*�
+u_81818dcc_01超星教务系统"chaoxing.js*https://hnlgzy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_362deea9河南科技职业大学hnkjzydx"wisedu*�
 u_362deea9_01金智(Wisedu)教务系统"	wisedu.js**https://havust.jijiaox.com/mg/login?type=32*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4617,10 +4617,10 @@ south_soft*�
 u_38ba4f35_pg_01南软教务系统(研究生)"south_soft.js*%http://yjss.hhu.edu.cn/home/stulogin#2*研究生教务系统，类型: south_soft:timetable-postgrad�
 
 u_82890271$河北农业大学现代科技学院hbnydxxdkjxy"urp*�
-u_82890271_01金智(Wisedu)教务系统"urp.js*Ahttp://urp.hebau.edu.cn:1009/jwapp/sys/yjsrzfwapp/dbLogin/main.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_82890271_01金智(Wisedu)教务系统"urp.js*Ahttp://urp.hebau.edu.cn:1009/jwapp/sys/yjsrzfwapp/dbLogin/main.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_1509c142!黑龙江农业工程职业学院hljnygczyxy"chaoxing_jiaowu*�
-u_1509c142_01超星教务系统"chaoxing_jiaowu.js*+https://hljswkj.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_1509c142!黑龙江农业工程职业学院hljnygczyxy"chaoxing_jiaowu*�
+u_1509c142_01超星教务系统"chaoxing.js*+https://hljswkj.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_f89b5b92华侨大学hqdx"HQU*�
 u_f89b5b92_01金智(Wisedu)教务系统"
@@ -4630,34 +4630,34 @@ south_soft*�
 u_9386ef82_pg_01南软教务系统(研究生)"south_soft.js*$http://218.197.176.171/home/stulogin2*研究生教务系统，类型: south_soft:timetable-postgrad�
 u_ac8e9b34_pg河北医科大学hbykdx"
 south_soft*�
-u_ac8e9b34_pg_01南软教务系统(研究生)"south_soft.js*Ghttp://202.206.48.246/gmis5/(S(n01ufjze2atwrp0n0erhjt3p))/home/stulogin2*研究生教务系统，类型: south_soft:timetable-postgrad�
-u_b79bb674_pg哈尔滨音乐学院hebyyxy"chaoxing_jiaowu*�
-u_b79bb674_pg_01超星教务系统(研究生)"chaoxing_jiaowu.js*!https://hrbcmyjs.mh.chaoxing.com/2(研究生教务系统，类型: chaoxing:timetable-postgrad�
+u_ac8e9b34_pg_01南软教务系统(研究生)"south_soft.js*Ghttp://202.206.48.246/gmis5/(S(n01ufjze2atwrp0n0erhjt3p))/home/stulogin2*研究生教务系统，类型: south_soft:timetable-postgrad�
+u_b79bb674_pg哈尔滨音乐学院hebyyxy"chaoxing_jiaowu*�
+u_b79bb674_pg_01超星教务系统(研究生)"chaoxing.js*!https://hrbcmyjs.mh.chaoxing.com/2(研究生教务系统，类型: chaoxing:timetable-postgrad�
 
 u_345324a0$湖南三一工业职业技术学院hnsygyzyjsxy"wisedu*�
-u_345324a0_01金智(Wisedu)教务系统"	wisedu.js*'http://ehall.sanyedu.com/new/index.html2*自动导入自 timetable，类型: wisedu:auto-import�
+u_345324a0_01金智(Wisedu)教务系统"	wisedu.js*'http://ehall.sanyedu.com/new/index.html2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_d23d2bdb河南城建学院hncjxy"chaoxing_jiaowu*�
-u_d23d2bdb_01超星教务系统"chaoxing_jiaowu.js*dhttps://icas.huuc.edu.cn/cas/login?service=http%3A%2F%2Fjwglxt.huuc.edu.cn%3A8061%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d23d2bdb河南城建学院hncjxy"chaoxing_jiaowu*�
+u_d23d2bdb_01超星教务系统"chaoxing.js*dhttps://icas.huuc.edu.cn/cas/login?service=http%3A%2F%2Fjwglxt.huuc.edu.cn%3A8061%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_5c300951湖南民族职业学院hnmzzyxy"chaoxing_jiaowu*�
-u_5c300951_01超星教务系统"chaoxing_jiaowu.js*(https://hnvc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_5c300951湖南民族职业学院hnmzzyxy"chaoxing_jiaowu*�
+u_5c300951_01超星教务系统"chaoxing.js*(https://hnvc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_a20eec77红河卫生职业学院hhwszyxy"chaoxing_jiaowu*�
-u_a20eec77_01超星教务系统"chaoxing_jiaowu.js*)https://hhwzy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_a20eec77红河卫生职业学院hhwszyxy"chaoxing_jiaowu*�
+u_a20eec77_01超星教务系统"chaoxing.js*)https://hhwzy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_849e53e2河北能源职业技术学院
-hbnyzyjsxy"chaoxing_jiaowu*�
-u_849e53e2_01超星教务系统"chaoxing_jiaowu.js**https://hbnyxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+hbnyzyjsxy"chaoxing_jiaowu*�
+u_849e53e2_01超星教务系统"chaoxing.js**https://hbnyxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_ac38c05d!黑龙江护理高等专科学校hljhlgdzkxx"chaoxing_jiaowu*�
-u_ac38c05d_01超星教务系统"chaoxing_jiaowu.js*)https://jwc.hljnc.edu.cn:8080/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_ac38c05d!黑龙江护理高等专科学校hljhlgdzkxx"chaoxing_jiaowu*�
+u_ac38c05d_01超星教务系统"chaoxing.js*)https://jwc.hljnc.edu.cn:8080/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_90cc19bb河南农业职业学院hnnyzyxy"wisedu*�
-u_90cc19bb_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.hnca.edu.cn/authserver/login?service=https%3A%2F%2Fehall.hnca.edu.cn%3A443%2Flogin%3Fservice%3Dhttps%3A%2F%2Fehall.hnca.edu.cn%2Fnew%2Findex.html2*自动导入自 timetable，类型: wisedu:auto-import�
+u_90cc19bb_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.hnca.edu.cn/authserver/login?service=https%3A%2F%2Fehall.hnca.edu.cn%3A443%2Flogin%3Fservice%3Dhttps%3A%2F%2Fehall.hnca.edu.cn%2Fnew%2Findex.html2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_584edd9b河北科技师范学院hbkjsfxy"chaoxing_jiaowu*�
-u_584edd9b_01超星教务系统"chaoxing_jiaowu.js*https://hevttc.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_584edd9b河北科技师范学院hbkjsfxy"chaoxing_jiaowu*�
+u_584edd9b_01超星教务系统"chaoxing.js*https://hevttc.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_4a996b7f河北民族师范学院hbmzsfxy"wisedu*�
 u_4a996b7f_01金智(Wisedu)教务系统"	wisedu.js*_https://authserver.hbun.edu.cn/authserver/login?service=https%3A%2F%2Fehall.hbun.edu.cn%2Flogin2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4669,30 +4669,30 @@ u_fefc02c4河北农业大学hbnydx"wisedu*�
 u_fefc02c4_01金智(Wisedu)教务系统"	wisedu.js*,https://www.hebau.edu.cn/info/1001/11851.htm2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_d8d78e45哈尔滨工程大学hebgcdx"wisedu*�
-u_d8d78e45_01金智(Wisedu)教务系统"	wisedu.js*Shttps://jwgl.wvpn.hrbeu.edu.cn/jwapp/sys/wdkb/*default/index.do?EMAP_LANG=zh#/xskcb2*自动导入自 timetable，类型: wisedu:auto-import�
+u_d8d78e45_01金智(Wisedu)教务系统"	wisedu.js*Shttps://jwgl.wvpn.hrbeu.edu.cn/jwapp/sys/wdkb/*default/index.do?EMAP_LANG=zh#/xskcb2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_76ad9b41吉林农业科技学院jlnykjxy"chaoxing_jiaowu*�
-u_76ad9b41_01超星教务系统"chaoxing_jiaowu.js*https://jlnku.jw.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_76ad9b41吉林农业科技学院jlnykjxy"chaoxing_jiaowu*�
+u_76ad9b41_01超星教务系统"chaoxing.js*https://jlnku.jw.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_abda90ee吉林建筑科技学院jljzkjxy"chaoxing_jiaowu*�
-u_abda90ee_01超星教务系统"chaoxing_jiaowu.js*10.100.0.112,自动导入自 timetable，类型: chaoxing:auto-import�
+u_abda90ee吉林建筑科技学院jljzkjxy"chaoxing_jiaowu*z
+u_abda90ee_01超星教务系统"chaoxing.js*10.100.0.112,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_3138aa1d吉林财经大学jlcjdx"wisedu*�
 u_3138aa1d_01金智(Wisedu)教务系统"	wisedu.js*=http://10.0.2.160:9080/epstar/web/swms/mainframe/homePage.jsp2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_c8435821暨南大学jndx"JNU*�
-u_c8435821_01金智(Wisedu)教务系统"	jnu_01.js*https://webvpn.jnu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+u_c8435821_01金智(Wisedu)教务系统"	jnu_01.js*https://webvpn.jnu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_32531341吉林农业大学jlnydx"chaoxing_jiaowu*�
-u_32531341_01超星教务系统"chaoxing_jiaowu.js*"https://jlau.jw.chaoxing.com/admin2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_32531341吉林农业大学jlnydx"chaoxing_jiaowu*�
+u_32531341_01超星教务系统"chaoxing.js*"https://jlau.jw.chaoxing.com/admin2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_743a4ae2_pg#吉林大学(新)教务管理系统jldx(x)jwglxt"JLU*�
-u_743a4ae2_pg_01%金智(Wisedu)教务系统(研究生)"	JLU_01.js*https://vpn.jlu.edu.cn/login2&研究生教务系统，类型: wisedu:timetable-postgrad�
+u_743a4ae2_pg_01%金智(Wisedu)教务系统(研究生)"	JLU_01.js*https://vpn.jlu.edu.cn/login2&研究生教务系统，类型: wisedu:timetable-postgrad�
 
-u_c5fb98b0吉林工商学院jlgsxy"chaoxing_jiaowu*�
-u_c5fb98b0_01超星教务系统"chaoxing_jiaowu.js*{https://tysfrz.jlbtc.edu.cn/cas/login?service=http%3A%2F%2Fwebvpn.jlbtc.edu.cn%3A8090%2Fusers%2Fauth%2Fcas%2Fcallback%3Furl2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_c5fb98b0吉林工商学院jlgsxy"chaoxing_jiaowu*�
+u_c5fb98b0_01超星教务系统"chaoxing.js*{https://tysfrz.jlbtc.edu.cn/cas/login?service=http%3A%2F%2Fwebvpn.jlbtc.edu.cn%3A8090%2Fusers%2Fauth%2Fcas%2Fcallback%3Furl2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_074249f1济南护理职业学院jnhlzyxy"chaoxing_jiaowu*�
-u_074249f1_01超星教务系统"chaoxing_jiaowu.js**https://sdjnwx.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_074249f1济南护理职业学院jnhlzyxy"chaoxing_jiaowu*�
+u_074249f1_01超星教务系统"chaoxing.js**https://sdjnwx.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_bed10d1f昆明学院kmxy"wisedu*�
 u_bed10d1f_01金智(Wisedu)教务系统"	wisedu.js*http://xk.kmu.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4709,39 +4709,39 @@ lnsfdxhhxy"wisedu*�
 u_849451c1_01金智(Wisedu)教务系统"	wisedu.js*�http://jwxt.lshhxy.edu.cn/jwapp/sys/emapfunauth/pages/funauth-login.do?service=http%3A%2F%2Fjwxt.lshhxy.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do#/2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_5070e1e8兰州理工大学lzlgdx"wisedu*�
-u_5070e1e8_01金智(Wisedu)教务系统"	wisedu.js*=https://jwxt.lut.edu.cn/jwapp/sys/yjsrzfwapp/dbLogin/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_5070e1e8_01金智(Wisedu)教务系统"	wisedu.js*=https://jwxt.lut.edu.cn/jwapp/sys/yjsrzfwapp/dbLogin/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_27cd5311辽宁科技大学lnkjdx"chaoxing_jiaowu*�
-u_27cd5311_01超星教务系统"chaoxing_jiaowu.js*https://ustl.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_27cd5311辽宁科技大学lnkjdx"chaoxing_jiaowu*�
+u_27cd5311_01超星教务系统"chaoxing.js*https://ustl.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_ab44e7ff黎明职业大学lmzydx"chaoxing_jiaowu*�
-u_ab44e7ff_01超星教务系统"chaoxing_jiaowu.js*https://jw.lmu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_ab44e7ff黎明职业大学lmzydx"chaoxing_jiaowu*�
+u_ab44e7ff_01超星教务系统"chaoxing.js*https://jw.lmu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_dc5d8938六盘水职业技术学院	lpszyjsxy"chaoxing_jiaowu*�
-u_dc5d8938_01超星教务系统"chaoxing_jiaowu.js* https://lpszyxy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_dc5d8938六盘水职业技术学院	lpszyjsxy"chaoxing_jiaowu*�
+u_dc5d8938_01超星教务系统"chaoxing.js* https://lpszyxy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_954e1864_pg辽宁中医药大学lnzyydx"
 south_soft*�
 u_954e1864_pg_01南软教务系统(研究生)"south_soft.js*3https://yjszs.lnutcm.edu.cn:7777/Gmis/home/stulogin2*研究生教务系统，类型: south_soft:timetable-postgrad�
 
 u_c94b83ee茅台学院mtxy"wisedu*�
-u_c94b83ee_01金智(Wisedu)教务系统"	wisedu.js*�https://ids.mtxy.edu.cn/authserver/login?service=https%3A%2F%2Fjwxt.mtxy.edu.cn%2Fapi%2F%2Fcas%2Flogin%3Fpattern%3Dmanager-login%26returnUrl%3Dhttps%253A%252F%252Fjwxt.mtxy.edu.cn%252F2*自动导入自 timetable，类型: wisedu:auto-import�
+u_c94b83ee_01金智(Wisedu)教务系统"	wisedu.js*�https://ids.mtxy.edu.cn/authserver/login?service=https%3A%2F%2Fjwxt.mtxy.edu.cn%2Fapi%2F%2Fcas%2Flogin%3Fpattern%3Dmanager-login%26returnUrl%3Dhttps%253A%252F%252Fjwxt.mtxy.edu.cn%252F2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_3874e90c闽西职业技术学院mxzyjsxy"chaoxing_jiaowu*�
-u_3874e90c_01超星教务系统"chaoxing_jiaowu.js*https://mxdx.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_3874e90c闽西职业技术学院mxzyjsxy"chaoxing_jiaowu*�
+u_3874e90c_01超星教务系统"chaoxing.js*https://mxdx.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_4fc9d651闽江师范高等专科学校
-mjsfgdzkxx"chaoxing_jiaowu*�
-u_4fc9d651_01超星教务系统"chaoxing_jiaowu.js*https://edums.app.fzmjtc.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
+mjsfgdzkxx"chaoxing_jiaowu*�
+u_4fc9d651_01超星教务系统"chaoxing.js*https://edums.app.fzmjtc.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_023521d5内蒙古师范大学nmgsfdx"chaoxing_jiaowu*�
-u_023521d5_01超星教务系统"chaoxing_jiaowu.js*ahttps://auth.imnu.edu.cn/auth/cas/login?service=https%3A%2F%2Fjwxt.imnu.edu.cn%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_023521d5内蒙古师范大学nmgsfdx"chaoxing_jiaowu*�
+u_023521d5_01超星教务系统"chaoxing.js*ahttps://auth.imnu.edu.cn/auth/cas/login?service=https%3A%2F%2Fjwxt.imnu.edu.cn%2Fadmin%2Fcaslogin2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_9ac4a04e南京机电职业技术学院
-njjdzyjsxy"chaoxing_jiaowu*�
-u_9ac4a04e_01超星教务系统"chaoxing_jiaowu.js*(https://nimt.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+njjdzyjsxy"chaoxing_jiaowu*�
+u_9ac4a04e_01超星教务系统"chaoxing.js*(https://nimt.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_7ce549e2!内蒙古建筑职业技术学院nmgjzzyjsxy"chaoxing_jiaowu*�
-u_7ce549e2_01超星教务系统"chaoxing_jiaowu.js*(https://imaa.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_7ce549e2!内蒙古建筑职业技术学院nmgjzzyjsxy"chaoxing_jiaowu*�
+u_7ce549e2_01超星教务系统"chaoxing.js*(https://imaa.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_24c671de南京信息工程大学njxxgcdx"wisedu*�
 u_24c671de_01金智(Wisedu)教务系统"	wisedu.js*http://jwxt.nuist.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4766,19 +4766,19 @@ u_6b72c07b曲靖师范学院qjsfxy"JNU*�
 u_6b72c07b_01金智(Wisedu)教务系统"	jnu_01.js*http://jw.qjnu.edu.cn2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_866f0393青海师范大学qhsfdx"wisedu*�
-u_866f0393_01金智(Wisedu)教务系统"	wisedu.js*nhttp://idsnew.qhnu.edu.cn/authserver/login?service=http%3A%2F%2Fone.qhnu.edu.cn%2Fdefault%2Fportal%2Findex.jsp2*自动导入自 timetable，类型: wisedu:auto-import�
+u_866f0393_01金智(Wisedu)教务系统"	wisedu.js*nhttp://idsnew.qhnu.edu.cn/authserver/login?service=http%3A%2F%2Fone.qhnu.edu.cn%2Fdefault%2Fportal%2Findex.jsp2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_29ec23b7青岛农业大学海都学院
-qdnydxhdxy"chaoxing_jiaowu*�
-u_29ec23b7_01超星教务系统"chaoxing_jiaowu.js*https://hdxy.jw.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
+qdnydxhdxy"chaoxing_jiaowu*�
+u_29ec23b7_01超星教务系统"chaoxing.js*https://hdxy.jw.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_5cbe4ca9青岛电影学院qddyxy"wisedu*�
 u_5cbe4ca9_01金智(Wisedu)教务系统"	wisedu.js*Whttps://www.qdfa.edu.cn/index/list/525.html
-https://www.qdfa.edu.cn/index/list/526.html2*自动导入自 timetable，类型: wisedu:auto-import�
+https://www.qdfa.edu.cn/index/list/526.html2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_9b9b802c四川国际标榜职业学院
-scgjbbzyxy"chaoxing_jiaowu*�
-u_9b9b802c_01超星教务系统"chaoxing_jiaowu.js*)https://polus.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+scgjbbzyxy"chaoxing_jiaowu*�
+u_9b9b802c_01超星教务系统"chaoxing.js*)https://polus.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_2a982937四川警察学院scjcxy"wisedu*�
 u_2a982937_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.scpolicec.edu.cn/authserver/login?service=https%3A%2F%2Fehall.scpolicec.edu.cn%3A443%2Flogin%3Fservice%3Dhttps%3A%2F%2Fehall.scpolicec.edu.cn%2Fnew%2Findex.html2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4789,10 +4789,10 @@ u_68fc445d三峡大学科技学院sxdxkjxy"CTGU*�
 u_a3524947_pg_01%金智(Wisedu)教务系统(研究生)"	wisedu.js*ahttps://ehall.scu.edu.cn/gsapp/sys/wdkbapp/*default/index.do?THEME=cherry&amp;EMAP_LANG=zh#/xskcb2&研究生教务系统，类型: wisedu:timetable-postgrad�
 
 u_526dba8d深圳北理莫斯科大学	szblmskdx"wisedu*�
-u_526dba8d_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.smbu.edu.cn/authserver/login?service=https%3A%2F%2Fwebvpn.smbu.edu.cn%2Fauth%2Fcas_validate%3Fentry_id%3D1%26redirect_uri%3Dhttps%253A%252F%252Foa-smbu-edu-cn-s.webvpn.smbu.edu.cn%253A8118%252F2*自动导入自 timetable，类型: wisedu:auto-import�
+u_526dba8d_01金智(Wisedu)教务系统"	wisedu.js*�https://authserver.smbu.edu.cn/authserver/login?service=https%3A%2F%2Fwebvpn.smbu.edu.cn%2Fauth%2Fcas_validate%3Fentry_id%3D1%26redirect_uri%3Dhttps%253A%252F%252Foa-smbu-edu-cn-s.webvpn.smbu.edu.cn%253A8118%252F2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_67b1618d四川城市技师学院sccsjsxy"chaoxing_jiaowu*�
-u_67b1618d_01超星教务系统"chaoxing_jiaowu.js**https://sccsjs.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_67b1618d四川城市技师学院sccsjsxy"chaoxing_jiaowu*�
+u_67b1618d_01超星教务系统"chaoxing.js**https://sccsjs.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_44647482上海中医药大学shzyydx"wisedu*�
 u_44647482_01金智(Wisedu)教务系统"	wisedu.js*}https://cas.shutcm.edu.cn/cas/login?service=https%3A%2F%2Fyjsjw.shutcm.edu.cn%2Fgsapp%2Fsys%2Fyjsemaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4820,65 +4820,65 @@ south_soft*�
 
 u_6cf4c604陕西机电职业技术学院
 sxjdzyjsxy"wisedu*�
-u_6cf4c604_01金智(Wisedu)教务系统"	wisedu.js*^https://authserver.sxjdzy.cn/authserver/login?service=https%3A%2F%2Fnewehall.sxjdzy.cn%2Flogin2*自动导入自 timetable，类型: wisedu:auto-import�
+u_6cf4c604_01金智(Wisedu)教务系统"	wisedu.js*^https://authserver.sxjdzy.cn/authserver/login?service=https%3A%2F%2Fnewehall.sxjdzy.cn%2Flogin2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_014aa6f7!山东外国语职业技术大学sdwgyzyjsdx"chaoxing_jiaowu*�
-u_014aa6f7_01超星教务系统"chaoxing_jiaowu.js*(https://swut.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_014aa6f7!山东外国语职业技术大学sdwgyzyjsdx"chaoxing_jiaowu*�
+u_014aa6f7_01超星教务系统"chaoxing.js*(https://swut.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_a8801d7c*苏州工业园区服务外包职业学院szgyyqfwwbzyxy"chaoxing_jiaowu*�
-u_a8801d7c_01超星教务系统"chaoxing_jiaowu.js*(https://siso.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_a8801d7c*苏州工业园区服务外包职业学院szgyyqfwwbzyxy"chaoxing_jiaowu*�
+u_a8801d7c_01超星教务系统"chaoxing.js*(https://siso.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_c577de44_pg苏州大学szdx"SUDA*�
-u_c577de44_pg_01南软教务系统(研究生)"suda.js*http://yjs.suda.edu.cn2*研究生教务系统，类型: south_soft:timetable-postgrad�
+u_c577de44_pg_01南软教务系统(研究生)"suda.js*http://yjs.suda.edu.cn2*研究生教务系统，类型: south_soft:timetable-postgrad�
 
-u_e2f6230c天津财经大学tjcjdx"chaoxing_jiaowu*�
-u_e2f6230c_01超星教务系统"chaoxing_jiaowu.js* https://eass.tjufe.edu.cn/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_e2f6230c天津财经大学tjcjdx"chaoxing_jiaowu*�
+u_e2f6230c_01超星教务系统"chaoxing.js* https://eass.tjufe.edu.cn/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_4f3d9b8e台州科技职业学院tzkjzyxy"chaoxing_jiaowu*�
-u_4f3d9b8e_01超星教务系统"chaoxing_jiaowu.js**https://tzvcst.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_4f3d9b8e台州科技职业学院tzkjzyxy"chaoxing_jiaowu*�
+u_4f3d9b8e_01超星教务系统"chaoxing.js**https://tzvcst.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_7e6603ee$太原幼儿师范高等专科学校tyyesfgdzkxx"chaoxing_jiaowu*�
-u_7e6603ee_01超星教务系统"chaoxing_jiaowu.js**https://youshi.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_7e6603ee$太原幼儿师范高等专科学校tyyesfgdzkxx"chaoxing_jiaowu*�
+u_7e6603ee_01超星教务系统"chaoxing.js**https://youshi.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_d24812e1太原工业学院tygyxy"chaoxing_jiaowu*�
-u_d24812e1_01超星教务系统"chaoxing_jiaowu.js*'https://tit.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d24812e1太原工业学院tygyxy"chaoxing_jiaowu*�
+u_d24812e1_01超星教务系统"chaoxing.js*'https://tit.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_9ab06ba2台州职业技术学院tzzyjsxy"chaoxing_jiaowu*�
-u_9ab06ba2_01超星教务系统"chaoxing_jiaowu.js*https://tzvtc.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_9ab06ba2台州职业技术学院tzzyjsxy"chaoxing_jiaowu*�
+u_9ab06ba2_01超星教务系统"chaoxing.js*https://tzvtc.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_00490b72天津理工大学tjlgdx"wisedu*�
-u_00490b72_01金智(Wisedu)教务系统"	wisedu.js*Khttps://jwxt.tjut.edu.cn/jwapp/sys/wdkb/*default/index.do?THEME=teal#/xskcb2*自动导入自 timetable，类型: wisedu:auto-import�
+u_00490b72_01金智(Wisedu)教务系统"	wisedu.js*Khttps://jwxt.tjut.edu.cn/jwapp/sys/wdkb/*default/index.do?THEME=teal#/xskcb2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_1ac7e1b0塔里木理工学院tlmlgxy"chaoxing_jiaowu*�
-u_1ac7e1b0_01超星教务系统"chaoxing_jiaowu.js*+https://tlmlgxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_1ac7e1b0塔里木理工学院tlmlgxy"chaoxing_jiaowu*�
+u_1ac7e1b0_01超星教务系统"chaoxing.js*+https://tlmlgxy.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_30727704铁门关职业技术学院	tmgzyjsxy"chaoxing_jiaowu*�
-u_30727704_01超星教务系统"chaoxing_jiaowu.js*)https://tmgzj.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_30727704铁门关职业技术学院	tmgzyjsxy"chaoxing_jiaowu*�
+u_30727704_01超星教务系统"chaoxing.js*)https://tmgzj.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_c5a49364梧州医学高等专科学校
-wzyxgdzkxx"chaoxing_jiaowu*�
-u_c5a49364_01超星教务系统"chaoxing_jiaowu.js*\https://passport2.chaoxing.com/login?fid=&newversion=true&refer=https%3A%2F%2Fi.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
+wzyxgdzkxx"chaoxing_jiaowu*�
+u_c5a49364_01超星教务系统"chaoxing.js*\https://passport2.chaoxing.com/login?fid=&newversion=true&refer=https%3A%2F%2Fi.chaoxing.com2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_1a67130b武汉设计工程学院whsjgcxy"chaoxing_jiaowu*�
-u_1a67130b_01超星教务系统"chaoxing_jiaowu.js*https://wids.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_1a67130b武汉设计工程学院whsjgcxy"chaoxing_jiaowu*�
+u_1a67130b_01超星教务系统"chaoxing.js*https://wids.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_c45c6fed潍坊理工学院wflgxy"chaoxing_jiaowu*�
-u_c45c6fed_01超星教务系统"chaoxing_jiaowu.js*%https://cxxxt.wfit.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_c45c6fed潍坊理工学院wflgxy"chaoxing_jiaowu*�
+u_c45c6fed_01超星教务系统"chaoxing.js*%https://cxxxt.wfit.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_b1a1d999武昌理工学院wclgxy"chaoxing_jiaowu*�
-u_b1a1d999_01超星教务系统"chaoxing_jiaowu.js*http://jwxt.wut.edu.cn2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_b1a1d999武昌理工学院wclgxy"chaoxing_jiaowu*�
+u_b1a1d999_01超星教务系统"chaoxing.js*http://jwxt.wut.edu.cn2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_29ea39ec武汉理工大学whlgdx"WHUT*�
 u_29ea39ec_01金智(Wisedu)教务系统"
-whut_01.js*https://jwxt.whut.edu.cn2*自动导入自 timetable，类型: wisedu:auto-import�
+whut_01.js*https://jwxt.whut.edu.cn2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_54b0d578武汉生物工程学院whswgcxy"chaoxing_jiaowu*�
-u_54b0d578_01超星教务系统"chaoxing_jiaowu.js*https://whsw.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_54b0d578武汉生物工程学院whswgcxy"chaoxing_jiaowu*�
+u_54b0d578_01超星教务系统"chaoxing.js*https://whsw.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_9cddd6a7武汉交通职业学院whjtzyxy"chaoxing_jiaowu*�
-u_9cddd6a7_01超星教务系统"chaoxing_jiaowu.js*http://xjw.whtcc.edu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_9cddd6a7武汉交通职业学院whjtzyxy"chaoxing_jiaowu*�
+u_9cddd6a7_01超星教务系统"chaoxing.js*http://xjw.whtcc.edu.cn/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_8be1a67e武汉职业技术学院whzyjsxy"chaoxing_jiaowu*�
-u_8be1a67e_01超星教务系统"chaoxing_jiaowu.js*"http://jwxt.wtc.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_8be1a67e武汉职业技术学院whzyjsxy"chaoxing_jiaowu*�
+u_8be1a67e_01超星教务系统"chaoxing.js*"http://jwxt.wtc.edu.cn/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_6c85a4fd厦门医学院xmyxy"wisedu*�
 u_6c85a4fd_01金智(Wisedu)教务系统"	wisedu.js*(https://ehall.xmmc.edu.cn/new/index.html2*自动导入自 timetable，类型: wisedu:auto-import�
@@ -4916,10 +4916,10 @@ u_54598f70新疆科技学院xjkjxy"wisedu*�
 u_54598f70_01金智(Wisedu)教务系统"	wisedu.js*rhttp://authserver.xjust.edu.cn/authserver/login?service=http://ehall.xjust.edu.cn/jwapp/sys/wdkb/*default/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_842a378e云南中医药大学ynzyydx"wisedu*�
-u_842a378e_01金智(Wisedu)教务系统"	wisedu.js*fhttp://sso.ynucm.edu.cn/sso/login?service=http://ehall.ynucm.edu.cn/jwapp/sys/emaphome/portal/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_842a378e_01金智(Wisedu)教务系统"	wisedu.js*fhttp://sso.ynucm.edu.cn/sso/login?service=http://ehall.ynucm.edu.cn/jwapp/sys/emaphome/portal/index.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_d675d949$云南国防工业职业技术学院yngfgyzyjsxy"chaoxing_jiaowu*�
-u_d675d949_01超星教务系统"chaoxing_jiaowu.js*#https://ynou.jw.chaoxing.com/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d675d949$云南国防工业职业技术学院yngfgyzyjsxy"chaoxing_jiaowu*�
+u_d675d949_01超星教务系统"chaoxing.js*#https://ynou.jw.chaoxing.com/admin/2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_39c1a13d_pg延边大学ybdx"
 south_soft*�
 u_39c1a13d_pg_01南软教务系统(研究生)"south_soft.js*�https://authserver.ybu.edu.cn/authserver/login?service=https%3A%2F%2Fportal.ybu.edu.cn%2Flogin%3Fservice%3Dhttps%3A%2F%2Fportal.ybu.edu.cn%2Fywtb-portal%2Fofficial%2Findex.html2*研究生教务系统，类型: south_soft:timetable-postgrad�
@@ -4938,28 +4938,28 @@ u_e34209a5云南大学yndx"wisedu*�
 
 u_8884d072盐城工业职业技术学院
 ycgyzyjsxy"wisedu*�
-u_8884d072_01金智(Wisedu)教务系统"	wisedu.js*?https://xfnhm.v.chaoxing.com/backSchool/toLogin?refer=%2Fmanage2*自动导入自 timetable，类型: wisedu:auto-import�
+u_8884d072_01金智(Wisedu)教务系统"	wisedu.js*?https://xfnhm.v.chaoxing.com/backSchool/toLogin?refer=%2Fmanage2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_6a67d586永州师范高等专科学校
-yzsfgdzkxx"chaoxing_jiaowu*�
-u_6a67d586_01超星教务系统"chaoxing_jiaowu.js**https://hndxsf.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+yzsfgdzkxx"chaoxing_jiaowu*�
+u_6a67d586_01超星教务系统"chaoxing.js**https://hndxsf.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
-u_915a13c9烟台黄金职业学院ythjzyxy"chaoxing_jiaowu*�
-u_915a13c9_01超星教务系统"chaoxing_jiaowu.js*(https://ytgc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_915a13c9烟台黄金职业学院ythjzyxy"chaoxing_jiaowu*�
+u_915a13c9_01超星教务系统"chaoxing.js*(https://ytgc.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_5a2527a5株洲师范高等专科学校
-zzsfgdzkxx"chaoxing_jiaowu*�
-u_5a2527a5_01超星教务系统"chaoxing_jiaowu.js*https://zzyesf.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+zzsfgdzkxx"chaoxing_jiaowu*�
+u_5a2527a5_01超星教务系统"chaoxing.js*https://zzyesf.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_d6291a5f浙江宇翔职业技术学院
-zjyxzyjsxy"chaoxing_jiaowu*�
-u_d6291a5f_01超星教务系统"chaoxing_jiaowu.js*https://yxwy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
+zjyxzyjsxy"chaoxing_jiaowu*�
+u_d6291a5f_01超星教务系统"chaoxing.js*https://yxwy.jw.chaoxing.com/2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_2d6a2d2e_pg中国药科大学zgykdx"
 south_soft*�
-u_2d6a2d2e_pg_01南软教务系统(研究生)"south_soft.js*+http://ygl.cpu.edu.cn/gmis5/oauthLogin/zgyk2*研究生教务系统，类型: south_soft:timetable-postgrad�
+u_2d6a2d2e_pg_01南软教务系统(研究生)"south_soft.js*+http://ygl.cpu.edu.cn/gmis5/oauthLogin/zgyk2*研究生教务系统，类型: south_soft:timetable-postgrad�
 
-u_d9f381b9中国人民公安大学zgrmgadx"chaoxing_jiaowu*�
-u_d9f381b9_01超星教务系统"chaoxing_jiaowu.js*!https://webvpn.ppsuc.edu.cn/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_d9f381b9中国人民公安大学zgrmgadx"chaoxing_jiaowu*�
+u_d9f381b9_01超星教务系统"chaoxing.js*!https://webvpn.ppsuc.edu.cn/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 u_0c414a76_pg中国农业大学zgnydx"
 south_soft*�
 u_0c414a76_pg_01南软教务系统(研究生)"south_soft.js*https://gmsstu.cau.edu.cn/logon2*研究生教务系统，类型: south_soft:timetable-postgrad�

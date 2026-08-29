@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schoolselection.web
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -88,6 +89,8 @@ actual fun rememberWebViewController(): WebViewController {
 class NativeBridge(private val handler: WebBridgeHandler) {
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
+        // 保留适配脚本与原生之间的通信日志，便于排查"点击导入无反应"类问题
+        Log.d("ShangKeBridge", "postMessage: $jsonMessage")
         handler.onMessageReceived(jsonMessage)
     }
 }
