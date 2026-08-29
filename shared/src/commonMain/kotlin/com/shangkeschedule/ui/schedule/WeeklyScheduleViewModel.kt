@@ -812,16 +812,24 @@ class WeeklyScheduleViewModel (
         val clusters = mutableListOf<MutableList<NormalizedCourse>>()
 
         for (item in sorted) {
-            val targetCluster = clusters.find { cluster ->
+            // 找出所有与 item 重叠的 cluster；可能有多个，必须全部合并，
+            // 否则同一连通组会被割裂，导致不同簇独立分列后出现重合。
+            val overlappingClusters = clusters.filter { cluster ->
                 cluster.any { existing ->
                     item.start < existing.end - 0.01f && item.end > existing.start + 0.01f &&
                             weeksOverlap(item.raw, existing.raw)
                 }
             }
-            if (targetCluster != null) {
-                targetCluster.add(item)
-            } else {
+            if (overlappingClusters.isEmpty()) {
                 clusters.add(mutableListOf(item))
+            } else {
+                // 合并到第一个重叠簇，追加 item，再把其余簇的课程并入并移除原簇
+                val mergedCluster = overlappingClusters.first()
+                mergedCluster.add(item)
+                for (i in 1 until overlappingClusters.size) {
+                    mergedCluster.addAll(overlappingClusters[i])
+                    clusters.remove(overlappingClusters[i])
+                }
             }
         }
         return clusters
