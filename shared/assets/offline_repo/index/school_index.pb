@@ -4976,4 +4976,6 @@ u_da307d13中原工学院zygxy"wisedu*�
 u_da307d13_01金智(Wisedu)教务系统"	wisedu.js*http://xsxk.zut.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 
 u_abf16b19中南民族大学znmzdx"SCUEC*�
-u_abf16b19_01金智(Wisedu)教务系统"scuec.js*https://webvpn.scuec.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import
+u_abf16b19_01金智(Wisedu)教务系统"scuec.js*https://webvpn.scuec.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+u_hbtcm2026河北中医药大学hbzyydx"HBTCM*�
+u_hbtcm2026_01康普教务系统"hbtcm.js*http://211.143.57.195:8042/2?康普科技「全新教务」系统（河北中医药大学）:shangkeschedule
