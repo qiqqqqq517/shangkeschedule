@@ -1065,13 +1065,19 @@ fun SchemeDateRangeDialog(
     val initialStart = currentMeta?.startMonthDay?.let(::parseMonthDayParts)
     val initialEnd = currentMeta?.endMonthDay?.let(::parseMonthDayParts)
 
-    var startMonth by remember { mutableIntStateOf(initialStart?.first ?: 3) }
-    var startDay by remember { mutableIntStateOf(initialStart?.second ?: 1) }
-    var endMonth by remember { mutableIntStateOf(initialEnd?.first ?: 10) }
-    var endDay by remember { mutableIntStateOf(initialEnd?.second ?: 1) }
+    val initialStartMonth = initialStart?.first ?: 3
+    val initialStartDay = (initialStart?.second ?: 1).coerceIn(1, daysInMonth(initialStartMonth).coerceAtLeast(1))
+    val initialEndMonth = initialEnd?.first ?: 10
+    val initialEndDay = (initialEnd?.second ?: 1).coerceIn(1, daysInMonth(initialEndMonth).coerceAtLeast(1))
+    var startMonth by remember { mutableIntStateOf(initialStartMonth) }
+    var startDay by remember { mutableIntStateOf(initialStartDay) }
+    var endMonth by remember { mutableIntStateOf(initialEndMonth) }
+    var endDay by remember { mutableIntStateOf(initialEndDay) }
 
     val staticMonths = remember { (1..12).map { formatTwoDigits(it) } }
-    val staticDays = remember { (1..31).map { formatTwoDigits(it) } }
+    // 天数滚轮随所选月份动态变化：只显示当月真实存在的日期，避免 9-31 这类不存在的日期
+    val startDays = remember(startMonth) { (1..daysInMonth(startMonth)).map { formatTwoDigits(it) } }
+    val endDays = remember(endMonth) { (1..daysInMonth(endMonth)).map { formatTwoDigits(it) } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1085,10 +1091,13 @@ fun SchemeDateRangeDialog(
                     month = startMonth,
                     day = startDay,
                     months = staticMonths,
-                    days = staticDays,
+                    days = startDays,
                     labelMonth = labelMonth,
                     labelDay = labelDay,
-                    onMonthChange = { startMonth = it },
+                    onMonthChange = { newMonth ->
+                        startMonth = newMonth
+                        if (startDay > daysInMonth(newMonth)) startDay = daysInMonth(newMonth)
+                    },
                     onDayChange = { startDay = it }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1097,10 +1106,13 @@ fun SchemeDateRangeDialog(
                     month = endMonth,
                     day = endDay,
                     months = staticMonths,
-                    days = staticDays,
+                    days = endDays,
                     labelMonth = labelMonth,
                     labelDay = labelDay,
-                    onMonthChange = { endMonth = it },
+                    onMonthChange = { newMonth ->
+                        endMonth = newMonth
+                        if (endDay > daysInMonth(newMonth)) endDay = daysInMonth(newMonth)
+                    },
                     onDayChange = { endDay = it }
                 )
                 if (startMonth * 100 + startDay > endMonth * 100 + endDay) {
