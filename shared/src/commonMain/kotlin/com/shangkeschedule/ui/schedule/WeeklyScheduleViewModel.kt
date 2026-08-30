@@ -729,8 +729,16 @@ class WeeklyScheduleViewModel (
         normalizedList.groupBy { it.raw.course.day }.forEach { (day, dailyCourses) ->
             if (dailyCourses.isEmpty()) return@forEach
 
+            // 过滤周次不相交的同时间段课程，避免“后面的课程和前面的课程重合”。
+            // 开启“显示非本周课程”后，页面会加载所有未来周仍开课的课程；若课程 A（如 1-15 周）
+            // 与课程 B（如 16-18 周）处于同一时间段但周次完全不相交，它们会被拆成独立簇，
+            // 各自以整列宽度绘制在完全相同坐标上造成重合。二者周次不相交、真实课表中永远不会
+            // 同时出现，因此这里只保留当前周活跃的课程，非本周课程仅在它不遮挡任何已保留课程时
+            // 作为该时段的占位预览展示。
+            val filteredCourses = filterNonActiveCourseOverlaps(dailyCourses, currentWeek)
+
             // 本人课程（isCrush = false）优先排序，确保时间重叠时本人占左列、crush 占右列
-            val sorted = dailyCourses.sortedWith(
+            val sorted = filteredCourses.sortedWith(
                 compareBy<NormalizedCourse> { it.raw.course.isCrush }
                     .thenBy { it.start }
                     .thenByDescending { it.end - it.start }
@@ -806,6 +814,43 @@ class WeeklyScheduleViewModel (
         } catch (e: Exception) {
             null
         }
+    }
+
+    /**
+     * 过滤掉与“当前周活跃课程”或已保留课程在时间上重叠的非本周课程（幽灵块）。
+     *
+     * 开启“显示非本周课程”后，页面会加载所有“含 ≥ 当前页周次”的课程，因此同一时间段可能同时
+     * 出现当前周活跃课程与其后某周开课的课程（如 1-15 周与 16-18 周同时间段的两个课程）。二者
+     * 周次不相交、真实课表中永远不会同时出现，若都展示就会在网格上完全重合。
+     *
+     * 规则：
+     * 1. 当前周活跃课程（weeks 含 currentWeek）全部保留，真实时间冲突由后续聚类分列处理；
+     * 2. 非本周课程（幽灵块）仅在不与任何已保留课程时间重叠时才保留，作为该时段的占位预览，
+     *    且幽灵块之间也互不重叠（多个未来周同时间段的课程只保留一个）。
+     */
+    private fun filterNonActiveCourseOverlaps(
+        dailyCourses: List<NormalizedCourse>,
+        currentWeek: Int
+    ): List<NormalizedCourse> {
+        fun isActiveInWeek(c: NormalizedCourse): Boolean =
+            c.raw.weeks.any { it.weekNumber == currentWeek }
+
+        fun timeOverlaps(a: NormalizedCourse, b: NormalizedCourse): Boolean =
+            a.start < b.end - 0.01f && a.end > b.start + 0.01f
+
+        val actives = dailyCourses.filter { isActiveInWeek(it) }
+        val ghosts = dailyCourses.filter { !isActiveInWeek(it) }
+            .sortedBy { it.start }
+
+        val result = actives.toMutableList()
+        val kept = actives.toMutableList()
+        for (ghost in ghosts) {
+            if (kept.none { timeOverlaps(ghost, it) }) {
+                kept.add(ghost)
+                result.add(ghost)
+            }
+        }
+        return result
     }
 
     private fun buildOverlappingClusters(sorted: List<NormalizedCourse>): List<List<NormalizedCourse>> {
