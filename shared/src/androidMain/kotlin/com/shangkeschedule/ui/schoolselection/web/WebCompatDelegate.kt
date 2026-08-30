@@ -3,6 +3,9 @@ package com.shangkeschedule.ui.schoolselection.web
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.os.Message
+import android.util.Log
+import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -48,6 +51,8 @@ class WebCompatDelegate(private val webView: WebView) {
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
+            // CAS/门户页面常用 window.open 或 target=_blank 打开业务系统，需启用多窗口支持
+            setSupportMultipleWindows(true)
         }
 
         val cookieManager = CookieManager.getInstance()
@@ -138,6 +143,48 @@ class WebCompatDelegate(private val webView: WebView) {
                 original.onProgressChanged(view, newProgress)
             }
             override fun onReceivedTitle(v: WebView?, t: String?) = original.onReceivedTitle(v, t)
+
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    Log.d(
+                        "ShangKeConsole",
+                        "[${it.messageLevel()}] ${it.message()} @${it.sourceId()}:${it.lineNumber()}"
+                    )
+                }
+                return true
+            }
+
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                // 门户/CAS 页面常用 window.open / target=_blank 打开业务系统。
+                // 直接把主 WebView 实例赋给新窗口会导致闪退（同一 WebView 不能同时被两个窗口使用）。
+                // 这里用代理 WebView 承接新窗口的目标 URL，再转发回主 WebView 加载：
+                // 既不出现空白窗口，也不闪退，且能继续使用主 WebView 的 Bridge/拦截器完成导入。
+                val proxy = WebView(view?.context ?: this@WebCompatDelegate.webView.context)
+                proxy.settings.javaScriptEnabled = true
+                proxy.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(v: WebView?, request: WebResourceRequest?): Boolean {
+                        request?.url?.toString()?.let { url ->
+                            this@WebCompatDelegate.webView.loadUrl(url)
+                        }
+                        return true
+                    }
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        if (!url.isNullOrBlank() && url != "about:blank") {
+                            this@WebCompatDelegate.webView.loadUrl(url)
+                            view?.stopLoading()
+                        }
+                    }
+                }
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                transport?.webView = proxy
+                resultMsg?.sendToTarget()
+                return true
+            }
         }
     }
 }
