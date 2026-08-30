@@ -312,8 +312,12 @@
     }
 
     // 检查是否在正方教务页面（含 iframe 内的子文档）
+    // 兼容两类系统：老版 jwglxt 路径 / 新版 V-9.0 教学管理信息服务平台（无 jwglxt 前缀）
     function isZhengfangPage() {
         if (window.location.href.indexOf('jwglxt') !== -1) return true;
+        // 新版正方 V-9.0：功能页与课表页路径位于 /xtgl/ 或 /kbcx/ 下
+        var url = window.location.href || '';
+        if (url.indexOf('/xtgl/') !== -1 || url.indexOf('/kbcx/') !== -1) return true;
         var docs = collectDocuments();
         for (var i = 0; i < docs.length; i++) {
             try {
@@ -321,6 +325,8 @@
                 if (!body) continue;
                 if (body.innerHTML.indexOf('正方教务') !== -1) return true;
                 var text = body.innerText || body.textContent || '';
+                // 新版正方 V-9.0 登录页/首页特征标题
+                if (text.indexOf('教学管理信息服务平台') !== -1) return true;
                 if (text.indexOf('星期一') !== -1) return true;
             } catch (e) {
                 // 忽略无法访问的文档
