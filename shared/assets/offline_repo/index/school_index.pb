@@ -1688,10 +1688,10 @@ u_33871bf7江南大学jndx"	zhengfang*�
 u_33871bf7_01正方教务系统"zhengfang.js*,http://jwglxt.jiangnan.edu.cn/sso/jziotlogin21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_5263f065九江职业技术大学jjzyjsdx"qiangzhi*�
-u_5263f065_01强智教务系统"qiangzhi.js*%https://cas.paas.jjvu.jx.cn/cas/login2,自动导入自 timetable，类型: qiangzhi:auto-import�
+u_5263f065_01强智教务系统"qiangzhi.js*%https://cas.paas.jjvu.jx.cn/cas/login2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
-u_238cee1c江苏医药职业学院jsyyzyxy"	zhengfang*�
-u_238cee1c_01正方教务系统"zhengfang.js*!https://cas.jsmc.edu.cn/cas/login21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_238cee1c江苏医药职业学院jsyyzyxy"	zhengfang*�
+u_238cee1c_webvpn智慧苏医"zhengfang.js*�https://enlink.jsmc.edu.cn/https/webvpn687f08205c8c1e624baa2cb19eb3199fd410e20ba7f9c39f4a5085643e6a8977/_web/customized/sopplus/index.html2多入口：智慧苏医:manual-multi-entry�
 
 u_aa5a5649江苏卫生健康职业学院
 jswsjkzyxy"	zhengfang*�
