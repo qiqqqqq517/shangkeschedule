@@ -53,3 +53,17 @@ __pycache__/
 # 本地数据库与调试产物（勿提交）
 main_app_database.db
 *.db
+
+# AI 工作文件（仅本地，不上传 GitHub）
+工作日志.md
+AGENTS.md
+publish_new_version.py
+build_schools.py
+rebuild_zip.py
+school_index_pb2.py
+_*.py
+_*.html
+_*.png
+_*.xml
+_*.log
+.dsh-screens/
