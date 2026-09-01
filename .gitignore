@@ -49,3 +49,7 @@ __pycache__/
 /.ui2.png
 /.v_u1.png
 
+
+# 本地数据库与调试产物（勿提交）
+main_app_database.db
+*.db
