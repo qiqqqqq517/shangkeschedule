@@ -633,4 +633,8 @@
     <string name="backup_target_webdav">WebDAV Cloud Sync</string>
     <string name="backup_target_local_zip">Local ZIP File</string>
 
+    <string name="item_contact_author">Contact Author</string>
+    <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
+    <string name="contact_author_email">hhixingchen520@163.com</string>
+    <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
 </resources>

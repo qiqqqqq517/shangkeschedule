@@ -1,11 +1,12 @@
 package com.shangkeschedule.data.repository
 
-import androidx.room3.Transaction
+import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseDao
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseWeek
 import com.shangkeschedule.data.db.main.CourseWeekDao
+import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotDao
 import com.shangkeschedule.data.model.CourseImportExport.CourseConfigJsonModel
@@ -30,6 +31,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Single
 class CourseConversionRepository(
+    private val database: MainAppDatabase,
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
     private val timeSlotDao: TimeSlotDao,
@@ -144,6 +146,28 @@ class CourseConversionRepository(
         return finalColor
     }
 
+    private fun validateCourseConfigOrThrow(config: CourseConfigJsonModel) {
+        config.semesterStartDate?.let { startDate ->
+            try {
+                LocalDate.parse(startDate)
+            } catch (_: Exception) {
+                throw IllegalArgumentException("学期开始日期格式错误，应为 yyyy-MM-dd")
+            }
+        }
+        if (config.semesterTotalWeeks !in 1..100) {
+            throw IllegalArgumentException("学期总周数必须在 1 到 100 之间")
+        }
+        if (config.defaultClassDuration !in 1..240) {
+            throw IllegalArgumentException("默认上课时长必须在 1 到 240 分钟之间")
+        }
+        if (config.defaultBreakDuration !in 0..180) {
+            throw IllegalArgumentException("默认休息时长必须在 0 到 180 分钟之间")
+        }
+        if (config.firstDayOfWeek !in 1..7) {
+            throw IllegalArgumentException("每周起始日必须在 1 到 7 之间")
+        }
+    }
+
     /**
      * 公共课程实体构建函数：消除4个导入函数中的重复逻辑。
      * 统一处理颜色分配、属性提取、课程和周次实体构建。
@@ -222,7 +246,6 @@ class CourseConversionRepository(
         return Pair(courseEntities, courseWeekEntities)
     }
 
-    @Transaction
     suspend fun importCoursesFromList(
         tableId: String,
         coursesJsonModel: List<ImportCourseJsonModel>
@@ -232,8 +255,6 @@ class CourseConversionRepository(
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
 
-        courseDao.deleteCoursesByTableId(tableId)
-
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
             coursesJsonModel = coursesJsonModel,
             tableId = tableId,
@@ -242,8 +263,12 @@ class CourseConversionRepository(
             preserveId = false
         )
 
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        // 真事务：清空旧课程与新课程写入原子化，中途失败不会留下"课程被清空但新数据没进库"的状态
+        database.withWriteTransaction {
+            courseDao.deleteCoursesByTableId(tableId)
+            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        }
     }
 
     /**
@@ -253,19 +278,16 @@ class CourseConversionRepository(
      * 2. 时间段数据（timeSlots）：仅在 JSON 包含有效数据时覆盖，否则保留本地现状。
      * 3. 配置信息（config）：仅在 JSON 包含有效数据时覆盖，且会保留本地的 showWeekends 设置。
      */
-    @Transaction
     suspend fun importCourseTableFromJson(
         tableId: String,
         courseTableJsonModel: CourseTableImportModel
     ) {
         courseTableJsonModel.courses.forEach { validateCustomCourseTimeOrThrow(it) }
         courseTableJsonModel.timeSlots?.let { validateTimeSlotsOrThrow(it) }
+        courseTableJsonModel.config?.let { validateCourseConfigOrThrow(it) }
 
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
-
-        // 处理课程数据（始终清空原有课程）
-        courseDao.deleteCoursesByTableId(tableId)
 
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
             coursesJsonModel = courseTableJsonModel.courses,
@@ -275,48 +297,56 @@ class CourseConversionRepository(
             preserveId = true
         )
 
-        // 处理时间段数据（仅在有数据时覆盖）
         val jsonTimeSlots = courseTableJsonModel.timeSlots
-        if (!jsonTimeSlots.isNullOrEmpty()) {
-            timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
-
-            val timeSlotEntities = jsonTimeSlots.map { jsonTimeSlot ->
-                TimeSlot(
-                    number = jsonTimeSlot.number,
-                    startTime = jsonTimeSlot.startTime,
-                    endTime = jsonTimeSlot.endTime,
-                    courseTableId = tableId,
-                    alias = jsonTimeSlot.alias?.take(5)
-                )
-            }
-            timeSlotDao.insertAll(timeSlotEntities)
+        val timeSlotEntities = jsonTimeSlots?.map { jsonTimeSlot ->
+            TimeSlot(
+                number = jsonTimeSlot.number,
+                startTime = jsonTimeSlot.startTime,
+                endTime = jsonTimeSlot.endTime,
+                courseTableId = tableId,
+                alias = jsonTimeSlot.alias?.take(5)
+            )
         }
 
-        // 统一执行课程数据插入
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
-
-        // 处理配置数据
         val configJson = courseTableJsonModel.config
-        if (configJson != null) {
+        val updatedConfig = configJson?.let {
             val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
-            val updatedConfig = CourseTableConfig(
+            CourseTableConfig(
                 courseTableId = tableId,
                 showWeekends = currentConfig?.showWeekends ?: false,
-                semesterStartDate = configJson.semesterStartDate,
-                semesterTotalWeeks = configJson.semesterTotalWeeks,
-                defaultClassDuration = configJson.defaultClassDuration,
-                defaultBreakDuration = configJson.defaultBreakDuration,
-                firstDayOfWeek = configJson.firstDayOfWeek
+                semesterStartDate = it.semesterStartDate,
+                semesterTotalWeeks = it.semesterTotalWeeks,
+                defaultClassDuration = it.defaultClassDuration,
+                defaultBreakDuration = it.defaultBreakDuration,
+                firstDayOfWeek = it.firstDayOfWeek
             )
-            appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+        }
+
+        // 真事务：课程清空重建 + 时段覆盖 + 配置覆盖全部原子化
+        database.withWriteTransaction {
+            // 处理课程数据（始终清空原有课程）
+            courseDao.deleteCoursesByTableId(tableId)
+
+            // 处理时间段数据（仅在有数据时覆盖）
+            if (!jsonTimeSlots.isNullOrEmpty()) {
+                timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+                timeSlotDao.insertAll(timeSlotEntities.orEmpty())
+            }
+
+            // 统一执行课程数据插入
+            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+
+            // 配置也在同一 Room 事务内写入，避免课程已提交但配置失败
+            if (updatedConfig != null) {
+                appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+            }
         }
     }
 
     /**
      * 导入预设时间段
      */
-    @Transaction
     suspend fun importTimeSlots(
         tableId: String,
         timeSlots: List<TimeSlotJsonModel>
@@ -331,20 +361,24 @@ class CourseConversionRepository(
                 courseTableId = tableId
             )
         }
-        timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
-        if (timeSlotEntities.isNotEmpty()) {
-            timeSlotDao.insertAll(timeSlotEntities)
+
+        // 真事务：时段清空与写入原子化
+        database.withWriteTransaction {
+            timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+            if (timeSlotEntities.isNotEmpty()) {
+                timeSlotDao.insertAll(timeSlotEntities)
+            }
         }
     }
 
     /**
      * 从 JSON 模型更新指定课表的配置。
      */
-    @Transaction
     suspend fun importCourseConfig(
         tableId: String,
         configJsonModel: CourseConfigJsonModel
     ) {
+        validateCourseConfigOrThrow(configJsonModel)
         val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
 
         val updatedConfig = CourseTableConfig(
@@ -429,7 +463,6 @@ class CourseConversionRepository(
      * @param tableId 课表ID（与本人课表共用同一 ID，通过 isCrush 标记隔离）
      * @param coursesJsonModel 解析后的课程 JSON 模型列表
      */
-    @Transaction
     suspend fun importCrushCoursesFromList(
         tableId: String,
         coursesJsonModel: List<ImportCourseJsonModel>
@@ -439,9 +472,6 @@ class CourseConversionRepository(
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
 
-        // 仅删除 crush 课程，本人课程保持不变
-        courseDao.deleteCrushCoursesByTableId(tableId)
-
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
             coursesJsonModel = coursesJsonModel,
             tableId = tableId,
@@ -450,27 +480,28 @@ class CourseConversionRepository(
             preserveId = false
         )
 
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        // 真事务：仅删除 crush 课程并原子重建，本人课程保持不变
+        database.withWriteTransaction {
+            courseDao.deleteCrushCoursesByTableId(tableId)
+            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        }
     }
 
     /**
      * 从一个完整的 JSON 模型导入 crush 课表数据。
      * 逻辑与 [importCrushCoursesFromList] 一致，额外支持时间段（timeSlots）数据。
      */
-    @Transaction
     suspend fun importCrushCourseTableFromJson(
         tableId: String,
         courseTableJsonModel: CourseTableImportModel
     ) {
         courseTableJsonModel.courses.forEach { validateCustomCourseTimeOrThrow(it) }
         courseTableJsonModel.timeSlots?.let { validateTimeSlotsOrThrow(it) }
+        courseTableJsonModel.config?.let { validateCourseConfigOrThrow(it) }
 
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
-
-        // 仅删除 crush 课程，本人课程保持不变
-        courseDao.deleteCrushCoursesByTableId(tableId)
 
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
             coursesJsonModel = courseTableJsonModel.courses,
@@ -482,8 +513,12 @@ class CourseConversionRepository(
 
         // crush 课表导入不覆盖时间段，避免影响本人课表的作息时间设置
 
-        if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-        if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        // 真事务：crush 课程清空重建原子化
+        database.withWriteTransaction {
+            courseDao.deleteCrushCoursesByTableId(tableId)
+            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
+            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+        }
     }
 
     /**

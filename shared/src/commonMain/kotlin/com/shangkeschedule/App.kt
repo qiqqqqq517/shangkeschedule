@@ -29,12 +29,13 @@ import com.shangkeschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.shangkeschedule.ui.schoolselection.list.SchoolSelectionListScreen
 import com.shangkeschedule.ui.schoolselection.web.WebViewScreen
 import com.shangkeschedule.ui.settings.SettingsScreen
+import com.shangkeschedule.ui.settings.SemesterSettingsScreen
+import com.shangkeschedule.ui.settings.CoupleScheduleSettingsScreen
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.settings.additional.LanguageSettingScreen
 import com.shangkeschedule.ui.settings.additional.MoreOptionsScreen
 import com.shangkeschedule.ui.settings.additional.OpenSourceLicensesScreen
 import com.shangkeschedule.ui.settings.backup.BackupScreen
-import com.shangkeschedule.ui.settings.contribution.ContributionScreen
 import com.shangkeschedule.ui.settings.conversion.CourseTableConversionScreen
 import com.shangkeschedule.ui.settings.course.AddEditCourseScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseInstanceListScreen
@@ -167,6 +168,8 @@ fun ScreenContent(
         Destination.Settings -> SettingsScreen(onNavigate, onBack)
         Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
         Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack)
+        Destination.SemesterSettings -> SemesterSettingsScreen(onBack)
+        Destination.CoupleScheduleSettings -> CoupleScheduleSettingsScreen(onNavigate, onBack)
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack, onNavigate)
         is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack, targetDest.isCrushImport)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
@@ -175,7 +178,6 @@ fun ScreenContent(
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
         Destination.QuickActions -> QuickActionsScreen(onNavigate, onBack)
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
-        Destination.ContributionList -> ContributionScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
         Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)

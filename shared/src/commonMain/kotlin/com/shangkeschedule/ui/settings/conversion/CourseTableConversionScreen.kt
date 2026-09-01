@@ -10,11 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -23,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +36,9 @@ import com.shangkeschedule.data.di.AppStorage
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.ShareDialog
+import com.shangkeschedule.ui.settings.SectionCard
+import com.shangkeschedule.ui.settings.SectionDivider
+import com.shangkeschedule.ui.settings.SettingItem
 import kotlinx.coroutines.launch
 import okio.Buffer
 import okio.FileSystem
@@ -57,17 +55,13 @@ import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.desc_export_ics_with_alarm
 import shangkeschedule.shared.generated.resources.desc_export_json_with_config
-import shangkeschedule.shared.generated.resources.desc_delete_crush_schedule
-import shangkeschedule.shared.generated.resources.desc_import_crush_schedule
 import shangkeschedule.shared.generated.resources.desc_import_json
 import shangkeschedule.shared.generated.resources.desc_school_import_quick
 import shangkeschedule.shared.generated.resources.desc_sync_to_system_calendar
 import shangkeschedule.shared.generated.resources.item_backup_restore
-import shangkeschedule.shared.generated.resources.item_delete_crush_schedule
 import shangkeschedule.shared.generated.resources.item_export_course_file
 import shangkeschedule.shared.generated.resources.item_export_ics_file
 import shangkeschedule.shared.generated.resources.item_import_course_file
-import shangkeschedule.shared.generated.resources.item_import_crush_schedule
 import shangkeschedule.shared.generated.resources.item_school_system_import
 import shangkeschedule.shared.generated.resources.item_sync_to_system_calendar
 import shangkeschedule.shared.generated.resources.section_file_conversion
@@ -98,8 +92,6 @@ fun CourseTableConversionScreen(
     val snackbarFileSaveCanceled = stringResource(Res.string.snackbar_file_save_canceled)
 
     var pendingImportTableId by remember { mutableStateOf<String?>(null) }
-    var pendingCrushImport by remember { mutableStateOf(false) }
-    var showDeleteCrushConfirm by remember { mutableStateOf(false) }
 
     // 用于暂存导出的缓存路径和触发 ShareDialog 的路径状态
     var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
@@ -112,20 +104,14 @@ fun CourseTableConversionScreen(
                 if (bytes == null) {
                     coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
                     pendingImportTableId = null
-                    pendingCrushImport = false
                     return@FileManagerCallbacks
                 }
                 val source = Buffer().write(bytes)
-                if (pendingCrushImport) {
-                    viewModel.handleCrushFileImport(source)
-                } else {
-                    val tableId = pendingImportTableId
-                    if (tableId != null) {
-                        viewModel.handleFileImport(tableId, source)
-                    }
+                val tableId = pendingImportTableId
+                if (tableId != null) {
+                    viewModel.handleFileImport(tableId, source)
                 }
                 pendingImportTableId = null
-                pendingCrushImport = false
             },
             onFileExported = { success ->
                 if (success) {
@@ -178,14 +164,7 @@ fun CourseTableConversionScreen(
                 is ConversionEvent.ShowMessage -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-                is ConversionEvent.NavigateToCrushSchoolImport -> {
-                    onNavigate(Destination.SchoolSelectionListScreen(isCrushImport = true))
-                }
-                is ConversionEvent.LaunchCrushImportFilePicker -> {
-                    pendingImportTableId = null
-                    pendingCrushImport = true
-                    fileManager.importFile(listOf("json"))
-                }
+                else -> { }
             }
         }
     }
@@ -222,94 +201,64 @@ fun CourseTableConversionScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(stringResource(Res.string.section_file_conversion), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    ConversionRow(
-                        title = stringResource(Res.string.item_import_course_file),
-                        desc = stringResource(Res.string.desc_import_json),
-                        onClick = { viewModel.onImportClick() }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = stringResource(Res.string.item_export_course_file),
-                        desc = stringResource(Res.string.desc_export_json_with_config),
-                        onClick = { viewModel.onExportClick() }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = stringResource(Res.string.item_export_ics_file),
-                        desc = stringResource(Res.string.desc_export_ics_with_alarm),
-                        onClick = { viewModel.onExportIcsClick() }
-                    )
-                }
+            SectionCard {
+                SettingItem(
+                    title = stringResource(Res.string.item_import_course_file),
+                    subtitle = stringResource(Res.string.desc_import_json),
+                    onClick = { viewModel.onImportClick() }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_export_course_file),
+                    subtitle = stringResource(Res.string.desc_export_json_with_config),
+                    onClick = { viewModel.onExportClick() }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_export_ics_file),
+                    subtitle = stringResource(Res.string.desc_export_ics_with_alarm),
+                    onClick = { viewModel.onExportIcsClick() }
+                )
             }
 
             Spacer(Modifier.height(16.dp))
 
             Text(stringResource(Res.string.section_school_import), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    ConversionRow(
-                        title = stringResource(Res.string.item_school_system_import),
-                        desc = stringResource(Res.string.desc_school_import_quick),
-                        onClick = { onNavigate(Destination.SchoolSelectionListScreen()) }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = "文本/粘贴导入",
-                        desc = "支持 WakeUp文本/JSON/ICS/CSV/HTML/纯文本，先预览再导入",
-                        onClick = { onNavigate(Destination.TextImport) }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = stringResource(Res.string.item_import_crush_schedule),
-                        desc = stringResource(Res.string.desc_import_crush_schedule),
-                        onClick = { viewModel.onImportCrushClick() }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = stringResource(Res.string.item_delete_crush_schedule),
-                        desc = stringResource(Res.string.desc_delete_crush_schedule),
-                        onClick = { showDeleteCrushConfirm = true }
-                    )
-                }
+            SectionCard {
+                SettingItem(
+                    title = stringResource(Res.string.item_school_system_import),
+                    subtitle = stringResource(Res.string.desc_school_import_quick),
+                    onClick = { onNavigate(Destination.SchoolSelectionListScreen()) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = "文本/粘贴导入",
+                    subtitle = "支持 WakeUp文本/JSON/ICS/CSV/HTML/纯文本，先预览再导入",
+                    onClick = { onNavigate(Destination.TextImport) }
+                )
             }
 
             Spacer(Modifier.height(16.dp))
 
             Text(stringResource(Res.string.section_sync), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    ConversionRow(
-                        title = stringResource(Res.string.item_sync_to_system_calendar),
-                        desc = stringResource(Res.string.desc_sync_to_system_calendar),
-                        onClick = { viewModel.onSyncToCalendarClick() }
-                    )
-                    HorizontalDivider()
-                    ConversionRow(
-                        title = stringResource(Res.string.item_backup_restore),
-                        desc = stringResource(Res.string.desc_backup_restore),
-                        onClick = { onNavigate(Destination.BackupAndRestore) }
-                    )
-                }
+            SectionCard {
+                SettingItem(
+                    title = stringResource(Res.string.item_sync_to_system_calendar),
+                    subtitle = stringResource(Res.string.desc_sync_to_system_calendar),
+                    onClick = { viewModel.onSyncToCalendarClick() }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_backup_restore),
+                    subtitle = stringResource(Res.string.desc_backup_restore),
+                    onClick = { onNavigate(Destination.BackupAndRestore) }
+                )
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -319,31 +268,8 @@ fun CourseTableConversionScreen(
         uiState = uiState,
         onDismiss = { viewModel.dismissDialog() },
         onConfirmImport = { viewModel.onImportTableSelected(it) },
-        onConfirmExport = { id, mins -> viewModel.onExportTableSelected(id, mins) },
-        onCrushImportViaSchool = { viewModel.onCrushImportViaSchool() },
-        onCrushImportViaJson = { viewModel.onCrushImportViaJson() }
+        onConfirmExport = { id, mins -> viewModel.onExportTableSelected(id, mins) }
     )
-
-    if (showDeleteCrushConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteCrushConfirm = false },
-            title = { Text(stringResource(Res.string.item_delete_crush_schedule)) },
-            text = { Text("确定要删除情侣课表吗？此操作不可恢复。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteCrushConfirm = false
-                    viewModel.onDeleteCrushClick()
-                }) {
-                    Text("确定删除")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteCrushConfirm = false }) {
-                    Text("取消")
-                }
-            }
-        )
-    }
 
     shareFilePath?.let { path ->
         ShareDialog(
@@ -353,36 +279,6 @@ fun CourseTableConversionScreen(
                 shareFilePath = null
                 pendingShareFilePath = null
             }
-        )
-    }
-}
-
-/**
- * 转换页面的列表行子组件。
- */
-@Composable
-private fun ConversionRow(
-    title: String,
-    desc: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = stringResource(Res.string.a11y_details),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

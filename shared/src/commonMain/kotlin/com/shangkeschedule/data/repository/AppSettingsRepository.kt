@@ -163,7 +163,7 @@ class AppSettingsRepository(
         startDateStr: String?,
         firstDayOfWeekInt: Int
     ): Int? {
-        if (startDateStr.isNullOrEmpty()) return null
+        if (startDateStr.isNullOrEmpty() || firstDayOfWeekInt !in 1..7) return null
         return try {
             val targetFirstDayOfWeek = DayOfWeek(firstDayOfWeekInt)
             val parsedStartDate = LocalDate.parse(startDateStr, DATE_FORMATTER)
@@ -225,7 +225,7 @@ class AppSettingsRepository(
      */
     private fun calculateSemesterStartDate(week: Int, firstDayOfWeekInt: Int): String {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val firstDayOfWeek = DayOfWeek(firstDayOfWeekInt)
+        val firstDayOfWeek = DayOfWeek(firstDayOfWeekInt.coerceIn(1, 7))
         val startOfThisWeek = getPreviousOrSameDayOfWeek(today, firstDayOfWeek)
         val daysToSubtract = (week - 1) * 7
         val semesterStartDate = LocalDate.fromEpochDays(startOfThisWeek.toEpochDays() - daysToSubtract)

@@ -11,6 +11,7 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
+import com.shangkeschedule.data.time.currentDateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,11 +22,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.KoinViewModel
-import kotlin.time.Clock
 
 @KoinViewModel
 class TodayScheduleViewModel(
@@ -44,10 +42,14 @@ class TodayScheduleViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScheduleGridStyle())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<TodayUiState> = appSettingsRepository.getAppSettings()
-        .flatMapLatest { settings ->
+    val uiState: StateFlow<TodayUiState> = combine(
+        appSettingsRepository.getAppSettings(),
+        // 跨天自动重算：today 不再是流装配期的一次性快照，午夜后状态机与课程查询全部刷新
+        currentDateFlow()
+    ) { settings, today ->
+        settings to today
+    }.flatMapLatest { (settings, today) ->
             val tableId = settings.currentCourseTableId
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             val todayStr = today.toString()
             val dayOfWeek = today.dayOfWeek.isoDayNumber
 

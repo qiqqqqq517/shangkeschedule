@@ -15,6 +15,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,6 +68,13 @@ import shangkeschedule.shared.generated.resources.check_24px
 import shangkeschedule.shared.generated.resources.close_24px
 import shangkeschedule.shared.generated.resources.delete_24px
 import shangkeschedule.shared.generated.resources.item_course_management
+import shangkeschedule.shared.generated.resources.item_schedule_tweak
+import shangkeschedule.shared.generated.resources.desc_schedule_tweak
+import shangkeschedule.shared.generated.resources.item_quick_delete
+import shangkeschedule.shared.generated.resources.quick_delete_subtitle
+import shangkeschedule.shared.generated.resources.label_quick_action_category_schedule
+import shangkeschedule.shared.generated.resources.chevron_right_24px
+import shangkeschedule.shared.generated.resources.swap_horiz_24px
 import shangkeschedule.shared.generated.resources.menu_open_24px
 import shangkeschedule.shared.generated.resources.text_no_unique_courses_hint
 import shangkeschedule.shared.generated.resources.title_selected_items_count
@@ -210,9 +224,15 @@ fun CourseNameListScreen(
             }
         }
     ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            QuickActionsSection(
+                modifier = Modifier.fillMaxWidth(),
+                onNavigate = onNavigate
+            )
+
         if (uniqueCourseNames.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(stringResource(Res.string.text_no_unique_courses_hint), style = MaterialTheme.typography.bodyLarge)
@@ -221,7 +241,7 @@ fun CourseNameListScreen(
             // LazyVerticalGrid 实现两列网格布局
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -253,6 +273,7 @@ fun CourseNameListScreen(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -329,5 +350,83 @@ fun CourseNameCard(
                     .sizeIn(minWidth = 20.dp, minHeight = 20.dp)
             )
         }
+    }
+}
+
+
+/**
+ * 快捷操作区块：课程调动 / 快速删除课程。
+ * 并入课程管理页，替代原设置主页的「快捷操作」入口。
+ */
+@Composable
+private fun QuickActionsSection(
+    modifier: Modifier = Modifier,
+    onNavigate: (Destination) -> Unit
+) {
+    Card(
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(Res.string.label_quick_action_category_schedule),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+            )
+            QuickActionRow(
+                icon = vectorResource(Res.drawable.swap_horiz_24px),
+                title = stringResource(Res.string.item_schedule_tweak),
+                subtitle = stringResource(Res.string.desc_schedule_tweak),
+                onClick = { onNavigate(Destination.TweakSchedule) }
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = 0.5.dp
+            )
+            QuickActionRow(
+                icon = vectorResource(Res.drawable.delete_24px),
+                title = stringResource(Res.string.item_quick_delete),
+                subtitle = stringResource(Res.string.quick_delete_subtitle),
+                onClick = { onNavigate(Destination.QuickDelete) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickActionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.width(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

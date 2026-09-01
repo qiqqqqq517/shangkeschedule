@@ -1,5 +1,9 @@
 package com.shangkeschedule.ui.settings.notification
 
+import com.shangkeschedule.ui.settings.SectionCard
+import com.shangkeschedule.ui.settings.SectionDivider
+import com.shangkeschedule.ui.settings.SettingItem
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,62 +48,51 @@ fun AdvancedSettingsCard(
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(Modifier.height(8.dp))
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = stringResource(Res.string.section_title_skip_dates),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(Res.string.text_skip_dates_experimental),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+        Text(
+            text = stringResource(Res.string.text_skip_dates_experimental),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
 
-                SettingItemRow(
-                    title = stringResource(Res.string.item_update_holiday_info),
-                    onClick = onUpdateHolidays,
-                    trailing = {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(26.dp),
-                                strokeWidth = 4.dp
-                            )
-                        }
+        SectionCard {
+            SettingItem(
+                title = stringResource(Res.string.item_update_holiday_info),
+                onClick = onUpdateHolidays,
+                trailingContent = {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(26.dp),
+                            strokeWidth = 4.dp
+                        )
                     }
-                )
-                Text(
-                    text = stringResource(Res.string.update_holiday_info_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-                HorizontalDivider()
-
-                SettingItemRow(
-                    title = stringResource(Res.string.item_clear_skipped_dates),
-                    onClick = onClearSkippedDates
-                )
-                HorizontalDivider()
-
-                SettingItemRow(
-                    title = stringResource(Res.string.item_view_skipped_dates),
-                    currentValue = if (uiState.skippedDates.isNotEmpty()) {
-                        stringResource(Res.string.skipped_dates_count_format, uiState.skippedDates.size)
-                    } else {
-                        stringResource(Res.string.skipped_dates_none)
-                    },
-                    onClick = onViewSkippedDates
-                )
-            }
+                }
+            )
+            SectionDivider()
+            SettingItem(
+                title = stringResource(Res.string.item_clear_skipped_dates),
+                onClick = onClearSkippedDates
+            )
+            SectionDivider()
+            SettingItem(
+                title = stringResource(Res.string.item_view_skipped_dates),
+                onClick = onViewSkippedDates,
+                trailingContent = {
+                    Text(
+                        text = if (uiState.skippedDates.isNotEmpty()) {
+                            stringResource(Res.string.skipped_dates_count_format, uiState.skippedDates.size)
+                        } else {
+                            stringResource(Res.string.skipped_dates_none)
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            )
         }
+        Text(
+            text = stringResource(Res.string.update_holiday_info_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+        )
     }
 }

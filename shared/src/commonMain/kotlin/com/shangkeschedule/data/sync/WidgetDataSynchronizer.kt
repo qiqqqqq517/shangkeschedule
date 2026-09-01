@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -55,6 +57,7 @@ class WidgetDataSynchronizer(
     private val widgetRepository: WidgetRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val syncMutex = Mutex()
     private val widgetSyncDays = 7 // 每次同步未来 7 天的数据
     private val isStarted = MutableStateFlow(false)
 
@@ -93,9 +96,12 @@ class WidgetDataSynchronizer(
             if (config != null) {
                 performSync(appSettings, config, coursesWithWeeks, timeSlots)
             } else {
-                // 配置为空时清空小组件数据
-                widgetRepository.deleteAll()
-                widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
+                syncMutex.withLock {
+                    widgetRepository.replaceSnapshot(
+                        courses = emptyList(),
+                        settings = WidgetAppSettings(id = 1, semesterStartDate = null)
+                    )
+                }
             }
         }
 
@@ -144,7 +150,7 @@ class WidgetDataSynchronizer(
     /**
      * 手动触发一次性数据同步（挂起函数）。
      */
-    suspend fun syncNow() {
+    suspend fun syncNow() = syncMutex.withLock {
         val appSettings = appSettingsRepository.getAppSettings().first()
         val tableId = appSettings.currentCourseTableId
 
@@ -153,10 +159,12 @@ class WidgetDataSynchronizer(
         val timeSlots = if (tableId.isNotEmpty()) timeSlotRepository.getActiveTimeSlotsOnce(tableId, courseConfig) else emptyList()
 
         if (courseConfig != null) {
-            performSync(appSettings, courseConfig, coursesWithWeeks, timeSlots)
+            performSyncUnlocked(appSettings, courseConfig, coursesWithWeeks, timeSlots)
         } else {
-            widgetRepository.deleteAll()
-            widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
+            widgetRepository.replaceSnapshot(
+                courses = emptyList(),
+                settings = WidgetAppSettings(id = 1, semesterStartDate = null)
+            )
         }
         // 手动同步完成后主动发出通知
         _syncCompletedChannel.trySend(Unit)
@@ -170,81 +178,65 @@ class WidgetDataSynchronizer(
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
         timeSlots: List<TimeSlot>
+    ) = syncMutex.withLock {
+        performSyncUnlocked(appSettings, courseConfig, coursesWithWeeks, timeSlots)
+    }
+
+    private suspend fun performSyncUnlocked(
+        appSettings: AppSettingsModel,
+        courseConfig: CourseTableConfig,
+        coursesWithWeeks: List<CourseWithWeeks>,
+        timeSlots: List<TimeSlot>
     ) = withContext(Dispatchers.IO) {
-        val semesterStartDateString = courseConfig.semesterStartDate ?: run {
-            widgetRepository.deleteAll()
-            widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
-            return@withContext
-        }
+        val semesterStartDateString = courseConfig.semesterStartDate
         val semesterTotalWeeks = courseConfig.semesterTotalWeeks
         val firstDayOfWeekInt = courseConfig.firstDayOfWeek
 
-        if (semesterTotalWeeks <= 0) {
-            widgetRepository.deleteAll()
-            widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
+        val semesterStartDate: LocalDate? = semesterStartDateString?.let {
+            runCatching { LocalDate.parse(it) }.getOrNull()
+        }
+        val isValidConfig = semesterStartDate != null &&
+            semesterTotalWeeks > 0 &&
+            firstDayOfWeekInt in 1..7
+
+        if (!isValidConfig) {
+            widgetRepository.replaceSnapshot(
+                courses = emptyList(),
+                settings = WidgetAppSettings(id = 1, semesterStartDate = null)
+            )
             return@withContext
         }
 
-        // 更新小组件的全局基础设置
         val widgetSettings = WidgetAppSettings(
             id = 1,
             semesterStartDate = semesterStartDateString,
             semesterTotalWeeks = semesterTotalWeeks,
             firstDayOfWeek = firstDayOfWeekInt
         )
-        widgetRepository.insertOrUpdateAppSettings(widgetSettings)
 
         val skippedDates = appSettings.skippedDates
         val timeSlotMap = timeSlots.associateBy { it.number }
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-
-        val semesterStartDate: LocalDate = try {
-            LocalDate.parse(semesterStartDateString)
-        } catch (e: Exception) {
-            widgetRepository.deleteAll()
-            widgetRepository.insertOrUpdateAppSettings(WidgetAppSettings(id = 1, semesterStartDate = null))
-            return@withContext
-        }
-
-        // 将开学日期对齐到设定的每周起始日
         val alignedSemesterStartDate = getStartDayOfWeek(semesterStartDate, firstDayOfWeekInt)
 
         val widgetCourses = mutableListOf<WidgetCourse>()
-        // 如果还没开学，从开学第一天开始同步；否则从今天开始同步
-        val startSyncDate = if (today < alignedSemesterStartDate) {
-            alignedSemesterStartDate
-        } else {
-            today
-        }
+        val startSyncDate = if (today < alignedSemesterStartDate) alignedSemesterStartDate else today
 
-        // 循环计算未来指定天数（widgetSyncDays）内的课程安排
         for (i in 0 until widgetSyncDays) {
             val date = startSyncDate.plus(i, DateTimeUnit.DAY)
             val dateString = date.toString()
-
             val alignedDate = getStartDayOfWeek(date, firstDayOfWeekInt)
-
-            // 计算当前日期是第几周
             val diffDays = alignedSemesterStartDate.daysUntil(alignedDate)
-            val diffWeeks = diffDays / 7
-            val weekNumber = diffWeeks + 1
-
+            val weekNumber = diffDays / 7 + 1
             val dayOfWeek = date.dayOfWeek.isoDayNumber
 
-            // 超出学期总周数则跳过
-            if (weekNumber !in 1..semesterTotalWeeks) {
-                continue
-            }
+            if (weekNumber !in 1..semesterTotalWeeks) continue
 
-            // 遍历所有课程，检查是否在当前周及当天有课
             for (courseWithWeeks in coursesWithWeeks) {
                 if (courseWithWeeks.weeks.any { it.weekNumber == weekNumber } && courseWithWeeks.course.day == dayOfWeek) {
                     val course = courseWithWeeks.course
-
                     val startTime: String
                     val endTime: String
-
-                    // 处理自定义时间或标准时间段
                     if (course.isCustomTime) {
                         startTime = course.customStartTime ?: ""
                         endTime = course.customEndTime ?: ""
@@ -252,38 +244,31 @@ class WidgetDataSynchronizer(
                         startTime = timeSlotMap[course.startSection]?.startTime ?: ""
                         endTime = timeSlotMap[course.endSection]?.endTime ?: ""
                     }
-
-                    // 检查该日期是否被设为调休/停课
-                    val isSkipped = skippedDates.contains(dateString)
-
-                    val widgetCourse = WidgetCourse(
-                        id = "${course.id}-$dateString",
-                        name = course.name,
-                        teacher = course.teacher,
-                        position = course.position,
-                        startTime = startTime,
-                        endTime = endTime,
-                        isSkipped = isSkipped,
-                        date = dateString,
-                        colorInt = course.colorInt
+                    widgetCourses.add(
+                        WidgetCourse(
+                            id = "${course.id}-$dateString",
+                            name = course.name,
+                            teacher = course.teacher,
+                            position = course.position,
+                            startTime = startTime,
+                            endTime = endTime,
+                            isSkipped = skippedDates.contains(dateString),
+                            date = dateString,
+                            colorInt = course.colorInt
+                        )
                     )
-                    widgetCourses.add(widgetCourse)
                 }
             }
         }
 
-        // 刷新 Widget 数据库：先清空旧数据，再批量插入新计算的课程
-        widgetRepository.deleteAll()
-        if (widgetCourses.isNotEmpty()) {
-            widgetRepository.insertAll(widgetCourses)
-        }
+        widgetRepository.replaceSnapshot(widgetCourses, widgetSettings)
     }
 
     /**
      * 根据设定的每周起始日（如周一或周日），向前推算并对齐给定日期所在周的起始日。
      */
     private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
-        val targetFirstDay = DayOfWeek(firstDayOfWeekInt)
+        val targetFirstDay = DayOfWeek(firstDayOfWeekInt.coerceIn(1, 7))
         var current = date
         while (current.dayOfWeek != targetFirstDay) {
             current = current.minus(1, DateTimeUnit.DAY)

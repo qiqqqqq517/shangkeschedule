@@ -75,16 +75,7 @@ class ManageCourseTablesViewModel(
      */
     fun deleteCourseTable(courseTable: CourseTable) {
         viewModelScope.launch {
-            val success = courseTableRepository.deleteCourseTable(courseTable)
-            if (success) {
-                // 如果删除的是当前激活的课表，自动切换到列表中的第一个课表
-                if (courseTable.id == uiState.value.currentActiveTableId) {
-                    val remainingTables = courseTableRepository.getAllCourseTables().first()
-                    if (remainingTables.isNotEmpty()) {
-                        switchCourseTable(remainingTables.first().id)
-                    }
-                }
-            }
+            courseTableRepository.deleteCourseTableAndResolveCurrent(courseTable)
         }
     }
 }

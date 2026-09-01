@@ -1,12 +1,18 @@
 package com.shangkeschedule.data.repository
 
+import androidx.room3.withWriteTransaction
+import com.shangkeschedule.data.db.main.CourseTableConfigDao
+import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotDao
 import com.shangkeschedule.data.db.main.TimeSlotScheme
 import com.shangkeschedule.data.db.main.TimeSlotSchemeDao
+import com.shangkeschedule.data.time.currentDateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -24,8 +30,10 @@ import kotlin.time.Clock
  */
 @Single
 class TimeSlotRepository(
+    private val database: MainAppDatabase,
     private val timeSlotDao: TimeSlotDao,
-    private val timeSlotSchemeDao: TimeSlotSchemeDao
+    private val timeSlotSchemeDao: TimeSlotSchemeDao,
+    private val courseTableConfigDao: CourseTableConfigDao
 ) {
     /**
      * 获取指定课表、指定作息方案的所有时间段，返回一个数据流。
@@ -49,21 +57,58 @@ class TimeSlotRepository(
     }
 
     /**
-     * 完全替换指定课表、指定作息方案下的所有时间段数据。
+     * 完全替换指定课表、指定作息方案下的所有时间段。
      */
     suspend fun replaceAllForCourseTable(courseTableId: String, timeSlots: List<TimeSlot>, schemeId: String = TimeSlot.DEFAULT_SCHEME_ID) {
-        timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
-        if (timeSlots.isNotEmpty()) {
-            timeSlotDao.insertAll(timeSlots)
+        database.withWriteTransaction {
+            timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
+            if (timeSlots.isNotEmpty()) {
+                timeSlotDao.insertAll(timeSlots.map { it.copy(courseTableId = courseTableId, schemeId = schemeId) })
+            }
         }
     }
 
-    /**
-     * 删除指定课表、指定作息方案下的所有时间段。
-     */
+    /** 保存当前方案的时间段及课表默认时长，保证两部分同时成功。 */
+    suspend fun saveSchemeSettings(
+        courseTableId: String,
+        timeSlots: List<TimeSlot>,
+        schemeId: String,
+        config: CourseTableConfig
+    ) {
+        database.withWriteTransaction {
+            timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
+            if (timeSlots.isNotEmpty()) {
+                timeSlotDao.insertAll(timeSlots.map { it.copy(courseTableId = courseTableId, schemeId = schemeId) })
+            }
+            courseTableConfigDao.insertOrUpdate(config)
+        }
+    }
+
+    /** 创建新方案：复制时间段并切换当前方案，全部在同一事务内提交。 */
+    suspend fun createScheme(
+        courseTableId: String,
+        schemeId: String,
+        templateSlots: List<TimeSlot>,
+        currentConfig: CourseTableConfig
+    ) {
+        database.withWriteTransaction {
+            if (templateSlots.isNotEmpty()) {
+                timeSlotDao.insertAll(templateSlots.map { it.copy(courseTableId = courseTableId, schemeId = schemeId) })
+            }
+            courseTableConfigDao.insertOrUpdate(currentConfig.copy(currentSchemeId = schemeId))
+        }
+    }
+
+    /** 删除方案：必要时先切回默认方案，再删除时间段和元数据，全部原子化。 */
     suspend fun deleteScheme(courseTableId: String, schemeId: String) {
-        timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
-        timeSlotSchemeDao.deleteScheme(courseTableId, schemeId)
+        database.withWriteTransaction {
+            val currentConfig = courseTableConfigDao.getConfigOnce(courseTableId)
+            if (currentConfig?.currentSchemeId == schemeId) {
+                courseTableConfigDao.insertOrUpdate(currentConfig.copy(currentSchemeId = TimeSlot.DEFAULT_SCHEME_ID))
+            }
+            timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
+            timeSlotSchemeDao.deleteScheme(courseTableId, schemeId)
+        }
     }
 
     // ─── 作息方案元信息（夏令时/冬令时生效日期范围） ───
@@ -112,6 +157,7 @@ class TimeSlotRepository(
      * 统一入口：根据课表配置流，实时返回“当前应生效作息方案”下的时间段列表。
      *
      * 开启自动切换时，会同时监听方案元信息变化并按当天日期自动解析方案；
+     * 日期来自 [currentDateFlow]，跨天（午夜）自动重算，夏/冬令时切换不再滞留到下一次配置变化。
      * 未开启时直接使用手动选择的方案。
      */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -122,10 +168,16 @@ class TimeSlotRepository(
         if (courseTableId.isEmpty()) return flowOf(emptyList())
         return configFlow.flatMapLatest { config ->
             if (config?.autoSwitchScheme == true) {
-                timeSlotSchemeDao.getSchemesByCourseTableId(courseTableId).flatMapLatest { schemes ->
-                    val schemeId = resolveActiveSchemeId(config, schemes, today())
-                    timeSlotDao.getTimeSlotsByCourseTableId(courseTableId, schemeId)
+                combine(
+                    timeSlotSchemeDao.getSchemesByCourseTableId(courseTableId),
+                    currentDateFlow()
+                ) { schemes, today ->
+                    resolveActiveSchemeId(config, schemes, today)
                 }
+                    .distinctUntilChanged()
+                    .flatMapLatest { schemeId ->
+                        timeSlotDao.getTimeSlotsByCourseTableId(courseTableId, schemeId)
+                    }
             } else {
                 timeSlotDao.getTimeSlotsByCourseTableId(
                     courseTableId,

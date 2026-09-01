@@ -1,16 +1,17 @@
 package com.shangkeschedule.ui.settings.notification
 
+import com.shangkeschedule.ui.settings.SectionCard
+import com.shangkeschedule.ui.settings.SectionDivider
+import com.shangkeschedule.ui.settings.SettingItem
+
 import android.os.Build
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -70,37 +71,22 @@ fun GeneralSettingsCard(
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(Modifier.height(8.dp))
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // 权限说明头部
-                Text(
-                    text = stringResource(Res.string.text_permission_importance_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(Res.string.text_permission_importance_detail),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+        Text(
+            text = stringResource(Res.string.text_permission_importance_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(Res.string.text_permission_importance_detail),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
 
-                // 1. 上课提醒主开关
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = stringResource(Res.string.item_course_reminder),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+        SectionCard {
+            // 1. 上课提醒主开关
+            SettingItem(
+                title = stringResource(Res.string.item_course_reminder),
+                trailingContent = {
                     Switch(
                         checked = uiState.reminderEnabled,
                         onCheckedChange = { targetState ->
@@ -116,104 +102,90 @@ fun GeneralSettingsCard(
                         }
                     )
                 }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                // 2. 兼容穿戴设备同步通知开关
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.item_compat_wearable_sync),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Switch(
-                            checked = uiState.compatWearableSync,
-                            onCheckedChange = onCompatWearableToggle
-                        )
+            )
+            SectionDivider()
+            // 2. 兼容穿戴设备同步通知开关
+            SettingItem(
+                title = stringResource(Res.string.item_compat_wearable_sync),
+                subtitle = stringResource(Res.string.desc_compat_wearable_sync),
+                trailingContent = {
+                    Switch(
+                        checked = uiState.compatWearableSync,
+                        onCheckedChange = onCompatWearableToggle
+                    )
+                }
+            )
+            SectionDivider()
+            // 3. 上课自动模式
+            SettingItem(
+                title = stringResource(Res.string.item_auto_mode),
+                onClick = onAutoModeClick,
+                trailingContent = {
+                    currentModeText?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium)
                     }
+                }
+            )
+            SectionDivider()
+            // 4. 提前提醒时间
+            SettingItem(
+                title = stringResource(Res.string.item_remind_time_before),
+                onClick = onRemindTimeClick,
+                trailingContent = {
                     Text(
-                        text = stringResource(Res.string.desc_compat_wearable_sync),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                        text = stringResource(Res.string.remind_time_minutes_format, uiState.remindBeforeMinutes),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
-
-                HorizontalDivider()
-
-                // 3. 上课自动模式
-                SettingItemRow(
-                    title = stringResource(Res.string.item_auto_mode),
-                    currentValue = currentModeText,
-                    onClick = onAutoModeClick
-                )
-                if (!uiState.reminderEnabled) {
-                    Text(
-                        text = stringResource(Res.string.text_auto_mode_dependency),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)
-                    )
-                }
-
-                HorizontalDivider()
-
-                // 4. 提前提醒时间
-                SettingItemRow(
-                    title = stringResource(Res.string.item_remind_time_before),
-                    currentValue = stringResource(Res.string.remind_time_minutes_format, uiState.remindBeforeMinutes),
-                    onClick = onRemindTimeClick
-                )
-
-                // 5. 精确闹钟权限 (Android 12+)：直接跳转页面
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    HorizontalDivider()
-                    val statusText = if (uiState.exactAlarmStatus)
-                        stringResource(Res.string.status_enabled)
-                    else
-                        stringResource(Res.string.status_disabled)
-
-                    SettingItemRow(
-                        title = stringResource(Res.string.item_exact_alarm_permission),
-                        currentValue = statusText,
-                        onClick = { openExactAlarmSettings(context) }
-                    )
-                }
-
-                HorizontalDivider()
-
-                // 6. 勿扰模式权限：直接跳转页面
-                val dndStatusText = if (uiState.dndPermissionStatus)
-                    stringResource(Res.string.status_authorized)
+            )
+            // 5. 精确闹钟权限 (Android 12+)：直接跳转页面
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val statusText = if (uiState.exactAlarmStatus)
+                    stringResource(Res.string.status_enabled)
                 else
-                    stringResource(Res.string.status_unauthorized)
-
-                SettingItemRow(
-                    title = stringResource(Res.string.item_dnd_permission),
-                    currentValue = dndStatusText,
-                    onClick = { openDndSettings(context) }
-                )
-
-                HorizontalDivider()
-
-                // 7. 后台与自启动
-                SettingItemRow(
-                    title = stringResource(Res.string.item_background_and_autostart),
-                    onClick = onAppSettingsClick
-                )
-
-                HorizontalDivider()
-
-                // 8. 忽略电池优化
-                SettingItemRow(
-                    title = stringResource(Res.string.item_ignore_battery_optimization),
-                    onClick = onBatteryOptimizationClick
+                    stringResource(Res.string.status_disabled)
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_exact_alarm_permission),
+                    onClick = { openExactAlarmSettings(context) },
+                    trailingContent = {
+                        Text(statusText, style = MaterialTheme.typography.bodyMedium)
+                    }
                 )
             }
+            SectionDivider()
+            // 6. 勿扰模式权限：直接跳转页面
+            val dndStatusText = if (uiState.dndPermissionStatus)
+                stringResource(Res.string.status_authorized)
+            else
+                stringResource(Res.string.status_unauthorized)
+            SettingItem(
+                title = stringResource(Res.string.item_dnd_permission),
+                onClick = { openDndSettings(context) },
+                trailingContent = {
+                    Text(dndStatusText, style = MaterialTheme.typography.bodyMedium)
+                }
+            )
+            SectionDivider()
+            // 7. 后台与自启动
+            SettingItem(
+                title = stringResource(Res.string.item_background_and_autostart),
+                onClick = onAppSettingsClick
+            )
+            SectionDivider()
+            // 8. 忽略电池优化
+            SettingItem(
+                title = stringResource(Res.string.item_ignore_battery_optimization),
+                onClick = onBatteryOptimizationClick
+            )
+        }
+        if (!uiState.reminderEnabled) {
+            Text(
+                text = stringResource(Res.string.text_auto_mode_dependency),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
         }
     }
 

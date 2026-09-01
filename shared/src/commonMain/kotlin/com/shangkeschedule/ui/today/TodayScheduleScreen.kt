@@ -143,9 +143,10 @@ fun TodayContent(
     }
 
     // 每分钟刷新一次，让「下节课」卡片的倒计时保持更新
+    // （倒计时精度为分钟级，60s 足够；此前 30s 会使 TodayContent 全作用域每 30s 重组一次）
     LaunchedEffect(Unit) {
         while (true) {
-            delay(30_000)
+            delay(60_000)
             currentTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
         }
     }
@@ -182,7 +183,7 @@ fun TodayContent(
 
             TodayStatus.SemesterEnded -> {
                 val overdueDays = if (state.startDate != null) {
-                    val targetDayOfWeek = DayOfWeek(state.firstDayOfWeek)
+                    val targetDayOfWeek = DayOfWeek(state.firstDayOfWeek.coerceIn(1, 7))
                     val daysShift = (state.startDate.dayOfWeek.ordinal - targetDayOfWeek.ordinal + 7) % 7
                     val firstWeekStart = LocalDate.fromEpochDays(state.startDate.toEpochDays() - daysShift)
 

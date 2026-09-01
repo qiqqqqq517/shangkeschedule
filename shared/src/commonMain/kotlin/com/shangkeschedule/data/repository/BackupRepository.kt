@@ -1,7 +1,9 @@
 package com.shangkeschedule.data.repository
 
+import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
+import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
@@ -68,6 +70,7 @@ data class ModuleInfo(
 class BackupRepository(
     @Named("AppVersionCode") private val appVersionCode: Int,
     @Named("AppVersionName") private val appVersionName: String,
+    private val database: MainAppDatabase,
     private val courseTableDao: CourseTableDao,
     private val courseTableRepository: CourseTableRepository,
     private val courseConversionRepository: CourseConversionRepository,
@@ -146,17 +149,33 @@ class BackupRepository(
                     }
                 }
             }
-            backupPackage.meta.modules.forEach { info ->
-                val data = backupPackage.payloadMap[info.key] ?: return@forEach
-                val result = when (info.key) {
-                    BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
-                    BackupModule.STYLE.key -> restoreAppStyleBytes(data)
-                    BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
-                    else -> Result.success(Unit)
+            val courseSnapshot = exportAllCourseTablesCbor()
+            val styleSnapshot = exportAppStyleBytes()
+            val appSettingsSnapshot = exportAppSettingsBytes()
+
+            try {
+                backupPackage.meta.modules.forEach { info ->
+                    val data = backupPackage.payloadMap[info.key] ?: return@forEach
+                    val result = when (info.key) {
+                        BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
+                        BackupModule.STYLE.key -> restoreAppStyleBytes(data)
+                        BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
+                        else -> Result.success(Unit)
+                    }
+                    if (result.isFailure) {
+                        throw result.exceptionOrNull()
+                            ?: IllegalStateException("备份模块恢复失败：${info.key}")
+                    }
                 }
-                if (result.isFailure) return@withContext result
+                Result.success(Unit)
+            } catch (e: Throwable) {
+                // 跨 Room/DataStore 无法由单一数据库事务覆盖，因此在恢复前建立三份快照；
+                // 任一模块失败时按快照反向恢复，尽量回到恢复前的完整状态。
+                runCatching { courseSnapshot?.let { restoreAllCourseTablesCbor(it).getOrThrow() } }
+                runCatching { styleSnapshot?.let { restoreAppStyleBytes(it).getOrThrow() } }
+                runCatching { appSettingsSnapshot?.let { restoreAppSettingsBytes(it).getOrThrow() } }
+                Result.failure(e)
             }
-            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -214,30 +233,54 @@ class BackupRepository(
             }.toMap()
             val backupCurrentTableId = appSettingsRepository.getAppSettingsOnce().currentCourseTableId
 
+            val backupTargetTableId = envelope.currentCourseTableId
+            val finalTableId = if (envelope.allTables.any { it.tableId == backupTargetTableId }) {
+                backupTargetTableId
+            } else {
+                envelope.allTables.firstOrNull()?.tableId ?: ""
+            }
+
             try {
-                // 清空现有课表
-                currentTables.forEach { courseTableDao.delete(it) }
+                // 真事务：清空现有课表 + 导入备份课表整体原子化。
+                // 内部 importCourseTableFromJson 的写事务会通过 TransactionScope.withNestedTransaction
+                // 以 savepoint 形式 join 本事务；任一步失败即整体回滚，不留半恢复状态。
+                // 内存快照回滚保留为兜底防线（例如嵌套不可用的极端场景）。
+                database.withWriteTransaction {
+                    // 清空现有课表
+                    currentTables.forEach { courseTableDao.delete(it) }
 
-                // 导入备份中的课表
-                envelope.allTables.forEach { pack ->
-                    courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
-                    val importModel = CourseTableImportModel(
-                        courses = pack.tableData.courses.map {
-                            ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
-                        },
-                        timeSlots = pack.tableData.timeSlots,
-                        config = pack.tableData.config
-                    )
-                    courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+                    // 导入备份中的课表
+                    envelope.allTables.forEach { pack ->
+                        courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
+                        val importModel = CourseTableImportModel(
+                            courses = pack.tableData.courses.map {
+                                ImportCourseJsonModel(
+                                    id = it.id,
+                                    name = it.name,
+                                    teacher = it.teacher,
+                                    position = it.position,
+                                    day = it.day,
+                                    startSection = it.startSection,
+                                    endSection = it.endSection,
+                                    weeks = it.weeks,
+                                    isCustomTime = it.isCustomTime,
+                                    customStartTime = it.customStartTime,
+                                    customEndTime = it.customEndTime,
+                                    color = it.color,
+                                    remark = it.remark,
+                                    credit = it.credit,
+                                    assessmentMethod = it.assessmentMethod,
+                                    isLab = it.isLab
+                                )
+                            },
+                            timeSlots = pack.tableData.timeSlots,
+                            config = pack.tableData.config
+                        )
+                        courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+                    }
                 }
 
-                val backupTargetTableId = envelope.currentCourseTableId
-                val finalTableId = if (envelope.allTables.any { it.tableId == backupTargetTableId }) {
-                    backupTargetTableId
-                } else {
-                    envelope.allTables.firstOrNull()?.tableId ?: ""
-                }
-
+                // 恢复「当前课表」指向（DataStore 写入不在 Room 事务范围内，放在事务成功后执行）
                 val currentSettings = appSettingsRepository.getAppSettingsOnce()
                 appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = finalTableId))
 
@@ -250,7 +293,24 @@ class BackupRepository(
                         courseTableDao.insert(CourseTable(tableInfo.first, tableInfo.second, tableInfo.third))
                         courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
                             courses = exportModel.courses.map {
-                                ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
+                                ImportCourseJsonModel(
+                                    id = it.id,
+                                    name = it.name,
+                                    teacher = it.teacher,
+                                    position = it.position,
+                                    day = it.day,
+                                    startSection = it.startSection,
+                                    endSection = it.endSection,
+                                    weeks = it.weeks,
+                                    isCustomTime = it.isCustomTime,
+                                    customStartTime = it.customStartTime,
+                                    customEndTime = it.customEndTime,
+                                    color = it.color,
+                                    remark = it.remark,
+                                    credit = it.credit,
+                                    assessmentMethod = it.assessmentMethod,
+                                    isLab = it.isLab
+                                )
                             },
                             timeSlots = exportModel.timeSlots,
                             config = exportModel.config

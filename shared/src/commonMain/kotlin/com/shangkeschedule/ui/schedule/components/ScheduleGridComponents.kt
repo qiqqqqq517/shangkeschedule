@@ -29,6 +29,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import kotlinx.datetime.TimeZone
@@ -316,12 +319,15 @@ fun TimeColumn(
     activeDragHour: Int? = null,
     activeDragMinuteStr: String? = null
 ) {
-    val currentHour = remember {
-        try {
+    // 当前小时按分钟刷新；24H 模式不依赖普通节次的 currentSectionIndex
+    val currentHour by produceState(
+        initialValue = try {
             Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             -1
         }
+    ) {
+        currentTimeFlow().collect { time -> value = time.hour }
     }
 
     val themePreset = LocalThemePreset.current
@@ -337,7 +343,7 @@ fun TimeColumn(
     Column(modifier.width(style.timeColumnWidth)) {
         for (index in 0 until maxGridSections) {
             val isCurrentHourActive = if (is24HourMode) {
-                currentHour == index && currentSectionIndex != -1
+                currentHour == index
             } else {
                 index + 1 == currentSectionIndex
             }

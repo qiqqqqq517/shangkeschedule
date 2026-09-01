@@ -85,7 +85,6 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.kotlinx.serialization.cbor)
                 implementation(libs.kotlinx.datetime)
-                implementation(libs.kgit)
                 implementation(libs.okio)
 
                 // Ktor 核心网络库

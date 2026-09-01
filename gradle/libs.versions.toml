@@ -40,7 +40,6 @@ koin = "4.2.2"
 koin-plugin = "1.1.0"
 coil = "3.5.0"
 aboutLibraries = "15.0.4"
-kgit = "1.0.2"
 
 # 测试框架
 junit = "4.13.2"
@@ -109,7 +108,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serialization-cbor", version.ref = "kotlinSerialization" }
 wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
-kgit = { module = "io.github.xingheyuzhuan:kgit", version.ref = "kgit" }
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDateTime" }

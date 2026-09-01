@@ -37,3 +37,15 @@ xcuserdata/
 
 node_modules/
 picture/resources/
+# 本地工具 / 会话 / 缓存（不提交）
+jnmc_session/
+.dsh-vision-toolkit/
+.memsearch/
+__pycache__/
+*.pyc
+
+# 根目录临时截图
+/.ui1.png
+/.ui2.png
+/.v_u1.png
+

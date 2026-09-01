@@ -36,6 +36,7 @@ import shangkeschedule.shared.generated.resources.backup_err_empty
 import shangkeschedule.shared.generated.resources.backup_err_local_export_failed
 import shangkeschedule.shared.generated.resources.backup_err_restore_failed_prefix
 import shangkeschedule.shared.generated.resources.backup_err_upload_failed
+import shangkeschedule.shared.generated.resources.error_op_failed
 import shangkeschedule.shared.generated.resources.error_webdav_unconfigured
 import kotlin.random.Random
 
@@ -126,8 +127,19 @@ class BackupViewModel(
             testClient?.close()
 
             if (isConnected) {
-                apiConfigRepository.saveWebDavConfig(testConfig)
-                _uiState.update { it.copy(isTesting = false, testResult = TestResult.Success) }
+                val saveResult = apiConfigRepository.saveWebDavConfig(testConfig)
+                if (saveResult.isSuccess) {
+                    _uiState.update { it.copy(isTesting = false, testResult = TestResult.Success) }
+                } else {
+                    // 连接成功但本地保存失败（如加密服务异常）：必须明确提示，不能静默
+                    val errMsg = getString(Res.string.error_op_failed, saveResult.exceptionOrNull()?.message ?: "save failed")
+                    _uiState.update {
+                        it.copy(
+                            isTesting = false,
+                            testResult = TestResult.Error(errMsg)
+                        )
+                    }
+                }
             } else {
                 val errMsg = getString(Res.string.backup_err_connect_failed)
                 _uiState.update {
@@ -334,26 +346,29 @@ class BackupViewModel(
             var meta: BackupMeta? = null
             val payloadMap = mutableMapOf<String, ByteArray>()
 
-            // 使用 Okio ZipFileSystem 读取解压
+            // 使用 Okio ZipFileSystem 读取解压，并在删除临时文件前关闭文件系统
             val zipFs = FileSystem.SYSTEM.openZip(tempZipPath)
-            val filesInZip = zipFs.list("/".toPath())
-
-            for (filePath in filesInZip) {
-                val fileName = filePath.name
-                when {
-                    fileName == "meta.json" -> {
-                        val content = zipFs.read(filePath) { readUtf8() }
-                        meta = Json.decodeFromString(BackupMeta.serializer(), content)
-                    }
-                    fileName.endsWith(".cbor") -> {
-                        val key = fileName.removeSuffix(".cbor")
-                        val bytes = zipFs.read(filePath) { readByteArray() }
-                        payloadMap[key] = bytes
+            try {
+                val filesInZip = zipFs.list("/".toPath())
+                for (filePath in filesInZip) {
+                    val fileName = filePath.name
+                    when {
+                        fileName == "meta.json" -> {
+                            val content = zipFs.read(filePath) { readUtf8() }
+                            meta = Json.decodeFromString(BackupMeta.serializer(), content)
+                        }
+                        fileName.endsWith(".cbor") -> {
+                            val key = fileName.removeSuffix(".cbor")
+                            val bytes = zipFs.read(filePath) { readByteArray() }
+                            payloadMap[key] = bytes
+                        }
                     }
                 }
+            } finally {
+                zipFs.close()
             }
 
-            // 清理临时文件
+            // 清理临时文件（必须在 zipFs 关闭后执行）
             FileSystem.SYSTEM.delete(tempZipPath)
 
             val corruptedMsg = getString(Res.string.backup_err_corrupted)
