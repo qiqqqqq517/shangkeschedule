@@ -64,11 +64,11 @@ data class ScheduleGridStyle(
         val DEFAULT_TIME_COLUMN_WIDTH = 40f
         val DEFAULT_DAY_HEADER_HEIGHT = 45f
         val DEFAULT_SECTION_HEIGHT = 70f
-        val DEFAULT_BLOCK_CORNER_RADIUS = 10f
-        val DEFAULT_BLOCK_OUTER_PADDING = 1.5f
-        val DEFAULT_BLOCK_INNER_PADDING = 6f
+        val DEFAULT_BLOCK_CORNER_RADIUS = 8f
+        val DEFAULT_BLOCK_OUTER_PADDING = 1f
+        val DEFAULT_BLOCK_INNER_PADDING = 2f
         val DEFAULT_BLOCK_ALPHA = 1f
-        val DEFAULT_FONT_SCALE = 1f
+        val DEFAULT_FONT_SCALE = 1.2f
 
         // 柔和协调的马卡龙配色（浅色背景 + 深色模式深色背景）
         val DEFAULT_COLOR_MAPS = listOf(

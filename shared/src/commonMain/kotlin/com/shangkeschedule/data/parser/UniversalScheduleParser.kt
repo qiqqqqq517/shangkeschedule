@@ -21,14 +21,65 @@ object UniversalScheduleParser {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return ParseResult.Error("内容为空")
 
-        return when {
-            trimmed.startsWith("【来自WakeUp课程表】") -> parseWakeUpShareText(trimmed)
-            trimmed.startsWith("BEGIN:VCALENDAR") || trimmed.contains("VEVENT") -> parseIcs(trimmed)
-            trimmed.startsWith("{") && trimmed.contains("courses") -> parseWakeUpJson(trimmed)
-            trimmed.contains("<table", ignoreCase = true) -> parseHtmlTable(trimmed)
-            isCsvContent(trimmed) -> parseCsv(trimmed)
-            else -> parsePlainText(trimmed)
+        // 候选解析器按置信度排序；任何一个成功立即返回，全部失败时返回最后一个错误。
+        // 这样修复了此前「被误判成 CSV 后直接报错、不再尝试其他格式」导致文本导入不可用的问题。
+        val attempts = mutableListOf<Pair<String, () -> ParseResult>>()
+
+        if (trimmed.startsWith("【来自WakeUp课程表】") || (trimmed.contains("WakeUp", ignoreCase = true) && trimmed.contains("{"))) {
+            attempts.add("WakeUp文本" to { parseWakeUpShareText(trimmed) })
         }
+        if (trimmed.startsWith("{")) {
+            attempts.add("JSON" to { parseWakeUpJson(trimmed) })
+        }
+        if (trimmed.contains("VEVENT")) {
+            attempts.add("ICS" to { parseIcs(trimmed) })
+        }
+        if (trimmed.contains("<table", ignoreCase = true)) {
+            attempts.add("HTML表格" to { parseHtmlTable(trimmed) })
+        }
+        if (isCsvContent(trimmed)) {
+            attempts.add("CSV" to { parseCsv(trimmed) })
+        }
+        attempts.add("纯文本" to { parsePlainText(trimmed) })
+
+        var lastError: ParseResult.Error? = null
+        for ((_, attempt) in attempts) {
+            when (val result = attempt()) {
+                is ParseResult.Success -> return result
+                is ParseResult.Error -> lastError = result
+            }
+        }
+        return lastError ?: ParseResult.Error("无法识别内容格式")
+    }
+
+    /**
+     * 按指定格式类别解析（二级分类页强制格式用）。
+     * @param format 目标格式；null 时等同 parseAuto
+     */
+    fun parseWithFormat(content: String, format: TextImportFormat?): ParseResult {
+        val trimmed = content.trim()
+        if (trimmed.isEmpty()) return ParseResult.Error("内容为空")
+        return when (format) {
+            null -> parseAuto(trimmed)
+            TextImportFormat.WAKEUP -> parseWakeUpShareText(trimmed)
+                .takeIfErrorThen { parseWakeUpJson(trimmed) }
+            TextImportFormat.JSON -> parseWakeUpJson(trimmed)
+            TextImportFormat.ICS -> parseIcs(trimmed)
+            TextImportFormat.CSV -> parseCsv(trimmed)
+            TextImportFormat.HTML -> parseHtmlTable(trimmed)
+            TextImportFormat.PLAIN -> parsePlainText(trimmed)
+        }
+    }
+
+    /** 格式强制解析失败时退回自动嗅探（WakeUp 分享文本可能混入额外文字） */
+    private fun ParseResult.takeIfErrorThen(fallback: () -> ParseResult): ParseResult =
+        if (this is ParseResult.Error) fallback() else this
+
+    /** Excel 二维网格解析（ExcelScheduleParser.extractGrid 的后续步骤） */
+    fun parseExcelGrid(grid: List<List<String>>): ParseResult {
+        if (grid.isEmpty()) return ParseResult.Error("Excel 内容为空")
+        parseGridTimetable(grid).let { result -> if (result is ParseResult.Success) return result }
+        return parseExcelAsList(grid)
     }
 
     sealed class ParseResult {
@@ -201,7 +252,8 @@ object UniversalScheduleParser {
 
     private fun isCsvContent(content: String): Boolean {
         val firstLine = content.lines().firstOrNull() ?: return false
-        return firstLine.contains(",") && firstLine.length < 200
+        // 至少 2 个逗号才可能是表格（避免把含单个逗号的普通句子误判为 CSV）
+        return firstLine.split(",").size >= 3 && firstLine.length < 500
     }
 
     private fun parseCsv(content: String): ParseResult {
@@ -304,7 +356,9 @@ object UniversalScheduleParser {
             if (lines.isEmpty()) return ParseResult.Error("文本内容为空")
 
             val courses = lines.mapNotNull { line ->
-                val cols = line.split("\t", ",", "|", "  ").map { it.trim() }.filter { it.isNotBlank() }
+                // 先按强分隔符（制表符/逗号/竖线/连续空格/中文分隔符）切分；
+                // 切不出多列时退回单空格切分（用户手打的课表常为单空格分隔）
+                val cols = splitCourseLine(line)
                 if (cols.size < 2) return@mapNotNull null
 
                 val name = cols.getOrElse(0) { "" }
@@ -331,6 +385,14 @@ object UniversalScheduleParser {
         } catch (e: Exception) {
             ParseResult.Error("文本解析失败: ${e.message}")
         }
+    }
+
+    /** 课程行切分：强分隔符优先，其次单空格（用户手打的课表常为单空格分隔） */
+    private fun splitCourseLine(line: String): List<String> {
+        val strong = line.split("\t", ",", "|", "，", "、", "  ").map { it.trim() }.filter { it.isNotBlank() }
+        if (strong.size >= 3) return strong
+        val single = line.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }
+        return if (single.size > strong.size) single else strong
     }
 
     // ========== 通用工具 ==========
@@ -378,5 +440,323 @@ object UniversalScheduleParser {
             }
         }
         return weeks.sorted()
+    }
+
+    // ========== Excel 网格课表 ==========
+
+    private val cnDayMap = mapOf("一" to 1, "二" to 2, "三" to 3, "四" to 4, "五" to 5, "六" to 6, "日" to 7, "天" to 7)
+    private val enDayMap = mapOf("mon" to 1, "tue" to 2, "wed" to 3, "thu" to 4, "fri" to 5, "sat" to 6, "sun" to 7)
+
+    /**
+     * 策略一：网格式课表（超级课程表/QQ群课表/教务导出常见形态）。
+     * 结构：表头行含 ≥2 个「星期X/周X」列；行首为节次标签列（第一二节/第11 12节 等）；
+     * 课程单元格常见 ◇ 分隔格式：名称(56学时,3.5学分)◇1-12(1,2)◇教5-305【普通教室】◇薛丹。
+     */
+    private fun parseGridTimetable(grid: List<List<String>>): ParseResult {
+        // 1. 定位表头行与星期列
+        val headerRowIndex = grid.indexOfFirst { row ->
+            row.count { dayOfHeaderStrict(it) != null } >= 2
+        }
+        if (headerRowIndex == -1) return ParseResult.Error("未识别为网格课表")
+
+        val dayColumns = sortedMapOf<Int, Int>()
+        grid[headerRowIndex].forEachIndexed { col, cell ->
+            dayOfHeaderStrict(cell)?.let { day -> dayColumns[col] = day }
+        }
+        if (dayColumns.isEmpty()) return ParseResult.Error("未识别为网格课表")
+
+        val firstDayCol = dayColumns.firstKey()
+        val maxLabelCol = firstDayCol - 1
+
+        // 2. 逐行解析课程单元格
+        val courses = mutableListOf<ImportCourseJsonModel>()
+        for (r in (headerRowIndex + 1) until grid.size) {
+            val row = grid[r]
+            if (row.all { it.isBlank() }) continue
+
+            // 行首标签列：解析节次范围（第一二节 / 第11 12节），作为单元格缺省节次
+            var labelSections: Pair<Int, Int>? = null
+            for (c in 0..maxLabelCol) {
+                val labelText = row.getOrElse(c) { "" }
+                if (labelText.isNotBlank()) {
+                    parseSectionLabel(labelText)?.let { labelSections = it }
+                }
+            }
+
+            for ((col, day) in dayColumns) {
+                val cellText = row.getOrElse(col) { "" }
+                if (cellText.isBlank()) continue
+                cellText.split('\n')
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .forEach { line ->
+                        parseGridCellLine(line, day, labelSections)?.let { courses.add(it) }
+                    }
+            }
+        }
+
+        val uniqueCourses = courses
+            .filter { it.name.isNotBlank() && it.day in 1..7 }
+            .distinctBy { "${it.name}|${it.day}|${it.startSection}|${it.endSection}|${it.weeks}" }
+
+        if (uniqueCourses.isEmpty()) return ParseResult.Error("网格课表中未识别到课程")
+        return ParseResult.Success(CourseTableImportModel(courses = uniqueCourses), "Excel 网格课表")
+    }
+
+    /** 严格匹配表头单元格：星期一 / 周一 / 礼拜天 / Mon 等；防止把课程内容误判为表头 */
+    private fun dayOfHeaderStrict(s: String): Int? {
+        val t = s.trim()
+        if (t.isEmpty() || t.length > 5) return null
+        Regex("""^(?:星期|周|礼拜)?\s*([一二三四五六日天])$""").find(t)?.let { m ->
+            return cnDayMap[m.groupValues[1].toString()] ?: 0
+        }
+        val lower = t.lowercase()
+        return enDayMap[lower.take(3)]
+    }
+
+    /** 节次标签解析：第一二节 → 1..2；第11 12节 → 11..12；第九十节 → 9..10；第3节 → 3..3 */
+    private fun parseSectionLabel(text: String): Pair<Int, Int>? {
+        val t = text.trim()
+        // 阿拉伯数字区间/相邻：1-2节、第1~2节、第11 12节
+        Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节?""").find(t)?.let {
+            val a = it.groupValues[1].toInt()
+            val b = it.groupValues[2].toInt()
+            return minOf(a, b) to maxOf(a, b)
+        }
+        Regex("""第\s*(\d{1,2})\s+(\d{1,2})\s*节""").find(t)?.let {
+            return it.groupValues[1].toInt() to it.groupValues[2].toInt()
+        }
+        Regex("""第\s*(\d{1,2})\s*节""").find(t)?.let {
+            val n = it.groupValues[1].toInt()
+            return n to n
+        }
+        // 中文数字：第一二节、第九十节、第十一十二节
+        Regex("""第([一二三四五六七八九十]+)节""").find(t)?.let {
+            val nums = chineseSectionNumbers(it.groupValues[1])
+            if (nums.isNotEmpty()) return nums.first() to nums.last()
+        }
+        return null
+    }
+
+    /**
+     * 中文节次序列 → 节次号列表。
+     * 规则：十后接数字 → 10+X（十一=11）；否则十=10（第九十节 → 9,10）。
+     */
+    private fun chineseSectionNumbers(s: String): List<Int> {
+        val digits = mapOf('一' to 1, '二' to 2, '三' to 3, '四' to 4, '五' to 5, '六' to 6, '七' to 7, '八' to 8, '九' to 9)
+        val out = mutableListOf<Int>()
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            when {
+                c == '十' -> {
+                    val next = if (i + 1 < s.length) s[i + 1] else ' '
+                    if (digits.containsKey(next)) {
+                        out.add(10 + digits[next]!!)
+                        i++
+                    } else {
+                        out.add(10)
+                    }
+                }
+                digits.containsKey(c) -> out.add(digits[c]!!)
+            }
+            i++
+        }
+        return out
+    }
+
+    /** 单元格单行课程解析（◇ 分隔格式优先，其次通用松散提取） */
+    private fun parseGridCellLine(line: String, day: Int, fallbackSections: Pair<Int, Int>?): ImportCourseJsonModel? {
+        val text = line.trim()
+        if (text.isBlank()) return null
+        // 行内节次标签（如「第一节」），不是课程
+        if (!text.contains('◇') && text.length <= 8 && text.contains('节') && !text.contains(Regex("""\d\s*[-~]\s*\d"""))) return null
+
+        return if (text.contains('◇')) parseDiamondCourse(text, day, fallbackSections)
+        else parseLooseCourse(text, day, fallbackSections)
+    }
+
+    /**
+     * ◇ 分隔格式：名称(56学时,3.5学分)◇1-12(1,2)◇教5-305【普通教室】◇薛丹
+     * 兼容实践课程行：实践课程:XXX◇姚宁(2周)/13-14周
+     */
+    private fun parseDiamondCourse(text: String, day: Int, fallbackSections: Pair<Int, Int>?): ImportCourseJsonModel? {
+        val segs = text.split('◇').map { it.trim() }.filter { it.isNotBlank() }
+        if (segs.isEmpty()) return null
+
+        var name = segs[0]
+        var remark: String? = null
+        // 实践课程: 前缀剥离
+        Regex("""^实践(?:课程|环节|课)?[:：]\s*(.+)$""").find(name)?.let { m ->
+            remark = "实践课程"
+            name = m.groupValues[1].trim()
+        }
+
+        var credit: String? = null
+        // 名称(56学时,3.5学分) → 名称 + 学分
+        Regex("""^(.*?)\s*[（(]([^()（）]*学分[^()（）]*)[)）]\s*$""").find(name)?.let { m ->
+            name = m.groupValues[1].trim()
+            credit = Regex("""([0-9]+(?:\.[0-9]+)?)\s*学分""").find(m.groupValues[2])?.groupValues?.get(1)
+        }
+        if (name.isBlank()) return null
+
+        var weeks: List<Int> = emptyList()
+        var sections: Pair<Int, Int>? = fallbackSections
+
+        // 周次(节次)：1-12(1,2) / 1-16(单) / 1-16(双)
+        val wkSec = Regex("""^(\d{1,2})\s*[-~]\s*(\d{1,2})\s*[（(]\s*([^()（）]*)\s*[)）]$""")
+            .find(segs.getOrElse(1) { "" })
+        if (wkSec != null) {
+            val a = wkSec.groupValues[1].toInt()
+            val b = wkSec.groupValues[2].toInt()
+            weeks = (minOf(a, b)..maxOf(a, b)).toList()
+            val token = wkSec.groupValues[3].trim()
+            weeks = applyOddEvenFilter(weeks, token)
+            parseSectionToken(token)?.let { sections = it }
+        } else {
+            // 退路：任意「a-b周」片段（实践课程 13-14周 等）
+            Regex("""(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*周""").find(text)?.let { m ->
+                val a = m.groupValues[1].toInt()
+                val b = m.groupValues[2].toInt()
+                weeks = (minOf(a, b)..maxOf(a, b)).toList()
+            }
+        }
+
+        var position = ""
+        var teacher = ""
+        if (segs.size >= 3) {
+            position = segs[2].replace(Regex("""【[^】]*】"""), "").trim()
+            teacher = segs.getOrElse(3) { "" }.trim()
+        } else if (segs.size == 2) {
+            // 实践课程形态：名称◇教师(2周)/13-14周
+            teacher = segs[1].substringBefore('(').substringBefore('（').trim()
+        }
+
+        return ImportCourseJsonModel(
+            name = name,
+            teacher = teacher,
+            position = position.ifBlank { "待定" },
+            day = day,
+            startSection = sections?.first,
+            endSection = sections?.second,
+            weeks = weeks.ifEmpty { (1..16).toList() },
+            credit = credit,
+            remark = remark
+        )
+    }
+
+    /** 非 ◇ 单元格：名称 周次 节次 教室 教师 松散提取 */
+    private fun parseLooseCourse(text: String, day: Int, fallbackSections: Pair<Int, Int>?): ImportCourseJsonModel? {
+        var working = text
+
+        var weeks: List<Int> = emptyList()
+        Regex("""(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*周""").find(working)?.let { m ->
+            val a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            weeks = (minOf(a, b)..maxOf(a, b)).toList()
+            working = working.replace(m.value, " ")
+        }
+
+        var sections: Pair<Int, Int>? = fallbackSections
+        Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节""").find(working)?.let { m ->
+            val a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            sections = minOf(a, b) to maxOf(a, b)
+            working = working.replace(m.value, " ")
+        }
+
+        val tokens = working.split(Regex("""[\s,，、|]+""")).filter { it.isNotBlank() }
+        val name = tokens.firstOrNull() ?: return null
+        if (name.length > 30) return null
+
+        val roomHint = Regex("""(楼|室|馆|厅|栋|层|教[\-A-Z0-9]|#|栋)""")
+        val position = tokens.drop(1).firstOrNull { roomHint.containsMatchIn(it) } ?: ""
+        val teacher = tokens.drop(1).filter { it != position }.joinToString(" ")
+
+        return ImportCourseJsonModel(
+            name = name,
+            teacher = teacher,
+            position = position.ifBlank { "待定" },
+            day = day,
+            startSection = sections?.first,
+            endSection = sections?.second,
+            weeks = weeks.ifEmpty { (1..16).toList() }
+        )
+    }
+
+    /** (单)/(双) 周次过滤 */
+    private fun applyOddEvenFilter(weeks: List<Int>, token: String): List<Int> = when {
+        token.contains("单") -> weeks.filter { it % 2 == 1 }
+        token.contains("双") -> weeks.filter { it % 2 == 0 }
+        else -> weeks
+    }
+
+    /** 节次 token 解析：1,2 → 1..2；3 → 3..3；单/双 → null（仅用于周次过滤） */
+    private fun parseSectionToken(token: String): Pair<Int, Int>? {
+        val digits = Regex("""\d+""").findAll(token).map { it.value.toInt() }.toList()
+        return when {
+            digits.size >= 2 -> minOf(digits.first(), digits.last()) to maxOf(digits.first(), digits.last())
+            digits.size == 1 -> digits[0] to digits[0]
+            else -> null
+        }
+    }
+
+    /**
+     * 策略二：列表式课表（一行一门课）。
+     * 有表头 → 关键字映射列；无表头 → 位置映射：名称/教师/教室/星期/节次/周次。
+     */
+    private fun parseExcelAsList(grid: List<List<String>>): ParseResult {
+        // 定位表头行
+        val headerIdx = grid.indexOfFirst { row ->
+            row.any { it.contains("课程") || it.lowercase().contains("name") || it.contains("教师") || it.lowercase().contains("teacher") }
+        }
+
+        val nameIdx: Int; val teacherIdx: Int; val positionIdx: Int
+        val dayIdx: Int; val sectionIdx: Int; val weeksIdx: Int
+        val dataRows: List<List<String>>
+
+        if (headerIdx >= 0) {
+            val header = grid[headerIdx].map { it.trim().lowercase() }
+            nameIdx = header.indexOfFirst { it.contains("课程") || it.contains("课名") || it.contains("name") }
+            teacherIdx = header.indexOfFirst { it.contains("教师") || it.contains("老师") || it.contains("teacher") }
+            positionIdx = header.indexOfFirst { it.contains("教室") || it.contains("地点") || it.contains("位置") || it.contains("场地") || it.contains("location") || it.contains("room") }
+            dayIdx = header.indexOfFirst { it.contains("星期") || it.contains("礼拜") || it.contains("周几") || it.contains("day") }
+            sectionIdx = header.indexOfFirst { it.contains("节次") || it.contains("节") || it.contains("section") }
+            weeksIdx = header.indexOfFirst { it.contains("周次") || it.contains("周") || it.contains("week") }
+            dataRows = grid.drop(headerIdx + 1)
+        } else {
+            nameIdx = 0; teacherIdx = 1; positionIdx = 2; dayIdx = 3; sectionIdx = 4; weeksIdx = 5
+            dataRows = grid
+        }
+
+        val skipKeywords = listOf("节次", "星期", "课程名", "课程", "教师", "教室", "name", "teacher", "上午", "下午", "晚上")
+        val courses = dataRows.mapNotNull { row ->
+            val get = { idx: Int -> if (idx >= 0) row.getOrElse(idx) { "" } else "" }
+            val name = get(nameIdx).trim()
+            if (name.isBlank() || name.length > 30) return@mapNotNull null
+            if (skipKeywords.any { name.contains(it) }) return@mapNotNull null
+
+            val day = parseDay(get(dayIdx))
+            if (day !in 1..7) return@mapNotNull null
+
+            val (startSec, endSec) = parseSectionRange(get(sectionIdx))
+            val weeks = parseWeeksSimple(get(weeksIdx))
+
+            ImportCourseJsonModel(
+                name = name,
+                teacher = get(teacherIdx).trim(),
+                position = get(positionIdx).trim().ifBlank { "待定" },
+                day = day,
+                startSection = startSec,
+                endSection = endSec,
+                weeks = weeks.ifEmpty { (1..16).toList() }
+            )
+        }
+
+        if (courses.isEmpty()) return ParseResult.Error("Excel 中未识别到课程（请确认是课表文件）")
+        return ParseResult.Success(
+            CourseTableImportModel(courses = courses),
+            if (headerIdx >= 0) "Excel 列表课表" else "Excel 位置映射"
+        )
     }
 }

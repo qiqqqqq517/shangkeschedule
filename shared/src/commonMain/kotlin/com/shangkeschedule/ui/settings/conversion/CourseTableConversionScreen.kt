@@ -40,7 +40,6 @@ import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
 import kotlinx.coroutines.launch
-import okio.Buffer
 import okio.FileSystem
 import okio.SYSTEM
 import org.jetbrains.compose.resources.stringResource
@@ -88,31 +87,14 @@ fun CourseTableConversionScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val snackbarFileSelectionCanceled = stringResource(Res.string.snackbar_file_selection_canceled)
     val snackbarFileSaveCanceled = stringResource(Res.string.snackbar_file_save_canceled)
 
-    var pendingImportTableId by remember { mutableStateOf<String?>(null) }
-
-    // 用于暂存导出的缓存路径和触发 ShareDialog 的路径状态
     var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFileMimeType by remember { mutableStateOf("application/json") }
 
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
-            onFileImported = { bytes, _ ->
-                if (bytes == null) {
-                    coroutineScope.launch { snackbarHostState.showSnackbar(snackbarFileSelectionCanceled) }
-                    pendingImportTableId = null
-                    return@FileManagerCallbacks
-                }
-                val source = Buffer().write(bytes)
-                val tableId = pendingImportTableId
-                if (tableId != null) {
-                    viewModel.handleFileImport(tableId, source)
-                }
-                pendingImportTableId = null
-            },
             onFileExported = { success ->
                 if (success) {
                     shareFilePath = pendingShareFilePath
@@ -127,10 +109,6 @@ fun CourseTableConversionScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is ConversionEvent.LaunchImportFilePicker -> {
-                    pendingImportTableId = event.tableId
-                    fileManager.importFile(listOf("json"))
-                }
                 is ConversionEvent.LaunchExportFileCreator -> {
                     val timestamp = Clock.System.now().toEpochMilliseconds()
                     val fileName = "ShangKe_$timestamp.json"
@@ -207,9 +185,9 @@ fun CourseTableConversionScreen(
             Spacer(Modifier.height(8.dp))
             SectionCard {
                 SettingItem(
-                    title = stringResource(Res.string.item_import_course_file),
-                    subtitle = stringResource(Res.string.desc_import_json),
-                    onClick = { viewModel.onImportClick() }
+                    title = "文件导入",
+                    subtitle = "Excel / JSON / 文本文件，分类导入",
+                    onClick = { onNavigate(Destination.FileImportHub) }
                 )
                 SectionDivider()
                 SettingItem(
@@ -237,9 +215,9 @@ fun CourseTableConversionScreen(
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "文本/粘贴导入",
-                    subtitle = "支持 WakeUp文本/JSON/ICS/CSV/HTML/纯文本，先预览再导入",
-                    onClick = { onNavigate(Destination.TextImport) }
+                    title = "文本粘贴导入",
+                    subtitle = "WakeUp文本/纯文本/JSON/CSV/ICS 分类导入，先预览再导入",
+                    onClick = { onNavigate(Destination.TextImportHub) }
                 )
             }
 

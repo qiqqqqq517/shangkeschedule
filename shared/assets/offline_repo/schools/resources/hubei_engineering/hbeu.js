@@ -1,20 +1,14 @@
-// 正方教务系统通用适配器
-// 适配新版正方教务 (jwglxt)
-// 使用 Bridge 方式与原生通信
-// 优先解析当前页面已渲染的课表，接口抓取作为兜底
+// 湖北工程学院 教务适配器（正方 V9 · 经网上办事大厅统一身份认证进入）
+// 基于通用正方适配器 zhengfang.js，仅增强湖北工程专属引导
+// 背景：jwgl.hbeu.edu.cn 正方教务无法直接登录，须先登录 ehall 办事大厅
+// 流程：办事大厅登录 → 搜索打开「教务系统」应用 → 正方课表页 → 自动抓取
+// 使用 Bridge 方式与原生通信；优先解析页面课表，接口抓取作为兜底
 
 (function() {
     'use strict';
 
     var WEEK_NAMES = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
     var lastPageDiag = '';
-
-    // 部分正方页面库（zftal 等）会覆盖 Array.prototype.filter/some/every，
-    // 且回调参数序被改成 (index, value, array)，导致依赖标准 filter 的解析把课程过滤掉。
-    // 此处备份原生实现，所有过滤统一走原生版本，避免被页面库污染。
-    var _nativeFilter = Array.prototype.filter;
-    var _nativeSome = Array.prototype.some;
-    var _nativeEvery = Array.prototype.every;
 
     // 通用工具函数
     function extractText(html) {
@@ -63,8 +57,8 @@
 
         var list = Object.keys(weeks).map(function(k) { return parseInt(k, 10); })
             .sort(function(a, b) { return a - b; });
-        if (isOdd) list = _nativeFilter.call(list, function(w) { return w % 2 === 1; });
-        else if (isEven) list = _nativeFilter.call(list, function(w) { return w % 2 === 0; });
+        if (isOdd) list = list.filter(function(w) { return w % 2 === 1; });
+        else if (isEven) list = list.filter(function(w) { return w % 2 === 0; });
         return list;
     }
 
@@ -92,12 +86,10 @@
                 .replace(/<\/(div|p|td|tr|span)>/gi, '\n')
                 .replace(/<[^>]+>/g, '');
         }
-        return _nativeFilter.call(
-            String(text)
-                .split(/\r?\n/)
-                .map(function(s) { return s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(); }),
-            function(s) { return s.length > 0; }
-        );
+        return String(text)
+            .split(/\r?\n/)
+            .map(function(s) { return s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(); })
+            .filter(function(s) { return s.length > 0; });
     }
 
     // 还原表格二维结构，处理 rowspan / colspan
@@ -530,11 +522,20 @@
         Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
     }
 
+    // 湖北工程学院专属引导：教务须经办事大厅统一认证进入，提示用户操作步骤
+    function showHbeuGuide() {
+        var guide = '湖北工程学院教务须经「网上办事大厅」登录：\n'
+            + '1. 在当前页面登录办事大厅（账号=学号/工号，初始密码=hb+身份证后6位）\n'
+            + '2. 登录后搜索并打开「教务系统」应用\n'
+            + '3. 进入正方教务「课表查询」页面\n'
+            + '4. 回到本页点「确定」，自动抓取课表';
+        return Bridge.showAlert('湖北工程学院教务导入', guide, '确定');
+    }
+
     // 导入入口：优先解析页面课表，失败再走接口
     function fetchCourses() {
         if (!isZhengfangPage()) {
-            Bridge.showToast('请先进入正方教务系统的课表查询页面');
-            return;
+            return showHbeuGuide();
         }
 
         var courses = parseScheduleFromPage();
@@ -563,5 +564,8 @@
     // 自动检测并提示
     if (isZhengfangPage()) {
         Bridge.showToast('检测到正方教务系统，点击导入按钮抓取课表');
+    } else if ((window.location.href || '').indexOf('ehall') !== -1 ||
+               (window.location.href || '').indexOf('authserver') !== -1) {
+        Bridge.showToast('请在办事大厅登录后打开「教务系统」，再进入课表页点击导入');
     }
 })();
