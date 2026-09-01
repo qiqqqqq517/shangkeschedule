@@ -235,10 +235,12 @@ fun ImageCropper(
                             val imgStartX = (cw - imgW) / 2 + offset.x
                             val imgStartY = (ch - imgH) / 2 + offset.y
 
-                            val srcLeft = max(0, ((cropRect.left - imgStartX) / scale).roundToInt())
-                            val srcTop = max(0, ((cropRect.top - imgStartY) / scale).roundToInt())
-                            val srcW = (cropWidth / scale).roundToInt()
-                            val srcH = (cropHeight / scale).roundToInt()
+                            // 四边全部 clamp 到图像范围内：此前只钳制了左/上，
+                            // 裁剪框滑出图像右/下边界时 srcW/srcH 会越界
+                            val srcLeft = ((cropRect.left - imgStartX) / scale).roundToInt().coerceIn(0, imageBitmap.width)
+                            val srcTop = ((cropRect.top - imgStartY) / scale).roundToInt().coerceIn(0, imageBitmap.height)
+                            val srcW = (cropWidth / scale).roundToInt().coerceAtMost(imageBitmap.width - srcLeft)
+                            val srcH = (cropHeight / scale).roundToInt().coerceAtMost(imageBitmap.height - srcTop)
 
                             val croppedBytes = cropImageBitmapNative(
                                 source = imageBitmap,

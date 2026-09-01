@@ -145,15 +145,17 @@ class TimeSlotViewModel(
                     it.copy(courseTableId = currentTableId, schemeId = schemeId)
                 }
 
-                // 1. 替换当前方案的时间段列表
-                timeSlotRepository.replaceAllForCourseTable(currentTableId, timeSlotsWithCorrectId, schemeId)
-
-                // 2. 更新课表配置（默认时长设置）
+                // 原子保存当前方案时间段与课表默认时长配置
                 val updatedConfig = currentConfig.copy(
                     defaultClassDuration = classDuration,
                     defaultBreakDuration = breakDuration
                 )
-                appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
+                timeSlotRepository.saveSchemeSettings(
+                    courseTableId = currentTableId,
+                    timeSlots = timeSlotsWithCorrectId,
+                    schemeId = schemeId,
+                    config = updatedConfig
+                )
 
                 // 3. 同步备份状态
                 updateBackupPoint(timeSlotsWithCorrectId, classDuration, breakDuration)
@@ -199,15 +201,14 @@ class TimeSlotViewModel(
                 ?: CourseTableConfig(courseTableId = currentTableId)
             val templateSchemeId = currentConfig.currentSchemeId
 
-            // 复制当前方案的时间段作为新方案的初始值，方便微调
+            // 原子创建：复制当前方案时间段并切换到新方案
             val templateSlots = timeSlotRepository.getTimeSlotsByCourseTableId(currentTableId, templateSchemeId).first()
-            val newSlots = templateSlots.map { it.copy(courseTableId = currentTableId, schemeId = schemeId) }
-            if (newSlots.isNotEmpty()) {
-                timeSlotRepository.insertAll(newSlots)
-            }
-
-            // 切换到新方案
-            appSettingsRepository.insertOrUpdateCourseConfig(currentConfig.copy(currentSchemeId = schemeId))
+            timeSlotRepository.createScheme(
+                courseTableId = currentTableId,
+                schemeId = schemeId,
+                templateSlots = templateSlots,
+                currentConfig = currentConfig
+            )
             onSuccess()
         }
     }
@@ -220,15 +221,6 @@ class TimeSlotViewModel(
             if (schemeId == TimeSlot.DEFAULT_SCHEME_ID) return@launch
 
             val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
-            val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
-
-            // 若删除的是当前生效方案，先切回默认方案
-            if (currentConfig?.currentSchemeId == schemeId) {
-                appSettingsRepository.insertOrUpdateCourseConfig(
-                    currentConfig.copy(currentSchemeId = TimeSlot.DEFAULT_SCHEME_ID)
-                )
-            }
-
             timeSlotRepository.deleteScheme(currentTableId, schemeId)
             onSuccess()
         }

@@ -1,9 +1,11 @@
 package com.shangkeschedule.data.repository
 
+import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.widget.WidgetAppSettings
 import com.shangkeschedule.data.db.widget.WidgetAppSettingsDao
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.db.widget.WidgetCourseDao
+import com.shangkeschedule.data.db.widget.WidgetDatabase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -24,6 +26,7 @@ import kotlin.time.Clock
  */
 @Single
 class WidgetRepository(
+    private val widgetDatabase: WidgetDatabase,
     private val widgetCourseDao: WidgetCourseDao,
     private val widgetAppSettingsDao: WidgetAppSettingsDao
 ) {
@@ -55,6 +58,33 @@ class WidgetRepository(
     }
 
     /**
+     * 原子替换完整 Widget 快照：课程与学期设置在同一个数据库事务内提交。
+     */
+    suspend fun replaceSnapshot(courses: List<WidgetCourse>, settings: WidgetAppSettings) {
+        widgetDatabase.withWriteTransaction {
+            widgetCourseDao.deleteAll()
+            if (courses.isNotEmpty()) {
+                widgetCourseDao.insertAll(courses)
+            }
+            widgetAppSettingsDao.insertOrUpdate(settings)
+        }
+        _dataUpdatedChannel.trySend(Unit)
+    }
+
+    /**
+     * 原子替换全部 Widget 课程：清空与写入在同一个数据库事务内完成。
+     */
+    suspend fun replaceAllCourses(courses: List<WidgetCourse>) {
+        widgetDatabase.withWriteTransaction {
+            widgetCourseDao.deleteAll()
+            if (courses.isNotEmpty()) {
+                widgetCourseDao.insertAll(courses)
+            }
+        }
+        _dataUpdatedChannel.trySend(Unit)
+    }
+
+    /**
      * 插入或更新小组件设置。
      */
     suspend fun insertOrUpdateAppSettings(settings: WidgetAppSettings) {
@@ -77,7 +107,7 @@ class WidgetRepository(
             .map { settings ->
                 val totalWeeks = settings?.semesterTotalWeeks ?: 0
                 val startDate = settings?.semesterStartDate
-                val firstDayOfWeek = settings?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
+                val firstDayOfWeek = firstDayOfWeekOrMonday(settings?.firstDayOfWeek)
 
                 calculateCurrentWeek(startDate, totalWeeks, firstDayOfWeek)
             }
@@ -114,11 +144,14 @@ class WidgetRepository(
         }
     }
 
+    private fun firstDayOfWeekOrMonday(value: Int?): Int =
+        value?.takeIf { it in 1..7 } ?: DayOfWeek.MONDAY.isoDayNumber
+
     /**
      * 计算指定日期所在周的起始日期。
      */
     private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
-        val targetFirstDay = DayOfWeek(firstDayOfWeekInt)
+        val targetFirstDay = DayOfWeek(firstDayOfWeekInt.coerceIn(1, 7))
         var current = date
         while (current.dayOfWeek != targetFirstDay) {
             current = current.minus(1, DateTimeUnit.DAY)

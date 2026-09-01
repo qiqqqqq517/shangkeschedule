@@ -1,4 +1,4 @@
-general-platforms-20260830�
+general-platforms-20260831�
 GENERAL_ZHENGFANG正方教务系统（通用）zfjwxt"	zhengfang*�
 GENERAL_ZHENGFANG正方教务系统"zhengfang.js2N适用于所有正方教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_URPURP教务系统（通用）urpjwxt"urp*�
@@ -13,7 +13,9 @@
 south_soft*�
 GENERAL_SOUTHSOFT南软教务系统"south_soft.js2N适用于所有南软教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_CHAOXING超星教务系统（通用）cxjwxt"chaoxing_jiaowu*�
-GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
+GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
+MANUAL_JNMC济宁医学院jnyxy"JNMC*y
+jnmc_01乘方教务系统"jnmc.js*http://210.44.16.13/2,手动注册，类型: 乘方教务(Struts2):manual-jnmc�
 pku北京大学bjdx"urp*w
 pku_01URP教务系统"urp.js*https://elective.pku.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 tsinghua清华大学qhdx"urp*�
@@ -1118,9 +1120,9 @@ u_d089c86f湖北文理学院hbwlxy"qiangzhi*�
 u_d089c86f_01强智教务系统"qiangzhi.js*http://jwxt.hbuas.edu.cn/jsxsd2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
 u_bdc3b33c湖北理工学院hblgxy"	zhengfang*�
-u_bdc3b33c_01正方教务系统"zhengfang.js*2https://jwglnew.hbpu.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_bdc3b33c_01正方教务系统"zhengfang.js*2https://jwglnew.hbpu.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_46fefe08湖北科技职业学院hbkjzyxy"	zhengfang*�
+u_46fefe08湖北科技学院hbkjxy"	zhengfang*�
 u_46fefe08_01正方教务系统"zhengfang.js*https://jwgl.hbust.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_9ed9d645湖北第二师范学院hbdesfxy"qiangzhi*�
@@ -2283,11 +2285,7 @@ u_d29a1143宁波工程学院nbgcxy"NBUT*�
 u_d29a1143_01正方教务系统"nbut.js*5http://jwxt.nbut.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_6e460f72宁波财经学院nbcjxy"	zhengfang*�
-u_6e460f72_01正方教务系统"zhengfang.js*https://atrust.nbufe.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
-
-u_cf40587b南京理工大学紫金学院
-njlgdxzjxy"urp*�
-u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import�
+u_6e460f72_01正方教务系统"zhengfang.js*https://atrust.nbufe.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_9d41dde2萍乡学院pxxy"qiangzhi*�
 u_9d41dde2_01强智教务系统"qiangzhi.js*Shttps://cas.pxc.jx.cn/lyuapServer/login?service=https://mh.pxc.jx.cn:9667/shiro-cas2,自动导入自 timetable，类型: qiangzhi:auto-import�
@@ -4978,4 +4976,780 @@ u_da307d13中原工学院zygxy"wisedu*�
 u_abf16b19中南民族大学znmzdx"SCUEC*�
 u_abf16b19_01金智(Wisedu)教务系统"scuec.js*https://webvpn.scuec.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
 u_hbtcm2026河北中医药大学hbzyydx"HBTCM*�
-u_hbtcm2026_01康普教务系统"hbtcm.js*http://211.143.57.195:8042/2*自动导入自 timetable，类型: kangpu:auto-import
+u_hbtcm2026_01康普教务系统"hbtcm.js*http://211.143.57.195:8042/2*自动导入自 timetable，类型: kangpu:auto-import�
+
+u_d742a897江苏师范大学jssfdx"JSNU*�
+u_d742a897_01强智教务系统"
+JSNU_01.js*http://jsnujw.jsnu.edu.cn/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_fcc008c4湖北科技职业学院hbkjzyxy"	zhengfang*�
+u_fcc008c4_01正方教务系统"zhengfang.js*8https://jwxt.hubstc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c8a2676a中国政法大学zgzfdx"CUP*�
+u_c8a2676a_01正方教务系统"	cup_01.js*https://jwc.cupl.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6905e71e华东理工大学hdlgdx"CUST*�
+u_6905e71e_01正方教务系统"cust.js* https://jwc.ecust.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_35891276东华大学dhdx"	zhengfang*�
+u_35891276_01正方教务系统"zhengfang.js*https://jw.dhu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_10f1b831上海外国语大学shwgydx"	zhengfang*�
+u_10f1b831_01正方教务系统"zhengfang.js*5https://jw.shisu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6655ad1a南京航空航天大学njhkhtdx"	zhengfang*�
+u_6655ad1a_01正方教务系统"zhengfang.js*https://jw.nuaa.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9bdbd52e合肥工业大学hfgydx"	zhengfang*�
+u_9bdbd52e_01正方教务系统"zhengfang.js*!https://ehall.hfut.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8e9993d7长安大学cadx"	zhengfang*�
+u_8e9993d7_01正方教务系统"zhengfang.js*5http://ehall.chd.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a41d75dd上海海事大学shhsdx"	zhengfang*�
+u_a41d75dd_01正方教务系统"zhengfang.js*thttps://sso.shmtu.edu.cn/cas/login?service=https%3A%2F%2Fportal2017.shmtu.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8d86febc上海电力大学shdldx"	zhengfang*�
+u_8d86febc_01正方教务系统"zhengfang.js*+https://portal.shiep.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_57e7b664上海财经大学shcjdx"	zhengfang*�
+u_57e7b664_01正方教务系统"zhengfang.js*"https://portal.sufe.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6e2b52b7华东政法大学hdzfdx"CUP*�
+u_6e2b52b7_01正方教务系统"	cup_01.js*(https://jwc.ecupl.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9070359f上海戏剧学院shxjxy"	zhengfang*�
+u_9070359f_01正方教务系统"zhengfang.js*&https://jwc.sta.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_01b57e12$上海电子信息职业技术学院shdzxxzyjsxy"	zhengfang*�
+u_01b57e12_01正方教务系统"zhengfang.js*(https://jwc.stiei.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_94ef27b2上海震旦职业学院shzdzyxy"	zhengfang*�
+u_94ef27b2_01正方教务系统"zhengfang.js*+http://jw.aurora-college.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_73c27add上海济光职业技术学院
+shjgzyjsxy"	zhengfang*�
+u_73c27add_01正方教务系统"zhengfang.js*7https://jwxt.shjgu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_231c1298上海中侨职业技术大学
+shzqzyjsdx"SHZQ*�
+u_231c1298_01正方教务系统"shzq.js*4https://jw.shzq.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_53bc5687$盐城幼儿师范高等专科学校ycyesfgdzkxx"	zhengfang*�
+u_53bc5687_01正方教务系统"zhengfang.js*&https://jwc.yyz.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a46d6a3f南京理工大学njlgdx"	zhengfang*�
+u_a46d6a3f_01正方教务系统"zhengfang.js*yhttps://ids.njust.edu.cn:443/authserver/login?service=http%3A%2F%2Fehall.njust.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6db3ed41常州大学czdx"	zhengfang*�
+u_6db3ed41_01正方教务系统"zhengfang.js*'https://jwc.cczu.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d3bec5d4南京医科大学njykdx"	zhengfang*�
+u_d3bec5d4_01正方教务系统"zhengfang.js*bhttps://authserver.njmu.edu.cn/authserver/login?service=https%3A%2F%2Fjwpt.njmu.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_733aa271淮阴工学院hygxy"qiangzhi*�
+u_733aa271_01强智教务系统"qiangzhi.js*http://jwc.hau.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_cae1e2a0苏州市职业大学szszydx"wisedu*�
+u_cae1e2a0_01金智(Wisedu)教务系统"	wisedu.js* https://authserver.jssvc.edu.cn/2*自动导入自 timetable，类型: wisedu:auto-import�
+
+u_99bbf88a扬州市职业大学yzszydx"	zhengfang*�
+u_99bbf88a_01正方教务系统"zhengfang.js*'https://jwc.yzpc.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7f5dca2c南京大学金陵学院njdxjlxy"	zhengfang*�
+u_7f5dca2c_01正方教务系统"zhengfang.js*�https://authserver.nju.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.nju.edu.cn%3A443%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_08fad875$南京航空航天大学金城学院njhkhtdxjcxy"	zhengfang*�
+u_08fad875_01正方教务系统"zhengfang.js*&https://jw.nuaa.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a98479a0金山职业技术学院jszyjsxy"	zhengfang*�
+u_a98479a0_01正方教务系统"zhengfang.js*9https://jwzx.jinshan-cn.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_718acb4a常州大学怀德学院czdxhdxy"	zhengfang*�
+u_718acb4a_01正方教务系统"zhengfang.js*'https://jwc.cczu.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_f6bec23b南京审计大学金审学院
+njsjdxjsxy"UJS*�
+u_f6bec23b_01正方教务系统"ujs_zhengfang_v9.0.js*-https://jwc.naujsc.edu.cn:443/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c1fcbbd3江苏城市职业学院jscszyxy"	zhengfang*�
+u_c1fcbbd3_01正方教务系统"zhengfang.js*0http://jw.jscvc.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_3ee772c7江苏第二师范学院jsdesfxy"	zhengfang*�
+u_3ee772c7_01正方教务系统"zhengfang.js*(https://jwc.jssnu.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_16d58a51南通师范高等专科学校
+ntsfgdzkxx"	zhengfang*�
+u_16d58a51_01正方教务系统"zhengfang.js*'https://jwc.ntnc.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_f7cb59c4北方工业大学bfgydx"NCUT*�
+u_f7cb59c4_01正方教务系统"
+ncut_01.js*6https://jwxt.ncut.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6e722373北京舞蹈学院bjwdxy"	zhengfang*�
+u_6e722373_01正方教务系统"zhengfang.js*4https://jwc.bda.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_db8f4564首钢工学院sggxy"qiangzhi*�
+u_db8f4564_01强智教务系统"qiangzhi.js*https://jw.sgit.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_45c079bc天津美术学院tjmsxy"	zhengfang*�
+u_45c079bc_01正方教务系统"zhengfang.js*vhttp://ids.tjarts.edu.cn/authserver/login?service=http%3A%2F%2Fehall.tjarts.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_58efc231南开大学滨海学院nkdxbhxy"	zhengfang*�
+u_58efc231_01正方教务系统"zhengfang.js*9https://ehall.nankai.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0b1fd34c天津师范大学津沽学院
+tjsfdxjgxy"	zhengfang*�
+u_0b1fd34c_01正方教务系统"zhengfang.js*4http://jwpt.jinguxy.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6b2eece6华北科技学院hbkjxy"	zhengfang*�
+u_6b2eece6_01正方教务系统"zhengfang.js*!https://jwgl.ncist.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_535ed39d中国人民警察大学zgrmjcdx"	zhengfang*�
+u_535ed39d_01正方教务系统"zhengfang.js*`https://sso.cppu.edu.cn/tpass/login?service=https%3A%2F%2Fportal.cppu.edu.cn%2Fsopcb%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a9e02abc河北体育学院hbtyxy"	zhengfang*�
+u_a9e02abc_01正方教务系统"zhengfang.js*6https://jwc.hepec.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7d260475河北工程技术学院hbgcjsxy"	zhengfang*�
+u_7d260475_01正方教务系统"zhengfang.js*]http://authserver.hbfsh.com/authserver/login?service=http%3A%2F%2Fehall.hbfsh.com%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c6935771内蒙古财经大学nmgcjdx"IMU*�
+u_c6935771_01正方教务系统"	imu_01.js*]https://cer.imufe.edu.cn/authserver/login?service=http%3A%2F%2Fehall.imufe.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6cf11eaa呼和浩特民族学院hhhtmzxy"IMNC*�
+u_6cf11eaa_01正方教务系统"
+imnc_01.js*~https://authserver.imnc.edu.cn:443/authserver/login?service=http%3A%2F%2Fehall.imnc.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d5c05627沈阳药科大学syykdx"qiangzhi*�
+u_d5c05627_01强智教务系统"qiangzhi.js*https://jw.syphu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_f5735465鲁迅美术学院lxmsxy"	zhengfang*�
+u_f5735465_01正方教务系统"zhengfang.js*7https://jwxt.lumei.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2b30fd37*沈阳航空航天大学北方科技学院syhkhtdxbfkjxy"	zhengfang*�
+u_2b30fd37_01正方教务系统"zhengfang.js*https://jw.sau.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cdf2685c大连医科大学中山学院
+dlykdxzsxy"	zhengfang*�
+u_cdf2685c_01正方教务系统"zhengfang.js*https://jw.dmuzs.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0e12af3b!辽宁中医药大学杏林学院lnzyydxxlxy"	zhengfang*�
+u_0e12af3b_01正方教务系统"zhengfang.js*!https://jwc.lncmxl.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8afff070吉林师范大学jlsfdx"qiangzhi*�
+u_8afff070_01强智教务系统"qiangzhi.js*https://jwxt.jlnu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_ea9678ba长春师范大学ccsfdx"	zhengfang*�
+u_ea9678ba_01正方教务系统"zhengfang.js*!https://jwxt.ccsfu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d5b631e5长春大学ccdx"qiangzhi*�
+u_d5b631e5_01强智教务系统"qiangzhi.js*https://jwxt.ccu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_6efedbc9长春建筑学院ccjzxy"	zhengfang*�
+u_6efedbc9_01正方教务系统"zhengfang.js*$http://jwc.jladi.com/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2fb966dc东北石油大学dbsydx"	zhengfang*�
+u_2fb966dc_01正方教务系统"zhengfang.js* http://ehall.nepu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_b15b75ba哈尔滨师范大学hebsfdx"qiangzhi*�
+u_b15b75ba_01强智教务系统"qiangzhi.js*http://jwpt.hrbnu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_cd24fd74哈尔滨职业技术大学	hebzyjsdx"	zhengfang*�
+u_cd24fd74_01正方教务系统"zhengfang.js*5http://portal.hzjxy.net/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fcec75d4黑龙江外国语学院hljwgyxy"qiangzhi*�
+u_fcec75d4_01强智教务系统"qiangzhi.js*https://jwxt.hiu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_6b609aa7黑龙江工商学院hljgsxy"	zhengfang*�
+u_6b609aa7_01正方教务系统"zhengfang.js*3https://jw.hgs-edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_1dbd9ba8浙江药科职业大学zjykzydx"	zhengfang*�
+u_1dbd9ba8_01正方教务系统"zhengfang.js*bhttp://authserver.zjpc.net.cn/authserver/login?service=https%3A%2F%2Fehall.zjpc.net.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2a13337d安徽工程大学ahgcdx"	zhengfang*�
+u_2a13337d_01正方教务系统"zhengfang.js*shttps://ids.ahpu.edu.cn/authserver/login?service=http%3A%2F%2Fehall.ahpu.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_90d459bb安徽师范大学ahsfdx"	zhengfang*�
+u_90d459bb_01正方教务系统"zhengfang.js*thttps://ids.ahnu.edu.cn/authserver/login?service=https%3A%2F%2Fehall.ahnu.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_78319cf0巢湖学院chxy"	zhengfang*�
+u_78319cf0_01正方教务系统"zhengfang.js*bhttps://authserver.chu.edu.cn/authserver/login?service=https%3A%2F%2Fehall.chtc.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_127bb2d7武夷学院wyxy"	zhengfang*�
+u_127bb2d7_01正方教务系统"zhengfang.js*7https://jwxt.wuyiu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_ea4421b1宁德师范学院ndsfxy"	zhengfang*�
+u_ea4421b1_01正方教务系统"zhengfang.js*7http://portal.www.ndsy.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e1f09b4f闽南科技学院mnkjxy"	zhengfang*�
+u_e1f09b4f_01正方教务系统"zhengfang.js*https://jwgl.mku.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e5d4534c厦门大学嘉庚学院xmdxjgxy"	zhengfang*�
+u_e5d4534c_01正方教务系统"zhengfang.js*�https://ids.xmu.edu.cn/authserver/login?service=https%3A%2F%2Fjw.xmu.edu.cn%2Flogin%3Fservice%3Dhttp%3A%2F%2Fjw.xmu.edu.cn%3A80%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0c24306f江西师范大学jxsfdx"JXNU*�
+u_0c24306f_01正方教务系统"JXNU.js*6https://jwxt.jxnu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d5bde022景德镇艺术职业大学	jdzyszydx"	zhengfang*�
+u_d5bde022_01正方教务系统"zhengfang.js*$https://portal.jdzvua.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cde24ab7$江西师范大学科学技术学院jxsfdxkxjsxy"JXNU*�
+u_cde24ab7_01正方教务系统"JXNU.js* https://jwxt.jxnu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_30a33ed7*江西财经大学现代经济管理学院jxcjdxxdjjglxy"	zhengfang*�
+u_30a33ed7_01正方教务系统"zhengfang.js*https://jwxt.jxufe.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d99af5a2青岛农业大学qdnydx"QAU*�
+u_d99af5a2_01正方教务系统"	qau_01.js*ehttps://authserver.qau.edu.cn/authserver/login?service=http%3A%2F%2Fjwglxt.qau.edu.cn%3A80%2Fjsxsd%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_ef28519f曲阜师范大学qfsfdx"	zhengfang*�
+u_ef28519f_01正方教务系统"zhengfang.js*rhttp://ids.qfnu.edu.cn/authserver/login?service=http%3A%2F%2Fehall.qfnu.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_85c4d20d山东财经大学sdcjdx"	zhengfang*�
+u_85c4d20d_01正方教务系统"zhengfang.js* http://jwgl.sdufe.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_b36c1156山东体育学院sdtyxy"	zhengfang*�
+u_b36c1156_01正方教务系统"zhengfang.js*http://jwc.sdpei.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_58d4ee68郑州轻工业大学zzqgydx"	zhengfang*�
+u_58d4ee68_01正方教务系统"zhengfang.js* http://jwgl.zzuli.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e8cd71d8河南师范大学hnsfdx"	zhengfang*�
+u_e8cd71d8_01正方教务系统"zhengfang.js*https://jwc.htu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_63095f37平顶山学院pdsxy"	zhengfang*�
+u_63095f37_01正方教务系统"zhengfang.js*"https://portal.pdsu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c0e09a34新乡学院xxxy"	zhengfang*�
+u_c0e09a34_01正方教务系统"zhengfang.js*!https://portal.xxu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9a2b4091南阳理工学院nylgxy"	zhengfang*�
+u_9a2b4091_01正方教务系统"zhengfang.js*#https://portal.nyist.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fd190bc0黄河交通学院hhjtxy"	zhengfang*�
+u_fd190bc0_01正方教务系统"zhengfang.js*"https://portal.zjtu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8d7ca0bf新乡工程学院xxgcxy"	zhengfang*�
+u_8d7ca0bf_01正方教务系统"zhengfang.js*"https://portal.xxgc.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e8dfecf7商丘学院sqxy"	zhengfang*�
+u_e8dfecf7_01正方教务系统"zhengfang.js*!http://portal.hnhyedu.net/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_aa39e2a2郑州美术学院zzmsxy"	zhengfang*�
+u_aa39e2a2_01正方教务系统"zhengfang.js*6http://portal.estedu.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_3f095e3b长江大学cjdx"YANGTZEU*�
+u_3f095e3b_01正方教务系统"yu.js*hhttps://cas.yangtzeu.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.yangtzeu.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8aed6f07武汉音乐学院whyyxy"	zhengfang*�
+u_8aed6f07_01正方教务系统"zhengfang.js*6https://zhjw.whcm.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_ef399721武汉城市学院whcsxy"	zhengfang*�
+u_ef399721_01正方教务系统"zhengfang.js*https://jw.wic.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fe2c32f9武汉工商学院whgsxy"	zhengfang*�
+u_fe2c32f9_01正方教务系统"zhengfang.js*6http://ehall.wtbu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cdcef2c4长江大学文理学院cjdxwlxy"YANGTZEU*�
+u_cdcef2c4_01正方教务系统"yu.js*hhttps://cas.yangtzeu.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.yangtzeu.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_1f7dbb12长沙医学院csyxy"qiangzhi*�
+u_1f7dbb12_01强智教务系统"qiangzhi.js*https://jw.csmu.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_47be8227湖南工业大学hngydx"	zhengfang*�
+u_47be8227_01正方教务系统"zhengfang.js*!https://portal.hut.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a6f399bc湖南工业大学科技学院
+hngydxkjxy"	zhengfang*�
+u_a6f399bc_01正方教务系统"zhengfang.js*http://zhjw.hnut-d.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_64c3dc87湖南交通工程学院hnjtgcxy"	zhengfang*�
+u_64c3dc87_01正方教务系统"zhengfang.js*http://jwxt.hnjtgc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c2a15c91湖南汽车工程职业大学
+hnqcgczydx"	zhengfang*�
+u_c2a15c91_01正方教务系统"zhengfang.js*4http://ehall.zzptc.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_50be8f6d广东金融学院gdjrxy"qiangzhi*�
+u_50be8f6d_01强智教务系统"qiangzhi.js*http://jwxt.gduf.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_a207c7c4广东石油化工学院gdsyhgxy"	zhengfang*�
+u_a207c7c4_01正方教务系统"zhengfang.js*ihttps://authserver.gdupt.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.gdupt.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_ae5c27da广东外语外贸大学gdwywmdx"qiangzhi*�
+u_ae5c27da_01强智教务系统"qiangzhi.js* https://jwxt.gdufs.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_580db85a广州软件学院gzrjxy"	zhengfang*�
+u_580db85a_01正方教务系统"zhengfang.js*6https://jwxt.seig.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9b1367de广州理工学院gzlgxy"	zhengfang*�
+u_9b1367de_01正方教务系统"zhengfang.js*4http://jw.gzist.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_28db9514广州工商学院gzgsxy"	zhengfang*�
+u_28db9514_01正方教务系统"zhengfang.js*https://jwc.gzgs.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e0ace80f广东工商职业技术大学
+gdgszyjsdx"	zhengfang*�
+u_e0ace80f_01正方教务系统"zhengfang.js*#https://portal.gdbtu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_4791f21c桂林电子科技大学gldzkjdx"wisedu*�
+u_4791f21c_01金智(Wisedu)教务系统"	wisedu.js*�https://cas.guet.edu.cn/authserver/login?service=https%3A%2F%2Fcas.guet.edu.cn%2Fauthserver%2Foauth2.0%2FcallbackAuthorize%3Fclient_id%3D1052043084807569408%26redirect_uri%3Dhttps%253A%252F%252Fportal.guet.edu.cn%252Fsopcb%26response_type%3Dcode%26state%3D2730a582-0fec-40f2-acd5-21cc5b8dfde5%26nonce%3DSUDY_NONCE%26client_name%3DCasOAuthClient2*自动导入自 timetable，类型: wisedu:auto-import�
+
+u_b71db3ba南宁师范大学师园学院
+nnsfdxsyxy"	zhengfang*�
+u_b71db3ba_01正方教务系统"zhengfang.js*http://jw.gxsy.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_80897b53四川外国语大学scwgydx"	zhengfang*�
+u_80897b53_01正方教务系统"zhengfang.js*yhttp://authserver.sisu.edu.cn/authserver/login?service=http%3A%2F%2Fehall.sisu.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_bbd71557重庆第二师范学院cqdesfxy"CQU*�
+u_bbd71557_01正方教务系统"cqu.js*ghttp://i.cque.edu.cn/cas/login?service=http%3A%2F%2Fjwc.cque.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d7a6c4e1西南科技大学xnkjdx"	zhengfang*�
+u_d7a6c4e1_01正方教务系统"zhengfang.js*(https://jwc.swust.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7211a54b四川师范大学scsfdx"SICNU*�
+u_7211a54b_01正方教务系统"	school.js*https://jw.sicnu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_976b5b3b成都医学院cdyxy"CMC*�
+u_976b5b3b_01正方教务系统"	cmc_01.js*4http://jwgl.cmc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cff54aa9贵州中医药大学gzzyydx"qiangzhi*�
+u_cff54aa9_01强智教务系统"qiangzhi.js*https://jwgl.gzy.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_b81451d5六盘水师范学院lpssfxy"	zhengfang*�
+u_b81451d5_01正方教务系统"zhengfang.js*#https://portal.lpssy.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8cc639fb云南财经大学yncjdx"YNUFE*�
+u_8cc639fb_01正方教务系统"ynufe.js*ehttps://idas.ynufe.edu.cn/authserver/login?service=https%3A%2F%2Fehall.ynufe.edu.cn%3A443%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6916ae84西北工业大学xbgydx"NWPU*�
+u_6916ae84_01正方教务系统"
+nwpu_01.js*7https://ehall.nwpu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_72af147b西安工业大学xagydx"XATU*�
+u_72af147b_01正方教务系统"myschool.js*ghttps://authserver.xatu.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.xatu.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_413a62f3咸阳师范学院xysfxy"	zhengfang*�
+u_413a62f3_01正方教务系统"zhengfang.js*http://jwgl.xync.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7497a315西安美术学院xamsxy"	zhengfang*�
+u_7497a315_01正方教务系统"zhengfang.js* https://jwxt.xafa.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6e13655c延安大学西安创新学院
+yadxxacxxy"	zhengfang*�
+u_6e13655c_01正方教务系统"zhengfang.js*3https://jw.xacxxy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_99c5cc09西安科技大学高新学院
+xakjdxgxxy"	zhengfang*�
+u_99c5cc09_01正方教务系统"zhengfang.js*7https://jwc.gaoxinedu.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9de93a89甘肃民族师范学院gsmzsfxy"	zhengfang*�
+u_9de93a89_01正方教务系统"zhengfang.js*4http://jwc.gnun.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_109cfc84甘肃林业职业技术大学
+gslyzyjsdx"	zhengfang*�
+u_109cfc84_01正方教务系统"zhengfang.js*6https://jwgl.gsfc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6b5debde新疆医科大学xjykdx"	zhengfang*�
+u_6b5debde_01正方教务系统"zhengfang.js*"https://portal.xjmu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7166d48a北京交通职业技术学院
+bjjtzyjsxy"	zhengfang*�
+u_7166d48a_01正方教务系统"zhengfang.js*hhttp://authserver.jtxy.com.cn/authserver/login?service=https%3A%2F%2Fehall.jtxy.com.cn%3A443%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9c00f604北京戏曲艺术职业学院
+bjxqyszyxy"	zhengfang*�
+u_9c00f604_01正方教务系统"zhengfang.js*8https://portal.bjxx.com.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a31c089c河北软件职业技术学院
+hbrjzyjsxy"	zhengfang*�
+u_a31c089c_01正方教务系统"zhengfang.js*ahttp://authserver.hbsi.edu.cn/authserver/login?service=http%3A%2F%2Fehall.hbsi.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_5e5f7172河北公安警察职业学院
+hbgajczyxy"	zhengfang*�
+u_5e5f7172_01正方教务系统"zhengfang.js*http://jwc.hebsjy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_26ec8018冀中职业学院jzzyxy"	zhengfang*�
+u_26ec8018_01正方教务系统"zhengfang.js*http://zhjw.jzhxy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_00b98d38廊坊燕京职业技术学院
+lfyjzyjsxy"	zhengfang*�
+u_00b98d38_01正方教务系统"zhengfang.js*"http://jwglxt.lfyjzjxy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cba4b031承德应用技术职业学院
+cdyyjszyxy"	zhengfang*�
+u_cba4b031_01正方教务系统"zhengfang.js*https://authserver.cdct.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.cdct.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2c24c41c山西水利职业技术学院
+sxslzyjsxy"	zhengfang*�
+u_2c24c41c_01正方教务系统"zhengfang.js*http://jwgl.sxsy.com.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_20fa6ace山西国际商务职业学院
+sxgjswzyxy"	zhengfang*�
+u_20fa6ace_01正方教务系统"zhengfang.js*3http://zhjw.sxibs.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c981f864忻州职业技术学院xzzyjsxy"	zhengfang*�
+u_c981f864_01正方教务系统"zhengfang.js*http://ehall.xzvtc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9da0ef83吕梁职业技术学院llzyjsxy"	zhengfang*�
+u_9da0ef83_01正方教务系统"zhengfang.js* https://jwxt.llzy.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_bd73f727呼和浩特职业学院hhhtzyxy"	zhengfang*�
+u_bd73f727_01正方教务系统"zhengfang.js*5http://jwzx.hhvc.net.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_f3c379a3营口职业技术学院ykzyjsxy"	zhengfang*�
+u_f3c379a3_01正方教务系统"zhengfang.js*http://jw.www.ykdx.net/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8b189c47辽宁石化职业技术学院
+lnshzyjsxy"qiangzhi*�
+u_8b189c47_01强智教务系统"qiangzhi.js*http://jwc.lnpc.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_e525bfb2吉林司法警官职业学院
+jlsfjgzyxy"	zhengfang*�
+u_e525bfb2_01正方教务系统"zhengfang.js*3http://jwxt.jlsfjy.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_12a3e48a吉林工业职业技术学院
+jlgyzyjsxy"	zhengfang*�
+u_12a3e48a_01正方教务系统"zhengfang.js*http://jwc.jvcit.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_5b20a94c吉林科技职业技术学院
+jlkjzyjsxy"	zhengfang*�
+u_5b20a94c_01正方教务系统"zhengfang.js*5https://jwc.jilinkj.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8900e1b9吉林水利电力职业学院
+jlsldlzyxy"qiangzhi*�
+u_8900e1b9_01强智教务系统"qiangzhi.js*https://jwc.jlsy.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_529bc4c0黑龙江民族职业学院	hljmzzyxy"	zhengfang*�
+u_529bc4c0_01正方教务系统"zhengfang.js*6http://jwc.mvcollege.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_5a6c141c安徽商贸职业技术学院
+ahsmzyjsxy"	zhengfang*�
+u_5a6c141c_01正方教务系统"zhengfang.js*dhttps://authserver.abc.edu.cn:443/authserver/login?service=http%3A%2F%2Fehall.abc.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_3022c9b4安徽审计职业学院ahsjzyxy"	zhengfang*�
+u_3022c9b4_01正方教务系统"zhengfang.js*]http://authserver.ahsjxy.cn/authserver/login?service=http%3A%2F%2Fehall.ahsjxy.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_61806ea0合肥共达职业技术学院
+hfgdzyjsxy"	kingosoft*�
+u_61806ea0_01青果教务系统"kingosoft.js*!http://220.178.78.157:8082/jwweb/2-自动导入自 timetable，类型: kingosoft:auto-import�
+
+u_bc276819$合肥幼儿师范高等专科学校hfyesfgdzkxx"wisedu*�
+u_bc276819_01金智(Wisedu)教务系统"	wisedu.js*)https://ids.hfpec.edu.cn/authserver/login2*自动导入自 timetable，类型: wisedu:auto-import�
+
+u_c974356d皖北卫生职业学院wbwszyxy"	zhengfang*�
+u_c974356d_01正方教务系统"zhengfang.js*http://zhjw.wbwsxy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_acda1041福建林业职业技术学院
+fjlyzyjsxy"	zhengfang*�
+u_acda1041_01正方教务系统"zhengfang.js*4https://zfjw.fjlzy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2d290b24福州科技职业技术学院
+fzkjzyjsxy"	zhengfang*�
+u_2d290b24_01正方教务系统"zhengfang.js*2http://jwc.fzstc.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_64e131b2厦门软件职业技术学院
+xmrjzyjsxy"qiangzhi*�
+u_64e131b2_01强智教务系统"qiangzhi.js*https://jw.xmist.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_4986ea0e泉州工程职业技术学院
+qzgczyjsxy"	zhengfang*�
+u_4986ea0e_01正方教务系统"zhengfang.js*$http://jwc.qzgcu.com/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_20d142d0九江职业大学jjzydx"	zhengfang*�
+u_20d142d0_01正方教务系统"zhengfang.js*!https://portal.jjvu.jx.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_bbb58a07江西现代职业技术学院
+jxxdzyjsxy"	zhengfang*�
+u_bbb58a07_01正方教务系统"zhengfang.js*dhttps://authserver.jxxdxy.edu.cn/authserver/login?service=https%3A%2F%2Fehall.jxxdxy.com%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_db2ce357!江西中医药高等专科学校jxzyygdzkxx"	zhengfang*�
+u_db2ce357_01正方教务系统"zhengfang.js*http://jwglxt.jxtcms.net/jsxsd/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_eddd869e江西航空职业技术学院
+jxhkzyjsxy"	zhengfang*�
+u_eddd869e_01正方教务系统"zhengfang.js*!http://portal.jhxy.com.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c3c19f89江西农业工程职业学院
+jxnygczyxy"	zhengfang*�
+u_c3c19f89_01正方教务系统"zhengfang.js*3https://jw.jxaevc.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d3def7c3山东电力高等专科学校
+sddlgdzkxx"	zhengfang*�
+u_d3def7c3_01正方教务系统"zhengfang.js*6https://jwgl.sepc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c811457a曲阜远东职业技术学院
+qfydzyjsxy"qiangzhi*�
+u_c811457a_01强智教务系统"qiangzhi.js* http://jw.fareast-edu.net/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_d3960e4e青岛职业技术学院qdzyjsxy"	zhengfang*�
+u_d3960e4e_01正方教务系统"zhengfang.js*_http://authserver.qtc.edu.cn/authserver/login?service=http%3A%2F%2Fehall.qtc.edu.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_bf1657af山东杏林科技职业学院
+sdxlkjzyxy"	zhengfang*�
+u_bf1657af_01正方教务系统"zhengfang.js*http://jwpt.sdxlxy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6d04437a烟台文化旅游职业学院
+ytwhlyzyxy"	zhengfang*�
+u_6d04437a_01正方教务系统"zhengfang.js*{http://authserver.yvcct.edu.cn/authserver/login?service=http%3A%2F%2Fehall.yvcct.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0db9f322潍坊食品科技职业学院
+wfspkjzyxy"	zhengfang*�
+u_0db9f322_01正方教务系统"zhengfang.js*4http://jwxt.wflgxy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fe49f432周口职业技术学院zkzyjsxy"	zhengfang*�
+u_fe49f432_01正方教务系统"zhengfang.js*�https://authserver.zkvtc.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.zkvtc.edu.cn%3A443%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8c4e9461河南司法警官职业学院
+hnsfjgzyxy"HNSF*�
+u_8c4e9461_01正方教务系统"
+hnsf_01.js*http://jw.hnsfjg.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2eb6b5c4鹤壁职业技术学院hbzyjsxy"	zhengfang*�
+u_2eb6b5c4_01正方教务系统"zhengfang.js*�https://authserver.hbzy.edu.cn:443/authserver/login?service=https%3A%2F%2Fehall.hbzy.edu.cn%3A443%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2b5a0320$郑州澍青医学高等专科学校zzsqyxgdzkxx"	zhengfang*�
+u_2b5a0320_01正方教务系统"zhengfang.js*3http://jw.shuqing.org/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_1e20f2d0河南检察职业学院hnjczyxy"	zhengfang*�
+u_1e20f2d0_01正方教务系统"zhengfang.js*http://jwxt.hnfjc.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_5c03fbd5河南建筑职业技术学院
+hnjzzyjsxy"	zhengfang*�
+u_5c03fbd5_01正方教务系统"zhengfang.js*7http://portal.hnjs.com.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_b7808796焦作工贸职业学院jzgmzyxy"	zhengfang*�
+u_b7808796_01正方教务系统"zhengfang.js*4http://zfjw.jzgmxy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_33c1b927郑州理工职业学院zzlgzyxy"	zhengfang*�
+u_33c1b927_01正方教务系统"zhengfang.js*!https://portal.zzlgxy.net/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9d35564f郑州信息工程职业学院
+zzxxgczyxy"	zhengfang*�
+u_9d35564f_01正方教务系统"zhengfang.js*"https://portal.zxxyedu.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_595c83ce河南测绘职业学院hnchzyxy"	zhengfang*�
+u_595c83ce_01正方教务系统"zhengfang.js*yhttp://authserver.hasm.edu.cn/authserver/login?service=http%3A%2F%2Fehall.hasm.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_222d70e9林州建筑职业技术学院
+lzjzzyjsxy"	zhengfang*�
+u_222d70e9_01正方教务系统"zhengfang.js*"https://portal.lcat.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0348bd99郑州轨道工程职业学院
+zzgdgczyxy"	zhengfang*�
+u_0348bd99_01正方教务系统"zhengfang.js* https://jwc.zzure.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_1841d023郑州城建职业学院zzcjzyxy"	zhengfang*�
+u_1841d023_01正方教务系统"zhengfang.js*"https://jwxt.zzucvc.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_4e79e93f郑州汽车工程职业学院
+zzqcgczyxy"	zhengfang*�
+u_4e79e93f_01正方教务系统"zhengfang.js*$https://portal.zzvcae.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_f1a0ea1f长江职业学院cjzyxy"	zhengfang*�
+u_f1a0ea1f_01正方教务系统"zhengfang.js*5http://jwxt.cjxy.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c654f04a湖北职业技术学院hbzyjsxy"qiangzhi*�
+u_c654f04a_01强智教务系统"qiangzhi.js* https://jwgl.hbvtc.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_cf7dba14武汉船舶职业技术学院
+whcbzyjsxy"	zhengfang*�
+u_cf7dba14_01正方教务系统"zhengfang.js*yhttp://authserver.wspc.edu.cn/authserver/login?service=http%3A%2F%2Fehall.wspc.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_5acba77b恩施职业技术学院eszyjsxy"	zhengfang*�
+u_5acba77b_01正方教务系统"zhengfang.js*!https://ehall.eszy.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_36ab325d湖北财税职业学院hbcszyxy"	zhengfang*�
+u_36ab325d_01正方教务系统"zhengfang.js*!http://portal.hbcszyxy.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_9a4b2203湖北青年职业学院hbqnzyxy"	zhengfang*�
+u_9a4b2203_01正方教务系统"zhengfang.js*http://jwzx.hbqnxy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_4d942ca2湖北工程职业学院hbgczyxy"qiangzhi*�
+u_4d942ca2_01强智教务系统"qiangzhi.js*http://jwxt.hbei.com.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_39ce0702$湖南大众传媒职业技术学院hndzcmzyjsxy"	zhengfang*�
+u_39ce0702_01正方教务系统"zhengfang.js*[http://authserver.hnmmc.cn/authserver/login?service=http%3A%2F%2Fehall.hnmmc.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_dd6a4dd0湖南网络工程职业学院
+hnwlgczyxy"	zhengfang*�
+u_dd6a4dd0_01正方教务系统"zhengfang.js*http://jwgl.hnevc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_56ebd98f湖南司法警官职业学院
+hnsfjgzyxy"HNSF*�
+u_56ebd98f_01正方教务系统"
+hnsf_01.js* https://jwglxt.hnsfjy.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d1bd62d3$湖南环境生物职业技术学院hnhjswzyjsxy"	zhengfang*�
+u_d1bd62d3_01正方教务系统"zhengfang.js*#https://portal.hnebp.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_41c619fb怀化职业技术学院hhzyjsxy"	zhengfang*�
+u_41c619fb_01正方教务系统"zhengfang.js* http://jwgl.hhvtc.com.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_586ccfec湘西民族职业技术学院
+xxmzzyjsxy"	zhengfang*�
+u_586ccfec_01正方教务系统"zhengfang.js*http://jwgl.xxmzy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_b29f87ee湖南电气职业技术学院
+hndqzyjsxy"	zhengfang*�
+u_b29f87ee_01正方教务系统"zhengfang.js*5http://jwxt.hnjd.net.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fb0b127c益阳医学高等专科学校
+yyyxgdzkxx"	zhengfang*�
+u_fb0b127c_01正方教务系统"zhengfang.js*4https://cas.hnyyyz.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_88d60583顺德职业技术学院sdzyjsxy"	zhengfang*�
+u_88d60583_01正方教务系统"zhengfang.js*https://jw.sdpt.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d53436ca广州民航职业技术学院
+gzmhzyjsxy"	zhengfang*�
+u_d53436ca_01正方教务系统"zhengfang.js* http://jwpt.www.caac.net/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_bf6e3eb7!广东农工商职业技术学院gdngszyjsxy"qiangzhi*�
+u_bf6e3eb7_01强智教务系统"qiangzhi.js* https://jwxt.gdaib.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_935aab46罗定职业技术学院ldzyjsxy"	zhengfang*�
+u_935aab46_01正方教务系统"zhengfang.js*http://jwglxt.ldpoly.com/jsxsd/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_dbad46f4珠海城市职业技术学院
+zhcszyjsxy"	zhengfang*�
+u_dbad46f4_01正方教务系统"zhengfang.js*8https://ehall.zhcpt.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_8b1f595a*广州现代信息工程职业技术学院gzxdxxgczyjsxy"	zhengfang*�
+u_8b1f595a_01正方教务系统"zhengfang.js*http://jw.gzmodern.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_191b1f12广东科贸职业学院gdkmzyxy"	zhengfang*�
+u_191b1f12_01正方教务系统"zhengfang.js*4https://jw.gdkm.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c2a61037*广东江门幼儿师范高等专科学校gdjmyesfgdzkxx"qiangzhi*�
+u_c2a61037_01强智教务系统"qiangzhi.js*http://jwxt.jmpec.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_276125dc广东梅州职业技术学院
+gdmzzyjsxy"	zhengfang*�
+u_276125dc_01正方教务系统"zhengfang.js*8http://jwxt.gdmzvtc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2a5f6987广西经济职业学院gxjjzyxy"	zhengfang*�
+u_2a5f6987_01正方教务系统"zhengfang.js* https://portal.gxevc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_43090889广西培贤国际职业学院
+gxpxgjzyxy"	zhengfang*�
+u_43090889_01正方教务系统"zhengfang.js*8http://ehall.peixianedu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_db54b33f广西信息职业技术学院
+gxxxzyjsxy"	zhengfang*�
+u_db54b33f_01正方教务系统"zhengfang.js*1https://jw.gxuie.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_c9616152重庆电讯职业学院cqdxzyxy"	zhengfang*�
+u_c9616152_01正方教务系统"zhengfang.js*!http://jwpt.cqdxxy.com.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0a3ffb7e重庆工信职业学院cqgxzyxy"	zhengfang*�
+u_0a3ffb7e_01正方教务系统"zhengfang.js*https://jw.cqiivc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_de84598b$德阳城市轨道交通职业学院dycsgdjtzyxy"	zhengfang*�
+u_de84598b_01正方教务系统"zhengfang.js*shttp://authserver.dcurt.cn/authserver/login?service=http%3A%2F%2Fehall.dcurt.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e11a94a6江阳城建职业学院jycjzyxy"	zhengfang*�
+u_e11a94a6_01正方教务系统"zhengfang.js*https://portal.jyccc.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6a4af48a阿坝职业学院abzyxy"	zhengfang*�
+u_6a4af48a_01正方教务系统"zhengfang.js*4https://jw.abvc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_f9e97bca南充文化旅游职业学院
+ncwhlyzyxy"	zhengfang*�
+u_f9e97bca_01正方教务系统"zhengfang.js*http://jwglxt.ncvcct.com/jsxsd/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_b53ab749四川体育职业学院sctyzyxy"	zhengfang*�
+u_b53ab749_01正方教务系统"zhengfang.js*6https://jwxt.scsc.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0a949187贵州工业职业技术学院
+gzgyzyjsxy"	zhengfang*�
+u_0a949187_01正方教务系统"zhengfang.js* https://jwzx.gzky.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_a932fb79遵义医药高等专科学校
+zyyygdzkxx"	zhengfang*�
+u_a932fb79_01正方教务系统"zhengfang.js*'https://portal.zunyiyizhuan.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_05b4dfd4贵州机电职业技术学院
+gzjdzyjsxy"	zhengfang*�
+u_05b4dfd4_01正方教务系统"zhengfang.js*3http://jwxt.gztcme.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_d4019541云南文化艺术职业学院
+ynwhyszyxy"	zhengfang*�
+u_d4019541_01正方教务系统"zhengfang.js*5https://ehall.ynarts.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_92388fdd西双版纳职业技术学院
+xsbnzyjsxy"	zhengfang*�
+u_92388fdd_01正方教务系统"zhengfang.js* http://jwglxt.xsbnzy.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7d0cd331曲靖医学高等专科学校
+qjyxgdzkxx"	zhengfang*�
+u_7d0cd331_01正方教务系统"zhengfang.js*"http://jwglxt.www.qjyz.org/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_30896abb云南现代职业技术学院
+ynxdzyjsxy"	zhengfang*�
+u_30896abb_01正方教务系统"zhengfang.js*5https://jwc.ynxd.net.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_e12ea18f西安铁路职业技术学院
+xatlzyjsxy"	zhengfang*�
+u_e12ea18f_01正方教务系统"zhengfang.js*http://jwxt.xatzy.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0f3a4c88商洛职业技术学院slzyjsxy"	zhengfang*�
+u_0f3a4c88_01正方教务系统"zhengfang.js*7https://jwgl.slzyjsxy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_85ec1c70安康职业技术学院akzyjsxy"	zhengfang*�
+u_85ec1c70_01正方教务系统"zhengfang.js*[http://authserver.akvtc.cn/authserver/login?service=http%3A%2F%2Fehall.akvtc.cn%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_30eba856陕西青年职业学院sxqnzyxy"	zhengfang*�
+u_30eba856_01正方教务系统"zhengfang.js*]http://authserver.sxqzy.com/authserver/login?service=http%3A%2F%2Fehall.sxqzy.com%2Fjwglxt%2F21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0c7357cf神木职业技术学院smzyjsxy"	zhengfang*�
+u_0c7357cf_01正方教务系统"zhengfang.js*http://jwxt.smzy.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7def8413兰州职业技术学院lzzyjsxy"	zhengfang*�
+u_7def8413_01正方教务系统"zhengfang.js*http://jwgl.lvu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_ee0554ab兰州现代职业学院lzxdzyxy"qiangzhi*�
+u_ee0554ab_01强智教务系统"qiangzhi.js*http://jwpt.lzmvc.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+
+u_afe67044白银希望职业技术学院
+byxwzyjsxy"	zhengfang*�
+u_afe67044_01正方教务系统"zhengfang.js*https://jw.byhvatc.com/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_fa0e2f30甘肃财贸职业学院gscmzyxy"GSCMXY*�
+u_fa0e2f30_01金智(Wisedu)教务系统"	gscmxy.js*�https://authserver.gscmxy.edu.cn/authserver/login?service=https%3A%2F%2Fjwxt.gscmxy.edu.cn%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
+
+u_541be930青海卫生职业技术学院
+qhwszyjsxy"	zhengfang*�
+u_541be930_01正方教务系统"zhengfang.js*�http://authserver.qhwszy.edu.cn/authserver/login?service=https%3A%2F%2Fehall.qhwszy.edu.cn%3A443%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_6a8628e0宁夏职业技术学院nxzyjsxy"	zhengfang*�
+u_6a8628e0_01正方教务系统"zhengfang.js*yhttp://authserver.nxtc.edu.cn/authserver/login?service=http%3A%2F%2Fehall.nxtc.edu.cn%2Fjwglxt%2Fxtgl%2Flogin_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_84b77237昌吉职业技术学院cjzyjsxy"	zhengfang*�
+u_84b77237_01正方教务系统"zhengfang.js*5http://zfjw.www.cjpt.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_077022dd伊犁职业技术学院ylzyjsxy"	zhengfang*�
+u_077022dd_01正方教务系统"zhengfang.js*http://portal.ylzyjs.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_7905d86d阿克苏职业技术学院	akszyjsxy"	zhengfang*�
+u_7905d86d_01正方教务系统"zhengfang.js*4https://jwgl.akszy.com/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_36de2abe巴音郭楞职业技术学院
+byglzyjsxy"	zhengfang*�
+u_36de2abe_01正方教务系统"zhengfang.js* https://portal.xjbyxy.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_2c2f7cc9新疆职业大学xjzydx"	zhengfang*�
+u_2c2f7cc9_01正方教务系统"zhengfang.js*"https://portal.xjvu.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_4a71da47新疆应用职业技术学院
+xjyyzyjsxy"	zhengfang*�
+u_4a71da47_01正方教务系统"zhengfang.js*&http://jwc.xjyy.edu.cn/jwglxt/main.psp21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_0c432648新星职业技术学院xxzyjsxy"	zhengfang*�
+u_0c432648_01正方教务系统"zhengfang.js*"https://portal.xxzyjsxy.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+
+u_cf40587b南京理工大学紫金学院
+njlgdxzjxy"urp*�
+u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import

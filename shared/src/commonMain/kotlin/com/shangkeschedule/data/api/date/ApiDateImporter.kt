@@ -59,21 +59,23 @@ object ApiDateImporter {
 
     /**
      * 从 API 获取跳过的日期（假期），并保存到 AppSettingsRepository 中。
+     * 与本地已记录的手工调休/停课日期做「合并」而非整体覆盖，避免冲掉用户手动维护的条目。
      */
     suspend fun importAndSaveSkippedDates(appSettingsRepository: AppSettingsRepository) {
         try {
             val response: ApiResponse = client.get("").body()
 
-            val skippedDates = response.holidays.values
+            val holidayDates = response.holidays.values
                 .filter { it.isHoliday }
                 .map { it.date }
                 .toSet()
 
             val currentSettings = appSettingsRepository.getAppSettings().first()
-            val updatedSettings = currentSettings.copy(skippedDates = skippedDates)
+            val mergedSkippedDates = currentSettings.skippedDates + holidayDates
+            val updatedSettings = currentSettings.copy(skippedDates = mergedSkippedDates)
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
 
-            println("成功导入并保存了 ${skippedDates.size} 个跳过的日期。")
+            println("成功导入并合并了 ${holidayDates.size} 个假期日期（现共 ${mergedSkippedDates.size} 个跳过日期）。")
         } catch (e: Exception) {
             println("数据导入失败: ${e.message}")
             e.printStackTrace()

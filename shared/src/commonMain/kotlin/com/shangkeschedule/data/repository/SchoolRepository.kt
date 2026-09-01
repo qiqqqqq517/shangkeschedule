@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
@@ -38,24 +40,49 @@ class SchoolRepository(
     )
 
     /**
-     * 核心加载函数：仅从内部存储文件读取 Protobuf 索引。
+     * 索引内存缓存：避免每次查询都重新读盘并 decode 全量 school_index.pb。
+     * 以文件 size + 修改时间作为缓存键，离线资源重新解压后自动失效，无需手动清理。
+     * Mutex 串行化缓存读写（suspend 友好，KMP 兼容）。
+     */
+    private var cachedIndex: SchoolIndex? = null
+    private var cacheKey: Pair<Long, Long>? = null
+    private val cacheMutex = Mutex()
+
+    /**
+     * 核心加载函数：优先命中内存缓存，未命中才从内部存储文件读取 Protobuf 索引。
      */
     private suspend fun loadIndex(): SchoolIndex? {
+        val internalPath = filesDir / "repo/index/school_index.pb"
+
+        if (!fileSystem.exists(internalPath)) {
+            println("错误：Protobuf 索引文件未找到: $internalPath")
+            return null
+        }
+
         return withContext(Dispatchers.IO) {
-            val internalPath = filesDir / "repo/index/school_index.pb"
-
-            if (!fileSystem.exists(internalPath)) {
-                println("错误：Protobuf 索引文件未找到: $internalPath")
-                return@withContext null
-            }
-
-            try {
-                fileSystem.source(internalPath).use { source ->
-                    return@withContext SchoolIndex.ADAPTER.decode(source.buffer())
+            cacheMutex.withLock {
+                val metadata = try {
+                    fileSystem.metadataOrNull(internalPath)
+                } catch (_: Exception) {
+                    null
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
+                val currentKey = metadata?.let { it.size?.let { size -> size to (it.lastModifiedAtMillis ?: 0L) } }
+
+                if (currentKey != null && currentKey == cacheKey) {
+                    return@withContext cachedIndex
+                }
+
+                try {
+                    val decoded = fileSystem.source(internalPath).use { source ->
+                        SchoolIndex.ADAPTER.decode(source.buffer())
+                    }
+                    cachedIndex = decoded
+                    cacheKey = currentKey
+                    decoded
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
             }
         }
     }

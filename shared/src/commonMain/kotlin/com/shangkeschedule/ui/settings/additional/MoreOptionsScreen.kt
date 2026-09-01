@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.settings.SectionCard
+import com.shangkeschedule.ui.settings.SectionDivider
+import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -41,6 +44,11 @@ import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.code_24px
+import shangkeschedule.shared.generated.resources.contact_author_email
+import shangkeschedule.shared.generated.resources.contact_author_hint
+import shangkeschedule.shared.generated.resources.desc_contact_author
+import shangkeschedule.shared.generated.resources.email_24px
+import shangkeschedule.shared.generated.resources.item_contact_author
 import shangkeschedule.shared.generated.resources.home_24px
 import shangkeschedule.shared.generated.resources.item_github_repo
 import shangkeschedule.shared.generated.resources.item_language_settings
@@ -51,7 +59,7 @@ import shangkeschedule.shared.generated.resources.language_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.title_more_options
 
-private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shangkeschedule"
+private const val GITHUB_REPO_URL = "https://github.com/qiqqqqq517/shangkeschedule"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,65 +128,80 @@ fun MoreOptionsScreen(
                 )
             }
 
-            // 设置列表卡片
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 开发者模式设置项（隐藏项，保留原有动画逻辑）
+            DeveloperModeSettingItem(
+                isDeveloperModeEnabled = isDeveloperModeEnabled,
+                onDeveloperModeChanged = { viewModel.onDeveloperModeChanged(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            // 语言/启动页/GitHub/开源许可证（分区大卡，组内分割）
+            SectionCard(
+                modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-
-                    // 开发者模式设置项
-                    DeveloperModeSettingItem(
-                        isDeveloperModeEnabled = isDeveloperModeEnabled,
-                        onDeveloperModeChanged = { viewModel.onDeveloperModeChanged(it) }
-                    )
-
-                    // 语言切换 (导航至独立页面)
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.language_24px),
-                        title = stringResource(Res.string.item_language_settings),
-                        onClick = { onNavigate(Destination.LanguageSettings) }
-                    )
-
-                    // 启动页面设置
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.home_24px),
-                        title = stringResource(Res.string.item_start_screen_settings),
-                        onClick = { showStartScreenDialog = true },
-                        trailingContent = {
-                            Text(
-                                text = stringResource(uiState.appSettings.startScreen.labelRes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    )
-
-                    // GitHub 仓库
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.code_24px),
-                        title = stringResource(Res.string.item_github_repo),
-                        onClick = { uriHandler.openUri(GITHUB_REPO_URL) }
-                    )
-
-                    // 开源许可证
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.list_alt_24px),
-                        title = stringResource(Res.string.item_open_source_licenses),
-                        onClick = { onNavigate(Destination.OpenSourceLicenses) }
-                    )
-
-                    // 鸣谢内容
-                    AcknowledgmentContent()
-                }
+                SettingItem(
+                    title = stringResource(Res.string.item_language_settings),
+                    leadingIcon = vectorResource(Res.drawable.language_24px),
+                    onClick = { onNavigate(Destination.LanguageSettings) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_start_screen_settings),
+                    leadingIcon = vectorResource(Res.drawable.home_24px),
+                    onClick = { showStartScreenDialog = true },
+                    trailingContent = {
+                        Text(
+                            text = stringResource(uiState.appSettings.startScreen.labelRes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_github_repo),
+                    leadingIcon = vectorResource(Res.drawable.code_24px),
+                    onClick = { uriHandler.openUri(GITHUB_REPO_URL) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_open_source_licenses),
+                    leadingIcon = vectorResource(Res.drawable.list_alt_24px),
+                    onClick = { onNavigate(Destination.OpenSourceLicenses) }
+                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 联系作者反馈（欢迎新功能建议 / 教务适配请求）
+            SectionCard(
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                SettingItem(
+                    title = stringResource(Res.string.item_contact_author),
+                    subtitle = stringResource(Res.string.desc_contact_author),
+                    leadingIcon = vectorResource(Res.drawable.email_24px),
+                    onClick = { uriHandler.openUri("mailto:hhixingchen520@163.com") }
+                )
+                SectionDivider()
+                Text(
+                    text = stringResource(Res.string.contact_author_email),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = stringResource(Res.string.contact_author_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            // 鸣谢内容
+            AcknowledgmentContent()
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

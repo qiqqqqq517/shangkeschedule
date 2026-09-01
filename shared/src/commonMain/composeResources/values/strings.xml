@@ -634,4 +634,18 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
+    <string name="desc_more_settings">包含课表显示、学期设置等低频设置项</string>
+    <string name="section_title_quick_notify">快捷与通知</string>
+    <string name="section_title_couple_schedule">情侣课表</string>
+    <string name="section_title_semester_settings">学期设置</string>
+    <string name="title_semester_settings">学期设置</string>
+    <string name="section_title_display_settings">课表显示</string>
+    <string name="title_more_settings">更多设置</string>
+    <string name="desc_quick_settings">高频操作，优先显示</string>
+    <string name="title_secondary_settings">更多设置入口</string>
+    <string name="title_core_functions">核心功能</string>
+    <string name="item_contact_author">Contact Author</string>
+    <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
+    <string name="contact_author_email">hhixingchen520@163.com</string>
+    <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
 </resources>

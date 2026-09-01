@@ -11,8 +11,9 @@ import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.model.toCompose
 import com.shangkeschedule.data.model.toProto
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -91,9 +92,12 @@ class StyleSettingsRepository(
     // 内存缓存：避免进入外观设置页时因异步加载导致初始值闪烁
     private val styleCache = MutableStateFlow<ScheduleGridStyle?>(null)
 
+    /** 仓库私有作用域：替代 GlobalScope，生命周期仍为进程级单例，但可测试、可追踪。 */
+    private val preloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     init {
         // 异步预热缓存
-        GlobalScope.launch(Dispatchers.Default) {
+        preloadScope.launch {
             try {
                 val current = dataStore.data.map { it.toCompose() }.first()
                 styleCache.value = current

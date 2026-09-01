@@ -1,6 +1,6 @@
 package com.shangkeschedule.data.repository
 
-import androidx.room3.Transaction
+import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseDao
 import com.shangkeschedule.data.db.main.CourseTable
@@ -9,6 +9,7 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.db.main.CourseWeek
 import com.shangkeschedule.data.db.main.CourseWeekDao
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.TimeSlot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Single
 class CourseTableRepository(
+    private val database: MainAppDatabase,
     private val courseTableDao: CourseTableDao,
     private val courseDao: CourseDao,
     private val courseWeekDao: CourseWeekDao,
@@ -60,8 +62,6 @@ class CourseTableRepository(
             name = "我的课表",
             createdAt = Clock.System.now().toEpochMilliseconds()
         )
-        courseTableDao.insert(defaultCourseTable)
-
         val defaultConfig = CourseTableConfig(
             courseTableId = tableId,
             showWeekends = false,
@@ -70,12 +70,17 @@ class CourseTableRepository(
             defaultBreakDuration = 10,
             firstDayOfWeek = 1
         )
-        appSettingsRepository.insertOrUpdateCourseConfig(defaultConfig)
 
         val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
             it.copy(courseTableId = tableId)
         }
-        timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+
+        // 真事务：三张表的初始化写入要么全部成功，要么全部回滚
+        database.withWriteTransaction {
+            courseTableDao.insert(defaultCourseTable)
+            appSettingsRepository.insertOrUpdateCourseConfig(defaultConfig)
+            timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+        }
 
         println("数据库初始化数据已完成写入")
     }
@@ -100,25 +105,24 @@ class CourseTableRepository(
      *
      * @param name 新课表的名称
      */
-    @Transaction
     suspend fun createNewCourseTable(name: String): String {
         val newTable = CourseTable(
             id = Uuid.random().toString(),
             name = name,
             createdAt = Clock.System.now().toEpochMilliseconds()
         )
-        courseTableDao.insert(newTable)
 
-        // 2. 插入默认时间段
         val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
             it.copy(courseTableId = newTable.id)
         }
-        // 调用 timeSlotRepository 的方法来插入时间段
-        timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
-
-        // 3. 插入默认课表配置
         val newConfig = CourseTableConfig(courseTableId = newTable.id)
-        appSettingsRepository.insertOrUpdateCourseConfig(newConfig)
+
+        // 真事务：课表 + 默认时段 + 默认配置原子写入
+        database.withWriteTransaction {
+            courseTableDao.insert(newTable)
+            timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
+            appSettingsRepository.insertOrUpdateCourseConfig(newConfig)
+        }
 
         return newTable.id
     }
@@ -131,18 +135,37 @@ class CourseTableRepository(
     }
 
     /**
-     * 删除一个课表，并确保至少保留一个。
+     * 删除课表并确保当前课表指针始终指向仍存在的备用课表。
      *
-     * @return 如果删除成功返回 true，否则返回 false。
+     * DataStore 与 Room 不能跨存储事务，因此先持久化一个已经存在的备用 ID；
+     * 若随后 Room 删除失败，用户只会停留在备用课表，而不会出现悬空 currentCourseTableId。
      */
-    suspend fun deleteCourseTable(courseTable: CourseTable): Boolean {
+    suspend fun deleteCourseTableAndResolveCurrent(courseTable: CourseTable): Boolean {
         val allTables = courseTableDao.getAllCourseTables().first()
-        if (allTables.size <= 1) {
-            return false
+        if (allTables.size <= 1 || allTables.none { it.id == courseTable.id }) return false
+
+        val fallbackTable = allTables.first { it.id != courseTable.id }
+        val currentSettings = appSettingsRepository.getAppSettingsOnce()
+        if (currentSettings.currentCourseTableId == courseTable.id) {
+            appSettingsRepository.insertOrUpdateAppSettings(
+                currentSettings.copy(currentCourseTableId = fallbackTable.id)
+            )
         }
-        courseTableDao.delete(courseTable)
+
+        database.withWriteTransaction {
+            courseTableDao.delete(courseTable)
+        }
         return true
     }
+
+    /**
+     * 删除一个课表，并确保至少保留一个。
+     *
+     * @deprecated 请使用 [deleteCourseTableAndResolveCurrent]，避免 currentCourseTableId 悬空。
+     */
+    @Deprecated("Use deleteCourseTableAndResolveCurrent")
+    suspend fun deleteCourseTable(courseTable: CourseTable): Boolean =
+        deleteCourseTableAndResolveCurrent(courseTable)
 
     /**
      * 专门用于根据课程ID更新其颜色索引。
@@ -158,7 +181,6 @@ class CourseTableRepository(
     /**
      * 插入或更新一个课程，并同时更新其对应的周数列表。
      */
-    @Transaction
     suspend fun upsertCourse(course: Course, weekNumbers: List<Int>) {
         // take(300) 会截取前 300 个字符，如果为 null 则返回 null
         val safeRemark = course.remark?.take(300)?.ifBlank { null }
@@ -166,20 +188,23 @@ class CourseTableRepository(
         // 使用 copy 创建一个处理过备注的新对象
         val processedCourse = course.copy(remark = safeRemark)
 
-        // 逻辑判断：如果数据库里已经有这个 ID
-        if (courseDao.exists(processedCourse.id)) {
-            // 使用 @Update 精准修改字段。
-            courseDao.update(processedCourse)
-        } else {
-            // 如果是新 ID，则执行插入。
-            courseDao.insertAll(listOf(processedCourse))
-        }
-
-        // 更新周次关联（保持不变）
         val courseWeeks = weekNumbers.map { week ->
             CourseWeek(courseId = processedCourse.id, weekNumber = week)
         }
-        courseWeekDao.updateCourseWeeks(processedCourse.id, courseWeeks)
+
+        // 真事务：课程主体与周次关联原子更新
+        database.withWriteTransaction {
+            // 逻辑判断：如果数据库里已经有这个 ID
+            if (courseDao.exists(processedCourse.id)) {
+                // 使用 @Update 精准修改字段。
+                courseDao.update(processedCourse)
+            } else {
+                // 如果是新 ID，则执行插入。
+                courseDao.insertAll(listOf(processedCourse))
+            }
+            // 更新周次关联（保持不变）
+            courseWeekDao.updateCourseWeeks(processedCourse.id, courseWeeks)
+        }
     }
 
     /**
@@ -224,7 +249,6 @@ class CourseTableRepository(
      * 执行调课操作
      * @param mode 传入 TweakMode.MERGE, TweakMode.OVERWRITE 或 TweakMode.EXCHANGE
      */
-    @Transaction
     suspend fun tweakCoursesOnDate(
         mode: TweakMode,
         courseTableId: String,
@@ -233,36 +257,39 @@ class CourseTableRepository(
         toWeek: Int,
         toDay: Int
     ) {
-        // 1. 获取来源(A)和目标(B)的数据快照
+        // 1. 获取来源(A)和目标(B)的数据快照（读操作放事务外）
         val sourceList = courseDao.getCoursesWithWeeksByDayAndWeek(courseTableId, fromDay, fromWeek).first()
         val targetList = courseDao.getCoursesWithWeeksByDayAndWeek(courseTableId, toDay, toWeek).first()
 
-        when (mode) {
-            TweakMode.MERGE -> {
-                // 直接移动 A -> B
-                executeMoveInternal(sourceList, toWeek, toDay, fromWeek)
-            }
+        // 真事务：调课涉及的多表多行写入全部原子化
+        database.withWriteTransaction {
+            when (mode) {
+                TweakMode.MERGE -> {
+                    // 直接移动 A -> B
+                    executeMoveInternal(sourceList, toWeek, toDay, fromWeek)
+                }
 
-            TweakMode.OVERWRITE -> {
-                // 先删目标日期的周次，再移动 A -> B
-                if (targetList.isNotEmpty()) {
-                    val targetIds = targetList.map { it.course.id }
-                    courseWeekDao.deleteCourseWeeksForCourseAndWeek(targetIds, toWeek)
+                TweakMode.OVERWRITE -> {
+                    // 先删目标日期的周次，再移动 A -> B
+                    if (targetList.isNotEmpty()) {
+                        val targetIds = targetList.map { it.course.id }
+                        courseWeekDao.deleteCourseWeeksForCourseAndWeek(targetIds, toWeek)
+                    }
+                    executeMoveInternal(sourceList, toWeek, toDay, fromWeek)
                 }
-                executeMoveInternal(sourceList, toWeek, toDay, fromWeek)
-            }
 
-            TweakMode.EXCHANGE -> {
-                // 互换：先切断双方现有周次联系
-                if (sourceList.isNotEmpty()) {
-                    courseWeekDao.deleteCourseWeeksForCourseAndWeek(sourceList.map { it.course.id }, fromWeek)
+                TweakMode.EXCHANGE -> {
+                    // 互换：先切断双方现有周次联系
+                    if (sourceList.isNotEmpty()) {
+                        courseWeekDao.deleteCourseWeeksForCourseAndWeek(sourceList.map { it.course.id }, fromWeek)
+                    }
+                    if (targetList.isNotEmpty()) {
+                        courseWeekDao.deleteCourseWeeksForCourseAndWeek(targetList.map { it.course.id }, toWeek)
+                    }
+                    // 执行交叉移动 (originalWeek = -1 表示不重复执行删除逻辑)
+                    executeMoveInternal(sourceList, toWeek, toDay, -1)
+                    executeMoveInternal(targetList, fromWeek, fromDay, -1)
                 }
-                if (targetList.isNotEmpty()) {
-                    courseWeekDao.deleteCourseWeeksForCourseAndWeek(targetList.map { it.course.id }, toWeek)
-                }
-                // 执行交叉移动 (originalWeek = -1 表示不重复执行删除逻辑)
-                executeMoveInternal(sourceList, toWeek, toDay, -1)
-                executeMoveInternal(targetList, fromWeek, fromDay, -1)
             }
         }
     }
@@ -318,18 +345,26 @@ class CourseTableRepository(
      * * @param tableId 课表唯一 ID
      * @param weekDayPairs 周次与星期的组合列表 (Pair<周次, 星期>)
      */
-    @Transaction
     suspend fun deleteCoursesOnDates(
         tableId: String,
         weekDayPairs: List<Pair<Int, Int>>
     ) {
+        // 先收集所有待删除的 (课程ID列表, 周次)，读操作放事务外
+        val deletions = mutableListOf<Pair<List<String>, Int>>()
         weekDayPairs.forEach { (week, day) ->
             // 查找在该课表、该周、该天下的所有课程记录
             val coursesToDelete = getCoursesForDay(tableId, week, day).first()
 
             if (coursesToDelete.isNotEmpty()) {
-                val ids = coursesToDelete.map { it.course.id }
+                deletions += coursesToDelete.map { it.course.id } to week
+            }
+        }
 
+        if (deletions.isEmpty()) return
+
+        // 真事务：整批周次关联删除原子化
+        database.withWriteTransaction {
+            deletions.forEach { (ids, week) ->
                 // 仅仅从 course_weeks 表中移除对应周次的关联，不触动 course 表
                 courseWeekDao.deleteCourseWeeksForCourseAndWeek(ids, week)
             }

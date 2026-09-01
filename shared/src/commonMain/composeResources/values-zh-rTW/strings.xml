@@ -633,4 +633,8 @@
     <string name="backup_target_webdav">WebDAV 雲端同步</string>
     <string name="backup_target_local_zip">本地 ZIP 檔案</string>
 
+    <string name="item_contact_author">聯絡作者回饋</string>
+    <string name="desc_contact_author">歡迎回饋問題、希望新增的功能，或請求適配你的教務系統</string>
+    <string name="contact_author_email">hhixingchen520@163.com</string>
+    <string name="contact_author_hint">若適配教務系統，請隨郵件附上：學校名稱、教務系統帳號、教務系統密碼</string>
 </resources>

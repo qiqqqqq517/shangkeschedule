@@ -7,9 +7,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,8 +44,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -105,6 +111,15 @@ import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.item_total_weeks
 import shangkeschedule.shared.generated.resources.theme_settings_title
+import shangkeschedule.shared.generated.resources.calendar_today_24px
+import shangkeschedule.shared.generated.resources.schedule_24px
+import shangkeschedule.shared.generated.resources.favorite_24px
+import shangkeschedule.shared.generated.resources.palette_24px
+import shangkeschedule.shared.generated.resources.info_24px
+import shangkeschedule.shared.generated.resources.school_24px
+import shangkeschedule.shared.generated.resources.class_24px
+import shangkeschedule.shared.generated.resources.edit_24px
+import shangkeschedule.shared.generated.resources.section_title_semester_settings
 import shangkeschedule.shared.generated.resources.more_horiz_24px
 import shangkeschedule.shared.generated.resources.section_title_advanced_features
 import shangkeschedule.shared.generated.resources.section_title_general_settings
@@ -118,8 +133,7 @@ import shangkeschedule.shared.generated.resources.title_schedule_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 
 private val SETTING_PADDING = 16.dp
-private val SECTION_SPACING = 16.dp
-private val ITEM_SPACING = 16.dp
+private val ITEM_SPACING = 8.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,10 +142,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val courseColorMaps by viewModel.courseColorMaps.collectAsState()
-
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val uiState by viewModel.uiState.collectAsState()
 
     AdaptiveNavigationScaffold(
         currentDestination = Destination.Settings,
@@ -146,120 +158,152 @@ fun SettingsScreen(
                 )
             }
         ) { innerPadding ->
-            if (!uiState.isReady) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding))
-            } else {
-                val appSettings = uiState.appSettings
-                val courseTableConfig = uiState.courseConfig
-                val displayCurrentWeek = uiState.currentWeek
-
-                val showWeekends = courseTableConfig?.showWeekends ?: false
-                val semesterStartDateString = courseTableConfig?.semesterStartDate
-                val semesterTotalWeeks = courseTableConfig?.semesterTotalWeeks ?: 20
-                val firstDayOfWeekInt = courseTableConfig?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
-
-                val semesterStartDate: LocalDate? = remember(semesterStartDateString) {
-                    semesterStartDateString?.let {
-                        try {
-                            LocalDate.parse(it)
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                }
-
-                var showTotalWeeksDialog by remember { mutableStateOf(false) }
-                var showManualWeekDialog by remember { mutableStateOf(false) }
-                var showDatePickerModal by remember { mutableStateOf(false) }
-                var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = SETTING_PADDING),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
-                    contentPadding = PaddingValues(bottom = navPadding.calculateBottomPadding() + 16.dp)
-                ) {
-                    item {
-                        GeneralSettingsSection(
-                            showNonCurrentWeek = appSettings.showNonCurrentWeekCourses,
-                            onShowNonCurrentWeekChanged = { isChecked -> viewModel.onShowNonCurrentWeekChanged(isChecked) },
-                            showWeekends = showWeekends,
-                            onShowWeekendsChanged = { isChecked -> viewModel.onShowWeekendsChanged(isChecked) },
-                            semesterStartDate = semesterStartDate,
-                            semesterTotalWeeks = semesterTotalWeeks,
-                            firstDayOfWeekInt = firstDayOfWeekInt,
-                            displayCurrentWeek = displayCurrentWeek,
-                            onSemesterStartDateClick = { showDatePickerModal = true },
-                            onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                            onManualWeekClick = { showManualWeekDialog = true },
-                            onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
-                            onQuickActionsClick = { onNavigate(Destination.QuickActions) },
-                            coupleScheduleEnabled = appSettings.coupleScheduleEnabled,
-                            onCoupleScheduleEnabledChanged = { viewModel.onCoupleScheduleEnabledChanged(it) },
-                            selfCourseColorIndex = appSettings.selfCourseColorIndex,
-                            crushCourseColorIndex = appSettings.crushCourseColorIndex,
-                            courseColorMaps = courseColorMaps,
-                            onSelfCourseColorIndexChanged = { viewModel.onSelfCourseColorIndexChanged(it) },
-                            onCrushCourseColorIndexChanged = { viewModel.onCrushCourseColorIndexChanged(it) }
-                        )
-                    }
-                    item {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                    }
-                    item {
-                        AdvancedSettingsSection(onNavigate = onNavigate)
-                    }
-                }
-
-                if (showDatePickerModal) {
-                    DatePickerModal(
-                        onDateSelected = { selectedDateMillis ->
-                            viewModel.onSemesterStartDateSelected(selectedDateMillis)
-                        },
-                        onDismiss = { showDatePickerModal = false }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = SETTING_PADDING),
+                verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
+                contentPadding = PaddingValues(bottom = navPadding.calculateBottomPadding() + 16.dp)
+            ) {
+                // 核心功能（高频前置，逐项独立卡片，主项标题放大突出）
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_course_conversion),
+                        subtitle = stringResource(Res.string.desc_course_conversion),
+                        icon = vectorResource(Res.drawable.school_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.CourseTableConversion) }
                     )
                 }
-
-                if (showTotalWeeksDialog) {
-                    NumberPickerDialog(
-                        title = stringResource(Res.string.dialog_title_select_total_weeks),
-                        range = 1..30,
-                        initialValue = semesterTotalWeeks,
-                        onDismiss = { showTotalWeeksDialog = false },
-                        onConfirm = { selectedWeeks ->
-                            viewModel.onSemesterTotalWeeksSelected(selectedWeeks)
-                            showTotalWeeksDialog = false
-                        }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.section_title_semester_settings),
+                        subtitle = stringResource(Res.string.desc_set_start_date),
+                        icon = vectorResource(Res.drawable.calendar_today_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.SemesterSettings) }
                     )
                 }
-
-                if (showManualWeekDialog) {
-                    ManualWeekPickerDialog(
-                        totalWeeks = semesterTotalWeeks,
-                        currentWeek = displayCurrentWeek,
-                        onDismiss = { showManualWeekDialog = false },
-                        onConfirm = { weekNumber ->
-                            viewModel.onCurrentWeekManuallySet(weekNumber)
-                            showManualWeekDialog = false
+                // 非本周课程 + 显示周末（两个开关共用一行，紧跟学期设置）
+                item {
+                    SectionCard {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 左：显示非本周课程
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.item_show_non_current_week),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Switch(
+                                    checked = uiState.appSettings.showNonCurrentWeekCourses,
+                                    onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
+                                )
+                            }
+                            VerticalDivider(
+                                modifier = Modifier.height(28.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                            )
+                            // 右：是否显示周末
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.item_show_weekends),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Switch(
+                                    checked = uiState.courseConfig?.showWeekends ?: false,
+                                    onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
+                                )
+                            }
                         }
+                    }
+                }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_time_slot_customization),
+                        subtitle = stringResource(Res.string.desc_time_slot_customization),
+                        icon = vectorResource(Res.drawable.schedule_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.TimeSlotSettings) }
                     )
                 }
-
-                if (showFirstDayOfWeekDialog) {
-                    DayOfWeekPickerDialog(
-                        initialDayOfWeekInt = firstDayOfWeekInt,
-                        onDismiss = { showFirstDayOfWeekDialog = false },
-                        onConfirm = { selectedDayInt ->
-                            viewModel.onFirstDayOfWeekSelected(selectedDayInt)
-                            showFirstDayOfWeekDialog = false
-                        }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.title_manage_course_tables),
+                        subtitle = stringResource(Res.string.desc_manage_course_tables),
+                        icon = vectorResource(Res.drawable.class_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.ManageCourseTables) }
+                    )
+                }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_course_management),
+                        subtitle = stringResource(Res.string.desc_course_management),
+                        icon = vectorResource(Res.drawable.edit_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.CourseManagementList) }
+                    )
+                }
+                // 低频入口（逐项独立卡片）
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_couple_schedule),
+                        subtitle = stringResource(Res.string.desc_couple_schedule),
+                        icon = vectorResource(Res.drawable.favorite_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.CoupleScheduleSettings) }
+                    )
+                }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_appearance_settings),
+                        subtitle = stringResource(Res.string.desc_appearance_settings),
+                        icon = vectorResource(Res.drawable.palette_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.AppearanceSettings) }
+                    )
+                }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.title_course_notification_settings),
+                        subtitle = stringResource(Res.string.desc_notification_settings),
+                        icon = vectorResource(Res.drawable.info_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.NotificationSettings) }
+                    )
+                }
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_more_options),
+                        subtitle = stringResource(Res.string.desc_more_options),
+                        icon = vectorResource(Res.drawable.more_horiz_24px),
+                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        itemVerticalPadding = 12.dp,
+                        onClick = { onNavigate(Destination.MoreOptions) }
                     )
                 }
             }
@@ -268,254 +312,83 @@ fun SettingsScreen(
 }
 
 /**
- * 通用设置卡片
+ * 单个设置入口卡片（逐项独立，卡片间少量分隔）。
+ * 供设置主页与各二级设置页复用，保持视觉一致：
+ * surfaceContainerLow 底色 + outlineVariant 细边框，区别于页面背景。
  */
 @Composable
-private fun GeneralSettingsSection(
-    showNonCurrentWeek: Boolean,
-    onShowNonCurrentWeekChanged: (Boolean) -> Unit,
-    showWeekends: Boolean,
-    onShowWeekendsChanged: (Boolean) -> Unit,
-    semesterStartDate: LocalDate?,
-    semesterTotalWeeks: Int,
-    firstDayOfWeekInt: Int,
-    displayCurrentWeek: Int?,
-    onSemesterStartDateClick: () -> Unit,
-    onSemesterTotalWeeksClick: () -> Unit,
-    onManualWeekClick: () -> Unit,
-    onFirstDayOfWeekClick: () -> Unit,
-    onQuickActionsClick: () -> Unit,
-    coupleScheduleEnabled: Boolean,
-    onCoupleScheduleEnabledChanged: (Boolean) -> Unit,
-    selfCourseColorIndex: Int,
-    crushCourseColorIndex: Int,
-    courseColorMaps: List<DualColor>,
-    onSelfCourseColorIndexChanged: (Int) -> Unit,
-    onCrushCourseColorIndexChanged: (Int) -> Unit
+internal fun SettingCard(
+    title: String,
+    subtitle: String? = null,
+    leadingIcon: ImageVector? = null,
+    icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
+    modifier: Modifier = Modifier,
+    titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+    itemVerticalPadding: Dp = 8.dp,
+    onClick: (() -> Unit)? = null,
+    trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
 ) {
-    var showSelfColorDialog by remember { mutableStateOf(false) }
-    var showCrushColorDialog by remember { mutableStateOf(false) }
-
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = CardDefaults.shape
+            ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(Res.string.section_title_general_settings),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
+        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING)) {
             SettingItem(
-                title = stringResource(Res.string.item_show_non_current_week),
-                subtitle = stringResource(Res.string.desc_show_non_current_week)
-            ) {
-                Switch(checked = showNonCurrentWeek, onCheckedChange = onShowNonCurrentWeekChanged)
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_show_weekends),
-                subtitle = stringResource(Res.string.desc_show_weekends)
-            ) {
-                Switch(checked = showWeekends, onCheckedChange = onShowWeekendsChanged)
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_set_start_date),
-                subtitle = stringResource(Res.string.desc_set_start_date),
-                onClick = onSemesterStartDateClick
-            ) {
-                val formattedDate = semesterStartDate?.let {
-                    stringResource(
-                        Res.string.date_format_year_month_day,
-                        it.year.toString(),
-                        it.month.number.toString(),
-                        it.day.toString()
-                    )
-                } ?: stringResource(Res.string.status_not_set)
-
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_total_weeks),
-                subtitle = stringResource(Res.string.desc_total_weeks),
-                onClick = onSemesterTotalWeeksClick
-            ) {
-                Text(
-                    text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_current_week),
-                subtitle = stringResource(Res.string.desc_current_week_manual),
-                onClick = onManualWeekClick
-            ) {
-                val weekStatusText = when {
-                    semesterStartDate == null -> stringResource(Res.string.status_set_start_date_first)
-                    displayCurrentWeek == null -> stringResource(Res.string.title_vacation)
-                    else -> stringResource(Res.string.status_current_week_format, displayCurrentWeek)
-                }
-                Text(
-                    text = weekStatusText,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_first_day_of_week),
-                subtitle = stringResource(Res.string.desc_first_day_of_week),
-                onClick = onFirstDayOfWeekClick
-            ) {
-                val dayText = when (firstDayOfWeekInt) {
-                    DayOfWeek.MONDAY.isoDayNumber -> stringResource(Res.string.day_of_week_monday)
-                    DayOfWeek.SUNDAY.isoDayNumber -> stringResource(Res.string.day_of_week_sunday)
-                    else -> stringResource(Res.string.day_of_week_monday)
-                }
-                Text(
-                    text = dayText,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            SettingItem(
-                title = stringResource(Res.string.item_couple_schedule),
-                subtitle = stringResource(Res.string.desc_couple_schedule)
-            ) {
-                Switch(checked = coupleScheduleEnabled, onCheckedChange = onCoupleScheduleEnabledChanged)
-            }
-
-            if (coupleScheduleEnabled) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                SettingItem(
-                    title = stringResource(Res.string.item_self_course_color),
-                    subtitle = stringResource(Res.string.desc_self_course_color),
-                    onClick = { showSelfColorDialog = true }
-                ) {
-                    ColorPreviewDot(colorIndex = selfCourseColorIndex, colorMaps = courseColorMaps)
-                }
-
-                SettingItem(
-                    title = stringResource(Res.string.item_crush_course_color),
-                    subtitle = stringResource(Res.string.desc_crush_course_color),
-                    onClick = { showCrushColorDialog = true }
-                ) {
-                    ColorPreviewDot(colorIndex = crushCourseColorIndex, colorMaps = courseColorMaps)
-                }
-            }
-
-            SettingItem(
-                title = stringResource(Res.string.item_quick_actions),
-                subtitle = stringResource(Res.string.desc_quick_actions),
-                onClick = onQuickActionsClick
-            )
-        }
-    }
-
-    if (showSelfColorDialog) {
-        ColorPickerDialog(
-            title = stringResource(Res.string.item_self_course_color),
-            selectedIndex = selfCourseColorIndex,
-            colorMaps = courseColorMaps,
-            onDismiss = { showSelfColorDialog = false },
-            onSelect = { index ->
-                onSelfCourseColorIndexChanged(index)
-                showSelfColorDialog = false
-            }
-        )
-    }
-
-    if (showCrushColorDialog) {
-        ColorPickerDialog(
-            title = stringResource(Res.string.item_crush_course_color),
-            selectedIndex = crushCourseColorIndex,
-            colorMaps = courseColorMaps,
-            onDismiss = { showCrushColorDialog = false },
-            onSelect = { index ->
-                onCrushCourseColorIndexChanged(index)
-                showCrushColorDialog = false
-            }
-        )
-    }
-}
-
-/**
- * 高级功能卡片
- */
-@Composable
-private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(Res.string.section_title_advanced_features),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_course_conversion),
-                subtitle = stringResource(Res.string.desc_course_conversion),
-                onClick = { onNavigate(Destination.CourseTableConversion) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.title_course_notification_settings),
-                subtitle = stringResource(Res.string.desc_notification_settings),
-                onClick = { onNavigate(Destination.NotificationSettings) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.title_manage_course_tables),
-                subtitle = stringResource(Res.string.desc_manage_course_tables),
-                onClick = { onNavigate(Destination.ManageCourseTables) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_course_management),
-                subtitle = stringResource(Res.string.desc_course_management),
-                onClick = { onNavigate(Destination.CourseManagementList) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_time_slot_customization),
-                subtitle = stringResource(Res.string.desc_time_slot_customization),
-                onClick = { onNavigate(Destination.TimeSlotSettings) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_appearance_settings),
-                subtitle = stringResource(Res.string.desc_appearance_settings),
-                onClick = { onNavigate(Destination.AppearanceSettings) }
-            )
-            SettingItem(
-                title = stringResource(Res.string.item_more_options),
-                subtitle = stringResource(Res.string.desc_more_options),
-                onClick = { onNavigate(Destination.MoreOptions) },
-                icon = vectorResource(Res.drawable.more_horiz_24px)
+                title = title,
+                subtitle = subtitle,
+                leadingIcon = leadingIcon,
+                titleStyle = titleStyle,
+                verticalPadding = itemVerticalPadding,
+                onClick = onClick,
+                trailingContent = trailingContent
             )
         }
     }
 }
 
 /**
- * 颜色预览圆点。
- * 展示当前选中的课程颜色（浅色背景 + 深色描边），点击可弹出颜色选择器。
- * 使用当前主题的 courseColorMaps，确保与课程块实际渲染一致。
+ * 分区大卡：一个 Card 包住一组的多个设置项，项与项之间用分割线分隔。
+ * 与 SettingCard 同底色同边框，仅结构上承载"分区内多项"的场景，
+ * 用于各列表型二级页，替代逐项独立小卡。
  */
 @Composable
-private fun ColorPreviewDot(colorIndex: Int, colorMaps: List<DualColor>) {
+internal fun SectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = CardDefaults.shape
+            ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING), content = content)
+    }
+}
+
+/**
+ * 分区大卡内的分割线，用于分隔同一大卡中的多个设置项。
+ */
+@Composable
+internal fun SectionDivider() {
+    HorizontalDivider(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    )
+}
+
+@Composable
+internal fun ColorPreviewDot(colorIndex: Int, colorMaps: List<DualColor>) {
     val dualColor = colorMaps.getOrNull(colorIndex) ?: return
     val isDarkTheme = LocalIsDarkTheme.current
     val bgColor = if (isDarkTheme) dualColor.dark else dualColor.light
@@ -539,7 +412,7 @@ private fun ColorPreviewDot(colorIndex: Int, colorMaps: List<DualColor>) {
  * 使用当前主题的 courseColorMaps，确保与课程块实际渲染一致。
  */
 @Composable
-private fun ColorPickerDialog(
+internal fun ColorPickerDialog(
     title: String,
     selectedIndex: Int,
     colorMaps: List<DualColor>,
@@ -579,7 +452,7 @@ private fun ColorPickerDialog(
  * 单个颜色色块，用于颜色选择对话框。
  */
 @Composable
-private fun ColorSwatch(
+internal fun ColorSwatch(
     dualColor: DualColor,
     selected: Boolean,
     onClick: () -> Unit
@@ -615,10 +488,13 @@ private fun ColorSwatch(
  * 封装单个设置项的可组合函数，提高代码复用性
  */
 @Composable
-private fun SettingItem(
+internal fun SettingItem(
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
     icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
+    leadingIcon: ImageVector? = null,
+    titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+    verticalPadding: Dp = 8.dp,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
 ) {
@@ -626,13 +502,23 @@ private fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(vertical = 8.dp),
+            .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+        }
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+            Text(title, style = titleStyle)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+            }
         }
         trailingContent()
     }
@@ -750,7 +636,7 @@ fun DayOfWeekPickerDialog(
  * 数字选择器对话框
  */
 @Composable
-private fun NumberPickerDialog(
+internal fun NumberPickerDialog(
     title: String,
     range: IntRange,
     initialValue: Int,

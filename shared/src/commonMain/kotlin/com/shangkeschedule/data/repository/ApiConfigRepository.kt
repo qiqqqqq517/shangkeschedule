@@ -69,10 +69,16 @@ class ApiConfigRepository(
     }
 
     /**
-     * 保存或更新 WebDAV 配置
+     * 保存或更新 WebDAV 配置。
+     *
+     * @return Result.success(Unit) 表示已落盘；加密失败时返回 Result.failure（此前是静默 return，
+     *         用户会误以为保存成功，实际上配置根本没写进去）。
      */
-    suspend fun saveWebDavConfig(config: WebDavConfig) {
-        val cryptoResult = secureCrypto.encrypt(config.password) ?: return
+    suspend fun saveWebDavConfig(config: WebDavConfig): Result<Unit> {
+        val cryptoResult = secureCrypto.encrypt(config.password)
+        if (cryptoResult == null) {
+            return Result.failure(IllegalStateException("WebDAV 密码加密失败，配置未保存（加密服务不可用）"))
+        }
 
         dataStore.edit { preferences ->
             preferences[ApiKeys.WebDav.BASE_URL] = config.baseUrl.trim()
@@ -81,6 +87,7 @@ class ApiConfigRepository(
             preferences[ApiKeys.WebDav.ENCRYPTED_PASSWORD] = cryptoResult.encryptedData
             preferences[ApiKeys.WebDav.CRYPTO_IV] = cryptoResult.iv
         }
+        return Result.success(Unit)
     }
 
     /**

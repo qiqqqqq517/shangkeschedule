@@ -66,6 +66,7 @@ import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
@@ -129,8 +130,13 @@ fun WeeklyScheduleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val today = remember {
-        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    // today 是可刷新状态：订阅 currentDateFlow，跨天（午夜）自动更新，
+    // 修复长驻页面跨午夜后「今日高亮 / 周次标题 / Pager 锚定周」停留在昨天的问题
+    var today by remember {
+        mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+    }
+    LaunchedEffect(Unit) {
+        currentDateFlow().collect { newDate -> today = newDate }
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -151,16 +157,20 @@ fun WeeklyScheduleScreen(
         return current
     }
 
-    LaunchedEffect(pagerState.currentPage, uiState.firstDayOfWeek) {
+    LaunchedEffect(pagerState.currentPage, uiState.firstDayOfWeek, today) {
+        fun syncPagerDate(pageIndex: Int) {
+            val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
+            val firstDay = DayOfWeek(uiState.firstDayOfWeek)
+            val thisMonday = getPreviousOrSameDay(today, firstDay)
+            val targetMonday = thisMonday.plus(offsetWeeks * 7, DateTimeUnit.DAY)
+            viewModel.updatePagerDate(targetMonday)
+        }
+
+        // effect 启动时立即同步，不能只依赖 snapshotFlow 的后续发射
+        syncPagerDate(pagerState.currentPage)
         snapshotFlow { pagerState.currentPage }
             .distinctUntilChanged()
-            .collect { pageIndex ->
-                val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
-                val firstDay = DayOfWeek(uiState.firstDayOfWeek)
-                val thisMonday = getPreviousOrSameDay(today, firstDay)
-                val targetMonday = thisMonday.plus(offsetWeeks * 7, DateTimeUnit.DAY)
-                viewModel.updatePagerDate(targetMonday)
-            }
+            .collect { pageIndex -> syncPagerDate(pageIndex) }
     }
 
     // UI 交互控制弹窗标志位
@@ -348,7 +358,7 @@ fun WeeklyScheduleScreen(
                         userScrollEnabled = !isGridHolding
                     ) { pageIndex ->
 
-                    val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek) {
+                    val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek, today) {
                         val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
                         val firstDay = DayOfWeek(uiState.firstDayOfWeek)
                         getPreviousOrSameDay(today, firstDay).plus(offsetWeeks * 7, DateTimeUnit.DAY)
@@ -367,7 +377,7 @@ fun WeeklyScheduleScreen(
                         }
                     }
 
-                    val pageTodayIndex = remember(pageMondayDate) {
+                    val pageTodayIndex = remember(pageMondayDate, today) {
                         val weekDates = (0..6).map { pageMondayDate.plus(it.toLong(), DateTimeUnit.DAY) }
                         weekDates.indexOf(today)
                     }
@@ -452,10 +462,12 @@ fun WeeklyScheduleScreen(
                                             val currentWeekSet = setOf(currentWeek)
                                             val presetData = if (composedStyle.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
                                                 val startHour = section.coerceIn(0, 23)
-                                                val endHour = (startHour + 1) % 24
+                                                // 23 点点格不再回绕到次日 00:00（会产生跨天负时长课）：
+                                                // 末小时收在 23:00–23:59
+                                                val endHour = if (startHour >= 23) 23 else startHour + 1
 
                                                 val startTimeStr = "${startHour.toString().padStart(2, '0')}:00"
-                                                val endTimeStr = "${endHour.toString().padStart(2, '0')}:00"
+                                                val endTimeStr = if (startHour >= 23) "23:59" else "${endHour.toString().padStart(2, '0')}:00"
 
                                                 PresetCourseData(
                                                     day = day,

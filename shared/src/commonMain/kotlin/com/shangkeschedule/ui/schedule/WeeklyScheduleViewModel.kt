@@ -12,6 +12,7 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
+import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -103,7 +104,8 @@ private data class ScheduleSourceSnapshot(
     val config: CourseTableConfig?,
     val style: ScheduleGridStyle,
     val mondayDate: LocalDate,
-    val timeSlots: List<TimeSlot>
+    val timeSlots: List<TimeSlot>,
+    val today: LocalDate
 )
 
 /**
@@ -258,16 +260,24 @@ class WeeklyScheduleViewModel (
     }.flatMapLatest { it }
 
     init {
-        // 1. 扁平化组合：先合并 5 路基础流，再并入课程缓存流，避免三层 configAndTimeFlow 中间流。
+        // 1. 扁平化组合：先合并 5 路基础流 + 当前日期流（跨天自动重算周次/倒计时），
+        //    再并入课程缓存流，避免三层 configAndTimeFlow 中间流。
         viewModelScope.launch {
-            val sourceFlow = combine(
+            val baseSourceFlow = combine(
                 appSettingsFlow,
                 courseTableConfigFlow,
                 styleFlow,
                 _pagerMondayDate,
                 timeSlotsFlow
             ) { settings, config, style, mondayDate, timeSlots ->
-                ScheduleSourceSnapshot(settings, config, style, mondayDate, timeSlots)
+                ScheduleSourceSnapshot(
+                    settings, config, style, mondayDate, timeSlots,
+                    today = getTodayLocalDate()
+                )
+            }
+
+            val sourceFlow = combine(baseSourceFlow, currentDateFlow()) { snapshot, today ->
+                snapshot.copy(today = today)
             }
 
             combine(sourceFlow, currentCoursesFlow) { source, cache ->
@@ -279,7 +289,7 @@ class WeeklyScheduleViewModel (
                 val startDate = config?.semesterStartDate?.let { LocalDate.parse(it) }
                 val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
                 val totalWeeks = config?.semesterTotalWeeks ?: 20
-                val today = getTodayLocalDate()
+                val today = source.today
 
                 val currentWeekNum = appSettingsRepository.getWeekIndexAtDate(
                     targetDate = today,
