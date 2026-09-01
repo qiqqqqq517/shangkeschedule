@@ -240,10 +240,11 @@ fun CourseBlock(
         val contentWidth = maxWidth - innerPadding * 2 - timetableStartPadding
         val contentHeight = maxHeight - innerPadding * 2
 
-        // 字号自适应：以单排标准内容宽度(约 48dp)为基准，窄块等比缩小，宽块（空间充足）适量放大，设下限避免过小、上限避免过大
-        val referenceWidth = 48.dp
-        val minScale = 0.72f
-        val maxScale = 1.15f
+        // 字号自适应：以 5 列/7 列课表的典型内容宽度(约 44dp)为基准，窄块微缩、宽块微放。
+        // 收敛缩放区间，避免「开启显示周末(7列)字变小、关闭(5列)字变大」的跳变；窄块溢出由 Ellipsis 兜底
+        val referenceWidth = 44.dp
+        val minScale = 0.82f
+        val maxScale = 1.06f
         val widthRatio = if (contentWidth > 0.dp) contentWidth / referenceWidth else 1f
         val adaptiveScale = widthRatio.coerceIn(minScale, maxScale)
         val nameFontSize = (baseNameFontSize * adaptiveScale).sp

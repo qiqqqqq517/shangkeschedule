@@ -537,6 +537,15 @@ class CourseConversionRepository(
     }
 
     /**
+     * 当前课表是否已设置开学日期。
+     * 用于导入新课表成功后引导用户补齐学期配置（未设置时弹窗跳转开学日期设置）。
+     */
+    suspend fun isSemesterStartDateSet(): Boolean {
+        val tableId = getCurrentTableId()
+        return !appSettingsRepository.getCourseConfigOnce(tableId)?.semesterStartDate.isNullOrBlank()
+    }
+
+    /**
      * 获取指定课表下是否存在 crush 课程。
      */
     suspend fun hasCrushCourses(tableId: String): Boolean {

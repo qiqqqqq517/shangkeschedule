@@ -169,7 +169,10 @@ fun AdapterSelectionScreen(
                                         Destination.WebView(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
-                                            isCrushImport = isCrushImport
+                                            isCrushImport = isCrushImport,
+                                            // 武汉纺织大学外经贸学院（u_c0a22802）教务手机端菜单结构不同、无法直接点开课表，
+                                            // 强制以电脑版（桌面 UA）进入，保证 zhengfang.js 课表页可用
+                                            forceDesktopMode = (schoolId == "u_c0a22802")
                                         )
                                     )
                                 }

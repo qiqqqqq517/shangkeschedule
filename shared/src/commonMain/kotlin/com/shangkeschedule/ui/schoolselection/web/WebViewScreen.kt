@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -47,6 +49,7 @@ import com.shangkeschedule.data.repository.CourseConversionRepository
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -96,6 +99,7 @@ fun WebViewScreen(
     initialUrl: String?,
     assetJsPath: String?,
     isCrushImport: Boolean = false,
+    forceDesktopMode: Boolean = false,
     viewModel: WebViewModel = koinViewModel()
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -123,10 +127,11 @@ fun WebViewScreen(
     var pageTitle by remember { mutableStateOf(if (startedEmpty) titleEnterUrl else titleLoading) }
 
     var expanded by remember { mutableStateOf(false) }
-    var isDesktopMode by remember { mutableStateOf(false) }
+    var isDesktopMode by remember { mutableStateOf(forceDesktopMode) }
     var isEditingUrl by remember { mutableStateOf(startedEmpty) }
     var isDevToolsEnabled by remember { mutableStateOf(false) }
     var showCourseTablePicker by remember { mutableStateOf(false) }
+    var showSemesterStartPrompt by remember { mutableStateOf(false) }
 
     val webViewController = rememberWebViewController()
 
@@ -141,7 +146,15 @@ fun WebViewScreen(
             uiEventChannel = uiEventChannel,
             courseConversionRepository = courseConversionRepository,
             isCrushImport = isCrushImport,
-            onTaskCompleted = { onNavigate(Destination.CourseSchedule) },
+            onTaskCompleted = {
+                coroutineScope.launch {
+                    if (courseConversionRepository.isSemesterStartDateSet()) {
+                        onNavigate(Destination.CourseSchedule)
+                    } else {
+                        showSemesterStartPrompt = true
+                    }
+                }
+            },
             evaluateJs = { script, callback ->
                 webViewController.evaluateJavascript(script, callback)
             }
@@ -399,6 +412,23 @@ fun WebViewScreen(
                 )
             }
             WebDialogHost(uiEvents = uiEventsFlow)
+
+            if (showSemesterStartPrompt) {
+                AlertDialog(
+                    onDismissRequest = { showSemesterStartPrompt = false },
+                    title = { Text("请设置开学日期") },
+                    text = { Text("已导入新课表，但尚未设置开学日期。设置开学日期后才能正确显示当前周数与课表高亮。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showSemesterStartPrompt = false
+                            onNavigate(Destination.SemesterSettings)
+                        }) { Text("去设置") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showSemesterStartPrompt = false }) { Text("稍后再说") }
+                    }
+                )
+            }
         }
     }
 }

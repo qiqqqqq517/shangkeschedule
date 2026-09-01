@@ -52,6 +52,14 @@ sealed interface Destination : NavKey {
     @Serializable data object LanguageSettings : Destination
     @Serializable data object TextImport : Destination
 
+    // --- 导入分类二级页 ---
+    @Serializable data object FileImportHub : Destination
+    @Serializable data object ExcelImport : Destination
+    @Serializable data object JsonFileImport : Destination
+    @Serializable data object TextFileImport : Destination
+    @Serializable data object TextImportHub : Destination
+    @Serializable data class TextImportFormatPage(val format: String) : Destination
+
     // --- 动态传参页面 ---
     @Serializable
     data class AdapterSelection(
@@ -66,7 +74,8 @@ sealed interface Destination : NavKey {
     data class WebView(
         val initialUrl: String? = "about:blank",
         val assetJsPath: String? = null,
-        val isCrushImport: Boolean = false
+        val isCrushImport: Boolean = false,
+        val forceDesktopMode: Boolean = false
     ) : Destination
 
     @Serializable
@@ -111,6 +120,14 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
         subclass(Destination.TextImport::class)
+
+        // 导入分类二级页
+        subclass(Destination.FileImportHub::class)
+        subclass(Destination.ExcelImport::class)
+        subclass(Destination.JsonFileImport::class)
+        subclass(Destination.TextFileImport::class)
+        subclass(Destination.TextImportHub::class)
+        subclass(Destination.TextImportFormatPage::class)
 
         // 带参数据类
         subclass(Destination.AdapterSelection::class)

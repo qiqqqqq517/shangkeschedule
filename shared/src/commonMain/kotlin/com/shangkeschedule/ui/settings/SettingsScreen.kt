@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -204,7 +205,10 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.item_show_non_current_week),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Switch(
                                     checked = uiState.appSettings.showNonCurrentWeekCourses,
@@ -225,7 +229,10 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.item_show_weekends),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                                 Switch(
                                     checked = uiState.courseConfig?.showWeekends ?: false,
