@@ -170,9 +170,10 @@ fun AdapterSelectionScreen(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
                                             isCrushImport = isCrushImport,
-                                            // 武汉纺织大学外经贸学院（u_c0a22802）教务手机端菜单结构不同、无法直接点开课表，
-                                            // 强制以电脑版（桌面 UA）进入，保证 zhengfang.js 课表页可用
-                                            forceDesktopMode = (schoolId == "u_c0a22802")
+                                            // 以下学校教务手机端页面不适配，强制以电脑版（桌面 UA + 1280px 视口）进入：
+                                            //  - 武汉纺织大学外经贸学院（u_c0a22802）：手机端教务菜单无法打开课表
+                                            //  - 沈阳农业大学（u_26bd7359）：手机端课表页渲染不完整，桌面 UA 下解析稳定
+                                            forceDesktopMode = (schoolId == "u_c0a22802" || schoolId == "u_26bd7359")
                                         )
                                     )
                                 }

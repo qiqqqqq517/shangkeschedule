@@ -7760,8 +7760,8 @@
  {
   "id": "u_26bd7359",
   "name": "沈阳农业大学",
-  "type": "urp_new",
-  "url": "https://jwc.syau.edu.cn/info/1033/4703.htm"
+  "type": "syau",
+  "url": "https://webvpn.syau.edu.cn/login"
  },
  {
   "id": "u_3d9f11e8",
@@ -7988,8 +7988,8 @@
  {
   "id": "u_98216ab7",
   "name": "西南交通大学希望学院",
-  "type": "urp_new",
-  "url": "http://119.6.110.75:9007"
+  "type": "xwxy",
+  "url": "http://119.6.110.75:9007/login"
  },
  {
   "id": "u_308bdd18",
@@ -10648,5 +10648,11 @@
   "name": "南京理工大学紫金学院",
   "type": "urp",
   "url": "https://223.112.21.198:6443/vpn/theme/auth_home.html"
+ },
+ {
+  "id": "u_7efa914c",
+  "name": "湖南财政经济学院",
+  "type": "hufe",
+  "url": "https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx"
  }
 ]
