@@ -7,6 +7,33 @@
 
 ## 最新版本
 
+### v3.11.0（2026-09-03）· 正式版
+
+**功能**
+- 文件导入按格式拆分独立入口：Excel / JSON / ICS 日历 / CSV / 文本文件（HTML/TXT）
+  - ICS 日历导入支持 .ics/.ical/.ifb 文件直接选择导入
+  - 各入口按格式过滤文件类型并强制使用对应解析器
+- ICS 日历导入全面改进：修复 WakeUp 导出文件解析失败/数据错乱
+  - 跳过 VALARM 块，避免覆盖真实课程信息
+  - 节次优先从 DESCRIPTION「第X-Y节」提取；周次按绝对日期映射（支持 UNTIL/COUNT）
+  - LOCATION「地点 教师」自动拆分、ICS 转义还原
+
+**构建**
+- versionCode 82 · arm64-v8a / armeabi-v7a / x86_64
+
+### v3.10.1（2026-09-03）· 正式版
+
+**修复**
+- ICS 日历导入：修复 WakeUp 导出的 ICS 文件解析失败/数据错乱问题
+  - 跳过 VEVENT 内 VALARM 块，避免其 DESCRIPTION 覆盖真实课程信息（节次/地点/教师丢失根因）
+  - 节次优先从 DESCRIPTION「第X - Y节」提取，不再仅依赖固定作息时间推算
+  - 周次按事件绝对日期映射（RRULE 支持 UNTIL 与 COUNT），解决所有课程被当作第1周起 16 周的错误
+  - LOCATION「地点 教师」自动拆分，ICS 转义（\, \n 等）正确还原
+- 新增 ICS 解析回归测试（真实 WakeUp 文件 26 条 + 旧格式兼容）
+
+**构建**
+- versionCode 81 · arm64-v8a / armeabi-v7a / x86_64
+
 ### v3.10.0（2026-09-03）· 正式版
 
 **教务导入增强**

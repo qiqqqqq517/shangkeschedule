@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-3.10.0-blueviolet)
+![Version](https://img.shields.io/badge/version-3.11.0-blueviolet)
 
 <p align="center">
   <img src="picture/showcase.png" width="420" alt="上课 · ShangKeSchedule 功能展览图"/>
@@ -18,7 +18,7 @@
 
 ## 🧭 界面速览
 
-> 以下为真实运行截图（v3.10.0），覆盖三种主题样式与主要功能页。
+> 以下为真实运行截图（v3.11.0），覆盖三种主题样式与主要功能页。
 
 ### 🎨 三种主题 · 今日课表
 
@@ -202,6 +202,8 @@ run-android.bat
 
 | 版本 | 内容 |
 | --- | --- |
+| v3.11.0 | 文件导入按格式拆分独立入口（Excel / JSON / ICS 日历 / CSV / 文本文件）；ICS 日历导入全面改进（WakeUp 导出文件解析修复） |
+| v3.10.1 | 修复 WakeUp 导出 ICS 日历导入失败/数据错乱（VALARM 覆盖、节次/周次/地点教师解析全面改进） |
 | v3.10.0 | 沈阳农业大学强制电脑版进入教务（桌面 UA + 1280px 视口，保证课表页解析稳定）；三校适配实测通过 |
 | v3.9.2 | 正式版发布：三校教务适配（湖南财政经济学院、西南交通大学希望学院、沈阳农业大学 WebVPN 双入口）；修复「最近访问」历史记录导致的导入脚本找不到问题；沈阳农业实验课已排入课表网格、移除重复解析 |
 | v3.8.1 | 正式版发布：教务导入链路增强（外经贸学院强制电脑版进入、导入新课表后未设开学日期自动引导设置、文件导入可选另存为新课表/覆盖已有课表）；导入体系重构收官（Excel 导入、文件导入六分类 Hub、文本导入多格式回退、文件选择器闪退根治） |

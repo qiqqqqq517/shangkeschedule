@@ -65,9 +65,21 @@ fun FileImportHubScreen(
                 )
                 SectionDivider()
                 SettingItem(
+                    title = "ICS 日历导入",
+                    subtitle = "WakeUp / 系统日历导出的 .ics 日历文件",
+                    onClick = { onNavigate(Destination.TextFileImport("ICS")) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = "CSV 导入",
+                    subtitle = ".csv 表格（表头：课程,教师,教室,星期,节次,周次）",
+                    onClick = { onNavigate(Destination.TextFileImport("CSV")) }
+                )
+                SectionDivider()
+                SettingItem(
                     title = "文本文件导入",
-                    subtitle = "CSV / ICS / HTML / TXT，自动识别格式并预览",
-                    onClick = { onNavigate(Destination.TextFileImport) }
+                    subtitle = "HTML 表格 / TXT 纯文本，自动识别格式",
+                    onClick = { onNavigate(Destination.TextFileImport("AUTO")) }
                 )
             }
             Spacer(Modifier.height(12.dp))

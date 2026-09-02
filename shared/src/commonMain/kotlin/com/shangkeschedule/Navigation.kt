@@ -56,7 +56,8 @@ sealed interface Destination : NavKey {
     @Serializable data object FileImportHub : Destination
     @Serializable data object ExcelImport : Destination
     @Serializable data object JsonFileImport : Destination
-    @Serializable data object TextFileImport : Destination
+    /** 文本类文件导入；format 传 TextImportFormat 名称，空/AUTO = 自动识别（CSV/ICS/HTML/TXT/JSON） */
+    @Serializable data class TextFileImport(val format: String = "AUTO") : Destination
     @Serializable data object TextImportHub : Destination
     @Serializable data class TextImportFormatPage(val format: String) : Destination
 
