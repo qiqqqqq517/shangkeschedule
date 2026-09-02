@@ -215,7 +215,15 @@ private fun SchoolContent(
                 getInitial = { it.initial.firstOrNull()?.uppercase() ?: "#" },
                 lazyListState = lazyListState,
                 headerContent = {
-                    if (recentRecord != null && !recentRecord.isEmpty) {
+                    // 历史记录可能保存了旧的 resource_folder（学校适配更新后旧值会失效，
+                    // 如沈阳农业 urp→syau），若沿用旧值会把脚本路径拼错并提示“导入脚本文件不存在”。
+                    // 这里优先用当前索引中同 id 学校的最新数据；索引中已无该校时回退到历史记录。
+                    val recentSchool = if (recentRecord != null && !recentRecord.isEmpty) {
+                        filteredSchools.firstOrNull { it.id == recentRecord.id } ?: recentRecord.toSchool()
+                    } else {
+                        null
+                    }
+                    if (recentSchool != null) {
                         Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) {
                             Text(
                                 text = stringResource(Res.string.label_recent_visit),
@@ -225,7 +233,7 @@ private fun SchoolContent(
                             )
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 SchoolItem(
-                                    school = recentRecord.toSchool(),
+                                    school = recentSchool,
                                     onClick = { onSchoolSelected(it, selectedCategory) }
                                 )
                                 IconButton(

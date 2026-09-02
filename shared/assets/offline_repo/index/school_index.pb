@@ -2779,11 +2779,11 @@ u_db281589上海理工大学shlgdx"	zhengfang*�
 u_db281589_01正方教务系统"zhengfang.js*https://jwc.usst.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_8634ff40上海立达学院shldxy"qiangzhi*�
-u_8634ff40_01强智教务系统"qiangzhi.js*-http://shldxyjw.yinghuaonline.com/shldzyjsxy/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+u_8634ff40_01强智教务系统"qiangzhi.js*-http://shldxyjw.yinghuaonline.com/shldzyjsxy/2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
 u_a0aaab6e上海财经大学浙江学院
-shcjdxzjxy"	zhengfang*�
-u_a0aaab6e_01正方教务系统"zhengfang.js*9http://jwxt.shufe-zj.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+shcjdxzjxy"hufe*�
+u_a0aaab6e_01正方教务系统"hufe.js*9http://jwxt.shufe-zj.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_d63e42cd商洛学院slxy"	zhengfang*�
 u_d63e42cd_01正方教务系统"zhengfang.js*"http://www.slxy.edu.cn:1170/jwglxt21自动导入自 timetable，类型: zhengfang_new:auto-import�
@@ -4202,10 +4202,11 @@ u_9507c6d9'山东航空学院（原滨州学院）sdhkxy（ybzxy）"urp*�
 
 u_df079f5c四川建筑职业技术学院
 scjzzyjsxy"	kingosoft*�
-u_df079f5c_01青果教务系统"kingosoft.js*'https://jw.scac.edu.cn/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
+u_df079f5c_01青果教务系统"kingosoft.js*'https://jw.scac.edu.cn/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
 
-u_26bd7359沈阳农业大学synydx"urp*�
-u_26bd7359_01URP教务系统"urp.js**https://jwc.syau.edu.cn/info/1033/4703.htm2+自动导入自 timetable，类型: urp_new:auto-import�
+u_26bd7359沈阳农业大学synydx"syau*�
+u_26bd7359_intranet校内统一认证（tpass）"syau.js*$https://pass.syau.edu.cn/tpass/login2)多入口：校内统一认证（tpass）:manual-multi-entry*�
+u_26bd7359_webvpnWebVPN校外通道"syau.js* https://webvpn.syau.edu.cn/login2多入口：WebVPN校外通道:manual-multi-entry�
 
 u_3d9f11e8商丘职业技术学院sqzyjsxy"	kingosoft*�
 u_3d9f11e8_01青果教务系统"kingosoft.js*%https://jiaowuxt.sqzy.edu.cn/caslogin21自动导入自 timetable，类型: kingosoft_new:auto-import�
@@ -4321,11 +4322,11 @@ u_bcc91926新乡医学院xxyxy"	kingosoft*�
 u_bcc91926_01青果教务系统"kingosoft.js*8https://qgjw.xxmu.edu.cn/rump_frontend/access_forbidden/21自动导入自 timetable，类型: kingosoft_new:auto-import�
 
 u_f7b22817新疆大学xjdx"	kingosoft*�
-u_f7b22817_01青果教务系统"kingosoft.js*.http://jwxt.xju.edu.cn/xjdxjw/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
+u_f7b22817_01青果教务系统"kingosoft.js*.http://jwxt.xju.edu.cn/xjdxjw/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
 
 u_98216ab7西南交通大学希望学院
-xnjtdxxwxy"urp*~
-u_98216ab7_01URP教务系统"urp.js*http://119.6.110.75:90072+自动导入自 timetable，类型: urp_new:auto-import�
+xnjtdxxwxy"XWXY*�
+u_98216ab7_01URP教务系统(希望学院)"xwxy.js*http://119.6.110.75:9007/login2(自动导入自 timetable，类型: xwxy:auto-import�
 
 u_308bdd18西安医学院xayxy"	kingosoft*�
 u_308bdd18_01青果教务系统"kingosoft.js*:http://jwxt.xiyi.edu.cn:8080/xayxyjw/public/dykb.bjkb.html21自动导入自 timetable，类型: kingosoft_new:auto-import�
@@ -5753,4 +5754,7 @@ u_0c432648新星职业技术学院xxzyjsxy"	zhengfang*�
 
 u_cf40587b南京理工大学紫金学院
 njlgdxzjxy"urp*�
-u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import
+u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import�
+
+u_7efa914c湖南财政经济学院hnczjjxy"hufe*�
+u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import
