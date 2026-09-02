@@ -219,7 +219,11 @@ fun ScreenContent(
         Destination.FileImportHub -> FileImportHubScreen(onNavigate, onBack)
         Destination.ExcelImport -> ExcelImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
         Destination.JsonFileImport -> JsonFileImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
-        Destination.TextFileImport -> TextFileImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
+        is Destination.TextFileImport -> TextFileImportScreen(
+            onBack,
+            onImportSuccess = { handleImportSuccess() },
+            forcedFormat = TextImportFormat.fromName(targetDest.format)
+        )
         Destination.TextImportHub -> TextImportHubScreen(onNavigate, onBack)
         is Destination.TextImportFormatPage -> TextImportScreen(
             onBack,

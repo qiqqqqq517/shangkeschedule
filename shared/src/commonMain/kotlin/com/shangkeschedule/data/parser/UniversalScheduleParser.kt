@@ -154,44 +154,63 @@ object UniversalScheduleParser {
 
     private fun parseIcs(content: String): ParseResult {
         return try {
-            val events = mutableListOf<Map<String, String>>()
-            val lines = content.lines()
-            var i = 0
-            while (i < lines.size) {
-                if (lines[i].trim() == "BEGIN:VEVENT") {
-                    val event = mutableMapOf<String, String>()
-                    i++
-                    while (i < lines.size && lines[i].trim() != "END:VEVENT") {
-                        val colonIdx = lines[i].indexOf(':')
-                        if (colonIdx > 0) {
-                            val key = lines[i].substring(0, colonIdx).substringBefore(';').trim()
-                            val value = lines[i].substring(colonIdx + 1).trim()
-                            event[key] = value
-                        }
-                        i++
-                    }
-                    events.add(event)
-                }
-                i++
-            }
+            val events = parseIcsEvents(content)
+            if (events.isEmpty()) return ParseResult.Error("ICS中未找到有效课程事件")
+
+            // 基准日期：所有事件 DTSTART 最小日期作为「第 1 周」（绝对日期 → 相对周次）
+            val baseDate = events.mapNotNull { ev ->
+                ev["DTSTART"]?.substringBefore('T')?.replace("-", "")?.takeIf { it.length == 8 }
+            }.minOrNull()
+            val baseDays = if (baseDate != null) {
+                icsDaysFromYmd(baseDate.substring(0, 4).toInt(), baseDate.substring(4, 6).toInt(), baseDate.substring(6, 8).toInt())
+            } else 0
+            val hasBase = baseDate != null
 
             val courses = events.mapNotNull { ev ->
                 val summary = ev["SUMMARY"] ?: return@mapNotNull null
                 val startStr = ev["DTSTART"] ?: return@mapNotNull null
                 val endStr = ev["DTEND"] ?: return@mapNotNull null
 
-                val parts = summary.split("@", "-", " ", "（", "(").map { it.trim() }.filter { it.isNotBlank() }
-                val name = parts.firstOrNull() ?: summary
-                val teacher = parts.getOrNull(1) ?: ""
-                val position = ev["LOCATION"] ?: parts.getOrNull(2) ?: ""
+                val summaryClean = icsUnescape(summary)
+                val parts = summaryClean.split("@", "-", " ", "（", "(").map { it.trim() }.filter { it.isNotBlank() }
+                val name = parts.firstOrNull() ?: summaryClean
+                val teacherHint = parts.getOrNull(1) ?: ""
+
+                // DESCRIPTION（WakeUp 导出格式：第1行节次、第2行地点、第3行教师）
+                val desc = icsUnescape(ev["DESCRIPTION"] ?: "")
+                val descLines = desc.lines().map { it.trim() }.filter { it.isNotBlank() }
+                val descSections = Regex("第\\s*(\\d+)\\s*[-~至]\\s*(\\d+)\\s*节").find(desc)
 
                 val day = parseIcsDay(startStr)
-                val startMinutes = parseIcsMinutes(startStr)
-                val endMinutes = parseIcsMinutes(endStr)
-                val startSection = if (startMinutes >= 0) ((startMinutes - 8 * 60) / 55) + 1 else null
-                val endSection = if (endMinutes >= 0) ((endMinutes - 8 * 60) / 55) + 1 else null
 
-                val weeks = parseIcsWeeks(ev["RRULE"])
+                var startSection: Int? = null
+                var endSection: Int? = null
+                if (descSections != null) {
+                    startSection = descSections.groupValues[1].toIntOrNull()
+                    endSection = descSections.groupValues[2].toIntOrNull()
+                }
+                if (startSection == null || endSection == null) {
+                    val startMinutes = parseIcsMinutes(startStr)
+                    val endMinutes = parseIcsMinutes(endStr)
+                    startSection = if (startMinutes >= 0) ((startMinutes - 8 * 60) / 55) + 1 else null
+                    endSection = if (endMinutes >= 0) ((endMinutes - 8 * 60) / 55) + 1 else null
+                }
+
+                var position = if (descLines.size >= 2) descLines[1] else ""
+                var teacher = if (descLines.size >= 3) descLines[2] else ""
+                if (position.isBlank()) {
+                    val loc = icsUnescape(ev["LOCATION"] ?: "")
+                    val lp = loc.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+                    if (lp.size >= 2) {
+                        position = lp.dropLast(1).joinToString(" ")
+                        if (teacher.isBlank()) teacher = lp.last()
+                    } else {
+                        position = loc.trim()
+                    }
+                }
+                if (teacher.isBlank()) teacher = teacherHint
+
+                val weeks = parseIcsWeeks(ev["RRULE"], startStr, hasBase, baseDays)
 
                 ImportCourseJsonModel(
                     name = name,
@@ -212,6 +231,39 @@ object UniversalScheduleParser {
             ParseResult.Error("ICS解析失败: ${e.message}")
         }
     }
+
+    /** 解析 VEVENT，跳过 VALARM 子块（避免 VALARM 的 DESCRIPTION 等字段覆盖 VEVENT 字段） */
+    private fun parseIcsEvents(content: String): List<Map<String, String>> {
+        val events = mutableListOf<Map<String, String>>()
+        val lines = content.lines()
+        var i = 0
+        while (i < lines.size) {
+            if (lines[i].trim() == "BEGIN:VEVENT") {
+                val event = mutableMapOf<String, String>()
+                i++
+                while (i < lines.size && lines[i].trim() != "END:VEVENT") {
+                    if (lines[i].trim() == "BEGIN:VALARM") {
+                        i++
+                        while (i < lines.size && lines[i].trim() != "END:VALARM") i++
+                    }
+                    val colonIdx = lines[i].indexOf(':')
+                    if (colonIdx > 0) {
+                        val key = lines[i].substring(0, colonIdx).substringBefore(';').trim()
+                        val value = lines[i].substring(colonIdx + 1).trim()
+                        event[key] = value
+                    }
+                    i++
+                }
+                events.add(event)
+            }
+            i++
+        }
+        return events
+    }
+
+    /** ICS 转义还原：\, → ,  \n → 换行  \; → ;  \\ → \ */
+    private fun icsUnescape(s: String): String =
+        s.replace("\\,", ",").replace("\\;", ";").replace("\\\\", "\\").replace("\\n", "\n")
 
     private fun parseIcsDay(s: String): Int {
         // 格式：20250825T080000 或 2025-08-25
@@ -241,11 +293,55 @@ object UniversalScheduleParser {
         } catch (_: Exception) { -1 }
     }
 
-    private fun parseIcsWeeks(rrule: String?): List<Int> {
-        if (rrule == null) return emptyList()
-        val interval = Regex("INTERVAL=(\\d+)").find(rrule)?.groupValues?.get(1)?.toIntOrNull() ?: 1
-        val count = Regex("COUNT=(\\d+)").find(rrule)?.groupValues?.get(1)?.toIntOrNull() ?: 16
-        return (1..count step interval).toList()
+    /**
+     * ICS 周次计算：
+     * - RRULE 有 COUNT：从 startWeek 起按 INTERVAL 步进共 count 次
+     * - 否则有 UNTIL（UTC）：UNTIL 转当地（+8h，可能跨天），最后实例日期 = 当地日期 - 1 天，计算结束周
+     * - 都没有：单周
+     * startWeek 由事件 DTSTART 相对基准日期（所有事件最早日期 = 第1周）推算
+     */
+    private fun parseIcsWeeks(rrule: String?, startStr: String, hasBase: Boolean, baseDays: Int): List<Int> {
+        val rr = rrule ?: ""
+        val interval = Regex("INTERVAL=(\\d+)").find(rr)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+        val count = Regex("COUNT=(\\d+)").find(rr)?.groupValues?.get(1)?.toIntOrNull()
+
+        val dateStr = startStr.substringBefore('T').replace("-", "")
+        val startWeek = if (hasBase && dateStr.length == 8) {
+            val sd = icsDaysFromYmd(dateStr.substring(0, 4).toInt(), dateStr.substring(4, 6).toInt(), dateStr.substring(6, 8).toInt())
+            ((sd - baseDays) / 7) + 1
+        } else 1
+
+        if (count != null && count > 0) {
+            return (0 until count).map { startWeek + it * interval }
+        }
+
+        val untilM = Regex("UNTIL=(\\d{8})T(\\d{6})Z?").find(rr)?.groupValues
+        if (untilM != null && hasBase) {
+            val ud = icsDaysFromYmd(untilM[1].substring(0, 4).toInt(), untilM[1].substring(4, 6).toInt(), untilM[1].substring(6, 8).toInt())
+            val uh = untilM[2].substring(0, 2).toIntOrNull() ?: 0
+            val um = untilM[2].substring(2, 4).toIntOrNull() ?: 0
+            // UTC +8h 后若跨天则 +1 天；最后实例日期 = 当地日期 - 1 天（UNTIL 覆盖到当天结束）
+            val utcDays = if (uh * 60 + um + 8 * 60 >= 24 * 60) ud + 1 else ud
+            val lastInstanceDays = utcDays - 1
+            val endWeek = ((lastInstanceDays - baseDays) / 7) + 1
+            if (endWeek >= startWeek) {
+                return (startWeek..endWeek step interval).toList()
+            }
+        }
+
+        return listOf(startWeek)
+    }
+
+    /** Gregorian 历法日期到 1970-01-01 的天数（Howard Hinnant days_from_civil） */
+    private fun icsDaysFromYmd(y: Int, m: Int, d: Int): Int {
+        var yy = y
+        if (m <= 2) yy -= 1
+        val era = if (yy >= 0) yy / 400 else (yy - 399) / 400
+        val yoe = yy - era * 400
+        val mp = if (m > 2) m - 3 else m + 9
+        val doy = (153 * mp + 2) / 5 + d - 1
+        val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+        return era * 146097 + doe - 719468
     }
 
     // ========== CSV ==========
