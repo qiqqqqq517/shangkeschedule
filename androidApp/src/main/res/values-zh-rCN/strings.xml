@@ -572,4 +572,23 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
+    <!-- 状态栏灵动岛（Android 16 实时更新） -->
+    <string name="dynamic_island_channel_name">状态栏实时课程</string>
+    <string name="dynamic_island_channel_desc">在状态栏实时显示当前与下一节课状态（Android 16 灵动岛）</string>
+    <string name="dynamic_island_no_class_title">今日无课</string>
+    <string name="dynamic_island_no_class_text">今天没有安排课程</string>
+    <string name="dynamic_island_no_class_sub">可在「课程提醒设置」中关闭此实时显示</string>
+    <string name="dynamic_island_all_done_title">今日课程已结束</string>
+    <string name="dynamic_island_all_done_text">今天共 %1$d 节课</string>
+    <string name="dynamic_island_all_done_sub">明天也要加油哦</string>
+    <string name="dynamic_island_in_class_text">正在上课 · %1$s</string>
+    <string name="dynamic_island_in_class_sub">还剩 %1$d 分钟</string>
+    <string name="dynamic_island_chip_in_class_pct">%1$s %2$d%%</string>
+    <string name="dynamic_island_next_class_title">下一节课</string>
+    <string name="dynamic_island_next_class_text">%1$s · %2$s</string>
+    <string name="dynamic_island_minutes_format">%1$d 分钟</string>
+    <string name="dynamic_island_next_class_sub">%1$s 后开始（%2$s）</string>
+    <string name="dynamic_island_chip_next">下节:%1$s</string>
+    <string name="dynamic_island_chip_no_class">今日无课</string>
+    <string name="dynamic_island_chip_done">已结束</string>
 </resources>

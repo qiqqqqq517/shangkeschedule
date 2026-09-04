@@ -50,6 +50,7 @@ data class NotificationSettingsUiState(
     val autoModeEnabled: Boolean = false,
     val autoControlMode: AutoControlMode = AutoControlMode.DND,
     val compatWearableSync: Boolean = false,
+    val dynamicIslandEnabled: Boolean = false,
     val activeDialog: NotificationDialogType = NotificationDialogType.None
 )
 
@@ -82,7 +83,8 @@ class NotificationSettingsViewModel(
                     skippedDates = settings.skippedDates,
                     autoModeEnabled = settings.autoModeEnabled,
                     autoControlMode = settings.autoControlMode,
-                    compatWearableSync = settings.compatWearableSync
+                    compatWearableSync = settings.compatWearableSync,
+                    dynamicIslandEnabled = settings.dynamicIslandEnabled
                 )
             }
         }
@@ -133,6 +135,16 @@ class NotificationSettingsViewModel(
         viewModelScope.launch {
             val currentSettings = appSettingsRepository.getAppSettings().first()
             appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(compatWearableSync = isEnabled))
+        }
+    }
+
+    /**
+     * 更新状态栏「灵动岛」开关（Android 16 实时更新）
+     */
+    fun updateDynamicIslandEnabled(isEnabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = appSettingsRepository.getAppSettings().first()
+            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(dynamicIslandEnabled = isEnabled))
         }
     }
 

@@ -7,6 +7,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -34,11 +38,16 @@ actual fun PlatformGeneralSettingsSection(
 
     // 注册通知权限请求器，若用户拒绝授权则通过 ToastManager 弹出提示
     val permissionDeniedMessage = stringResource(Res.string.toast_notification_permission_denied)
+    // 记录"因缺少通知权限而挂起开启灵动岛"的意图，授权成功后自动补开
+    var pendingDynamicIslandEnable by remember { mutableStateOf(false) }
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
             ToastManager.show(permissionDeniedMessage)
+        } else if (pendingDynamicIslandEnable) {
+            pendingDynamicIslandEnable = false
+            viewModel.updateDynamicIslandEnabled(true)
         }
     }
 
@@ -80,6 +89,23 @@ actual fun PlatformGeneralSettingsSection(
         currentModeText = currentModeText,
         onReminderToggle = { isEnabled ->
             viewModel.updateReminderEnabled(isEnabled)
+        },
+        onDynamicIslandToggle = { isEnabled ->
+            if (isEnabled) {
+                // 1) 通知权限（Android 13+）：缺失则先请求，授权后自动补开开关
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission(context)) {
+                    pendingDynamicIslandEnable = true
+                    notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    viewModel.updateDynamicIslandEnabled(true)
+                }
+                // 2) 精确闹钟权限（Android 12+）：用于「时间窗口启停」调度，缺失则主动唤起系统授权页
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasExactAlarmPermission(context)) {
+                    openExactAlarmSettings(context)
+                }
+            } else {
+                viewModel.updateDynamicIslandEnabled(false)
+            }
         },
         onCompatWearableToggle = { isEnabled ->
             viewModel.updateCompatWearableSync(isEnabled)
