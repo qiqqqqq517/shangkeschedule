@@ -638,4 +638,18 @@
     <string name="desc_contact_author">欢迎反馈问题、希望新增的功能，或请求适配你的教务系统</string>
     <string name="contact_author_email">hhixingchen520@163.com</string>
     <string name="contact_author_hint">若适配教务系统，请随邮件附上：学校名称、教务系统账号、教务系统密码</string>
+
+    <!-- 今日待办 -->
+    <string name="title_today_todo">今日待办</string>
+    <string name="todo_add">添加待办</string>
+    <string name="todo_edit">编辑待办</string>
+    <string name="todo_empty">今天还没有待办，点击 + 添加</string>
+    <string name="todo_progress">已完成 %1$s/%2$s</string>
+    <string name="todo_title_label">待办内容</string>
+    <string name="todo_time_label">时间（可选，HH:mm）</string>
+    <string name="todo_note_label">备注（可选）</string>
+    <string name="todo_delete_title">删除待办</string>
+    <string name="todo_delete_message">确定要删除「%1$s」吗？</string>
+    <string name="a11y_todo_add">添加待办</string>
+
 </resources>

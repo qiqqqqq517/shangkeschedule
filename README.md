@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-3.11.0-blueviolet)
+![Version](https://img.shields.io/badge/version-3.13.1-blueviolet)
 
 <p align="center">
   <img src="picture/showcase.png" width="420" alt="上课 · ShangKeSchedule 功能展览图"/>
@@ -202,6 +202,7 @@ run-android.bat
 
 | 版本 | 内容 |
 | --- | --- |
+| v3.13.1 | 今日课表新增「今日待办」：右下角「+」号添加、时间选择式、待办自动排到课程列表之后；待办条与课程条同款样式；支持添加/编辑/勾选完成/删除 |
 | v3.11.0 | 文件导入按格式拆分独立入口（Excel / JSON / ICS 日历 / CSV / 文本文件）；ICS 日历导入全面改进（WakeUp 导出文件解析修复） |
 | v3.10.1 | 修复 WakeUp 导出 ICS 日历导入失败/数据错乱（VALARM 覆盖、节次/周次/地点教师解析全面改进） |
 | v3.10.0 | 沈阳农业大学强制电脑版进入教务（桌面 UA + 1280px 视口，保证课表页解析稳定）；三校适配实测通过 |

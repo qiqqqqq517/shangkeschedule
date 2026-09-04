@@ -6,13 +6,16 @@ import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
+import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.time.currentDateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -20,17 +23,22 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.KoinViewModel
+import kotlin.time.Clock
 
 @KoinViewModel
 class TodayScheduleViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
     private val styleSettingsRepository: StyleSettingsRepository,
-    private val timeSlotRepository: TimeSlotRepository
+    private val timeSlotRepository: TimeSlotRepository,
+    private val todoRepository: TodoRepository
 ) : ViewModel() {
 
     companion object {
@@ -88,38 +96,71 @@ class TodayScheduleViewModel(
                     )
                 }.flatMapLatest { snapshot ->
                     // 只有 Normal 状态且不是跳过日期时才查询数据库
-                    if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null && !snapshot.isSkippedDay) {
-                        val selfCoursesFlow = courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
+                    val coursesFlow: Flow<List<CourseWithWeeks>> =
+                        if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null && !snapshot.isSkippedDay) {
+                            val selfCoursesFlow = courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
 
-                        // 情侣课表模式：合并本人课程与 crush 课程，并统一着色
-                        val combinedFlow = if (settings.coupleScheduleEnabled) {
-                            combine(
-                                selfCoursesFlow,
-                                courseTableRepository.getCrushCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
-                            ) { selfCourses, crushCourses ->
-                                val selfColored = selfCourses.map { cw ->
-                                    cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
+                            // 情侣课表模式：合并本人课程与 crush 课程，并统一着色
+                            if (settings.coupleScheduleEnabled) {
+                                combine(
+                                    selfCoursesFlow,
+                                    courseTableRepository.getCrushCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
+                                ) { selfCourses, crushCourses ->
+                                    val selfColored = selfCourses.map { cw ->
+                                        cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
+                                    }
+                                    val crushColored = crushCourses.map { cw ->
+                                        cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
+                                    }
+                                    selfColored + crushColored
                                 }
-                                val crushColored = crushCourses.map { cw ->
-                                    cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
-                                }
-                                selfColored + crushColored
+                            } else {
+                                selfCoursesFlow
                             }
                         } else {
-                            selfCoursesFlow
+                            // 如果是跳过日期或非正常学期状态，直接返回空课程列表
+                            flowOf(emptyList())
                         }
 
-                        combinedFlow.map { courses ->
-                            createSuccessState(courses, snapshot, today)
-                        }
-                    } else {
-                        // 如果是跳过日期或非正常学期状态，直接返回空课程列表
-                        flowOf(createSuccessState(emptyList(), snapshot, today))
+                    // 今日待办与课程并行组合进同一状态；待办不受学期状态影响，跨天随 currentDateFlow 自动重算
+                    combine(coursesFlow, todoRepository.getTodosByDate(todayStr)) { courses, todos ->
+                        createSuccessState(courses, snapshot, today, todos)
                     }
                 }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TodayUiState.Loading)
+
+    // ─── 待办操作 ───
+
+    /** 新增一条今日待办（日期取系统当天）。 */
+    fun addTodo(title: String, note: String?, time: String?) {
+        viewModelScope.launch {
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            todoRepository.addTodo(today.toString(), title, note, time)
+        }
+    }
+
+    /** 编辑一条待办。 */
+    fun updateTodo(todo: TodoItem) {
+        viewModelScope.launch {
+            todoRepository.updateTodo(todo)
+        }
+    }
+
+    /** 翻转一条待办的完成状态。 */
+    fun toggleTodo(todoId: String, done: Boolean) {
+        viewModelScope.launch {
+            todoRepository.setDone(todoId, done)
+        }
+    }
+
+    /** 删除一条待办。 */
+    fun deleteTodo(todoId: String) {
+        viewModelScope.launch {
+            todoRepository.deleteTodo(todoId)
+        }
+    }
 
     /**
      * 内部辅助快照类
@@ -137,7 +178,8 @@ class TodayScheduleViewModel(
     private fun createSuccessState(
         courses: List<CourseWithWeeks>,
         snapshot: DataSnapshot,
-        today: LocalDate
+        today: LocalDate,
+        todos: List<TodoItem> = emptyList()
     ): TodayUiState.Success {
         val slotMap = snapshot.timeSlots.associateBy { it.number }
 
@@ -156,6 +198,7 @@ class TodayScheduleViewModel(
 
         return TodayUiState.Success(
             courses = displayModels,
+            todos = todos,
             weekIndex = snapshot.weekIndex ?: 0,
             today = today,
             status = snapshot.status,
@@ -178,6 +221,7 @@ sealed class TodayUiState {
     data object Loading : TodayUiState()
     data class Success(
         val courses: List<CourseDisplayModel>,
+        val todos: List<TodoItem>,
         val weekIndex: Int,
         val today: LocalDate,
         val status: TodayStatus,
