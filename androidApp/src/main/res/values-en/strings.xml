@@ -569,4 +569,23 @@
     <string name="backup_target_webdav">WebDAV Cloud Sync</string>
     <string name="backup_target_local_zip">Local ZIP File</string>
 
+    <!-- 状态栏灵动岛（Android 16 实时更新） -->
+    <string name="dynamic_island_channel_name">Live Class Status</string>
+    <string name="dynamic_island_channel_desc">Shows current and next class status live in the status bar (Android 16 Dynamic Island)</string>
+    <string name="dynamic_island_no_class_title">No class today</string>
+    <string name="dynamic_island_no_class_text">No classes scheduled today</string>
+    <string name="dynamic_island_no_class_sub">You can turn this off in notification settings</string>
+    <string name="dynamic_island_all_done_title">Today\'s classes are done</string>
+    <string name="dynamic_island_all_done_text">%1$d classes today</string>
+    <string name="dynamic_island_all_done_sub">See you tomorrow!</string>
+    <string name="dynamic_island_in_class_text">In class · %1$s</string>
+    <string name="dynamic_island_in_class_sub">%1$d min left</string>
+    <string name="dynamic_island_chip_in_class_pct">%1$s %2$d%%</string>
+    <string name="dynamic_island_next_class_title">Next class</string>
+    <string name="dynamic_island_next_class_text">%1$s · %2$s</string>
+    <string name="dynamic_island_minutes_format">%1$d min</string>
+    <string name="dynamic_island_next_class_sub">%1$s to start (%2$s)</string>
+    <string name="dynamic_island_chip_next">Next:%1$s</string>
+    <string name="dynamic_island_chip_no_class">No class</string>
+    <string name="dynamic_island_chip_done">Done</string>
 </resources>

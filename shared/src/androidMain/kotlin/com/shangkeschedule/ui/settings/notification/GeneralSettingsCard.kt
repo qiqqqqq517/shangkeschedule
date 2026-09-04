@@ -30,7 +30,9 @@ import shangkeschedule.shared.generated.resources.desc_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.item_auto_mode
 import shangkeschedule.shared.generated.resources.item_background_and_autostart
 import shangkeschedule.shared.generated.resources.item_compat_wearable_sync
+import shangkeschedule.shared.generated.resources.desc_dynamic_island
 import shangkeschedule.shared.generated.resources.item_course_reminder
+import shangkeschedule.shared.generated.resources.item_dynamic_island
 import shangkeschedule.shared.generated.resources.item_dnd_permission
 import shangkeschedule.shared.generated.resources.item_exact_alarm_permission
 import shangkeschedule.shared.generated.resources.item_ignore_battery_optimization
@@ -53,6 +55,7 @@ fun GeneralSettingsCard(
     uiState: NotificationSettingsUiState,
     currentModeText: String?,
     onReminderToggle: (Boolean) -> Unit,
+    onDynamicIslandToggle: (Boolean) -> Unit,
     onCompatWearableToggle: (Boolean) -> Unit,
     onAutoModeClick: () -> Unit,
     onRemindTimeClick: () -> Unit,
@@ -104,7 +107,19 @@ fun GeneralSettingsCard(
                 }
             )
             SectionDivider()
-            // 2. 兼容穿戴设备同步通知开关
+            // 2. 状态栏「灵动岛」开关（Android 16 实时更新）
+            SettingItem(
+                title = stringResource(Res.string.item_dynamic_island),
+                subtitle = stringResource(Res.string.desc_dynamic_island),
+                trailingContent = {
+                    Switch(
+                        checked = uiState.dynamicIslandEnabled,
+                        onCheckedChange = onDynamicIslandToggle
+                    )
+                }
+            )
+            SectionDivider()
+            // 3. 兼容穿戴设备同步通知开关
             SettingItem(
                 title = stringResource(Res.string.item_compat_wearable_sync),
                 subtitle = stringResource(Res.string.desc_compat_wearable_sync),

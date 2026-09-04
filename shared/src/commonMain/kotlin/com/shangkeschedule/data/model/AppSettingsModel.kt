@@ -99,6 +99,13 @@ data class AppSettingsModel(
      */
     val compatWearableSync: Boolean = false,
 
+    /**
+     * 状态栏「灵动岛」开关（Android 16 实时更新 / Promoted Ongoing）
+     * true: 通过前台服务在状态栏常驻显示当前/下一节课状态
+     * false: 关闭（默认）
+     */
+    val dynamicIslandEnabled: Boolean = false,
+
     /** 是否显示非本周课程 */
     val showNonCurrentWeekCourses: Boolean = false,
 
@@ -152,6 +159,7 @@ data class AppSettingsModel(
         val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
+        val KEY_DYNAMIC_ISLAND_ENABLED = booleanPreferencesKey("dynamic_island_enabled")
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
@@ -178,6 +186,7 @@ data class AppSettingsModel(
                 autoModeEnabled = prefs[KEY_AUTO_MODE_ENABLED] ?: d.autoModeEnabled,
                 autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
                 compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
+                dynamicIslandEnabled = prefs[KEY_DYNAMIC_ISLAND_ENABLED] ?: d.dynamicIslandEnabled,
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,

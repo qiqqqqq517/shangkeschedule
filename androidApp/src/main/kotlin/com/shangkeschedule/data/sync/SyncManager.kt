@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.service.CourseNotificationWorker
 import com.shangkeschedule.service.DndSchedulerWorker
+import com.shangkeschedule.service.DynamicIslandManager
 import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ import org.koin.core.annotation.Single
 class SyncManager(
     private val appContext: Context,
     private val widgetDataSynchronizer: WidgetDataSynchronizer,
-    private val styleSettingsRepository: StyleSettingsRepository
+    private val styleSettingsRepository: StyleSettingsRepository,
+    private val dynamicIslandManager: DynamicIslandManager
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -37,6 +39,8 @@ class SyncManager(
                 triggerNotificationWorker()
                 DndSchedulerWorker.enqueueWork(appContext)
                 updateAllWidgets(appContext)
+                runCatching { dynamicIslandManager.sync() }
+                    .onFailure { Log.e("SyncManager", "同步状态栏灵动岛服务状态失败", it) }
             }
             .launchIn(scope)
 

@@ -92,6 +92,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = newSettings.autoModeEnabled
             prefs[AppSettingsModel.KEY_AUTO_CONTROL_MODE] = newSettings.autoControlMode.value
             prefs[AppSettingsModel.KEY_COMPAT_WEARABLE_SYNC] = newSettings.compatWearableSync
+            prefs[AppSettingsModel.KEY_DYNAMIC_ISLAND_ENABLED] = newSettings.dynamicIslandEnabled
             prefs[AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES] = newSettings.showNonCurrentWeekCourses
             prefs[AppSettingsModel.KEY_START_SCREEN] = newSettings.startScreen.value
             prefs[AppSettingsModel.KEY_THEME_MODE] = newSettings.themeMode.value

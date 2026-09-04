@@ -193,6 +193,8 @@
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
     <string name="desc_compat_wearable_sync">Android 16\'s dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
+    <string name="item_dynamic_island">Status Bar Dynamic Island</string>
+    <string name="desc_dynamic_island">Android 16 Live Updates: keep current/next class status in the status bar, refreshing remaining time and progress in real time</string>
     
     <!-- Settings Options -->
     <string name="title_schedule_settings">Schedule settings</string>
