@@ -255,6 +255,32 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/**
+ * 数据库版本 9 迁移到 版本 10 的迁移代码。
+ * 新增 todo_items 待办事项表（供「今日课表」页内嵌展示当日待办）。
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `todo_items` (
+                `id` TEXT NOT NULL,
+                `date` TEXT NOT NULL,
+                `title` TEXT NOT NULL,
+                `note` TEXT,
+                `time` TEXT,
+                `done` INTEGER NOT NULL DEFAULT 0,
+                `sortOrder` INTEGER NOT NULL DEFAULT 0,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_todo_items_date` ON `todo_items` (`date`)")
+    }
+}
+
 // 【集中管理所有迁移对象】
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -263,4 +289,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_6_7,
     MIGRATION_7_8,
     MIGRATION_8_9,
+    MIGRATION_9_10,
 )

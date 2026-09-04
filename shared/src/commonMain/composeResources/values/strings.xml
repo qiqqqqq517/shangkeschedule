@@ -648,4 +648,18 @@
     <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
     <string name="contact_author_email">hhixingchen520@163.com</string>
     <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
+
+    <!-- 今日待办 -->
+    <string name="title_today_todo">今日待办</string>
+    <string name="todo_add">添加待办</string>
+    <string name="todo_edit">编辑待办</string>
+    <string name="todo_empty">今天还没有待办，点击 + 添加</string>
+    <string name="todo_progress">已完成 %1$s/%2$s</string>
+    <string name="todo_title_label">待办内容</string>
+    <string name="todo_time_label">时间（可选，HH:mm）</string>
+    <string name="todo_note_label">备注（可选）</string>
+    <string name="todo_delete_title">删除待办</string>
+    <string name="todo_delete_message">确定要删除「%1$s」吗？</string>
+    <string name="a11y_todo_add">添加待办</string>
+
 </resources>

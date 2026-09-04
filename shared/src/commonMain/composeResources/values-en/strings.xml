@@ -637,4 +637,18 @@
     <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
     <string name="contact_author_email">hhixingchen520@163.com</string>
     <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
+
+    <!-- Today to-do -->
+    <string name="title_today_todo">Today's to-do</string>
+    <string name="todo_add">Add to-do</string>
+    <string name="todo_edit">Edit to-do</string>
+    <string name="todo_empty">No to-dos yet, tap + to add</string>
+    <string name="todo_progress">%1$s/%2$s done</string>
+    <string name="todo_title_label">To-do content</string>
+    <string name="todo_time_label">Time (optional, HH:mm)</string>
+    <string name="todo_note_label">Note (optional)</string>
+    <string name="todo_delete_title">Delete to-do</string>
+    <string name="todo_delete_message">Delete "%1$s"?</string>
+    <string name="a11y_todo_add">Add to-do</string>
+
 </resources>
