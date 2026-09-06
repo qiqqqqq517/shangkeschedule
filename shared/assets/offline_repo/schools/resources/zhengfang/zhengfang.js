@@ -1,4 +1,4 @@
-// 正方教务系统通用适配器
+﻿// 正方教务系统通用适配器
 // 适配新版正方教务 (jwglxt)
 // 使用 Bridge 方式与原生通信
 // 优先解析当前页面已渲染的课表，接口抓取作为兜底
@@ -386,6 +386,7 @@
             var name = entries[i].name || '';
             if (!name) continue;
             if (/xskbcx_cxXsgrkb/i.test(name)) return name;
+            if (/bjkbdy_cxBjKb/i.test(name)) return name;
             if (/xskbcx/i.test(name) && /gnmkdm=/.test(name)) candidates.push(name);
         }
         if (candidates.length) {
@@ -397,20 +398,88 @@
         return null;
     }
 
+    // 判断当前页面是否为班级课表页面（而非学生个人课表）
+    function isClassSchedulePage() {
+        try {
+            var url = window.location.href || '';
+            if (/kbdy\/bjkbdy/i.test(url)) return true;
+            if (/bjkb/i.test(url)) return true;
+            var form = document.getElementById('ajaxForm') || document.querySelector('form');
+            if (form) {
+                var action = form.getAttribute('action') || '';
+                if (/bjkbdy/i.test(action) || /BjKb/i.test(action)) return true;
+            }
+            var bhId = document.getElementById('bh_id') || document.querySelector('[name=bh_id]');
+            var xskbcx = document.getElementById('xskbcx') || document.querySelector('[id*=xskbcx]');
+            if (bhId && !xskbcx) return true;
+        } catch (e) {}
+        return false;
+    }
+
+    // 从班级课表页面提取查询参数（年级、专业、班级等）
+    function getClassScheduleParams() {
+        var params = {};
+        var fields = ['xnm', 'xqm', 'njdm_id', 'zyh_id', 'bh_id', 'tjkbzdm', 'tjkbzxsdm', 'zxszjjs'];
+        for (var i = 0; i < fields.length; i++) {
+            var key = fields[i];
+            var el = document.getElementById(key) || document.querySelector('[name="' + key + '"]');
+            if (el && el.value !== undefined && el.value !== '') {
+                params[key] = el.value;
+            }
+        }
+        try {
+            if (window.api && window.api.data && window.api.data.map) {
+                var map = window.api.data.map;
+                for (var j = 0; j < fields.length; j++) {
+                    if (!params[fields[j]] && map[fields[j]] !== undefined && map[fields[j]] !== '') {
+                        params[fields[j]] = map[fields[j]];
+                    }
+                }
+            }
+        } catch (e) {}
+        return params;
+    }
+
     // 从 API 获取课程数据（页面无课表表格时兜底）
+    // 自动识别个人课表 / 班级课表，分别调用对应接口
     function fetchCoursesFromApi() {
         if (!isZhengfangPage()) {
             Bridge.showToast('请先进入正方教务系统的课表查询页面');
             return;
         }
 
+        var isClassPage = isClassSchedulePage();
         var xnxq = getXnxq();
         var gnmkdm = getGnmkdm();
         var basePath = window.location.pathname;
-        var apiPath = '/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
-        var kbcxIdx = basePath.indexOf('/kbcx/');
-        if (kbcxIdx !== -1) {
-            apiPath = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+        var apiPath;
+        var postBody;
+
+        if (isClassPage) {
+            // 班级课表接口：需要年级/专业/班级等参数
+            apiPath = '/jwglxt/kbdy/bjkbdy_cxBjKb.html?gnmkdm=' + gnmkdm;
+            var kbdyIdx = basePath.indexOf('/kbdy/');
+            if (kbdyIdx !== -1) {
+                apiPath = basePath.substring(0, kbdyIdx) + '/kbdy/bjkbdy_cxBjKb.html?gnmkdm=' + gnmkdm;
+            }
+            var classParams = getClassScheduleParams();
+            if (!classParams.xnm) classParams.xnm = xnxq.xnm;
+            if (!classParams.xqm) classParams.xqm = xnxq.xqm;
+            var pairs = [];
+            for (var k in classParams) {
+                if (classParams.hasOwnProperty(k)) {
+                    pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(classParams[k]));
+                }
+            }
+            postBody = pairs.join('&');
+        } else {
+            // 个人课表接口
+            apiPath = '/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+            var kbcxIdx = basePath.indexOf('/kbcx/');
+            if (kbcxIdx !== -1) {
+                apiPath = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+            }
+            postBody = 'xnm=' + xnxq.xnm + '&xqm=' + xnxq.xqm;
         }
 
         var knownApi = findCourseApiFromPerformance();
@@ -418,7 +487,7 @@
             apiPath = knownApi;
         }
 
-        Bridge.showToast('正在从教务接口获取课程数据...');
+        Bridge.showToast(isClassPage ? '正在从班级课表接口获取课程数据...' : '正在从教务接口获取课程数据...');
         var xhr = new XMLHttpRequest();
         xhr.open('POST', apiPath, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -430,7 +499,7 @@
                         var resp = JSON.parse(xhr.responseText);
                         var list = resp.kbList || [];
                         if (list.length === 0) {
-                            Bridge.showToast('未查询到课程数据，请确认已进入课表页面');
+                            Bridge.showToast('未查询到课程数据，请确认已进入课表页面并选择了班级');
                             return;
                         }
                         parseAndImport(list);
@@ -444,7 +513,7 @@
                 }
             }
         };
-        xhr.send('xnm=' + xnxq.xnm + '&xqm=' + xnxq.xqm);
+        xhr.send(postBody);
     }
 
     // 解析接口节次字段：jcs / jc / djj+cs

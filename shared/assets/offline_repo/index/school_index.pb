@@ -15,7 +15,15 @@ south_soft*�
 GENERAL_CHAOXING超星教务系统（通用）cxjwxt"chaoxing_jiaowu*�
 GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
 MANUAL_JNMC济宁医学院jnyxy"JNMC*y
-jnmc_01乘方教务系统"jnmc.js*http://210.44.16.13/2,手动注册，类型: 乘方教务(Struts2):manual-jnmc�
+jnmc_01乘方教务系统"jnmc.js*http://210.44.16.13/2,手动注册，类型: 乘方教务(Struts2):manual-jnmc�
+
+MANUAL_AHU安徽大学ahdx"AHU*�
+ahu_01$教务系统（WebVPN统一认证）"ahu.js*�https://wvpn.ahu.edu.cn/https/77726476706e69737468656265737421fff944d226387d1e7b0c9ce29b5b/cas/login?service=https%3A%2F%2Fone.ahu.edu.cn%2Ftp_up%2Fview%3Fm%3Dup23手动注册，类型: 金智EAMS新版(WebVPN CAS):
+manual-ahu�
+MANUAL_CHZU滁州学院czxy"CHZU*�
+chzu_01$教务系统（统一身份认证）"chzu.js*\https://sso.chzu.edu.cn/login?service=https%3A%2F%2Fjwgl.chzu.edu.cn%2Feams%2FhomeExt.action22手动注册，类型: 金智EAMS老版(联创SSO):manual-chzu�
+MANUAL_UCAS中国科学院大学zgkxydx"UCAS*�
+ucas_01SEP 教育业务平台"ucas.js*https://sep.ucas.ac.cn/21手动注册，类型: SEP平台课表(DOM解析):manual-ucas�
 pku北京大学bjdx"urp*w
 pku_01URP教务系统"urp.js*https://elective.pku.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 tsinghua清华大学qhdx"urp*�
@@ -4326,10 +4334,10 @@ u_f7b22817新疆大学xjdx"	kingosoft*�
 
 u_98216ab7西南交通大学希望学院
 xnjtdxxwxy"XWXY*�
-u_98216ab7_01URP教务系统(希望学院)"xwxy.js*http://119.6.110.75:9007/login2(自动导入自 timetable，类型: xwxy:auto-import�
+u_98216ab7_01URP教务系统(希望学院)"xwxy.js*http://119.6.110.75:9007/login2(自动导入自 timetable，类型: xwxy:auto-import�
 
-u_308bdd18西安医学院xayxy"	kingosoft*�
-u_308bdd18_01青果教务系统"kingosoft.js*:http://jwxt.xiyi.edu.cn:8080/xayxyjw/public/dykb.bjkb.html21自动导入自 timetable，类型: kingosoft_new:auto-import�
+u_308bdd18西安医学院xayxy"XIYI*�
+u_308bdd18_01#青果教务系统(西安医学院)"xiyi.js*5http://ehall.xiyi.edu.cn/new/index_teacher_phone.html2(自动导入自 timetable，类型: xiyi:auto-import�
 
 u_9c955464西安翻译学院xafyxy"	kingosoft*�
 u_9c955464_01青果教务系统"kingosoft.js*/http://59.75.8.190:8081/xafyjw/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
@@ -5757,4 +5765,9 @@ njlgdxzjxy"urp*�
 u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import�
 
 u_7efa914c湖南财政经济学院hnczjjxy"hufe*�
-u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import
+u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import�
+MANUAL_UCAS_PG中国科学院大学zgkxydx"UCAS*�
+
+ucas_pg_01%SEP 教育业务平台（研究生）"ucas.js*https://sep.ucas.ac.cn/2V手动注册，研究生教务，类型: SEP平台课表(DOM解析+跨域详情转发):manual-ucas-pg�
+MANUAL_HEBMU河北医科大学hbykdx"HEBMU*�
+hebmu_01$教务管理系统（乘方新版）"hebmu.js*https://jwweb.hebmu.edu.cn/2G手动注册，类型: 乘方教务新版(账号密码+验证码登录):manual-hebmu

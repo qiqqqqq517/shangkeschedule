@@ -194,16 +194,48 @@
         return courses;
     }
 
+    // 检测是否在登录页（CAS统一认证或教务系统登录）
+    function isLoginPage() {
+        try {
+            var url = window.location.href || '';
+            if (/uia\.hufe\.edu\.cn/i.test(url)) return true;
+            if (/login/i.test(url) && /hufe/i.test(url)) return true;
+            if (/cas/i.test(url) && /hufe/i.test(url)) return true;
+            var body = (document.body && document.body.innerText) || '';
+            if (body.indexOf('统一身份认证') !== -1 && body.indexOf('密码') !== -1) return true;
+            if (body.indexOf('用户登录') !== -1 && body.indexOf('验证码') !== -1) return true;
+        } catch (e) {}
+        return false;
+    }
+
+    // 检测是否在主框架页（xsMainV）但尚未进入课表
+    function isMainFrameworkPage() {
+        try {
+            var url = window.location.href || '';
+            if (/xsMainV/i.test(url)) return true;
+            if (/framework/i.test(url) && /jsxsd/i.test(url)) return true;
+        } catch (e) {}
+        return false;
+    }
+
     async function runImport() {
         try {
+            if (isLoginPage()) {
+                showToast('请先完成湖南财政经济学院统一身份认证登录，登录后进入「培养服务→我的课表→学期理论课表」再点击导入');
+                return;
+            }
             var found = findTimetableTable();
             if (!found || !found.table) {
-                showToast('未找到课表，请先登录后在「培养服务→我的课表→学期理论课表」页面停留，再点击导入');
+                if (isMainFrameworkPage()) {
+                    showToast('请在左侧菜单进入「培养服务→我的课表→学期理论课表」，待课表表格加载后再点击导入');
+                } else {
+                    showToast('未找到课表，请先登录后在「培养服务→我的课表→学期理论课表」页面停留，再点击导入');
+                }
                 return;
             }
             var courses = extractCourses(found.table);
             if (!courses.length) {
-                showToast('未识别出有效课程，请确认课表页面已完整加载（含“周一”表头与课程）后重试');
+                showToast('未识别出有效课程，请确认课表页面已完整加载（含"周一"表头与课程）后重试');
                 return;
             }
             await window.shangkeBridgePromise.saveImportedCourses(JSON.stringify(courses));
@@ -218,4 +250,18 @@
 
     window.shangkeImportEntry = runImport;
     window.hufeImport = runImport;
+
+    // 自动检测页面状态并提示
+    try {
+        if (isLoginPage()) {
+            showToast('湖南财政经济学院：请先完成统一身份认证登录');
+        } else if (isMainFrameworkPage()) {
+            showToast('检测到湖南财政经济学院教务系统，请进入「我的课表」页面后点击导入');
+        } else {
+            var t = findTimetableTable();
+            if (t && t.table) {
+                showToast('检测到课表页面，点击导入按钮抓取课表');
+            }
+        }
+    } catch (e) {}
 })();

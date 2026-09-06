@@ -208,6 +208,15 @@ class WebViewRequestInterceptor {
                     }
                 }
 
+                // CORS 跨域子资源：适配器跨域 fetch（如国科大 xkgo→xkcts 课程详情页）经拦截器
+                // 转发时，目标服务器不返回 Access-Control-Allow-Origin，渲染进程同源策略会拦截响应。
+                // 对非主框架的拦截响应回填 ACAO:*（适配器侧配合 credentials:'omit'），绕过浏览器 CORS。
+                if (!request.isForMainFrame &&
+                    !responseHeadersMap.keys.any { it.equals("Access-Control-Allow-Origin", ignoreCase = true) }
+                ) {
+                    responseHeadersMap["Access-Control-Allow-Origin"] = "*"
+                }
+
                 val inputStream = response.bodyAsChannel().toInputStream()
 
                 WebResourceResponse(
