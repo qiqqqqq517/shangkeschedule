@@ -1,6 +1,7 @@
 <resources>
     <!-- 应用基础信息 -->
     <string name="app_name">上课</string>
+    <string name="hero_subtitle">让每一节课都有迹可循</string>
 
     <!-- 通用按钮和提示信息 -->
     <string name="action_confirm">确定</string>

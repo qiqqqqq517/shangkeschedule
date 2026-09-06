@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.desc_compat_wearable_sync
@@ -71,17 +73,22 @@ fun GeneralSettingsCard(
     Column(modifier = modifier) {
         Text(
             text = stringResource(Res.string.section_title_general),
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(Res.string.text_permission_importance_title),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(Res.string.text_permission_importance_detail),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -90,7 +97,7 @@ fun GeneralSettingsCard(
             SettingItem(
                 title = stringResource(Res.string.item_course_reminder),
                 trailingContent = {
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = uiState.reminderEnabled,
                         onCheckedChange = { targetState ->
                             if (targetState) {
@@ -112,7 +119,7 @@ fun GeneralSettingsCard(
                 title = stringResource(Res.string.item_dynamic_island),
                 subtitle = stringResource(Res.string.desc_dynamic_island),
                 trailingContent = {
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = uiState.dynamicIslandEnabled,
                         onCheckedChange = onDynamicIslandToggle
                     )
@@ -124,7 +131,7 @@ fun GeneralSettingsCard(
                 title = stringResource(Res.string.item_compat_wearable_sync),
                 subtitle = stringResource(Res.string.desc_compat_wearable_sync),
                 trailingContent = {
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = uiState.compatWearableSync,
                         onCheckedChange = onCompatWearableToggle
                     )

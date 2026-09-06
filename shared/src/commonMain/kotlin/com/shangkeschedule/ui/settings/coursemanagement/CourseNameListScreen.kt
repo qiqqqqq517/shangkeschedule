@@ -297,7 +297,7 @@ fun CourseNameCard(
         )
     } else {
         CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     }
 
@@ -340,11 +340,11 @@ fun CourseNameCard(
                 )
             }
 
-            // 右下角：实例数量 Badge
+            // 右下角：实例数量 Badge（Telegram 灰底白字胶囊徽标，v2 规范 §4.4）
             Badge(
                 content = { Text(instanceCount.toString(), style = MaterialTheme.typography.labelSmall) },
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                containerColor = com.shangkeschedule.ui.theme.appColors().badgeBg,
+                contentColor = com.shangkeschedule.ui.theme.appColors().badgeFg,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .sizeIn(minWidth = 20.dp, minHeight = 20.dp)
@@ -365,7 +365,7 @@ private fun QuickActionsSection(
 ) {
     Card(
         modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(

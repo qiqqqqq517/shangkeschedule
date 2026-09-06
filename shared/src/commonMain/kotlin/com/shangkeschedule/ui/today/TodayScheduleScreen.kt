@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +37,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,10 +72,18 @@ import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
+import com.shangkeschedule.ui.components.rememberFabPressedScale
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -151,19 +163,36 @@ fun TodayScheduleScreen(
                     title = {
                         Text(
                             text = stringResource(Res.string.title_today_schedule),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.pageTitle),
+                            fontWeight = FontWeight.Bold
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors()
                 )
             },
             floatingActionButton = {
+                // Telegram 风格 FAB：56dp 圆形、主色、大投影 + 按压缩放（v2 规范 §4.1）
+                val fabInteraction = remember { MutableInteractionSource() }
+                val fabScale = rememberFabPressedScale(fabInteraction)
                 FloatingActionButton(
                     onClick = {
                         editingTodo = null
                         showTodoDialog = true
-                    }
+                    },
+                    modifier = Modifier
+                        .size(AppSpacing.fab)
+                        .graphicsLayer {
+                            scaleX = fabScale
+                            scaleY = fabScale
+                        },
+                    shape = CircleShape,
+                    containerColor = appColors().primary,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 10.dp
+                    ),
+                    interactionSource = fabInteraction
                 ) {
                     Icon(
                         vectorResource(Res.drawable.add_24px),
@@ -304,8 +333,17 @@ fun TodayContent(
         }
 
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            Text(text = dateStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(text = subTitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+            Text(
+                text = dateStr,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.bigNumber),
+                fontWeight = FontWeight.Bold,
+                color = appColors().textPrimary
+            )
+            Text(
+                text = subTitle,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                color = appColors().textSecondary
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -572,24 +610,35 @@ private fun TodoEditDialog(
         },
         text = {
             Column {
-                OutlinedTextField(
+                AppTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(stringResource(Res.string.todo_title_label)) },
+                    label = stringResource(Res.string.todo_title_label),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 // 时间选择式：点击输入框弹出 TimePicker，右侧 × 清除已选时间
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
+                        AppTextField(
                             value = time,
                             onValueChange = {},
+                            label = stringResource(Res.string.todo_time_label),
+                            placeholder = stringResource(Res.string.todo_time_label),
                             readOnly = true,
-                            label = { Text(stringResource(Res.string.todo_time_label)) },
-                            placeholder = { Text(stringResource(Res.string.todo_time_label)) },
                             singleLine = true,
+                            trailingIcon = if (time.isNotBlank()) {
+                                {
+                                    IconButton(onClick = { time = "" }) {
+                                        Icon(
+                                            vectorResource(Res.drawable.close_24px),
+                                            contentDescription = stringResource(Res.string.action_cancel),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            } else null,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Box(
@@ -598,38 +647,35 @@ private fun TodoEditDialog(
                                 .clickable { showTimePicker = true }
                         )
                     }
-                    if (time.isNotBlank()) {
-                        IconButton(onClick = { time = "" }) {
-                            Icon(
-                                vectorResource(Res.drawable.close_24px),
-                                contentDescription = stringResource(Res.string.action_cancel)
-                            )
-                        }
-                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                Spacer(modifier = Modifier.height(10.dp))
+                AppTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text(stringResource(Res.string.todo_note_label)) },
+                    label = stringResource(Res.string.todo_note_label),
+                    singleLine = false,
+                    minLines = 2,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (title.isNotBlank()) {
-                    onConfirm(
-                        title.trim(),
-                        note.trim().takeIf { it.isNotBlank() },
-                        time.trim().takeIf { it.isNotBlank() }
-                    )
-                }
-            }) { Text(stringResource(Res.string.action_confirm)) }
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = {
+                    if (title.isNotBlank()) {
+                        onConfirm(
+                            title.trim(),
+                            note.trim().takeIf { it.isNotBlank() },
+                            time.trim().takeIf { it.isNotBlank() }
+                        )
+                    }
+                },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
-        }
+        dismissButton = {}
     )
 
     if (showTimePicker) {
@@ -760,19 +806,14 @@ private fun NextCourseCard(
 
     val target = ongoing ?: next
     if (target == null) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            )
-        ) {
+        // 今日课程已结束提示卡：基线白卡样式
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(Res.string.text_courses_finished),
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColors().textSecondary
             )
         }
         return
@@ -1087,13 +1128,14 @@ fun CourseTimelineItem(
                 }
             }
             model.course.remark?.takeIf { it.isNotBlank() }?.let { remark ->
+                // 备注卡：聊天气泡形（18dp 圆角 + 左上 6dp 收尾，v2 规范 §4.6）
                 Box(
                     modifier = Modifier
                         .padding(top = 6.dp, start = 4.dp)
                         .fillMaxWidth()
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            shape = MaterialTheme.shapes.small
+                            color = appColors().inputBg,
+                            shape = AppShape.bubble
                         )
                         .padding(8.dp)
                 ) {
@@ -1120,11 +1162,20 @@ fun CourseTimelineItem(
 
 @Composable
 private fun EmptyStateView() {
+    // 空态：淡灰胶囊底 + 居中辅助文案（v2 规范 §3「空态插画底统一」）
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = stringResource(Res.string.text_no_courses_today),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.outline
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clip(AppShape.card)
+                .background(appColors().inputBg.copy(alpha = 0.55f))
+                .padding(horizontal = 28.dp, vertical = 22.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.text_no_courses_today),
+                style = MaterialTheme.typography.bodyMedium,
+                color = appColors().textSecondary
+            )
+        }
     }
 }

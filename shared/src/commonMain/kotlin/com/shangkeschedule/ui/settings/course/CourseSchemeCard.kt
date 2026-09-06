@@ -75,7 +75,7 @@ fun CourseSchemeCard(
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
@@ -107,7 +107,7 @@ fun CourseSchemeCard(
                     )
 
                     Text(stringResource(Res.string.label_custom_time), style = MaterialTheme.typography.labelSmall)
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = scheme.isCustomTime,
                         onCheckedChange = onToggleCustomTime,
                         modifier = Modifier.scale(0.7f)

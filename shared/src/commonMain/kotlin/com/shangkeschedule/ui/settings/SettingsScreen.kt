@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
@@ -54,9 +57,17 @@ import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppSwitch
+import com.shangkeschedule.ui.components.GradientHeroCard
+import com.shangkeschedule.ui.components.IconChip
 import com.shangkeschedule.ui.components.DatePickerModal
 import com.shangkeschedule.ui.components.NativeNumberPicker
+import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
@@ -65,6 +76,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.app_name
+import shangkeschedule.shared.generated.resources.hero_subtitle
 import shangkeschedule.shared.generated.resources.desc_couple_schedule
 import shangkeschedule.shared.generated.resources.desc_crush_course_color
 import shangkeschedule.shared.generated.resources.desc_self_course_color
@@ -134,7 +147,7 @@ import shangkeschedule.shared.generated.resources.title_schedule_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 
 private val SETTING_PADDING = 16.dp
-private val ITEM_SPACING = 8.dp
+private val ITEM_SPACING = 10.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,14 +180,52 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
                 contentPadding = PaddingValues(bottom = navPadding.calculateBottomPadding() + 16.dp)
             ) {
-                // 核心功能（高频前置，逐项独立卡片，主项标题放大突出）
+                // 头部渐变卡（v2 基线「我的」页样式：紫渐变 + 半透明白图标锚点 + 白字）
+                item {
+                    GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color.White.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    vectorResource(Res.drawable.calendar_today_24px),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.padding(start = 14.dp)) {
+                                Text(
+                                    text = stringResource(Res.string.app_name),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = stringResource(Res.string.hero_subtitle),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                    color = Color.White.copy(alpha = 0.75f),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                // 核心功能（高频前置，逐项独立卡片，chip 图标 + 行标题 + 副标题 + chevron）
                 item {
                     SettingCard(
                         title = stringResource(Res.string.item_course_conversion),
                         subtitle = stringResource(Res.string.desc_course_conversion),
-                        icon = vectorResource(Res.drawable.school_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.school_24px),
+                        accent = AccentTone.INFO,
                         onClick = { onNavigate(Destination.CourseTableConversion) }
                     )
                 }
@@ -182,9 +233,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.section_title_semester_settings),
                         subtitle = stringResource(Res.string.desc_set_start_date),
-                        icon = vectorResource(Res.drawable.calendar_today_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.calendar_today_24px),
+                        accent = AccentTone.PRIMARY,
                         onClick = { onNavigate(Destination.SemesterSettings) }
                     )
                 }
@@ -205,12 +255,15 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.item_show_non_current_week),
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f, fill = false)
                                 )
-                                Switch(
+                                AppSwitch(
                                     checked = uiState.appSettings.showNonCurrentWeekCourses,
                                     onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
                                 )
@@ -229,12 +282,15 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.item_show_weekends),
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f, fill = false)
                                 )
-                                Switch(
+                                AppSwitch(
                                     checked = uiState.courseConfig?.showWeekends ?: false,
                                     onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
                                 )
@@ -246,9 +302,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.item_time_slot_customization),
                         subtitle = stringResource(Res.string.desc_time_slot_customization),
-                        icon = vectorResource(Res.drawable.schedule_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.schedule_24px),
+                        accent = AccentTone.WARNING,
                         onClick = { onNavigate(Destination.TimeSlotSettings) }
                     )
                 }
@@ -256,9 +311,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.title_manage_course_tables),
                         subtitle = stringResource(Res.string.desc_manage_course_tables),
-                        icon = vectorResource(Res.drawable.class_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.class_24px),
+                        accent = AccentTone.AMBER,
                         onClick = { onNavigate(Destination.ManageCourseTables) }
                     )
                 }
@@ -266,9 +320,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.item_course_management),
                         subtitle = stringResource(Res.string.desc_course_management),
-                        icon = vectorResource(Res.drawable.edit_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.edit_24px),
+                        accent = AccentTone.SUCCESS,
                         onClick = { onNavigate(Destination.CourseManagementList) }
                     )
                 }
@@ -277,9 +330,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.item_couple_schedule),
                         subtitle = stringResource(Res.string.desc_couple_schedule),
-                        icon = vectorResource(Res.drawable.favorite_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.favorite_24px),
+                        accent = AccentTone.FAVORITE,
                         onClick = { onNavigate(Destination.CoupleScheduleSettings) }
                     )
                 }
@@ -287,9 +339,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.item_appearance_settings),
                         subtitle = stringResource(Res.string.desc_appearance_settings),
-                        icon = vectorResource(Res.drawable.palette_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.palette_24px),
+                        accent = AccentTone.PRIMARY,
                         onClick = { onNavigate(Destination.AppearanceSettings) }
                     )
                 }
@@ -297,9 +348,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.title_course_notification_settings),
                         subtitle = stringResource(Res.string.desc_notification_settings),
-                        icon = vectorResource(Res.drawable.info_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.info_24px),
+                        accent = AccentTone.INFO,
                         onClick = { onNavigate(Destination.NotificationSettings) }
                     )
                 }
@@ -307,9 +357,8 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.item_more_options),
                         subtitle = stringResource(Res.string.desc_more_options),
-                        icon = vectorResource(Res.drawable.more_horiz_24px),
-                        titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                        itemVerticalPadding = 12.dp,
+                        leadingIcon = vectorResource(Res.drawable.more_horiz_24px),
+                        accent = AccentTone.PRIMARY,
                         onClick = { onNavigate(Destination.MoreOptions) }
                     )
                 }
@@ -320,48 +369,48 @@ fun SettingsScreen(
 
 /**
  * 单个设置入口卡片（逐项独立，卡片间少量分隔）。
- * 供设置主页与各二级设置页复用，保持视觉一致：
- * surfaceContainerLow 底色 + outlineVariant 细边框，区别于页面背景。
+ * v2 风格基线：白色无边框 20dp 圆角卡 + 极轻投影，chip 图标 + 行标题 + 副标题 + 灰 chevron。
+ * 供设置主页与各二级设置页复用，保持视觉一致。
  */
 @Composable
 internal fun SettingCard(
     title: String,
     subtitle: String? = null,
     leadingIcon: ImageVector? = null,
-    icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
+    accent: AccentTone = AccentTone.PRIMARY,
     modifier: Modifier = Modifier,
-    titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-    itemVerticalPadding: Dp = 8.dp,
+    titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
+        fontSize = AppType.rowTitle,
+        fontWeight = FontWeight.SemiBold,
+        color = appColors().textPrimary
+    ),
+    itemVerticalPadding: Dp = 10.dp,
     onClick: (() -> Unit)? = null,
-    trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
+    trailingContent: @Composable () -> Unit = {
+        Icon(
+            vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = appColors().textSecondary
+        )
+    }
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = CardDefaults.shape
-            ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
-        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING)) {
-            SettingItem(
-                title = title,
-                subtitle = subtitle,
-                leadingIcon = leadingIcon,
-                titleStyle = titleStyle,
-                verticalPadding = itemVerticalPadding,
-                onClick = onClick,
-                trailingContent = trailingContent
-            )
-        }
+    AppCard(modifier = modifier.fillMaxWidth()) {
+        SettingItem(
+            title = title,
+            subtitle = subtitle,
+            leadingIcon = leadingIcon,
+            accent = accent,
+            titleStyle = titleStyle,
+            verticalPadding = itemVerticalPadding,
+            onClick = onClick,
+            trailingContent = trailingContent
+        )
     }
 }
 
 /**
- * 分区大卡：一个 Card 包住一组的多个设置项，项与项之间用分割线分隔。
- * 与 SettingCard 同底色同边框，仅结构上承载"分区内多项"的场景，
+ * 分区大卡：一个白卡包住一组的多个设置项，项与项之间用分割线分隔。
+ * 与 SettingCard 同底色同圆角，仅结构上承载"分区内多项"的场景，
  * 用于各列表型二级页，替代逐项独立小卡。
  */
 @Composable
@@ -369,16 +418,7 @@ internal fun SectionCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = CardDefaults.shape
-            ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(horizontal = SETTING_PADDING), content = content)
     }
 }
@@ -390,7 +430,7 @@ internal fun SectionCard(
 internal fun SectionDivider() {
     HorizontalDivider(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        color = appColors().divider
     )
 }
 
@@ -492,7 +532,9 @@ internal fun ColorSwatch(
 }
 
 /**
- * 封装单个设置项的可组合函数，提高代码复用性
+ * 封装单个设置项的可组合函数，提高代码复用性。
+ * v2 风格基线：行标题 16sp SemiBold，副标题 13sp 灰，行高 ≥64dp，
+ * leadingIcon 渲染为 48dp 语义淡底图标 chip，尾参默认灰 chevron。
  */
 @Composable
 internal fun SettingItem(
@@ -500,31 +542,50 @@ internal fun SettingItem(
     subtitle: String? = null,
     icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
     leadingIcon: ImageVector? = null,
-    titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
-    verticalPadding: Dp = 8.dp,
+    accent: AccentTone = AccentTone.PRIMARY,
+    titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
+        fontSize = AppType.rowTitle,
+        fontWeight = FontWeight.SemiBold,
+        color = appColors().textPrimary
+    ),
+    verticalPadding: Dp = 6.dp,
     onClick: (() -> Unit)? = null,
-    trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
+    trailingContent: @Composable () -> Unit = {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = appColors().textSecondary
+        )
+    }
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = AppSpacing.rowMinHeight)
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         if (leadingIcon != null) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+            IconChip(
+                icon = leadingIcon,
+                tone = accent,
                 modifier = Modifier.padding(end = 12.dp)
             )
         }
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, style = titleStyle)
             if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    ),
+                    color = appColors().textSecondary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
         trailingContent()

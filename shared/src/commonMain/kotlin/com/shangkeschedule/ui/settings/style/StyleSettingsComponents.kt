@@ -580,12 +580,9 @@ fun StyleSwitchItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
-        Switch(
+        com.shangkeschedule.ui.components.AppSwitch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
-            thumbContent = if (checked) {
-                { Icon(modifier = Modifier.size(SwitchDefaults.IconSize), imageVector = vectorResource(Res.drawable.check_24px), contentDescription = null) }
-            } else null
+            onCheckedChange = onCheckedChange
         )
     }
 }

@@ -70,7 +70,11 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
+import com.shangkeschedule.ui.components.TelegramMenu
+import com.shangkeschedule.ui.components.TelegramMenuDivider
+import com.shangkeschedule.ui.components.TelegramMenuItem
 import com.shangkeschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.shangkeschedule.ui.schedule.components.FloatingCourseBar
 import com.shangkeschedule.ui.schedule.components.ScheduleGrid
@@ -80,8 +84,10 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -101,6 +107,16 @@ import shangkeschedule.shared.generated.resources.arrow_drop_down_24px
 import shangkeschedule.shared.generated.resources.format_week_display
 import shangkeschedule.shared.generated.resources.label_view_mode_list
 import shangkeschedule.shared.generated.resources.label_view_mode_week
+import shangkeschedule.shared.generated.resources.more_vert_24px
+import shangkeschedule.shared.generated.resources.add_24px
+import shangkeschedule.shared.generated.resources.item_more_options
+import shangkeschedule.shared.generated.resources.class_24px
+import shangkeschedule.shared.generated.resources.palette_24px
+import shangkeschedule.shared.generated.resources.schedule_24px
+import shangkeschedule.shared.generated.resources.title_manage_course_tables
+import shangkeschedule.shared.generated.resources.title_add_course
+import shangkeschedule.shared.generated.resources.item_appearance_settings
+import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.course_section_range
 import shangkeschedule.shared.generated.resources.snackbar_add_course_within_semester
 import shangkeschedule.shared.generated.resources.swap_horiz_24px
@@ -176,6 +192,7 @@ fun WeeklyScheduleScreen(
     // UI 交互控制弹窗标志位
     var showWeekSelector by remember { mutableStateOf(false) }
     var showTableSwitcher by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
@@ -256,9 +273,18 @@ fun WeeklyScheduleScreen(
                 topBar = {
                     CenterAlignedTopAppBar(
                         title = {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                            // 周切换入口：Telegram 胶囊形态（浅灰胶囊底，含标题 + 下拉箭头）
+                            val hasBackgroundImage = composedStyle.backgroundImagePath.isNotEmpty()
+                            val weekChipBg = if (hasBackgroundImage) {
+                                Color.Black.copy(alpha = 0.25f)
+                            } else {
+                                appColors().inputBg
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
+                                    .clip(AppShape.capsule)
+                                    .background(weekChipBg)
                                     .clickable {
                                         if (!uiState.isSemesterSet || uiState.semesterStartDate == null) {
                                             onNavigate(Destination.Settings)
@@ -266,11 +292,12 @@ fun WeeklyScheduleScreen(
                                             showWeekSelector = true
                                         }
                                     }
-                                    .padding(vertical = 4.dp)
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = displayTitle,
-                                    style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                                    fontWeight = FontWeight.SemiBold,
                                     color = customTextColor
                                 )
                                 Icon(
@@ -278,7 +305,7 @@ fun WeeklyScheduleScreen(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(20.dp)
-                                        .offset(y = (-4).dp),
+                                        .offset(y = (-2).dp),
                                     tint = customSubTextColor
                                 )
                             }
@@ -319,6 +346,52 @@ fun WeeklyScheduleScreen(
                                     tint = customTextColor
                                 )
                             }
+                            // ⋮ 溢出菜单（Telegram 形态）：承载既有操作入口，不新增流程
+                            IconButton(onClick = { showOverflowMenu = !showOverflowMenu }) {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.more_vert_24px),
+                                    contentDescription = stringResource(Res.string.item_more_options),
+                                    tint = customTextColor
+                                )
+                                TelegramMenu(
+                                    expanded = showOverflowMenu,
+                                    onDismissRequest = { showOverflowMenu = false }
+                                ) {
+                                    TelegramMenuItem(
+                                        icon = vectorResource(Res.drawable.add_24px),
+                                        text = stringResource(Res.string.title_add_course),
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onNavigate(Destination.AddEditCourse())
+                                        }
+                                    )
+                                    TelegramMenuDivider()
+                                    TelegramMenuItem(
+                                        icon = vectorResource(Res.drawable.class_24px),
+                                        text = stringResource(Res.string.title_manage_course_tables),
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onNavigate(Destination.ManageCourseTables)
+                                        }
+                                    )
+                                    TelegramMenuItem(
+                                        icon = vectorResource(Res.drawable.palette_24px),
+                                        text = stringResource(Res.string.item_appearance_settings),
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onNavigate(Destination.AppearanceSettings)
+                                        }
+                                    )
+                                    TelegramMenuItem(
+                                        icon = vectorResource(Res.drawable.schedule_24px),
+                                        text = stringResource(Res.string.item_time_slot_customization),
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onNavigate(Destination.TimeSlotSettings)
+                                        }
+                                    )
+                                }
+                            }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent,
@@ -327,7 +400,7 @@ fun WeeklyScheduleScreen(
                         scrollBehavior = scrollBehavior
                     )
                 },
-                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+                snackbarHost = { AppSnackbarHost(hostState = snackbarHostState) }
             ) { scaffoldInnerPadding ->
 
                 val dynamicBottomPadding = remember(innerPadding, collapseFraction, floatingCourse) {

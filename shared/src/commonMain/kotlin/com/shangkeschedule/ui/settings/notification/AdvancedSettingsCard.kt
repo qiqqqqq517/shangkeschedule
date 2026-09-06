@@ -18,7 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.item_clear_skipped_dates
@@ -45,12 +47,16 @@ fun AdvancedSettingsCard(
     Column(modifier = modifier) {
         Text(
             text = stringResource(Res.string.section_title_advanced),
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(Res.string.text_skip_dates_experimental),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -77,14 +83,15 @@ fun AdvancedSettingsCard(
                 title = stringResource(Res.string.item_view_skipped_dates),
                 onClick = onViewSkippedDates,
                 trailingContent = {
-                    Text(
-                        text = if (uiState.skippedDates.isNotEmpty()) {
-                            stringResource(Res.string.skipped_dates_count_format, uiState.skippedDates.size)
-                        } else {
-                            stringResource(Res.string.skipped_dates_none)
-                        },
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    // 跳过日期数量：Telegram 灰底白字胶囊徽标（v2 规范 §4.4）
+                    if (uiState.skippedDates.isNotEmpty()) {
+                        com.shangkeschedule.ui.components.AppBadge(count = uiState.skippedDates.size)
+                    } else {
+                        Text(
+                            text = stringResource(Res.string.skipped_dates_none),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             )
         }

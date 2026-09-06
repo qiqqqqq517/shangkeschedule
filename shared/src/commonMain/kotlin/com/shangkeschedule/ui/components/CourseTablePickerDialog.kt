@@ -14,13 +14,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -183,20 +184,31 @@ fun CourseTablePickerDialog(
                 }
                 Spacer(modifier = Modifier.weight(1f))
 
-                Button(
+                // 取消弱化为灰字文本钮，确认保持主色胶囊实心钮
+                TextButton(
                     onClick = onDismissRequest,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 4.dp)
                 ) {
-                    Text(stringResource(Res.string.action_cancel))
+                    Text(
+                        stringResource(Res.string.action_cancel),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Button(
                     onClick = {
                         selectedTable?.let { onTableSelected(it) }
                         onDismissRequest()
                     },
-                    enabled = selectedTable != null
+                    enabled = selectedTable != null,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = com.shangkeschedule.ui.theme.appColors().primary,
+                        contentColor = androidx.compose.ui.graphics.Color.White,
+                        disabledContainerColor = com.shangkeschedule.ui.theme.appColors().primary.copy(alpha = 0.45f),
+                        disabledContentColor = androidx.compose.ui.graphics.Color.White
+                    )
                 ) {
-                    Text(stringResource(Res.string.action_confirm))
+                    Text(stringResource(Res.string.action_confirm), fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -214,39 +226,40 @@ fun CourseTablePickerDialog(
             },
             title = { Text(stringResource(Res.string.dialog_title_add_table)) },
             text = {
-                OutlinedTextField(
+                // 柔和填充式输入框（Telegram 风格，取代方硬的 OutlinedTextField）
+                AppTextField(
                     value = newTableName,
                     onValueChange = { newTableName = it },
-                    label = { Text(stringResource(Res.string.label_table_name)) },
+                    label = stringResource(Res.string.label_table_name),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (newTableName.isNotBlank()) {
-                        deps.createNewCourseTable(newTableName)
+                // 主色胶囊确认 + 灰字取消，取代双 TextButton
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_add),
+                    onConfirm = {
+                        if (newTableName.isNotBlank()) {
+                            deps.createNewCourseTable(newTableName)
 
-                        // 跨平台 ToastManager 提示
-                        ToastManager.show(toastAddSuccess)
+                            // 跨平台 ToastManager 提示
+                            ToastManager.show(toastAddSuccess)
 
+                            showAddTableDialog = false
+                            newTableName = ""
+                        } else {
+                            ToastManager.show(toastNameEmpty)
+                        }
+                    },
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = {
                         showAddTableDialog = false
                         newTableName = ""
-                    } else {
-                        ToastManager.show(toastNameEmpty)
                     }
-                }) {
-                    Text(stringResource(Res.string.action_add))
-                }
+                )
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAddTableDialog = false
-                    newTableName = ""
-                }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            }
+            dismissButton = {}
         )
     }
 }

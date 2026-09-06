@@ -1031,7 +1031,7 @@ fun AutoSwitchToggle(
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Switch(
+        com.shangkeschedule.ui.components.AppSwitch(
             checked = enabled,
             onCheckedChange = onToggle
         )

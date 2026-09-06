@@ -235,7 +235,7 @@ fun AddEditCourseScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f)
                     )
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = uiState.isLab,
                         onCheckedChange = viewModel::onIsLabChange
                     )

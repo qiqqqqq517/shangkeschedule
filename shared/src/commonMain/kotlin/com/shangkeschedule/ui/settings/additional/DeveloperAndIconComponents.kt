@@ -113,7 +113,7 @@ fun DeveloperModeSettingItem(
                 onClick = { onDeveloperModeChanged(!isDeveloperModeEnabled) },
                 showDivider = false,
                 trailingContent = {
-                    Switch(
+                    com.shangkeschedule.ui.components.AppSwitch(
                         checked = isDeveloperModeEnabled,
                         onCheckedChange = { onDeveloperModeChanged(it) }
                     )

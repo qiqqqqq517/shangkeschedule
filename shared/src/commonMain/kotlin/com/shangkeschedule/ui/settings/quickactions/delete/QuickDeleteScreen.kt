@@ -141,7 +141,7 @@ fun QuickDeleteScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { com.shangkeschedule.ui.components.AppSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.item_quick_delete)) },
