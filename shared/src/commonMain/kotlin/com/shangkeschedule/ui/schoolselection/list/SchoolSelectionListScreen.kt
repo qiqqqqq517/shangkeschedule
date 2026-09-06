@@ -333,6 +333,8 @@ fun SearchBarWithTitle(
 ) {
     SearchBar(
         modifier = Modifier.fillMaxWidth(),
+        // Telegram 全圆角浅灰胶囊搜索框（v2 规范 §4.3，页面已有搜索能力才换肤）
+        shape = com.shangkeschedule.ui.theme.AppShape.capsule,
         inputField = {
             SearchBarDefaults.InputField(
                 query = searchQuery,
@@ -408,8 +410,8 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
             .clip(MaterialTheme.shapes.medium)
             .clickable { onClick(school) },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
     ) {
         Row(

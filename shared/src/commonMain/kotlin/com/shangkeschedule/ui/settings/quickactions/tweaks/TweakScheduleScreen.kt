@@ -133,7 +133,7 @@ fun TweakScheduleScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { com.shangkeschedule.ui.components.AppSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(titleTweakSchedule) },

@@ -15,10 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.shangkeschedule.ui.components.AppSnackbarHost
+import com.shangkeschedule.ui.components.AppSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -160,7 +161,7 @@ fun CoupleScheduleSettingsScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { AppSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -176,7 +177,7 @@ fun CoupleScheduleSettingsScreen(
                     title = stringResource(Res.string.item_couple_schedule),
                     subtitle = stringResource(Res.string.desc_couple_schedule)
                 ) {
-                    Switch(
+                    AppSwitch(
                         checked = appSettings.coupleScheduleEnabled,
                         onCheckedChange = { viewModel.onCoupleScheduleEnabledChanged(it) }
                     )

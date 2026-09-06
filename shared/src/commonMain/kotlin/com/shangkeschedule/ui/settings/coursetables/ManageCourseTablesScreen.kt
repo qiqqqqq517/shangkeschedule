@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -182,32 +184,35 @@ fun ManageCourseTablesScreen(
                 },
                 title = { Text(dialogTitleAddTable) },
                 text = {
-                    OutlinedTextField(
+                    AppTextField(
                         value = newTableName,
                         onValueChange = { newTableName = it },
-                        label = { Text(labelTableName) },
+                        label = labelTableName,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        if (newTableName.isNotBlank()) {
-                            viewModel.createNewCourseTable(newTableName)
-                            ToastManager.show(addSuccessMsg)
+                    AppDialogActions(
+                        confirmText = actionAdd,
+                        onConfirm = {
+                            if (newTableName.isNotBlank()) {
+                                viewModel.createNewCourseTable(newTableName)
+                                ToastManager.show(addSuccessMsg)
+                                showAddTableDialog = false
+                                newTableName = ""
+                            } else {
+                                ToastManager.show(toastNameEmpty)
+                            }
+                        },
+                        dismissText = actionCancel,
+                        onDismiss = {
                             showAddTableDialog = false
                             newTableName = ""
-                        } else {
-                            ToastManager.show(toastNameEmpty)
                         }
-                    }) { Text(actionAdd) }
+                    )
                 },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showAddTableDialog = false
-                        newTableName = ""
-                    }) { Text(actionCancel) }
-                }
+                dismissButton = {}
             )
         }
 
@@ -221,36 +226,39 @@ fun ManageCourseTablesScreen(
                 },
                 title = { Text(dialogTitleEditTable) },
                 text = {
-                    OutlinedTextField(
+                    AppTextField(
                         value = editedTableName,
                         onValueChange = { editedTableName = it },
-                        label = { Text(labelTableName) },
+                        label = labelTableName,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        if (editedTableName.isNotBlank()) {
-                            editingTableInfo?.let { tableToEdit ->
-                                viewModel.updateCourseTable(tableToEdit.copy(name = editedTableName))
-                                ToastManager.show(toastEditSuccess)
-                                showEditTableDialog = false
-                                editingTableInfo = null
-                                editedTableName = ""
+                    AppDialogActions(
+                        confirmText = a11ySave,
+                        onConfirm = {
+                            if (editedTableName.isNotBlank()) {
+                                editingTableInfo?.let { tableToEdit ->
+                                    viewModel.updateCourseTable(tableToEdit.copy(name = editedTableName))
+                                    ToastManager.show(toastEditSuccess)
+                                    showEditTableDialog = false
+                                    editingTableInfo = null
+                                    editedTableName = ""
+                                }
+                            } else {
+                                ToastManager.show(toastNameEmpty)
                             }
-                        } else {
-                            ToastManager.show(toastNameEmpty)
+                        },
+                        dismissText = actionCancel,
+                        onDismiss = {
+                            showEditTableDialog = false
+                            editingTableInfo = null
+                            editedTableName = ""
                         }
-                    }) { Text(a11ySave) }
+                    )
                 },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showEditTableDialog = false
-                        editingTableInfo = null
-                        editedTableName = ""
-                    }) { Text(actionCancel) }
-                }
+                dismissButton = {}
             )
         }
 
@@ -318,7 +326,7 @@ fun CourseTableCard(
             .fillMaxWidth()
             .clickable { onCardClick(tableInfo) },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {

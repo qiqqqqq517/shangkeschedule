@@ -82,16 +82,21 @@ fun ShangKeScheduleTheme(
         customDarkPrimary = customDarkPrimary
     )
 
+    // 全局风格对齐（v2 规范 §2）：页面底色/卡片白等结构性颜色统一映射，
+    // 让所有 Scaffold / TopAppBar / BottomSheet / Dialog 无需逐页修改即向基线收敛。
+    val styledScheme = colorScheme.withAppSurfaces(appColorTokens(darkTheme))
+
     // 应用平台特定的窗口与系统栏外观控制
     SetupPlatformThemeEffects(
-        colorScheme = colorScheme,
+        colorScheme = styledScheme,
         darkTheme = darkTheme,
         themeMode = themeMode
     )
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = styledScheme,
         typography = Typography,
+        shapes = AppMaterialShapes,
         content = content
     )
 }

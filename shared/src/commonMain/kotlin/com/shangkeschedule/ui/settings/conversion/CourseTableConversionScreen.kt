@@ -170,7 +170,7 @@ fun CourseTableConversionScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { com.shangkeschedule.ui.components.AppSnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier

@@ -1,6 +1,7 @@
 <resources>
     <!-- Basic App Information -->
     <string name="app_name">Attend Class</string>
+    <string name="hero_subtitle">Every class, at a glance</string>
     
     <!-- Common Buttons and Messages -->
     <string name="action_confirm">Confirm</string>

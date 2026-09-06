@@ -68,6 +68,8 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AdvancedColorPicker
+import com.shangkeschedule.ui.components.AppSegmentedControl
+import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.ColorPickerConfig
 import com.shangkeschedule.ui.components.ImageCropper
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
@@ -415,27 +417,19 @@ private fun AppearancePresetSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppearanceThemeModeSelector(
     selectedMode: AppThemeMode,
     onModeSelected: (AppThemeMode) -> Unit
 ) {
     val modes = AppThemeMode.entries
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        modes.forEachIndexed { index, mode ->
-            SegmentedButton(
-                selected = selectedMode == mode,
-                onClick = { onModeSelected(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size)
-            ) {
-                Text(
-                    text = stringResource(mode.labelRes),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-    }
+    // 基线分段控件：浅灰胶囊容器 + 白色选中胶囊（v2 规范 §2）
+    AppSegmentedControl(
+        options = modes.map { stringResource(it.labelRes) },
+        selectedIndex = modes.indexOfFirst { it == selectedMode }.coerceAtLeast(0),
+        onSelect = { index -> modes.getOrNull(index)?.let(onModeSelected) },
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -446,7 +440,7 @@ private fun AppearanceDynamicColorToggle(
     Surface(
         onClick = { onEnabledChange(!enabled) },
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -456,7 +450,7 @@ private fun AppearanceDynamicColorToggle(
                 Text(stringResource(Res.string.dynamic_color_title), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(Res.string.dynamic_color_desc), style = MaterialTheme.typography.bodySmall)
             }
-            Switch(checked = enabled, onCheckedChange = onEnabledChange)
+            AppSwitch(checked = enabled, onCheckedChange = onEnabledChange)
         }
     }
 }
@@ -476,7 +470,7 @@ private fun AppearanceThemeColorPickerItem(
     Surface(
         onClick = { if (enabled) showSheet = true },
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.alpha(if (enabled) 1f else 0.45f)
     ) {
         Row(
