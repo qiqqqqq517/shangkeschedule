@@ -101,7 +101,7 @@ async function parseCourses(printData) {
 
     const activities = printData.studentTableVms[0].activities;
     const parsedCourses = activities.map(activity => {
-        // 返回拾光要求的标准结构
+        // 返回上课要求的标准结构
         return {
             name: activity.courseName,                                      // 课程名称
             teacher: activity.teachers ? activity.teachers.join(" ") : "",  // 授课教师

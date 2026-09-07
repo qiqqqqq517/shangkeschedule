@@ -1,4 +1,4 @@
-// 扬州大学(yzu.edu.cn) 拾光课程表适配脚本
+// 扬州大学(yzu.edu.cn) 上课适配脚本
 // 基于URP教务系统接口适配
 
 const PAGE_URL = window.location.href;

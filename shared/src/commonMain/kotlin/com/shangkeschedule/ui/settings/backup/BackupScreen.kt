@@ -369,7 +369,10 @@ fun CardGroup(
         AppSectionHeader(title)
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                // 内容 16dp 水平缩进（与 SectionCard 一致）：图标 chip / chevron 不贴卡片边缘
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.pageHorizontal),
                 content = content
             )
         }

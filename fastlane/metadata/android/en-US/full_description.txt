@@ -1,4 +1,4 @@
-ShangKe Schedule is an open-source schedule management tool designed for Chinese university students and educators. It supports one-click import of course data from various educational administration systems through adaptable scripts. Starting from version 2.x, the project has been migrated to the Compose Multiplatform framework and currently supports Android 8.0+.
+Attend Class is an open-source schedule management tool designed for Chinese university students and educators. It supports one-click import of course data from various educational administration systems through adaptable scripts. Starting from version 2.x, the project has been migrated to the Compose Multiplatform framework and currently supports Android 8.0+.
 
 Key features include:
 

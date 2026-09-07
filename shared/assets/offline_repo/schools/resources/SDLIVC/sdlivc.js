@@ -1,4 +1,4 @@
-// 山东轻工职业学院(sdlivc.cn) 拾光课程表适配脚本
+// 山东轻工职业学院(sdlivc.cn) 上课适配脚本
 // 数据来源：教务系统 /jedu/edu/core/eduScheduleInfo/getScheduleNew.do
 
 (function () {
@@ -216,7 +216,7 @@
 
         return await window.shangkeBridgePromise.showAlert(
             '山东轻工职业学院课表导入',
-            '请确认已登录并进入“学期课表”页面。脚本将读取当前学期课表并导入拾光课程表。',
+            '请确认已登录并进入“学期课表”页面。脚本将读取当前学期课表并导入上课。',
             '开始导入'
         );
     }

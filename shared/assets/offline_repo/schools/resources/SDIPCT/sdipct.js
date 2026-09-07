@@ -1,5 +1,5 @@
 /**
- * 拾光课程表适配脚本 - 山东石油化工学院 (sdipct.edu.cn)
+ * 上课适配脚本 - 山东石油化工学院 (sdipct.edu.cn)
  * 非该大学开发者适配,开发者无法及时发现问题
  * 出现问题请提联系开发者或者提交pr更改,这更加快速
  */
@@ -17,7 +17,7 @@ function parseWeeks(weekStr) {
 }
 
 /**
- * 将教务系统返回的 JSON 转换为拾光标准的 CourseJsonModel 数组
+ * 将教务系统返回的 JSON 转换为上课标准的 CourseJsonModel 数组
  */
 function parseJsonData(jsonData) {
     console.log("JS: 开始解析课程 JSON...");

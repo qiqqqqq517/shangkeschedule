@@ -206,6 +206,7 @@
     <string name="desc_show_weekends">When enabled, weekend courses will be displayed</string>
     <string name="item_set_start_date">Set semester start date</string>
     <string name="desc_set_start_date">Select Monday of the first week (as per academic system)</string>
+    <string name="desc_semester_settings">Start date, total weeks and current week</string>
     <string name="status_not_set">Not set</string>
     <string name="item_total_weeks">Total weeks</string>
     <string name="desc_total_weeks">Set total number of weeks in semester</string>
@@ -597,7 +598,7 @@
     <string name="light_primary_color">Light Primary Color</string>
     <string name="dark_primary_color">Dark Primary Color</string>
     <string name="theme_color_hint">Note: After changing this color, the system will use it as a seed color to recalculate the entire app\\\'s color scheme.</string>
-    <string name="theme_color_disabled_hint">Custom color is unavailable while dynamic color is on</string>
+    <string name="theme_color_disabled_hint">Choosing a custom color will turn off dynamic color</string>
     <string name="label_page_text_color">Schedule text color</string>
     <string name="widget_course_remaining_count">%1$d left</string>
 

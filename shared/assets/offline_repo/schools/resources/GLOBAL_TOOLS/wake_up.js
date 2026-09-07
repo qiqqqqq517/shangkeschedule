@@ -1,4 +1,4 @@
-// 拾光课程表适配 Wakeup 课表分享口令
+// 上课适配 Wakeup 课表分享口令
 // 目前采用v6.1.70 官渠apk中 提取到的apk签名md5与signA算法
 // signA二次发送至antispam 取signB
 

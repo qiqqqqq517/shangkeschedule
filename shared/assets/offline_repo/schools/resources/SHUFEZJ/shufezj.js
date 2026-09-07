@@ -1,4 +1,4 @@
-// 上海财经大学浙江学院 (shufe-zj.edu.cn) 拾光课程表适配脚本
+// 上海财经大学浙江学院 (shufe-zj.edu.cn) 上课适配脚本
 // 基于正方教务系统接口适配
 // 教务系统: jwxt.shufe-zj.edu.cn (正方教务 ZFSoft)
 // 登录方式: CAS 统一身份认证 (ty.shufe-zj.edu.cn)

@@ -1,4 +1,4 @@
-// 郑州航空工业管理学院 (zua.edu.cn) 拾光课程表适配脚本
+// 郑州航空工业管理学院 (zua.edu.cn) 上课适配脚本
 // 复用 HFNU 的树维 EAMS 解析流程，并针对 ZUA 的课程名和教室格式做适配。
 
 const BASE_URL = "http://jwglxt.zua.edu.cn";
@@ -65,7 +65,7 @@ function cleanPosition(position) {
 function parseWeeksBitmap(bitmap) {
     const weeks = [];
     const value = String(bitmap || "");
-    // 树维 EAMS 位图的下标就是周次，下标 0 是占位符；拾光使用 1 基周次。
+    // 树维 EAMS 位图的下标就是周次，下标 0 是占位符；上课使用 1 基周次。
     for (let week = 1; week < value.length && week <= MAX_SUPPORTED_WEEK; week++) {
         if (value[week] === "1") weeks.push(week);
     }

@@ -1,4 +1,4 @@
-// 西北工业大学(NWPU) 拾光课程表适配脚本
+// 西北工业大学(NWPU) 上课适配脚本
 // 适配系统：EAMS 教务系统（jwxt.nwpu.edu.cn）
 // 适配范围：本科（BACHELOR_AND_ASSOCIATE）
 // 维护者：zengzoxiong

@@ -206,6 +206,7 @@
     <string name="desc_show_weekends">開啟後，課程表中將顯示週末的課程安排</string>
     <string name="item_set_start_date">設定開學日期</string>
     <string name="desc_set_start_date">選擇學期第一週（教務系統參考的第一週）的週一</string>
+    <string name="desc_semester_settings">開學日期、總週數與當前週數</string>
     <string name="status_not_set">未設定</string>
     <string name="item_total_weeks">本學期總週數</string>
     <string name="desc_total_weeks">設定學期總共持續多少週</string>
@@ -593,7 +594,7 @@
     <string name="light_primary_color">淺色模式主色</string>
     <string name="dark_primary_color">深色模式主色</string>
     <string name="theme_color_hint">說明：改變此顏色後，系統將作為種子色重新計算全應用配色方案。</string>
-    <string name="theme_color_disabled_hint">動態取色開啟時不可自定義</string>
+    <string name="theme_color_disabled_hint">選擇自定義顏色後將自動關閉動態取色</string>
     <string name="label_page_text_color">課表頁面文字顏色</string>
     <string name="widget_course_remaining_count">剩餘 %1$d 節</string>
     <string name="section_sync">同步</string>

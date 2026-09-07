@@ -54,7 +54,7 @@ function parseWeeksFromSkzc(skzc) {
     return weeks;
 }
 
-// ========== 解析：单条金智课程 -> 拾光模型 ==========
+// ========== 解析：单条金智课程 -> 上课模型 ==========
 function parseSingleCourse(raw) {
     const name = raw.KCM;
     const teacher = raw.SKJS ? raw.SKJS.replace(/\//g, ",").trim() : "未知教师";

@@ -1,5 +1,5 @@
 {
-  "_comment": "拾光课程表 - 学校配置表模板。用于生成 school_index.pb。adapterType 对应通用适配器目录。",
+  "_comment": "上课 - 学校配置表模板。用于生成 school_index.pb。adapterType 对应通用适配器目录。",
   "_version": 1,
   "adapterTypes": {
     "chaoxing": "超星教务系统",

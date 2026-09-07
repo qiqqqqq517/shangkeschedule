@@ -1,4 +1,4 @@
-// 西安工业大学(http://jwgl2018.xatu.edu.cn) 拾光课程表适配脚本，基于天津农学院适配脚本
+// 西安工业大学(http://jwgl2018.xatu.edu.cn) 上课适配脚本，基于天津农学院适配脚本
 // 本校开发者适配，出现问题请提issues或者提交pr更改,这更加快速
 //感谢XingHeYuZhuan、aryunm、jursin...等的帮助，感谢trae的辅助
 

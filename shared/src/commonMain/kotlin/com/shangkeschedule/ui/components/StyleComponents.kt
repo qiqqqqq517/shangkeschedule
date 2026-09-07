@@ -140,7 +140,7 @@ fun IconChip(
 
 /**
  * 头部渐变卡：渐变（左上 → 右下）、24dp 圆角，内容为白色 / 半透明白。
- * 融合配图（motif=true）：柔光斑 ×2 + 课程格纸插画（右缘溢出裁剪，与卡片无缝融合）；
+ * 融合配图（motif=true）：柔光斑 ×2 + 课程格纸插画（整组位于卡片右缘内侧，微倾 8° 不溢出裁剪）；
  * 插画元素用 colorScheme.onPrimary，任意用户主题色相下对比自动协调。
  */
 @Composable
@@ -192,13 +192,13 @@ fun GradientHeroCard(
                         )
                     )
             )
-            // 课程格纸插画：右缘溢出裁剪，与渐变无缝融合；装饰元素无障碍语义置空
+            // 课程格纸插画：整组收在卡片右缘内侧（预留旋转摆动余量，不溢出裁剪）；装饰元素无障碍语义置空
             val rtlSign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) 1f else -1f
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .graphicsLayer { rotationZ = 8f * rtlSign }
-                    .offset(x = -14.dp * rtlSign)
+                    .offset(x = 22.dp * rtlSign)
             ) {
                 AppHeroMotif(tint = MaterialTheme.colorScheme.onPrimary)
             }

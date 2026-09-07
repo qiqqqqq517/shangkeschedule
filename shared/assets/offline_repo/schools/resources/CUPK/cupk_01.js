@@ -1,6 +1,6 @@
 // resources/CUPK/CUPK_01.js
-// 中国石油大学(北京)克拉玛依校区拾光课程表适配脚本
-// 由larryyan适配的中国石油大学(北京)本科生拾光课程表适配脚本（CUP_01.js）修改而来
+// 中国石油大学(北京)克拉玛依校区上课适配脚本
+// 由larryyan适配的中国石油大学(北京)本科生上课适配脚本（CUP_01.js）修改而来
 // 由于克拉玛依校区本科生自2026春季学期起更换为本部同一套教务系统，本克砖鼠鼠遂充当CV工程师完成适配（拿来把你）
 // 在此感谢前人的智慧！
 
@@ -105,7 +105,7 @@ async function parseCourses(printData) {
 
     const activities = printData.studentTableVms[0].activities;
     const parsedCourses = activities.map(activity => {
-        // 返回拾光要求的标准结构
+        // 返回上课要求的标准结构
         return {
             name: activity.courseName,                                      // 课程名称
             teacher: activity.teachers ? activity.teachers.join(" ") : "",  // 授课教师

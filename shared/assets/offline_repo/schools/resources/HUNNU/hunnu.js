@@ -1,5 +1,5 @@
 /**
- * 湖南师范大学 (hunnu.edu.cn) 拾光课程表适配脚本
+ * 湖南师范大学 (hunnu.edu.cn) 上课适配脚本
  *
  * 适配方式：从 courseTableForStd.action 返回的 HTML 中
  *           解析 TaskActivity JavaScript 数据，提取精确的课程信息。

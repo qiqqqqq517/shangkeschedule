@@ -1,4 +1,4 @@
-// 常州机电职业技术学院(czimt.edu.cn) 拾光课程表适配脚本
+// 常州机电职业技术学院(czimt.edu.cn) 上课适配脚本
 // 基于正方教务系统接口适配
 
 function parseWeeks(weekStr) {
