@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.theme.AppType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.Destination
 import com.shangkeschedule.ui.settings.SectionCard
@@ -119,7 +119,7 @@ fun MoreOptionsScreen(
                     text = stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp
+                    fontSize = AppType.hero
                 )
                 Text(
                     text = stringResource(Res.string.label_version_prefix, appVersionName),

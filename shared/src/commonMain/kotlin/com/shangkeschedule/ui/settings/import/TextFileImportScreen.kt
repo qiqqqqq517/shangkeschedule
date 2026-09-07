@@ -1,5 +1,19 @@
 package com.shangkeschedule.ui.settings.import
 
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.import_textfile_action_select
+import shangkeschedule.shared.generated.resources.import_textfile_desc_fallback
+import shangkeschedule.shared.generated.resources.import_textfile_fmt_info
+import shangkeschedule.shared.generated.resources.import_status_parsing
+import shangkeschedule.shared.generated.resources.import_detected_fmt
+import shangkeschedule.shared.generated.resources.import_selected_fmt
+import shangkeschedule.shared.generated.resources.import_toast_success
+import shangkeschedule.shared.generated.resources.import_error_no_file
+import shangkeschedule.shared.generated.resources.import_cat_text_file
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +45,7 @@ import com.shangkeschedule.ui.components.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * 文本类文件导入页：CSV / ICS / HTML / TXT / JSON 文件。
+ * 文本类文件导入页：CSV / ICS / HTML / TXT 文件（JSON 由独立导入流程处理）。
  * 读取文件内容后走通用解析回退链（按扩展名优先定向），先预览再导入为新课表。
  *
  * @param forcedFormat 指定格式类别（来自文件导入分类页）；null/自动 = 按扩展名或自动嗅探
@@ -52,23 +66,22 @@ fun TextFileImportScreen(
         TextImportFormat.CSV -> listOf("csv")
         TextImportFormat.HTML -> listOf("html", "htm")
         TextImportFormat.JSON -> listOf("json")
-        else -> listOf("csv", "ics", "html", "txt", "json")
+        else -> listOf("csv", "ics", "html", "txt") // AUTO 不接收 .json：JSON 走独立导入流程（带覆盖确认）
     }
 
     // 按格式定制：说明文案
     val hintText = forcedFormat?.let { fmt ->
-        "导入 ${fmt.label} 文件：\n${fmt.hint}"
-    } ?: "支持文本类课表文件，按扩展名优先识别，失败自动回退其他格式：\n" +
-            "CSV（表头：课程,教师,教室,星期,节次,周次）\n" +
-            "ICS 日历（BEGIN:VCALENDAR）\n" +
-            "HTML 表格（<table>）\n" +
-            "TXT 纯文本（一行一课）"
+        stringResource(Res.string.import_textfile_fmt_info, fmt.label, fmt.hint)
+    } ?: stringResource(Res.string.import_textfile_desc_fallback)
 
+    // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
+    val toastNoFile = stringResource(Res.string.import_error_no_file)
+    val toastSuccess = stringResource(Res.string.import_toast_success)
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
             onFileImported = { bytes, fileName ->
                 if (bytes == null) {
-                    ToastManager.show("未选择文件")
+                    ToastManager.show(toastNoFile)
                 } else {
                     viewModel.parseFileBytes(bytes, fileName, forcedFormat)
                 }
@@ -79,10 +92,10 @@ fun TextFileImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(forcedFormat?.screenTitle ?: "文本文件导入") },
+                title = { Text(forcedFormat?.screenTitle ?: stringResource(Res.string.import_cat_text_file)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
                     }
                 }
             )
@@ -107,13 +120,13 @@ fun TextFileImportScreen(
                 enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("选择课表文件")
+                Text(stringResource(Res.string.import_textfile_action_select))
             }
 
             uiState.fileName?.let { name ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "已选择：$name",
+                    text = stringResource(Res.string.import_selected_fmt, name),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -122,7 +135,7 @@ fun TextFileImportScreen(
             if (uiState.detectedFormat.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "识别格式：${uiState.detectedFormat}",
+                    text = stringResource(Res.string.import_detected_fmt, uiState.detectedFormat),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -138,14 +151,18 @@ fun TextFileImportScreen(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.padding(start = 12.dp))
-                    Text("正在解析文件…")
+                    Text(stringResource(Res.string.import_status_parsing))
                 }
             }
 
             // 预览 + 导入
             uiState.parseResult?.let { model ->
                 Spacer(modifier = Modifier.height(16.dp))
-                ImportPreviewSection(model = model)
+                ImportPreviewSection(
+                    model = model,
+                    // P1-6 预览可编辑：编辑/删除结果回写 VM，保证导入数据与预览一致
+                    onCoursesChanged = viewModel::updateParsedCourses
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
                 ImportDestinationForm(
@@ -155,7 +172,7 @@ fun TextFileImportScreen(
                         viewModel.importToNewTable(
                             tableName = tableName,
                             onSuccess = { newTableId ->
-                                ToastManager.show("导入成功！")
+                                ToastManager.show(toastSuccess)
                                 viewModel.reset()
                                 onImportSuccess(newTableId)
                             },
@@ -166,7 +183,7 @@ fun TextFileImportScreen(
                         viewModel.importToExistingTable(
                             tableId = tableId,
                             onSuccess = { id ->
-                                ToastManager.show("导入成功！")
+                                ToastManager.show(toastSuccess)
                                 viewModel.reset()
                                 onImportSuccess(id)
                             },

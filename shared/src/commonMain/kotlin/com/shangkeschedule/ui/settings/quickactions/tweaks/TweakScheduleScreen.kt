@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.repository.CourseTableRepository.TweakMode
+import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.DatePickerModal
 import kotlinx.datetime.LocalDate
@@ -53,6 +54,9 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_arrow
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_save_tweak
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_tweak
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_tweak
 import shangkeschedule.shared.generated.resources.action_select_table
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.arrow_downward_24px
@@ -101,6 +105,8 @@ fun TweakScheduleScreen(
     var showCourseTablePicker by remember { mutableStateOf(false) }
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
+    // 调课执行前二次确认（批量移动课程，不可撤销）
+    var showConfirmMove by remember { mutableStateOf(false) }
 
     val titleTweakSchedule = stringResource(Res.string.title_tweak_schedule)
     val a11yBack = stringResource(Res.string.a11y_back)
@@ -146,7 +152,7 @@ fun TweakScheduleScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.moveCourses() }) {
+                    IconButton(onClick = { showConfirmMove = true }) {
                         Icon(imageVector = vectorResource(Res.drawable.check_24px), contentDescription = a11ySaveTweak)
                     }
                 }
@@ -267,6 +273,20 @@ fun TweakScheduleScreen(
                 }
             }
         }
+    }
+
+    // 调课执行二次确认（批量移动课程，不可撤销）
+    if (showConfirmMove) {
+        AppDangerDialog(
+            onDismissRequest = { showConfirmMove = false },
+            title = stringResource(Res.string.dialog_title_confirm_tweak),
+            text = stringResource(Res.string.dialog_text_confirm_tweak, uiState.fromCourses.size),
+            confirmText = stringResource(Res.string.confirm_delete),
+            onConfirm = {
+                showConfirmMove = false
+                viewModel.moveCourses()
+            }
+        )
     }
 
     if (showCourseTablePicker) {

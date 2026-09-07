@@ -4,11 +4,13 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.shangkeschedule.ui.theme.appColors
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_cancel
@@ -36,12 +38,12 @@ fun DatePickerModal(
                 onDateSelected(datePickerState.selectedDateMillis)
                 onDismiss()
             }) {
-                Text(stringResource(Res.string.action_confirm))
+                Text(stringResource(Res.string.action_confirm), color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
+                Text(stringResource(Res.string.action_cancel), color = appColors().textSecondary)
             }
         }
     ) {

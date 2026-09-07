@@ -1,12 +1,15 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -25,11 +28,13 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -42,13 +47,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.compose.resources.stringResource
@@ -56,6 +64,15 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import com.shangkeschedule.ui.components.AppDialogActions
+import shangkeschedule.shared.generated.resources.action_go_to_settings
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_later
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_message
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_title
+import shangkeschedule.shared.generated.resources.webview_load_error_generic
+import shangkeschedule.shared.generated.resources.webview_load_error_fmt
+import shangkeschedule.shared.generated.resources.webview_load_error_detail
+import shangkeschedule.shared.generated.resources.webview_load_error_retry
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_cancel_editing
 import shangkeschedule.shared.generated.resources.a11y_devtools
@@ -125,6 +142,11 @@ fun WebViewScreen(
     var inputUrl by remember { mutableStateOf(if (startedEmpty) "" else (initialUrl ?: "")) }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var pageTitle by remember { mutableStateOf(if (startedEmpty) titleEnterUrl else titleLoading) }
+    // WebView 加载失败反馈（P1-4）：webViewLoadFailed 为 true 时覆盖全屏错误页
+    var webViewLoadFailed by remember { mutableStateOf(false) }
+    var loadErrorDescription by remember { mutableStateOf("") }
+    // 加载看门狗计数器：每次发起加载（onSearch / 重试 / 初始）时 +1，重新计时
+    var watchdogNonce by remember { mutableStateOf(0) }
 
     var expanded by remember { mutableStateOf(false) }
     var isDesktopMode by remember { mutableStateOf(forceDesktopMode) }
@@ -178,6 +200,17 @@ fun WebViewScreen(
 
     PlatformBackHandler(enabled = true, onBack = handleBackAction)
 
+    // 加载超时看门狗（P1-5）：发起加载 30s 后仍未完成（onPageFinished 未触发）则提示失败，
+    // 避免校园网不稳 / 页面假死时用户面对空白页 + 永久卡住的进度条。
+    LaunchedEffect(watchdogNonce) {
+        if (webViewLoadFailed) return@LaunchedEffect
+        delay(30_000)
+        if (!webViewLoadFailed && loadingProgress < 1.0f) {
+            webViewLoadFailed = true
+            loadErrorDescription = ""
+        }
+    }
+
     val onSearch: (String) -> Unit = { query ->
         val trimmed = query.trim()
         if (trimmed.isNotBlank()) {
@@ -190,6 +223,9 @@ fun WebViewScreen(
             currentUrl = formattedUrl
             isEditingUrl = false
             pageTitle = titleLoading
+            webViewLoadFailed = false
+            loadErrorDescription = ""
+            watchdogNonce += 1
         }
     }
 
@@ -209,10 +245,10 @@ fun WebViewScreen(
                 },
                 title = {
                     if (isEditingUrl) {
-                        OutlinedTextField(
+                        AppTextField(
                             value = inputUrl,
                             onValueChange = { inputUrl = it },
-                            placeholder = { Text(stringResource(Res.string.placeholder_enter_url_full)) },
+                            placeholder = stringResource(Res.string.placeholder_enter_url_full),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                             keyboardActions = KeyboardActions(
                                 onGo = {
@@ -220,15 +256,7 @@ fun WebViewScreen(
                                 }
                             ),
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                errorBorderColor = Color.Transparent,
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            ),
-                            textStyle = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         )
                     } else {
                         Text(
@@ -371,7 +399,11 @@ fun WebViewScreen(
                 bridgeHandler = bridgeHandler,
                 onProgressChange = { loadingProgress = it },
                 onTitleChange = { pageTitle = it },
-                onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) }
+                onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) },
+                onWebViewLoadError = { description ->
+                    webViewLoadFailed = true
+                    loadErrorDescription = description
+                }
             )
 
             if (loadingProgress < 1.0f) {
@@ -381,6 +413,57 @@ fun WebViewScreen(
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = Color.Transparent
                 )
+            }
+
+            // WebView 加载失败全屏错误页（P1-4）：网络不可用 / 4xx5xx / SSL 错误时给出出口（重试/返回）
+            if (webViewLoadFailed && !isEditingUrl) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = if (loadErrorDescription.isBlank()) {
+                            stringResource(Res.string.webview_load_error_generic)
+                        } else {
+                            stringResource(Res.string.webview_load_error_fmt, loadErrorDescription)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(Res.string.webview_load_error_detail),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                webViewLoadFailed = false
+                                loadErrorDescription = ""
+                                onBack()
+                            }
+                        ) {
+                            Text(stringResource(Res.string.a11y_back))
+                        }
+                        Button(
+                            onClick = {
+                                webViewLoadFailed = false
+                                loadErrorDescription = ""
+                                loadingProgress = 0f
+                                watchdogNonce += 1
+                                webViewController.reload()
+                            }
+                        ) {
+                            Text(stringResource(Res.string.webview_load_error_retry))
+                        }
+                    }
+                }
             }
 
             if (showCourseTablePicker && assetJsPath != null) {
@@ -416,17 +499,20 @@ fun WebViewScreen(
             if (showSemesterStartPrompt) {
                 AlertDialog(
                     onDismissRequest = { showSemesterStartPrompt = false },
-                    title = { Text("请设置开学日期") },
-                    text = { Text("已导入新课表，但尚未设置开学日期。设置开学日期后才能正确显示当前周数与课表高亮。") },
+                    title = { Text(stringResource(Res.string.webview_semester_prompt_title)) },
+                    text = { Text(stringResource(Res.string.webview_semester_prompt_message)) },
                     confirmButton = {
-                        TextButton(onClick = {
-                            showSemesterStartPrompt = false
-                            onNavigate(Destination.SemesterSettings)
-                        }) { Text("去设置") }
+                        AppDialogActions(
+                            confirmText = stringResource(Res.string.action_go_to_settings),
+                            onConfirm = {
+                                showSemesterStartPrompt = false
+                                onNavigate(Destination.SemesterSettings)
+                            },
+                            dismissText = stringResource(Res.string.webview_semester_prompt_later),
+                            onDismiss = { showSemesterStartPrompt = false }
+                        )
                     },
-                    dismissButton = {
-                        TextButton(onClick = { showSemesterStartPrompt = false }) { Text("稍后再说") }
-                    }
+                    dismissButton = {}
                 )
             }
         }

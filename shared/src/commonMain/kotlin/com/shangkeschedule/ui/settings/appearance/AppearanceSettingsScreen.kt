@@ -68,6 +68,7 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AdvancedColorPicker
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.ColorPickerConfig
@@ -80,10 +81,18 @@ import com.shangkeschedule.ui.settings.style.SettingsListContent
 import com.shangkeschedule.ui.settings.style.StyleSettingsViewModel
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.supportsDynamicColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import com.shangkeschedule.ui.components.AppDialogActions
+import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.appearance_switch_confirm
+import shangkeschedule.shared.generated.resources.appearance_switch_message
+import shangkeschedule.shared.generated.resources.appearance_switch_title
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.action_reset
 import shangkeschedule.shared.generated.resources.arrow_back_24px
@@ -155,6 +164,11 @@ fun AppearanceSettingsScreen(
             }
         )
     }
+
+    // 悬浮面板玻璃：主内容 hazeSource，取色器面板背板模糊
+    val hazeState = rememberHazeState()
+
+    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
 
     Scaffold(
         topBar = {
@@ -237,7 +251,8 @@ fun AppearanceSettingsScreen(
                                 currentColor = Color(settings.customDarkPrimary),
                                 onColorChanged = { settingsViewModel.onCustomDarkPrimaryChanged(it) },
                                 onReset = { settingsViewModel.onCustomDarkPrimaryChanged() },
-                                enabled = !customColorDisabled
+                                enabled = !customColorDisabled,
+                                hazeState = hazeState
                             )
                         } else {
                             AppearanceThemeColorPickerItem(
@@ -245,7 +260,8 @@ fun AppearanceSettingsScreen(
                                 currentColor = Color(settings.customLightPrimary),
                                 onColorChanged = { settingsViewModel.onCustomLightPrimaryChanged(it) },
                                 onReset = { settingsViewModel.onCustomLightPrimaryChanged() },
-                                enabled = !customColorDisabled
+                                enabled = !customColorDisabled,
+                                hazeState = hazeState
                             )
                         }
                         Text(
@@ -270,7 +286,8 @@ fun AppearanceSettingsScreen(
                     viewModel = styleViewModel,
                     onWallpaperClick = { fileManager.pickImage() },
                     modifier = Modifier.fillMaxWidth(),
-                    scrollable = false
+                    scrollable = false,
+                    hazeState = hazeState
                 ) { isDark, idx ->
                     isDarkTarget = isDark
                     selectedColorIndex = idx
@@ -279,12 +296,15 @@ fun AppearanceSettingsScreen(
             }
         }
     }
+    }
 
     if (showColorPicker) {
-        ModalBottomSheet(
-            onDismissRequest = { showColorPicker = false },
-            sheetState = rememberModalBottomSheetState()
+        AppGlassBottomSheet(
+            hazeState = hazeState,
+            onDismissRequest = { showColorPicker = false }
         ) {
+            // 功能色（豁免声明）：取色器无色池可用时的兜底初始值，
+            // 仅作为拾色起点、不作为界面文字/图标颜色，不随主题 token。
             val initialColor = styleState.courseColorMaps.getOrNull(selectedColorIndex)?.let { pair ->
                 if (isDarkTarget) pair.dark else pair.light
             } ?: Color.Gray
@@ -308,23 +328,22 @@ fun AppearanceSettingsScreen(
         val targetPreset = pendingThemePreset!!
         AlertDialog(
             onDismissRequest = { pendingThemePreset = null },
-            title = { Text("切换主题") },
+            title = { Text(stringResource(Res.string.appearance_switch_title)) },
             text = {
-                Text("切换到「${stringResource(targetPreset.labelRes)}」将重置当前的个性化配置（圆角、间距、配色等），是否继续？")
+                Text(stringResource(Res.string.appearance_switch_message, stringResource(targetPreset.labelRes)))
             },
             confirmButton = {
-                TextButton(onClick = {
-                    settingsViewModel.onThemePresetChanged(targetPreset)
-                    pendingThemePreset = null
-                }) {
-                    Text("确认切换", color = MaterialTheme.colorScheme.primary)
-                }
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.appearance_switch_confirm),
+                    onConfirm = {
+                        settingsViewModel.onThemePresetChanged(targetPreset)
+                        pendingThemePreset = null
+                    },
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = { pendingThemePreset = null }
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { pendingThemePreset = null }) {
-                    Text("取消")
-                }
-            }
+            dismissButton = {}
         )
     }
 }
@@ -459,6 +478,7 @@ private fun AppearanceDynamicColorToggle(
 @Composable
 private fun AppearanceThemeColorPickerItem(
     label: String,
+    hazeState: HazeState? = null,
     currentColor: Color,
     onColorChanged: (Color) -> Unit,
     onReset: () -> Unit,
@@ -488,10 +508,10 @@ private fun AppearanceThemeColorPickerItem(
     }
 
     if (showSheet) {
-        ModalBottomSheet(
+        AppGlassBottomSheet(
+            hazeState = hazeState,
             onDismissRequest = { showSheet = false },
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
+            sheetState = sheetState
         ) {
             Column(
                 modifier = Modifier

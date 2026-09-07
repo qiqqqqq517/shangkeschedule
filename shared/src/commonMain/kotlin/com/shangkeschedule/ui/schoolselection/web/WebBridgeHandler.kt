@@ -1,5 +1,27 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.wb_default_confirm
+import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
+import shangkeschedule.shared.generated.resources.wb_config_import_no_table
+import shangkeschedule.shared.generated.resources.wb_config_import_success
+import shangkeschedule.shared.generated.resources.wb_crush_import_failed_fmt
+import shangkeschedule.shared.generated.resources.wb_crush_import_success
+import shangkeschedule.shared.generated.resources.wb_import_failed_fmt
+import shangkeschedule.shared.generated.resources.wb_import_no_table
+import shangkeschedule.shared.generated.resources.wb_import_success
+import shangkeschedule.shared.generated.resources.wb_list_invalid
+import shangkeschedule.shared.generated.resources.wb_list_json_invalid_fmt
+import shangkeschedule.shared.generated.resources.wb_preset_import_failed_fmt
+import shangkeschedule.shared.generated.resources.wb_preset_import_success
+import shangkeschedule.shared.generated.resources.wb_show_alert_queue_full
+import shangkeschedule.shared.generated.resources.wb_show_list_queue_full
+import shangkeschedule.shared.generated.resources.wb_show_prompt_queue_full
+import shangkeschedule.shared.generated.resources.wb_table_cancelled
+import shangkeschedule.shared.generated.resources.wb_table_cancelled_or_unset
+
+import org.jetbrains.compose.resources.getString
+
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.repository.CourseConversionRepository
 import com.shangkeschedule.ui.components.ToastManager
@@ -91,18 +113,20 @@ class WebBridgeHandler(
         confirmText: String? = null,
         callbackId: String? = null
     ) {
-        val resolvedConfirmText = confirmText ?: "确定"
-        val data = AlertDialogData(titleText, contentText, resolvedConfirmText)
+        coroutineScope.launch(Dispatchers.Main) {
+            val resolvedConfirmText = confirmText ?: getString(Res.string.wb_default_confirm)
+            val data = AlertDialogData(titleText, contentText, resolvedConfirmText)
 
-        val promiseCallback: (Boolean) -> Unit = { confirmed ->
-            if (callbackId != null) {
-                resolveJsPromise(callbackId, if (confirmed) "true" else "false")
+            val promiseCallback: (Boolean) -> Unit = { confirmed ->
+                if (callbackId != null) {
+                    resolveJsPromise(callbackId, if (confirmed) "true" else "false")
+                }
             }
-        }
 
-        val sendResult = uiEventChannel.trySend(WebUiEvent.ShowAlert(data, promiseCallback))
-        if (sendResult.isFailure && callbackId != null) {
-            rejectJsPromise(callbackId, "无法显示弹窗：事件队列已满")
+            val sendResult = uiEventChannel.trySend(WebUiEvent.ShowAlert(data, promiseCallback))
+            if (sendResult.isFailure && callbackId != null) {
+                rejectJsPromise(callbackId, getString(Res.string.wb_show_alert_queue_full))
+            }
         }
     }
 
@@ -161,7 +185,9 @@ class WebBridgeHandler(
             WebUiEvent.ShowPrompt(data, onRequestValidation, errorFlow.asSharedFlow(), onCancel)
         )
         if (sendResult.isFailure && callbackId != null) {
-            rejectJsPromise(callbackId, "无法显示输入框：事件队列已满")
+            coroutineScope.launch {
+                rejectJsPromise(callbackId, getString(Res.string.wb_show_prompt_queue_full))
+            }
         }
     }
 
@@ -186,12 +212,16 @@ class WebBridgeHandler(
 
             val sendResult = uiEventChannel.trySend(WebUiEvent.ShowSingleSelection(data, promiseCallback))
             if (sendResult.isFailure && callbackId != null) {
-                rejectJsPromise(callbackId, "无法显示列表：事件队列已满")
+                coroutineScope.launch {
+                    rejectJsPromise(callbackId, getString(Res.string.wb_show_list_queue_full))
+                }
             }
         } catch (e: Exception) {
-            ToastManager.show("单选列表数据错误，无法显示。")
-            if (callbackId != null) {
-                rejectJsPromise(callbackId, "选项列表 JSON 无效: ${e.message}")
+            coroutineScope.launch {
+                ToastManager.show(getString(Res.string.wb_list_invalid))
+                if (callbackId != null) {
+                    rejectJsPromise(callbackId, getString(Res.string.wb_list_json_invalid_fmt, e.message ?: ""))
+                }
             }
         }
     }
@@ -204,8 +234,8 @@ class WebBridgeHandler(
             val tableId = importTableId
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
-                    ToastManager.show("导入失败：未选择课表。")
-                    if (callbackId != null) rejectJsPromise(callbackId, "课表选择已取消。")
+                    ToastManager.show(getString(Res.string.wb_import_no_table))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled))
                 }
                 return@launch
             }
@@ -221,11 +251,11 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show(if (isCrushImport) "crush 课表导入成功！" else "课程导入成功！课表已更新。")
+                    ToastManager.show(getString(if (isCrushImport) Res.string.wb_crush_import_success else Res.string.wb_import_success))
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show(if (isCrushImport) "crush 课表导入失败: ${e.message}" else "课程导入失败: ${e.message}")
-                    if (callbackId != null) rejectJsPromise(callbackId, "课程导入失败: ${e.message}")
+                    ToastManager.show(getString(if (isCrushImport) Res.string.wb_crush_import_failed_fmt else Res.string.wb_import_failed_fmt, e.message ?: ""))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_import_failed_fmt, e.message ?: ""))
                 }
             }
         }
@@ -239,8 +269,8 @@ class WebBridgeHandler(
             val tableId = importTableId
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
-                    ToastManager.show("配置导入失败：未选择目标课表。")
-                    if (callbackId != null) rejectJsPromise(callbackId, "课表选择已取消或未设置。")
+                    ToastManager.show(getString(Res.string.wb_config_import_no_table))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled_or_unset))
                 }
                 return@launch
             }
@@ -252,11 +282,11 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show("课表配置导入成功！")
+                    ToastManager.show(getString(Res.string.wb_config_import_success))
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show("课表配置导入失败: ${e.message}")
-                    if (callbackId != null) rejectJsPromise(callbackId, "课表配置导入失败: ${e.message}")
+                    ToastManager.show(getString(Res.string.wb_config_import_failed_fmt, e.message ?: ""))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_config_import_failed_fmt, e.message ?: ""))
                 }
             }
         }
@@ -270,8 +300,8 @@ class WebBridgeHandler(
             val tableId = importTableId
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
-                    ToastManager.show("导入失败：未选择课表。")
-                    if (callbackId != null) rejectJsPromise(callbackId, "课表选择已取消。")
+                    ToastManager.show(getString(Res.string.wb_import_no_table))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled))
                 }
                 return@launch
             }
@@ -283,11 +313,11 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show("预设时间段导入成功！")
+                    ToastManager.show(getString(Res.string.wb_preset_import_success))
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show("预设时间段导入失败: ${e.message}")
-                    if (callbackId != null) rejectJsPromise(callbackId, "预设时间段导入失败: ${e.message}")
+                    ToastManager.show(getString(Res.string.wb_preset_import_failed_fmt, e.message ?: ""))
+                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_preset_import_failed_fmt, e.message ?: ""))
                 }
             }
         }

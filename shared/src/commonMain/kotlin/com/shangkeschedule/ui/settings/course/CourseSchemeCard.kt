@@ -18,20 +18,20 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.ui.components.AppTextField
+import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.appColors
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -73,9 +73,9 @@ fun CourseSchemeCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppShape.menu,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = appColors().cardBg
         )
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
@@ -109,8 +109,7 @@ fun CourseSchemeCard(
                     Text(stringResource(Res.string.label_custom_time), style = MaterialTheme.typography.labelSmall)
                     com.shangkeschedule.ui.components.AppSwitch(
                         checked = scheme.isCustomTime,
-                        onCheckedChange = onToggleCustomTime,
-                        modifier = Modifier.scale(0.7f)
+                        onCheckedChange = onToggleCustomTime
                     )
 
                     if (showRemoveButton) {
@@ -120,24 +119,23 @@ fun CourseSchemeCard(
                     }
                 }
 
-                // 地点输入
-                OutlinedTextField(
+                // 地点输入（统一柔和填充输入框）
+                AppTextField(
                     value = scheme.position,
                     onValueChange = onPositionChange,
-                    placeholder = { Text(stringResource(Res.string.label_position)) },
+                    placeholder = stringResource(Res.string.label_position),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(vectorResource(Res.drawable.location_on_24px), null, Modifier.size(18.dp)) },
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 备注输入
-                OutlinedTextField(
+                AppTextField(
                     value = scheme.remark,
                     onValueChange = onRemarkChange,
-                    placeholder = { Text(stringResource(Res.string.label_remark)) },
+                    placeholder = stringResource(Res.string.label_remark),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(18.dp)) },
                     minLines = 1,
@@ -150,9 +148,7 @@ fun CourseSchemeCard(
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    textStyle = MaterialTheme.typography.bodyMedium
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

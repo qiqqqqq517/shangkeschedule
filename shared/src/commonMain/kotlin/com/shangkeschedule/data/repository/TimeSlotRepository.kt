@@ -1,6 +1,8 @@
 package com.shangkeschedule.data.repository
 
 import androidx.room3.withWriteTransaction
+import com.shangkeschedule.data.db.main.Course
+import com.shangkeschedule.data.db.main.CourseDao
 import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.CourseTableConfig
@@ -33,7 +35,8 @@ class TimeSlotRepository(
     private val database: MainAppDatabase,
     private val timeSlotDao: TimeSlotDao,
     private val timeSlotSchemeDao: TimeSlotSchemeDao,
-    private val courseTableConfigDao: CourseTableConfigDao
+    private val courseTableConfigDao: CourseTableConfigDao,
+    private val courseDao: CourseDao
 ) {
     /**
      * 获取指定课表、指定作息方案的所有时间段，返回一个数据流。
@@ -76,11 +79,57 @@ class TimeSlotRepository(
         config: CourseTableConfig
     ) {
         database.withWriteTransaction {
+            // 事务内先读取旧时间段（供删除后迁移课程节次引用）
+            val oldSlots = timeSlotDao.getTimeSlotsOnce(courseTableId, schemeId)
+
             timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
             if (timeSlots.isNotEmpty()) {
                 timeSlotDao.insertAll(timeSlots.map { it.copy(courseTableId = courseTableId, schemeId = schemeId) })
             }
             courseTableConfigDao.insertOrUpdate(config)
+
+            // 时间段删除/重编号后，把受影响的课程节次引用迁移到新编号，避免课程静默错位
+            migrateCourseSections(courseTableId, oldSlots, timeSlots)
+        }
+    }
+
+    /**
+     * 时间段保存后迁移课程节次引用。
+     *
+     * 时间段删除一个中间节次后会在 UI 层按 startTime 重排编号（number），但数据库里
+     * Course.startSection / endSection 仍指向旧编号。此处按 startTime 匹配新旧时间段，
+     * 算出旧编号 → 新编号映射，把受影响课程（标准节次、非 crush）的节次引用一并前移，
+     * 防止删除中间节次后课程静默对齐到错误的时间。
+     */
+    private suspend fun migrateCourseSections(
+        courseTableId: String,
+        oldSlots: List<TimeSlot>,
+        newSlots: List<TimeSlot>
+    ) {
+        // 首次创建或旧时间段为空：无需迁移
+        if (oldSlots.isEmpty()) return
+
+        val newByStartTime = newSlots.associateBy { it.startTime }
+        // 旧编号 → 新编号（按 startTime 匹配）；被删除的旧编号收集到 removed 集合
+        val mapping = mutableMapOf<Int, Int>()
+        val removed = mutableSetOf<Int>()
+        for (old in oldSlots) {
+            val matched = newByStartTime[old.startTime]
+            if (matched != null) mapping[old.number] = matched.number else removed.add(old.number)
+        }
+
+        // 编号完全没变且无删除：无需迁移
+        val anyChange = removed.isNotEmpty() || mapping.any { (k, v) -> k != v }
+        if (!anyChange) return
+
+        val courses = courseDao.getCoursesOnce(courseTableId)
+        for (course in courses) {
+            // 只迁移标准节次、非 crush 课程；自定义时间课程不依赖节次编号
+            if (course.isCustomTime || course.startSection == null) continue
+            val newStart = mapping[course.startSection] ?: course.startSection
+            val newEnd = course.endSection?.let { mapping[it] ?: it }
+            if (newStart == course.startSection && newEnd == course.endSection) continue
+            courseDao.update(course.copy(startSection = newStart, endSection = newEnd))
         }
     }
 

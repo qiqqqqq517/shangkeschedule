@@ -1,5 +1,22 @@
 package com.shangkeschedule.ui.settings.import
 
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.import_text_hub_hint
+import shangkeschedule.shared.generated.resources.import_text_hub_ics_desc
+import shangkeschedule.shared.generated.resources.import_text_hub_csv_desc
+import shangkeschedule.shared.generated.resources.import_text_hub_json_desc
+import shangkeschedule.shared.generated.resources.import_text_hub_plain_desc
+import shangkeschedule.shared.generated.resources.import_text_hub_plain
+import shangkeschedule.shared.generated.resources.import_text_hub_wakeup_desc
+import shangkeschedule.shared.generated.resources.import_text_hub_wakeup
+import shangkeschedule.shared.generated.resources.import_cat_text_paste
+import shangkeschedule.shared.generated.resources.import_cat_csv
+import shangkeschedule.shared.generated.resources.import_cat_ics
+import shangkeschedule.shared.generated.resources.import_cat_json
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,10 +53,10 @@ fun TextImportHubScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("文本粘贴导入") },
+                title = { Text(stringResource(Res.string.import_cat_text_paste)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
                     }
                 }
             )
@@ -54,38 +71,38 @@ fun TextImportHubScreen(
             Spacer(Modifier.height(8.dp))
             SectionCard {
                 SettingItem(
-                    title = "WakeUp 分享文本",
-                    subtitle = "粘贴 WakeUp 课程表 App 分享的文本内容",
+                    title = stringResource(Res.string.import_text_hub_wakeup),
+                    subtitle = stringResource(Res.string.import_text_hub_wakeup_desc),
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.WAKEUP.name)) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "纯文本导入",
-                    subtitle = "一行一课：课程名 教师 教室 星期 节次 周次",
+                    title = stringResource(Res.string.import_text_hub_plain),
+                    subtitle = stringResource(Res.string.import_text_hub_plain_desc),
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.PLAIN.name)) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "JSON 导入",
-                    subtitle = "本App导出 JSON / WakeUp JSON",
+                    title = stringResource(Res.string.import_cat_json),
+                    subtitle = stringResource(Res.string.import_text_hub_json_desc),
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.JSON.name)) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "CSV 导入",
-                    subtitle = "表头：课程,教师,教室,星期,节次,周次",
+                    title = stringResource(Res.string.import_cat_csv),
+                    subtitle = stringResource(Res.string.import_text_hub_csv_desc),
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.CSV.name)) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "ICS 日历导入",
-                    subtitle = "粘贴 .ics 日历文本（含 VEVENT）",
+                    title = stringResource(Res.string.import_cat_ics),
+                    subtitle = stringResource(Res.string.import_text_hub_ics_desc),
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.ICS.name)) }
                 )
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "提示：不确定格式可任选一类粘贴尝试；各类别解析失败时会给出具体原因。",
+                text = stringResource(Res.string.import_text_hub_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp)

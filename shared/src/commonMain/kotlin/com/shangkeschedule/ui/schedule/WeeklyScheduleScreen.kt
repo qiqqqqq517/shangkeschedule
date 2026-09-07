@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -58,6 +59,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,10 +86,16 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.TimetableDefaults
+import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -200,6 +208,9 @@ fun WeeklyScheduleScreen(
 
     val floatingCourse = uiState.floatingCourse
 
+    // 悬浮面板玻璃：主内容 hazeSource（含壁纸），周选择面板背板模糊
+    val hazeState = rememberHazeState()
+
     val floatingDuration by remember(floatingCourse, composedStyle.scheduleMode) {
         derivedStateOf {
             if (floatingCourse != null) {
@@ -240,7 +251,6 @@ fun WeeklyScheduleScreen(
         }
     }
 
-    val collapseFraction = scrollBehavior.state.collapsedFraction
     val scheduleViewMode by viewModel.scheduleViewModeState.collectAsStateWithLifecycle()
 
     AdaptiveNavigationScaffold(
@@ -249,13 +259,13 @@ fun WeeklyScheduleScreen(
         showNavigation = floatingCourse == null,
         isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
         contentColor = customTextColor,
-        navigationModifier = Modifier.graphicsLayer {
-            translationY = size.height * collapseFraction
-            alpha = 1f - collapseFraction
-        },
+        // P2-6 去除独立的 navigationModifier 滚动隐藏：AdaptiveNavigationScaffold 已内置
+        // 统一的滚动隐藏连接（下滑累积隐藏 / 上滑 / 切 Tab / 顶部动画恢复），
+        // 此处再叠加 collapseFraction 平移+alpha 会和内置隐藏产生双重位移/淡出叠加。
+        // 统一由 Scaffold 的 NestedScrollConnection 接管，避免底栏位移叠加异常。
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
             if (composedStyle.backgroundImagePath.isNotEmpty()) {
                 AsyncImage(
                     model = composedStyle.backgroundImagePath,
@@ -269,13 +279,20 @@ fun WeeklyScheduleScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                containerColor = Color.Transparent,
+                // 白块修复：无壁纸时此页底色走 pageBg（原 Transparent 透出窗口白色，
+                // 底栏下方留白带呈现为「白块」）；壁纸模式保持透明以透出壁纸。
+                containerColor = if (composedStyle.backgroundImagePath.isEmpty()) {
+                    appColors().pageBg
+                } else {
+                    Color.Transparent
+                },
                 topBar = {
                     CenterAlignedTopAppBar(
                         title = {
                             // 周切换入口：Telegram 胶囊形态（浅灰胶囊底，含标题 + 下拉箭头）
                             val hasBackgroundImage = composedStyle.backgroundImagePath.isNotEmpty()
                             val weekChipBg = if (hasBackgroundImage) {
+                                // 功能色（豁免声明）：壁纸上的半透明黑遮罩，保证周次胶囊文字可读，不随主题
                                 Color.Black.copy(alpha = 0.25f)
                             } else {
                                 appColors().inputBg
@@ -296,7 +313,7 @@ fun WeeklyScheduleScreen(
                             ) {
                                 Text(
                                     text = displayTitle,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = AppType.sectionTitle),
                                     fontWeight = FontWeight.SemiBold,
                                     color = customTextColor
                                 )
@@ -403,14 +420,15 @@ fun WeeklyScheduleScreen(
                 snackbarHost = { AppSnackbarHost(hostState = snackbarHostState) }
             ) { scaffoldInnerPadding ->
 
-                val dynamicBottomPadding = remember(innerPadding, collapseFraction, floatingCourse) {
+                val dynamicBottomPadding = remember(innerPadding, floatingCourse) {
                     if (floatingCourse != null) {
                         0.dp
                     } else {
-                        val bottomBarHeight = innerPadding.calculateBottomPadding()
-                        val systemWindowInsetBottom = scaffoldInnerPadding.calculateBottomPadding()
-                        val baseBottom = systemWindowInsetBottom.coerceAtLeast(0.dp)
-                        baseBottom + (bottomBarHeight * (1f - collapseFraction))
+                        // 底部占位修复：innerPadding.bottom = 玻璃底栏完整占位（已含系统手势区，
+                        // 且随底栏隐藏动画同步收缩）。原实现再叠加 scaffoldInnerPadding.bottom
+                        // 造成系统 inset 双算（底部留白带偏高），又与顶栏 collapseFraction 联动——
+                        // 底栏不再随 collapse 平移后会出现玻璃条压住网格末行。
+                        innerPadding.calculateBottomPadding()
                     }
                 }
 
@@ -420,8 +438,9 @@ fun WeeklyScheduleScreen(
                         .padding(
                             start = scaffoldInnerPadding.calculateStartPadding(LayoutDirection.Ltr),
                             top = scaffoldInnerPadding.calculateTopPadding(),
-                            end = scaffoldInnerPadding.calculateEndPadding(LayoutDirection.Ltr),
-                            bottom = dynamicBottomPadding
+                            end = scaffoldInnerPadding.calculateEndPadding(LayoutDirection.Ltr)
+                            // 底部遮挡修复：不再整体缩进——网格视口延伸到玻璃底栏之下（与「我的」页
+                            // 内容穿越形态一致），底部留白改由各页滚动内容内部承担（bottomInset）
                         )
                 ) {
                     HorizontalPager(
@@ -465,6 +484,7 @@ fun WeeklyScheduleScreen(
                             showWeekends = uiState.showWeekends,
                             firstDayOfWeek = uiState.firstDayOfWeek,
                             composedStyle = composedStyle,
+                            bottomInset = dynamicBottomPadding,
                             onClickedBlock = { block -> selectedBlockForDetail = block },
                             onLongClickedBlock = { block ->
                                 val targetCourseWrapper = block.courses.firstOrNull()
@@ -641,6 +661,7 @@ fun WeeklyScheduleScreen(
                         viewState = gridViewState,
                         actions = gridActions,
                         style = composedStyle,
+                        bottomInset = dynamicBottomPadding,
                         modifier = Modifier
                     )
                     } // end HorizontalPager page lambda
@@ -657,14 +678,18 @@ fun WeeklyScheduleScreen(
         }
     }
 
-    // 周次选择弹窗
+    // 周次选择弹窗（毛玻璃面板）
     if (showWeekSelector) {
         WeekSelectorBottomSheet(
+            hazeState = hazeState,
             totalWeeks = uiState.totalWeeks,
             currentWeek = uiState.currentWeekNumber ?: 1,
             selectedWeek = uiState.weekIndexInPager ?: (uiState.currentWeekNumber ?: 1),
             onWeekSelected = { week ->
-                val currentWeekAtPage = uiState.weekIndexInPager ?: 1
+                // P1-10 周次选择器错位修复：weekIndexInPager 尚未就绪时，不能假定当前页是第 1 周；
+                // 应按无限分页模型换算：周次 = 当前周 + (页码 - 中心页)，否则从非首页选择会跳错周。
+                val currentWeekAtPage = uiState.weekIndexInPager
+                    ?: (uiState.currentWeekNumber?.plus(pagerState.currentPage - INFINITE_PAGER_CENTER) ?: 1)
                 val offset = week - currentWeekAtPage
                 coroutineScope.launch {
                     pagerState.animateScrollToPage(pagerState.currentPage + offset)
@@ -715,6 +740,7 @@ private fun ScheduleListView(
     showWeekends: Boolean,
     firstDayOfWeek: Int,
     composedStyle: ScheduleGridStyleComposed,
+    bottomInset: Dp = 0.dp,
     onClickedBlock: (MergedCourseBlock) -> Unit,
     onLongClickedBlock: (MergedCourseBlock) -> Unit
 ) {
@@ -727,6 +753,8 @@ private fun ScheduleListView(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        // 底部留白走 contentPadding：列表视口延伸到玻璃底栏之下，末项可滚动到导航条上方
+        contentPadding = PaddingValues(bottom = bottomInset),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         orderedDays.forEach { day ->
@@ -747,13 +775,13 @@ private fun ScheduleListView(
                         text = weekDays.getOrNull((day - 1).coerceAtLeast(0)).orEmpty(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = appColors().primary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "${dayDate.month.number.toString().padStart(2, '0')}-${dayDate.day.toString().padStart(2, '0')}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline
+                        color = appColors().textSecondary
                     )
                 }
             }
@@ -788,11 +816,7 @@ private fun ScheduleListViewBlock(
     val firstCourse = block.courses.firstOrNull()?.course
     val colorIndex = firstCourse?.colorInt ?: 0
     val colorPair = composedStyle.courseColorMaps.getOrElse(colorIndex) {
-        composedStyle.courseColorMaps.firstOrNull()
-            ?: com.shangkeschedule.data.model.DualColor(
-                light = androidx.compose.ui.graphics.Color(0xFFE0F7FA),
-                dark = androidx.compose.ui.graphics.Color(0xFF006064)
-            )
+        composedStyle.courseColorMaps.firstOrNull() ?: TimetableDefaults.fallbackCourseColor
     }
 
     // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
@@ -803,11 +827,11 @@ private fun ScheduleListViewBlock(
     }
     val stripColor = colorPair.dark
     val textColor = if (isTimetablePreset) {
-        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
     } else {
         adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
     }
-    val demotedAlpha = if (block.isVisualDemoted) 0.5f else 1f
+    val demotedAlpha = if (block.isVisualDemoted) AppAlpha.dimmed else 1f
     val cornerRadius = composedStyle.courseBlockCornerRadius
     val shape = RoundedCornerShape(cornerRadius)
 

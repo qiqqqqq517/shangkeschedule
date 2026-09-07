@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -68,7 +67,17 @@ import coil3.compose.AsyncImage
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.components.AdvancedColorPicker
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.AppSegmentedControl
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ColorPickerConfig
+import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.appColors
+import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
 import com.shangkeschedule.ui.schedule.components.ScheduleGrid
@@ -145,24 +154,24 @@ fun SettingsListContent(
     onWallpaperClick: () -> Unit,
     modifier: Modifier = Modifier.fillMaxSize(),
     scrollable: Boolean = true,
+    hazeState: HazeState? = null,
     onPick: (isDark: Boolean, index: Int) -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
 
     if (showResetDialog) {
-        AlertDialog(
+        // 危险操作统一走 AppDangerDialog（危险色胶囊确认钮）
+        AppDangerDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text(stringResource(Res.string.dialog_reset_title)) },
-            text = { Text(stringResource(Res.string.dialog_reset_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.resetStyleSettings()
-                    showResetDialog = false
-                }) { Text(stringResource(Res.string.action_confirm), color = MaterialTheme.colorScheme.error) }
+            title = stringResource(Res.string.dialog_reset_title),
+            text = stringResource(Res.string.dialog_reset_message),
+            confirmText = stringResource(Res.string.action_confirm),
+            onConfirm = {
+                viewModel.resetStyleSettings()
+                showResetDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) { Text(stringResource(Res.string.action_cancel)) }
-            }
+            dismissText = stringResource(Res.string.action_cancel),
+            onDismiss = { showResetDialog = false }
         )
     }
 
@@ -173,8 +182,8 @@ fun SettingsListContent(
     }
 
     Column(
-        modifier = contentModifier.padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        modifier = contentModifier.padding(AppSpacing.pageHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap)
     ) {
         OutlinedButton(
             onClick = { showResetDialog = true },
@@ -185,7 +194,7 @@ fun SettingsListContent(
             Text(stringResource(Res.string.action_reset_style))
         }
 
-        Text(stringResource(Res.string.style_category_interface), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        AppSectionHeader(stringResource(Res.string.style_category_interface))
         WallpaperItem(
             path = currentStyle.backgroundImagePath,
             onClick = onWallpaperClick,
@@ -209,19 +218,20 @@ fun SettingsListContent(
             label = stringResource(Res.string.label_page_text_color),
             currentColor = currentStyle.pageTextColor,
             onColorChanged = { viewModel.updatePageTextColor(it) },
-            onReset = { viewModel.updatePageTextColor(null) }
+            onReset = { viewModel.updatePageTextColor(null) },
+            hazeState = hazeState
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Text(stringResource(Res.string.style_category_grid_size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        AppSectionHeader(stringResource(Res.string.style_category_grid_size))
         StyleSliderItem(stringResource(Res.string.label_section_height), currentStyle.sectionHeight.value, 40f..120f) { viewModel.updateSectionHeight(it) }
         StyleSliderItem(stringResource(Res.string.label_time_column_width), currentStyle.timeColumnWidth.value, 20f..80f) { viewModel.updateTimeColumnWidth(it) }
         StyleSliderItem(stringResource(Res.string.label_day_header_height), currentStyle.dayHeaderHeight.value, 30f..80f) { viewModel.updateDayHeaderHeight(it) }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Text(stringResource(Res.string.style_category_course_block), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        AppSectionHeader(stringResource(Res.string.style_category_course_block))
         ColorPickerItem(
             label = stringResource(Res.string.label_course_text_color),
             currentColor = currentStyle.courseTextColor,
@@ -245,7 +255,7 @@ fun SettingsListContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Text(stringResource(Res.string.style_category_color_scheme), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        AppSectionHeader(stringResource(Res.string.style_category_color_scheme))
 
         ColorSchemeSection(
             title = stringResource(Res.string.title_light_color_pool),
@@ -278,27 +288,12 @@ fun BorderTypeSelector(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(Res.string.label_border_type), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            types.forEach { (type, label) ->
-                val isSelected = currentType == type
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                        .clickable { onTypeChange(type) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+        // 复用全局分段控件（与 24h 模式切换等分段语言一致）
+        AppSegmentedControl(
+            options = types.map { it.second },
+            selectedIndex = types.indexOfFirst { it.first == currentType }.coerceAtLeast(0),
+            onSelect = { index -> onTypeChange(types[index].first) }
+        )
     }
 }
 
@@ -310,9 +305,11 @@ fun ColorSchemeSection(
     colors: List<Color>,
     onEditColor: (Int) -> Unit
 ) {
+    // 功能色（豁免声明）：本区块模拟固定浅色/深色取色池背景，文字用纯黑/纯白
+    // 是对池底色的对照色，不随主题 token 变化，属有意的功能性固定色。
     val contentColor = if (isDarkSection) Color.White else Color.Black
 
-    Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(bgColor).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().clip(AppShape.chip).background(bgColor).padding(16.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = contentColor)
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -329,7 +326,7 @@ fun ColorSchemeSection(
 
 @Composable
 fun ColorPreviewBox(color: Color, isLightModeUI: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp).clip(RoundedCornerShape(16.dp)).background(color), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp).clip(AppShape.chip).background(color), contentAlignment = Alignment.Center) {
         Text(
             text = if (isLightModeUI) stringResource(Res.string.preview_light_mode) else stringResource(Res.string.preview_dark_mode),
             textAlign = TextAlign.Center,
@@ -467,7 +464,8 @@ fun StyleSliderItem(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    OutlinedTextField(
+                    // 柔和填充输入框（AppTextField，与其他弹窗输入一致）
+                    AppTextField(
                         value = textFieldValue,
                         onValueChange = { input ->
                             if (isIntegerStep) {
@@ -482,32 +480,32 @@ fun StyleSliderItem(
                             keyboardType = if (isIntegerStep) KeyboardType.Number
                             else KeyboardType.Decimal
                         ),
-                        placeholder = { Text(stringResource(Res.string.placeholder_input_value)) }
+                        placeholder = stringResource(Res.string.placeholder_input_value)
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    val newValue = textFieldValue.toFloatOrNull()
-                    if (newValue != null) {
-                        val clampedValue = newValue.coerceIn(range.start, range.endInclusive)
-                        val steppedValue = if (stepValue > 0f) {
-                            val count = ((clampedValue - range.start) / stepValue).roundToInt()
-                            range.start + count * stepValue
-                        } else clampedValue
+                // 主色胶囊确认 + 灰字取消（AppDialogActions）
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_confirm),
+                    onConfirm = {
+                        val newValue = textFieldValue.toFloatOrNull()
+                        if (newValue != null) {
+                            val clampedValue = newValue.coerceIn(range.start, range.endInclusive)
+                            val steppedValue = if (stepValue > 0f) {
+                                val count = ((clampedValue - range.start) / stepValue).roundToInt()
+                                range.start + count * stepValue
+                            } else clampedValue
 
-                        onValueChange(steppedValue)
-                        showDialog = false
-                    }
-                }) {
-                    Text(stringResource(Res.string.action_confirm))
-                }
+                            onValueChange(steppedValue)
+                            showDialog = false
+                        }
+                    },
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = { showDialog = false }
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            }
+            dismissButton = {}
         )
     }
 
@@ -520,7 +518,7 @@ fun StyleSliderItem(
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(MaterialTheme.shapes.extraSmall)
                     .clickable { showDialog = true }
                     .padding(horizontal = 4.dp, vertical = 2.dp)
             ) {
@@ -532,6 +530,7 @@ fun StyleSliderItem(
                 )
             }
         }
+        val tokens = appColors()
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -542,9 +541,9 @@ fun StyleSliderItem(
                 Surface(
                     modifier = Modifier.size(16.dp),
                     shape = CircleShape,
-                    color = Color.White,
+                    color = tokens.cardBg,
                     shadowElevation = 1.dp,
-                    border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.5f))
+                    border = BorderStroke(0.5.dp, tokens.divider)
                 ) {}
             },
             track = { sliderState ->
@@ -596,7 +595,7 @@ fun WallpaperItem(
     val hasWallpaper = path.isNotEmpty()
 
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -625,7 +624,8 @@ fun ColorPickerItem(
     label: String,
     currentColor: Color?,
     onColorChanged: (Color) -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     var showSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
@@ -633,7 +633,7 @@ fun ColorPickerItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.small)
             .clickable { showSheet = true }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -659,10 +659,10 @@ fun ColorPickerItem(
     }
 
     if (showSheet) {
-        ModalBottomSheet(
+        AppGlassBottomSheet(
+            hazeState = hazeState,
             onDismissRequest = { showSheet = false },
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
+            sheetState = sheetState
         ) {
             Column(
                 modifier = Modifier

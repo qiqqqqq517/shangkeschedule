@@ -17,14 +17,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,7 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppSelectableCard
+import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.datetime.TimeZone
@@ -126,9 +128,12 @@ fun ManageCourseTablesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddTableDialog = true }) {
-                Icon(vectorResource(Res.drawable.add_24px), contentDescription = a11yAddNewTable)
-            }
+            // 统一 AppFab（主色圆形 + 按压缩放）
+            AppFab(
+                onClick = { showAddTableDialog = true },
+                icon = vectorResource(Res.drawable.add_24px),
+                contentDescription = a11yAddNewTable
+            )
         }
     ) { innerPadding ->
         Column(
@@ -139,9 +144,8 @@ fun ManageCourseTablesScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (uiState.courseTables.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = textNoTablesHint, style = MaterialTheme.typography.bodyLarge)
-                }
+                // 统一空状态
+                AppEmptyState(hint = textNoTablesHint, fillScreen = true)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -267,36 +271,33 @@ fun ManageCourseTablesScreen(
             val confirmDeleteText = stringResource(Res.string.dialog_text_confirm_delete, tableToDelete?.name ?: "")
             val deleteSuccessMsg = stringResource(Res.string.toast_delete_table_success, tableToDelete?.name ?: "")
 
-            AlertDialog(
+            // 危险操作统一走 AppDangerDialog
+            AppDangerDialog(
                 onDismissRequest = {
                     showDeleteConfirmDialog = false
                     tableToDelete = null
                 },
-                title = { Text(dialogTitleConfirmDelete) },
-                text = { Text(confirmDeleteText) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (uiState.courseTables.size > 1) {
-                            tableToDelete?.let {
-                                viewModel.deleteCourseTable(it)
-                                ToastManager.show(deleteSuccessMsg)
-                            }
-                            showDeleteConfirmDialog = false
-                            tableToDelete = null
-                        } else {
-                            ToastManager.show(toastDeleteLastFailed)
-                            showDeleteConfirmDialog = false
-                            tableToDelete = null
+                title = dialogTitleConfirmDelete,
+                text = confirmDeleteText,
+                confirmText = actionDelete,
+                onConfirm = {
+                    if (uiState.courseTables.size > 1) {
+                        tableToDelete?.let {
+                            viewModel.deleteCourseTable(it)
+                            ToastManager.show(deleteSuccessMsg)
                         }
-                    }) {
-                        Text(actionDelete, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
                         showDeleteConfirmDialog = false
                         tableToDelete = null
-                    }) { Text(actionCancel) }
+                    } else {
+                        ToastManager.show(toastDeleteLastFailed)
+                        showDeleteConfirmDialog = false
+                        tableToDelete = null
+                    }
+                },
+                dismissText = actionCancel,
+                onDismiss = {
+                    showDeleteConfirmDialog = false
+                    tableToDelete = null
                 }
             )
         }
@@ -321,14 +322,10 @@ fun CourseTableCard(
     val idText = stringResource(Res.string.course_table_id_prefix, formattedId)
     val createdAtText = stringResource(Res.string.course_table_created_at_prefix, formattedDate)
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCardClick(tableInfo) },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+    AppSelectableCard(
+        selected = isSelected,
+        onClick = { onCardClick(tableInfo) },
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

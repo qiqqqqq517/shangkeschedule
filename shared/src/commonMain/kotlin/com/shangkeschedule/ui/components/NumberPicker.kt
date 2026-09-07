@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.theme.appColors
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_state_not_selected
@@ -48,7 +49,8 @@ fun <T> NativeNumberPicker(
     itemHeight: Dp = 48.dp,
     visibleItemsCount: Int = 3,
     itemTextOffsetY: Dp = 0.dp,
-    dividerColor: Color = MaterialTheme.colorScheme.primary,
+    // 分隔线默认用中性 divider 色：原 primary 紫线视觉过重，与轻盈基调不符
+    dividerColor: Color = appColors().divider,
     dividerSize: Dp = 1.dp,
 ) {
     // 校验可见项数量

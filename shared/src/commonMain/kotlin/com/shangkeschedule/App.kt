@@ -1,5 +1,12 @@
 package com.shangkeschedule
 
+import shangkeschedule.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
+import com.shangkeschedule.ui.components.AppDialogActions
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_title
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_message
+import shangkeschedule.shared.generated.resources.webview_semester_prompt_later
+import shangkeschedule.shared.generated.resources.action_go_to_settings
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -58,7 +65,6 @@ import com.shangkeschedule.ui.settings.import.TextImportHubScreen
 import com.shangkeschedule.ui.settings.import.TextImportScreen
 import com.shangkeschedule.data.parser.TextImportFormat
 import com.shangkeschedule.ui.settings.notification.NotificationSettingsScreen
-import com.shangkeschedule.ui.settings.quickactions.QuickActionsScreen
 import com.shangkeschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.shangkeschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
 import com.shangkeschedule.ui.settings.appearance.AppearanceSettingsScreen
@@ -98,8 +104,17 @@ fun AppNavigation(startDestination: Destination) {
         { dest ->
             if (dest.isMainScreen) {
                 if (backStack.lastOrNull() != dest) {
-                    backStack.clear()
-                    backStack.add(dest)
+                    // P2-5 切 Tab 状态保持：若目标主屏根已在栈中（此前到访过），
+                    // 弹回至它而不是清空重建，保留其 LazyColumn 滚动/子导航等组合状态；
+                    // 仅当目标主屏尚未入栈时才追加一条新根。
+                    val existingRootIndex = backStack.indexOfFirst { it == dest }
+                    if (existingRootIndex >= 0) {
+                        while (backStack.lastIndex > existingRootIndex) {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
+                    } else {
+                        backStack.add(dest)
+                    }
                 }
             } else {
                 if (backStack.lastOrNull() != dest) {
@@ -206,14 +221,12 @@ fun ScreenContent(
         Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
-        Destination.QuickActions -> QuickActionsScreen(onNavigate, onBack)
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
         Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
-        Destination.TextImport -> TextImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
 
         // 导入分类二级页
         Destination.FileImportHub -> FileImportHubScreen(onNavigate, onBack)
@@ -248,17 +261,20 @@ fun ScreenContent(
     if (showSemesterStartPrompt) {
         AlertDialog(
             onDismissRequest = { showSemesterStartPrompt = false },
-            title = { Text("请设置开学日期") },
-            text = { Text("已导入新课表，但尚未设置开学日期。设置开学日期后才能正确显示当前周数与课表高亮。") },
+            title = { Text(stringResource(Res.string.webview_semester_prompt_title)) },
+            text = { Text(stringResource(Res.string.webview_semester_prompt_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    showSemesterStartPrompt = false
-                    onNavigate(Destination.SemesterSettings)
-                }) { Text("去设置") }
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_go_to_settings),
+                    onConfirm = {
+                        showSemesterStartPrompt = false
+                        onNavigate(Destination.SemesterSettings)
+                    },
+                    dismissText = stringResource(Res.string.webview_semester_prompt_later),
+                    onDismiss = { showSemesterStartPrompt = false }
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { showSemesterStartPrompt = false }) { Text("稍后再说") }
-            }
+            dismissButton = {}
         )
     }
 }

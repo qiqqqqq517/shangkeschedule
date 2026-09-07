@@ -1,5 +1,15 @@
 package com.shangkeschedule.ui.settings.style
 
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.style_demo_conflict_a
+import shangkeschedule.shared.generated.resources.style_demo_conflict_b
+import shangkeschedule.shared.generated.resources.style_demo_early_morning
+import shangkeschedule.shared.generated.resources.style_demo_late_night_seminar
+import shangkeschedule.shared.generated.resources.style_demo_position
+import shangkeschedule.shared.generated.resources.style_demo_precise_rendering
+import shangkeschedule.shared.generated.resources.style_demo_regular_course
+import shangkeschedule.shared.generated.resources.style_demo_teacher
+import org.jetbrains.compose.resources.getString
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -265,6 +275,7 @@ class StyleSettingsViewModel(
         // 3. 安全检查：如果索引越界（比如初始列表为空），则填充默认值
         if (index >= updatedMaps.size) {
             repeat(index - updatedMaps.size + 1) {
+                // 功能色（豁免声明）：越界占位用的中性灰，会被用户随即选择的颜色覆盖
                 updatedMaps.add(DualColor(light = Color.Gray, dark = Color.Gray))
             }
         }
@@ -281,18 +292,18 @@ class StyleSettingsViewModel(
         styleRepository.setCourseColorMaps(updatedMaps)
     }
 
-    private fun createDemoCourses(dummyTableId: String, is24HourMode: Boolean): List<MergedCourseBlock> {
+    private suspend fun createDemoCourses(dummyTableId: String, is24HourMode: Boolean): List<MergedCourseBlock> {
         return if (is24HourMode) {
             listOf(
                 // 24小时绝对时间模式：全部是自定义时间（自由时间），需要携带具体的时间字符串
                 createBlock(
-                    tableId = dummyTableId, day = 1, start = 0.0f, end = 1.75f, name = "深夜研讨",
+                    tableId = dummyTableId, day = 1, start = 0.0f, end = 1.75f, name = getString(Res.string.style_demo_late_night_seminar),
                     startSection = null, endSection = null,
                     isCustomTime = true, customStartTime = "00:00", customEndTime = "00:45",
                     colorInt = 0
                 ),
                 createBlock(
-                    tableId = dummyTableId, day = 2, start = 0.5f, end = 2.0f, name = "凌晨补录",
+                    tableId = dummyTableId, day = 2, start = 0.5f, end = 2.0f, name = getString(Res.string.style_demo_early_morning),
                     startSection = null, endSection = null,
                     isCustomTime = true, customStartTime = "01:00", customEndTime = "02:00",
                     colorInt = 1
@@ -302,21 +313,21 @@ class StyleSettingsViewModel(
             listOf(
                 // 传统节次模式 1：标准节次课程（对应第1节到第2节），isCustomTime 为 false，不传时间字符串
                 createBlock(
-                    tableId = dummyTableId, day = 1, start = 0f, end = 2f, name = "普通课程展示",
+                    tableId = dummyTableId, day = 1, start = 0f, end = 2f, name = getString(Res.string.style_demo_regular_course),
                     startSection = 1, endSection = 2,
                     isCustomTime = false, customStartTime = null, customEndTime = null,
                     colorInt = 0
                 ),
                 // 传统节次模式 2：精准自由时间演示（在传统表格里按绝对时间乱飞的非标准课程），isCustomTime 为 true
                 createBlock(
-                    tableId = dummyTableId, day = 2, start = 0.618f, end = 2.5f, name = "精准渲染演示",
+                    tableId = dummyTableId, day = 2, start = 0.618f, end = 2.5f, name = getString(Res.string.style_demo_precise_rendering),
                     startSection = null, endSection = null,
                     isCustomTime = true, customStartTime = "09:15", customEndTime = "11:05",
                     colorInt = 1
                 ),
                 // 传统节次模式 3：冲突课程 A（标准节次课程，对应第1节到第3节）
                 createBlock(
-                    tableId = dummyTableId, day = 3, start = 0f, end = 3f, name = "冲突课程 A",
+                    tableId = dummyTableId, day = 3, start = 0f, end = 3f, name = getString(Res.string.style_demo_conflict_a),
                     startSection = 1, endSection = 3,
                     isCustomTime = false, customStartTime = null, customEndTime = null,
                     subColumn = 0f, totalColumns = 2f,
@@ -324,7 +335,7 @@ class StyleSettingsViewModel(
                 ),
                 // 传统节次模式 4：冲突课程 B（标准节次课程，对应第2节到第3节，非当前周降级显示）
                 createBlock(
-                    tableId = dummyTableId, day = 3, start = 1f, end = 3f, name = "冲突课程 B",
+                    tableId = dummyTableId, day = 3, start = 1f, end = 3f, name = getString(Res.string.style_demo_conflict_b),
                     startSection = 2, endSection = 3,
                     isCustomTime = false, customStartTime = null, customEndTime = null,
                     subColumn = 1f, totalColumns = 2f,
@@ -335,7 +346,7 @@ class StyleSettingsViewModel(
         }
     }
 
-    private fun createBlock(
+    private suspend fun createBlock(
         tableId: String,
         day: Int,
         start: Float,
@@ -355,8 +366,8 @@ class StyleSettingsViewModel(
             id = Uuid.random().toString(),
             courseTableId = tableId,
             name = name,
-            teacher = "老师",
-            position = "地点",
+            teacher = getString(Res.string.style_demo_teacher),
+            position = getString(Res.string.style_demo_position),
             day = day,
             startSection = startSection,
             endSection = endSection,

@@ -64,6 +64,9 @@ kotlin {
                 // Dynamic Color 主题生成 (MaterialKolor)
                 implementation(libs.material.kolor)
 
+                // Haze 毛玻璃 backdrop blur（悬浮底栏 / 玻璃质感面板）
+                implementation(libs.haze)
+
                 // Lifecycle & Navigation3 导航体系
                 implementation(libs.androidx.lifecycle.viewmodel.compose)
                 implementation(libs.androidx.lifecycle.runtime.compose)

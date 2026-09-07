@@ -12,6 +12,7 @@ composeMultiplatform = "1.11.1"
 kotlinxCoroutines = "1.11.0"
 material3 = "1.9.0"
 materialKolor = "5.0.0"
+haze = "1.6.10"
 compose-adaptive = "1.2.0"
 
 # KMP 跨平台核心组件
@@ -61,6 +62,9 @@ compose-components-resources = { module = "org.jetbrains.compose.components:comp
 
 # Dynamic Color 动态主题
 material-kolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
+
+# Haze 毛玻璃 backdrop blur（Telegram 形态玻璃质感）
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 
 # Kotlin & 通用测试
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

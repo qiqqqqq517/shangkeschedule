@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.theme.AppShape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -42,8 +43,9 @@ import shangkeschedule.shared.generated.resources.ic_launcher_foreground
 import shangkeschedule.shared.generated.resources.item_developer_options
 
 // 图标背景颜色定义
-private val NormalIconBgColor = Color(0xFF73CAF8)
-private val DeveloperIconBgColor = Color(0xFFBD0000)
+// 功能色（豁免声明）：应用图标背景品牌色，固定不随主题
+    private val NormalIconBgColor = Color(0xFF73CAF8)
+    private val DeveloperIconBgColor = Color(0xFFBD0000)
 
 /**
  * 动态 App 图标头部组件（包含连续 5 次点击解锁开发者模式逻辑）
@@ -66,7 +68,7 @@ fun DynamicAppIconHeader(
     Box(
         modifier = modifier
             .size(120.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(AppShape.heroCard)
             .background(animatedBgColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

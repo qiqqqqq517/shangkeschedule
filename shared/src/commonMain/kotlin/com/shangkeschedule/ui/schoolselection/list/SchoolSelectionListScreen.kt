@@ -45,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.ui.components.AlphabetIndexerList
+import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppLoading
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -194,20 +197,14 @@ private fun SchoolContent(
 
     when {
         isLoading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            AppLoading()
         }
         filteredSchools.isEmpty() && !isLoading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(Res.string.text_no_adapter_for_category),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-            }
+            // 统一空状态：淡灰胶囊 + 辅助文案
+            AppEmptyState(
+                hint = stringResource(Res.string.text_no_adapter_for_category),
+                fillScreen = true
+            )
         }
         else -> {
             AlphabetIndexerList(
@@ -382,9 +379,11 @@ fun SearchBarWithTitle(
     ) {
         // 搜索结果内容
         if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(Res.string.text_no_school_found), style = MaterialTheme.typography.bodyLarge)
-            }
+            // 统一空状态
+            AppEmptyState(
+                hint = stringResource(Res.string.text_no_school_found),
+                fillScreen = true
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -430,7 +429,8 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
                 Text(
                     text = school.name,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    // 学校名是行主标题：用主文字色（原 onSurfaceVariant 层级偏弱）
+                    color = appColors().textPrimary
                 )
             }
         }

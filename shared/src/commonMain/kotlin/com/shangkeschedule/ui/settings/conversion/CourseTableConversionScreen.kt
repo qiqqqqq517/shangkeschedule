@@ -35,10 +35,15 @@ import com.shangkeschedule.Destination
 import com.shangkeschedule.data.di.AppStorage
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
+import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.ShareDialog
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
+import shangkeschedule.shared.generated.resources.import_cat_text_paste
+import shangkeschedule.shared.generated.resources.import_file_hub_title
+import shangkeschedule.shared.generated.resources.conversion_file_import_desc
+import shangkeschedule.shared.generated.resources.conversion_text_paste_desc
 import kotlinx.coroutines.launch
 import okio.FileSystem
 import okio.SYSTEM
@@ -86,6 +91,9 @@ fun CourseTableConversionScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // 系统日历同步前先检查/申请权限（平台 expect/actual，非 Android 直接放行）
+    val requestCalendarSync = rememberCalendarSyncGate(onSync = { viewModel.onSyncToCalendarClick() })
 
     val snackbarFileSaveCanceled = stringResource(Res.string.snackbar_file_save_canceled)
 
@@ -181,12 +189,11 @@ fun CourseTableConversionScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            Text(stringResource(Res.string.section_file_conversion), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            AppSectionHeader(stringResource(Res.string.section_file_conversion), modifier = Modifier.fillMaxWidth())
             SectionCard {
                 SettingItem(
-                    title = "文件导入",
-                    subtitle = "Excel / JSON / 文本文件，分类导入",
+                    title = stringResource(Res.string.import_file_hub_title),
+                    subtitle = stringResource(Res.string.conversion_file_import_desc),
                     onClick = { onNavigate(Destination.FileImportHub) }
                 )
                 SectionDivider()
@@ -205,8 +212,7 @@ fun CourseTableConversionScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Text(stringResource(Res.string.section_school_import), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            AppSectionHeader(stringResource(Res.string.section_school_import), modifier = Modifier.fillMaxWidth())
             SectionCard {
                 SettingItem(
                     title = stringResource(Res.string.item_school_system_import),
@@ -215,21 +221,20 @@ fun CourseTableConversionScreen(
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "文本粘贴导入",
-                    subtitle = "WakeUp文本/纯文本/JSON/CSV/ICS 分类导入，先预览再导入",
+                    title = stringResource(Res.string.import_cat_text_paste),
+                    subtitle = stringResource(Res.string.conversion_text_paste_desc),
                     onClick = { onNavigate(Destination.TextImportHub) }
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
-            Text(stringResource(Res.string.section_sync), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            AppSectionHeader(stringResource(Res.string.section_sync), modifier = Modifier.fillMaxWidth())
             SectionCard {
                 SettingItem(
                     title = stringResource(Res.string.item_sync_to_system_calendar),
                     subtitle = stringResource(Res.string.desc_sync_to_system_calendar),
-                    onClick = { viewModel.onSyncToCalendarClick() }
+                    onClick = requestCalendarSync
                 )
                 SectionDivider()
                 SettingItem(

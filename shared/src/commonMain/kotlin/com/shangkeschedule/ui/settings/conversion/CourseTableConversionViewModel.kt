@@ -1,5 +1,10 @@
 package com.shangkeschedule.ui.settings.conversion
 
+import org.jetbrains.compose.resources.getString
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.cvm_crush_delete_failed_fmt
+import shangkeschedule.shared.generated.resources.cvm_crush_deleted
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.model.CourseImportExport
@@ -10,9 +15,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okio.BufferedSource
-import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import org.koin.core.annotation.KoinViewModel
-import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.error_export_failed
+import shangkeschedule.shared.generated.resources.error_export_table_not_found
+import shangkeschedule.shared.generated.resources.error_ics_export_data_failed
+import shangkeschedule.shared.generated.resources.error_import_failed
+import shangkeschedule.shared.generated.resources.error_sync_calendar_failed
+import shangkeschedule.shared.generated.resources.toast_import_success
+import shangkeschedule.shared.generated.resources.toast_sync_calendar_success
 import shangkeschedule.shared.generated.resources.*
 
 /**
@@ -207,9 +218,9 @@ class CourseTableConversionViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 courseConversionRepository.deleteCrushCourses(currentTableId())
-                _events.send(ConversionEvent.ShowMessage("crush 课表已删除"))
+                _events.send(ConversionEvent.ShowMessage(getString(Res.string.cvm_crush_deleted)))
             } catch (e: Exception) {
-                _events.send(ConversionEvent.ShowMessage("删除 crush 课表失败: ${e.message}"))
+                _events.send(ConversionEvent.ShowMessage(getString(Res.string.cvm_crush_delete_failed_fmt, e.message ?: "")))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }

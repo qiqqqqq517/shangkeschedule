@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.settings.notification
 
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +21,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -110,29 +112,28 @@ fun NotificationDialogDispatcher(
         is NotificationDialogType.ClearConfirmation -> {
             val successMsg = stringResource(Res.string.toast_clear_success)
 
-            AlertDialog(
+            // 危险操作（清空跳过日期）统一走 AppDangerDialog
+            AppDangerDialog(
                 onDismissRequest = { viewModel.dismissDialog() },
-                title = { Text(stringResource(Res.string.dialog_title_clear_confirmation)) },
-                text = { Text(stringResource(Res.string.dialog_text_clear_confirmation)) },
-                confirmButton = {
-                    Button(onClick = {
-                        viewModel.clearSkippedDates { result ->
-                            result.fold(
-                                onSuccess = { ToastManager.show(successMsg) },
-                                onFailure = { e ->
-                                    coroutineScope.launch {
-                                        val errorMsg = getString(Res.string.toast_clear_failed, e.message ?: "")
-                                        ToastManager.show(errorMsg)
-                                    }
+                title = stringResource(Res.string.dialog_title_clear_confirmation),
+                text = stringResource(Res.string.dialog_text_clear_confirmation),
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = {
+                    viewModel.clearSkippedDates { result ->
+                        result.fold(
+                            onSuccess = { ToastManager.show(successMsg) },
+                            onFailure = { e ->
+                                coroutineScope.launch {
+                                    val errorMsg = getString(Res.string.toast_clear_failed, e.message ?: "")
+                                    ToastManager.show(errorMsg)
                                 }
-                            )
-                        }
-                        viewModel.dismissDialog()
-                    }) { Text(stringResource(Res.string.action_confirm)) }
+                            }
+                        )
+                    }
+                    viewModel.dismissDialog()
                 },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.dismissDialog() }) { Text(stringResource(Res.string.action_cancel)) }
-                }
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = { viewModel.dismissDialog() }
             )
         }
 
@@ -229,22 +230,22 @@ fun AutoModeSelectionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (selectedKey != "OFF" && !hasDndPermission) {
-                    onDismiss()
-                    onRequireDndPermission()
-                } else {
-                    onModeSelected(selectedKey)
-                }
-            }) {
-                Text(stringResource(Res.string.action_confirm))
-            }
+            // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = {
+                    if (selectedKey != "OFF" && !hasDndPermission) {
+                        onDismiss()
+                        onRequireDndPermission()
+                    } else {
+                        onModeSelected(selectedKey)
+                    }
+                },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
+        dismissButton = {}
     )
 }
 
@@ -259,21 +260,26 @@ fun EditRemindMinutesDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_set_remind_time)) },
         text = {
-            OutlinedTextField(
+            // 统一柔和填充输入框
+            AppTextField(
                 value = currentMinutes,
                 onValueChange = onMinutesChange,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                label = { Text(stringResource(Res.string.label_minutes_input)) },
+                label = stringResource(Res.string.label_minutes_input),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text(stringResource(Res.string.action_confirm)) }
+            // 统一操作区
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = onConfirm,
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
-        }
+        dismissButton = {}
     )
 }
 
@@ -292,7 +298,7 @@ fun ViewSkippedDatesDialog(dates: Set<String>, onDismiss: () -> Unit) {
                 ) {
                     items(dates.toList().sorted()) { date ->
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = MaterialTheme.shapes.extraSmall,
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier.padding(4.dp)
                         ) {
@@ -328,13 +334,17 @@ fun PermissionGuideDialog(
         title = { Text(title) },
         text = { Text(text) },
         confirmButton = {
-            Button(onClick = {
-                onConfirm()
-                onDismiss()
-            }) { Text(stringResource(Res.string.action_go_to_settings)) }
+            // 统一操作区：取消灰字 + 去设置主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_go_to_settings),
+                onConfirm = {
+                    onConfirm()
+                    onDismiss()
+                },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
-        }
+        dismissButton = {}
     )
 }

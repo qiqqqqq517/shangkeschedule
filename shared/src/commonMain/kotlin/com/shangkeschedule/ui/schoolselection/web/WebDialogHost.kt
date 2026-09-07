@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import com.shangkeschedule.ui.components.AppTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,8 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.*
 
 /**
@@ -114,13 +117,13 @@ private fun PromptHost(
         title = { Text(data.title) },
         text = {
             Column {
-                OutlinedTextField(
+                AppTextField(
                     value = inputText,
                     onValueChange = {
                         inputText = it
                         errorText = null
                     },
-                    label = { Text(data.tip) },
+                    label = data.tip,
                     isError = errorText != null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()

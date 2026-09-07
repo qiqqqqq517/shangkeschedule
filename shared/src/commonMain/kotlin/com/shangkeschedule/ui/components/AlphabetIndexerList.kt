@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import com.shangkeschedule.ui.theme.AppType
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -127,7 +128,7 @@ fun <T> AlphabetIndexerList(
                         Text(
                             text = initial,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
+                                fontSize = AppType.badge,
                                 fontWeight = FontWeight.Bold
                             ),
                             color = MaterialTheme.colorScheme.primary,

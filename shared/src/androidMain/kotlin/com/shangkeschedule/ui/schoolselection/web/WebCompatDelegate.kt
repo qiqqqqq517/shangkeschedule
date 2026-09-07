@@ -61,7 +61,11 @@ class WebCompatDelegate(private val webView: WebView) {
         return this
     }
 
-    fun wrapWebViewClient(original: WebViewClient, isDesktopModeProvider: () -> Boolean): WebViewClient {
+    fun wrapWebViewClient(
+        original: WebViewClient,
+        isDesktopModeProvider: () -> Boolean,
+        onLoadError: (String) -> Unit
+    ): WebViewClient {
         return object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 return original.shouldOverrideUrlLoading(view, request)
@@ -100,11 +104,30 @@ class WebCompatDelegate(private val webView: WebView) {
             }
 
             override fun onReceivedSslError(v: WebView?, h: SslErrorHandler?, e: SslError?) {
+                val host = e?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() } ?: ""
+                onLoadError(host)
+                h?.cancel()
                 original.onReceivedSslError(v, h, e)
             }
 
-            override fun onReceivedError(v: WebView, q: WebResourceRequest, e: WebResourceError) =
+            override fun onReceivedError(v: WebView, q: WebResourceRequest, e: WebResourceError) {
+                // 仅对主框架的网络级失败（DNS / 连接拒绝 / 超时等）提示，避免页面内子资源 404 误触全屏错误页
+                if (q.isForMainFrame && !q.url.scheme.equals("about", ignoreCase = true)) {
+                    val desc = runCatching { e.description?.toString() }.getOrNull() ?: ""
+                    onLoadError(desc.ifBlank { "Load failed" })
+                }
                 original.onReceivedError(v, q, e)
+            }
+
+            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?) {
+                // HTTP 4xx/5xx：仅主框架请求提示
+                if (request?.isForMainFrame == true && !(request.url.scheme?.equals("about", ignoreCase = true) ?: false)) {
+                    val statusCode = errorResponse?.statusCode ?: 0
+                    val reason = errorResponse?.reasonPhrase ?: "HTTP Error"
+                    onLoadError("$statusCode $reason".trim())
+                }
+                super.onReceivedHttpError(view, request, errorResponse)
+            }
         }
     }
 

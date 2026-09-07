@@ -24,13 +24,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,6 +47,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ fun WeekSection(
         onClick = onClick,
         modifier = modifier,
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f),
-        shape = RoundedCornerShape(12.dp)
+        shape = MaterialTheme.shapes.small
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -110,7 +111,7 @@ fun TimeSection(
         onClick = onClick,
         modifier = modifier,
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-        shape = RoundedCornerShape(12.dp)
+        shape = MaterialTheme.shapes.small
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = dayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
@@ -147,7 +148,8 @@ fun WeekSelectorBottomSheet(
     totalWeeks: Int,
     selectedWeeks: Set<Int>,
     onDismissRequest: () -> Unit,
-    onConfirm: (Set<Int>) -> Unit
+    onConfirm: (Set<Int>) -> Unit,
+    hazeState: HazeState? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -159,10 +161,10 @@ fun WeekSelectorBottomSheet(
     val actionCancel = stringResource(Res.string.action_cancel)
     val actionConfirm = stringResource(Res.string.action_confirm)
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
-        sheetState = modalBottomSheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        sheetState = modalBottomSheetState
     ) {
         Column(
             modifier = Modifier
@@ -191,7 +193,7 @@ fun WeekSelectorBottomSheet(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(MaterialTheme.shapes.extraSmall)
                             .clickable {
                                 tempSelectedWeeks = if (isSelected) {
                                     tempSelectedWeeks - weekNumber
@@ -249,20 +251,18 @@ fun WeekSelectorBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.weight(1f)) {
-                    Text(actionCancel)
-                }
-                Button(
-                    onClick = {
+                AppDialogActions(
+                    confirmText = actionConfirm,
+                    onConfirm = {
                         onConfirm(tempSelectedWeeks)
                         coroutineScope.launch { modalBottomSheetState.hide() }.invokeOnCompletion {
                             if (!modalBottomSheetState.isVisible) onDismissRequest()
                         }
                     },
+                    dismissText = actionCancel,
+                    onDismiss = onDismissRequest,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(actionConfirm)
-                }
+                )
             }
         }
     }
@@ -274,7 +274,8 @@ fun ColorPickerBottomSheet(
     colorMaps: List<DualColor>,
     selectedIndex: Int,
     onDismissRequest: () -> Unit,
-    onConfirm: (Int) -> Unit
+    onConfirm: (Int) -> Unit,
+    hazeState: HazeState? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -284,10 +285,10 @@ fun ColorPickerBottomSheet(
     val actionCancel = stringResource(Res.string.action_cancel)
     val actionConfirm = stringResource(Res.string.action_confirm)
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
-        sheetState = modalBottomSheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        sheetState = modalBottomSheetState
     ) {
         Column(
             modifier = Modifier
@@ -340,20 +341,18 @@ fun ColorPickerBottomSheet(
             Spacer(modifier = Modifier.height(32.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.weight(1f)) {
-                    Text(actionCancel)
-                }
-                Button(
-                    onClick = {
+                AppDialogActions(
+                    confirmText = actionConfirm,
+                    onConfirm = {
                         onConfirm(tempSelectedIndex)
                         coroutineScope.launch { modalBottomSheetState.hide() }.invokeOnCompletion {
                             if (!modalBottomSheetState.isVisible) onDismissRequest()
                         }
                     },
+                    dismissText = actionCancel,
+                    onDismiss = onDismissRequest,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(actionConfirm)
-                }
+                )
             }
         }
     }

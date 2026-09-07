@@ -106,12 +106,14 @@ actual fun PlatformWebView(
     bridgeHandler: WebBridgeHandler,
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
-    onNavigateToSchedule: () -> Unit
+    onNavigateToSchedule: () -> Unit,
+    onWebViewLoadError: (String) -> Unit
 ) {
     val androidController = controller as? AndroidWebViewController
 
     val currentOnProgressChange by rememberUpdatedState(onProgressChange)
     val currentOnTitleChange by rememberUpdatedState(onTitleChange)
+    val currentOnWebViewLoadError by rememberUpdatedState(onWebViewLoadError)
 
     val currentIsDesktopMode by rememberUpdatedState(isDesktopMode)
 
@@ -214,7 +216,9 @@ actual fun PlatformWebView(
                         currentOnProgressChange(progressInt.toFloat())
                     }
 
-                    webViewClient = delegate.wrapWebViewClient(baseViewClient) { currentIsDesktopMode }
+                    webViewClient = delegate.wrapWebViewClient(baseViewClient, { currentIsDesktopMode }) { errorDescription ->
+                        currentOnWebViewLoadError(errorDescription)
+                    }
 
                     if (url.isNotBlank() && url != "about:blank") {
                         loadedBaseUrl = url

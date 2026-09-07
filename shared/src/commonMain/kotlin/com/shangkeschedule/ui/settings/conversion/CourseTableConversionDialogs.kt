@@ -11,6 +11,10 @@ import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.conversion_crush_choose_method
+import shangkeschedule.shared.generated.resources.conversion_crush_from_file
+import shangkeschedule.shared.generated.resources.conversion_crush_from_system
+import shangkeschedule.shared.generated.resources.conversion_crush_title
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_next_step
 import shangkeschedule.shared.generated.resources.alarm_option_none
@@ -131,23 +135,23 @@ fun CrushImportDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("一键导入 crush 课表") },
+        title = { Text(stringResource(Res.string.conversion_crush_title)) },
         text = {
             Column {
-                Text("请选择导入方式：")
+                Text(stringResource(Res.string.conversion_crush_choose_method))
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
                     onClick = onImportViaSchool,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("从教务系统导入")
+                    Text(stringResource(Res.string.conversion_crush_from_system))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = onImportViaJson,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("从日历/JSON 文件导入")
+                    Text(stringResource(Res.string.conversion_crush_from_file))
                 }
             }
         },

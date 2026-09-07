@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import com.shangkeschedule.ui.theme.AppShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -212,7 +213,7 @@ fun ImageCropper(
                 OutlinedButton(
                     enabled = !isCropping,
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = AppShape.heroCard,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color.White
                     ),
@@ -254,7 +255,7 @@ fun ImageCropper(
                             onCropConfirmed(croppedBytes)
                         }
                     },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = AppShape.heroCard,
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                 ) {
                     if (isCropping) {
