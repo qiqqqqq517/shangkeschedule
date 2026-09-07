@@ -107,7 +107,7 @@ import shangkeschedule.shared.generated.resources.desc_notification_settings
 import shangkeschedule.shared.generated.resources.desc_appearance_settings
 import shangkeschedule.shared.generated.resources.desc_personalization
 import shangkeschedule.shared.generated.resources.desc_quick_actions
-import shangkeschedule.shared.generated.resources.desc_set_start_date
+import shangkeschedule.shared.generated.resources.desc_semester_settings
 import shangkeschedule.shared.generated.resources.desc_show_non_current_week
 import shangkeschedule.shared.generated.resources.desc_show_weekends
 import shangkeschedule.shared.generated.resources.desc_theme_settings
@@ -264,7 +264,7 @@ fun SettingsScreen(
                 item {
                     SettingCard(
                         title = stringResource(Res.string.section_title_semester_settings),
-                        subtitle = stringResource(Res.string.desc_set_start_date),
+                        subtitle = stringResource(Res.string.desc_semester_settings),
                         leadingIcon = vectorResource(Res.drawable.calendar_today_24px),
                         accent = AccentTone.PRIMARY,
                         onClick = { onNavigate(Destination.SemesterSettings) }
@@ -438,16 +438,19 @@ internal fun SettingCard(
     }
 ) {
     AppCard(modifier = modifier.fillMaxWidth()) {
-        SettingItem(
-            title = title,
-            subtitle = subtitle,
-            leadingIcon = leadingIcon,
-            accent = accent,
-            titleStyle = titleStyle,
-            verticalPadding = itemVerticalPadding,
-            onClick = onClick,
-            trailingContent = trailingContent
-        )
+        // 内容 16dp 水平缩进（与 SectionCard 一致）：图标 chip / chevron 不贴卡片边缘
+        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING)) {
+            SettingItem(
+                title = title,
+                subtitle = subtitle,
+                leadingIcon = leadingIcon,
+                accent = accent,
+                titleStyle = titleStyle,
+                verticalPadding = itemVerticalPadding,
+                onClick = onClick,
+                trailingContent = trailingContent
+            )
+        }
     }
 }
 

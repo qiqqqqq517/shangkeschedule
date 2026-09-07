@@ -1,4 +1,4 @@
-// 甘肃财贸职业学院教务系统(gscmxy.edu.cn) 拾光课程表适配脚本
+// 甘肃财贸职业学院教务系统(gscmxy.edu.cn) 上课适配脚本
 
 function parseWeeksFromSkzc(skzc) {
     const weeks = [];

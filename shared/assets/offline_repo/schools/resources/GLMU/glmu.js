@@ -1,5 +1,5 @@
 // 文件: guilin_medical.js
-// 功能：从桂医教务系统获取课程表，通过桥接 API 导入到拾光课程表
+// 功能：从桂医教务系统获取课程表，通过桥接 API 导入到上课
 
 // ---------- 全局验证函数 ----------
 function validateYearInput(input) {

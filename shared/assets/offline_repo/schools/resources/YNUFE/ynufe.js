@@ -345,7 +345,7 @@ function parseScheduleHtml(html) {
 }
 
 /**
- * 转换课程数据格式以符合拾光课程表规范
+ * 转换课程数据格式以符合上课规范
  * @param {Array} rawCourses 原始课程数据
  * @returns {Array} 转换后的课程数据
  */
@@ -577,7 +577,7 @@ async function fetchAndParseCourses(html) {
 }
 
 /**
- * 保存课程数据到拾光课程表
+ * 保存课程数据到上课
  * @param {Array} courses 课程数组
  * @returns {boolean} 保存是否成功
  */
@@ -594,7 +594,7 @@ async function saveCourses(courses) {
 }
 
 /**
- * 导入预设时间段到拾光课程表
+ * 导入预设时间段到上课
  * @param {number} campusIdx 校区索引
  * @returns {boolean} 导入是否成功
  */

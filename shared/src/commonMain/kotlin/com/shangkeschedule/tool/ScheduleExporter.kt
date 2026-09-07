@@ -87,7 +87,8 @@ object ScheduleExporter {
             .replace("\"", "%22").replace(":", "%3A")
             .replace(",", "%2C").replace("[", "%5B")
             .replace("]", "%5D").replace(" ", "%20")
-        "【来自拾光课程表】\n$encoded"
+        // 签名须与 UniversalScheduleParser 识别的 WakeUp 分享口令一致，否则导出的文本无法被自身及其他 App 解析
+        "【来自WakeUp课程表】\n$encoded"
     }
 
     /**

@@ -1,4 +1,4 @@
-// 中国计量大学(cjlu.edu.cn) 拾光课程表适配脚本
+// 中国计量大学(cjlu.edu.cn) 上课适配脚本
 // 基于正方教务系统接口适配
 
 const COURSE_API_PATHS = [

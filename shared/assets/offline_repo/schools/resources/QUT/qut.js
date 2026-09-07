@@ -308,7 +308,7 @@ async function runImportFlow() {
         return;
     }
 
-    window.shangkeBridge.showToast("拾光课程表 - 青岛理工大学适配");
+    window.shangkeBridge.showToast("上课 - 青岛理工大学适配");
 
     var alertConfirmed = await promptUserToStart();
     if (!alertConfirmed) {

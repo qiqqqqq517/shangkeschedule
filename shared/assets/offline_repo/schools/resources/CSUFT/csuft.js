@@ -1,4 +1,4 @@
-// 中南林业科技大学(csuft.edu.cn) 拾光课程表适配脚本
+// 中南林业科技大学(csuft.edu.cn) 上课适配脚本
 // 强智教务系统，通过 WebVPN 访问
 
 window.validateYearInput = function(input) {

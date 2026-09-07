@@ -41,11 +41,14 @@ fun ShangKeScheduleTheme(
         AppThemeMode.DARK -> true
     }
 
-    // 配色优先级：动态取色 > 自定义主色 > 主题预设种子色
+    // 配色优先级：动态取色 > 当前模式的自定义主色 > 主题预设种子色
+    // 浅色和深色主色独立保存，必须按当前模式检查对应字段；否则深色模式修改
+    // customDarkPrimary 时仍会因 customLightPrimary 未变化而回退到预设色。
+    val defaultPrimaryArgb = DefaultThemeColor.toArgb().toLong()
+    val currentCustomPrimary = if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary
     val seedColor: Color? = when {
         settings.useDynamicColor && supportsDynamicColor -> null
-        settings.customLightPrimary != DefaultThemeColor.toArgb().toLong() ->
-            Color(if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary)
+        currentCustomPrimary != defaultPrimaryArgb -> Color(currentCustomPrimary)
         else -> settings.themePreset.seedColor
     }
 

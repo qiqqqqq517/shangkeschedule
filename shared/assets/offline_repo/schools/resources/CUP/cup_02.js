@@ -1,5 +1,5 @@
 // resources/CUP/cup_02.js
-// 中国石油大学(北京)研究生拾光课程表适配脚本
+// 中国石油大学(北京)研究生上课适配脚本
 // https://gmis.cup.edu.cn/gmis/student/default/index
 // 教务平台：南京南软
 // 适配开发者：larryyan
@@ -286,7 +286,7 @@ async function parseCourses(py_kbcx_ew, isKaramayCampus) {   
         }
     });
 
-    // 清理掉多余的辅助比对字段，输出最终给拾光 App 的标准格式
+    // 清理掉多余的辅助比对字段，输出最终给上课 App 的标准格式
     const finalCourses = mergedCourses.map(c => {
         delete c.weekStr; 
         return c;

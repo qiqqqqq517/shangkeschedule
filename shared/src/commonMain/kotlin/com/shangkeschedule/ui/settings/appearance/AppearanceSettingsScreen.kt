@@ -233,10 +233,10 @@ fun AppearanceSettingsScreen(
                         )
                     }
 
-                    val customColorDisabled = supportsDynamicColor && settings.useDynamicColor
+                    val customColorUsesDynamic = supportsDynamicColor && settings.useDynamicColor
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         AppearanceSectionHeader(stringResource(Res.string.custom_color_title))
-                        if (customColorDisabled) {
+                        if (customColorUsesDynamic) {
                             Text(
                                 text = stringResource(Res.string.theme_color_disabled_hint),
                                 style = MaterialTheme.typography.bodySmall,
@@ -251,7 +251,7 @@ fun AppearanceSettingsScreen(
                                 currentColor = Color(settings.customDarkPrimary),
                                 onColorChanged = { settingsViewModel.onCustomDarkPrimaryChanged(it) },
                                 onReset = { settingsViewModel.onCustomDarkPrimaryChanged() },
-                                enabled = !customColorDisabled,
+                                enabled = true,
                                 hazeState = hazeState
                             )
                         } else {
@@ -260,7 +260,7 @@ fun AppearanceSettingsScreen(
                                 currentColor = Color(settings.customLightPrimary),
                                 onColorChanged = { settingsViewModel.onCustomLightPrimaryChanged(it) },
                                 onReset = { settingsViewModel.onCustomLightPrimaryChanged() },
-                                enabled = !customColorDisabled,
+                                enabled = true,
                                 hazeState = hazeState
                             )
                         }

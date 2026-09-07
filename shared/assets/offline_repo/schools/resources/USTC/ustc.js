@@ -1,4 +1,4 @@
-// 中国科学技术大学(ustc.edu.cn) 拾光课程表适配脚本
+// 中国科学技术大学(ustc.edu.cn) 上课适配脚本
 
 // ========== 辅助函数 ==========
 
@@ -148,7 +148,7 @@ function getTimetableDocument() {
  * - .classroom .name: 上课教室
  *
  * @param {Document} doc - 包含课表的 document 对象
- * @returns {Array} - 拾光课表格式的课程数组
+ * @returns {Array} - 上课格式的课程数组
  */
 function parseCoursesFromDoc(doc) {
     var timeTable = doc.evaluate(

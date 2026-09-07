@@ -10,7 +10,7 @@
 1. **Hero 融合卡**（GradientHeroCard）：
    - 主题色渐变底（左上→右下，主色跟随用户主题/动态取色）
    - 柔光斑 ×2：左上 190dp / 右下 150dp 径向渐变白晕（AppAlpha.faint，深色减半），营造景深
-   - **课程格纸插画**（AppHeroMotif）：3 条圆角课程块（64/50/38dp，中条 0.55↔1.0 呼吸）+ 时间刻度线（42×6dp），onPrimary tint，8° 旋转，右缘溢出裁剪（offset -14dp × rtlSign），部分穿出卡片边缘被 shape 裁剪——与渐变无缝融合
+   - **课程格纸插画**（AppHeroMotif）：3 条圆角课程块（64/50/38dp，中条 0.55↔1.0 呼吸）+ 时间刻度线（42×6dp），onPrimary tint，8° 旋转，整组收于右缘内侧（offset 22dp × rtlSign，预留旋转摆动余量，完整呈现不溢出裁剪；v3.22.7 起弃用右缘溢出形态——用户反馈观感为"图标贴边被切断"）
    - 层级：光斑（最底）< 插画 < 文字（IconChip 48dp + 标题 hero 24sp ExtraBold + 副标题 hint 12sp，文字列 weight(1f) 防窄屏挤压）
 2. **功能卡列表**：白色 20dp 圆角卡 × N（语义 IconChip 48dp + 行标题 16sp SemiBold + 副标题 13sp 灰 + chevron），卡片间 12dp
 3. **开关行卡**：显示非本周课程 / 是否显示周末 双开关同卡，竖分隔

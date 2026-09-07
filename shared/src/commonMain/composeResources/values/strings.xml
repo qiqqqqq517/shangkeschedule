@@ -207,6 +207,7 @@
     <string name="desc_show_weekends">开启后，课程表中将显示周末的课程安排</string>
     <string name="item_set_start_date">设置开学日期</string>
     <string name="desc_set_start_date">选择学期第一周(教务系统参考的第一周)的周一</string>
+    <string name="desc_semester_settings">开学日期、总周数与当前周数</string>
     <string name="status_not_set">未设置</string>
     <string name="item_total_weeks">本学期总周数</string>
     <string name="desc_total_weeks">设置学期总共持续多少周</string>
@@ -599,7 +600,7 @@
     <string name="light_primary_color">浅色模式主色</string>
     <string name="dark_primary_color">深色模式主色</string>
     <string name="theme_color_hint">说明：改变此颜色后，系统将作为种子色重新计算全应用配色方案。</string>
-    <string name="theme_color_disabled_hint">动态取色开启时不可自定义</string>
+    <string name="theme_color_disabled_hint">选择自定义颜色后将自动关闭动态取色</string>
 
     <!-- 备份和还原 -->
     <string name="backup_err_empty">备份文件为空，无法恢复</string>

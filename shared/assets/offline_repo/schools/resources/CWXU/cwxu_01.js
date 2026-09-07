@@ -1,4 +1,4 @@
-// 无锡学院（cwxu.edu.cn）拾光课程表适配脚本
+// 无锡学院（cwxu.edu.cn）上课适配脚本
 // 基于正方教务 V9 学生个人课表接口适配
 
 const COURSE_API_URL = "/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151";

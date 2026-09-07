@@ -227,7 +227,8 @@ class SettingsViewModel(
                 ?: AppSettingsModel().customLightPrimary
 
             val updatedSettings = currentSettings.copy(
-                customLightPrimary = newColorArgb
+                customLightPrimary = newColorArgb,
+                useDynamicColor = if (color != null) false else currentSettings.useDynamicColor
             )
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
         }
@@ -243,7 +244,8 @@ class SettingsViewModel(
                 ?: AppSettingsModel().customDarkPrimary
 
             val updatedSettings = currentSettings.copy(
-                customDarkPrimary = newColorArgb
+                customDarkPrimary = newColorArgb,
+                useDynamicColor = if (color != null) false else currentSettings.useDynamicColor
             )
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
         }
