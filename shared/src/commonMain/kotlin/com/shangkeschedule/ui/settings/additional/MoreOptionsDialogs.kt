@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.theme.appColors
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -81,8 +85,9 @@ fun StartScreenSelectionDialog(
             }
         },
         confirmButton = {
+            // 取消弱化为灰字文本钮（与其他对话框取消语言一致）
             TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
+                Text(stringResource(Res.string.action_cancel), color = appColors().textSecondary)
             }
         }
     )
@@ -125,15 +130,15 @@ fun ChannelSelectionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(selectedPlatform) }) {
-                Text(stringResource(Res.string.action_confirm))
-            }
+            // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = { onConfirm(selectedPlatform) },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
+        dismissButton = {}
     )
 }
 
@@ -170,7 +175,15 @@ fun UpdateResultDialog(
             stringResource(Res.string.dialog_new_version_found, updateStatus.versionName),
             updateStatus.changelog,
             @Composable {
-                Button(onClick = { onDownloadClick(updateStatus.targetUrl) }) {
+                // 下载更新 CTA：主色胶囊（与全局按钮语言一致）
+                Button(
+                    onClick = { onDownloadClick(updateStatus.targetUrl) },
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = appColors().primary,
+                        contentColor = Color.White
+                    )
+                ) {
                     Text(stringResource(Res.string.btn_download_update))
                 }
             }
@@ -206,7 +219,10 @@ fun UpdateResultDialog(
         confirmButton = { confirmBtn?.invoke() },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(if (updateStatus is UpdateStatus.Found) Res.string.action_cancel else Res.string.action_confirm))
+                Text(
+                    stringResource(if (updateStatus is UpdateStatus.Found) Res.string.action_cancel else Res.string.action_confirm),
+                    color = appColors().textSecondary
+                )
             }
         }
     )

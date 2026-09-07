@@ -25,7 +25,6 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +48,15 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
+import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppFab
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.AppSelectableCard
+import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.settings.SettingCard
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -57,6 +65,9 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_cancel_selection
 import shangkeschedule.shared.generated.resources.a11y_delete
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete_courses
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_delete_course
 import shangkeschedule.shared.generated.resources.a11y_enter_selection_mode
 import shangkeschedule.shared.generated.resources.a11y_exit_selection_mode
 import shangkeschedule.shared.generated.resources.action_add
@@ -95,6 +106,8 @@ fun CourseNameListScreen(
 
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedCourseNames = remember { mutableStateListOf<String>() }
+    // 批量删除前的确认快照（删除不可撤销，需二次确认）
+    var pendingDeleteNames by remember { mutableStateOf<List<String>?>(null) }
 
     val exitSelectionMode: () -> Unit = {
         isSelectionMode = false
@@ -162,12 +175,8 @@ fun CourseNameListScreen(
                         IconButton(
                             onClick = {
                                 if (selectedCourseNames.isNotEmpty()) {
-                                    coroutineScope.launch {
-                                        // 调用 ViewModel 执行批量删除
-                                        viewModel.deleteSelectedCourses(selectedCourseNames)
-                                        // 删除成功后退出多选模式
-                                        exitSelectionMode()
-                                    }
+                                    // 先弹确认框，确认后才执行批量删除
+                                    pendingDeleteNames = selectedCourseNames.toList()
                                 }
                             },
                             // 选中数量为 0 时禁用删除按钮
@@ -200,9 +209,9 @@ fun CourseNameListScreen(
             )
         },
         floatingActionButton = {
-            // 多选模式下隐藏 FAB
+            // 多选模式下隐藏 FAB（统一 AppFab：主色圆形 + 按压缩放）
             if (!isSelectionMode) {
-                FloatingActionButton(
+                AppFab(
                     onClick = {
                         // 启动协程，先发送默认数据，再导航
                         coroutineScope.launch {
@@ -217,10 +226,10 @@ fun CourseNameListScreen(
 
                             onNavigate(Destination.AddEditCourse(courseId = null))
                         }
-                    }
-                ) {
-                    Icon(vectorResource(Res.drawable.add_24px), contentDescription = stringResource(Res.string.action_add))
-                }
+                    },
+                    icon = vectorResource(Res.drawable.add_24px),
+                    contentDescription = stringResource(Res.string.action_add)
+                )
             }
         }
     ) { paddingValues ->
@@ -231,12 +240,11 @@ fun CourseNameListScreen(
             )
 
         if (uniqueCourseNames.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(Res.string.text_no_unique_courses_hint), style = MaterialTheme.typography.bodyLarge)
-            }
+            // 统一空状态：淡灰胶囊 + 辅助文案
+            AppEmptyState(
+                hint = stringResource(Res.string.text_no_unique_courses_hint),
+                fillScreen = true
+            )
         } else {
             // LazyVerticalGrid 实现两列网格布局
             LazyVerticalGrid(
@@ -276,6 +284,23 @@ fun CourseNameListScreen(
         }
         }
     }
+
+    // 批量删除二次确认（删除不可撤销）
+    pendingDeleteNames?.let { names ->
+        AppDangerDialog(
+            onDismissRequest = { pendingDeleteNames = null },
+            title = stringResource(Res.string.dialog_title_confirm_delete_course),
+            text = stringResource(Res.string.dialog_text_confirm_delete_courses, names.size),
+            confirmText = stringResource(Res.string.confirm_delete),
+            onConfirm = {
+                pendingDeleteNames = null
+                coroutineScope.launch {
+                    viewModel.deleteSelectedCourses(names)
+                    exitSelectionMode()
+                }
+            }
+        )
+    }
 }
 
 /**
@@ -290,31 +315,15 @@ fun CourseNameCard(
     onCourseClick: (String) -> Unit,
     onCourseLongClick: (String) -> Unit
 ) {
-    val cardColors = if (isSelected) {
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    } else {
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    }
-
-    Card(
-        colors = cardColors,
+    // 统一选中态（AppSelectableCard：primarySoft 底 + 2dp 主色描边）
+    AppSelectableCard(
+        selected = isSelected,
+        onClick = { onCourseClick(name) },
+        onLongClick = { onCourseLongClick(name) },
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp)
-            .combinedClickable(
-                onClick = { onCourseClick(name) },
-                onLongClick = { onCourseLongClick(name) }
-            )
-            .then(
-                if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
-                } else Modifier
-            )
+            .height(96.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Box(
             modifier = Modifier
@@ -332,7 +341,7 @@ fun CourseNameCard(
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else appColors().textPrimary,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth(),
@@ -343,8 +352,8 @@ fun CourseNameCard(
             // 右下角：实例数量 Badge（Telegram 灰底白字胶囊徽标，v2 规范 §4.4）
             Badge(
                 content = { Text(instanceCount.toString(), style = MaterialTheme.typography.labelSmall) },
-                containerColor = com.shangkeschedule.ui.theme.appColors().badgeBg,
-                contentColor = com.shangkeschedule.ui.theme.appColors().badgeFg,
+                containerColor = appColors().badgeBg,
+                contentColor = appColors().badgeFg,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .sizeIn(minWidth = 20.dp, minHeight = 20.dp)
@@ -356,77 +365,29 @@ fun CourseNameCard(
 
 /**
  * 快捷操作区块：课程调动 / 快速删除课程。
- * 并入课程管理页，替代原设置主页的「快捷操作」入口。
+ * 并入课程管理页，统一使用设置语言（AppSectionHeader + SettingCard）。
  */
 @Composable
 private fun QuickActionsSection(
     modifier: Modifier = Modifier,
     onNavigate: (Destination) -> Unit
 ) {
-    Card(
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = stringResource(Res.string.label_quick_action_category_schedule),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
-            )
-            QuickActionRow(
-                icon = vectorResource(Res.drawable.swap_horiz_24px),
-                title = stringResource(Res.string.item_schedule_tweak),
-                subtitle = stringResource(Res.string.desc_schedule_tweak),
-                onClick = { onNavigate(Destination.TweakSchedule) }
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp
-            )
-            QuickActionRow(
-                icon = vectorResource(Res.drawable.delete_24px),
-                title = stringResource(Res.string.item_quick_delete),
-                subtitle = stringResource(Res.string.quick_delete_subtitle),
-                onClick = { onNavigate(Destination.QuickDelete) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickActionRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.width(24.dp)
+    Column(modifier = modifier.padding(horizontal = AppSpacing.pageHorizontal, vertical = 8.dp)) {
+        AppSectionHeader(stringResource(Res.string.label_quick_action_category_schedule))
+        SettingCard(
+            title = stringResource(Res.string.item_schedule_tweak),
+            subtitle = stringResource(Res.string.desc_schedule_tweak),
+            leadingIcon = vectorResource(Res.drawable.swap_horiz_24px),
+            accent = AccentTone.INFO,
+            onClick = { onNavigate(Destination.TweakSchedule) }
         )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Spacer(modifier = Modifier.height(AppSpacing.cardGap))
+        SettingCard(
+            title = stringResource(Res.string.item_quick_delete),
+            subtitle = stringResource(Res.string.quick_delete_subtitle),
+            leadingIcon = vectorResource(Res.drawable.delete_24px),
+            accent = AccentTone.DANGER,
+            onClick = { onNavigate(Destination.QuickDelete) }
         )
     }
 }

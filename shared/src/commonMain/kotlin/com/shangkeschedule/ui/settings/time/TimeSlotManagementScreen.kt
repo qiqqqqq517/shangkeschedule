@@ -58,8 +58,16 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.ui.theme.appColors
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
@@ -69,6 +77,9 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_add_time_slot
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_delete_scheme
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete_scheme
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_delete_course
 import shangkeschedule.shared.generated.resources.a11y_delete_time_slot
 import shangkeschedule.shared.generated.resources.a11y_save_all_settings
 import shangkeschedule.shared.generated.resources.action_add
@@ -154,6 +165,8 @@ fun TimeSlotManagementScreen(
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var showCreateSchemeDialog by remember { mutableStateOf(false) }
     var showSchemeDatesDialog by remember { mutableStateOf(false) }
+    // 删除作息方案二次确认（删除不可撤销）
+    var pendingDeleteSchemeId by remember { mutableStateOf<String?>(null) }
     var editingSchemeForDates by remember { mutableStateOf<String?>(null) }
 
     val titleTimeSlotManagement = stringResource(Res.string.title_time_slot_management)
@@ -209,6 +222,10 @@ fun TimeSlotManagementScreen(
     var showEditBottomSheet by remember { mutableStateOf(false) }
     var editingTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
 
+    // 悬浮面板玻璃：主内容 hazeSource，编辑面板背板模糊
+    val hazeState = rememberHazeState()
+
+    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -262,7 +279,7 @@ fun TimeSlotManagementScreen(
                     schemeMetas = uiState.schemeMetas,
                     onSwitch = { schemeId -> timeSlotViewModel.onSwitchScheme(schemeId) },
                     onCreate = { showCreateSchemeDialog = true },
-                    onDelete = { schemeId -> timeSlotViewModel.onDeleteScheme(schemeId) },
+                    onDelete = { schemeId -> pendingDeleteSchemeId = schemeId },
                     onEditDates = { schemeId ->
                         editingSchemeForDates = schemeId
                         showSchemeDatesDialog = true
@@ -273,7 +290,7 @@ fun TimeSlotManagementScreen(
                     onToggle = { timeSlotViewModel.onToggleAutoSwitch(it) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider()
+                HorizontalDivider(color = appColors().divider)
                 Spacer(modifier = Modifier.height(16.dp))
                 DefaultDurationSettings(
                     defaultClassDuration = localDefaultClassDuration,
@@ -282,12 +299,11 @@ fun TimeSlotManagementScreen(
                     onBreakDurationChange = { newValue -> localDefaultBreakDuration = newValue }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider()
+                HorizontalDivider(color = appColors().divider)
                 Spacer(modifier = Modifier.height(16.dp))
                 if (localTimeSlots.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(textNoTimeSlotsHint)
-                    }
+                    // 统一空状态
+                    AppEmptyState(hint = textNoTimeSlotsHint)
                 }
             }
 
@@ -322,7 +338,8 @@ fun TimeSlotManagementScreen(
                 localDefaultClassDuration
             )
 
-            ModalBottomSheet(
+            AppGlassBottomSheet(
+                hazeState = hazeState,
                 onDismissRequest = {
                     showEditBottomSheet = false
                     editingTimeSlot = null
@@ -370,22 +387,41 @@ fun TimeSlotManagementScreen(
         }
 
         if (showExitConfirmDialog) {
+            // 退出确认（统一操作区语言：危险色「不保存」+ 灰字「继续编辑」）
             AlertDialog(
                 onDismissRequest = { showExitConfirmDialog = false },
                 title = { Text(text = stringResource(Res.string.common_dialog_title_abandon_changes)) },
                 text = { Text(text = stringResource(Res.string.common_dialog_msg_unsaved_changes)) },
                 confirmButton = {
-                    TextButton(onClick = {
-                        showExitConfirmDialog = false
-                        onBack()
-                    }) {
-                        Text(text = stringResource(Res.string.common_action_exit_without_save))
-                    }
+                    AppDialogActions(
+                        confirmText = stringResource(Res.string.common_action_exit_without_save),
+                        onConfirm = {
+                            showExitConfirmDialog = false
+                            onBack()
+                        },
+                        dismissText = stringResource(Res.string.common_action_continue_editing),
+                        onDismiss = { showExitConfirmDialog = false },
+                        danger = true
+                    )
                 },
-                dismissButton = {
-                    TextButton(onClick = { showExitConfirmDialog = false }) {
-                        Text(text = stringResource(Res.string.common_action_continue_editing))
-                    }
+                dismissButton = {}
+            )
+        }
+
+        // 删除作息方案二次确认（删除不可撤销）
+        if (pendingDeleteSchemeId != null) {
+            AppDangerDialog(
+                onDismissRequest = { pendingDeleteSchemeId = null },
+                title = stringResource(Res.string.dialog_title_confirm_delete_course),
+                text = stringResource(
+                    Res.string.dialog_text_confirm_delete_scheme,
+                    pendingDeleteSchemeId ?: ""
+                ),
+                confirmText = stringResource(Res.string.confirm_delete),
+                onConfirm = {
+                    val schemeId = pendingDeleteSchemeId
+                    pendingDeleteSchemeId = null
+                    if (schemeId != null) timeSlotViewModel.onDeleteScheme(schemeId)
                 }
             )
         }
@@ -425,6 +461,7 @@ fun TimeSlotManagementScreen(
                 }
             )
         }
+    }
     }
 }
 
@@ -558,25 +595,26 @@ fun CreateSchemeDialog(
         onDismissRequest = onDismiss,
         title = { Text(dialogTitleNewScheme) },
         text = {
-            OutlinedTextField(
+            // 统一柔和填充输入框
+            AppTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(labelSchemeName) },
-                placeholder = { Text(hintSchemeName) },
+                label = labelSchemeName,
+                placeholder = hintSchemeName,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            TextButton(onClick = { onCreate(name) }) {
-                Text(actionNewScheme)
-            }
+            // 统一操作区：取消灰字 + 确认主色胶囊
+            AppDialogActions(
+                confirmText = actionNewScheme,
+                onConfirm = { onCreate(name) },
+                dismissText = actionCancel,
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(actionCancel)
-            }
-        }
+        dismissButton = {}
     )
 }
 
@@ -618,7 +656,7 @@ fun DefaultDurationSettings(
         Text(titleDefaultDurationSettings, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
+            AppTextField(
                 value = if (defaultClassDuration == 0) "" else defaultClassDuration.toString(),
                 onValueChange = { newValueStr ->
                     val newIntValue = newValueStr.toIntOrNull()
@@ -630,12 +668,12 @@ fun DefaultDurationSettings(
                         ToastManager.show(toastClassDurationPositive)
                     }
                 },
-                label = { Text(labelClassDuration) },
+                label = labelClassDuration,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(16.dp))
-            OutlinedTextField(
+            AppTextField(
                 value = if (defaultBreakDuration == -1) "" else defaultBreakDuration.toString(),
                 onValueChange = { newValueStr ->
                     val newIntValue = newValueStr.toIntOrNull()
@@ -647,7 +685,7 @@ fun DefaultDurationSettings(
                         ToastManager.show(toastBreakDurationNonNegative)
                     }
                 },
-                label = { Text(labelBreakDuration) },
+                label = labelBreakDuration,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
@@ -787,10 +825,10 @@ fun TimeSlotEditContent(
             )
         }
 
-        OutlinedTextField(
+        AppTextField(
             value = aliasState,
             onValueChange = { if (it.length <= 5) aliasState = it },
-            label = { Text(stringResource(Res.string.label_time_slot_alias)) },
+            label = stringResource(Res.string.label_time_slot_alias),
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
@@ -935,26 +973,23 @@ fun TimeSlotEditContent(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) { Text(actionCancel) }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
+                // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
+                AppDialogActions(
+                    confirmText = if (isEditing) actionSaveChanges else actionAdd,
+                    onConfirm = {
                         val startTimeObj = LocalTime(startHourState, startMinuteState)
                         val endTimeObj = LocalTime(endHourState, endMinuteState)
 
                         // 1. 核心校验：结束时间必须大于开始时间
                         if (endTimeObj <= startTimeObj) {
                             ToastManager.show(toastEndTimeMustBeLater)
-                            return@Button
+                            return@AppDialogActions
                         }
 
                         // 2. 边界校验：不能侵占上一个课时或下一个课时
                         if (startTimeObj < minAllowedTime || endTimeObj > maxAllowedTime) {
                             ToastManager.show(toastTimeConflict)
-                            return@Button
+                            return@AppDialogActions
                         }
 
                         onConfirm(
@@ -963,10 +998,10 @@ fun TimeSlotEditContent(
                             formatTime(endTimeObj),
                             aliasState.ifBlank { null }
                         )
-                    }) {
-                        Text(if (isEditing) actionSaveChanges else actionAdd)
-                    }
-                }
+                    },
+                    dismissText = actionCancel,
+                    onDismiss = onDismiss
+                )
             }
         }
     }
@@ -1123,30 +1158,33 @@ fun SchemeDateRangeDialog(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                TextButton(onClick = { onConfirm(null, null) }) {
-                    Text(actionClearDates)
+                TextButton(
+                    onClick = { onConfirm(null, null) },
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text(actionClearDates, color = appColors().textSecondary)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (!isValidMonthDay(startMonth, startDay) || !isValidMonthDay(endMonth, endDay)) {
-                    ToastManager.show(toastIncomplete)
-                    return@TextButton
-                }
-                onConfirm(
-                    formatMonthDay(startMonth, startDay),
-                    formatMonthDay(endMonth, endDay)
-                )
-            }) {
-                Text(actionSaveChanges)
-            }
+            // 统一操作区：取消灰字 + 保存主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = actionSaveChanges,
+                onConfirm = {
+                    if (!isValidMonthDay(startMonth, startDay) || !isValidMonthDay(endMonth, endDay)) {
+                        ToastManager.show(toastIncomplete)
+                        return@AppDialogActions
+                    }
+                    onConfirm(
+                        formatMonthDay(startMonth, startDay),
+                        formatMonthDay(endMonth, endDay)
+                    )
+                },
+                dismissText = actionCancel,
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(actionCancel)
-            }
-        }
+        dismissButton = {}
     )
 }
 

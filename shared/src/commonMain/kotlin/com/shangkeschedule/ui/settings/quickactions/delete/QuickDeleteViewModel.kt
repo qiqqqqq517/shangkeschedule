@@ -20,6 +20,7 @@ import kotlinx.datetime.until
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.error_op_failed
 import shangkeschedule.shared.generated.resources.quick_delete_success

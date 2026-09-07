@@ -15,18 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -49,6 +43,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.AppTextField
+import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.settings.SettingItem
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -74,7 +77,12 @@ import shangkeschedule.shared.generated.resources.desc_webdav_path_hint
 import shangkeschedule.shared.generated.resources.desc_webdav_unconfigured
 import shangkeschedule.shared.generated.resources.dialog_title_backup_target
 import shangkeschedule.shared.generated.resources.dialog_title_config_webdav
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_restore
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_webdav_disconnect
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_restore
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_webdav_disconnect
 import shangkeschedule.shared.generated.resources.dialog_title_restore_source
+import shangkeschedule.shared.generated.resources.action_restore
 import shangkeschedule.shared.generated.resources.download_24px
 import shangkeschedule.shared.generated.resources.error_stream_open_failed
 import shangkeschedule.shared.generated.resources.error_webdav_unconfigured
@@ -116,6 +124,10 @@ fun BackupScreen(
     var showConfigDialog by remember { mutableStateOf(false) }
     var showBackupTargetDialog by remember { mutableStateOf(false) }
     var showRestoreTargetDialog by remember { mutableStateOf(false) }
+    // 等用户确认后才真正执行的恢复目标（WebDAV / 本地 Zip）
+    var pendingRestoreTarget by remember { mutableStateOf<BackupTarget?>(null) }
+    // 解除 WebDAV 绑定的二次确认
+    var showDisconnectConfirm by remember { mutableStateOf(false) }
 
     val streamOpenFailedMsg = stringResource(Res.string.error_stream_open_failed)
     val webdavUnconfiguredMsg = stringResource(Res.string.error_webdav_unconfigured)
@@ -154,6 +166,13 @@ fun BackupScreen(
                     duration = SnackbarDuration.Short
                 )
             }
+            is TestResult.PartialSuccess -> {
+                // P1-15 静默降级显性化：部分模块缺失时明确提示用户
+                snackbarHostState.showSnackbar(
+                    message = result.message,
+                    duration = SnackbarDuration.Long
+                )
+            }
             is TestResult.Success -> {
                 snackbarHostState.showSnackbar(
                     message = opSuccessMsg,
@@ -186,7 +205,7 @@ fun BackupScreen(
                 .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap)
         ) {
             if (state.isBusy || state.isTesting) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -202,7 +221,7 @@ fun BackupScreen(
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    color = appColors().divider
                 )
                 MenuActionItem(
                     title = stringResource(Res.string.item_restore_data),
@@ -237,8 +256,9 @@ fun BackupScreen(
                 showConfigDialog = false
             },
             onDisconnect = {
-                viewModel.disconnectWebDav()
+                // 先关闭配置弹窗，再弹出解除绑定的二次确认
                 showConfigDialog = false
+                showDisconnectConfirm = true
             }
         )
     }
@@ -292,15 +312,48 @@ fun BackupScreen(
                 when (target) {
                     BackupTarget.WEBDAV -> {
                         if (state.baseUrl.isNotBlank()) {
-                            viewModel.restoreFromWebDav()
+                            pendingRestoreTarget = target
                         } else {
                             scope.launch { snackbarHostState.showSnackbar(webdavUnconfiguredMsg) }
                         }
                     }
                     BackupTarget.LOCAL_ZIP -> {
-                        fileManager.importFile(listOf("zip"))
+                        // 恢复会覆盖当前数据：先统一确认，确认后再打开本地文件选择器
+                        pendingRestoreTarget = target
                     }
                 }
+            }
+        )
+    }
+
+    // 恢复前的二次确认（WebDAV / 本地 Zip 共用，覆盖当前课表数据不可撤销）
+    pendingRestoreTarget?.let { target ->
+        AppDangerDialog(
+            onDismissRequest = { pendingRestoreTarget = null },
+            title = stringResource(Res.string.dialog_title_confirm_restore),
+            text = stringResource(Res.string.dialog_text_confirm_restore),
+            confirmText = stringResource(Res.string.action_restore),
+            onConfirm = {
+                pendingRestoreTarget = null
+                when (target) {
+                    BackupTarget.WEBDAV -> viewModel.restoreFromWebDav()
+                    BackupTarget.LOCAL_ZIP -> fileManager.importFile(listOf("zip"))
+                }
+            }
+        )
+    }
+
+    // 解除 WebDAV 绑定的二次确认
+    if (showDisconnectConfirm) {
+        AppDangerDialog(
+            onDismissRequest = { showDisconnectConfirm = false },
+            title = stringResource(Res.string.dialog_title_confirm_webdav_disconnect),
+            text = stringResource(Res.string.dialog_text_confirm_webdav_disconnect),
+            confirmText = stringResource(Res.string.action_confirm),
+            onConfirm = {
+                viewModel.disconnectWebDav()
+                showConfigDialog = false
+                showDisconnectConfirm = false
             }
         )
     }
@@ -311,21 +364,10 @@ fun CardGroup(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // 统一分区语言：AppSectionHeader + 白色 AppCard（与设置二级页 SectionCard 同构）
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(PaddingValues(start = 4.dp))
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-            )
-        ) {
+        AppSectionHeader(title)
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 content = content
@@ -339,25 +381,17 @@ fun MenuActionItem(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accent: AccentTone = AccentTone.PRIMARY,
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    ListItem(
-        headlineContent = { Text(title, style = MaterialTheme.typography.titleMedium) },
-        supportingContent = { Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-        leadingContent = {
-            com.shangkeschedule.ui.components.IconChip(
-                icon = icon,
-                tone = com.shangkeschedule.ui.theme.AccentTone.PRIMARY,
-                size = 48.dp,
-                iconSize = 22.dp
-            )
-        },
-        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 4.dp)
+    // 行组件统一委托 SettingItem（标题 16sp SemiBold + 副标题 13sp + 语义 IconChip + chevron）
+    SettingItem(
+        title = title,
+        subtitle = subtitle,
+        leadingIcon = icon,
+        accent = accent,
+        onClick = if (enabled) onClick else null
     )
 }
 
@@ -400,18 +434,16 @@ fun TargetSelectionDialog(
                 }
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        },
         confirmButton = {
-            Button(
-                onClick = { onTargetSelected(selectedTarget) }
-            ) {
-                Text(stringResource(Res.string.action_confirm))
-            }
-        }
+            // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = { onTargetSelected(selectedTarget) },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
+        },
+        dismissButton = {}
     )
 }
 
@@ -432,37 +464,34 @@ fun WebDavConfigDialog(
         title = { Text(stringResource(Res.string.dialog_title_config_webdav)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                // 统一柔和填充输入框（AppTextField）
+                AppTextField(
                     value = inputUrl,
                     onValueChange = { inputUrl = it },
-                    label = { Text(stringResource(Res.string.label_webdav_url)) },
+                    label = stringResource(Res.string.label_webdav_url),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = inputUsername,
                     onValueChange = { inputUsername = it },
-                    label = { Text(stringResource(Res.string.label_webdav_account)) },
+                    label = stringResource(Res.string.label_webdav_account),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = inputPassword,
                     onValueChange = { inputPassword = it },
-                    label = {
-                        Text(
-                            if (state.hasSavedPassword) stringResource(Res.string.label_webdav_pwd_saved)
-                            else stringResource(Res.string.label_webdav_pwd_empty)
-                        )
-                    },
+                    label = if (state.hasSavedPassword) stringResource(Res.string.label_webdav_pwd_saved)
+                    else stringResource(Res.string.label_webdav_pwd_empty),
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = inputRootPath,
                     onValueChange = { inputRootPath = it },
-                    label = { Text(stringResource(Res.string.label_webdav_path)) },
+                    label = stringResource(Res.string.label_webdav_path),
                     supportingText = { Text(stringResource(Res.string.desc_webdav_path_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -470,26 +499,19 @@ fun WebDavConfigDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onSave(inputUrl, inputUsername, inputPassword, inputRootPath) },
-                enabled = !state.isTesting
-            ) {
-                Text(
-                    if (state.isTesting) stringResource(Res.string.title_loading)
-                    else stringResource(Res.string.action_confirm)
-                )
-            }
+            // 统一操作区：确认主色胶囊；「解除绑定」为破坏性次要操作，以灰字呈现避免误触
+            AppDialogActions(
+                confirmText = if (state.isTesting) stringResource(Res.string.title_loading)
+                else stringResource(Res.string.action_confirm),
+                onConfirm = { onSave(inputUrl, inputUsername, inputPassword, inputRootPath) },
+                confirmEnabled = !state.isTesting,
+                dismissText = stringResource(Res.string.action_reset),
+                onDismiss = {
+                    onDisconnect()
+                    onDismiss()
+                }
+            )
         },
-        dismissButton = {
-            TextButton(onClick = {
-                onDisconnect()
-                onDismiss()
-            }) {
-                Text(
-                    text = stringResource(Res.string.action_reset),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
+        dismissButton = {}
     )
 }

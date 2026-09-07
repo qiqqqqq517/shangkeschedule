@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.AppSwitch
 import androidx.compose.runtime.Composable
@@ -43,6 +44,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.couple_delete_message
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.desc_couple_schedule
@@ -260,23 +264,18 @@ fun CoupleScheduleSettingsScreen(
     }
 
     if (showDeleteCrushConfirm) {
-        AlertDialog(
+        // 危险操作统一走 AppDangerDialog（危险色胶囊确认钮）
+        AppDangerDialog(
             onDismissRequest = { showDeleteCrushConfirm = false },
-            title = { Text(stringResource(Res.string.item_delete_crush_schedule)) },
-            text = { Text("确定要删除情侣课表吗？此操作不可恢复。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteCrushConfirm = false
-                    conversionViewModel.onDeleteCrushClick()
-                }) {
-                    Text("确定删除")
-                }
+            title = stringResource(Res.string.item_delete_crush_schedule),
+            text = stringResource(Res.string.couple_delete_message),
+            confirmText = stringResource(Res.string.confirm_delete),
+            onConfirm = {
+                showDeleteCrushConfirm = false
+                conversionViewModel.onDeleteCrushClick()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteCrushConfirm = false }) {
-                    Text("取消")
-                }
-            }
+            dismissText = stringResource(Res.string.action_cancel),
+            onDismiss = { showDeleteCrushConfirm = false }
         )
     }
 }

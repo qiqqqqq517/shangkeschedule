@@ -39,19 +39,17 @@ fun ShareDialog(
         title = { Text(stringResource(Res.string.dialog_title_file_saved)) },
         text = { Text(stringResource(Res.string.dialog_text_file_saved_share_prompt)) },
         confirmButton = {
-            TextButton(
-                onClick = {
+            // 统一操作区：取消灰字 + 分享主色胶囊（AppDialogActions）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_share),
+                onConfirm = {
                     platformShareFile(filePath, mimeType)
                     onDismiss()
-                }
-            ) {
-                Text(stringResource(Res.string.action_share))
-            }
+                },
+                dismissText = stringResource(Res.string.action_cancel),
+                onDismiss = onDismiss
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
+        dismissButton = {}
     )
 }

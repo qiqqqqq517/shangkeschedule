@@ -164,7 +164,10 @@ class WebViewRequestInterceptor {
                         val location = response.headers[HttpHeaders.Location]
                         if (location != null) {
                             val absoluteLocation = resolveAbsoluteUrl(url, location)
-                            val html = "<html><script>window.location.replace('$absoluteLocation');</script></html>"
+                            // Location 头为服务端可控值，必须转义后再拼入 <script> 字符串上下文，
+                            // 防止注入任意 JS（如构造 ');<code>;// 或 </script> 逃逸）。
+                            val safeLocation = escapeJsStringForHtml(absoluteLocation)
+                            val html = "<html><script>window.location.replace('$safeLocation');</script></html>"
                             return@runBlocking WebResourceResponse(
                                 "text/html",
                                 "UTF-8",
@@ -239,6 +242,28 @@ class WebViewRequestInterceptor {
             URI(baseUrl).resolve(location).toString()
         } catch (e: Exception) {
             location
+        }
+    }
+
+    /**
+     * 将字符串安全地转义为嵌在 HTML <script> 单引号字面量中的 JS 字符串。
+     * 转义反斜杠/引号/换行，并将 `<` `>` 编码为 \u003C/\u003E，
+     * 既防止 JS 字符串逃逸注入代码，也防止 `</script>` 提前闭合脚本块。
+     */
+    private fun escapeJsStringForHtml(input: String): String {
+        return buildString {
+            for (c in input) {
+                when (c) {
+                    '\\' -> append("\\\\")
+                    '\'' -> append("\\'")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    '<' -> append("\\u003C")
+                    '>' -> append("\\u003E")
+                    else -> append(c)
+                }
+            }
         }
     }
 }

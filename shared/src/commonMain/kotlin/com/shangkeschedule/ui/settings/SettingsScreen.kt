@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -64,6 +65,11 @@ import com.shangkeschedule.ui.components.IconChip
 import com.shangkeschedule.ui.components.DatePickerModal
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.theme.AccentTone
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
@@ -135,6 +141,10 @@ import shangkeschedule.shared.generated.resources.class_24px
 import shangkeschedule.shared.generated.resources.edit_24px
 import shangkeschedule.shared.generated.resources.section_title_semester_settings
 import shangkeschedule.shared.generated.resources.more_horiz_24px
+import shangkeschedule.shared.generated.resources.notifications_24px
+import shangkeschedule.shared.generated.resources.item_backup_restore
+import shangkeschedule.shared.generated.resources.desc_backup_restore
+import shangkeschedule.shared.generated.resources.cloud_24px
 import shangkeschedule.shared.generated.resources.section_title_advanced_features
 import shangkeschedule.shared.generated.resources.section_title_general_settings
 import shangkeschedule.shared.generated.resources.status_current_week_format
@@ -143,11 +153,13 @@ import shangkeschedule.shared.generated.resources.status_set_start_date_first
 import shangkeschedule.shared.generated.resources.status_total_weeks_format
 import shangkeschedule.shared.generated.resources.title_course_notification_settings
 import shangkeschedule.shared.generated.resources.title_manage_course_tables
+import shangkeschedule.shared.generated.resources.nav_settings
 import shangkeschedule.shared.generated.resources.title_schedule_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 
-private val SETTING_PADDING = 16.dp
-private val ITEM_SPACING = 10.dp
+// 页面节奏对齐全局 token（v2 规范 §2：pageHorizontal=16 / cardGap=12）
+private val SETTING_PADDING = AppSpacing.pageHorizontal
+private val ITEM_SPACING = AppSpacing.cardGap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,6 +170,10 @@ fun SettingsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val uiState by viewModel.uiState.collectAsState()
+    // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
+    val hazeState = rememberHazeState()
+    val glassTint = appColors().pageBg.copy(alpha = 0.72f)
+    val glassFallback = appColors().pageBg
 
     AdaptiveNavigationScaffold(
         currentDestination = Destination.Settings,
@@ -167,30 +183,45 @@ fun SettingsScreen(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(stringResource(Res.string.title_schedule_settings)) },
-                    scrollBehavior = scrollBehavior
+                    title = { Text(stringResource(Res.string.nav_settings)) },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.hazeEffect(hazeState) {
+                        blurRadius = 16.dp
+                        noiseFactor = 0.1f
+                        tints = listOf(HazeTint(glassTint))
+                        fallbackTint = HazeTint(glassFallback)
+                        backgroundColor = Color.Transparent
+                    }
                 )
             }
         ) { innerPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .hazeSource(hazeState)
                     .padding(horizontal = SETTING_PADDING),
                 verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
-                contentPadding = PaddingValues(bottom = navPadding.calculateBottomPadding() + 16.dp)
+                // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = navPadding.calculateBottomPadding() + 16.dp
+                )
             ) {
                 // 头部渐变卡（v2 基线「我的」页样式：紫渐变 + 半透明白图标锚点 + 白字）
                 item {
                     GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.padding(18.dp),
+                            modifier = Modifier.padding(AppSpacing.cardInner),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .clip(AppShape.chipSmall)
                                     .background(Color.White.copy(alpha = 0.18f)),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -201,16 +232,17 @@ fun SettingsScreen(
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
-                            Column(modifier = Modifier.padding(start = 14.dp)) {
+                            // 文字列 weight(1f)：窄屏防挤压，与右侧课程格纸插画保持间隙
+                            Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
                                 Text(
                                     text = stringResource(Res.string.app_name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White
                                 )
                                 Text(
                                     text = stringResource(Res.string.hero_subtitle),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.hint),
                                     color = Color.White.copy(alpha = 0.75f),
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
@@ -256,7 +288,7 @@ fun SettingsScreen(
                                 Text(
                                     text = stringResource(Res.string.item_show_non_current_week),
                                     style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 15.sp,
+                                        fontSize = AppType.body,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     maxLines = 2,
@@ -270,7 +302,7 @@ fun SettingsScreen(
                             }
                             VerticalDivider(
                                 modifier = Modifier.height(28.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                color = appColors().divider
                             )
                             // 右：是否显示周末
                             Row(
@@ -283,7 +315,7 @@ fun SettingsScreen(
                                 Text(
                                     text = stringResource(Res.string.item_show_weekends),
                                     style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 15.sp,
+                                        fontSize = AppType.body,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     maxLines = 2,
@@ -348,9 +380,20 @@ fun SettingsScreen(
                     SettingCard(
                         title = stringResource(Res.string.title_course_notification_settings),
                         subtitle = stringResource(Res.string.desc_notification_settings),
-                        leadingIcon = vectorResource(Res.drawable.info_24px),
+                        // 图标语义修正：通知类用 notifications（原 info 与语义不符）
+                        leadingIcon = vectorResource(Res.drawable.notifications_24px),
                         accent = AccentTone.INFO,
                         onClick = { onNavigate(Destination.NotificationSettings) }
+                    )
+                }
+                // P1-2 备份入口上提一级：数据安全功能原藏在 设置→课表导入/导出→同步→备份 第 3 级
+                item {
+                    SettingCard(
+                        title = stringResource(Res.string.item_backup_restore),
+                        subtitle = stringResource(Res.string.desc_backup_restore),
+                        leadingIcon = vectorResource(Res.drawable.cloud_24px),
+                        accent = AccentTone.SUCCESS,
+                        onClick = { onNavigate(Destination.BackupAndRestore) }
                     )
                 }
                 item {
@@ -488,8 +531,12 @@ internal fun ColorPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
+            // 取消弱化为灰字文本钮（与其他对话框的取消语言一致）
+            TextButton(onClick = onDismiss) {
+                Text(
+                    stringResource(Res.string.action_cancel),
+                    color = appColors().textSecondary
+                )
             }
         }
     )
@@ -510,12 +557,12 @@ internal fun ColorSwatch(
     Box(
         modifier = Modifier
             .size(48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.small)
             .background(bgColor)
             .border(
                 width = if (selected) 3.dp else 1.dp,
                 color = if (selected) MaterialTheme.colorScheme.primary else dualColor.dark.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.small
             )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -580,7 +627,7 @@ internal fun SettingItem(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 13.sp,
+                        fontSize = AppType.caption,
                         lineHeight = 18.sp
                     ),
                     color = appColors().textSecondary,

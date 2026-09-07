@@ -15,9 +15,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -27,17 +25,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.theme.AppType
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.title_select_week
 
 /**
- * 周选择器底部动作条。
+ * 周选择器底部动作条（毛玻璃面板：传入 hazeState 时背板模糊，内容透出玻璃后）。
  *
  * @param totalWeeks 学期总周数。
  * @param currentWeek 当前的自然周数。
+ * @param selectedWeek 当前选中的周次。
  * @param onWeekSelected 当用户选择周次时触发的回调。
  * @param onDismissRequest 当底部动作条被关闭时触发的回调。
+ * @param hazeState 主窗口内容的 HazeState；null 时退化为实色面板。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +48,8 @@ fun WeekSelectorBottomSheet(
     currentWeek: Int?,
     selectedWeek: Int?,
     onWeekSelected: (Int) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    hazeState: dev.chrisbanes.haze.HazeState? = null
 ) {
     val gridState = rememberLazyGridState()
 
@@ -58,9 +61,9 @@ fun WeekSelectorBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberModalBottomSheetState()
+    AppGlassBottomSheet(
+        hazeState = hazeState,
+        onDismissRequest = onDismissRequest
     ) {
         Column(
             modifier = Modifier
@@ -71,7 +74,7 @@ fun WeekSelectorBottomSheet(
             Text(
                 text = stringResource(Res.string.title_select_week),
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
+                    fontSize = AppType.sectionTitle,
                     fontWeight = FontWeight.SemiBold
                 ),
                 modifier = Modifier.padding(16.dp)
@@ -107,7 +110,8 @@ fun WeekSelectorBottomSheet(
 
                     Box(
                         modifier = Modifier
-                            .height(32.dp)
+                            // 触控标准 ≥44dp（原 32dp 偏小，与全局 touchMin 语言靠拢）
+                            .height(44.dp)
                             .clip(CircleShape)
                             .background(backgroundColor)
                             .clickable { onWeekSelected(weekNumber) }

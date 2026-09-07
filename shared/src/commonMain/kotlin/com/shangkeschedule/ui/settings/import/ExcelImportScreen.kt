@@ -1,5 +1,18 @@
 package com.shangkeschedule.ui.settings.import
 
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.import_excel_desc_support
+import shangkeschedule.shared.generated.resources.import_status_parsing
+import shangkeschedule.shared.generated.resources.import_detected_fmt
+import shangkeschedule.shared.generated.resources.import_selected_fmt
+import shangkeschedule.shared.generated.resources.import_excel_action_select
+import shangkeschedule.shared.generated.resources.import_toast_success
+import shangkeschedule.shared.generated.resources.import_error_no_file
+import shangkeschedule.shared.generated.resources.import_cat_excel
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,11 +58,14 @@ fun ExcelImportScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
+    val toastNoFile = stringResource(Res.string.import_error_no_file)
+    val toastSuccess = stringResource(Res.string.import_toast_success)
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
             onFileImported = { bytes, fileName ->
                 if (bytes == null) {
-                    ToastManager.show("未选择文件")
+                    ToastManager.show(toastNoFile)
                 } else {
                     viewModel.parseFileBytes(bytes, fileName)
                 }
@@ -60,10 +76,10 @@ fun ExcelImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Excel 导入") },
+                title = { Text(stringResource(Res.string.import_cat_excel)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
                     }
                 }
             )
@@ -77,10 +93,7 @@ fun ExcelImportScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "支持 .xlsx 文件，自动识别两种课表形态：\n" +
-                        "① 网格课表：行=节次、列=星期（超级课程表 / QQ群课表 / 教务系统导出）\n" +
-                        "② 列表课表：一行一门课（表头含 课程/教师/教室/星期/节次/周次）\n" +
-                        "旧版 .xls 请先在 Office/WPS 中另存为 .xlsx",
+                text = stringResource(Res.string.import_excel_desc_support),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -91,13 +104,13 @@ fun ExcelImportScreen(
                 enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("选择 Excel 文件")
+                Text(stringResource(Res.string.import_excel_action_select))
             }
 
             uiState.fileName?.let { name ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "已选择：$name",
+                    text = stringResource(Res.string.import_selected_fmt, name),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -106,7 +119,7 @@ fun ExcelImportScreen(
             if (uiState.detectedFormat.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "识别形态：${uiState.detectedFormat}",
+                    text = stringResource(Res.string.import_detected_fmt, uiState.detectedFormat),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -122,14 +135,18 @@ fun ExcelImportScreen(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.padding(start = 12.dp))
-                    Text("正在解析文件…")
+                    Text(stringResource(Res.string.import_status_parsing))
                 }
             }
 
             // 预览 + 导入
             uiState.parseResult?.let { model ->
                 Spacer(modifier = Modifier.height(16.dp))
-                ImportPreviewSection(model = model)
+                ImportPreviewSection(
+                    model = model,
+                    // P1-6 预览可编辑：编辑/删除结果回写 VM，保证导入数据与预览一致
+                    onCoursesChanged = viewModel::updateParsedCourses
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
                 ImportDestinationForm(
@@ -140,7 +157,7 @@ fun ExcelImportScreen(
                         viewModel.importToNewTable(
                             tableName = tableName,
                             onSuccess = { newTableId ->
-                                ToastManager.show("导入成功！")
+                                ToastManager.show(toastSuccess)
                                 viewModel.reset()
                                 onImportSuccess(newTableId)
                             },
@@ -151,7 +168,7 @@ fun ExcelImportScreen(
                         viewModel.importToExistingTable(
                             tableId = tableId,
                             onSuccess = { id ->
-                                ToastManager.show("导入成功！")
+                                ToastManager.show(toastSuccess)
                                 viewModel.reset()
                                 onImportSuccess(id)
                             },

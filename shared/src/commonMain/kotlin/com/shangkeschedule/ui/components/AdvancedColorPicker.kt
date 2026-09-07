@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import com.shangkeschedule.ui.theme.AppShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -245,7 +246,7 @@ fun AdvancedColorPicker(
         if (config.showHex) {
             Spacer(modifier = Modifier.height(24.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp)) {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
                     Text(text = ColorInternalUtils.colorToHex(currentColor), modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
             }
@@ -277,7 +278,7 @@ private fun InternalGradientSlider(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(AppShape.chipSmall)
                 .background(gradient)
                 .pointerInput(range, widthPx) {
                     awaitEachGesture {
@@ -333,7 +334,7 @@ private fun RgbInputField(
         }
     }
 
-    OutlinedTextField(
+    AppTextField(
         value = inputText,
         onValueChange = { text ->
             if (text.isEmpty()) {
@@ -347,7 +348,7 @@ private fun RgbInputField(
                 }
             }
         },
-        label = { Text(label) },
+        label = label,
         modifier = modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true

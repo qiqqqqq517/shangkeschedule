@@ -20,6 +20,12 @@ interface TimeSlotDao {
     fun getTimeSlotsByCourseTableId(courseTableId: String, schemeId: String): Flow<List<TimeSlot>>
 
     /**
+     * 一次性获取指定课表、指定作息方案的所有时间段（用于事务内迁移课程节次引用）。
+     */
+    @Query("SELECT * FROM time_slots WHERE courseTableId = :courseTableId AND schemeId = :schemeId ORDER BY number ASC")
+    suspend fun getTimeSlotsOnce(courseTableId: String, schemeId: String): List<TimeSlot>
+
+    /**
      * 获取指定课表下所有不重复的作息方案ID。
      */
     @Query("SELECT DISTINCT schemeId FROM time_slots WHERE courseTableId = :courseTableId")

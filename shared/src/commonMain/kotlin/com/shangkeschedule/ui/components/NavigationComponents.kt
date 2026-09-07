@@ -1,15 +1,33 @@
 package com.shangkeschedule.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,13 +51,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.appColors
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -140,7 +165,7 @@ fun AdaptiveNavigationScaffold(
             NavigationSuiteType.NavigationRail -> {
                 // 宽屏侧边栏沿用 M3 NavigationRail 规格（图标 24dp / 文字 12sp）
                 val railIconSize = 24.dp
-                val railTextSize = 12.sp
+                val railTextSize = AppType.hint
                 Row(modifier = Modifier.fillMaxSize()) {
                     NavigationRail(
                         containerColor = if (isTransparent) Color.Transparent else resolvedContainerColor,
@@ -169,72 +194,166 @@ fun AdaptiveNavigationScaffold(
                 }
             }
             NavigationSuiteType.NavigationBar -> {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = Color.Transparent,
-                    bottomBar = {
-                        // 紧凑悬浮胶囊条（基线 §2）：宽度包内容、水平居中、高度收敛；
-                        // 选中项 = 图文一体的浅色胶囊高亮 + 加粗，未选中灰。
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .padding(
-                                    horizontal = AppSpacing.navBarHorizontal,
-                                    vertical = AppSpacing.navBarBottom
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                modifier = navigationModifier
-                                    .shadow(
-                                        elevation = 8.dp,
-                                        shape = AppShape.capsule,
-                                        clip = false,
-                                        ambientColor = tokens.shadow,
-                                        spotColor = tokens.shadow
+                // 毛玻璃悬浮胶囊底栏（Telegram 形态 + 克制玻璃质感）：
+                // 内容整体作为 hazeSource，胶囊 hazeEffect 背板模糊 + 半透明底色。
+                // innerPadding 语义与原 Scaffold 一致（bottom = 底栏占用高度），
+                // 壁纸模式或未来内容滚动到底栏之下时，玻璃后方即为真实内容。
+                val hazeState = rememberHazeState()
+                val density = LocalDensity.current
+                val navInsetPx = WindowInsets.navigationBars.getBottom(density)
+                // 底栏占用 = 胶囊高（touchMin 48 + 上下 7dp）+ 上下外距（navBarBottom × 2）
+                val barOccupied = AppSpacing.touchMin + 14.dp + AppSpacing.navBarBottom * 2
+                val barInsetBottom = barOccupied + (navInsetPx / density.density).dp
+
+                // 滚动隐藏（Telegram 手势）：下滑累积超过阈值隐藏，上滑立即显示；
+                // 切换 Tab / 列表顶部 overscroll 时恢复显示
+                var barHidden by remember { mutableStateOf(false) }
+                var downAccumPx by remember { mutableFloatStateOf(0f) }
+                // 滚动状态切换冷却时间（毫秒）：防止单手势内 hide/show 反复抖动
+                var lastToggleMs by remember { mutableLongStateOf(0L) }
+                val hideThresholdPx = with(density) { 72.dp.toPx() }
+                val toggleCooldownMs = 300L
+                val hideRangePx = with(density) { barInsetBottom.toPx() }
+                val nestedConnection = remember {
+                    object : NestedScrollConnection {
+                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                            val dy = available.y
+                            val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+                            val inCooldown = now - lastToggleMs < toggleCooldownMs
+                            if (!barHidden && dy < 0) {
+                                downAccumPx = (downAccumPx - dy).coerceAtMost(hideThresholdPx * 2)
+                                if (downAccumPx >= hideThresholdPx) {
+                                    barHidden = true
+                                    downAccumPx = 0f
+                                    lastToggleMs = now
+                                }
+                            } else if (dy > 2f && barHidden && !inCooldown) {
+                                barHidden = false
+                                downAccumPx = 0f
+                                lastToggleMs = now
+                            }
+                            return Offset.Zero
+                        }
+
+                        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                            val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+                            val inCooldown = now - lastToggleMs < toggleCooldownMs
+                            // 仅在上滑（available.y>0）时恢复显示；顶部下拉（<0）不再触发 re-show，
+                            // 避免「已在顶部持续下拉」时 hide→show 在同一手势内反复闪烁
+                            if (barHidden && available.y > 4f && !inCooldown) {
+                                barHidden = false
+                                downAccumPx = 0f
+                                lastToggleMs = now
+                            }
+                            return Offset.Zero
+                        }
+                    }
+                }
+                LaunchedEffect(currentDestination) {
+                    barHidden = false
+                    downAccumPx = 0f
+                }
+                val hideFraction by animateFloatAsState(
+                    targetValue = if (barHidden) 1f else 0f,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "navBarHide"
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(nestedConnection)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .hazeSource(hazeState)
+                    ) {
+                        // P2-3 隐藏后留白回收：底栏隐藏动画进行中，内容底部 padding 同步收缩，
+                        // 让列表内容顺势延伸至底栏空位，不残留一块空白。
+                        content(PaddingValues(bottom = barInsetBottom * (1f - hideFraction)))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                translationY = hideFraction * hideRangePx
+                                alpha = 1f - hideFraction * 0.4f
+                            }
+                            .navigationBarsPadding()
+                            .padding(
+                                horizontal = AppSpacing.navBarHorizontal,
+                                vertical = AppSpacing.navBarBottom
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = navigationModifier
+                                .shadow(
+                                    elevation = 14.dp,
+                                    shape = AppShape.capsule,
+                                    clip = false,
+                                    ambientColor = tokens.shadow,
+                                    spotColor = tokens.shadow
+                                )
+                                // 圆角修复：clip 必须排在 hazeEffect 之前——Modifier 链由外向内生效，
+                                // 玻璃层（hazeEffect）只有处于 clip 内部才会被裁成胶囊形，
+                                // 否则模糊+白 tint 以整节点矩形渲染，呈现「方形白条」。
+                                .clip(AppShape.capsule)
+                                .hazeEffect(hazeState) {
+                                    blurRadius = 20.dp
+                                    noiseFactor = 0.12f
+                                    tints = listOf(
+                                        if (isTransparent) HazeTint(Color.Transparent)
+                                        else HazeTint((bottomBarContainerColor ?: tokens.inputBg).copy(alpha = 0.70f))
                                     )
-                                    .clip(AppShape.capsule)
-                                    .background(if (isTransparent) Color.Transparent else resolvedContainerColor)
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                navItems.forEach { item ->
-                                    val isSelected = currentDestination::class == item.destination::class
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(AppShape.capsule)
-                                            .background(
-                                                if (isSelected) resolvedIndicatorColor else Color.Transparent
-                                            )
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) { if (!isSelected) onTabSelected(item.destination) }
-                                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                            contentDescription = item.label,
-                                            tint = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor,
-                                            modifier = Modifier.size(22.dp)
+                                    fallbackTint = if (isTransparent) HazeTint(Color.Black.copy(alpha = 0.2f))
+                                    else HazeTint(bottomBarContainerColor ?: tokens.inputBg)
+                                    backgroundColor = Color.Transparent
+                                }
+                                .border(1.dp, tokens.divider.copy(alpha = 0.6f), AppShape.capsule)
+                                .background(if (isTransparent) Color.Transparent else (bottomBarContainerColor ?: tokens.inputBg).copy(alpha = 0.10f))
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            navItems.forEach { item ->
+                                val isSelected = currentDestination::class == item.destination::class
+                                Row(
+                                    modifier = Modifier
+                                        .clip(AppShape.capsule)
+                                        .background(
+                                            if (isSelected) resolvedIndicatorColor else Color.Transparent
                                         )
-                                        Text(
-                                            text = item.label,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
-                                            modifier = Modifier.padding(start = 5.dp)
+                                        // 触控标准 ≥48dp（AppSpacing.touchMin）+ 无障碍：selectable 提供
+                                        // selected 语义与 Tab 角色（TalkBack 播报「已选中」且无重复朗读）
+                                        .heightIn(min = AppSpacing.touchMin)
+                                        .selectable(
+                                            selected = isSelected,
+                                            role = Role.Tab,
+                                            onClick = { if (!isSelected) onTabSelected(item.destination) }
                                         )
-                                    }
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                        // 图标语义由下方 Text 承担，置 null 避免 TalkBack 双读
+                                        contentDescription = null,
+                                        tint = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Text(
+                                        text = item.label,
+                                        fontSize = AppType.badge,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
+                                        modifier = Modifier.padding(start = 5.dp)
+                                    )
                                 }
                             }
                         }
                     }
-                ) { innerPadding ->
-                    content(innerPadding)
                 }
             }
             else -> {

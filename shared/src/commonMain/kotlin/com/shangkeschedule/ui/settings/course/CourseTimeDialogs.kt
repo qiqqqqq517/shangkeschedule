@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.course
 
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,7 +34,20 @@ import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import dev.chrisbanes.haze.HazeState
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.action_confirm
+import shangkeschedule.shared.generated.resources.label_custom_time
+import shangkeschedule.shared.generated.resources.label_day_of_week
+import shangkeschedule.shared.generated.resources.label_end_section
+import shangkeschedule.shared.generated.resources.label_end_time
+import shangkeschedule.shared.generated.resources.label_start_section
+import shangkeschedule.shared.generated.resources.label_start_time
+import shangkeschedule.shared.generated.resources.title_select_time
+import shangkeschedule.shared.generated.resources.toast_end_time_must_be_later
+import shangkeschedule.shared.generated.resources.toast_time_invalid
+import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.*
 
 /**
@@ -49,7 +63,8 @@ fun CourseTimePickerBottomSheet(
     endSection: Int,
     onEndSectionChange: (Int) -> Unit,
     timeSlots: List<TimeSlot>,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -59,7 +74,8 @@ fun CourseTimePickerBottomSheet(
 
     val timeInvalidText = stringResource(Res.string.toast_time_invalid)
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
         sheetState = modalBottomSheetState
     ) {
@@ -133,7 +149,8 @@ fun CustomTimeRangePickerBottomSheet(
     initialStartTime: String,
     initialEndTime: String,
     onDismissRequest: () -> Unit,
-    onTimeRangeSelected: (startTime: String, endTime: String) -> Unit
+    onTimeRangeSelected: (startTime: String, endTime: String) -> Unit,
+    hazeState: HazeState? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -159,7 +176,8 @@ fun CustomTimeRangePickerBottomSheet(
     val hours = remember { (0..23).map { it.toString().padStart(2, '0') } }
     val minutes = remember { (0..59).map { it.toString().padStart(2, '0') } }
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
         sheetState = sheetState
     ) {
@@ -284,7 +302,7 @@ fun DayPickerDialog(
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.small,
             color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column(

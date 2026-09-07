@@ -24,16 +24,31 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringArrayResource
 import shangkeschedule.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.a11y_course_location_fmt
+import shangkeschedule.shared.generated.resources.a11y_course_not_this_week
+import shangkeschedule.shared.generated.resources.a11y_course_sections_fmt
+import shangkeschedule.shared.generated.resources.a11y_course_teacher_fmt
+import shangkeschedule.shared.generated.resources.a11y_list_separator
 import shangkeschedule.shared.generated.resources.week_days_short_names
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+
+/** 节次文本：整数节显示整数（"1"），24 小时制的 0.25 步长保留小数（"6.25"） */
+private fun Float.toA11ySectionText(): String =
+    if (this % 1f == 0f) this.toInt().toString() else this.toString()
 
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @Composable
@@ -42,7 +57,8 @@ fun ScheduleGrid(
     viewState: ScheduleGridViewState,
     actions: ScheduleGridActions,
     style: ScheduleGridStyleComposed,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bottomInset: Dp = 0.dp
 ) {
     Box(modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -176,6 +192,9 @@ fun ScheduleGrid(
                     .fillMaxSize()
                     .onSizeChanged { state.viewportHeightPx = it.height.toFloat() }
                     .verticalScroll(state = state.gridScrollState, enabled = state.expandedItem == null)
+                    // 底部留白放进滚动内容内部：网格视口延伸到玻璃底栏之下，
+                    // 末节课程可滚动到导航条上方（对齐「我的」页内容穿越形态）
+                    .padding(bottom = bottomInset)
             ) {
                 TimeColumn(
                     style = style, timeSlots = viewState.timeSlots, maxGridSections = maxGridSections,
@@ -193,6 +212,34 @@ fun ScheduleGrid(
                             val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
                             val isCrushBlock = item.parentBlock.courses.any { it.course.isCrush }
 
+                            // P1-19 TalkBack 语义：课程块整体播报（名称/节次或时间/地点/教师/非本周），
+                            // 并暴露点击/长按动作（pointerInput 不产生语义节点，无此则读屏完全无法操作课表）
+                            val a11ySeparator = stringResource(Res.string.a11y_list_separator)
+                            val a11yCourse = item.courseWrapper.course
+                            val blockA11yParts = mutableListOf<String>()
+                            blockA11yParts.add(a11yCourse.name)
+                            if (a11yCourse.customStartTime != null && a11yCourse.customEndTime != null) {
+                                blockA11yParts.add("${a11yCourse.customStartTime} - ${a11yCourse.customEndTime}")
+                            } else {
+                                blockA11yParts.add(
+                                    stringResource(
+                                        Res.string.a11y_course_sections_fmt,
+                                        item.startSection.toA11ySectionText(),
+                                        item.endSection.toA11ySectionText()
+                                    )
+                                )
+                            }
+                            if (a11yCourse.position.isNotBlank()) {
+                                blockA11yParts.add(stringResource(Res.string.a11y_course_location_fmt, a11yCourse.position))
+                            }
+                            if (a11yCourse.teacher.isNotBlank()) {
+                                blockA11yParts.add(stringResource(Res.string.a11y_course_teacher_fmt, a11yCourse.teacher))
+                            }
+                            if (item.parentBlock.isVisualDemoted) {
+                                blockA11yParts.add(stringResource(Res.string.a11y_course_not_this_week))
+                            }
+                            val blockA11yDescription = blockA11yParts.joinToString(a11ySeparator)
+
                             Box(
                                 modifier = Modifier
                                     .padding(style.courseBlockOuterPadding)
@@ -203,6 +250,29 @@ fun ScheduleGrid(
                                             else -> 0f
                                         }
                                     )
+                                    .semantics(mergeDescendants = true) {
+                                        contentDescription = blockA11yDescription
+                                        if (!isExpanded) {
+                                            onClick {
+                                                actions.onCourseBlockClicked(item.parentBlock)
+                                                true
+                                            }
+                                            onLongClick {
+                                                // crush 课程仅展示，禁止进入编辑态
+                                                if (!isCrushBlock) {
+                                                    state.expandedItem = item
+                                                    actions.onHoldStateChanged(true)
+                                                }
+                                                true
+                                            }
+                                        } else {
+                                            onClick {
+                                                state.expandedItem = null
+                                                actions.onHoldStateChanged(false)
+                                                true
+                                            }
+                                        }
+                                    }
                                     .then(
                                         if (!isExpanded) {
                                             Modifier.pointerInput(item) {

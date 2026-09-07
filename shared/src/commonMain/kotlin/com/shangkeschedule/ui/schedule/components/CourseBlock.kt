@@ -39,8 +39,13 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
+import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.AppTypeGrid
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.TimetableDefaults
+import com.shangkeschedule.ui.theme.appColorTokens
+import com.shangkeschedule.ui.theme.appColors
 
 /**
  * 主题预设相关渲染参数：在 CourseBlock 入口统一计算一次，
@@ -76,11 +81,11 @@ private fun buildPresetRenderSpec(
     // 这样用户在个性化配置中修改课程颜色后，利落主题的背景和色条都会同步变化。
     val timetableDual = style.courseColorMaps.getOrNull(colorInt)
         ?: style.courseColorMaps.firstOrNull()
-        ?: DualColor(light = Color(0xFFE0F7FA), dark = Color(0xFF006064))
+        ?: TimetableDefaults.fallbackCourseColor
     // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
     val timetableBg = timetableDual.dark.copy(alpha = if (isDarkTheme) 0.25f else 0.18f)
     val timetableStrip = timetableDual.dark
-    val timetableText = if (isDarkTheme) Color(0xFFE0E0E0) else timetableDual.dark
+    val timetableText = if (isDarkTheme) appColorTokens(isDarkTheme).timetableTextOnDark else timetableDual.dark
 
     val blockBackgroundColor = if (isTimetablePreset) timetableBg else blockColor
     val stripColor = if (isTimetablePreset) timetableStrip
@@ -95,7 +100,8 @@ private fun buildPresetRenderSpec(
         Modifier
     }
     val timetableStartPadding = if (isTimetablePreset) 3.dp else 0.dp
-    val demotedOverlayAlpha = if (isSleepyPreset) 0.5f else 0.618f
+    // 非当前周降级遮罩：云舒 0.5（档位 dimmed）；经典 0.618 为有意的黄金比例设计值（豁免）
+    val demotedOverlayAlpha = if (isSleepyPreset) AppAlpha.dimmed else 0.618f
 
     return CourseBlockPresetRender(
         isSleepyPreset = isSleepyPreset,
@@ -145,8 +151,8 @@ fun CourseBlock(
     )
 
     // 字体基础大小（在 BoxWithConstraints 内根据块实际宽度做自适应缩放）
-    val baseNameFontSize = 13f * style.fontScale
-    val baseMetaFontSize = 10f * style.fontScale
+    val baseNameFontSize = AppTypeGrid.courseName * style.fontScale
+    val baseMetaFontSize = AppTypeGrid.courseMeta * style.fontScale
 
     // 核心分支逻辑：判断 24小时模式 与 节次模式 的时间文本渲染
     val customStartTime = course.customStartTime
@@ -174,8 +180,8 @@ fun CourseBlock(
         }
     }
 
-    // 边框样式配置
-    val borderColor = if (isFloating) Color(0xFF2196F3) else MaterialTheme.colorScheme.outline
+    // 边框样式配置（悬浮 = 语义 info 强调色，v2 规范：不再用孤立的功能蓝）
+    val borderColor = if (isFloating) appColors().info else MaterialTheme.colorScheme.outline
     val borderWidth = if (isFloating) 2.dp else 1.dp
     val borderAlpha = if (isFloating) 1.0f else style.courseBlockAlpha
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)

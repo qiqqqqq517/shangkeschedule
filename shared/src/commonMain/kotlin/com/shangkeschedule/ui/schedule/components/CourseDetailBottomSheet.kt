@@ -14,7 +14,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -28,6 +27,7 @@ import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import shangkeschedule.shared.generated.resources.a11y_edit
 import shangkeschedule.shared.generated.resources.action_double_week
 import shangkeschedule.shared.generated.resources.action_single_week
@@ -51,7 +51,8 @@ import shangkeschedule.shared.generated.resources.week_days_full_names
 fun CourseDetailBottomSheet(
     block: MergedCourseBlock,
     onDismissRequest: () -> Unit,
-    onEditClick: (String) -> Unit
+    onEditClick: (String) -> Unit,
+    hazeState: dev.chrisbanes.haze.HazeState? = null
 ) {
     val courseWrapper = block.courses.firstOrNull() ?: return
     val course = courseWrapper.course
@@ -66,7 +67,8 @@ fun CourseDetailBottomSheet(
     val labelCredit = stringResource(Res.string.label_credit)
     val labelIsLab = stringResource(Res.string.label_is_lab)
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {

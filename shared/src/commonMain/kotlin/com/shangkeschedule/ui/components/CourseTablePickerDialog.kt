@@ -6,15 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
@@ -22,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,13 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
+import com.shangkeschedule.ui.theme.AppSpacing
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -166,11 +162,12 @@ fun CourseTablePickerDialog(
         confirmButton = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 FilledIconButton(
                     onClick = { showAddTableDialog = true },
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(AppSpacing.touchMin),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -182,34 +179,19 @@ fun CourseTablePickerDialog(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.weight(1f))
 
-                // 取消弱化为灰字文本钮，确认保持主色胶囊实心钮
-                TextButton(
-                    onClick = onDismissRequest,
-                    modifier = Modifier.padding(end = 4.dp)
-                ) {
-                    Text(
-                        stringResource(Res.string.action_cancel),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Button(
-                    onClick = {
+                // 统一操作区：取消 = 灰字文本钮，确认 = 主色胶囊实心钮（AppDialogActions）
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_confirm),
+                    onConfirm = {
                         selectedTable?.let { onTableSelected(it) }
                         onDismissRequest()
                     },
-                    enabled = selectedTable != null,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = com.shangkeschedule.ui.theme.appColors().primary,
-                        contentColor = androidx.compose.ui.graphics.Color.White,
-                        disabledContainerColor = com.shangkeschedule.ui.theme.appColors().primary.copy(alpha = 0.45f),
-                        disabledContentColor = androidx.compose.ui.graphics.Color.White
-                    )
-                ) {
-                    Text(stringResource(Res.string.action_confirm), fontWeight = FontWeight.Bold)
-                }
+                    confirmEnabled = selectedTable != null,
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = onDismissRequest,
+                    modifier = Modifier.weight(1f)
+                )
             }
         },
         dismissButton = null
@@ -271,18 +253,16 @@ fun CourseTablePickerCard(
     isCurrentActive: Boolean,
     onCardClick: (CourseTable) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCardClick(courseTable) },
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> MaterialTheme.colorScheme.primaryContainer
-                isCurrentActive -> MaterialTheme.colorScheme.tertiaryContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+    AppSelectableCard(
+        selected = isSelected,
+        onClick = { onCardClick(courseTable) },
+        // 「当前使用中」第三态：tertiary 底色 + 常规白卡（选中态统一主色描边）
+        containerColor = when {
+            isSelected -> null
+            isCurrentActive -> MaterialTheme.colorScheme.tertiaryContainer
+            else -> null
+        },
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

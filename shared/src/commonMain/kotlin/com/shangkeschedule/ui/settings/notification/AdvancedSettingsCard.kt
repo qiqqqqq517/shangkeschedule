@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.theme.AppType
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.item_clear_skipped_dates
 import shangkeschedule.shared.generated.resources.item_update_holiday_info
@@ -45,17 +47,11 @@ fun AdvancedSettingsCard(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(Res.string.section_title_advanced),
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
-        Spacer(Modifier.height(8.dp))
+        // 统一分区头（labelLarge + 主色，v2 规范 §3）
+        AppSectionHeader(stringResource(Res.string.section_title_advanced))
         Text(
             text = stringResource(Res.string.text_skip_dates_experimental),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )

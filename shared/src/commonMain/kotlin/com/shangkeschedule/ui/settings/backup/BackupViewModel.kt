@@ -30,12 +30,14 @@ import okio.use
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.backup_err_connect_failed
 import shangkeschedule.shared.generated.resources.backup_err_corrupted
 import shangkeschedule.shared.generated.resources.backup_err_empty
 import shangkeschedule.shared.generated.resources.backup_err_local_export_failed
 import shangkeschedule.shared.generated.resources.backup_err_restore_failed_prefix
 import shangkeschedule.shared.generated.resources.backup_err_upload_failed
+import shangkeschedule.shared.generated.resources.backup_warn_restore_partial
 import shangkeschedule.shared.generated.resources.error_op_failed
 import shangkeschedule.shared.generated.resources.error_webdav_unconfigured
 import kotlin.random.Random
@@ -67,6 +69,8 @@ data class BackupUiState(
 sealed interface TestResult {
     data object Idle : TestResult
     data object Success : TestResult
+    /** 操作完成但有部分缺失（如云端个别模块下载失败被跳过）：P1-15 静默降级显性化 */
+    data class PartialSuccess(val message: String) : TestResult
     data class Error(val message: String) : TestResult
 }
 
@@ -229,6 +233,8 @@ class BackupViewModel(
                 return@launch
             }
 
+            // P1-15 静默降级显性化：云端个别模块下载失败被跳过的 key，完成后提示用户
+            val skippedModuleKeys = mutableListOf<String>()
             val result = withContext(Dispatchers.IO) {
                 try {
                     val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
@@ -250,6 +256,9 @@ class BackupViewModel(
                         if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", modulePath)) {
                             val bytes = FileSystem.SYSTEM.read(modulePath) { readByteArray() }
                             payloadMap[module.key] = bytes
+                        } else {
+                            // P1-15 静默降级显性化：记录下载失败被跳过的模块，恢复完成后提示用户
+                            skippedModuleKeys.add(module.key)
                         }
                     }
 
@@ -270,12 +279,22 @@ class BackupViewModel(
             client.close()
             val exception = result.exceptionOrNull()
             val failPrefix = getString(Res.string.backup_err_restore_failed_prefix, exception?.message ?: "")
+            val partialWarning = if (result.isSuccess && skippedModuleKeys.isNotEmpty()) {
+                getString(Res.string.backup_warn_restore_partial, skippedModuleKeys.joinToString(", "))
+            } else {
+                null
+            }
             _uiState.update {
                 it.copy(
                     isBusy = false,
-                    testResult = if (result.isSuccess) TestResult.Success else TestResult.Error(failPrefix)
+                    testResult = when {
+                        result.isSuccess && partialWarning != null -> TestResult.PartialSuccess(partialWarning)
+                        result.isSuccess -> TestResult.Success
+                        else -> TestResult.Error(failPrefix)
+                    }
                 )
             }
+            skippedModuleKeys.clear()
         }
     }
 

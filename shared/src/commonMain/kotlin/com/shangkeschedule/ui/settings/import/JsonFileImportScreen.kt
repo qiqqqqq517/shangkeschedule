@@ -1,5 +1,21 @@
 package com.shangkeschedule.ui.settings.import
 
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.import_json_desc_support
+import shangkeschedule.shared.generated.resources.import_json_dialog_title
+import shangkeschedule.shared.generated.resources.import_status_importing
+import shangkeschedule.shared.generated.resources.import_json_action_select_and_import
+import shangkeschedule.shared.generated.resources.import_json_step2
+import shangkeschedule.shared.generated.resources.import_json_pick_table_placeholder
+import shangkeschedule.shared.generated.resources.import_json_step1
+import shangkeschedule.shared.generated.resources.import_json_title
+import shangkeschedule.shared.generated.resources.import_error_no_table
+import shangkeschedule.shared.generated.resources.import_toast_success
+import shangkeschedule.shared.generated.resources.import_error_no_file
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,10 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
+import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import org.koin.compose.viewmodel.koinViewModel
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_overwrite_import
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_overwrite_import
+import shangkeschedule.shared.generated.resources.action_overwrite_import
 
 /**
  * JSON 文件导入二级页。
@@ -53,27 +73,25 @@ fun JsonFileImportScreen(
     var selectedTableName by remember { mutableStateOf<String?>(null) }
     // 文件回调发生时使用的目标课表 id（选择文件前暂存）
     var pendingTableId by remember { mutableStateOf<String?>(null) }
+    // 已选文件 + 目标课表，等待用户确认覆盖后真正入库
+    var pendingImport by remember { mutableStateOf<Pair<ByteArray, String>?>(null) }
 
+    // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
+    val toastNoFile = stringResource(Res.string.import_error_no_file)
+    val toastSuccess = stringResource(Res.string.import_toast_success)
+    val toastNoTable = stringResource(Res.string.import_error_no_table)
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
             onFileImported = { bytes, fileName ->
                 val tableId = pendingTableId
                 pendingTableId = null
                 if (bytes == null) {
-                    ToastManager.show("未选择文件")
+                    ToastManager.show(toastNoFile)
                 } else if (tableId == null) {
-                    ToastManager.show("请先选择目标课表")
+                    ToastManager.show(toastNoTable)
                 } else {
-                    viewModel.importJsonFileIntoTable(
-                        bytes = bytes,
-                        tableId = tableId,
-                        onSuccess = { id ->
-                            ToastManager.show("导入成功！")
-                            viewModel.reset()
-                            onImportSuccess(id)
-                        },
-                        onError = { err -> ToastManager.show(err) }
-                    )
+                    // 覆盖导入会清空目标课表课程数据：先二次确认
+                    pendingImport = bytes to tableId
                 }
             }
         )
@@ -82,10 +100,13 @@ fun JsonFileImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("JSON 文件导入") },
+                title = { Text(stringResource(Res.string.import_json_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                        Icon(
+                            vectorResource(Res.drawable.arrow_back_24px),
+                            contentDescription = stringResource(Res.string.a11y_back)
+                        )
                     }
                 }
             )
@@ -99,9 +120,7 @@ fun JsonFileImportScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "将 .json 课表文件导入到指定课表（会覆盖该课表的课程数据）：\n" +
-                        "· 本 App 导出的 JSON：完整保留课程、时间段与学期配置\n" +
-                        "· WakeUp JSON（含 courses 数组）：按课程数据导入",
+                text = stringResource(Res.string.import_json_desc_support),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -109,7 +128,7 @@ fun JsonFileImportScreen(
 
             // 第一步：选择目标课表
             Text(
-                text = "第一步：选择导入到的课表",
+                text = stringResource(Res.string.import_json_step1),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -119,14 +138,14 @@ fun JsonFileImportScreen(
                 enabled = !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(selectedTableName ?: "选择目标课表")
+                Text(selectedTableName ?: stringResource(Res.string.import_json_pick_table_placeholder))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // 第二步：选择 JSON 文件并导入
             Text(
-                text = "第二步：选择 JSON 文件",
+                text = stringResource(Res.string.import_json_step2),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -139,7 +158,7 @@ fun JsonFileImportScreen(
                 enabled = selectedTableId != null && !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("选择 JSON 文件并导入")
+                Text(stringResource(Res.string.import_json_action_select_and_import))
             }
 
             if (uiState.isLoading) {
@@ -147,7 +166,7 @@ fun JsonFileImportScreen(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.padding(start = 12.dp))
-                    Text("正在导入…")
+                    Text(stringResource(Res.string.import_status_importing))
                 }
             }
 
@@ -160,12 +179,34 @@ fun JsonFileImportScreen(
 
     if (showTablePicker) {
         CourseTablePickerDialog(
-            title = "选择导入到的课表",
+            title = stringResource(Res.string.import_json_dialog_title),
             onDismissRequest = { showTablePicker = false },
             onTableSelected = { table ->
                 selectedTableId = table.id
                 selectedTableName = table.name
                 showTablePicker = false
+            }
+        )
+    }
+
+    pendingImport?.let { (bytes, tableId) ->
+        AppDangerDialog(
+            onDismissRequest = { pendingImport = null },
+            title = stringResource(Res.string.dialog_title_confirm_overwrite_import),
+            text = stringResource(Res.string.dialog_text_confirm_overwrite_import, selectedTableName ?: ""),
+            confirmText = stringResource(Res.string.action_overwrite_import),
+            onConfirm = {
+                pendingImport = null
+                viewModel.importJsonFileIntoTable(
+                    bytes = bytes,
+                    tableId = tableId,
+                    onSuccess = { id ->
+                        ToastManager.show(toastSuccess)
+                        viewModel.reset()
+                        onImportSuccess(id)
+                    },
+                    onError = { err -> ToastManager.show(err) }
+                )
             }
         )
     }

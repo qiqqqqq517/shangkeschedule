@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,26 +20,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -63,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -74,15 +71,24 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppFab
+import com.shangkeschedule.ui.components.AppHeroMotif
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppLoading
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
-import com.shangkeschedule.ui.components.rememberFabPressedScale
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.TimetableDefaults
+import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
 import kotlinx.datetime.DayOfWeek
@@ -151,13 +157,21 @@ fun TodayScheduleScreen(
     var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
     var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
 
-    AdaptiveNavigationScaffold(
-        currentDestination = Destination.TodaySchedule,
-        onTabSelected = { dest -> onNavigate(dest) }
-    ) { outerPadding ->
+    // 悬浮面板玻璃：主内容 hazeSource，底部弹窗背板模糊
+    val hazeState = rememberHazeState()
+
+    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+        AdaptiveNavigationScaffold(
+            currentDestination = Destination.TodaySchedule,
+            onTabSelected = { dest -> onNavigate(dest) }
+        ) { outerPadding ->
         Scaffold(
             // 应用外层底部导航预留的内边距，避免 FAB 被底栏遮挡
-            modifier = Modifier.padding(outerPadding),
+            modifier = Modifier,
+            // P2-1 内外 Scaffold 系统栏 inset 双计数修复：
+            // 底部导航栏 inset 已由外层 AdaptiveNavigationScaffold（barInsetBottom）统一预留，
+            // 内层再套默认 contentWindowInsets=navigationBars 会导致底部内边距叠加，列表/FAB 偏高。
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -172,41 +186,25 @@ fun TodayScheduleScreen(
             },
             floatingActionButton = {
                 // Telegram 风格 FAB：56dp 圆形、主色、大投影 + 按压缩放（v2 规范 §4.1）
-                val fabInteraction = remember { MutableInteractionSource() }
-                val fabScale = rememberFabPressedScale(fabInteraction)
-                FloatingActionButton(
+                // bottom padding 避让玻璃底栏（内容穿越后 FAB 不再被 scaffold 抬升）
+                AppFab(
                     onClick = {
                         editingTodo = null
                         showTodoDialog = true
                     },
-                    modifier = Modifier
-                        .size(AppSpacing.fab)
-                        .graphicsLayer {
-                            scaleX = fabScale
-                            scaleY = fabScale
-                        },
-                    shape = CircleShape,
-                    containerColor = appColors().primary,
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 6.dp,
-                        pressedElevation = 10.dp
-                    ),
-                    interactionSource = fabInteraction
-                ) {
-                    Icon(
-                        vectorResource(Res.drawable.add_24px),
-                        contentDescription = stringResource(Res.string.a11y_todo_add)
-                    )
-                }
+                    icon = vectorResource(Res.drawable.add_24px),
+                    contentDescription = stringResource(Res.string.a11y_todo_add),
+                    modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
+                )
             }
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 when (val state = uiState) {
-                    is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
+                    is TodayUiState.Loading -> AppLoading()
                     is TodayUiState.Success -> {
                         TodayContent(
                             state = state,
+                            bottomInset = outerPadding.calculateBottomPadding(),
                             gridStyle = gridStyle,
                             isDark = isDark,
                             onToggleTodo = viewModel::toggleTodo,
@@ -219,12 +217,14 @@ fun TodayScheduleScreen(
                 }
             }
         }
+        }
     }
 
     // 待办添加/编辑弹窗
     if (showTodoDialog) {
         TodoEditDialog(
             existing = editingTodo,
+            hazeState = hazeState,
             onDismiss = {
                 showTodoDialog = false
                 editingTodo = null
@@ -265,6 +265,7 @@ fun TodayScheduleScreen(
 @Composable
 fun TodayContent(
     state: TodayUiState.Success,
+    bottomInset: Dp,
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
     onToggleTodo: (String, Boolean) -> Unit,
@@ -341,7 +342,7 @@ fun TodayContent(
             )
             Text(
                 text = subTitle,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
                 color = appColors().textSecondary
             )
         }
@@ -377,7 +378,8 @@ fun TodayContent(
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap),
+                contentPadding = PaddingValues(bottom = bottomInset + AppSpacing.listGap)
             ) {
                 itemsIndexed(state.courses) { _, model ->
                     CourseTimelineItem(model, gridStyle, isDark, now = currentTime)
@@ -440,7 +442,7 @@ private fun TodoRow(
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
     // 待办采用固定青色系，与课程配色区分；渲染逻辑与课程条（CourseTimelineItem）保持一致
-    val colorPair = DualColor(light = Color(0xFFB2EBF2), dark = Color(0xFF0097A7))
+    val colorPair = TimetableDefaults.todoCourseColor
     val themeColor = if (isTimetablePreset) {
         colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
     } else {
@@ -448,7 +450,7 @@ private fun TodoRow(
     }
     val stripColor = colorPair.dark
     val textColor = if (isTimetablePreset) {
-        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
     } else {
         gridStyle.courseTextColorLong?.let { Color(it) }
             ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
@@ -511,7 +513,7 @@ private fun TodoRow(
                 Text(
                     text = todo.time,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 17.sp,
+                        fontSize = AppType.timeLabel,
                         textDecoration = if (todo.done) TextDecoration.LineThrough else null
                     ),
                     fontWeight = FontWeight.Bold,
@@ -582,7 +584,8 @@ private fun TodoEditDialog(
     existing: TodoItem?,
     onDismiss: () -> Unit,
     onConfirm: (title: String, note: String?, time: String?) -> Unit,
-    onDeleteRequest: () -> Unit
+    onDeleteRequest: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     var title by remember(existing) { mutableStateOf(existing?.title ?: "") }
     var time by remember(existing) { mutableStateOf(existing?.time ?: "") }
@@ -682,7 +685,8 @@ private fun TodoEditDialog(
         TodoTimePickerSheet(
             initialTime = time,
             onDismissRequest = { showTimePicker = false },
-            onTimeSelected = { time = it }
+            onTimeSelected = { time = it },
+            hazeState = hazeState
         )
     }
 }
@@ -692,7 +696,8 @@ private fun TodoEditDialog(
 private fun TodoTimePickerSheet(
     initialTime: String?,
     onDismissRequest: () -> Unit,
-    onTimeSelected: (String) -> Unit
+    onTimeSelected: (String) -> Unit,
+    hazeState: HazeState? = null
 ) {
     // 与应用课程时间选择一致的滚轮底部弹窗（ModalBottomSheet + NativeNumberPicker）
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -704,7 +709,9 @@ private fun TodoTimePickerSheet(
     val hours = remember { (0..23).map { it.toString().padStart(2, '0') } }
     val minutes = remember { (0..59).map { it.toString().padStart(2, '0') } }
 
-    ModalBottomSheet(
+    // 毛玻璃面板：实色内容列由 AppGlassBottomSheet 统一处理
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismissRequest,
         sheetState = sheetState
     ) {
@@ -739,15 +746,16 @@ private fun TodoTimePickerSheet(
                 )
             }
             Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
+            // 主色胶囊确认钮（AppDialogActions，与其他弹窗操作区同语言）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = {
                     val hh = hour.toString().padStart(2, '0')
                     val mm = minute.toString().padStart(2, '0')
                     onTimeSelected("$hh:$mm")
                     onDismissRequest()
                 }
-            ) { Text(stringResource(Res.string.action_confirm)) }
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -759,16 +767,15 @@ private fun TodoDeleteDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    // 危险操作统一走 AppDangerDialog：危险色胶囊确认钮（v2 规范 §4 对话框统一）
+    AppDangerDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.todo_delete_title)) },
-        text = { Text(stringResource(Res.string.todo_delete_message, todo.title)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(Res.string.confirm_delete)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
-        }
+        title = stringResource(Res.string.todo_delete_title),
+        text = stringResource(Res.string.todo_delete_message, todo.title),
+        confirmText = stringResource(Res.string.confirm_delete),
+        onConfirm = onConfirm,
+        dismissText = stringResource(Res.string.action_cancel),
+        onDismiss = onDismiss
     )
 }
 
@@ -836,7 +843,7 @@ private fun NextCourseCard(
     }
     val stripColor = colorPair.dark
     val textColor = if (isTimetablePreset) {
-        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
     } else {
         gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
     }
@@ -875,7 +882,7 @@ private fun NextCourseCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = target.course.name,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
                     fontWeight = FontWeight.ExtraBold,
                     color = textColor,
                     modifier = Modifier.weight(1f)
@@ -888,7 +895,7 @@ private fun NextCourseCard(
                         color = textColor.copy(alpha = 0.85f),
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .background(textColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .background(textColor.copy(alpha = 0.15f), MaterialTheme.shapes.extraSmall)
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -943,7 +950,7 @@ private fun NextCourseCard(
             if (countdownText != null) {
                 Text(
                     text = countdownText,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
                     fontWeight = FontWeight.ExtraBold,
                     color = textColor,
                     modifier = Modifier.padding(top = 10.dp)
@@ -986,7 +993,7 @@ fun CourseTimelineItem(
     val stripColor = colorPair.dark
     // 与主课表 CourseBlock 一致：利落主题用 dark，其他主题优先用自定义 courseTextColor
     val textColor = if (isTimetablePreset) {
-        if (isDark) Color(0xFFE0E0E0) else colorPair.dark
+        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
     } else {
         gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
     }
@@ -1037,7 +1044,7 @@ fun CourseTimelineItem(
             Text(
                 text = model.startTime ?: EMPTY_TIME_PLACEHOLDER,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 17.sp,
+                    fontSize = AppType.timeLabel,
                     textDecoration = if (isFinished) TextDecoration.LineThrough else null
                 ),
                 fontWeight = FontWeight.Bold,
@@ -1162,7 +1169,7 @@ fun CourseTimelineItem(
 
 @Composable
 private fun EmptyStateView() {
-    // 空态：淡灰胶囊底 + 居中辅助文案（v2 规范 §3「空态插画底统一」）
+    // 空态：淡灰胶囊底 + 课程格纸母题插画 + 居中辅助文案（v2 规范 §3「空态插画底统一」）
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -1171,6 +1178,13 @@ private fun EmptyStateView() {
                 .background(appColors().inputBg.copy(alpha = 0.55f))
                 .padding(horizontal = 28.dp, vertical = 22.dp)
         ) {
+            // 空态母题：迷你课程格纸（主色 tint，静态无呼吸）
+            AppHeroMotif(
+                tint = appColors().primary,
+                pulse = false,
+                blockWidth = 40.dp,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
             Text(
                 text = stringResource(Res.string.text_no_courses_today),
                 style = MaterialTheme.typography.bodyMedium,

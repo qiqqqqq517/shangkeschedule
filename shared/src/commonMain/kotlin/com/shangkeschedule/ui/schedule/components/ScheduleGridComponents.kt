@@ -51,6 +51,8 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.AppTypeGrid
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -197,7 +199,7 @@ fun DayHeader(
                 ) {
                     Text(
                         text = currentYear,
-                        fontSize = 12.sp,
+                        fontSize = AppTypeGrid.timeLabel,
                         fontWeight = FontWeight.Bold,
                         color = subTextColor,
                         style = TextStyle.Default
@@ -207,7 +209,7 @@ fun DayHeader(
                         Spacer(modifier = Modifier.height(1.dp))
                         Text(
                             text = currentWeek,
-                            fontSize = 10.sp,
+                            fontSize = AppTypeGrid.timeSmall,
                             fontWeight = FontWeight.Normal,
                             color = subTextColor,
                             style = TextStyle.Default
@@ -254,7 +256,7 @@ fun DayHeader(
                                 .then(
                                     if (isSleepyPreset && isToday) {
                                         Modifier
-                                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     } else {
                                         Modifier.padding(vertical = 1.dp)
@@ -265,7 +267,7 @@ fun DayHeader(
                         ) {
                             Text(
                                 text = day,
-                                fontSize = 14.sp,
+                                fontSize = AppTypeGrid.dayHeader,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSleepyPreset && isToday) Color.White else textColor,
                                 maxLines = 1,
@@ -278,7 +280,7 @@ fun DayHeader(
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = dates[index],
-                                    fontSize = 10.sp,
+                                    fontSize = AppTypeGrid.timeSmall,
                                     color = when {
                                         isSleepyPreset && isToday -> Color.White
                                         isTimetablePreset && isToday -> MaterialTheme.colorScheme.primary
@@ -380,7 +382,7 @@ fun TimeColumn(
                     ) {
                         Text(
                             text = ":$activeDragMinuteStr",
-                            fontSize = if (h < 32.dp) 11.sp else 12.sp,
+                            fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.timeLabel,
                             fontWeight = FontWeight.Bold,
                             color = textColor
                         )
@@ -398,7 +400,7 @@ fun TimeColumn(
                         val formatHourStr = "${index.toString().padStart(2, '0')}:00"
                         Text(
                             text = formatHourStr,
-                            fontSize = if (h < 32.dp) 11.sp else 12.sp,
+                            fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.timeLabel,
                             fontWeight = FontWeight.Medium,
                             color = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor
                         )
@@ -407,7 +409,7 @@ fun TimeColumn(
                         if (slot != null) {
                             Text(
                                 text = slot.alias ?: slot.number.toString(),
-                                fontSize = if (h < 32.dp) 11.sp else 14.sp,
+                                fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.dayHeader,
                                 fontWeight = if (isCurrentHourActive) FontWeight.ExtraBold else FontWeight.Bold,
                                 color = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor,
                                 overflow = TextOverflow.Ellipsis
@@ -420,7 +422,7 @@ fun TimeColumn(
                                         TimeText(slot.endTime, subTextColor)
                                     }
                                     h >= 38.dp -> {
-                                        Text(text = "${slot.startTime}-${slot.endTime}", fontSize = 8.sp, color = subTextColor, maxLines = 1)
+                                        Text(text = "${slot.startTime}-${slot.endTime}", fontSize = AppTypeGrid.timeTiny, color = subTextColor, maxLines = 1)
                                     }
                                 }
                             }
@@ -489,13 +491,13 @@ private fun EditHandleDot() {
     Box(
         modifier = Modifier
             .size(12.dp)
-            .background(Color(0xFF2196F3), CircleShape)
+            .background(appColors().info, CircleShape)
     )
 }
 
 @Composable
 fun TimeText(text: String, color: Color) {
-    Text(text = text, fontSize = 10.sp, color = color, style = TextStyle(lineHeight = 1.em))
+    Text(text = text, fontSize = AppTypeGrid.timeSmall, color = color, style = TextStyle(lineHeight = 1.em))
 }
 
 /**

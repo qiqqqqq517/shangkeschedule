@@ -1,5 +1,22 @@
 package com.shangkeschedule.ui.settings.import
 
+import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.import_cat_text_file
+import shangkeschedule.shared.generated.resources.import_cat_csv
+import shangkeschedule.shared.generated.resources.import_cat_ics
+import shangkeschedule.shared.generated.resources.import_cat_json
+import shangkeschedule.shared.generated.resources.import_cat_excel
+import shangkeschedule.shared.generated.resources.import_file_hub_hint
+import shangkeschedule.shared.generated.resources.import_file_hub_text_desc
+import shangkeschedule.shared.generated.resources.import_file_hub_csv_desc
+import shangkeschedule.shared.generated.resources.import_file_hub_ics_desc
+import shangkeschedule.shared.generated.resources.import_file_hub_json_desc
+import shangkeschedule.shared.generated.resources.import_file_hub_excel_desc
+import shangkeschedule.shared.generated.resources.import_file_hub_title
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,10 +52,10 @@ fun FileImportHubScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("文件导入") },
+                title = { Text(stringResource(Res.string.import_file_hub_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
                     }
                 }
             )
@@ -53,38 +70,38 @@ fun FileImportHubScreen(
             Spacer(Modifier.height(8.dp))
             SectionCard {
                 SettingItem(
-                    title = "Excel 导入",
-                    subtitle = "网格课表 / 列表课表自动识别（.xlsx）",
+                    title = stringResource(Res.string.import_cat_excel),
+                    subtitle = stringResource(Res.string.import_file_hub_excel_desc),
                     onClick = { onNavigate(Destination.ExcelImport) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "JSON 导入",
-                    subtitle = "导入到所选课表，支持本App导出文件与 WakeUp JSON",
+                    title = stringResource(Res.string.import_cat_json),
+                    subtitle = stringResource(Res.string.import_file_hub_json_desc),
                     onClick = { onNavigate(Destination.JsonFileImport) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "ICS 日历导入",
-                    subtitle = "WakeUp / 系统日历导出的 .ics 日历文件",
+                    title = stringResource(Res.string.import_cat_ics),
+                    subtitle = stringResource(Res.string.import_file_hub_ics_desc),
                     onClick = { onNavigate(Destination.TextFileImport("ICS")) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "CSV 导入",
-                    subtitle = ".csv 表格（表头：课程,教师,教室,星期,节次,周次）",
+                    title = stringResource(Res.string.import_cat_csv),
+                    subtitle = stringResource(Res.string.import_file_hub_csv_desc),
                     onClick = { onNavigate(Destination.TextFileImport("CSV")) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = "文本文件导入",
-                    subtitle = "HTML 表格 / TXT 纯文本，自动识别格式",
+                    title = stringResource(Res.string.import_cat_text_file),
+                    subtitle = stringResource(Res.string.import_file_hub_text_desc),
                     onClick = { onNavigate(Destination.TextFileImport("AUTO")) }
                 )
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "提示：教务系统导入请返回上一页使用「教务系统导入」；粘贴文本请使用「文本粘贴导入」。",
+                text = stringResource(Res.string.import_file_hub_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp)

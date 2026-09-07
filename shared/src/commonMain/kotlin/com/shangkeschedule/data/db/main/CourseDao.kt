@@ -35,6 +35,13 @@ interface CourseDao {
     fun getCoursesByTableId(courseTableId: String): Flow<List<Course>>
 
     /**
+     * 一次性获取指定课表ID的所有本人课程（不含 crush 课程。
+     * 用于时间段删除重编号后迁移课程节次引用。
+     */
+    @Query("SELECT * FROM courses WHERE courseTableId = :courseTableId AND isCrush = 0")
+    suspend fun getCoursesOnce(courseTableId: String): List<Course>
+
+    /**
      * 获取指定课表ID的所有课程，并包含其对应的周数。
      * 排序逻辑与上面保持一致，确保关联查询结果的顺序正确字段。
      */

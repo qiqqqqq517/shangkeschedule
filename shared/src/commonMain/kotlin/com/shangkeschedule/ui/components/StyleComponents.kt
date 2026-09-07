@@ -1,5 +1,12 @@
 package com.shangkeschedule.ui.components
 
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,11 +17,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -41,16 +53,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.AppColorTokens
 import com.shangkeschedule.ui.theme.AppSemanticColors
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.appColorTokens
+import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.appColors
 
 /**
@@ -100,7 +116,7 @@ fun IconChip(
     tone: AccentTone,
     modifier: Modifier = Modifier,
     size: Dp = AppSpacing.chipIcon,
-    cornerRadius: Dp = 14.dp,
+    cornerRadius: Dp = AppShape.chipSmallRadius,
     iconSize: Dp = 22.dp,
     semantic: AppSemanticColors? = null
 ) {
@@ -123,22 +139,26 @@ fun IconChip(
 }
 
 /**
- * 头部渐变卡：紫渐变（左上 → 右下）、24dp 圆角，内容为白色 / 半透明白。
+ * 头部渐变卡：渐变（左上 → 右下）、24dp 圆角，内容为白色 / 半透明白。
+ * 融合配图（motif=true）：柔光斑 ×2 + 课程格纸插画（右缘溢出裁剪，与卡片无缝融合）；
+ * 插画元素用 colorScheme.onPrimary，任意用户主题色相下对比自动协调。
  */
 @Composable
 fun GradientHeroCard(
     modifier: Modifier = Modifier,
+    motif: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
+    val isDark = LocalIsDarkTheme.current
     Box(
         modifier = modifier
             .shadow(
-                elevation = 6.dp,
+                elevation = 2.dp,
                 shape = AppShape.heroCard,
                 clip = false,
-                ambientColor = tokens.primary.copy(alpha = 0.25f),
-                spotColor = tokens.primary.copy(alpha = 0.25f)
+                ambientColor = tokens.shadow,
+                spotColor = tokens.shadow
             )
             .clip(AppShape.heroCard)
             .background(
@@ -147,8 +167,92 @@ fun GradientHeroCard(
                 )
             )
     ) {
+        if (motif) {
+            // 柔光斑 ×2：大面积低对比景深光晕（深色减半避免脏灰斑）
+            val blobAlpha = if (isDark) AppAlpha.faint / 2 else AppAlpha.faint
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .size(190.dp)
+                    .offset(x = (-36).dp, y = (-48).dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(Color.White.copy(alpha = blobAlpha), Color.Transparent)
+                        )
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(150.dp)
+                    .offset(x = 28.dp, y = 34.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(Color.White.copy(alpha = blobAlpha), Color.Transparent)
+                        )
+                    )
+            )
+            // 课程格纸插画：右缘溢出裁剪，与渐变无缝融合；装饰元素无障碍语义置空
+            val rtlSign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) 1f else -1f
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .graphicsLayer { rotationZ = 8f * rtlSign }
+                    .offset(x = -14.dp * rtlSign)
+            ) {
+                AppHeroMotif(tint = MaterialTheme.colorScheme.onPrimary)
+            }
+        }
         Column(content = content)
     }
+}
+
+/**
+ * 课程格纸母题插画（Hero / 空态融合配图，v2 规范「融景卡片」）：
+ * 3 条圆角课程块（中一条高亮呼吸）+ 底部时间刻度线，模拟迷你课表。
+ * 所有元素基于 [tint]（渐变语境传 onPrimary，空态语境传 primary）+ AppAlpha 档位；
+ * 高亮块呼吸 2s 循环（0.55↔1.0）。
+ */
+@Composable
+fun AppHeroMotif(
+    modifier: Modifier = Modifier,
+    tint: Color,
+    pulse: Boolean = true,
+    blockWidth: Dp = 64.dp
+) {
+    val pulseAlpha: Float = if (pulse) {
+        val infinite = rememberInfiniteTransition(label = "appHeroMotif")
+        infinite.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(durationMillis = 1000), RepeatMode.Reverse),
+            label = "motifPulse"
+        ).value
+    } else {
+        1f
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        HeroMotifBlock(blockWidth, tint.copy(alpha = AppAlpha.dimmed))
+        HeroMotifBlock(blockWidth * 0.78f, tint.copy(alpha = pulseAlpha))
+        HeroMotifBlock(blockWidth * 0.6f, tint.copy(alpha = AppAlpha.dimmed))
+        HeroMotifBlock(blockWidth * 0.42f, tint.copy(alpha = AppAlpha.dimmed), height = 6.dp)
+    }
+}
+
+/** 母题单条课程块。 */
+@Composable
+private fun HeroMotifBlock(width: Dp, color: Color, height: Dp = 12.dp) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(height)
+            .clip(RoundedCornerShape(6.dp))
+            .background(color)
+    )
 }
 
 /**
@@ -204,7 +308,7 @@ fun TelegramMenuItem(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = AppType.body),
             fontWeight = FontWeight.Medium,
             color = if (danger) tokens.danger else tokens.textPrimary,
             modifier = Modifier.padding(start = 14.dp)
@@ -242,7 +346,7 @@ fun AppBadge(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = AppType.badge),
             fontWeight = FontWeight.Bold,
             color = tokens.badgeFg,
             maxLines = 1,
@@ -280,11 +384,9 @@ fun AppSwitch(
     )
 }
 
-// 浅色页面底常量（保留给需要按深浅分支的组件；当前组件已通过 token 自适应）
-private val LightPageBg: Color by lazy { appColorTokens(false).pageBg }
-
 /**
  * 统一 Snackbar 宿主：深色圆角 16dp 条（Telegram 形态），深浅色两套一致。
+ * 底色/文字色走 [AppColorTokens.snackbarBg]/[snackbarFg]，不再依赖深浅色推断。
  */
 @Composable
 fun AppSnackbarHost(
@@ -296,8 +398,8 @@ fun AppSnackbarHost(
         Snackbar(
             data,
             shape = AppShape.menu,
-            containerColor = if (tokens.pageBg == LightPageBg) Color(0xFF23262E) else tokens.cardBgElevated,
-            contentColor = Color.White,
+            containerColor = tokens.snackbarBg,
+            contentColor = tokens.snackbarFg,
             actionColor = tokens.primary
         )
     }
@@ -380,8 +482,15 @@ fun AppTextField(
     placeholder: String? = null,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     enabled: Boolean = true,
     readOnly: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    isError: Boolean = false,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val tokens = appColors()
@@ -401,10 +510,17 @@ fun AppTextField(
         },
         singleLine = singleLine,
         minLines = minLines,
+        maxLines = maxLines,
         enabled = enabled,
         readOnly = readOnly,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        isError = isError,
+        visualTransformation = visualTransformation,
+        leadingIcon = leadingIcon,
+        supportingText = supportingText,
         trailingIcon = trailingIcon,
-        shape = RoundedCornerShape(14.dp),
+        shape = AppShape.chipSmall,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = tokens.inputBg,
             unfocusedContainerColor = tokens.inputBg,
@@ -424,6 +540,7 @@ fun AppTextField(
 /**
  * 柔和对话框操作区：取消 = 灰字文本钮，确认 = 主色胶囊实心钮（Telegram 风格）。
  * 两个按钮等宽铺满，替换 M3 默认的右下角双 TextButton。
+ * [danger] = true 时确认钮使用危险色（删除/重置等不可逆操作）。
  */
 @Composable
 fun AppDialogActions(
@@ -432,7 +549,8 @@ fun AppDialogActions(
     modifier: Modifier = Modifier,
     dismissText: String? = null,
     onDismiss: (() -> Unit)? = null,
-    confirmEnabled: Boolean = true
+    confirmEnabled: Boolean = true,
+    danger: Boolean = false
 ) {
     val tokens = appColors()
     Row(
@@ -445,7 +563,7 @@ fun AppDialogActions(
                 onClick = onDismiss,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 44.dp)
+                    .heightIn(min = AppSpacing.touchMin)
             ) {
                 Text(
                     dismissText,
@@ -459,12 +577,12 @@ fun AppDialogActions(
             enabled = confirmEnabled,
             modifier = Modifier
                 .then(if (dismissText != null && onDismiss != null) Modifier.weight(1f) else Modifier)
-                .heightIn(min = 44.dp),
+                .heightIn(min = AppSpacing.touchMin),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = tokens.primary,
+                containerColor = if (danger) tokens.danger else tokens.primary,
                 contentColor = Color.White,
-                disabledContainerColor = tokens.primary.copy(alpha = 0.45f),
+                disabledContainerColor = (if (danger) tokens.danger else tokens.primary).copy(alpha = 0.45f),
                 disabledContentColor = Color.White
             )
         ) {

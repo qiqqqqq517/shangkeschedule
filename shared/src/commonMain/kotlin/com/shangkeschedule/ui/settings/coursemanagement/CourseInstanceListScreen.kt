@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +38,9 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppFab
+import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
@@ -43,6 +48,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_delete
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete_courses
+import shangkeschedule.shared.generated.resources.dialog_title_confirm_delete_course
 import shangkeschedule.shared.generated.resources.a11y_enter_selection_mode
 import shangkeschedule.shared.generated.resources.a11y_exit_selection_mode
 import shangkeschedule.shared.generated.resources.action_add
@@ -83,6 +92,8 @@ fun CourseInstanceListScreen(
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedCourseIds by viewModel.selectedCourseIds.collectAsState()
     val scope = rememberCoroutineScope()
+    // 批量删除二次确认（删除不可撤销）
+    var pendingDeleteConfirm by remember { mutableStateOf(false) }
 
     val onNavigateToAddNewCourse: () -> Unit = {
         scope.launch {
@@ -132,10 +143,8 @@ fun CourseInstanceListScreen(
                             Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(selectAllStringRes))
                         }
 
-                        IconButton(onClick = {
-                            scope.launch { viewModel.deleteSelectedCourses() }
-                        }, enabled = selectedCount > 0) {
-                            Icon(vectorResource(Res.drawable.delete_24px), contentDescription = null)
+                        IconButton(onClick = { pendingDeleteConfirm = true }, enabled = selectedCount > 0) {
+                            Icon(vectorResource(Res.drawable.delete_24px), contentDescription = stringResource(Res.string.a11y_delete))
                         }
                     }
 
@@ -151,9 +160,12 @@ fun CourseInstanceListScreen(
         },
         floatingActionButton = {
             if (!isSelectionMode) {
-                FloatingActionButton(onClick = onNavigateToAddNewCourse) {
-                    Icon(vectorResource(Res.drawable.add_24px), contentDescription = stringResource(Res.string.action_add))
-                }
+                // 统一 AppFab（主色圆形 + 按压缩放）
+                AppFab(
+                    onClick = onNavigateToAddNewCourse,
+                    icon = vectorResource(Res.drawable.add_24px),
+                    contentDescription = stringResource(Res.string.action_add)
+                )
             }
         }
     ) { paddingValues ->
@@ -183,6 +195,20 @@ fun CourseInstanceListScreen(
                 )
             }
         }
+    }
+
+    // 批量删除二次确认（删除不可撤销）
+    if (pendingDeleteConfirm) {
+        AppDangerDialog(
+            onDismissRequest = { pendingDeleteConfirm = false },
+            title = stringResource(Res.string.dialog_title_confirm_delete_course),
+            text = stringResource(Res.string.dialog_text_confirm_delete_courses, selectedCourseIds.size),
+            confirmText = stringResource(Res.string.confirm_delete),
+            onConfirm = {
+                pendingDeleteConfirm = false
+                viewModel.deleteSelectedCourses()
+            }
+        )
     }
 }
 
@@ -215,10 +241,13 @@ fun CourseInstanceCard(
     val weekDays = stringArrayResource(Res.array.week_days_full_names)
     val dayName = weekDays.getOrElse(course.day - 1) { "?" }
 
-    // 卡片颜色：始终使用课程颜色作为背景
+    // 卡片颜色：始终使用课程颜色作为背景；文字色按底色明暗自适应（保证深色课程底上的可读性）
     val cardColors = CardDefaults.cardColors(
         containerColor = courseBackgroundColor,
-        contentColor = MaterialTheme.colorScheme.onSurface
+        contentColor = adaptiveTextColor(
+            background = courseBackgroundColor,
+            fallback = MaterialTheme.colorScheme.onSurface
+        )
     )
 
     Card(

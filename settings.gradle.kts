@@ -18,6 +18,12 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Haze 毛玻璃库：镜像同步滞后，直连 mavenCentral（内容过滤优先命中）
+        mavenCentral {
+            content {
+                includeGroup("dev.chrisbanes.haze")
+            }
+        }
         maven("https://maven.aliyun.com/repository/google")
         maven("https://maven.aliyun.com/repository/central")
         google {

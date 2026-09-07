@@ -27,6 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.AppType
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.desc_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.item_auto_mode
@@ -71,14 +74,8 @@ fun GeneralSettingsCard(
     var showExactAlarmDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(Res.string.section_title_general),
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
-        Spacer(Modifier.height(8.dp))
+        // 统一分区头（labelLarge + 主色，v2 规范 §3）
+        AppSectionHeader(stringResource(Res.string.section_title_general))
         Text(
             text = stringResource(Res.string.text_permission_importance_title),
             style = MaterialTheme.typography.titleSmall,
@@ -87,7 +84,7 @@ fun GeneralSettingsCard(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(Res.string.text_permission_importance_detail),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -205,7 +202,7 @@ fun GeneralSettingsCard(
             Text(
                 text = stringResource(Res.string.text_auto_mode_dependency),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(start = 16.dp, top = 4.dp)
             )
         }

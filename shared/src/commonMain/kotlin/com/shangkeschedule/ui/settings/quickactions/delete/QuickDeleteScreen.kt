@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,8 +30,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarHost
@@ -53,10 +49,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.AppSpacing
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -125,6 +131,11 @@ fun QuickDeleteScreen(
     // 控制二次确认弹窗的显示
     var showConfirmDialog by remember { mutableStateOf(false) }
 
+    // 悬浮面板玻璃：主内容 hazeSource，筛选面板背板模糊
+    val hazeState = rememberHazeState()
+
+    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+
     // 监听 ViewModel 发送的成功或错误消息，并使用 Snackbar 展示
     val successText = uiState.successMessage?.asString()
     val errorText = uiState.errorMessage?.asString()
@@ -153,7 +164,7 @@ fun QuickDeleteScreen(
             )
         },
         bottomBar = {
-            // 仅当有选中的课程受到影响时显示删除按钮
+            // 仅当有选中的课程受到影响时显示删除按钮（危险操作 = 危险色胶囊）
             if (uiState.affectedCourses.isNotEmpty()) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp) {
                     Button(
@@ -161,7 +172,11 @@ fun QuickDeleteScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = Color.White
+                        )
                     ) {
                         Icon(vectorResource(Res.drawable.delete_24px), null)
                         Spacer(Modifier.size(8.dp))
@@ -176,17 +191,13 @@ fun QuickDeleteScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)
         ) {
             // 维度一：周次和星期筛选卡片
             item {
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(Res.string.label_dimension_weeks_days),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                OutlinedCard(
+                AppSectionHeader(stringResource(Res.string.label_dimension_weeks_days))
+                AppCard(
                     onClick = { showFilterSheet = true },
                     modifier = Modifier.padding(vertical = 8.dp)
                 ) {
@@ -200,7 +211,7 @@ fun QuickDeleteScreen(
                             if (uiState.selectedWeeks.isEmpty() || uiState.selectedDays.isEmpty()) {
                                 Text(
                                     text = stringResource(Res.string.quick_delete_filter_weeks_days_hint),
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = appColors().textSecondary
                                 )
                             } else {
                                 val weeksContent = uiState.selectedWeeks.sorted().joinToString(", ")
@@ -212,13 +223,13 @@ fun QuickDeleteScreen(
                                 Text(
                                     text = stringResource(Res.string.quick_delete_label_days_prefix, daysContent),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = appColors().textSecondary
                                 )
                             }
                         }
                         // 如果有选择内容，显示清除图标
                         if (uiState.selectedWeeks.isNotEmpty() || uiState.selectedDays.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.clearWeeksAndDays() }, modifier = Modifier.size(24.dp)) {
+                            IconButton(onClick = { viewModel.clearWeeksAndDays() }) {
                                 Icon(vectorResource(Res.drawable.close_24px), null, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -228,12 +239,8 @@ fun QuickDeleteScreen(
 
             // 维度二：具体日期范围筛选卡片
             item {
-                Text(
-                    text = stringResource(Res.string.label_dimension_dates),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                OutlinedCard(
+                AppSectionHeader(stringResource(Res.string.label_dimension_dates))
+                AppCard(
                     onClick = { showDateRangePicker = true },
                     modifier = Modifier.padding(vertical = 8.dp)
                 ) {
@@ -251,11 +258,11 @@ fun QuickDeleteScreen(
                         Text(
                             text = dateText,
                             modifier = Modifier.weight(1f),
-                            color = if (uiState.startDate != null) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.outline
+                            color = if (uiState.startDate != null) appColors().textPrimary
+                            else appColors().textSecondary
                         )
                         if (uiState.startDate != null) {
-                            IconButton(onClick = { viewModel.clearDateRange() }, modifier = Modifier.size(24.dp)) {
+                            IconButton(onClick = { viewModel.clearDateRange() }) {
                                 Icon(vectorResource(Res.drawable.close_24px), null, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -269,7 +276,7 @@ fun QuickDeleteScreen(
                 Text(
                     text = if (count > 0) stringResource(Res.string.hint_affected_count, count)
                     else stringResource(Res.string.hint_no_selection),
-                    color = if (count > 0) MaterialTheme.colorScheme.error else Color.Gray,
+                    color = if (count > 0) MaterialTheme.colorScheme.error else appColors().textSecondary,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)
@@ -285,34 +292,26 @@ fun QuickDeleteScreen(
         }
     }
 
-    // 二次确认对话框
+    // 二次确认对话框（危险操作统一 AppDangerDialog）
     if (showConfirmDialog) {
-        AlertDialog(
+        AppDangerDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text(stringResource(Res.string.confirm_delete)) },
-            text = { Text(stringResource(Res.string.dialog_delete_confirm_msg)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showConfirmDialog = false
-                        viewModel.executeDelete() // 真正执行删除
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(Res.string.action_confirm))
-                }
+            title = stringResource(Res.string.confirm_delete),
+            text = stringResource(Res.string.dialog_delete_confirm_msg),
+            confirmText = stringResource(Res.string.action_confirm),
+            onConfirm = {
+                showConfirmDialog = false
+                viewModel.executeDelete() // 真正执行删除
             },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            }
+            dismissText = stringResource(Res.string.action_cancel),
+            onDismiss = { showConfirmDialog = false }
         )
     }
 
     // 底部筛选面板：选择周次（1-20）和星期（1-7）
     if (showFilterSheet) {
         FilterBottomSheet(
+            hazeState = hazeState,
             sheetState = sheetState,
             uiState = uiState,
             viewModel = viewModel,
@@ -330,6 +329,7 @@ fun QuickDeleteScreen(
             }
         )
     }
+    }
 }
 
 /**
@@ -338,6 +338,7 @@ fun QuickDeleteScreen(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun FilterBottomSheet(
+    hazeState: dev.chrisbanes.haze.HazeState? = null,
     sheetState: SheetState,
     uiState: QuickDeleteUiState,
     viewModel: QuickDeleteViewModel,
@@ -345,10 +346,10 @@ fun FilterBottomSheet(
 ) {
     val weekDays = stringArrayResource(Res.array.week_days_full_names)
 
-    ModalBottomSheet(
+    AppGlassBottomSheet(
+        hazeState = hazeState,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
@@ -412,9 +413,11 @@ fun FilterBottomSheet(
             }
 
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.action_confirm))
-            }
+            // 主色胶囊确认钮（与其他 sheet / 弹窗操作区同语言）
+            AppDialogActions(
+                confirmText = stringResource(Res.string.action_confirm),
+                onConfirm = onDismiss
+            )
         }
     }
 }
@@ -442,10 +445,17 @@ fun DateRangePickerModal(
                     }
                 },
                 enabled = state.selectedEndDateMillis != null
-            ) { Text(stringResource(Res.string.action_confirm)) }
+            ) {
+                Text(
+                    stringResource(Res.string.action_confirm),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.action_cancel), color = appColors().textSecondary)
+            }
         }
     ) {
         DateRangePicker(

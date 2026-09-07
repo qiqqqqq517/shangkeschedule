@@ -66,3 +66,6 @@ _*.log
 .dsh-screens/
 交付清单/
 _verify/
+
+# QA 截图证据（本地产物，不入库）
+build_qa/

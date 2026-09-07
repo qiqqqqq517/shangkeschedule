@@ -20,6 +20,7 @@ import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.error_tweak_failed
 import shangkeschedule.shared.generated.resources.error_tweak_no_table_or_semester
 import shangkeschedule.shared.generated.resources.error_tweak_same_day

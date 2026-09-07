@@ -1,5 +1,16 @@
 package com.shangkeschedule.ui.settings.import
 
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.tivm_error_empty_file
+import shangkeschedule.shared.generated.resources.tivm_error_empty_input
+import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
+import shangkeschedule.shared.generated.resources.tivm_error_parse_first
+import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
+import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
+import shangkeschedule.shared.generated.resources.tivm_json_parse_failed
+
+import org.jetbrains.compose.resources.getString
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.di.AppStorage
@@ -49,7 +60,9 @@ class TextImportViewModel(
     fun parseInput(forcedFormat: TextImportFormat? = null) {
         val text = _uiState.value.inputText
         if (text.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "请输入或粘贴课表内容")
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(error = getString(Res.string.tivm_error_empty_input))
+            }
             return
         }
 
@@ -69,7 +82,9 @@ class TextImportViewModel(
      */
     fun parseFileBytes(bytes: ByteArray, fileName: String?, forcedFormat: TextImportFormat? = null) {
         if (bytes.isEmpty()) {
-            _uiState.value = _uiState.value.copy(error = "文件内容为空", parseResult = null)
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(error = getString(Res.string.tivm_error_empty_file), parseResult = null)
+            }
             return
         }
 
@@ -130,7 +145,7 @@ class TextImportViewModel(
             try {
                 val imported = withContext(Dispatchers.IO) {
                     val text = bytes.decodeToString().removePrefix("\uFEFF")
-                    if (text.contains('\uFFFD')) throw IllegalArgumentException("文件不是 UTF-8 编码")
+                    if (text.contains('\uFFFD')) throw IllegalArgumentException(getString(Res.string.tivm_error_not_utf8))
 
                     // 1) 本 App 导出格式严格解析
                     try {
@@ -152,29 +167,37 @@ class TextImportViewModel(
                 if (imported) {
                     onSuccess(tableId)
                 } else {
-                    onError("JSON 解析失败：未找到有效课程")
+                    onError(getString(Res.string.tivm_json_parse_failed))
                 }
             } catch (e: Exception) {
-                onError("导入失败: ${e.message}")
+                onError(getString(Res.string.tivm_import_failed_fmt, e.message ?: ""))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
 
+    /**
+     * P1-6 预览可编辑：预览页删除/修改误识别条目后，把编辑后的完整课程列表
+     * 回写到解析结果。后续「导入新课表 / 覆盖已有课表」都使用编辑后的数据。
+     */
+    fun updateParsedCourses(courses: List<CourseImportExport.ImportCourseJsonModel>) {
+        val current = _uiState.value.parseResult ?: return
+        _uiState.value = _uiState.value.copy(parseResult = current.copy(courses = courses))
+    }
+
     /** 导入到新表 */
     fun importToNewTable(tableName: String, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
-        val model = _uiState.value.parseResult
-        if (model == null) {
-            onError("请先解析并预览")
-            return
-        }
-        if (tableName.isBlank()) {
-            onError("请输入课表名称")
-            return
-        }
-
         viewModelScope.launch {
+            val model = _uiState.value.parseResult
+            if (model == null) {
+                onError(getString(Res.string.tivm_error_parse_first))
+                return@launch
+            }
+            if (tableName.isBlank()) {
+                onError(getString(Res.string.tivm_error_table_name_empty))
+                return@launch
+            }
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val tableId = courseTableRepository.createNewCourseTable(tableName)
@@ -182,7 +205,7 @@ class TextImportViewModel(
                 _uiState.value = _uiState.value.copy(importSuccess = true)
                 onSuccess(tableId)
             } catch (e: Exception) {
-                onError("导入失败: ${e.message}")
+                onError(getString(Res.string.tivm_import_failed_fmt, e.message ?: ""))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
@@ -191,20 +214,19 @@ class TextImportViewModel(
 
     /** 导入到已有表（预览确认后） */
     fun importToExistingTable(tableId: String, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
-        val model = _uiState.value.parseResult
-        if (model == null) {
-            onError("请先解析并预览")
-            return
-        }
-
         viewModelScope.launch {
+            val model = _uiState.value.parseResult
+            if (model == null) {
+                onError(getString(Res.string.tivm_error_parse_first))
+                return@launch
+            }
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 courseConversionRepository.importCourseTableFromJson(tableId, model)
                 _uiState.value = _uiState.value.copy(importSuccess = true)
                 onSuccess(tableId)
             } catch (e: Exception) {
-                onError("导入失败: ${e.message}")
+                onError(getString(Res.string.tivm_import_failed_fmt, e.message ?: ""))
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }

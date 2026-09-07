@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
+import com.shangkeschedule.ui.theme.LocalAppColorTokens
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
@@ -84,21 +85,37 @@ fun ShangKeScheduleTheme(
 
     // 全局风格对齐（v2 规范 §2）：页面底色/卡片白等结构性颜色统一映射，
     // 让所有 Scaffold / TopAppBar / BottomSheet / Dialog 无需逐页修改即向基线收敛。
-    val styledScheme = colorScheme.withAppSurfaces(appColorTokens(darkTheme))
+    //
+    // 主色同步（v2 规范修订）：token 的 primary/primarySoft/渐变 必须跟随
+    // colorScheme 实际主色（动态取色 / 用户自定义 / 主题预设种子色派生），
+    // 否则组件层 appColors().primary 与 M3 colorScheme.primary 同屏分裂
+    // （如 FAB 紫 vs 网格今日高亮动态棕橙）。Hero 渐变跟随主色，保证全局同源。
+    val styledTokens = appColorTokens(darkTheme).let { tokens ->
+        tokens.copy(
+            primary = colorScheme.primary,
+            primarySoft = colorScheme.primaryContainer,
+            gradientStart = colorScheme.primary,
+            gradientEnd = colorScheme.primary.copy(alpha = 0.82f)
+        )
+    }
+    val styledScheme = colorScheme.withAppSurfaces(styledTokens)
 
-    // 应用平台特定的窗口与系统栏外观控制
-    SetupPlatformThemeEffects(
-        colorScheme = styledScheme,
-        darkTheme = darkTheme,
-        themeMode = themeMode
-    )
+    // 组件层 appColors() 读同一份同步 token（否则组件 primary 与 M3 primary 分裂）
+    CompositionLocalProvider(LocalAppColorTokens provides styledTokens) {
+        // 应用平台特定的窗口与系统栏外观控制
+        SetupPlatformThemeEffects(
+            colorScheme = styledScheme,
+            darkTheme = darkTheme,
+            themeMode = themeMode
+        )
 
-    MaterialTheme(
-        colorScheme = styledScheme,
-        typography = Typography,
-        shapes = AppMaterialShapes,
-        content = content
-    )
+        MaterialTheme(
+            colorScheme = styledScheme,
+            typography = Typography,
+            shapes = AppMaterialShapes,
+            content = content
+        )
+    }
 }
 
 /**

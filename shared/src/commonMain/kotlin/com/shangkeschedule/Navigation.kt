@@ -43,14 +43,12 @@ sealed interface Destination : NavKey {
     @Serializable data object CoupleScheduleSettings : Destination
     @Serializable data object MoreOptions : Destination
     @Serializable data object OpenSourceLicenses : Destination
-    @Serializable data object QuickActions : Destination
     @Serializable data object TweakSchedule : Destination
     @Serializable data object QuickDelete : Destination
     @Serializable data object CourseManagementList : Destination
     @Serializable data object AppearanceSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
-    @Serializable data object TextImport : Destination
 
     // --- 导入分类二级页 ---
     @Serializable data object FileImportHub : Destination
@@ -113,14 +111,12 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.CoupleScheduleSettings::class)
         subclass(Destination.MoreOptions::class)
         subclass(Destination.OpenSourceLicenses::class)
-        subclass(Destination.QuickActions::class)
         subclass(Destination.TweakSchedule::class)
         subclass(Destination.QuickDelete::class)
         subclass(Destination.CourseManagementList::class)
         subclass(Destination.AppearanceSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
-        subclass(Destination.TextImport::class)
 
         // 导入分类二级页
         subclass(Destination.FileImportHub::class)

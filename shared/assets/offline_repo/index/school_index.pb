@@ -1630,10 +1630,10 @@ u_7f1f81d3华中师范大学hzsfdx"	zhengfang*�
 u_7f1f81d3_01正方教务系统"zhengfang.js*https://one.ccnu.edu.cn21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_e492104b华中农业大学hznydx"	zhengfang*�
-u_e492104b_01正方教务系统"zhengfang.js*http://pdc.hzau.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_e492104b_01正方教务系统"zhengfang.js*http://pdc.hzau.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_b6ffdc3d合肥理工学院hflgxy"	zhengfang*�
-u_b6ffdc3d_01正方教务系统"zhengfang.js*http://jhxyjwxt.ahu.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_b6ffdc3d合肥理工学院hflgxy"AHU*�
+u_b6ffdc3d_01正方教务系统"ahu.js*http://jhxyjwxt.ahu.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_6fc3f015湖北中医药大学hbzyydx"	zhengfang*�
 u_6fc3f015_01正方教务系统"zhengfang.js*[https://jwxt.hbucm.edu.cn/jwglxt/xtgl/login_slogin.html?language=zh_CN&login_type=undefined21自动导入自 timetable，类型: zhengfang_new:auto-import�
@@ -4465,10 +4465,10 @@ u_2647a015$安徽电气工程职业技术学院ahdqgczyjsxy"wisedu*�
 
 u_ec4ec8d4安徽林业职业技术学院
 ahlyzyjsxy"wisedu*�
-u_ec4ec8d4_01金智(Wisedu)教务系统"	wisedu.js*yhttps://sso.ahlyxy.edu.cn/cas/login?service=http%3A%2F%2Fehall.ahlyxy.edu.cn%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
+u_ec4ec8d4_01金智(Wisedu)教务系统"	wisedu.js*yhttps://sso.ahlyxy.edu.cn/cas/login?service=http%3A%2F%2Fehall.ahlyxy.edu.cn%2Fjwapp%2Fsys%2Femaphome%2Fportal%2Findex.do2*自动导入自 timetable，类型: wisedu:auto-import�
 
-u_7066b057安徽艺术学院ahysxy"chaoxing_jiaowu*�
-u_7066b057_01超星教务系统"chaoxing.js*)https://ahuac.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
+u_7066b057安徽艺术学院ahysxy"AHU*�
+u_7066b057_01超星教务系统"ahu.js*)https://ahuac.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
 
 u_e45c2f6e鞍山师范学院assfxy"chaoxing_jiaowu*�
 u_e45c2f6e_01超星教务系统"chaoxing.js*(https://assh.jw.chaoxing.com/admin/login2,自动导入自 timetable，类型: chaoxing:auto-import�
@@ -5765,9 +5765,4 @@ njlgdxzjxy"urp*�
 u_cf40587b_01URP教务系统"urp.js*4https://223.112.21.198:6443/vpn/theme/auth_home.html2'自动导入自 timetable，类型: urp:auto-import�
 
 u_7efa914c湖南财政经济学院hnczjjxy"hufe*�
-u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import�
-MANUAL_UCAS_PG中国科学院大学zgkxydx"UCAS*�
-
-ucas_pg_01%SEP 教育业务平台（研究生）"ucas.js*https://sep.ucas.ac.cn/2V手动注册，研究生教务，类型: SEP平台课表(DOM解析+跨域详情转发):manual-ucas-pg�
-MANUAL_HEBMU河北医科大学hbykdx"HEBMU*�
-hebmu_01$教务管理系统（乘方新版）"hebmu.js*https://jwweb.hebmu.edu.cn/2G手动注册，类型: 乘方教务新版(账号密码+验证码登录):manual-hebmu
+u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import
