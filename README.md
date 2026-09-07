@@ -225,4 +225,4 @@ run-android.bat
 
 本项目基于 [Apache License 2.0](./LICENSE) 开源。
 
-项目的最初形态演进自 [拾光课程表（shiguangschedule）](https://github.com/XingHeYuZhuan/shiguangschedule) 的 Apache-2.0 开源代码，后续经过大量重构与功能扩展，谨此致谢原项目及全体贡献者。
+项目的最初形态演进自 [拾光课程表（shiguangschedule）](https://github.com/XingHeYuZhuan/shiguangschedule) 的 Apache-2.0 开源代码，后续经过大量重构与功能扩展，感谢原作者提供的框架以及大量宝贵代码，谨此致谢原项目及全体贡献者。
