@@ -66,6 +66,7 @@ import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.liquidGlass
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -101,6 +102,12 @@ fun AdaptiveNavigationScaffold(
     bottomBarSelectedColor: Color? = null,
     bottomBarUnselectedColor: Color? = null,
     navigationModifier: Modifier = Modifier,
+    /**
+     * 底栏滚动隐藏状态回调：true 表示底栏已随下滑隐藏。
+     * 供页面内的悬浮控件（如课表页「回到本周」圆钮）与底栏同步下沉/淡出，
+     * 避免两套隐藏逻辑各自为政导致动画不同步。
+     */
+    onNavBarHiddenChange: (Boolean) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val navItems = listOf(
@@ -253,6 +260,10 @@ fun AdaptiveNavigationScaffold(
                     barHidden = false
                     downAccumPx = 0f
                 }
+                // 同步隐藏状态给宿主页面内的悬浮控件
+                LaunchedEffect(barHidden) {
+                    onNavBarHiddenChange(barHidden)
+                }
                 val hideFraction by animateFloatAsState(
                     targetValue = if (barHidden) 1f else 0f,
                     animationSpec = tween(durationMillis = 220),
@@ -289,30 +300,14 @@ fun AdaptiveNavigationScaffold(
                     ) {
                         Row(
                             modifier = navigationModifier
-                                .shadow(
-                                    elevation = 14.dp,
+                                // 液态玻璃：毛玻璃 + 白纱 + 顶部高光 + 折射亮边（与「回到本周」圆钮同源），
+                                // 内部已按「shadow → clip → hazeEffect → 高光 → 亮边」顺序封装
+                                .liquidGlass(
+                                    hazeState = hazeState,
                                     shape = AppShape.capsule,
-                                    clip = false,
-                                    ambientColor = tokens.shadow,
-                                    spotColor = tokens.shadow
+                                    containerColor = bottomBarContainerColor ?: tokens.inputBg,
+                                    isTransparent = isTransparent
                                 )
-                                // 圆角修复：clip 必须排在 hazeEffect 之前——Modifier 链由外向内生效，
-                                // 玻璃层（hazeEffect）只有处于 clip 内部才会被裁成胶囊形，
-                                // 否则模糊+白 tint 以整节点矩形渲染，呈现「方形白条」。
-                                .clip(AppShape.capsule)
-                                .hazeEffect(hazeState) {
-                                    blurRadius = 20.dp
-                                    noiseFactor = 0.12f
-                                    tints = listOf(
-                                        if (isTransparent) HazeTint(Color.Transparent)
-                                        else HazeTint((bottomBarContainerColor ?: tokens.inputBg).copy(alpha = 0.70f))
-                                    )
-                                    fallbackTint = if (isTransparent) HazeTint(Color.Black.copy(alpha = 0.2f))
-                                    else HazeTint(bottomBarContainerColor ?: tokens.inputBg)
-                                    backgroundColor = Color.Transparent
-                                }
-                                .border(1.dp, tokens.divider.copy(alpha = 0.6f), AppShape.capsule)
-                                .background(if (isTransparent) Color.Transparent else (bottomBarContainerColor ?: tokens.inputBg).copy(alpha = 0.10f))
                                 .padding(horizontal = 10.dp, vertical = 7.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically

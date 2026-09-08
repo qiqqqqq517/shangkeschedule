@@ -29,6 +29,7 @@
     <!-- Main Interface and Today's Schedule -->
     <string name="action_reset">Reset</string>
     <string name="floating_course_hint">Suspended. Swipe weeks and tap a blank space to drop.</string>
+    <string name="a11y_back_to_current_week">Back to this week</string>
     <string name="nav_today_schedule">Today</string>
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>

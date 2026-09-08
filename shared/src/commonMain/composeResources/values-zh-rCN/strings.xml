@@ -27,6 +27,7 @@
     <string name="label_recent_visit">最近访问</string>
     <string name="action_reset">重置</string>
     <string name="floating_course_hint">已挂起，左右滑周点击空白处放下</string>
+    <string name="a11y_back_to_current_week">回到本周</string>
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>

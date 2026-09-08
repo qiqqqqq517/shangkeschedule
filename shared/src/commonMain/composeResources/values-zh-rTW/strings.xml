@@ -29,6 +29,7 @@
     <!-- 主介面及今日課表 -->
     <string name="action_reset">重置</string>
     <string name="floating_course_hint">已掛起，左右滑周點擊空白處放下</string>
+    <string name="a11y_back_to_current_week">回到本週</string>
     <string name="nav_today_schedule">今日課表</string>
     <string name="nav_course_schedule">課表</string>
     <string name="nav_settings">我的</string>
