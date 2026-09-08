@@ -50,6 +50,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.IntSize
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
@@ -63,6 +66,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.tool.FileManagerCallbacks
@@ -76,6 +80,8 @@ import com.shangkeschedule.ui.components.ImageCropper
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.settings.SettingCard
+import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.settings.style.ScheduleGridContent
 import com.shangkeschedule.ui.settings.style.SettingsListContent
 import com.shangkeschedule.ui.settings.style.StyleSettingsViewModel
@@ -98,6 +104,15 @@ import shangkeschedule.shared.generated.resources.action_reset
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.custom_color_title
 import shangkeschedule.shared.generated.resources.dark_primary_color
+import shangkeschedule.shared.generated.resources.desc_schedule_style_settings
+import shangkeschedule.shared.generated.resources.desc_theme_settings
+import shangkeschedule.shared.generated.resources.image_24px
+import shangkeschedule.shared.generated.resources.palette_24px
+import shangkeschedule.shared.generated.resources.item_schedule_style_settings
+import shangkeschedule.shared.generated.resources.item_personalized_display
+import shangkeschedule.shared.generated.resources.desc_personalized_display
+import shangkeschedule.shared.generated.resources.tune_24px
+import shangkeschedule.shared.generated.resources.item_theme_settings
 import shangkeschedule.shared.generated.resources.dynamic_color_desc
 import shangkeschedule.shared.generated.resources.dynamic_color_title
 import shangkeschedule.shared.generated.resources.item_appearance_settings
@@ -114,11 +129,220 @@ import shangkeschedule.shared.generated.resources.theme_style_section
 @Composable
 fun AppearanceSettingsScreen(
     onBack: () -> Unit,
+    onNavigate: (Destination) -> Unit = {}
+) {
+    // v3.24.0：本页改为「外观与样式」二级导航页——只承载两个入口（主题 / 自定义课表页），
+    // 原主题配置与课表样式内容分别下沉到 ThemeSettingsScreen / ScheduleStyleSettingsScreen。
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(Res.string.item_appearance_settings), style = MaterialTheme.typography.titleLarge) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SettingCard(
+                title = stringResource(Res.string.item_theme_settings),
+                subtitle = stringResource(Res.string.desc_theme_settings),
+                leadingIcon = vectorResource(Res.drawable.palette_24px),
+                accent = AccentTone.PRIMARY,
+                onClick = { onNavigate(Destination.ThemeSettings) }
+            )
+            SettingCard(
+                title = stringResource(Res.string.item_schedule_style_settings),
+                subtitle = stringResource(Res.string.desc_schedule_style_settings),
+                leadingIcon = vectorResource(Res.drawable.image_24px),
+                accent = AccentTone.INFO,
+                onClick = { onNavigate(Destination.ScheduleStyleSettings) }
+            )
+            // v3.25.0：新增「个性化显示」——悬浮件（底栏/圆钮/挂起条）那一层的观感，
+            // 与配色（主题页）、课表本体（自定义课表页）职责不同，单独成页
+            SettingCard(
+                title = stringResource(Res.string.item_personalized_display),
+                subtitle = stringResource(Res.string.desc_personalized_display),
+                leadingIcon = vectorResource(Res.drawable.tune_24px),
+                accent = AccentTone.SUCCESS,
+                onClick = { onNavigate(Destination.PersonalizedDisplay) }
+            )
+        }
+    }
+}
+
+/**
+ * 主题二级页：主题风格预设 / 深色模式 / 动态取色 / 自定义主题色。
+ * 从「外观与样式」二级导航页进入。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ThemeSettingsScreen(
+    onBack: () -> Unit,
     settingsViewModel: SettingsViewModel = koinViewModel(),
     styleViewModel: StyleSettingsViewModel = koinViewModel()
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
     val settings = uiState.appSettings
+    val styleState by styleViewModel.styleState.collectAsStateWithLifecycle()
+    val demoUiState by styleViewModel.demoUiState.collectAsStateWithLifecycle()
+
+    // 切换主题确认：避免误操作覆盖用户个性化配置
+    var pendingThemePreset by remember { mutableStateOf<AppThemePreset?>(null) }
+
+    // 取色器面板玻璃：主内容 hazeSource
+    val hazeState = rememberHazeState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(Res.string.item_theme_settings), style = MaterialTheme.typography.titleLarge) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            // 1. 主题预览固定在页面顶部（约 1/5 屏高，随主题色实时变化）
+            AppearanceStylePreview(styleState, demoUiState, heightFraction = 0.20f)
+
+            HorizontalDivider()
+
+            // 2. 主题配置滚动区
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AppearanceSectionHeader(stringResource(Res.string.theme_style_section))
+                Text(
+                    text = stringResource(Res.string.theme_style_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+                AppearancePresetSelector(
+                    selectedPreset = settings.themePreset,
+                    onSelect = { preset ->
+                        if (preset != settings.themePreset) {
+                            pendingThemePreset = preset
+                        }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                AppearanceSectionHeader(stringResource(Res.string.theme_mode_label))
+                AppearanceThemeModeSelector(
+                    selectedMode = settings.themeMode,
+                    onModeSelected = { settingsViewModel.onThemeModeChanged(it) }
+                )
+
+                if (supportsDynamicColor) {
+                    AppearanceDynamicColorToggle(
+                        enabled = settings.useDynamicColor,
+                        onEnabledChange = { settingsViewModel.onUseDynamicColorChanged(it) }
+                    )
+                }
+
+                val customColorUsesDynamic = supportsDynamicColor && settings.useDynamicColor
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AppearanceSectionHeader(stringResource(Res.string.custom_color_title))
+                    if (customColorUsesDynamic) {
+                        Text(
+                            text = stringResource(Res.string.theme_color_disabled_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
+                    val isDark = LocalIsDarkTheme.current
+                    if (isDark) {
+                        AppearanceThemeColorPickerItem(
+                            label = stringResource(Res.string.dark_primary_color),
+                            currentColor = Color(settings.customDarkPrimary),
+                            onColorChanged = { settingsViewModel.onCustomDarkPrimaryChanged(it) },
+                            onReset = { settingsViewModel.onCustomDarkPrimaryChanged() },
+                            enabled = true,
+                            hazeState = hazeState
+                        )
+                    } else {
+                        AppearanceThemeColorPickerItem(
+                            label = stringResource(Res.string.light_primary_color),
+                            currentColor = Color(settings.customLightPrimary),
+                            onColorChanged = { settingsViewModel.onCustomLightPrimaryChanged(it) },
+                            onReset = { settingsViewModel.onCustomLightPrimaryChanged() },
+                            enabled = true,
+                            hazeState = hazeState
+                        )
+                    }
+                    Text(
+                        text = stringResource(Res.string.theme_color_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+                }
+            }
+        }
+    }
+
+    // 切换主题确认对话框：防止误操作覆盖个性化配置
+    if (pendingThemePreset != null) {
+        val targetPreset = pendingThemePreset!!
+        AlertDialog(
+            onDismissRequest = { pendingThemePreset = null },
+            title = { Text(stringResource(Res.string.appearance_switch_title)) },
+            text = {
+                Text(stringResource(Res.string.appearance_switch_message, stringResource(targetPreset.labelRes)))
+            },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.appearance_switch_confirm),
+                    onConfirm = {
+                        settingsViewModel.onThemePresetChanged(targetPreset)
+                        pendingThemePreset = null
+                    },
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = { pendingThemePreset = null }
+                )
+            },
+            dismissButton = {}
+        )
+    }
+}
+
+/**
+ * 自定义课表页二级页：课表样式预览 / 壁纸 / 网格样式 / 课程功能色。
+ * 从「外观与样式」二级导航页进入。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScheduleStyleSettingsScreen(
+    onBack: () -> Unit,
+    styleViewModel: StyleSettingsViewModel = koinViewModel()
+) {
     val styleState by styleViewModel.styleState.collectAsStateWithLifecycle()
     val demoUiState by styleViewModel.demoUiState.collectAsStateWithLifecycle()
 
@@ -128,9 +352,6 @@ fun AppearanceSettingsScreen(
 
     var loadedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var showCropper by remember { mutableStateOf(false) }
-
-    // 切换主题确认：避免误操作覆盖用户个性化配置
-    var pendingThemePreset by remember { mutableStateOf<AppThemePreset?>(null) }
 
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
@@ -165,7 +386,7 @@ fun AppearanceSettingsScreen(
         )
     }
 
-    // 悬浮面板玻璃：主内容 hazeSource，取色器面板背板模糊
+    // 悬浮面板玻璃：主内容 hazeSource，功能色取色器面板背板模糊
     val hazeState = rememberHazeState()
 
     Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
@@ -173,7 +394,7 @@ fun AppearanceSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(Res.string.item_appearance_settings), style = MaterialTheme.typography.titleLarge) },
+                title = { Text(text = stringResource(Res.string.item_schedule_style_settings), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
@@ -192,89 +413,13 @@ fun AppearanceSettingsScreen(
 
             HorizontalDivider()
 
-            // 2. 下方依次展示：主题风格 + 深色模式 + 个性化微调
+            // 2. 下方为课表页个性化微调（壁纸 / 样式 / 功能色）
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    AppearanceSectionHeader(stringResource(Res.string.theme_style_section))
-                    Text(
-                        text = stringResource(Res.string.theme_style_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                    )
-                    AppearancePresetSelector(
-                        selectedPreset = settings.themePreset,
-                        onSelect = { preset ->
-                            if (preset != settings.themePreset) {
-                                pendingThemePreset = preset
-                            }
-                        }
-                    )
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    AppearanceSectionHeader(stringResource(Res.string.theme_mode_label))
-                    AppearanceThemeModeSelector(
-                        selectedMode = settings.themeMode,
-                        onModeSelected = { settingsViewModel.onThemeModeChanged(it) }
-                    )
-
-                    if (supportsDynamicColor) {
-                        AppearanceDynamicColorToggle(
-                            enabled = settings.useDynamicColor,
-                            onEnabledChange = { settingsViewModel.onUseDynamicColorChanged(it) }
-                        )
-                    }
-
-                    val customColorUsesDynamic = supportsDynamicColor && settings.useDynamicColor
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        AppearanceSectionHeader(stringResource(Res.string.custom_color_title))
-                        if (customColorUsesDynamic) {
-                            Text(
-                                text = stringResource(Res.string.theme_color_disabled_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                        val isDark = LocalIsDarkTheme.current
-                        if (isDark) {
-                            AppearanceThemeColorPickerItem(
-                                label = stringResource(Res.string.dark_primary_color),
-                                currentColor = Color(settings.customDarkPrimary),
-                                onColorChanged = { settingsViewModel.onCustomDarkPrimaryChanged(it) },
-                                onReset = { settingsViewModel.onCustomDarkPrimaryChanged() },
-                                enabled = true,
-                                hazeState = hazeState
-                            )
-                        } else {
-                            AppearanceThemeColorPickerItem(
-                                label = stringResource(Res.string.light_primary_color),
-                                currentColor = Color(settings.customLightPrimary),
-                                onColorChanged = { settingsViewModel.onCustomLightPrimaryChanged(it) },
-                                onReset = { settingsViewModel.onCustomLightPrimaryChanged() },
-                                enabled = true,
-                                hazeState = hazeState
-                            )
-                        }
-                        Text(
-                            text = stringResource(Res.string.theme_color_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                    }
-                }
-
-                HorizontalDivider()
-
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -322,41 +467,24 @@ fun AppearanceSettingsScreen(
             Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
-
-    // 切换主题确认对话框：防止误操作覆盖个性化配置
-    if (pendingThemePreset != null) {
-        val targetPreset = pendingThemePreset!!
-        AlertDialog(
-            onDismissRequest = { pendingThemePreset = null },
-            title = { Text(stringResource(Res.string.appearance_switch_title)) },
-            text = {
-                Text(stringResource(Res.string.appearance_switch_message, stringResource(targetPreset.labelRes)))
-            },
-            confirmButton = {
-                AppDialogActions(
-                    confirmText = stringResource(Res.string.appearance_switch_confirm),
-                    onConfirm = {
-                        settingsViewModel.onThemePresetChanged(targetPreset)
-                        pendingThemePreset = null
-                    },
-                    dismissText = stringResource(Res.string.action_cancel),
-                    onDismiss = { pendingThemePreset = null }
-                )
-            },
-            dismissButton = {}
-        )
-    }
 }
 
 @Composable
 private fun AppearanceStylePreview(
     currentStyle: ScheduleGridStyleComposed,
-    demoUiState: WeeklyScheduleUiState
+    demoUiState: WeeklyScheduleUiState,
+    // v3.24.1：高度占比参数化——自定义课表页 0.30，主题页 0.20（用户要求约 1/5 屏）
+    heightFraction: Float = 0.30f
 ) {
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val windowWidthDp = with(density) { containerSize.width.toDp() }
-    val previewHeightDp = with(density) { containerSize.height.toDp() } * 0.30f
+    val previewHeightDp = with(density) { containerSize.height.toDp() } * heightFraction
+    // v3.26.0 动效收口：预览尺寸变化读全局令牌 resizeDurationMs/resizeEasing
+    val motion = LocalAppMotion.current
+    val resizeSpec = remember(motion) {
+        tween<IntSize>(durationMillis = motion.tokens.resizeDurationMs, easing = motion.tokens.resizeEasing)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
@@ -367,7 +495,7 @@ private fun AppearanceStylePreview(
                 .height(previewHeightDp)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .horizontalScroll(rememberScrollState())
-                .animateContentSize()
+                .animateContentSize(animationSpec = resizeSpec)
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
                         while (true) {

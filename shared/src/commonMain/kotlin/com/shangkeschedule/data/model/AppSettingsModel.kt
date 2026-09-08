@@ -3,6 +3,7 @@ package com.shangkeschedule.data.model
 import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -10,6 +11,8 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.*
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.AnimationStyle
 import com.shangkeschedule.ui.theme.DefaultThemeColor
 
 /**
@@ -141,6 +144,26 @@ data class AppSettingsModel(
 
     /** 周课表视图模式（默认周视图） */
     val scheduleViewMode: ScheduleViewMode = ScheduleViewMode.WEEK,
+
+    /**
+     * 液态玻璃（底栏胶囊 / 悬浮圆钮 / 挂起条 / 玻璃 AppFab）统一的高斯模糊半径，单位 dp。
+     * v3.25.0 起由「外观与样式 → 个性化显示」调节；0f = 关闭模糊（只保留表面 tint 与边缘光学）。
+     * 默认 4dp 对应原编译期常量 LiquidGlassBlurRadius；全局一处生效，不存在各件分叉。
+     */
+    val glassBlurRadiusDp: Float = 4f,
+
+    /**
+     * 全局动画风格（v3.26.0「个性化显示 → 动画效果」）。
+     * 三档：琉璃轻弹(GLASS，默认) / 舒缓轻移(GENTLE) / 灵动跟手(SNAPPY)。
+     * 经 LocalAppMotion 注入，全 App 一处生效。
+     */
+    val animationStyle: AnimationStyle = AnimationStyle.GLASS,
+
+    /**
+     * 已关闭的动画分组集合（默认空 = 全部开启）。
+     * 关掉某组 ⇒ 该类动画瞬切无动效。分组见 [AnimationGroup]。
+     */
+    val disabledAnimationGroups: Set<AnimationGroup> = emptySet(),
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -172,6 +195,9 @@ data class AppSettingsModel(
         val KEY_SELF_COURSE_COLOR_INDEX = intPreferencesKey("self_course_color_index")
         val KEY_CRUSH_COURSE_COLOR_INDEX = intPreferencesKey("crush_course_color_index")
         val KEY_SCHEDULE_VIEW_MODE = stringPreferencesKey("schedule_view_mode")
+        val KEY_GLASS_BLUR_RADIUS_DP = floatPreferencesKey("glass_blur_radius_dp")
+        val KEY_ANIMATION_STYLE = stringPreferencesKey("animation_style")
+        val KEY_DISABLED_ANIMATION_GROUPS = stringSetPreferencesKey("disabled_animation_groups")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -199,6 +225,12 @@ data class AppSettingsModel(
                 selfCourseColorIndex = prefs[KEY_SELF_COURSE_COLOR_INDEX] ?: d.selfCourseColorIndex,
                 crushCourseColorIndex = prefs[KEY_CRUSH_COURSE_COLOR_INDEX] ?: d.crushCourseColorIndex,
                 scheduleViewMode = ScheduleViewMode.fromString(prefs[KEY_SCHEDULE_VIEW_MODE]),
+                glassBlurRadiusDp = prefs[KEY_GLASS_BLUR_RADIUS_DP] ?: d.glassBlurRadiusDp,
+                animationStyle = AnimationStyle.fromString(prefs[KEY_ANIMATION_STYLE]),
+                disabledAnimationGroups = prefs[KEY_DISABLED_ANIMATION_GROUPS]
+                    ?.mapNotNull { AnimationGroup.fromString(it) }
+                    ?.toSet()
+                    ?: d.disabledAnimationGroups,
             )
         }
     }

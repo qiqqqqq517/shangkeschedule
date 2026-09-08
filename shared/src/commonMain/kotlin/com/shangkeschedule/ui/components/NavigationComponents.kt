@@ -65,6 +65,7 @@ import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
 import org.jetbrains.compose.resources.stringResource
@@ -137,6 +138,9 @@ fun AdaptiveNavigationScaffold(
     val finalSubTextColor = finalContentColor.copy(alpha = 0.7f)
 
     // 悬浮胶囊底栏（v2 规范 §2）：白色胶囊条 + 选中浅紫胶囊高亮 + 图文加粗
+    // v3.23.10：回退 v3.23.9 的"选中固定主色"方案（用户否决），配色恢复为
+    // 跟随 contentColor / navSelectedBg 的原逻辑；对比增强改为选中项字号
+    // 11sp→12sp（见下方 Text），与未选中拉开层级。
     val resolvedContainerColor = bottomBarContainerColor ?: tokens.navBarBg
     val resolvedSelectedColor = bottomBarSelectedColor
         ?: (if (contentColor != null) finalContentColor else MaterialTheme.colorScheme.primary)
@@ -264,9 +268,15 @@ fun AdaptiveNavigationScaffold(
                 LaunchedEffect(barHidden) {
                     onNavBarHiddenChange(barHidden)
                 }
+                // v3.26.0 动效收口：底栏隐藏时长/缓动读全局动效令牌，
+                // 关掉「底栏隐藏」分组（hideDurationMs=0）⇒ 瞬切出/入屏。
+                val motion = LocalAppMotion.current
+                val hideAnimSpec = remember(motion) {
+                    tween<Float>(durationMillis = motion.tokens.hideDurationMs, easing = motion.tokens.hideEasing)
+                }
                 val hideFraction by animateFloatAsState(
                     targetValue = if (barHidden) 1f else 0f,
-                    animationSpec = tween(durationMillis = 220),
+                    animationSpec = hideAnimSpec,
                     label = "navBarHide"
                 )
                 Box(
@@ -281,7 +291,9 @@ fun AdaptiveNavigationScaffold(
                     ) {
                         // P2-3 隐藏后留白回收：底栏隐藏动画进行中，内容底部 padding 同步收缩，
                         // 让列表内容顺势延伸至底栏空位，不残留一块空白。
-                        content(PaddingValues(bottom = barInsetBottom * (1f - hideFraction)))
+                        // ⚠️ 必须钳制：弹性风格（琉璃轻弹 GlassEase）末端过冲会让 hideFraction > 1，
+                        // 不钳制则算出负 padding 直接 IllegalArgumentException（真机已实锤）。
+                        content(PaddingValues(bottom = barInsetBottom * (1f - hideFraction).coerceIn(0f, 1f)))
                     }
                     Box(
                         modifier = Modifier
@@ -289,7 +301,9 @@ fun AdaptiveNavigationScaffold(
                             .fillMaxWidth()
                             .graphicsLayer {
                                 translationY = hideFraction * hideRangePx
-                                alpha = 1f - hideFraction * 0.4f
+                                // v3.24.4：淡出曲线与「回到本周」圆钮对齐——隐藏时完全淡出
+                                // （原为 1 - fraction*0.4 只淡到 60%，与圆钮 1-fraction 不一致）
+                                alpha = (1f - hideFraction).coerceIn(0f, 1f)
                             }
                             .navigationBarsPadding()
                             .padding(
@@ -301,7 +315,9 @@ fun AdaptiveNavigationScaffold(
                         Row(
                             modifier = navigationModifier
                                 // 液态玻璃：毛玻璃 + 白纱 + 顶部高光 + 折射亮边（与「回到本周」圆钮同源），
-                                // 内部已按「shadow → clip → hazeEffect → 高光 → 亮边」顺序封装
+                                // 内部已按「shadow → clip → hazeEffect → 高光 → 亮边」顺序封装。
+                                // blur 不在此处写死：统一取 LiquidGlassBlurRadius（v3.24.7），
+                                // 任何一处单独调参都会让底栏与其余玻璃件再次分叉。
                                 .liquidGlass(
                                     hazeState = hazeState,
                                     shape = AppShape.capsule,
@@ -340,7 +356,9 @@ fun AdaptiveNavigationScaffold(
                                     )
                                     Text(
                                         text = item.label,
-                                        fontSize = AppType.badge,
+                                        // v3.23.10 对比增强：选中项字号 11sp(badge)→12sp(hint)（保持 Bold），
+                                        // 未选中 11sp Medium，字号+字重双通道拉开层级
+                                        fontSize = if (isSelected) AppType.hint else AppType.badge,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
                                         modifier = Modifier.padding(start = 5.dp)

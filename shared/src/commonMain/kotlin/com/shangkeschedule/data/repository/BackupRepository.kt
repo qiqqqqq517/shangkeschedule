@@ -408,7 +408,10 @@ class BackupRepository(
                 coupleScheduleEnabled = settings.coupleScheduleEnabled,
                 selfCourseColorIndex = settings.selfCourseColorIndex,
                 crushCourseColorIndex = settings.crushCourseColorIndex,
-                scheduleViewMode = settings.scheduleViewMode.name
+                scheduleViewMode = settings.scheduleViewMode.name,
+                glassBlurRadiusDp = settings.glassBlurRadiusDp,
+                animationStyle = settings.animationStyle.name,
+                disabledAnimationGroups = settings.disabledAnimationGroups.map { it.name }.toSet()
             )
             val envelope = AppSettingsBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
@@ -462,7 +465,13 @@ class BackupRepository(
                 coupleScheduleEnabled = bm.coupleScheduleEnabled,
                 selfCourseColorIndex = bm.selfCourseColorIndex,
                 crushCourseColorIndex = bm.crushCourseColorIndex,
-                scheduleViewMode = runCatching { com.shangkeschedule.ui.schedule.ScheduleViewMode.valueOf(bm.scheduleViewMode) }.getOrNull() ?: currentSettings.scheduleViewMode
+                scheduleViewMode = runCatching { com.shangkeschedule.ui.schedule.ScheduleViewMode.valueOf(bm.scheduleViewMode) }.getOrNull() ?: currentSettings.scheduleViewMode,
+                // 旧版备份缺字段时 kotlinx 用默认值 4f 兜底，与 App 默认一致
+                glassBlurRadiusDp = bm.glassBlurRadiusDp.coerceIn(0f, 24f),
+                animationStyle = runCatching { com.shangkeschedule.ui.theme.AnimationStyle.valueOf(bm.animationStyle) }.getOrNull() ?: currentSettings.animationStyle,
+                disabledAnimationGroups = bm.disabledAnimationGroups
+                    .mapNotNull { runCatching { com.shangkeschedule.ui.theme.AnimationGroup.valueOf(it) }.getOrNull() }
+                    .toSet()
             )
             appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
             Result.success(Unit)

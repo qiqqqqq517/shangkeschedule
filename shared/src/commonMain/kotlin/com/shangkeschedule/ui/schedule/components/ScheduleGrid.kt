@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -33,6 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringArrayResource
 import shangkeschedule.shared.generated.resources.Res
@@ -206,11 +211,41 @@ fun ScheduleGrid(
                     activeDragMinuteStr = activeDragMinuteStr
                 )
 
-                Layout(
-                    content = {
-                        singleSchedulables.forEach { item ->
-                            val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
-                            val isCrushBlock = item.parentBlock.courses.any { it.course.isCrush }
+            Layout(
+                content = {
+                    singleSchedulables.forEachIndexed { blockIndex, item ->
+                        val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
+                        val isCrushBlock = item.parentBlock.courses.any { it.course.isCrush }
+
+                        // v3.26.0 C+.15 课程格点按反馈：按压缩放 + 微抬起（读全局令牌；
+                        // 关掉「课程格反馈」分组 ⇒ snap 到原样，无动画）
+                        val cellMotion = LocalAppMotion.current
+                        var cellPressed by remember(item) { mutableStateOf(false) }
+                        val cellPressFraction by animateFloatAsState(
+                            targetValue = if (cellPressed) 1f else 0f,
+                            animationSpec = cellMotion.tokens.cellPressSpec,
+                            label = "courseCellPress"
+                        )
+
+                        // v3.26.0 C+.17 页面入场错峰淡入：仅首次组合触发（remember 记住，
+                        // 课程数据刷新不重播）；关掉「页面入场」分组 ⇒ 直接显示
+                        val entranceEnabled = cellMotion.isEnabled(AnimationGroup.PAGE_ENTRANCE) &&
+                            cellMotion.tokens.entranceDurationMs > 0
+                        var entranceEntered by remember { mutableStateOf(!entranceEnabled) }
+                        LaunchedEffect(item) {
+                            if (!entranceEntered) {
+                                delay((blockIndex * cellMotion.tokens.entranceStaggerMs).toLong())
+                                entranceEntered = true
+                            }
+                        }
+                        val entranceFraction by animateFloatAsState(
+                            targetValue = if (entranceEntered) 1f else 0f,
+                            animationSpec = tween(
+                                durationMillis = cellMotion.tokens.entranceDurationMs,
+                                easing = cellMotion.tokens.entranceEasing
+                            ),
+                            label = "courseCellEntrance"
+                        )
 
                             // P1-19 TalkBack 语义：课程块整体播报（名称/节次或时间/地点/教师/非本周），
                             // 并暴露点击/长按动作（pointerInput 不产生语义节点，无此则读屏完全无法操作课表）
@@ -243,6 +278,16 @@ fun ScheduleGrid(
                             Box(
                                 modifier = Modifier
                                     .padding(style.courseBlockOuterPadding)
+                                    .graphicsLayer {
+                                        val pressScale =
+                                            1f + (cellMotion.tokens.cellPressScale - 1f) * cellPressFraction
+                                        scaleX = pressScale
+                                        scaleY = pressScale
+                                        translationY =
+                                            -cellMotion.tokens.cellLiftDp.toPx() * cellPressFraction +
+                                                cellMotion.tokens.entranceSlideDp.toPx() * (1f - entranceFraction)
+                                        alpha = entranceFraction.coerceIn(0f, 1f)
+                                    }
                                     .zIndex(
                                         when {
                                             isExpanded -> 2f
@@ -277,6 +322,15 @@ fun ScheduleGrid(
                                         if (!isExpanded) {
                                             Modifier.pointerInput(item) {
                                                 detectTapGestures(
+                                                    onPress = {
+                                                        // C+.15 按压反馈的按下/抬起信号源
+                                                        cellPressed = true
+                                                        try {
+                                                            awaitRelease()
+                                                        } finally {
+                                                            cellPressed = false
+                                                        }
+                                                    },
                                                     onTap = { actions.onCourseBlockClicked(item.parentBlock) },
                                                     onLongPress = {
                                                         // crush 课程仅展示，禁止进入编辑态
