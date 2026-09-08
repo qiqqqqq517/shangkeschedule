@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.schedule
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -29,7 +31,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -53,6 +57,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,12 +68,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -105,6 +113,8 @@ import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
@@ -117,6 +127,7 @@ import com.shangkeschedule.ui.theme.liquidGlass
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -227,11 +238,16 @@ fun WeeklyScheduleScreen(
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
-    // 悬浮圆钮与玻璃底栏同步隐藏（同一套下滑手势语义，220ms 时长对齐底栏动画）
+    // 悬浮圆钮与玻璃底栏同步隐藏（同一套下滑手势语义；v3.26.0 起时长/缓动读全局动效令牌，
+    // 与底栏同源同值——关掉「底栏隐藏」分组时两端一起瞬切）
+    val motion = LocalAppMotion.current
     var isNavBarHidden by remember { mutableStateOf(false) }
+    val backToWeekHideSpec = remember(motion) {
+        tween<Float>(durationMillis = motion.tokens.hideDurationMs, easing = motion.tokens.hideEasing)
+    }
     val backToWeekHideFraction by animateFloatAsState(
         targetValue = if (isNavBarHidden) 1f else 0f,
-        animationSpec = tween(durationMillis = 220),
+        animationSpec = backToWeekHideSpec,
         label = "backToCurrentWeekHide"
     )
 
@@ -497,12 +513,14 @@ fun WeeklyScheduleScreen(
                             // 内容穿越形态一致），底部留白改由各页滚动内容内部承担（bottomInset）
                         )
                 ) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 1,
-                        userScrollEnabled = !isGridHolding
-                    ) { pageIndex ->
+                    // v3.26.0 C+.16：切周玻璃滑动过渡层与 Pager 同容器叠放（不拦截触摸）
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1,
+                            userScrollEnabled = !isGridHolding
+                        ) { pageIndex ->
 
                     val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek, today) {
                         val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
@@ -720,11 +738,27 @@ fun WeeklyScheduleScreen(
                     )
                     } // end HorizontalPager page lambda
                     } // end else
+
+                        // C+.16 周切换玻璃滑动过渡：页码落定时一道玻璃光泽斜扫课程区
+                        WeekPagerGlassSheen(pagerState = pagerState, modifier = Modifier.fillMaxSize())
+                    } // end 叠放 Box
                 } // end Column
             } // end Scaffold content
+        } // end 背板内容层（hazeSource）
+
+        // 悬浮玻璃件层：必须与上面的 hazeSource **平级**，不能写成它的子节点。
+        // haze 计算背板区域时会按「area.zIndex < 祖先 source 的 zIndex」过滤：玻璃件若位于
+        // 自身 source 子树内，唯一的背板 area 会被判为不通过（Included=false），于是 blur 与
+        // tint 一并跳过绘制——表现为「底栏雾化、圆钮清晰」，即使 blurRadius 完全相同。
+        // 真机日志实锤：底栏 Included=true / Size(132) 圆钮 Included=false。
+        Box(modifier = Modifier.fillMaxSize()) {
             FloatingCourseBar(
                 floatingCourse = floatingCourse,
                 onCancelClick = { viewModel.exitFloatingMode() },
+                hazeState = hazeState,
+                // 玻璃上的文字/图标跟随页面自定义文字色（壁纸模式下保证可读）
+                contentColor = customTextColor,
+                isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
@@ -817,16 +851,30 @@ private fun BackToCurrentWeekFab(
     modifier: Modifier = Modifier
 ) {
     val hideRangePx = with(LocalDensity.current) { hideRange.toPx() }
+    // v3.26.0 动效收口：出现/消失读全局令牌；关掉「玻璃悬浮件」分组 ⇒ 瞬切
+    val fabMotion = LocalAppMotion.current
+    val glassAnimEnabled = fabMotion.isEnabled(AnimationGroup.GLASS_FLOATING)
     Box(
         modifier = modifier.graphicsLayer {
             translationY = hideFraction * hideRangePx
-            alpha = 1f - hideFraction
+            // 过冲缓动会让 hideFraction 短暂 >1，alpha 必须钳制（负 padding 崩溃同源教训）
+            alpha = (1f - hideFraction).coerceIn(0f, 1f)
         }
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn() + scaleIn(initialScale = 0.8f),
-            exit = fadeOut() + scaleOut(targetScale = 0.8f)
+            enter = if (glassAnimEnabled) {
+                fadeIn(fabMotion.tokens.emphasisFadeSpec) +
+                    scaleIn(fabMotion.tokens.emphasisScaleSpec, initialScale = fabMotion.tokens.emphasisInitialScale)
+            } else {
+                EnterTransition.None
+            },
+            exit = if (glassAnimEnabled) {
+                fadeOut(fabMotion.tokens.emphasisFadeSpec) +
+                    scaleOut(fabMotion.tokens.emphasisScaleSpec, targetScale = fabMotion.tokens.emphasisInitialScale)
+            } else {
+                ExitTransition.None
+            }
         ) {
             val interaction = remember { MutableInteractionSource() }
             val pressedScale = rememberFabPressedScale(interaction)
@@ -837,16 +885,15 @@ private fun BackToCurrentWeekFab(
                         scaleX = pressedScale
                         scaleY = pressedScale
                     }
-                    // 液态玻璃：与玻璃底栏胶囊同源（连续统一的玻璃语言）
+                    // 液态玻璃：与玻璃底栏胶囊同源（连续统一的玻璃语言）。
+                    // v3.24.7：blur 统一取 LiquidGlassBlurRadius，此处不再单独写死。
                     .liquidGlass(
                         hazeState = hazeState,
                         shape = CircleShape,
                         containerColor = appColors().inputBg,
                         // 壁纸模式下玻璃透出壁纸并补一层暗 scrim，保证图标可读
                         isTransparent = hasWallpaper,
-                        shadowElevation = 8.dp,
-                        // 圆钮本身就是「按钮」形态，透明度按 LiquidButton 的取向取值
-                        blurRadius = 4.dp
+                        shadowElevation = 8.dp
                     )
                     .clickable(
                         interactionSource = interaction,
@@ -863,6 +910,70 @@ private fun BackToCurrentWeekFab(
                 )
             }
         }
+    }
+}
+
+/**
+ * v3.26.0 C+.16 周切换玻璃滑动过渡：
+ * 页码落定（ currentPage 变化）时，一道斜向玻璃光泽扫过课程区，
+ * 用「光」而不是位移来强化翻页的方向感——不干扰 Pager 原生手势。
+ *
+ * 规则：
+ * - 仅页码变化触发（首次组合不触发），一次变化只扫一遍；
+ * - 时长/缓动读全局令牌 entranceDurationMs/entranceEasing（随风格变化）；
+ * - 关掉「周翻页」分组或时长为 0 ⇒ 整层不组合，零开销。
+ */
+@Composable
+private fun WeekPagerGlassSheen(
+    pagerState: PagerState,
+    modifier: Modifier = Modifier
+) {
+    val motion = LocalAppMotion.current
+    val enabled = motion.isEnabled(AnimationGroup.WEEK_PAGER) &&
+        motion.tokens.entranceDurationMs > 0
+    if (!enabled) return
+
+    // 首次组合（App 启动落在本周页）不算「切周」，不扫光
+    var hasSettledOnce by rememberSaveable { mutableStateOf(false) }
+    val sheenFraction = remember { Animatable(0f) }
+    var sheenVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (!hasSettledOnce) {
+            hasSettledOnce = true
+            return@LaunchedEffect
+        }
+        sheenVisible = true
+        sheenFraction.snapTo(0f)
+        sheenFraction.animateTo(
+            1f,
+            tween(durationMillis = motion.tokens.entranceDurationMs, easing = motion.tokens.entranceEasing)
+        )
+        sheenVisible = false
+    }
+
+    if (sheenVisible) {
+        val fraction = sheenFraction.value
+        Box(
+            modifier = modifier
+                // 纯绘制层：不消费任何指针事件，手势完全穿透到 Pager / 课程格
+                .drawBehind {
+                    val bandWidth = size.width * 0.45f
+                    val travel = size.width + bandWidth * 2f
+                    val x = -bandWidth + travel * fraction
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.5f to Color.White.copy(alpha = 0.14f),
+                                1f to Color.Transparent
+                            ),
+                            start = Offset(x, 0f),
+                            end = Offset(x + bandWidth, size.height)
+                        )
+                    )
+                }
+        )
     }
 }
 
@@ -890,6 +1001,9 @@ private fun ScheduleListView(
     val orderedDays = (0 until dayCount).map { offset ->
         (firstDay - 1 + offset) % 7 + 1
     }
+    // v3.26.0 C+.17 列表块入场错峰：按「天序 + 天内序」递增延迟
+    // （在 LazyColumn 外读取 LocalAppMotion：LazyListScope 不是 composable 作用域）
+    val listEntranceMotion = LocalAppMotion.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -926,11 +1040,13 @@ private fun ScheduleListView(
                 }
             }
 
-            items(items = dayBlocks, key = { block -> block.hashCode() }) { block ->
+            // v3.26.0 C+.17 列表块入场错峰：按「天序 + 天内序」递增延迟
+            itemsIndexed(items = dayBlocks, key = { _, block -> block.hashCode() }) { blockIdx, block ->
                 ScheduleListViewBlock(
                     block = block,
                     timeSlots = timeSlots,
                     composedStyle = composedStyle,
+                    entranceDelayMs = listEntranceMotion.tokens.entranceStaggerMs * (dayOffset * 3 + blockIdx),
                     onClick = { onClickedBlock(block) },
                     onLongClick = { onLongClickedBlock(block) }
                 )
@@ -945,6 +1061,7 @@ private fun ScheduleListViewBlock(
     block: MergedCourseBlock,
     timeSlots: List<com.shangkeschedule.data.db.main.TimeSlot>,
     composedStyle: ScheduleGridStyleComposed,
+    entranceDelayMs: Int = 0,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -991,11 +1108,37 @@ private fun ScheduleListViewBlock(
         }
     } else Modifier
 
+    // v3.26.0 C+.17 页面入场错峰淡入：rememberSaveable 记住结果——LazyColumn 会回收
+    // 滚出视口的 item，普通 remember 会导致每次滚回来都重播淡入；存入 saveable 后
+    // 滚动往返与页面重进都不重播。关掉「页面入场」分组 ⇒ 直接显示不动画
+    val entranceMotion = LocalAppMotion.current
+    val entranceEnabled = entranceMotion.isEnabled(AnimationGroup.PAGE_ENTRANCE) &&
+        entranceMotion.tokens.entranceDurationMs > 0
+    var entranceEntered by rememberSaveable { mutableStateOf(!entranceEnabled) }
+    LaunchedEffect(Unit) {
+        if (!entranceEntered) {
+            delay(entranceDelayMs.toLong())
+            entranceEntered = true
+        }
+    }
+    val entranceFraction by animateFloatAsState(
+        targetValue = if (entranceEntered) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = entranceMotion.tokens.entranceDurationMs,
+            easing = entranceMotion.tokens.entranceEasing
+        ),
+        label = "listBlockEntrance"
+    )
+    val entranceSlidePx = with(LocalDensity.current) { entranceMotion.tokens.entranceSlideDp.toPx() }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .then(shadowModifier)
-            .graphicsLayer(alpha = demotedAlpha)
+            .graphicsLayer {
+                alpha = (demotedAlpha * entranceFraction).coerceIn(0f, 1f)
+                translationY = entranceSlidePx * (1f - entranceFraction)
+            }
             .clip(shape)
             .background(color = bg)
             .then(stripDrawModifier)

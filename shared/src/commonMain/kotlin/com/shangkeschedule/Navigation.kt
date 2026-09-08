@@ -47,6 +47,16 @@ sealed interface Destination : NavKey {
     @Serializable data object QuickDelete : Destination
     @Serializable data object CourseManagementList : Destination
     @Serializable data object AppearanceSettings : Destination
+    /** 外观与样式二级页：主题（主题风格/深色模式/动态取色/自定义主色） */
+    @Serializable data object ThemeSettings : Destination
+    /** 外观与样式二级页：自定义课表页（壁纸/样式预览/功能色） */
+    @Serializable data object ScheduleStyleSettings : Destination
+    /** 外观与样式二级页：个性化显示（v3.25.0 起为两卡 hub：玻璃模糊 / 动画效果） */
+    @Serializable data object PersonalizedDisplay : Destination
+    /** 个性化显示三级页：玻璃模糊强度（v3.26.0 自 hub 拆出） */
+    @Serializable data object GlassBlurSettings : Destination
+    /** 个性化显示三级页：动画效果（三风格 + 六分组开关，v3.26.0 新增） */
+    @Serializable data object AnimationSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
 
@@ -115,6 +125,11 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.QuickDelete::class)
         subclass(Destination.CourseManagementList::class)
         subclass(Destination.AppearanceSettings::class)
+        subclass(Destination.ThemeSettings::class)
+        subclass(Destination.ScheduleStyleSettings::class)
+        subclass(Destination.PersonalizedDisplay::class)
+        subclass(Destination.GlassBlurSettings::class)
+        subclass(Destination.AnimationSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
 

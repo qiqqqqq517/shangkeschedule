@@ -58,8 +58,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
 import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.AppColorTokens
@@ -221,11 +223,16 @@ fun AppHeroMotif(
     blockWidth: Dp = 64.dp
 ) {
     val pulseAlpha: Float = if (pulse) {
+        // v3.26.0 动效收口：呼吸节奏读全局令牌（pulseDurationMs），随动画风格变化
+        val motion = LocalAppMotion.current
         val infinite = rememberInfiniteTransition(label = "appHeroMotif")
         infinite.animateFloat(
             initialValue = 0.55f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(durationMillis = 1000), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(
+                tween(durationMillis = motion.tokens.pulseDurationMs),
+                RepeatMode.Reverse
+            ),
             label = "motifPulse"
         ).value
     } else {
@@ -461,12 +468,20 @@ fun AppSegmentedControl(
 
 /**
  * FAB 按压缩放反馈（v2 规范 §4.1：按压缩放 + 大投影）。
+ * v3.26.0 动效收口：按压幅度/弹簧手感读全局动效令牌（pressScale + pressSpec）；
+ * 关掉「玻璃悬浮件」分组 ⇒ pressScale=1 + snap，按压不再缩放。
  * 返回按下状态对应的缩放值，供 graphicsLayer 使用。
  */
 @Composable
 fun rememberFabPressedScale(interactionSource: MutableInteractionSource): Float {
+    val motion = LocalAppMotion.current
     val pressed by interactionSource.collectIsPressedAsState()
-    return if (pressed) 0.92f else 1f
+    val target = if (pressed) motion.tokens.pressScale else 1f
+    return animateFloatAsState(
+        targetValue = target,
+        animationSpec = motion.tokens.pressSpec,
+        label = "fabPressScale"
+    ).value
 }
 
 /**

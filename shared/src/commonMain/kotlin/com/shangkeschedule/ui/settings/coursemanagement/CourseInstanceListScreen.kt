@@ -68,6 +68,8 @@ import shangkeschedule.shared.generated.resources.label_weeks_format
 import shangkeschedule.shared.generated.resources.menu_open_24px
 import shangkeschedule.shared.generated.resources.title_selected_items_count
 import shangkeschedule.shared.generated.resources.week_days_full_names
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * 二级页面：展示特定课程名称下的所有实例，使用两列网格 (Detail View)。
@@ -92,6 +94,8 @@ fun CourseInstanceListScreen(
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedCourseIds by viewModel.selectedCourseIds.collectAsState()
     val scope = rememberCoroutineScope()
+    // 液态玻璃 FAB 背板采样：内容 hazeSource，FAB 玻璃模糊其背后的网格
+    val hazeState = rememberHazeState()
     // 批量删除二次确认（删除不可撤销）
     var pendingDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -164,14 +168,15 @@ fun CourseInstanceListScreen(
                 AppFab(
                     onClick = onNavigateToAddNewCourse,
                     icon = vectorResource(Res.drawable.add_24px),
-                    contentDescription = stringResource(Res.string.action_add)
+                    contentDescription = stringResource(Res.string.action_add),
+                    hazeState = hazeState
                 )
             }
         }
     ) { paddingValues ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).hazeSource(hazeState),
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
