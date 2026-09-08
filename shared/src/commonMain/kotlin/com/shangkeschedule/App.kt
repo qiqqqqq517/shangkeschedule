@@ -68,7 +68,14 @@ import com.shangkeschedule.ui.settings.notification.NotificationSettingsScreen
 import com.shangkeschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.shangkeschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
 import com.shangkeschedule.ui.settings.appearance.AppearanceSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.ThemeSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.ScheduleStyleSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.PersonalizedDisplayScreen
+import com.shangkeschedule.ui.settings.appearance.GlassBlurScreen
+import com.shangkeschedule.ui.settings.appearance.AnimationSettingsScreen
 import com.shangkeschedule.ui.settings.time.TimeSlotManagementScreen
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.ShangKeScheduleTheme
 import com.shangkeschedule.ui.today.TodayScheduleScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -132,7 +139,13 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
 
-    val animSpec = remember { tween<IntOffset>(300) }
+    // v3.26.0 动效收口：导航转场时长/缓动读全局动效令牌（LocalAppMotion），
+    // 关掉「导航转场」分组 ⇒ 直接瞬切（无转场动画）。
+    val motion = LocalAppMotion.current
+    val animSpec = remember(motion) {
+        tween<IntOffset>(motion.tokens.navDurationMs, easing = motion.tokens.navEasing)
+    }
+    val navAnimEnabled = motion.isEnabled(AnimationGroup.NAV_TRANSITION)
 
     NavDisplay(
         backStack = backStack,
@@ -141,7 +154,7 @@ fun AppNavigation(startDestination: Destination) {
             val fromMain = initialState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
             val toMain = targetState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
 
-            if (fromMain && toMain) {
+            if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
                 slideInHorizontally(initialOffsetX = { it }, animationSpec = animSpec) togetherWith
@@ -152,7 +165,7 @@ fun AppNavigation(startDestination: Destination) {
             val fromMain = initialState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
             val toMain = targetState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
 
-            if (fromMain && toMain) {
+            if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
                 slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
@@ -160,8 +173,13 @@ fun AppNavigation(startDestination: Destination) {
             }
         },
         predictivePopTransitionSpec = {
-            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+            // 与 popTransitionSpec 同口径：关掉「导航转场」分组 ⇒ 预测性返回也瞬切
+            if (!navAnimEnabled) {
+                EnterTransition.None togetherWith ExitTransition.None
+            } else {
+                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
+                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+            }
         },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
@@ -223,7 +241,12 @@ fun ScreenContent(
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
-        Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack)
+        Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack, onNavigate)
+        Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
+        Destination.ScheduleStyleSettings -> ScheduleStyleSettingsScreen(onBack)
+        Destination.PersonalizedDisplay -> PersonalizedDisplayScreen(onBack, onNavigate)
+        Destination.GlassBlurSettings -> GlassBlurScreen(onBack)
+        Destination.AnimationSettings -> AnimationSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)

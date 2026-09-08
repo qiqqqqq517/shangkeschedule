@@ -24,6 +24,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import dev.chrisbanes.haze.hazeEffect
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.liquidGlass
 
 /**
  * 基线补充组件（UI 一致性收敛件，v2 风格规范 §3/§4）：
@@ -111,39 +113,75 @@ fun AppLoading(modifier: Modifier = Modifier) {
 }
 
 /**
- * 统一 FAB：56dp 圆形、主色、大投影 + 按压缩放（Telegram 形态，v2 规范 §4.1）。
+ * 统一 FAB：56dp 圆形、大投影 + 按压缩放（Telegram 形态，v2 规范 §4.1）。
  * 替代各页面 M3 默认 FAB 与 Today 页内联实现。
+ *
+ * v3.23.5 起支持液态玻璃形态：传入 [hazeState]（页面内容需以 hazeSource 标记）时，
+ * FAB 渲染为玻璃圆钮（与「回到本周」圆钮同源玻璃语言，主色图标）；不传则保持原主色实心。
  */
 @Composable
 fun AppFab(
     onClick: () -> Unit,
     icon: ImageVector,
     contentDescription: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
     val scale = rememberFabPressedScale(interaction)
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = modifier
-            .size(AppSpacing.fab)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        shape = CircleShape,
-        containerColor = appColors().primary,
-        contentColor = Color.White,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = 6.dp,
-            pressedElevation = 10.dp
-        ),
-        interactionSource = interaction
-    ) {
-        androidx.compose.material3.Icon(
-            imageVector = icon,
-            contentDescription = contentDescription
-        )
+    if (hazeState == null) {
+        // 无 hazeState 的页面：保持原主色实心 FAB（向下兼容）
+        FloatingActionButton(
+            onClick = onClick,
+            modifier = modifier
+                .size(AppSpacing.fab)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+            shape = CircleShape,
+            containerColor = appColors().primary,
+            contentColor = Color.White,
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 10.dp
+            ),
+            interactionSource = interaction
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = contentDescription
+            )
+        }
+    } else {
+        // 液态玻璃圆钮：表面极淡 + 轻模糊 + 边缘光学，主色图标保持视觉锚点
+        Box(
+            modifier = modifier
+                .size(AppSpacing.fab)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .liquidGlass(
+                    hazeState = hazeState,
+                    shape = CircleShape,
+                    containerColor = appColors().inputBg,
+                    shadowElevation = 8.dp
+                    // v3.24.7：blur 统一取 LiquidGlassBlurRadius（不再单独传 4.dp）
+                )
+                .clickable(
+                    interactionSource = interaction,
+                    indication = ripple(bounded = true),
+                    onClick = onClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = appColors().primary
+            )
+        }
     }
 }
 

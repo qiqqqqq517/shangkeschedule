@@ -163,7 +163,13 @@ object CourseImportExport {
         val coupleScheduleEnabled: Boolean = false,
         val selfCourseColorIndex: Int = 5,
         val crushCourseColorIndex: Int = 1,
-        val scheduleViewMode: String = "WEEK"
+        val scheduleViewMode: String = "WEEK",
+        /** 液态玻璃模糊半径（dp），0 = 关闭模糊；v3.25.0 新增 */
+        val glassBlurRadiusDp: Float = 4f,
+        /** 全局动画风格名（GLASS/GENTLE/SNAPPY）；v3.26.0 新增 */
+        val animationStyle: String = "GLASS",
+        /** 已关闭的动画分组名集合；v3.26.0 新增 */
+        val disabledAnimationGroups: Set<String> = emptySet()
     )
 
 }

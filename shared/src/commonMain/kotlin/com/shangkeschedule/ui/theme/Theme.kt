@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 import com.shangkeschedule.ui.theme.LocalAppColorTokens
@@ -54,7 +55,12 @@ fun ShangKeScheduleTheme(
 
     CompositionLocalProvider(
         LocalIsDarkTheme provides darkTheme,
-        LocalThemePreset provides settings.themePreset
+        LocalThemePreset provides settings.themePreset,
+        // 玻璃雾度全局注入：用户在「个性化显示」里设定的一个值，喂给所有悬浮玻璃件
+        LocalGlassBlurRadius provides settings.glassBlurRadiusDp.dp,
+        // 动效全局注入（v3.26.0）：用户在「个性化显示 → 动画效果」里选的风格 + 分组开关，
+        // 解析成一套令牌喂给全 App 动画；改一次全端同步，不再各处写死时长
+        LocalAppMotion provides resolveMotion(settings.animationStyle, settings.disabledAnimationGroups)
     ) {
         ShangKeScheduleTheme(
             darkTheme = darkTheme,

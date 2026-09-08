@@ -1,0 +1,361 @@
+package com.shangkeschedule.ui.settings.appearance
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.settings.style.StyleSliderItem
+import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.LiquidGlassBlurRadius
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.liquidGlass
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+import org.koin.compose.viewmodel.koinViewModel
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.account_circle_24px
+import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.class_24px
+import shangkeschedule.shared.generated.resources.desc_glass_blur
+import shangkeschedule.shared.generated.resources.glass_preset_heavy
+import shangkeschedule.shared.generated.resources.glass_preset_light
+import shangkeschedule.shared.generated.resources.glass_preset_off
+import shangkeschedule.shared.generated.resources.glass_preset_standard
+import shangkeschedule.shared.generated.resources.glass_section_desc
+import shangkeschedule.shared.generated.resources.glass_section_title
+import shangkeschedule.shared.generated.resources.label_glass_blur
+import shangkeschedule.shared.generated.resources.nav_course_schedule
+import shangkeschedule.shared.generated.resources.nav_settings
+import shangkeschedule.shared.generated.resources.nav_today_schedule
+import shangkeschedule.shared.generated.resources.style_demo_conflict_a
+import shangkeschedule.shared.generated.resources.style_demo_conflict_b
+import shangkeschedule.shared.generated.resources.style_demo_position
+import shangkeschedule.shared.generated.resources.style_demo_regular_course
+import shangkeschedule.shared.generated.resources.style_demo_teacher
+import shangkeschedule.shared.generated.resources.view_agenda_24px
+import shangkeschedule.shared.generated.resources.view_week_24px
+
+/**
+ * 「个性化显示 → 玻璃模糊」三级页（v3.26.0 自 PersonalizedDisplayScreen 拆出）。
+ *
+ * 承载全局液态玻璃的雾度调节：预览 + 滑杆 + 常用档位。内容与 v3.25.0 完全一致，
+ * 只是随着「个性化显示」升级为两卡 hub（玻璃模糊 / 动画效果）而下移一级。
+ *
+ * 值经 `AppSettingsModel.glassBlurRadiusDp` → `LocalGlassBlurRadius` 注入，所有玻璃件
+ * 共读一个 Local：调一次全端同步，不会再出现各件各值的历史问题（v3.24.7 收口）。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GlassBlurScreen(
+    onBack: () -> Unit,
+    settingsViewModel: SettingsViewModel = koinViewModel()
+) {
+    val uiState by settingsViewModel.uiState.collectAsState()
+    val blurDp = uiState.appSettings.glassBlurRadiusDp
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.glass_section_title),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            vectorResource(Res.drawable.arrow_back_24px),
+                            contentDescription = stringResource(Res.string.a11y_back)
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(AppSpacing.pageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)
+        ) {
+            Text(
+                text = stringResource(Res.string.glass_section_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
+            // 实时预览：底栏胶囊 + 圆钮压在模拟课程格上，改档位立刻看得到雾度
+            GlassBlurPreview()
+
+            StyleSliderItem(
+                label = stringResource(Res.string.label_glass_blur),
+                value = blurDp,
+                range = 0f..12f,
+                stepValue = 0.5f
+            ) { settingsViewModel.onGlassBlurRadiusChanged(it) }
+
+            // 常用档位：关闭 / 清澈 / 标准(默认) / 磨砂
+            GlassPresetRow(
+                currentDp = blurDp,
+                onSelect = { settingsViewModel.onGlassBlurRadiusChanged(it) }
+            )
+
+            Text(
+                text = stringResource(Res.string.desc_glass_blur),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        }
+    }
+}
+
+/**
+ * 玻璃实时预览：模拟课程格做背板，上面压一颗胶囊与一个圆钮。
+ *
+ * ⚠️ 拓扑必须与真机一致（v3.24.7 教训）：`hazeSource` 只包背板内容，玻璃件放**平级兄弟层**。
+ * 玻璃件若写进同一个 hazeSource 的子树，haze 会按「area.zIndex < 祖先 source.zIndex」
+ * 把唯一的背板 area 过滤掉，玻璃件不采样、不模糊——预览就会永远"看不出差别"。
+ *
+ * 两件玻璃都**不传 blurRadius**，与真机一样走 `liquidGlass` 默认值 →
+ * `LocalGlassBlurRadius`（由用户的设置注入），所以预览就是真机观感，不是第二套近似值。
+ */
+@Composable
+private fun GlassBlurPreview() {
+    val tokens = appColors()
+    val hazeState = rememberHazeState()
+
+    Surface(
+        shape = AppShape.card,
+        color = tokens.pageBg,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(168.dp)
+        ) {
+            // 1) 背板内容层：玻璃要糊的就是它
+            Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val demoBlocks = listOf(
+                        Triple(
+                            stringResource(Res.string.style_demo_regular_course),
+                            stringResource(Res.string.style_demo_teacher),
+                            tokens.tone(AccentTone.INFO)
+                        ),
+                        Triple(
+                            stringResource(Res.string.style_demo_conflict_a),
+                            stringResource(Res.string.style_demo_position),
+                            tokens.tone(AccentTone.AMBER)
+                        ),
+                        Triple(
+                            stringResource(Res.string.style_demo_conflict_b),
+                            stringResource(Res.string.style_demo_teacher),
+                            tokens.tone(AccentTone.SUCCESS)
+                        )
+                    )
+                    demoBlocks.forEach { (title, sub, semantic) ->
+                        DemoCourseBlock(title = title, subtitle = sub, bg = semantic.bg, fg = semantic.fg)
+                    }
+                }
+            }
+
+            // 2) 玻璃胶囊（模拟底栏）——与背板平级
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .liquidGlass(
+                        hazeState = hazeState,
+                        shape = AppShape.capsule,
+                        containerColor = tokens.inputBg,
+                        shadowElevation = 10.dp
+                    )
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                DemoNavItem(
+                    icon = vectorResource(Res.drawable.view_agenda_24px),
+                    label = stringResource(Res.string.nav_today_schedule),
+                    selected = false
+                )
+                DemoNavItem(
+                    icon = vectorResource(Res.drawable.view_week_24px),
+                    label = stringResource(Res.string.nav_course_schedule),
+                    selected = true
+                )
+                DemoNavItem(
+                    icon = vectorResource(Res.drawable.account_circle_24px),
+                    label = stringResource(Res.string.nav_settings),
+                    selected = false
+                )
+            }
+
+            // 3) 玻璃圆钮（模拟回到本周）——同参数不同尺寸，用来核对大小件雾度是否一致
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(14.dp)
+                    .size(44.dp)
+                    .liquidGlass(
+                        hazeState = hazeState,
+                        shape = CircleShape,
+                        containerColor = tokens.inputBg,
+                        shadowElevation = 6.dp
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    vectorResource(Res.drawable.class_24px),
+                    contentDescription = null,
+                    tint = tokens.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DemoCourseBlock(title: String, subtitle: String, bg: Color, fg: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = fg,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.labelSmall,
+            color = fg.copy(alpha = 0.8f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun DemoNavItem(icon: ImageVector, label: String, selected: Boolean) {
+    val tokens = appColors()
+    Row(
+        modifier = Modifier
+            .clip(AppShape.capsule)
+            .background(if (selected) tokens.navSelectedBg else Color.Transparent)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (selected) tokens.textPrimary else tokens.textSecondary,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) tokens.textPrimary else tokens.textSecondary
+        )
+    }
+}
+
+/**
+ * 常用档位。`标准` 即默认值 [LiquidGlassBlurRadius]；`0` 关闭模糊（只留表面 tint 与边缘光学）。
+ * 注意 haze 在 blurRadius ≥ 7dp 时会把输入降到 0.3334 倍再模糊（见 calculateInputScaleFactor），
+ * 所以 8dp 的"磨砂"比 4dp 明显更软，不是线性加倍。
+ */
+@Composable
+private fun GlassPresetRow(currentDp: Float, onSelect: (Float) -> Unit) {
+    val presets = listOf(
+        0f to stringResource(Res.string.glass_preset_off),
+        2f to stringResource(Res.string.glass_preset_light),
+        LiquidGlassBlurRadius.value to stringResource(Res.string.glass_preset_standard),
+        8f to stringResource(Res.string.glass_preset_heavy)
+    )
+    val selectedColor = MaterialTheme.colorScheme.primary
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        presets.forEach { (dpValue, label) ->
+            val selected = kotlin.math.abs(currentDp - dpValue) < 0.01f
+            Surface(
+                onClick = { onSelect(dpValue) },
+                shape = AppShape.capsule,
+                color = if (selected) selectedColor.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = if (selected) BorderStroke(1.dp, selectedColor.copy(alpha = 0.35f)) else null
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                )
+            }
+        }
+    }
+}

@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings.additional
 
 import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -58,11 +60,12 @@ fun DynamicAppIconHeader(
 ) {
     var clickCount by remember { mutableIntStateOf(0) }
 
-    // 背景色过渡动画
+    // 背景色过渡动画（v3.26.0 动效收口：时长读全局令牌 colorDurationMs）
     val targetColor = if (isDeveloperModeEnabled) DeveloperIconBgColor else NormalIconBgColor
+    val motion = LocalAppMotion.current
     val animatedBgColor by animateColorAsState(
         targetValue = targetColor,
-        animationSpec = tween(durationMillis = 400)
+        animationSpec = tween(durationMillis = motion.tokens.colorDurationMs)
     )
 
     Box(
@@ -102,10 +105,18 @@ fun DeveloperModeSettingItem(
     onDeveloperModeChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // v3.26.0 动效收口：展开/收起时长与缓动读全局令牌 expandDurationMs/expandEasing
+    val itemMotion = LocalAppMotion.current
+    val expandFadeSpec = remember(itemMotion) {
+        tween<Float>(durationMillis = itemMotion.tokens.expandDurationMs, easing = itemMotion.tokens.expandEasing)
+    }
+    val expandSizeSpec = remember(itemMotion) {
+        tween<IntSize>(durationMillis = itemMotion.tokens.expandDurationMs, easing = itemMotion.tokens.expandEasing)
+    }
     AnimatedVisibility(
         visible = isDeveloperModeEnabled,
-        enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-        exit = fadeOut(tween(300)) + shrinkVertically(tween(300)),
+        enter = fadeIn(expandFadeSpec) + expandVertically(expandSizeSpec),
+        exit = fadeOut(expandFadeSpec) + shrinkVertically(expandSizeSpec),
         modifier = modifier
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

@@ -89,6 +89,8 @@ import shangkeschedule.shared.generated.resources.swap_horiz_24px
 import shangkeschedule.shared.generated.resources.menu_open_24px
 import shangkeschedule.shared.generated.resources.text_no_unique_courses_hint
 import shangkeschedule.shared.generated.resources.title_selected_items_count
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * 一级页面：展示所有不重复的课程名称列表 (Master View)。
@@ -103,6 +105,8 @@ fun CourseNameListScreen(
 ) {
     val uniqueCourseNames by viewModel.uniqueCourseNames.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    // 液态玻璃 FAB 背板采样：内容 hazeSource，FAB 玻璃模糊其背后的列表
+    val hazeState = rememberHazeState()
 
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedCourseNames = remember { mutableStateListOf<String>() }
@@ -228,12 +232,13 @@ fun CourseNameListScreen(
                         }
                     },
                     icon = vectorResource(Res.drawable.add_24px),
-                    contentDescription = stringResource(Res.string.action_add)
+                    contentDescription = stringResource(Res.string.action_add),
+                    hazeState = hazeState
                 )
             }
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).hazeSource(hazeState)) {
             QuickActionsSection(
                 modifier = Modifier.fillMaxWidth(),
                 onNavigate = onNavigate
