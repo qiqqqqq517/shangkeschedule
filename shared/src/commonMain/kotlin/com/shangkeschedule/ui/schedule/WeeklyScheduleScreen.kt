@@ -1,5 +1,10 @@
 package com.shangkeschedule.ui.schedule
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,34 +15,45 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ripple
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -56,6 +72,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
@@ -77,6 +94,7 @@ import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.TelegramMenu
 import com.shangkeschedule.ui.components.TelegramMenuDivider
 import com.shangkeschedule.ui.components.TelegramMenuItem
+import com.shangkeschedule.ui.components.rememberFabPressedScale
 import com.shangkeschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.shangkeschedule.ui.schedule.components.FloatingCourseBar
 import com.shangkeschedule.ui.schedule.components.ScheduleGrid
@@ -88,12 +106,15 @@ import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.TimetableDefaults
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.liquidGlass
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -110,8 +131,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_back_to_current_week
 import shangkeschedule.shared.generated.resources.action_select_table
 import shangkeschedule.shared.generated.resources.arrow_drop_down_24px
+import shangkeschedule.shared.generated.resources.calendar_today_24px
 import shangkeschedule.shared.generated.resources.format_week_display
 import shangkeschedule.shared.generated.resources.label_view_mode_list
 import shangkeschedule.shared.generated.resources.label_view_mode_week
@@ -204,9 +227,39 @@ fun WeeklyScheduleScreen(
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
+    // 悬浮圆钮与玻璃底栏同步隐藏（同一套下滑手势语义，220ms 时长对齐底栏动画）
+    var isNavBarHidden by remember { mutableStateOf(false) }
+    val backToWeekHideFraction by animateFloatAsState(
+        targetValue = if (isNavBarHidden) 1f else 0f,
+        animationSpec = tween(durationMillis = 220),
+        label = "backToCurrentWeekHide"
+    )
+
+    // 圆钮停靠位：紧贴玻璃底栏容器上沿之上（语义与 AdaptiveNavigationScaffold 的
+    // barInsetBottom 一致：胶囊高 touchMin+14 + 上下 navBarBottom + 系统手势区）；
+    val density = LocalDensity.current
+    // 宽屏 Rail 形态无底部胶囊栏，直接贴屏幕右下，无需顶起预留高度。
+    val isRailLayout = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
+        currentWindowAdaptiveInfo()
+    ) == NavigationSuiteType.NavigationRail
+    val navBarReserve = if (isRailLayout) {
+        0.dp
+    } else {
+        AppSpacing.touchMin + 14.dp + AppSpacing.navBarBottom * 2 +
+            (WindowInsets.navigationBars.getBottom(density) / density.density).dp
+    }
+
     val composedStyle = uiState.style
 
     val floatingCourse = uiState.floatingCourse
+
+    // 「回到本周」判定：无限分页以 INFINITE_PAGER_CENTER 承载「本周」，
+    // 因此页码离开中心页即代表用户已滑到非本周课程（拖动过程中即时显隐）。
+    // 课程挂起态（floatingCourse）下让位给 FloatingCourseBar，不显示圆钮。
+    val isOnCurrentWeekPage by remember {
+        derivedStateOf { pagerState.currentPage == INFINITE_PAGER_CENTER }
+    }
+    val showBackToCurrentWeek = floatingCourse == null && !isOnCurrentWeekPage
 
     // 悬浮面板玻璃：主内容 hazeSource（含壁纸），周选择面板背板模糊
     val hazeState = rememberHazeState()
@@ -259,6 +312,7 @@ fun WeeklyScheduleScreen(
         showNavigation = floatingCourse == null,
         isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
         contentColor = customTextColor,
+        onNavBarHiddenChange = { hidden -> isNavBarHidden = hidden },
         // P2-6 去除独立的 navigationModifier 滚动隐藏：AdaptiveNavigationScaffold 已内置
         // 统一的滚动隐藏连接（下滑累积隐藏 / 上滑 / 切 Tab / 顶部动画恢复），
         // 此处再叠加 collapseFraction 平移+alpha 会和内置隐藏产生双重位移/淡出叠加。
@@ -675,6 +729,24 @@ fun WeeklyScheduleScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
             )
+            BackToCurrentWeekFab(
+                visible = showBackToCurrentWeek,
+                hideFraction = backToWeekHideFraction,
+                hideRange = navBarReserve + AppSpacing.cardGap + AppSpacing.touchMin,
+                hazeState = hazeState,
+                hasWallpaper = composedStyle.backgroundImagePath.isNotEmpty(),
+                onClick = {
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(INFINITE_PAGER_CENTER)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = AppSpacing.navBarHorizontal,
+                        bottom = navBarReserve + AppSpacing.cardGap
+                    )
+            )
         }
     }
 
@@ -725,6 +797,74 @@ fun WeeklyScheduleScreen(
     }
 }
 
+
+/**
+ * 「回到本周」悬浮圆钮：仅在用户滑动到非本周课程时出现（右下角小圆圈），
+ * 点击回到本周所处页。
+ *
+ * 隐藏行为与玻璃底栏一致：[hideFraction] 由 AdaptiveNavigationScaffold 的滚动隐藏
+ * 状态驱动，圆钮随之下沉 + 淡出：[hideRange] 覆盖「底栏预留高度 + 自身高度」，
+ * 保证隐藏动画结束时完全移出屏幕，不会残留半截圆钮。
+ */
+@Composable
+private fun BackToCurrentWeekFab(
+    visible: Boolean,
+    hideFraction: Float,
+    hideRange: Dp,
+    hazeState: HazeState,
+    hasWallpaper: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hideRangePx = with(LocalDensity.current) { hideRange.toPx() }
+    Box(
+        modifier = modifier.graphicsLayer {
+            translationY = hideFraction * hideRangePx
+            alpha = 1f - hideFraction
+        }
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn() + scaleIn(initialScale = 0.8f),
+            exit = fadeOut() + scaleOut(targetScale = 0.8f)
+        ) {
+            val interaction = remember { MutableInteractionSource() }
+            val pressedScale = rememberFabPressedScale(interaction)
+            Box(
+                modifier = Modifier
+                    .size(AppSpacing.touchMin)
+                    .graphicsLayer {
+                        scaleX = pressedScale
+                        scaleY = pressedScale
+                    }
+                    // 液态玻璃：与玻璃底栏胶囊同源（连续统一的玻璃语言）
+                    .liquidGlass(
+                        hazeState = hazeState,
+                        shape = CircleShape,
+                        containerColor = appColors().inputBg,
+                        // 壁纸模式下玻璃透出壁纸并补一层暗 scrim，保证图标可读
+                        isTransparent = hasWallpaper,
+                        shadowElevation = 8.dp,
+                        // 圆钮本身就是「按钮」形态，透明度按 LiquidButton 的取向取值
+                        blurRadius = 4.dp
+                    )
+                    .clickable(
+                        interactionSource = interaction,
+                        indication = ripple(bounded = true),
+                        onClick = onClick
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.calendar_today_24px),
+                    contentDescription = stringResource(Res.string.a11y_back_to_current_week),
+                    tint = appColors().primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
 
 /**
  * 参考 sleepy 的列表视图：按天分组展示本周课程。
