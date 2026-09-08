@@ -78,6 +78,8 @@ import shangkeschedule.shared.generated.resources.toast_edit_table_success
 import shangkeschedule.shared.generated.resources.toast_name_empty
 import shangkeschedule.shared.generated.resources.toast_switch_table_success
 import kotlin.time.Instant
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +89,9 @@ fun ManageCourseTablesScreen(
     viewModel: ManageCourseTablesViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // 液态玻璃 FAB 背板采样：内容 hazeSource，FAB 玻璃模糊其背后的列表
+    val hazeState = rememberHazeState()
 
     // --- 对话框状态管理 ---
     var showAddTableDialog by remember { mutableStateOf(false) }
@@ -132,7 +137,8 @@ fun ManageCourseTablesScreen(
             AppFab(
                 onClick = { showAddTableDialog = true },
                 icon = vectorResource(Res.drawable.add_24px),
-                contentDescription = a11yAddNewTable
+                contentDescription = a11yAddNewTable,
+                hazeState = hazeState
             )
         }
     ) { innerPadding ->

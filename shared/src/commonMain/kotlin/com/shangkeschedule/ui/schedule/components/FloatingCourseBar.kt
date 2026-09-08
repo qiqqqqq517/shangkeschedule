@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -21,11 +23,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.liquidGlass
+import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -34,24 +42,51 @@ import shangkeschedule.shared.generated.resources.archive_24px
 import shangkeschedule.shared.generated.resources.close_24px
 import shangkeschedule.shared.generated.resources.floating_course_hint
 
+/**
+ * 课程挂起悬浮条（左下角胶囊）。
+ *
+ * v3.23.5 起改为液态玻璃形态（与玻璃底栏 /「回到本周」圆钮同源玻璃语言）：
+ * 表面极淡 + 轻模糊 + 边缘光学，底层课表内容可透出。
+ * [contentColor] 由调用方传入（跟随页面自定义文字色/壁纸模式），保证玻璃上图标可读。
+ */
 @Composable
 fun FloatingCourseBar(
     floatingCourse: CourseWithWeeks?,
     onCancelClick: () -> Unit,
+    hazeState: HazeState,
+    contentColor: Color,
+    isTransparent: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    // v3.26.0 动效收口：出现/消失读全局动效令牌；关掉「玻璃悬浮件」分组 ⇒ 瞬切无动画
+    val motion = LocalAppMotion.current
+    val glassAnimEnabled = motion.isEnabled(AnimationGroup.GLASS_FLOATING)
     AnimatedVisibility(
         visible = floatingCourse != null,
-        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-        exit = fadeOut() + scaleOut(targetScale = 0.8f),
+        enter = if (glassAnimEnabled) {
+            fadeIn(motion.tokens.emphasisFadeSpec) +
+                scaleIn(motion.tokens.emphasisScaleSpec, initialScale = motion.tokens.emphasisInitialScale)
+        } else {
+            EnterTransition.None
+        },
+        exit = if (glassAnimEnabled) {
+            fadeOut(motion.tokens.emphasisFadeSpec) +
+                scaleOut(motion.tokens.emphasisScaleSpec, targetScale = motion.tokens.emphasisInitialScale)
+        } else {
+            ExitTransition.None
+        },
         modifier = modifier.zIndex(10f)
     ) {
         floatingCourse?.let { cw ->
             Row(
                 modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = CircleShape
+                    // 液态玻璃胶囊：与底栏同源修饰符（shadow → clip → haze → 高光 → 亮边）
+                    .liquidGlass(
+                        hazeState = hazeState,
+                        shape = CircleShape,
+                        containerColor = appColors().inputBg,
+                        isTransparent = isTransparent,
+                        shadowElevation = 10.dp
                     )
                     .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -59,7 +94,7 @@ fun FloatingCourseBar(
                 Icon(
                     imageVector = vectorResource(Res.drawable.archive_24px),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = contentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -67,14 +102,14 @@ fun FloatingCourseBar(
                     Text(
                         text = cw.course.name,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = contentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = stringResource(Res.string.floating_course_hint),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        color = contentColor.copy(alpha = 0.8f)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -83,14 +118,14 @@ fun FloatingCourseBar(
                     modifier = Modifier
                         .size(36.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f),
+                            color = contentColor.copy(alpha = 0.12f),
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.close_24px),
                         contentDescription = stringResource(Res.string.action_cancel),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = contentColor,
                         modifier = Modifier.size(16.dp)
                     )
                 }

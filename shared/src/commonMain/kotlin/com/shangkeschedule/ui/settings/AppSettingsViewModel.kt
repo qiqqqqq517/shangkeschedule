@@ -12,6 +12,8 @@ import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -203,6 +205,36 @@ class SettingsViewModel(
         viewModelScope.launch {
             appSettingsRepository.updateThemePreset(preset)
             styleSettingsRepository.applyStylePreset(preset.gridStyle)
+        }
+    }
+
+    /**
+     * 液态玻璃模糊半径（v3.25.0「个性化显示」）：单位 dp，0f = 关闭模糊。
+     * 一处设置同时作用于底栏胶囊 / 回到本周圆钮 / 课程挂起条 / 玻璃 AppFab——
+     * 它们都读同一个 LocalGlassBlurRadius，不存在各件分叉。
+     */
+    fun onGlassBlurRadiusChanged(radiusDp: Float) {
+        viewModelScope.launch {
+            appSettingsRepository.updateGlassBlurRadius(radiusDp)
+        }
+    }
+
+    /**
+     * 全局动画风格（v3.26.0「个性化显示 → 动画效果」）。
+     * 一处设置经 LocalAppMotion 注入，全 App 动画手感同步切换。
+     */
+    fun onAnimationStyleChanged(style: AnimationStyle) {
+        viewModelScope.launch {
+            appSettingsRepository.updateAnimationStyle(style)
+        }
+    }
+
+    /**
+     * 开/关某个动画分组（v3.26.0）。enabled=false ⇒ 该类动画瞬切无动效。
+     */
+    fun onToggleAnimationGroup(group: AnimationGroup, enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setAnimationGroupEnabled(group, enabled)
         }
     }
 

@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.today
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
@@ -44,10 +45,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
@@ -85,6 +91,8 @@ import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.AppType
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.TimetableDefaults
@@ -160,7 +168,12 @@ fun TodayScheduleScreen(
     // 悬浮面板玻璃：主内容 hazeSource，底部弹窗背板模糊
     val hazeState = rememberHazeState()
 
-    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+    // v3.23.5 修复：hazeSource 不能标在包含玻璃 AppFab 的外层 Box 上（FAB 位于
+    // Scaffold floatingActionButton slot，是 hazeSource 子树的一部分），否则 haze 库
+    // 记录 backdrop 内容层时遇到子树内的 hazeEffect 节点直接抛
+    // "Modifier.haze nodes can not draw Modifier.hazeChild nodes" 崩溃。
+    // 移到内层内容 Box 上（与设置页玻璃 FAB 同构：FAB 在 hazeSource 之外）。
+    Box(modifier = Modifier.fillMaxSize()) {
         AdaptiveNavigationScaffold(
             currentDestination = Destination.TodaySchedule,
             onTabSelected = { dest -> onNavigate(dest) }
@@ -194,11 +207,13 @@ fun TodayScheduleScreen(
                     },
                     icon = vectorResource(Res.drawable.add_24px),
                     contentDescription = stringResource(Res.string.a11y_todo_add),
+                    // 液态玻璃 FAB：复用页面既有 hazeState（内容已 hazeSource）
+                    hazeState = hazeState,
                     modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
                 )
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding).hazeSource(hazeState)) {
                 when (val state = uiState) {
                     is TodayUiState.Loading -> AppLoading()
                     is TodayUiState.Success -> {
@@ -375,14 +390,23 @@ fun TodayContent(
                 }
             }
         } else {
+            // v3.26.0 C+.17 今日页入场错峰：在 LazyColumn 外读取 LocalAppMotion
+            // （LazyListScope 不是 composable 作用域）
+            val todayEntranceMotion = LocalAppMotion.current
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap),
                 contentPadding = PaddingValues(bottom = bottomInset + AppSpacing.listGap)
             ) {
-                itemsIndexed(state.courses) { _, model ->
-                    CourseTimelineItem(model, gridStyle, isDark, now = currentTime)
+                itemsIndexed(state.courses) { index, model ->
+                    CourseTimelineItem(
+                        model,
+                        gridStyle,
+                        isDark,
+                        now = currentTime,
+                        entranceDelayMs = todayEntranceMotion.tokens.entranceStaggerMs * index
+                    )
                 }
                 // 今日待办自动排到课程列表之后（页面最底部）
                 if (state.todos.isNotEmpty()) {
@@ -965,7 +989,8 @@ fun CourseTimelineItem(
     model: CourseDisplayModel,
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
-    now: LocalTime
+    now: LocalTime,
+    entranceDelayMs: Int = 0
 ) {
     // 用 TodayContent 里每分钟跳动的 now，而不是组合期固定快照，
     // 否则「已结束」状态（删除线/透明度）在页面停留期间永不更新。
@@ -1033,6 +1058,37 @@ fun CourseTimelineItem(
         else -> gridStyle.courseBlockAlphaFloat
     }
 
+    // v3.26.0 C+.15 今日页课程卡点按反馈：按压缩放（读全局令牌；
+    // 关掉「课程格反馈」分组 ⇒ snap 到原样）。今日页课程卡此前纯展示无任何反馈。
+    val cellMotion = LocalAppMotion.current
+    var cellPressed by remember { mutableStateOf(false) }
+    val cellPressFraction by animateFloatAsState(
+        targetValue = if (cellPressed) 1f else 0f,
+        animationSpec = cellMotion.tokens.cellPressSpec,
+        label = "todayCellPress"
+    )
+
+    // v3.26.0 C+.17 今日页入场错峰淡入：rememberSaveable 记住——LazyColumn 回收
+    // 滚出视口的 item，普通 remember 会导致滚回来重播；关掉「页面入场」⇒ 直接显示
+    val entranceEnabled = cellMotion.isEnabled(AnimationGroup.PAGE_ENTRANCE) &&
+        cellMotion.tokens.entranceDurationMs > 0
+    var entranceEntered by rememberSaveable { mutableStateOf(!entranceEnabled) }
+    LaunchedEffect(Unit) {
+        if (!entranceEntered) {
+            delay(entranceDelayMs.toLong())
+            entranceEntered = true
+        }
+    }
+    val entranceFraction by animateFloatAsState(
+        targetValue = if (entranceEntered) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = cellMotion.tokens.entranceDurationMs,
+            easing = cellMotion.tokens.entranceEasing
+        ),
+        label = "todayCardEntrance"
+    )
+    val entranceSlidePx = with(LocalDensity.current) { cellMotion.tokens.entranceSlideDp.toPx() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1073,14 +1129,32 @@ fun CourseTimelineItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .graphicsLayer(alpha = blockAlpha)
+                    .graphicsLayer {
+                        alpha = (blockAlpha * entranceFraction).coerceIn(0f, 1f)
+                        val pressScale =
+                            1f + (cellMotion.tokens.cellPressScale - 1f) * cellPressFraction
+                        scaleX = pressScale
+                        scaleY = pressScale
+                        translationY = entranceSlidePx * (1f - entranceFraction)
+                    }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                cellPressed = true
+                                try {
+                                    awaitRelease()
+                                } finally {
+                                    cellPressed = false
+                                }
+                            }
+                        )
+                    }
                     .then(cardShadowModifier)
                     .then(borderModifier)
                     .clip(shape)
                     .background(color = themeColor)
                     .then(itemStripDrawModifier)
             ) {
-
                 // 与主课表 CourseBlock 一致的内边距和字号
                 val innerPadding = gridStyle.courseBlockInnerPaddingDp.dp
                 val timetableStartPad = if (isTimetablePreset) 3.dp else 0.dp

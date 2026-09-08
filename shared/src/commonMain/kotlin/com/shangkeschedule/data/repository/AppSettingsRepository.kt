@@ -9,6 +9,8 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -105,6 +107,10 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_SELF_COURSE_COLOR_INDEX] = newSettings.selfCourseColorIndex
             prefs[AppSettingsModel.KEY_CRUSH_COURSE_COLOR_INDEX] = newSettings.crushCourseColorIndex
             prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = newSettings.scheduleViewMode.value
+            prefs[AppSettingsModel.KEY_GLASS_BLUR_RADIUS_DP] = newSettings.glassBlurRadiusDp
+            prefs[AppSettingsModel.KEY_ANIMATION_STYLE] = newSettings.animationStyle.value
+            prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] =
+                newSettings.disabledAnimationGroups.map { it.value }.toSet()
         }
     }
 
@@ -119,6 +125,37 @@ class AppSettingsRepository(
     suspend fun updateScheduleViewMode(mode: ScheduleViewMode) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = mode.value
+        }
+    }
+
+    /**
+     * 单独持久化液态玻璃模糊半径（v3.25.0）。
+     * 只写这一个键：避免整份 copy 写回时与其他并发修改互相覆盖。
+     */
+    suspend fun updateGlassBlurRadius(radiusDp: Float) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_GLASS_BLUR_RADIUS_DP] = radiusDp
+        }
+    }
+
+    /**
+     * 单独持久化全局动画风格（v3.26.0）。只写这一个键，避免整份 copy 覆盖并发修改。
+     */
+    suspend fun updateAnimationStyle(style: AnimationStyle) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_ANIMATION_STYLE] = style.value
+        }
+    }
+
+    /**
+     * 单独开/关某个动画分组（v3.26.0）。读取当前「已关闭分组」集合，增删该项后只写这一个键。
+     * enabled=true ⇒ 从关闭集合移除（恢复动画）；false ⇒ 加入关闭集合（瞬切）。
+     */
+    suspend fun setAnimationGroupEnabled(group: AnimationGroup, enabled: Boolean) {
+        dataStore.edit { prefs ->
+            val current = prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] ?: emptySet()
+            val updated = if (enabled) current - group.value else current + group.value
+            prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] = updated
         }
     }
 
