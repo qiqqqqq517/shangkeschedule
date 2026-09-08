@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -328,6 +329,8 @@ fun SearchBarWithTitle(
     filteredSchools: List<School>,
     onSchoolSelected: (School) -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     SearchBar(
         modifier = Modifier.fillMaxWidth(),
         // Telegram 全圆角浅灰胶囊搜索框（v2 规范 §4.3，页面已有搜索能力才换肤）
@@ -336,7 +339,20 @@ fun SearchBarWithTitle(
             SearchBarDefaults.InputField(
                 query = searchQuery,
                 onQueryChange = onQueryChange,
-                onSearch = { onSearchActiveChange(false) },
+                // 回车＝执行搜索：保留关键词并让结果列表继续可见。
+                // 旧实现是 onSearchActiveChange(false)，而"收起搜索条"在本页会连带把 query 清空，
+                // 于是按回车后搜索结果直接消失，表现为"等于没搜索"。
+                // 只有空查询（确实无可搜内容）时才收起。
+                onSearch = { query ->
+                    if (query.isBlank()) {
+                        onSearchActiveChange(false)
+                    } else {
+                        // 桌面端可能在折叠态用物理键盘输入，先展开保证结果可见
+                        if (!searchActive) onSearchActiveChange(true)
+                        // 收起软键盘，避免键盘挡住结果列表；输入框仍持有焦点，可继续改词
+                        keyboardController?.hide()
+                    }
+                },
                 expanded = searchActive,
                 onExpandedChange = onSearchActiveChange,
                 placeholder = { Text(if (searchActive) placeholderText else titleText) },
