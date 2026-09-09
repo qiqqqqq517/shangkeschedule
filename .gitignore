@@ -69,3 +69,7 @@ _verify/
 
 # QA 截图证据（本地产物，不入库）
 build_qa/
+
+# AI 会话工作目录 / 设计稿解压临时目录（不提交）
+.workbuddy/
+.design_upload_extract/

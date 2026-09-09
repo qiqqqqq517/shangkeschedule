@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,6 +57,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
+import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppEmptyState
@@ -66,6 +66,7 @@ import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
@@ -272,7 +273,7 @@ fun TimeSlotManagementScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                HorizontalDivider()
+                HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
                 SchemeSelector(
                     currentSchemeId = uiState.currentSchemeId,
                     schemeIds = uiState.schemeIds,
@@ -536,7 +537,7 @@ fun SchemeSelector(
                             Text(
                                 text = rangeText,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = appColors().textSecondary
                             )
                         }
                         if (scheme == currentSchemeId) {
@@ -562,7 +563,7 @@ fun SchemeSelector(
                         }
                     }
                 }
-                HorizontalDivider()
+                HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
                 DropdownMenuItem(
                     text = { Text(actionNewScheme) },
                     onClick = {
@@ -704,14 +705,14 @@ fun TimeSlotItem(
 ) {
     val a11yDeleteTimeSlot = stringResource(Res.string.a11y_delete_time_slot)
 
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onEditClick
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = appSpacing().cardInner, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -847,7 +848,7 @@ fun TimeSlotEditContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
@@ -891,7 +892,7 @@ fun TimeSlotEditContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
@@ -1062,7 +1063,7 @@ fun AutoSwitchToggle(
             Text(
                 text = descAutoSwitchScheme,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColors().textSecondary
             )
         }
         Spacer(modifier = Modifier.width(16.dp))

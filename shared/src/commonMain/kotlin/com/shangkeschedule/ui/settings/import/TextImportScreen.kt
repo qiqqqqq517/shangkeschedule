@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.import
 
+import com.shangkeschedule.ui.theme.appColors
+
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
@@ -83,7 +85,7 @@ fun TextImportScreen(
                 text = format?.hint
                     ?: stringResource(Res.string.import_text_any_desc),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColors().textSecondary
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -122,7 +124,7 @@ fun TextImportScreen(
             // 错误提示
             uiState.error?.let { err ->
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = err, color = MaterialTheme.colorScheme.error)
+                Text(text = err, color = appColors().danger)
             }
 
             // 预览区域

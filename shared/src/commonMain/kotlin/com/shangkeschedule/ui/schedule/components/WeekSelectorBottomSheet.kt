@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.schedule.components
 
+import com.shangkeschedule.ui.theme.appType
+
+import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
-import com.shangkeschedule.ui.theme.AppType
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.title_select_week
@@ -74,7 +76,7 @@ fun WeekSelectorBottomSheet(
             Text(
                 text = stringResource(Res.string.title_select_week),
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = AppType.sectionTitle,
+                    fontSize = appType().sectionTitle,
                     fontWeight = FontWeight.SemiBold
                 ),
                 modifier = Modifier.padding(16.dp)
@@ -99,7 +101,7 @@ fun WeekSelectorBottomSheet(
                     // 根据周次状态决定颜色
                     val backgroundColor = when {
                         isSelectedWeek -> MaterialTheme.colorScheme.primary
-                        isCurrentWeek -> MaterialTheme.colorScheme.primaryContainer
+                        isCurrentWeek -> appColors().primarySoft
                         else -> Color.Transparent
                     }
                     val textColor = when {

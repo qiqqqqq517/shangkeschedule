@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.additional
+﻿package com.shangkeschedule.ui.settings.additional
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -60,9 +61,9 @@ fun SettingListItem(
         HorizontalDivider(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            thickness = 0.5.dp,
-            color = appColors().divider
+                .padding(horizontal = appSpacing().pageHorizontal),
+            color = appColors().divider,
+            thickness = 0.5.dp
         )
     }
 }
@@ -79,7 +80,7 @@ fun AcknowledgmentContent() {
             Icon(
                 imageVector = vectorResource(Res.drawable.favorite_24px),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = appColors().textSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))

@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.style
+﻿package com.shangkeschedule.ui.settings.style
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -74,9 +74,9 @@ import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ColorPickerConfig
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
@@ -182,14 +182,14 @@ fun SettingsListContent(
     }
 
     Column(
-        modifier = contentModifier.padding(AppSpacing.pageHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap)
+        modifier = contentModifier.padding(appSpacing().pageHorizontal),
+        verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
     ) {
         OutlinedButton(
             onClick = { showResetDialog = true },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = appColors().danger),
+            border = BorderStroke(1.dp, appColors().danger.copy(alpha = 0.5f))
         ) {
             Text(stringResource(Res.string.action_reset_style))
         }
@@ -222,14 +222,14 @@ fun SettingsListContent(
             hazeState = hazeState
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
         AppSectionHeader(stringResource(Res.string.style_category_grid_size))
         StyleSliderItem(stringResource(Res.string.label_section_height), currentStyle.sectionHeight.value, 40f..120f) { viewModel.updateSectionHeight(it) }
         StyleSliderItem(stringResource(Res.string.label_time_column_width), currentStyle.timeColumnWidth.value, 20f..80f) { viewModel.updateTimeColumnWidth(it) }
         StyleSliderItem(stringResource(Res.string.label_day_header_height), currentStyle.dayHeaderHeight.value, 30f..80f) { viewModel.updateDayHeaderHeight(it) }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
         AppSectionHeader(stringResource(Res.string.style_category_course_block))
         ColorPickerItem(
@@ -253,7 +253,7 @@ fun SettingsListContent(
         StyleSliderItem(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
 
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
         AppSectionHeader(stringResource(Res.string.style_category_color_scheme))
 
@@ -309,7 +309,7 @@ fun ColorSchemeSection(
     // 是对池底色的对照色，不随主题 token 变化，属有意的功能性固定色。
     val contentColor = if (isDarkSection) Color.White else Color.Black
 
-    Column(modifier = Modifier.fillMaxWidth().clip(AppShape.chip).background(bgColor).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().clip(appShapes().chip).background(bgColor).padding(16.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = contentColor)
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -326,7 +326,7 @@ fun ColorSchemeSection(
 
 @Composable
 fun ColorPreviewBox(color: Color, isLightModeUI: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp).clip(AppShape.chip).background(color), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = appSpacing().pageHorizontal).clip(appShapes().chip).background(color), contentAlignment = Alignment.Center) {
         Text(
             text = if (isLightModeUI) stringResource(Res.string.preview_light_mode) else stringResource(Res.string.preview_dark_mode),
             textAlign = TextAlign.Center,
@@ -607,13 +607,13 @@ fun WallpaperItem(
                 text = if (hasWallpaper) stringResource(Res.string.desc_wallpaper_set)
                 else stringResource(Res.string.desc_wallpaper_unset),
                 style = MaterialTheme.typography.labelSmall,
-                color = if (hasWallpaper) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (hasWallpaper) MaterialTheme.colorScheme.primary else appColors().textSecondary
             )
         }
         Icon(
             imageVector = vectorResource(Res.drawable.image_24px),
             contentDescription = null,
-            tint = if (hasWallpaper) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            tint = if (hasWallpaper) MaterialTheme.colorScheme.primary else appColors().divider.copy(alpha = 0.5f)
         )
     }
 }
@@ -647,13 +647,13 @@ fun ColorPickerItem(
                     .size(28.dp)
                     .clip(CircleShape)
                     .background(currentColor)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), CircleShape)
+                    .border(1.dp, appColors().divider.copy(alpha = 0.2f), CircleShape)
             )
         } else {
             Text(
                 text = stringResource(Res.string.status_not_set),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = appColors().textSecondary.copy(alpha = 0.6f)
             )
         }
     }

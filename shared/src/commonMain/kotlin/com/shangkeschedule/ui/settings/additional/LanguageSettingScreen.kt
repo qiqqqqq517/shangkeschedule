@@ -1,6 +1,5 @@
-package com.shangkeschedule.ui.settings.additional
+﻿package com.shangkeschedule.ui.settings.additional
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,9 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -28,7 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -105,7 +103,7 @@ fun LanguageSettingScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             // 统一白卡容器（与其他设置二级页同语言）
-            AppCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            AppCard(modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal)) {
                 languageList.forEachIndexed { index, item ->
                     // 判断单选选中状态
                     val isSelected = if (item.tag.isEmpty()) {
@@ -114,27 +112,22 @@ fun LanguageSettingScreen(
                         currentTag.startsWith(item.tag)
                     }
 
-                    ListItem(
-                        modifier = Modifier.clickable {
+                    AppRadioRow(
+                        text = item.name,
+                        selected = isSelected,
+                        onClick = {
                             if (!isSelected) {
                                 currentTag = item.tag
                                 // 平台方法更新系统/平台语言
                                 PlatformLocaleManager.setLanguageTag(item.tag)
                             }
-                        },
-                        headlineContent = { Text(text = item.name) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        leadingContent = {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null
-                            )
                         }
                     )
                     if (index != languageList.lastIndex) {
                         HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = appColors().divider
+                            modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
+                            color = appColors().divider,
+                            thickness = 0.5.dp
                         )
                     }
                 }

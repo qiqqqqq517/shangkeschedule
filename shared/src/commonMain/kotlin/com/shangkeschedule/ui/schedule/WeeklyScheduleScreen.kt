@@ -113,11 +113,11 @@ import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.TimetableDefaults
@@ -261,7 +261,7 @@ fun WeeklyScheduleScreen(
     val navBarReserve = if (isRailLayout) {
         0.dp
     } else {
-        AppSpacing.touchMin + 14.dp + AppSpacing.navBarBottom * 2 +
+        appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2 +
             (WindowInsets.navigationBars.getBottom(density) / density.density).dp
     }
 
@@ -370,7 +370,7 @@ fun WeeklyScheduleScreen(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
-                                    .clip(AppShape.capsule)
+                                    .clip(appShapes().capsule)
                                     .background(weekChipBg)
                                     .clickable {
                                         if (!uiState.isSemesterSet || uiState.semesterStartDate == null) {
@@ -383,7 +383,7 @@ fun WeeklyScheduleScreen(
                             ) {
                                 Text(
                                     text = displayTitle,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = AppType.sectionTitle),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = appType().sectionTitle),
                                     fontWeight = FontWeight.SemiBold,
                                     color = customTextColor
                                 )
@@ -766,7 +766,7 @@ fun WeeklyScheduleScreen(
             BackToCurrentWeekFab(
                 visible = showBackToCurrentWeek,
                 hideFraction = backToWeekHideFraction,
-                hideRange = navBarReserve + AppSpacing.cardGap + AppSpacing.touchMin,
+                hideRange = navBarReserve + appSpacing().cardGap + appSpacing().touchMin,
                 hazeState = hazeState,
                 hasWallpaper = composedStyle.backgroundImagePath.isNotEmpty(),
                 onClick = {
@@ -777,8 +777,8 @@ fun WeeklyScheduleScreen(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
-                        end = AppSpacing.navBarHorizontal,
-                        bottom = navBarReserve + AppSpacing.cardGap
+                        end = appSpacing().navBarHorizontal,
+                        bottom = navBarReserve + appSpacing().cardGap
                     )
             )
         }
@@ -880,7 +880,7 @@ private fun BackToCurrentWeekFab(
             val pressedScale = rememberFabPressedScale(interaction)
             Box(
                 modifier = Modifier
-                    .size(AppSpacing.touchMin)
+                    .size(appSpacing().touchMin)
                     .graphicsLayer {
                         scaleX = pressedScale
                         scaleY = pressedScale
@@ -958,14 +958,16 @@ private fun WeekPagerGlassSheen(
             modifier = modifier
                 // 纯绘制层：不消费任何指针事件，手势完全穿透到 Pager / 课程格
                 .drawBehind {
-                    val bandWidth = size.width * 0.45f
+                    // Apple HIG 风格：收窄光带（屏幕宽 28%）、降低峰值透明度（0.07），
+                    // 效果克制如镜面反光，而非扫光特效
+                    val bandWidth = size.width * 0.28f
                     val travel = size.width + bandWidth * 2f
                     val x = -bandWidth + travel * fraction
                     drawRect(
                         brush = Brush.linearGradient(
                             colorStops = arrayOf(
                                 0f to Color.Transparent,
-                                0.5f to Color.White.copy(alpha = 0.14f),
+                                0.5f to Color.White.copy(alpha = 0.07f),
                                 1f to Color.Transparent
                             ),
                             start = Offset(x, 0f),

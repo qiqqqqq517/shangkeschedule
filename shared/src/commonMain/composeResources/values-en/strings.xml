@@ -34,6 +34,18 @@
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>
     <string name="title_today_schedule">Today\'s schedule</string>
+    <string name="title_today_courses">Today\'s Courses</string>
+    <string name="title_week_overview">This Week</string>
+    <string name="title_tomorrow_courses">Tomorrow</string>
+    <string name="text_courses_count">%1$s classes</string>
+    <string name="text_week_courses">This Week</string>
+    <string name="text_today_courses_label">Today</string>
+    <string name="text_todo_pending">To Do</string>
+    <string name="action_view_all">View All</string>
+    <string name="action_week_view">Week View</string>
+    <string name="settings_group_course">Courses</string>
+    <string name="settings_group_tools">Tools</string>
+    <string name="settings_group_other">Other</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="label_crush_course">Partner's class</string>
     <string name="text_course_in_progress">In class now</string>
@@ -632,6 +644,7 @@
     <string name="theme_preset_classic">Classic</string>
     <string name="theme_preset_cloud">Cloud</string>
     <string name="theme_preset_clean">Clean</string>
+    <string name="theme_preset_ios">Airy</string>
     <string name="theme_style_section">Theme Style</string>
     <string name="theme_style_desc">Applies both color scheme and schedule style</string>
     <string name="desc_theme_settings">Customize the app theme and colors</string>

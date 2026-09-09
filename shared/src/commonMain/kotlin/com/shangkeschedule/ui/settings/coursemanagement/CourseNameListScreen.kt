@@ -54,7 +54,7 @@ import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppSelectableCard
 import com.shangkeschedule.ui.theme.AccentTone
-import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.settings.SettingCard
 import kotlinx.coroutines.launch
@@ -377,7 +377,7 @@ private fun QuickActionsSection(
     modifier: Modifier = Modifier,
     onNavigate: (Destination) -> Unit
 ) {
-    Column(modifier = modifier.padding(horizontal = AppSpacing.pageHorizontal, vertical = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)) {
         AppSectionHeader(stringResource(Res.string.label_quick_action_category_schedule))
         SettingCard(
             title = stringResource(Res.string.item_schedule_tweak),
@@ -386,7 +386,7 @@ private fun QuickActionsSection(
             accent = AccentTone.INFO,
             onClick = { onNavigate(Destination.TweakSchedule) }
         )
-        Spacer(modifier = Modifier.height(AppSpacing.cardGap))
+        Spacer(modifier = Modifier.height(appSpacing().cardGap))
         SettingCard(
             title = stringResource(Res.string.item_quick_delete),
             subtitle = stringResource(Res.string.quick_delete_subtitle),

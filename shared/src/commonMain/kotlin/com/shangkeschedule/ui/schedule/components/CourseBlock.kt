@@ -75,22 +75,22 @@ private fun buildPresetRenderSpec(
     style: ScheduleGridStyleComposed
 ): CourseBlockPresetRender {
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
+    val isStripStylePreset = themePreset == AppThemePreset.TIMETABLE || themePreset == AppThemePreset.IOS
 
-    // 利落主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light/strip=dark，深色模式 bg=dark半透明/strip=dark
-    // 这样用户在个性化配置中修改课程颜色后，利落主题的背景和色条都会同步变化。
+    // 利落/iOS 左侧色条主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light半透明/strip=dark，深色模式 bg=dark半透明/strip=dark
+    // 这样用户在个性化配置中修改课程颜色后，色条主题的背景和色条都会同步变化。
     val timetableDual = style.courseColorMaps.getOrNull(colorInt)
         ?: style.courseColorMaps.firstOrNull()
         ?: TimetableDefaults.fallbackCourseColor
-    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
-    val timetableBg = timetableDual.dark.copy(alpha = if (isDarkTheme) 0.25f else 0.18f)
+    // 色条主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
+    val timetableBg = timetableDual.dark.copy(alpha = if (isDarkTheme) 0.25f else 0.12f)
     val timetableStrip = timetableDual.dark
     val timetableText = if (isDarkTheme) appColorTokens(isDarkTheme).timetableTextOnDark else timetableDual.dark
 
-    val blockBackgroundColor = if (isTimetablePreset) timetableBg else blockColor
-    val stripColor = if (isTimetablePreset) timetableStrip
+    val blockBackgroundColor = if (isStripStylePreset) timetableBg else blockColor
+    val stripColor = if (isStripStylePreset) timetableStrip
         else (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
-    val textColor = if (isTimetablePreset) timetableText
+    val textColor = if (isStripStylePreset) timetableText
         else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
 
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
@@ -99,13 +99,13 @@ private fun buildPresetRenderSpec(
     } else {
         Modifier
     }
-    val timetableStartPadding = if (isTimetablePreset) 3.dp else 0.dp
+    val timetableStartPadding = if (isStripStylePreset) 4.dp else 0.dp
     // 非当前周降级遮罩：云舒 0.5（档位 dimmed）；经典 0.618 为有意的黄金比例设计值（豁免）
     val demotedOverlayAlpha = if (isSleepyPreset) AppAlpha.dimmed else 0.618f
 
     return CourseBlockPresetRender(
         isSleepyPreset = isSleepyPreset,
-        isTimetablePreset = isTimetablePreset,
+        isTimetablePreset = isStripStylePreset,
         blockBackgroundColor = blockBackgroundColor,
         stripColor = stripColor,
         textColor = textColor,
@@ -181,7 +181,7 @@ fun CourseBlock(
     }
 
     // 边框样式配置（悬浮 = 语义 info 强调色，v2 规范：不再用孤立的功能蓝）
-    val borderColor = if (isFloating) appColors().info else MaterialTheme.colorScheme.outline
+    val borderColor = if (isFloating) appColors().info else appColors().divider
     val borderWidth = if (isFloating) 2.dp else 1.dp
     val borderAlpha = if (isFloating) 1.0f else style.courseBlockAlpha
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
@@ -229,12 +229,12 @@ fun CourseBlock(
             .clip(shape)
             .background(color = presetRender.blockBackgroundColor)
     ) {
-        // TIMETABLE 左侧色条：宽 3dp，贯穿整个块高度
+        // 左侧色条：宽 4dp，贯穿整个块高度
         if (presetRender.isTimetablePreset) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .width(3.dp)
+                    .width(4.dp)
                     .fillMaxHeight()
                     .background(presetRender.stripColor)
             )

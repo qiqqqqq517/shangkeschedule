@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.components
 
+import com.shangkeschedule.ui.theme.appSpacing
+
+import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +37,6 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
-import com.shangkeschedule.ui.theme.AppSpacing
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -167,9 +169,9 @@ fun CourseTablePickerDialog(
             ) {
                 FilledIconButton(
                     onClick = { showAddTableDialog = true },
-                    modifier = Modifier.size(AppSpacing.touchMin),
+                    modifier = Modifier.size(appSpacing().touchMin),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        containerColor = appColors().primarySoft,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 ) {
@@ -286,7 +288,7 @@ fun CourseTablePickerCard(
                         formatEpochMillis(courseTable.createdAt)
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = appColors().textSecondary.copy(alpha = 0.7f)
                 )
             }
             if (isCurrentActive) {

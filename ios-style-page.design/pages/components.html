@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>按钮组件 - iOS 设计系统</title>
+  <script src="https://cdn.tailwindcss.com/@tailwindcss/browser@4"></script>
+  <style id="theme-vars">
+    :root {
+      --spacing: 0.24rem;
+      --radius: 1.2rem;
+      --radius-sm: calc(var(--radius) * 0.5);
+      --radius-md: var(--radius);
+      --radius-lg: calc(var(--radius) * 1.5);
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
+      /* Brand / Primary — iOS System Blue */
+      --brand-50: #e8f2ff;
+      --brand-100: #cfe5ff;
+      --brand-200: #9fcbff;
+      --brand-300: #66abff;
+      --brand-400: #2e8dff;
+      --brand-500: #007AFF;
+      --brand-600: #0064d6;
+      --brand-700: #004fad;
+      --brand-800: #003b82;
+      --brand-900: #00275a;
+      --primary: var(--brand-500);
+
+      /* Backgrounds */
+      --background: #ffffff;
+      --background-100: #f7f7fa;
+      --background-200: #f2f2f7;
+      --background-300: #e5e5ea;
+      --background-400: #d1d1d6;
+
+      /* Text */
+      --foreground: #1d1d1f;
+      --text-400: #8e8e93;
+      --text-500: #6e6e73;
+      --muted-foreground: var(--text-400);
+
+      /* Border / Separator */
+      --border: var(--background-300);
+      --ios-separator: rgba(60, 60, 67, 0.36);
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+
+      /* iOS System Colors */
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-red: #FF3B30;
+      --ios-teal: #30B0C7;
+      --ios-indigo: #5856D6;
+      --ios-pink: #FF2D55;
+      --ios-yellow: #FFCC00;
+
+      /* Frosted glass */
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(0, 0, 0, 0.08);
+
+      /* Card */
+      --card: #ffffff;
+      --card-foreground: var(--foreground);
+      --muted: var(--background-200);
+
+      /* Primary foreground */
+      --primary-foreground: #ffffff;
+    }
+
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--background-200);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 0;
+    }
+
+    /* Icon base - CSS mask with inline SVG data URI */
+    .icon {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      vertical-align: -2px;
+      flex-shrink: 0;
+    }
+
+    .icon-plus {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+    }
+
+    .icon-search {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    }
+
+    .icon-eye {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-right {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-left {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+    }
+
+    .icon-bell {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E");
+    }
+
+    .icon-check {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+    }
+
+    .icon-info {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E");
+    }
+
+    .icon-share {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/%3E%3Cpolyline points='16 6 12 2 8 6'/%3E%3Cline x1='12' y1='2' x2='12' y2='15'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/%3E%3Cpolyline points='16 6 12 2 8 6'/%3E%3Cline x1='12' y1='2' x2='12' y2='15'/%3E%3C/svg%3E");
+    }
+
+    .icon-copy {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E");
+    }
+
+    .icon-pen {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/%3E%3C/svg%3E");
+    }
+
+    .icon-trash {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z'/%3E%3C/svg%3E");
+    }
+
+    .icon-more-horiz {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='1'/%3E%3Ccircle cx='19' cy='12' r='1'/%3E%3Ccircle cx='5' cy='12' r='1'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='1'/%3E%3Ccircle cx='19' cy='12' r='1'/%3E%3Ccircle cx='5' cy='12' r='1'/%3E%3C/svg%3E");
+    }
+
+    .icon-house {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V9.5Z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V9.5Z'/%3E%3C/svg%3E");
+    }
+
+    .icon-calendar {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    }
+
+    .icon-download {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
+    }
+
+    .icon-user {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+    }
+
+    .icon-x {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
+    }
+
+    .icon-arrow-right {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E");
+    }
+
+    .icon-star {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E");
+    }
+
+    .icon-bookmark {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z'/%3E%3C/svg%3E");
+    }
+
+    .icon-map-pin {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+    }
+
+    .icon-minus {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+    }
+
+    /* App Shell - iPhone 14 Pro */
+    .app-shell {
+      width: 390px;
+      height: 844px;
+      border-radius: 47px;
+      overflow: hidden;
+      position: relative;
+      background: var(--background-200);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.08),
+        0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 0 80px rgba(0, 0, 0, 0.15);
+    }
+
+    .device-frame {
+      position: absolute;
+      inset: 0;
+      border-radius: 47px;
+      border: 10px solid #1a1a1a;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 101;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      height: 44px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 90;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px 0 30px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+      letter-spacing: -0.2px;
+    }
+
+    .status-bar .right-items {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 10px;
+    }
+    .signal-bars span {
+      width: 3px;
+      background: var(--foreground);
+      border-radius: 1px;
+    }
+    .signal-bars span:nth-child(1) { height: 3px; }
+    .signal-bars span:nth-child(2) { height: 5px; }
+    .signal-bars span:nth-child(3) { height: 7px; }
+    .signal-bars span:nth-child(4) { height: 10px; }
+
+    .wifi-icon {
+      width: 15px;
+      height: 11px;
+      position: relative;
+    }
+    .wifi-icon::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 15px;
+      height: 11px;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 3C7.8 3 3.9 4.5.8 7.2L3.1 9.5C5.6 7.2 8.7 6 12 6s6.4 1.2 8.9 3.5l2.3-2.3C20.1 4.5 16.2 3 12 3zm0 6c-2.5 0-4.8.9-6.5 2.5l2.3 2.3c1.1-1.1 2.6-1.8 4.2-1.8s3.1.7 4.2 1.8l2.3-2.3C16.8 9.9 14.5 9 12 9zm0 6c-1.1 0-2.1.4-2.8 1.1L12 18.9l2.8-2.8c-.7-.7-1.7-1.1-2.8-1.1z'/%3E%3C/svg%3E") center/contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 3C7.8 3 3.9 4.5.8 7.2L3.1 9.5C5.6 7.2 8.7 6 12 6s6.4 1.2 8.9 3.5l2.3-2.3C20.1 4.5 16.2 3 12 3zm0 6c-2.5 0-4.8.9-6.5 2.5l2.3 2.3c1.1-1.1 2.6-1.8 4.2-1.8s3.1.7 4.2 1.8l2.3-2.3C16.8 9.9 14.5 9 12 9zm0 6c-1.1 0-2.1.4-2.8 1.1L12 18.9l2.8-2.8c-.7-.7-1.7-1.1-2.8-1.1z'/%3E%3C/svg%3E") center/contain no-repeat;
+      background: var(--foreground);
+    }
+
+    .battery {
+      width: 25px;
+      height: 12px;
+      position: relative;
+      border: 1px solid var(--foreground);
+      border-radius: 3px;
+      padding: 1px;
+      display: flex;
+      align-items: center;
+    }
+    .battery::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 2px;
+      height: 5px;
+      background: var(--foreground);
+      border-radius: 0 1px 1px 0;
+    }
+    .battery-level {
+      height: 100%;
+      width: 85%;
+      background: var(--foreground);
+      border-radius: 1px;
+    }
+
+    /* Scrollable content */
+    .content-scroll {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .content-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Navigation */
+    .nav-large-title {
+      padding: 0 20px 12px;
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--foreground);
+      letter-spacing: -0.5px;
+    }
+
+    .nav-small {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      position: relative;
+    }
+
+    .nav-small .nav-title {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* Section header */
+    .section-header {
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--text-400);
+      padding: 24px 20px 6px;
+      letter-spacing: -0.08px;
+      font-weight: 500;
+    }
+
+    .section-header strong {
+      color: var(--foreground);
+      text-transform: none;
+      font-size: 20px;
+      font-weight: 700;
+      display: block;
+      margin-top: 2px;
+      letter-spacing: -0.3px;
+    }
+
+    .sub-section-label {
+      font-size: 12px;
+      color: var(--text-400);
+      padding: 12px 16px 6px;
+      font-weight: 500;
+    }
+
+    /* Grouped card */
+    .grouped-card {
+      background: var(--background);
+      border-radius: 12px;
+      margin: 0 16px;
+      overflow: hidden;
+    }
+
+    .grouped-item {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+    .grouped-item:last-child {
+      border-bottom: none;
+    }
+
+    /* iOS Toggle Switch */
+    .ios-toggle {
+      width: 51px;
+      height: 31px;
+      border-radius: 31px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+    .ios-toggle.on { background: var(--ios-green); }
+    .ios-toggle.off { background: var(--background-300); }
+    .ios-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      width: 27px;
+      height: 27px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease;
+    }
+    .ios-toggle.on::after { transform: translateX(22px); }
+    .ios-toggle.off::after { transform: translateX(2px); }
+
+    /* iOS Slider */
+    .ios-slider {
+      height: 4px;
+      background: var(--background-300);
+      border-radius: 2px;
+      position: relative;
+    }
+    .ios-slider .slider-fill {
+      height: 100%;
+      background: var(--ios-blue);
+      border-radius: 2px;
+      width: 60%;
+    }
+    .ios-slider .slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 60%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Text field */
+    .ios-textfield {
+      height: 36px;
+      background: var(--background-100);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 6px;
+    }
+    .ios-textfield input {
+      border: none;
+      outline: none;
+      background: transparent;
+      flex: 1;
+      font-size: 15px;
+      color: var(--foreground);
+      font-family: inherit;
+    }
+    .ios-textfield input::placeholder {
+      color: var(--text-400);
+    }
+
+    /* Segmented Control */
+    .segmented-control {
+      background: var(--background-200);
+      border-radius: 9px;
+      padding: 2px;
+      display: flex;
+      position: relative;
+    }
+    .segmented-control .segment {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--foreground);
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+    }
+    .segmented-control .segment.active { font-weight: 600; }
+    .segmented-control .segment-indicator {
+      position: absolute;
+      top: 2px;
+      height: calc(100% - 4px);
+      background: var(--background);
+      border-radius: 7px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Tag pill */
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* Badge */
+    .badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      background: var(--ios-red);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid var(--background);
+    }
+
+    /* Bottom Tab Bar */
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 83px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid var(--glass-border);
+      z-index: 80;
+      padding-bottom: 28px;
+    }
+    .tab-bar-inner {
+      display: flex;
+      height: 50px;
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-400);
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .tab-item.active { color: var(--ios-blue); }
+    .tab-item .tab-icon { font-size: 22px; }
+
+    /* Home Indicator */
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background: var(--foreground);
+      border-radius: 3px;
+      opacity: 0.3;
+      z-index: 90;
+    }
+
+    /* Course Card */
+    .course-card {
+      background: var(--background);
+      border-radius: 14px;
+      padding: 12px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .course-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--ios-blue);
+    }
+
+    /* ========== BUTTON SYSTEM ========== */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active {
+      opacity: 0.85;
+      transform: scale(0.98);
+    }
+
+    /* === FILLED BUTTONS === */
+    .btn-filled {
+      color: #fff;
+      border-radius: 14px;
+    }
+    .btn-filled-blue { background: var(--ios-blue); }
+    .btn-filled-gray { background: var(--background-300); color: var(--foreground); }
+    .btn-filled-red { background: var(--ios-red); }
+    .btn-filled-green { background: var(--ios-green); }
+    .btn-filled-orange { background: var(--ios-orange); }
+    .btn-filled-purple { background: var(--ios-purple); }
+
+    .btn-lg { height: 50px; font-size: 17px; font-weight: 700; border-radius: 14px; padding: 0 20px; }
+    .btn-md { height: 44px; font-size: 16px; font-weight: 600; border-radius: 12px; padding: 0 18px; }
+    .btn-sm { height: 32px; font-size: 14px; font-weight: 600; border-radius: 10px; padding: 0 14px; }
+    .btn-mini { height: 24px; font-size: 11px; font-weight: 600; border-radius: 8px; padding: 0 10px; }
+
+    .btn-full { width: 100%; }
+
+    /* === OUTLINE BUTTONS === */
+    .btn-outline {
+      background: transparent;
+      border-width: 1.5px;
+      border-style: solid;
+      border-radius: 14px;
+    }
+    .btn-outline-blue { border-color: var(--ios-blue); color: var(--ios-blue); }
+    .btn-outline-gray { border-color: var(--background-400); color: var(--text-500); }
+    .btn-outline-red { border-color: var(--ios-red); color: var(--ios-red); }
+    .btn-outline-dashed {
+      background: transparent;
+      border: 1.5px dashed var(--ios-blue);
+      color: var(--ios-blue);
+      border-radius: 14px;
+    }
+
+    /* === TEXT / PLAIN BUTTONS === */
+    .btn-text {
+      background: transparent;
+      color: var(--ios-blue);
+      font-size: 16px;
+      font-weight: 400;
+      padding: 6px 2px;
+      border-radius: 6px;
+    }
+    .btn-text-bold { font-weight: 600; }
+    .btn-text-underline { text-decoration: underline; text-underline-offset: 2px; }
+    .btn-text-red { color: var(--ios-red); }
+
+    /* === BUTTON STATES === */
+    .btn-pressed {
+      filter: brightness(0.85);
+      transform: scale(0.97);
+    }
+    .btn-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* === ICON BUTTONS === */
+    .btn-icon-circle {
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--ios-blue);
+    }
+    .btn-icon-lg { width: 44px; height: 44px; font-size: 20px; }
+    .btn-icon-md { width: 32px; height: 32px; font-size: 16px; }
+    .btn-icon-sm { width: 24px; height: 24px; font-size: 12px; }
+
+    .btn-icon-badge-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* Stacked icon button */
+    .btn-stacked {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 10px;
+    }
+    .btn-stacked .stacked-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--ios-blue);
+      color: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .btn-stacked .stacked-label {
+      font-size: 11px;
+      color: var(--text-500);
+      font-weight: 500;
+    }
+
+    /* === PILLS & ROUNDED === */
+    .btn-pill {
+      border-radius: 100px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+    .btn-pill-filled {
+      background: var(--ios-blue);
+      color: #fff;
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+    .btn-pill-outline {
+      background: transparent;
+      border: 1px solid var(--ios-blue);
+      color: var(--ios-blue);
+      padding: 5px 13px;
+      font-size: 13px;
+    }
+
+    .pill-segmented {
+      background: var(--background-200);
+      border-radius: 100px;
+      padding: 3px;
+      display: inline-flex;
+    }
+    .pill-segmented .pill-tab {
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-500);
+      border-radius: 100px;
+      cursor: pointer;
+    }
+    .pill-segmented .pill-tab.active {
+      background: var(--background);
+      color: var(--foreground);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-ios18 {
+      border-radius: 10px;
+      background: var(--ios-blue);
+      color: #fff;
+      height: 44px;
+      padding: 0 18px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* === SPECIAL BUTTONS === */
+
+    /* FAB */
+    .fab {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--ios-blue);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Gradient button */
+    .btn-gradient {
+      background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-purple) 100%);
+      color: #fff;
+      border-radius: 14px;
+      height: 50px;
+      padding: 0 24px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    /* Frosted glass button */
+    .btn-glass {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      color: var(--ios-blue);
+      border-radius: 14px;
+      height: 50px;
+      padding: 0 24px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    /* Shadow / elevated button */
+    .btn-shadow {
+      background: #fff;
+      color: var(--ios-blue);
+      border-radius: 14px;
+      height: 50px;
+      padding: 0 24px;
+      font-size: 17px;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Glowing pulse button */
+    .btn-glow {
+      background: var(--ios-blue);
+      color: #fff;
+      border-radius: 14px;
+      height: 50px;
+      padding: 0 24px;
+      font-size: 17px;
+      font-weight: 600;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
+      50% { box-shadow: 0 0 20px 6px rgba(0, 122, 255, 0.3); }
+    }
+
+    /* Dark mode style button */
+    .btn-dark {
+      background: #1c1c1e;
+      color: #fff;
+      border-radius: 14px;
+      height: 50px;
+      padding: 0 24px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    /* === BUTTON GROUPS === */
+
+    /* Horizontal button group (alert style) */
+    .btn-hgroup {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-hgroup .btn { flex: 1; }
+
+    /* Vertical button stack */
+    .btn-vgroup {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Icon button group */
+    .btn-icon-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Stepper */
+    .stepper {
+      display: flex;
+      align-items: center;
+      background: var(--background-200);
+      border-radius: 10px;
+      overflow: hidden;
+      width: 140px;
+    }
+    .stepper-btn {
+      width: 40px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--ios-blue);
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .stepper-value {
+      flex: 1;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* === NAVIGATION BAR BUTTONS === */
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: transparent;
+      border: none;
+      color: var(--ios-blue);
+      font-size: 17px;
+      font-weight: 400;
+      cursor: pointer;
+      padding: 6px 4px;
+      font-family: inherit;
+    }
+    .nav-btn-bold { font-weight: 600; }
+
+    .nav-btn-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--background-200);
+      border-radius: 50%;
+      color: var(--foreground);
+      font-size: 18px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .nav-btn-close {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(120, 120, 128, 0.2);
+      border-radius: 50%;
+      color: var(--text-500);
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Nav bar sample row */
+    .nav-bar-sample {
+      background: var(--background-100);
+      border-bottom: 0.5px solid var(--ios-separator);
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+    }
+    .nav-bar-sample .nav-left,
+    .nav-bar-sample .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-bar-sample .nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* === TOOLBAR === */
+
+    .toolbar {
+      background: var(--background);
+      border-top: 0.5px solid var(--ios-separator);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toolbar-item {
+      color: var(--ios-blue);
+      font-size: 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+    }
+    .toolbar-flex-space {
+      flex: 1;
+      text-align: center;
+      color: var(--text-400);
+      font-size: 10px;
+    }
+
+    /* === Alert sample === */
+    .alert-sample {
+      width: 260px;
+      background: var(--background);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 0 auto;
+      box-shadow: var(--shadow-md);
+    }
+    .alert-body {
+      padding: 18px 14px;
+      text-align: center;
+    }
+    .alert-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--foreground);
+      margin-bottom: 4px;
+    }
+    .alert-message {
+      font-size: 12px;
+      color: var(--text-500);
+      line-height: 1.4;
+    }
+    .alert-buttons {
+      display: flex;
+      border-top: 0.5px solid var(--ios-separator);
+    }
+    .alert-btn {
+      flex: 1;
+      padding: 11px 0;
+      text-align: center;
+      font-size: 16px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .alert-btn.cancel {
+      color: var(--ios-blue);
+      font-weight: 400;
+      border-right: 0.5px solid var(--ios-separator);
+    }
+    .alert-btn.destructive {
+      color: var(--ios-red);
+      font-weight: 600;
+    }
+
+    /* Action Sheet */
+    .action-sheet-sample {
+      background: var(--background-200);
+      border-radius: 14px;
+      overflow: hidden;
+      padding: 8px 0;
+    }
+    .action-sheet-option {
+      background: var(--background);
+      padding: 13px;
+      text-align: center;
+      font-size: 18px;
+      color: var(--ios-blue);
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+    .action-sheet-option.destructive { color: var(--ios-red); }
+    .action-sheet-cancel {
+      background: var(--background);
+      padding: 13px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ios-blue);
+      margin-top: 6px;
+      border-radius: 14px;
+    }
+
+    /* Status dot */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    /* Sample card padding utility */
+    .sample-pad {
+      padding: 14px 16px;
+    }
+
+    .flex-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flex-wrap-gap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .state-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .state-grid .state-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .state-grid .state-label {
+      font-size: 11px;
+      color: var(--text-400);
+    }
+
+    /* FAB container */
+    .fab-container {
+      position: relative;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-card: var(--card);
+      --color-primary: var(--primary);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-border: var(--border);
+      --radius-sm: var(--radius-sm);
+      --radius-md: var(--radius-md);
+      --radius-lg: var(--radius-lg);
+    }
+    @layer base {
+      body { font-family: var(--font-sans); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Device frame -->
+    <div class="device-frame"></div>
+    <div class="dynamic-island"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="right-items">
+        <div class="signal-bars"><span></span><span></span><span></span><span></span></div>
+        <div class="wifi-icon"></div>
+        <div class="battery"><div class="battery-level"></div></div>
+      </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="content-scroll">
+      <!-- Top spacing for status bar -->
+      <div style="height: 44px;"></div>
+
+      <!-- Navigation Large Title -->
+      <div class="nav-large-title">按钮组件</div>
+
+      <!-- ============================================ -->
+      <!-- Section 1: 填充按钮 Filled Buttons -->
+      <!-- ============================================ -->
+      <div class="section-header">01 · 填充按钮 <strong>Filled Buttons</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-vgroup">
+            <button class="btn btn-filled btn-filled-blue btn-lg btn-full">主要操作</button>
+            <button class="btn btn-filled btn-filled-gray btn-lg btn-full">次要操作</button>
+            <button class="btn btn-filled btn-filled-red btn-lg btn-full">删除操作</button>
+            <button class="btn btn-filled btn-filled-green btn-lg btn-full">完成</button>
+            <button class="btn btn-filled btn-filled-orange btn-lg btn-full">警告操作</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">尺寸规格 Sizes</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-vgroup">
+            <button class="btn btn-filled btn-filled-blue btn-lg btn-full">Large · 50px</button>
+            <button class="btn btn-filled btn-filled-blue btn-md btn-full">Medium · 44px</button>
+            <div class="flex-wrap-gap">
+              <button class="btn btn-filled btn-filled-blue btn-sm">Small · 32px</button>
+              <button class="btn btn-filled btn-filled-blue btn-mini">Mini · 24px</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 2: 描边按钮 Outline / Bordered -->
+      <!-- ============================================ -->
+      <div class="section-header">02 · 描边按钮 <strong>Outline / Bordered</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-vgroup">
+            <button class="btn btn-outline btn-outline-blue btn-lg btn-full">边框按钮</button>
+            <button class="btn btn-outline btn-outline-gray btn-md btn-full">灰色描边</button>
+            <div class="flex-wrap-gap">
+              <button class="btn btn-outline btn-outline-red btn-sm">危险描边</button>
+              <button class="btn btn-outline-dashed btn-sm">虚线边框</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 3: 文字按钮 Text / Plain -->
+      <!-- ============================================ -->
+      <div class="section-header">03 · 文字按钮 <strong>Text / Plain</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="flex-wrap-gap">
+            <button class="btn btn-text">文字按钮</button>
+            <button class="btn btn-text btn-text-bold">加粗文字</button>
+            <button class="btn btn-text btn-text-red">删除</button>
+            <button class="btn btn-text btn-text-underline">带下划线</button>
+            <button class="btn btn-text">查看详情 <span class="icon icon-chevron-right" style="font-size: 12px;"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 4: 按钮状态 Button States -->
+      <!-- ============================================ -->
+      <div class="section-header">04 · 按钮状态 <strong>Button States</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="state-grid">
+            <div class="state-item">
+              <button class="btn btn-filled btn-filled-blue btn-md" style="width: 130px;">普通 Normal</button>
+              <span class="state-label">Normal</span>
+            </div>
+            <div class="state-item">
+              <button class="btn btn-filled btn-filled-blue btn-md btn-pressed" style="width: 130px;">按下 Pressed</button>
+              <span class="state-label">Pressed</span>
+            </div>
+            <div class="state-item">
+              <button class="btn btn-filled btn-filled-gray btn-md btn-disabled" style="width: 130px;">已禁用</button>
+              <span class="state-label">Disabled</span>
+            </div>
+            <div class="state-item">
+              <button class="btn btn-filled btn-filled-blue btn-md" style="width: 130px;">
+                <span class="spinner"></span>
+                加载中
+              </button>
+              <span class="state-label">Loading</span>
+            </div>
+            <div class="state-item" style="grid-column: span 2;">
+              <button class="btn btn-filled btn-filled-green btn-md" style="width: 130px;">
+                <span class="icon icon-check" style="font-size: 16px;"></span>
+                已完成
+              </button>
+              <span class="state-label">Success</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 5: 带图标按钮 Buttons with Icons -->
+      <!-- ============================================ -->
+      <div class="section-header">05 · 带图标按钮 <strong>Buttons with Icons</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-vgroup">
+            <button class="btn btn-filled btn-filled-blue btn-lg btn-full">
+              <span class="icon icon-plus" style="font-size: 16px;"></span>
+              添加课程
+            </button>
+            <button class="btn btn-filled btn-filled-blue btn-md btn-full">
+              下一步
+              <span class="icon icon-arrow-right" style="font-size: 16px;"></span>
+            </button>
+          </div>
+
+          <div style="height: 16px;"></div>
+
+          <div class="sub-section-label" style="padding: 0 0 8px;">图标按钮 Icon Only</div>
+          <div class="flex-wrap-gap" style="align-items: center;">
+            <button class="btn btn-icon-circle btn-icon-lg">
+              <span class="icon icon-plus"></span>
+            </button>
+            <button class="btn btn-icon-circle btn-icon-md" style="background: var(--ios-green);">
+              <span class="icon icon-check"></span>
+            </button>
+            <button class="btn btn-icon-circle btn-icon-sm" style="background: var(--ios-red);">
+              <span class="icon icon-trash"></span>
+            </button>
+            <div class="btn-icon-badge-wrap" style="margin-left: 8px;">
+              <button class="btn btn-icon-circle btn-icon-md" style="background: var(--background-200); color: var(--text-500);">
+                <span class="icon icon-bell"></span>
+              </button>
+              <span class="badge">3</span>
+            </div>
+          </div>
+
+          <div style="height: 16px;"></div>
+
+          <div class="sub-section-label" style="padding: 0 0 8px;">堆叠图标 Stacked</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-stacked">
+              <div class="stacked-icon"><span class="icon icon-house"></span></div>
+              <span class="stacked-label">首页</span>
+            </button>
+            <button class="btn-stacked">
+              <div class="stacked-icon" style="background: var(--ios-green);"><span class="icon icon-check"></span></div>
+              <span class="stacked-label">完成</span>
+            </button>
+            <button class="btn-stacked">
+              <div class="stacked-icon" style="background: var(--ios-orange);"><span class="icon icon-star"></span></div>
+              <span class="stacked-label">收藏</span>
+            </button>
+            <button class="btn-stacked">
+              <div class="stacked-icon" style="background: var(--ios-purple);"><span class="icon icon-user"></span></div>
+              <span class="stacked-label">我的</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 6: 胶囊与圆角 Pills & Rounded -->
+      <!-- ============================================ -->
+      <div class="section-header">06 · 胶囊与圆角 <strong>Pills &amp; Rounded</strong></div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="flex-wrap-gap">
+            <button class="btn btn-pill btn-pill-filled">标签</button>
+            <button class="btn btn-pill btn-pill-filled">
+              <span class="icon icon-share" style="font-size: 12px;"></span>
+              分享
+            </button>
+            <button class="btn btn-pill btn-pill-outline">描边胶囊</button>
+          </div>
+
+          <div style="height: 16px;"></div>
+
+          <div class="sub-section-label" style="padding: 0 0 8px;">分段胶囊 Segmented Pills</div>
+          <div class="pill-segmented">
+            <div class="pill-tab active">全部</div>
+            <div class="pill-tab">本周</div>
+            <div class="pill-tab">今天</div>
+          </div>
+
+          <div style="height: 16px;"></div>
+
+          <div class="sub-section-label" style="padding: 0 0 8px;">iOS 18 风格圆角 (10px)</div>
+          <button class="btn btn-ios18 btn-full">圆角 10px 风格</button>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 7: 特殊按钮 Special Buttons -->
+      <!-- ============================================ -->
+      <div class="section-header">07 · 特殊按钮 <strong>Special Buttons</strong></div>
+
+      <div class="sub-section-label">浮动按钮 FAB</div>
+      <div class="grouped-card">
+        <div class="fab-container">
+          <div class="fab">
+            <span class="icon icon-plus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">渐变 Gradient</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <button class="btn btn-gradient btn-full">渐变按钮</button>
+        </div>
+      </div>
+
+      <div class="sub-section-label">毛玻璃 Frosted Glass</div>
+      <div class="grouped-card" style="background: linear-gradient(135deg, #a8c0ff 0%, #c8a8ff 100%);">
+        <div class="sample-pad flex-center">
+          <button class="btn btn-glass">毛玻璃按钮</button>
+        </div>
+      </div>
+
+      <div class="sub-section-label">投影 Elevated</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <button class="btn btn-shadow btn-full">投影按钮</button>
+        </div>
+      </div>
+
+      <div class="sub-section-label">发光 Glow / Pulse</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <button class="btn btn-glow btn-full">发光按钮</button>
+        </div>
+      </div>
+
+      <div class="sub-section-label">深色模式 Dark Mode</div>
+      <div class="grouped-card" style="background: #1c1c1e;">
+        <div class="sample-pad">
+          <button class="btn btn-dark btn-full">深色按钮</button>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 8: 按钮组 Button Groups -->
+      <!-- ============================================ -->
+      <div class="section-header">08 · 按钮组 <strong>Button Groups</strong></div>
+
+      <div class="sub-section-label">横向组合 Horizontal</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-hgroup">
+            <button class="btn btn-filled btn-filled-gray btn-md">取消</button>
+            <button class="btn btn-filled btn-filled-blue btn-md">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">纵向堆叠 Vertical Stack</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="btn-vgroup">
+            <button class="btn btn-filled btn-filled-blue btn-md btn-full">主要操作</button>
+            <button class="btn btn-filled btn-filled-gray btn-md btn-full">次要操作</button>
+            <button class="btn btn-text">更多选项</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">图标按钮组 Icon Group</div>
+      <div class="grouped-card">
+        <div class="sample-pad flex-center">
+          <div class="btn-icon-group">
+            <button class="btn btn-icon-circle btn-icon-md" style="background: var(--ios-blue);">
+              <span class="icon icon-share"></span>
+            </button>
+            <button class="btn btn-icon-circle btn-icon-md" style="background: var(--ios-green);">
+              <span class="icon icon-copy"></span>
+            </button>
+            <button class="btn btn-icon-circle btn-icon-md" style="background: var(--ios-red);">
+              <span class="icon icon-trash"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">分段控件 Segmented Control</div>
+      <div class="grouped-card">
+        <div class="sample-pad">
+          <div class="segmented-control">
+            <div class="segment-indicator" style="left: calc(33.333% + 2px); width: calc(33.333% - 4px);"></div>
+            <div class="segment">日</div>
+            <div class="segment active">周</div>
+            <div class="segment">月</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">加减控件 Stepper</div>
+      <div class="grouped-card">
+        <div class="sample-pad flex-center">
+          <div class="stepper">
+            <button class="stepper-btn"><span class="icon icon-minus" style="font-size: 14px;"></span></button>
+            <div class="stepper-value">5</div>
+            <button class="stepper-btn"><span class="icon icon-plus" style="font-size: 14px;"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 9: 导航栏按钮 Navigation Bar -->
+      <!-- ============================================ -->
+      <div class="section-header">09 · 导航栏按钮 <strong>Navigation Bar</strong></div>
+
+      <div class="grouped-card" style="padding: 0; overflow: hidden;">
+        <div class="nav-bar-sample" style="position: relative;">
+          <div class="nav-left">
+            <button class="nav-btn">
+              <span class="icon icon-chevron-left" style="font-size: 18px;"></span>
+              返回
+            </button>
+          </div>
+          <div class="nav-center">详情页</div>
+          <div class="nav-right">
+            <button class="nav-btn nav-btn-bold">完成</button>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 12px; color: var(--text-400); text-align: center;">返回 + 完成按钮</div>
+      </div>
+
+      <div style="height: 12px;"></div>
+
+      <div class="grouped-card" style="padding: 0; overflow: hidden;">
+        <div class="nav-bar-sample" style="position: relative;">
+          <div class="nav-left">
+            <button class="nav-btn">取消</button>
+          </div>
+          <div class="nav-center">编辑资料</div>
+          <div class="nav-right">
+            <button class="nav-btn nav-btn-bold">保存</button>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 12px; color: var(--text-400); text-align: center;">取消 + 保存按钮</div>
+      </div>
+
+      <div style="height: 12px;"></div>
+
+      <div class="grouped-card" style="padding: 0; overflow: hidden;">
+        <div class="nav-bar-sample" style="position: relative;">
+          <div class="nav-left">
+            <button class="nav-btn-close">
+              <span class="icon icon-x"></span>
+            </button>
+          </div>
+          <div class="nav-center">模态页</div>
+          <div class="nav-right">
+            <button class="nav-btn-icon">
+              <span class="icon icon-plus" style="font-size: 16px; color: var(--ios-blue);"></span>
+            </button>
+            <button class="nav-btn-icon" style="margin-left: 4px;">
+              <span class="icon icon-more-horiz" style="font-size: 16px; color: var(--ios-blue);"></span>
+            </button>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 12px; color: var(--text-400); text-align: center;">关闭 + 添加 + 更多</div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- Section 10: Tab Bar & Toolbar -->
+      <!-- ============================================ -->
+      <div class="section-header">10 · 标签栏与工具栏 <strong>Tab Bar &amp; Toolbar</strong></div>
+
+      <div class="sub-section-label">标签栏项 Tab Bar Items</div>
+      <div class="grouped-card">
+        <div style="padding: 14px 8px; display: flex; justify-content: space-around;">
+          <div class="tab-item active">
+            <span class="tab-icon icon icon-house"></span>
+            <span>今日</span>
+          </div>
+          <div class="tab-item">
+            <span class="tab-icon icon icon-calendar"></span>
+            <span>课表</span>
+          </div>
+          <div class="tab-item">
+            <span class="tab-icon icon icon-download"></span>
+            <span>导入</span>
+          </div>
+          <div class="tab-item">
+            <span class="tab-icon icon icon-user"></span>
+            <span>我的</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section-label">工具栏 Toolbar</div>
+      <div class="grouped-card" style="padding: 0; overflow: hidden;">
+        <div class="toolbar">
+          <button class="toolbar-item"><span class="icon icon-share" style="font-size: 20px;"></span></button>
+          <div class="toolbar-flex-space">···</div>
+          <button class="toolbar-item"><span class="icon icon-star" style="font-size: 20px;"></span></button>
+          <div class="toolbar-flex-space">···</div>
+          <button class="toolbar-item"><span class="icon icon-bookmark" style="font-size: 20px;"></span></button>
+        </div>
+        <div style="padding: 8px 16px; font-size: 12px; color: var(--text-400); text-align: center;">分享 · 收藏 · 书签</div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- OTHER COMPONENTS (compact) -->
+      <!-- ============================================ -->
+      <div class="section-header" style="padding-top: 28px;">更多组件 <strong>More Components</strong></div>
+
+      <!-- Switches & Sliders (compact) -->
+      <div class="sub-section-label">开关与滑块</div>
+      <div class="grouped-card">
+        <div class="grouped-item">
+          <span style="font-size: 15px; color: var(--foreground);">通知</span>
+          <div class="ios-toggle on"></div>
+        </div>
+        <div class="grouped-item">
+          <span style="font-size: 15px; color: var(--foreground);">深色</span>
+          <div class="ios-toggle off"></div>
+        </div>
+        <div style="padding: 10px 16px 14px;">
+          <div class="ios-slider">
+            <div class="slider-fill"></div>
+            <div class="slider-thumb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inputs (compact) -->
+      <div class="sub-section-label">输入框</div>
+      <div class="grouped-card" style="padding: 12px 16px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="ios-textfield">
+            <span class="icon icon-search" style="font-size: 14px; color: var(--text-400);"></span>
+            <input type="text" placeholder="搜索">
+          </div>
+          <div class="ios-textfield">
+            <input type="text" placeholder="课程名称">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags & Badges (compact) -->
+      <div class="sub-section-label">标签与徽章</div>
+      <div class="grouped-card" style="padding: 12px 16px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="tag-pill" style="background: rgba(0,122,255,0.12); color: var(--ios-blue); font-size: 11px;">必修</span>
+          <span class="tag-pill" style="background: rgba(52,199,89,0.12); color: var(--ios-green); font-size: 11px;">选修</span>
+          <span class="tag-pill" style="background: rgba(255,59,48,0.12); color: var(--ios-red); font-size: 11px;">考试</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="position: relative;">
+            <span class="icon icon-bell" style="font-size: 22px; color: var(--text-500);"></span>
+            <span class="badge">3</span>
+          </div>
+          <div style="display: flex; gap: 10px; font-size: 12px; color: var(--foreground);">
+            <span><span class="status-dot" style="background: var(--ios-green);"></span>进行中</span>
+            <span><span class="status-dot" style="background: var(--ios-red);"></span>已结束</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards (compact) -->
+      <div class="sub-section-label">卡片</div>
+      <div style="padding: 0 16px;">
+        <div class="course-card">
+          <div style="font-size: 15px; font-weight: 600; color: var(--foreground); margin-bottom: 2px;">高等数学</div>
+          <div style="font-size: 12px; color: var(--text-500);">08:00 - 09:40 · 教一 201</div>
+        </div>
+      </div>
+
+      <!-- Popups (compact) -->
+      <div class="sub-section-label">弹窗与浮层</div>
+      <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Alert -->
+        <div style="background: rgba(0,0,0,0.06); border-radius: 12px; padding: 14px;">
+          <div style="font-size: 10px; color: var(--text-400); text-align: center; margin-bottom: 8px; text-transform: uppercase;">Alert</div>
+          <div class="alert-sample" style="transform: scale(0.85); transform-origin: top center;">
+            <div class="alert-body">
+              <div class="alert-title">确认删除</div>
+              <div class="alert-message">确定要删除吗？</div>
+            </div>
+            <div class="alert-buttons">
+              <button class="alert-btn cancel">取消</button>
+              <button class="alert-btn destructive">删除</button>
+            </div>
+          </div>
+        </div>
+        <!-- Action Sheet -->
+        <div style="background: rgba(0,0,0,0.06); border-radius: 12px; padding: 14px;">
+          <div style="font-size: 10px; color: var(--text-400); text-align: center; margin-bottom: 8px; text-transform: uppercase;">Action Sheet</div>
+          <div class="action-sheet-sample" style="transform: scale(0.85); transform-origin: top center;">
+            <div class="action-sheet-option">编辑</div>
+            <div class="action-sheet-option destructive">删除</div>
+            <div style="height: 6px;"></div>
+            <div class="action-sheet-cancel">取消</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom padding for tab bar + home indicator -->
+      <div style="height: 120px;"></div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-bar-inner">
+        <div class="tab-item active">
+          <span class="tab-icon icon icon-house"></span>
+          <span>今日</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon icon icon-calendar"></span>
+          <span>课表</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon icon icon-download"></span>
+          <span>导入</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon icon icon-user"></span>
+          <span>我的</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+  </div>
+</body>
+</html>

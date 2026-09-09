@@ -51,6 +51,7 @@ import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -110,11 +111,11 @@ fun TimeSection(
     Surface(
         onClick = onClick,
         modifier = modifier,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+        color = appColors().primarySoft.copy(alpha = 0.7f),
         shape = MaterialTheme.shapes.small
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = dayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text(text = dayName, style = MaterialTheme.typography.labelSmall, color = appColors().primary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = timeDesc, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
@@ -130,7 +131,7 @@ fun ColorIndicatorSection(
     val isDark = LocalIsDarkTheme.current
     val displayColor = colorMaps.getOrNull(colorIndex)?.let {
         if (isDark) it.dark else it.light
-    } ?: MaterialTheme.colorScheme.outlineVariant
+    } ?: appColors().divider
 
     Box(
         modifier = Modifier
@@ -211,7 +212,7 @@ fun WeekSelectorBottomSheet(
                             text = weekNumber.toString(),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            else appColors().textSecondary
                         )
                     }
                 }
