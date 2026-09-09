@@ -243,7 +243,7 @@ fun DayHeader(
                             .fillMaxHeight()
                             .background(
                                 if (isToday && !isSleepyPreset && !isTimetablePreset) {
-                                    MaterialTheme.colorScheme.primaryContainer.copy(0.4f)
+                                    appColors().primarySoft.copy(0.4f)
                                 } else {
                                     Color.Transparent
                                 }
@@ -336,9 +336,9 @@ fun TimeColumn(
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
     val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val activeSectionBackground = when {
-        isSleepyPreset -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-        isTimetablePreset -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        isSleepyPreset -> appColors().primarySoft.copy(alpha = 0.25f)
+        isTimetablePreset -> appColors().primarySoft.copy(alpha = 0.6f)
+        else -> appColors().primarySoft.copy(alpha = 0.4f)
     }
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
 

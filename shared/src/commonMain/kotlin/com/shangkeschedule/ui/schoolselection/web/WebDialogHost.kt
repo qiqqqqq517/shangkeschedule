@@ -1,17 +1,17 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import com.shangkeschedule.ui.theme.appColors
+
+import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.components.AppTextField
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -129,7 +129,7 @@ private fun PromptHost(
                     modifier = Modifier.fillMaxWidth()
                 )
                 errorText?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(it, color = appColors().danger, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -155,17 +155,10 @@ private fun SingleSelectionHost(data: SingleSelectionDialogData, onResult: (Int?
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 data.items.forEachIndexed { index, item ->
-                    ListItem(
-                        headlineContent = { Text(item) },
-                        leadingContent = {
-                            RadioButton(
-                                selected = (index == selectedIndex),
-                                onClick = null
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedIndex = index }
+                    AppRadioRow(
+                        text = item,
+                        selected = (index == selectedIndex),
+                        onClick = { selectedIndex = index }
                     )
                 }
             }

@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.settings.style.StyleSliderItem
 import com.shangkeschedule.ui.theme.AccentTone
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.LiquidGlassBlurRadius
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
@@ -117,13 +117,13 @@ fun GlassBlurScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(AppSpacing.pageHorizontal),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)
+                .padding(appSpacing().pageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             Text(
                 text = stringResource(Res.string.glass_section_desc),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
@@ -146,11 +146,11 @@ fun GlassBlurScreen(
             Text(
                 text = stringResource(Res.string.desc_glass_blur),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
         }
     }
 }
@@ -171,7 +171,7 @@ private fun GlassBlurPreview() {
     val hazeState = rememberHazeState()
 
     Surface(
-        shape = AppShape.card,
+        shape = appShapes().card,
         color = tokens.pageBg,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -218,7 +218,7 @@ private fun GlassBlurPreview() {
                     .padding(horizontal = 14.dp, vertical = 12.dp)
                     .liquidGlass(
                         hazeState = hazeState,
-                        shape = AppShape.capsule,
+                        shape = appShapes().capsule,
                         containerColor = tokens.inputBg,
                         shadowElevation = 10.dp
                     )
@@ -303,7 +303,7 @@ private fun DemoNavItem(icon: ImageVector, label: String, selected: Boolean) {
     val tokens = appColors()
     Row(
         modifier = Modifier
-            .clip(AppShape.capsule)
+            .clip(appShapes().capsule)
             .background(if (selected) tokens.navSelectedBg else Color.Transparent)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -343,7 +343,7 @@ private fun GlassPresetRow(currentDp: Float, onSelect: (Float) -> Unit) {
             val selected = kotlin.math.abs(currentDp - dpValue) < 0.01f
             Surface(
                 onClick = { onSelect(dpValue) },
-                shape = AppShape.capsule,
+                shape = appShapes().capsule,
                 color = if (selected) selectedColor.copy(alpha = 0.12f)
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = if (selected) BorderStroke(1.dp, selectedColor.copy(alpha = 0.35f)) else null
@@ -352,7 +352,7 @@ private fun GlassPresetRow(currentDp: Float, onSelect: (Float) -> Unit) {
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (selected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (selected) selectedColor else appColors().textSecondary,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                 )
             }

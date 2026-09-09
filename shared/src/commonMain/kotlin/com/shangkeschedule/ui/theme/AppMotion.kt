@@ -31,18 +31,27 @@ import shangkeschedule.shared.generated.resources.anim_style_glass
 import shangkeschedule.shared.generated.resources.anim_style_glass_desc
 import shangkeschedule.shared.generated.resources.anim_style_snappy
 import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
+import shangkeschedule.shared.generated.resources.touch_feedback_ripple
+import shangkeschedule.shared.generated.resources.touch_feedback_ripple_desc
+import shangkeschedule.shared.generated.resources.touch_feedback_halo
+import shangkeschedule.shared.generated.resources.touch_feedback_halo_desc
+import shangkeschedule.shared.generated.resources.touch_feedback_none
+import shangkeschedule.shared.generated.resources.touch_feedback_none_desc
 
 /**
- * 全局动效系统（v3.26.0）。
+ * 全局动效系统（v3.26.0 · v3.27 Apple HIG 重构）。
  *
- * 设计目标：把此前散落在各调用点、各自写死的时长/缓动（导航 tween(300)、底栏隐藏
- * tween(220)、悬浮件 scaleIn(0.8) 弹簧、hero 呼吸 tween(1000)、开发者页 tween(300/400)、
- * 按压瞬切 0.92……）收口成一套「风格 × 分组」的统一令牌，经 [LocalAppMotion] 注入全 App。
- * 与 [LocalGlassBlurRadius] 同源思路：一处设定，全端同步，不再各件各值。
+ * 设计目标：把此前散落在各调用点、各自写死的时长/缓动收口成一套「风格 × 分组」的
+ * 统一令牌，经 [LocalAppMotion] 注入全 App。与 [LocalGlassBlurRadius] 同源思路：
+ * 一处设定，全端同步，不再各件各值。
+ *
+ * v3.27 重构：默认 GLASS 风格对齐 Apple HIG 动效规范——
+ * 无过冲 ease-out 曲线（cubic-bezier(0.32, 0.72, 0, 1)）、平滑 tween 替代弹簧、
+ * 时带对齐 150/250/350ms，幅度克制，强调「润而不跳」的精致感。
  *
  * 两个维度：
- * - [AnimationStyle]：三档全局风格（琉璃轻弹 / 舒缓轻移 / 灵动跟手），决定所有动画的
- *   时长、缓动、弹簧手感。枚举可扩展——加一档只需新增枚举项 + 一套 [MotionTokens]。
+ * - [AnimationStyle]：三档全局风格（琉璃流畅 / 舒缓轻移 / 灵动跟手），决定所有动画的
+ *   时长、缓动、手感。枚举可扩展——加一档只需新增枚举项 + 一套 [MotionTokens]。
  * - [AnimationGroup]：六个可独立开关的动画分组。关掉某组 ⇒ [resolveMotion] 把该组对应
  *   的令牌降级为「瞬切」（duration=0 / snap / 缩放归 1），该项无动画；周翻页这类无法靠
  *   时长归零关闭的，用 [AppMotion.isEnabled] 在调用点显式分支。分组同样可扩展。
@@ -54,10 +63,10 @@ enum class AnimationStyle(
     val labelRes: StringResource,
     val descRes: StringResource
 ) {
-    /** 琉璃轻弹：液态玻璃弹性——spring 回弹 + 惯性，最贴磨砂玻璃语言（默认）。 */
+    /** 琉璃流畅：Apple HIG 风格——ease-out 平滑曲线、克制幅度，通透主题默认（推荐）。 */
     GLASS("GLASS", Res.string.anim_style_glass, Res.string.anim_style_glass_desc),
 
-    /** 舒缓轻移：克制精致——淡入 + 微位移，安静高级，几乎无弹跳。 */
+    /** 舒缓轻移：克制精致——淡入 + 微位移，更慢更柔，几乎无存在感。 */
     GENTLE("GENTLE", Res.string.anim_style_gentle, Res.string.anim_style_gentle_desc),
 
     /** 灵动跟手：短促 snappy——反馈强、跟手，年轻有活力。 */
@@ -74,6 +83,30 @@ enum class AnimationStyle(
     companion object {
         fun fromString(value: String?): AnimationStyle =
             entries.find { it.value == value } ?: GLASS
+    }
+}
+
+/**
+ * 触摸反馈风格（v3.27.2 新增）。
+ * 手指按下时从触点扩散的视觉反馈，两种苹果风格可选。
+ */
+enum class TouchFeedbackStyle(
+    val value: String,
+    val labelRes: StringResource,
+    val descRes: StringResource
+) {
+    /** 涟漪式：从触点向外扩散的柔和圆形涟漪，克制低透明度，类似 iOS 列表 cell 按压。 */
+    RIPPLE("RIPPLE", Res.string.touch_feedback_ripple, Res.string.touch_feedback_ripple_desc),
+
+    /** 光晕式：触点周围柔和的光韵扩散，模糊边缘，更梦幻更「玻璃」。 */
+    HALO("HALO", Res.string.touch_feedback_halo, Res.string.touch_feedback_halo_desc),
+
+    /** 关闭：无触摸视觉反馈（仅保留按压缩放）。 */
+    NONE("NONE", Res.string.touch_feedback_none, Res.string.touch_feedback_none_desc);
+
+    companion object {
+        fun fromString(value: String?): TouchFeedbackStyle =
+            entries.find { it.value == value } ?: RIPPLE
     }
 }
 
@@ -111,7 +144,7 @@ enum class AnimationGroup(
  * 一套动效令牌：按语义角色给出时长 / 缓动 / 弹簧 / 幅度。
  *
  * 「弹簧类」角色（悬浮件缩放、按压、课程格按压）直接存已构建的 [FiniteAnimationSpec]，
- * 因为其种类随风格而变（琉璃轻弹=spring 回弹 / 舒缓轻移=tween / 灵动跟手=硬 spring），
+ * 因为其种类随风格而变（琉璃流畅=tween ease-out / 舒缓轻移=tween / 灵动跟手=硬 spring），
  * 存原始 duration+easing 无法表达。其余角色（导航、底栏隐藏、入场、展开、变色、呼吸）
  * 恒为 tween，存 duration+easing 由调用点 `tween<T>(...)` 就地构建（避免泛型擦除麻烦）。
  */
@@ -153,35 +186,30 @@ data class MotionTokens(
 )
 
 /** 缓动曲线（自定义 CubicBezier，避免依赖较新的 Ease* 顶层常量）。 */
-private val GlassEase = CubicBezierEasing(0.34f, 1.4f, 0.64f, 1f)   // 末端轻微过冲，玻璃弹感
+// Apple HIG 标准 ease-out：cubic-bezier(0.32, 0.72, 0, 1)
+// 特点：快速启动、平滑收尾，无过冲，克制精致
+private val AppleEase = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
 private val GentleEase = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)        // Material 标准，平滑
 private val SnappyEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)          // 快出，跟手
 
-/** 琉璃轻弹：spring 回弹 + 惯性，磨砂玻璃的签名手感。 */
+/** 琉璃流畅：Apple HIG 风格——ease-out 平滑曲线 + 克制幅度，通透主题默认。
+ *  对齐苹果时带：导航 320ms / 隐藏 220ms / 入场 300ms / 展开 260ms。
+ *  全程 tween + AppleEase，零弹簧零过冲，润而不跳。 */
 private val GlassTokens = MotionTokens(
-    navDurationMs = 340, navEasing = GlassEase,
-    hideDurationMs = 260, hideEasing = GlassEase,
-    emphasisScaleSpec = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    ),
-    emphasisFadeSpec = tween(240, easing = LinearOutSlowInEasing),
-    emphasisInitialScale = 0.82f, emphasisTargetScale = 1f,
-    pressSpec = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessHigh
-    ),
-    pressScale = 0.90f,
-    cellPressSpec = spring(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessMedium
-    ),
-    cellPressScale = 0.96f, cellLiftDp = 3.dp,
-    entranceDurationMs = 360, entranceEasing = GlassEase, entranceStaggerMs = 45, entranceSlideDp = 14.dp,
-    expandDurationMs = 320, expandEasing = GlassEase,
-    colorDurationMs = 420,
-    resizeDurationMs = 340, resizeEasing = GlassEase,
-    pulseDurationMs = 1100,
+    navDurationMs = 320, navEasing = AppleEase,
+    hideDurationMs = 220, hideEasing = AppleEase,
+    emphasisScaleSpec = tween(260, easing = AppleEase),
+    emphasisFadeSpec = tween(260, easing = AppleEase),
+    emphasisInitialScale = 0.92f, emphasisTargetScale = 1f,
+    pressSpec = tween(150, easing = AppleEase),
+    pressScale = 0.96f,
+    cellPressSpec = tween(180, easing = AppleEase),
+    cellPressScale = 0.975f, cellLiftDp = 1.5.dp,
+    entranceDurationMs = 300, entranceEasing = AppleEase, entranceStaggerMs = 40, entranceSlideDp = 8.dp,
+    expandDurationMs = 260, expandEasing = AppleEase,
+    colorDurationMs = 350,
+    resizeDurationMs = 280, resizeEasing = AppleEase,
+    pulseDurationMs = 1200,
 )
 
 /** 舒缓轻移：克制精致，淡入 + 微位移，安静无弹跳。 */

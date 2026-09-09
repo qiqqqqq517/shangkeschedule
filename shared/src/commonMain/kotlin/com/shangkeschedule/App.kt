@@ -142,8 +142,11 @@ fun AppNavigation(startDestination: Destination) {
     // v3.26.0 动效收口：导航转场时长/缓动读全局动效令牌（LocalAppMotion），
     // 关掉「导航转场」分组 ⇒ 直接瞬切（无转场动画）。
     val motion = LocalAppMotion.current
-    val animSpec = remember(motion) {
+    val slideAnimSpec = remember(motion) {
         tween<IntOffset>(motion.tokens.navDurationMs, easing = motion.tokens.navEasing)
+    }
+    val fadeAnimSpec = remember(motion) {
+        tween<Float>(motion.tokens.navDurationMs, easing = motion.tokens.navEasing)
     }
     val navAnimEnabled = motion.isEnabled(AnimationGroup.NAV_TRANSITION)
 
@@ -157,8 +160,12 @@ fun AppNavigation(startDestination: Destination) {
             if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                slideInHorizontally(initialOffsetX = { it }, animationSpec = animSpec) togetherWith
-                        slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeOut()
+                // Apple HIG 风格 push：新页从右侧滑入 + 淡入，旧页左移 1/3 + 淡出
+                // ease-out 曲线确保平滑无过冲，消除「翻页感」
+                slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) +
+                    fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                    slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) +
+                    fadeOut(animationSpec = fadeAnimSpec)
             }
         },
         popTransitionSpec = {
@@ -168,8 +175,11 @@ fun AppNavigation(startDestination: Destination) {
             if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+                // Apple HIG 风格 pop：旧页向右滑出 + 淡出，上一页从左侧 1/3 滑入 + 淡入
+                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) +
+                    fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
+                    fadeOut(animationSpec = fadeAnimSpec)
             }
         },
         predictivePopTransitionSpec = {
@@ -177,8 +187,10 @@ fun AppNavigation(startDestination: Destination) {
             if (!navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) +
+                    fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
+                    fadeOut(animationSpec = fadeAnimSpec)
             }
         },
         entryDecorators = listOf(

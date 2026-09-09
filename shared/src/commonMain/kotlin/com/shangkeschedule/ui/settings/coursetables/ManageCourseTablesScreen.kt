@@ -1,4 +1,7 @@
-package com.shangkeschedule.ui.settings.coursetables
+﻿package com.shangkeschedule.ui.settings.coursetables
+
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -146,7 +149,7 @@ fun ManageCourseTablesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (uiState.courseTables.isEmpty()) {
@@ -346,7 +349,7 @@ fun CourseTableCard(
                 Text(
                     text = createdAtText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = appColors().textSecondary.copy(alpha = 0.7f)
                 )
             }
             Row(

@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.backup
+﻿package com.shangkeschedule.ui.settings.backup
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -46,11 +45,12 @@ import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.settings.SettingItem
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -205,7 +205,7 @@ fun BackupScreen(
                 .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
             if (state.isBusy || state.isTesting) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -220,8 +220,9 @@ fun BackupScreen(
                     onClick = { showBackupTargetDialog = true }
                 )
                 HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = appColors().divider
+                    modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
+                    color = appColors().divider,
+                    thickness = 0.5.dp
                 )
                 MenuActionItem(
                     title = stringResource(Res.string.item_restore_data),
@@ -372,7 +373,7 @@ fun CardGroup(
                 // 内容 16dp 水平缩进（与 SectionCard 一致）：图标 chip / chevron 不贴卡片边缘
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = AppSpacing.pageHorizontal),
+                    .padding(horizontal = appSpacing().pageHorizontal),
                 content = content
             )
         }
@@ -416,24 +417,11 @@ fun TargetSelectionDialog(
             ) {
                 BackupTarget.entries.forEach { target ->
                     val isSelected = target == selectedTarget
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedTarget = target }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { selectedTarget = target }
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(target.stringRes),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    AppRadioRow(
+                        text = stringResource(target.stringRes),
+                        selected = isSelected,
+                        onClick = { selectedTarget = target }
+                    )
                 }
             }
         },

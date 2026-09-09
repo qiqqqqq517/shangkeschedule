@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <!-- 应用基础信息 -->
     <string name="app_name">上课</string>
     <string name="hero_subtitle">让每一节课都有迹可循</string>
@@ -34,6 +34,18 @@
     <string name="nav_course_schedule">课表</string>
     <string name="nav_settings">我的</string>
     <string name="title_today_schedule">今日课表</string>
+    <string name="title_today_courses">今日课程</string>
+    <string name="title_week_overview">本周概览</string>
+    <string name="title_tomorrow_courses">明日课程</string>
+    <string name="text_courses_count">共 %1$s 节</string>
+    <string name="text_week_courses">本周课程</string>
+    <string name="text_today_courses_label">今日课程</string>
+    <string name="text_todo_pending">待完成</string>
+    <string name="action_view_all">查看全部</string>
+    <string name="action_week_view">周视图</string>
+    <string name="settings_group_course">课程设置</string>
+    <string name="settings_group_tools">工具</string>
+    <string name="settings_group_other">其他</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="label_crush_course">TA的课</string>
     <string name="text_course_in_progress">正在上课</string>
@@ -615,6 +627,12 @@
     <string name="anim_style_gentle_desc">克制精致，淡入微移，安静高级</string>
     <string name="anim_style_snappy">灵动跟手</string>
     <string name="anim_style_snappy_desc">短促干脆，反馈强、跟手</string>
+    <string name="touch_feedback_ripple">涟漪式</string>
+    <string name="touch_feedback_ripple_desc">从触点扩散的柔和圆形涟漪，精致克制</string>
+    <string name="touch_feedback_halo">光晕式</string>
+    <string name="touch_feedback_halo_desc">触点周围的柔光扩散，梦幻玻璃感</string>
+    <string name="touch_feedback_none">关闭</string>
+    <string name="touch_feedback_none_desc">无触摸视觉反馈</string>
     <string name="anim_group_course_cell">课程格反馈</string>
     <string name="anim_group_course_cell_desc">课程块点按时的缩放与微抬起</string>
     <string name="anim_group_week_pager">周翻页过渡</string>
@@ -634,6 +652,7 @@
     <string name="theme_preset_classic">经典</string>
     <string name="theme_preset_cloud">云舒</string>
     <string name="theme_preset_clean">利落</string>
+    <string name="theme_preset_ios">通透</string>
     <string name="theme_style_section">主题风格</string>
     <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>

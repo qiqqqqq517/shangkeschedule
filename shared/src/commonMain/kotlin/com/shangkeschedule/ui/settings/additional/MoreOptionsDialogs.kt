@@ -1,9 +1,9 @@
 package com.shangkeschedule.ui.settings.additional
 
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,10 +17,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,18 +65,10 @@ fun StartScreenSelectionDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 StartScreen.entries.forEach { screen ->
-                    ListItem(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onConfirm(screen) },
-                        headlineContent = { Text(stringResource(screen.labelRes)) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        leadingContent = {
-                            RadioButton(
-                                selected = screen == currentSelected,
-                                onClick = { onConfirm(screen) }
-                            )
-                        }
+                    AppRadioRow(
+                        text = stringResource(screen.labelRes),
+                        selected = screen == currentSelected,
+                        onClick = { onConfirm(screen) }
                     )
                 }
             }
@@ -113,18 +102,10 @@ fun ChannelSelectionDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 UpdatePlatform.entries.forEach { platform ->
-                    ListItem(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedPlatform = platform },
-                        headlineContent = { Text(text = platform.title) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        leadingContent = {
-                            RadioButton(
-                                selected = platform == selectedPlatform,
-                                onClick = { selectedPlatform = platform }
-                            )
-                        }
+                    AppRadioRow(
+                        text = platform.title,
+                        selected = platform == selectedPlatform,
+                        onClick = { selectedPlatform = platform }
                     )
                 }
             }

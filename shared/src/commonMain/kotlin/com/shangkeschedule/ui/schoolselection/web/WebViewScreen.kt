@@ -1,5 +1,10 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
+
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,8 +26,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,7 +35,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -46,14 +50,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
+import com.shangkeschedule.ui.components.TelegramMenu
+import com.shangkeschedule.ui.components.TelegramMenuItem
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -291,25 +299,26 @@ fun WebViewScreen(
                             Icon(vectorResource(Res.drawable.more_vert_24px), contentDescription = stringResource(Res.string.a11y_more_options))
                         }
 
-                        DropdownMenu(
+                        TelegramMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.action_refresh)) },
+                            TelegramMenuItem(
+                                icon = vectorResource(Res.drawable.refresh_24px),
+                                text = stringResource(Res.string.action_refresh),
                                 onClick = {
                                     webViewController.reload()
                                     expanded = false
-                                },
-                                leadingIcon = { Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = stringResource(Res.string.a11y_refresh)) }
+                                }
                             )
 
                             if (!isDesktopPlatform) {
                                 val switchTextId = if (isDesktopMode) Res.string.action_switch_to_phone_mode else Res.string.action_switch_to_desktop_mode
-                                val switchIcon = if (isDesktopMode) vectorResource(Res.drawable.phone_android_24px) else vectorResource(Res.drawable.desktop_windows_24px)
+                                val switchIcon = vectorResource(if (isDesktopMode) Res.drawable.phone_android_24px else Res.drawable.desktop_windows_24px)
 
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(switchTextId)) },
+                                TelegramMenuItem(
+                                    icon = switchIcon,
+                                    text = stringResource(switchTextId),
                                     onClick = {
                                         val realUrl = webViewController.currentUrl
                                         if (realUrl.isNotBlank() && realUrl != "about:blank") {
@@ -319,29 +328,46 @@ fun WebViewScreen(
                                         val tText = if (isDesktopMode) toastSwitchedToDesktop else toastSwitchedToPhone
                                         ToastManager.show(tText)
                                         expanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            switchIcon,
-                                            contentDescription = stringResource(switchTextId)
-                                        )
                                     }
                                 )
                             }
 
                             if (isDeveloperModeEnabled) {
-                                DropdownMenuItem(
-                                    onClick = {
-                                        isDevToolsEnabled = !isDevToolsEnabled
-                                        webViewController.setDevToolsEnabled(isDevToolsEnabled)
-
-                                        val tText = if (isDevToolsEnabled) toastDevToolsEnabled else toastDevToolsDisabled
-                                        ToastManager.show(tText)
-                                    },
-                                    leadingIcon = { Icon(vectorResource(Res.drawable.build_24px), contentDescription = stringResource(Res.string.a11y_devtools)) },
-                                    text = { Text(stringResource(Res.string.item_devtools_debug)) },
-                                    trailingIcon = { Switch(checked = isDevToolsEnabled, onCheckedChange = null) }
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 52.dp)
+                                        .clickable {
+                                            isDevToolsEnabled = !isDevToolsEnabled
+                                            webViewController.setDevToolsEnabled(isDevToolsEnabled)
+                                            val tText = if (isDevToolsEnabled) toastDevToolsEnabled else toastDevToolsDisabled
+                                            ToastManager.show(tText)
+                                            expanded = false
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.build_24px),
+                                            contentDescription = stringResource(Res.string.a11y_devtools),
+                                            tint = appColors().textSecondary,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(Res.string.item_devtools_debug),
+                                            modifier = Modifier.padding(start = 14.dp),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
+                                            fontWeight = FontWeight.Medium,
+                                            color = appColors().textPrimary
+                                        )
+                                    }
+                                    AppSwitch(
+                                        checked = isDevToolsEnabled,
+                                        onCheckedChange = null
+                                    )
+                                }
                             }
                         }
                     }
@@ -356,14 +382,14 @@ fun WebViewScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 content = {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = stringResource(Res.string.text_import_guide),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = appColors().textSecondary
                         )
 
                         Spacer(Modifier.width(12.dp))
@@ -437,7 +463,7 @@ fun WebViewScreen(
                     Text(
                         text = stringResource(Res.string.webview_load_error_detail),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appColors().textSecondary,
                         textAlign = TextAlign.Center
                     )
                     Spacer(Modifier.height(8.dp))

@@ -37,8 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.TouchFeedbackStyle
+import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.components.TouchFeedbackState
+import com.shangkeschedule.ui.components.rememberTouchFeedbackState
+import com.shangkeschedule.ui.components.touchFeedback
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import org.jetbrains.compose.resources.stringArrayResource
 import shangkeschedule.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -84,7 +91,7 @@ fun ScheduleGrid(
         val maxGridSections = if (is24HourMode) 24 else viewState.timeSlots.size
 
         val totalGridHeight = style.sectionHeight * maxGridSections
-        val gridLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        val gridLineColor = appColors().divider.copy(alpha = 0.2f)
         val strokeWidthPx = 1f
 
         val singleSchedulables = remember(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends) {
@@ -227,6 +234,11 @@ fun ScheduleGrid(
                             label = "courseCellPress"
                         )
 
+                        // v3.27.2 手指跟随动效：涟漪式 / 光晕式触摸反馈
+                        val touchFeedbackState = rememberTouchFeedbackState()
+                        val touchScope = rememberCoroutineScope()
+                        val touchFeedbackStyle = remember { TouchFeedbackStyle.RIPPLE }
+
                         // v3.26.0 C+.17 页面入场错峰淡入：仅首次组合触发（remember 记住，
                         // 课程数据刷新不重播）；关掉「页面入场」分组 ⇒ 直接显示
                         val entranceEnabled = cellMotion.isEnabled(AnimationGroup.PAGE_ENTRANCE) &&
@@ -288,6 +300,8 @@ fun ScheduleGrid(
                                                 cellMotion.tokens.entranceSlideDp.toPx() * (1f - entranceFraction)
                                         alpha = entranceFraction.coerceIn(0f, 1f)
                                     }
+                                    // v3.27.2 手指跟随动效：涟漪/光晕触摸反馈（绘制在课程块内容之上）
+                                    .touchFeedback(touchFeedbackState, touchFeedbackStyle)
                                     .zIndex(
                                         when {
                                             isExpanded -> 2f
@@ -322,13 +336,16 @@ fun ScheduleGrid(
                                         if (!isExpanded) {
                                             Modifier.pointerInput(item) {
                                                 detectTapGestures(
-                                                    onPress = {
+                                                    onPress = { offset ->
                                                         // C+.15 按压反馈的按下/抬起信号源
                                                         cellPressed = true
+                                                        // v3.27.2 手指跟随动效：从触点扩散涟漪/光晕
+                                                        touchFeedbackState.show(offset, touchScope)
                                                         try {
                                                             awaitRelease()
                                                         } finally {
                                                             cellPressed = false
+                                                            touchFeedbackState.hide(touchScope)
                                                         }
                                                     },
                                                     onTap = { actions.onCourseBlockClicked(item.parentBlock) },

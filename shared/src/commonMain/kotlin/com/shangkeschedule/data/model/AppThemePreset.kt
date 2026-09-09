@@ -8,11 +8,12 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.theme_preset_classic
 import shangkeschedule.shared.generated.resources.theme_preset_clean
 import shangkeschedule.shared.generated.resources.theme_preset_cloud
+import shangkeschedule.shared.generated.resources.theme_preset_ios
 
 /**
  * App 主题预设：把全局配色种子色与课表视觉样式统一为一套主题。
  *
- * ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；TIMETABLE = 「利落」白底左侧色条紧凑。
+ * IOS = 「通透」iOS 风格严格 Apple 系统色；ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；TIMETABLE = 「利落」白底左侧色条紧凑。
  */
 enum class AppThemePreset(
     val value: String,
@@ -20,6 +21,12 @@ enum class AppThemePreset(
     val seedColor: Color,
     val gridStyle: ScheduleGridStyle
 ) {
+    IOS(
+        value = "IOS",
+        labelRes = Res.string.theme_preset_ios,
+        seedColor = Color(0xFF007AFF),
+        gridStyle = ScheduleGridStyle.IOS
+    ),
     ORIGINAL(
         value = "ORIGINAL",
         labelRes = Res.string.theme_preset_classic,
@@ -40,8 +47,11 @@ enum class AppThemePreset(
     );
 
     companion object {
-        fun fromString(value: String?): AppThemePreset =
-            entries.find { it.value == value } ?: ORIGINAL
+        fun fromString(value: String?): AppThemePreset = when (value) {
+            // 老数据迁移：原「通透」(AIRY) 预设已并入 IOS 预设（同名「通透」）
+            "AIRY" -> IOS
+            else -> entries.find { it.value == value } ?: ORIGINAL
+        }
     }
 }
 

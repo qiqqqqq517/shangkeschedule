@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>课表 - 课程表</title>
+  <script src="https://cdn.tailwindcss.com/@tailwindcss/browser@4"></script>
+  <style id="theme-vars">
+    :root {
+      /* Spacing base unit */
+      --spacing: 0.24rem;
+
+      /* Radius */
+      --radius: 1.2rem;
+      --radius-sm: calc(var(--radius) * 0.5);
+      --radius-md: var(--radius);
+      --radius-lg: calc(var(--radius) * 1.5);
+
+      /* Typography */
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
+      /* Brand / Primary — iOS System Blue */
+      --brand-50: #e8f2ff;
+      --brand-100: #cfe5ff;
+      --brand-200: #9fcbff;
+      --brand-300: #66abff;
+      --brand-400: #2e8dff;
+      --brand-500: #007AFF;
+      --brand-600: #0064d6;
+      --brand-700: #004fad;
+      --brand-800: #003b82;
+      --brand-900: #00275a;
+      --primary: var(--brand-500);
+
+      /* Backgrounds */
+      --background: #ffffff;
+      --background-100: #f7f7fa;
+      --background-200: #f2f2f7;
+      --background-300: #e5e5ea;
+      --background-400: #d1d1d6;
+
+      /* Text */
+      --foreground: #1d1d1f;
+      --text-400: #8e8e93;
+      --text-500: #6e6e73;
+      --muted-foreground: var(--text-400);
+
+      /* Border / Separator */
+      --border: var(--background-300);
+      --ios-separator: rgba(60, 60, 67, 0.36);
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+
+      /* iOS System Colors */
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-red: #FF3B30;
+      --ios-teal: #30B0C7;
+      --ios-indigo: #5856D6;
+      --ios-pink: #FF2D55;
+      --ios-yellow: #FFCC00;
+
+      /* Frosted glass */
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(0, 0, 0, 0.08);
+
+      /* Brand tints */
+      --brand-tint-xs: rgba(0, 122, 255, 0.035);
+      --brand-tint-sm: rgba(0, 122, 255, 0.08);
+      --brand-tint-md: rgba(0, 122, 255, 0.12);
+      --brand-tint-lg: rgba(0, 122, 255, 0.2);
+
+      /* Card */
+      --card: #ffffff;
+      --card-foreground: var(--foreground);
+      --muted: var(--background-200);
+
+      /* Primary foreground */
+      --primary-foreground: #ffffff;
+    }
+  </style>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-card: var(--card);
+      --color-primary: var(--primary);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-border: var(--border);
+      --radius-sm: var(--radius-sm);
+      --radius-md: var(--radius-md);
+      --radius-lg: var(--radius-lg);
+    }
+    @layer base {
+      * { border-color: var(--border); }
+      body {
+        background-color: var(--background-200);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+      }
+    }
+  </style>
+  <style id="page-styles">
+    /* ============================================================
+       Apple Design System Tokens
+       ============================================================ */
+    :root {
+      /* Brand / Primary — iOS System Blue */
+      --brand-50: #e8f2ff;
+      --brand-100: #cfe5ff;
+      --brand-200: #9fcbff;
+      --brand-300: #66abff;
+      --brand-400: #2e8dff;
+      --brand-500: #007AFF;
+      --brand-600: #0064d6;
+      --brand-700: #004fad;
+      --brand-800: #003b82;
+      --brand-900: #00275a;
+      --primary: var(--brand-500);
+      --primary-foreground: #ffffff;
+
+      /* Backgrounds */
+      --background: #ffffff;
+      --background-100: #f7f7fa;
+      --background-200: #f2f2f7;
+      --background-300: #e5e5ea;
+      --background-400: #d1d1d6;
+      --background-500: #aeaeb2;
+      --background-600: #8e8e93;
+
+      /* Text */
+      --foreground: #1d1d1f;
+      --text-400: #8e8e93;
+      --text-500: #6e6e73;
+      --muted-foreground: var(--text-400);
+
+      /* Card */
+      --card: #ffffff;
+
+      /* Border / Separator */
+      --border: var(--background-300);
+      --ios-separator: rgba(60, 60, 67, 0.36);
+
+      /* Typography */
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
+      /* Radius */
+      --radius: 1.2rem;
+
+      /* Spacing base unit */
+      --spacing: 0.24rem;
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+
+      /* iOS System Colors */
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-red: #FF3B30;
+      --ios-teal: #30B0C7;
+      --ios-indigo: #5856D6;
+      --ios-pink: #FF2D55;
+      --ios-yellow: #FFCC00;
+      --ios-gray: #8E8E93;
+      --ios-gray2: #AEAEB2;
+      --ios-gray3: #C7C7CC;
+      --ios-gray4: #D1D1D6;
+      --ios-gray5: #E5E5EA;
+      --ios-gray6: #F2F2F7;
+
+      /* Timetable dimensions */
+      --time-col-width: 46px;
+      --hour-height: 60px;
+
+      /* iOS motion */
+      --ios-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ios-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ios-ease-in: cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+    /* ============================================================
+       Reset & Base
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.4;
+      background: var(--background-200);
+      color: var(--foreground);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* iOS-style scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--ios-gray3);
+      border-radius: 2px;
+    }
+
+    /* Page entrance animation */
+    @keyframes ios-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .app-shell {
+      animation: ios-fade-in 0.4s var(--ios-ease-out);
+    }
+
+    /* ============================================================
+       Icon System (CSS Mask approach)
+       ============================================================ */
+    .icon {
+      display: inline-block;
+      flex-shrink: 0;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+    }
+
+    .icon-house {
+      -webkit-mask-image: url('../assets/icons/apple/house.svg');
+      mask-image: url('../assets/icons/apple/house.svg');
+    }
+
+    .icon-user {
+      -webkit-mask-image: url('../assets/icons/apple/user.svg');
+      mask-image: url('../assets/icons/apple/user.svg');
+    }
+
+    .icon-chevron-right {
+      -webkit-mask-image: url('../assets/icons/apple/chevron-right.svg');
+      mask-image: url('../assets/icons/apple/chevron-right.svg');
+    }
+
+    .icon-arrow-down {
+      -webkit-mask-image: url('../assets/icons/apple/arrow-down.svg');
+      mask-image: url('../assets/icons/apple/arrow-down.svg');
+    }
+
+    .icon-calendar-week {
+      -webkit-mask-image: url('../assets/icons/apple/calendar.svg');
+      mask-image: url('../assets/icons/apple/calendar.svg');
+    }
+
+    .icon-menu {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='3' y1='6' x2='21' y2='6'/%3E%3Cline x1='3' y1='12' x2='21' y2='12'/%3E%3Cline x1='3' y1='18' x2='21' y2='18'/%3E%3C/svg%3E");
+    }
+
+    .icon-plus {
+      -webkit-mask-image: url('../assets/icons/apple/circle-plus.svg');
+      mask-image: url('../assets/icons/apple/circle-plus.svg');
+    }
+
+    .icon-pin {
+      -webkit-mask-image: url('../assets/icons/apple/map-pin.svg');
+      mask-image: url('../assets/icons/apple/map-pin.svg');
+    }
+
+    /* ============================================================
+       App Shell — Mobile (390x844) with device frame
+       ============================================================ */
+    .app-shell {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      background: var(--background-200);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 47px;
+      box-shadow: 0 25px 80px -20px rgba(0, 0, 0, 0.25),
+                  0 10px 30px -10px rgba(0, 0, 0, 0.15),
+                  0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ============================================================
+       Status Bar (44px)
+       ============================================================ */
+    .status-bar {
+      position: relative;
+      z-index: 50;
+      height: 44px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 calc(var(--spacing) * 6);
+      background: var(--background-200);
+      color: var(--foreground);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .status-bar__time {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .status-bar__right {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 1.5);
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
+    }
+
+    .signal-bars span {
+      width: 3px;
+      background: var(--foreground);
+      border-radius: 1px;
+    }
+
+    .signal-bars span:nth-child(1) { height: 4px; }
+    .signal-bars span:nth-child(2) { height: 6px; }
+    .signal-bars span:nth-child(3) { height: 8px; }
+    .signal-bars span:nth-child(4) { height: 11px; }
+
+    .wifi-icon {
+      position: relative;
+      width: 16px;
+      height: 12px;
+    }
+
+    .wifi-icon::before,
+    .wifi-icon::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      border: 2px solid var(--foreground);
+      border-bottom: none;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+
+    .wifi-icon::before {
+      width: 16px;
+      height: 10px;
+      opacity: 0.3;
+    }
+
+    .wifi-icon::after {
+      width: 10px;
+      height: 6px;
+    }
+
+    .wifi-dot {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--foreground);
+    }
+
+    .battery {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .battery__body {
+      position: relative;
+      width: 24px;
+      height: 11px;
+      border: 1px solid var(--foreground);
+      border-radius: 3px;
+      padding: 1px;
+      opacity: 0.9;
+    }
+
+    .battery__level {
+      height: 100%;
+      width: 85%;
+      background: var(--foreground);
+      border-radius: 1.5px;
+    }
+
+    .battery__cap {
+      width: 1.5px;
+      height: 4px;
+      background: var(--foreground);
+      border-radius: 0 1px 1px 0;
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       Navigation Bar — Standard (centered title)
+       ============================================================ */
+    .nav-bar--standard {
+      position: relative;
+      z-index: 40;
+      flex-shrink: 0;
+      height: 44px;
+      background: rgba(242, 242, 247, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 calc(var(--spacing) * 4);
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+
+    .nav-bar--standard .nav-bar__left,
+    .nav-bar--standard .nav-bar__right {
+      display: flex;
+      align-items: center;
+      min-width: 60px;
+    }
+
+    .nav-bar--standard .nav-bar__right {
+      justify-content: flex-end;
+    }
+
+    .nav-bar--standard .nav-bar__title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--foreground);
+      letter-spacing: -0.01em;
+    }
+
+    .nav-icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--ios-blue);
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s var(--ios-ease-out), transform 0.2s var(--ios-ease-out);
+    }
+
+    .nav-icon-btn:hover {
+      background: rgba(0, 122, 255, 0.08);
+    }
+
+    .nav-icon-btn:active {
+      transform: scale(0.9);
+    }
+
+    .nav-icon-btn .icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* ============================================================
+       Week Selector Strip
+       ============================================================ */
+    .week-selector {
+      flex-shrink: 0;
+      background: rgba(242, 242, 247, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 0.5px solid var(--ios-separator);
+      padding: calc(var(--spacing) * 2) 0 calc(var(--spacing) * 2);
+    }
+
+    .week-selector__scroll {
+      display: flex;
+      gap: calc(var(--spacing) * 1);
+      padding: 0 calc(var(--spacing) * 3);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .week-selector__scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .week-day-item {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2.5);
+      min-width: 48px;
+      cursor: pointer;
+      transition: all 0.3s var(--ios-ease-out);
+      position: relative;
+    }
+
+    .week-day-item__weekday {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      line-height: 1;
+    }
+
+    .week-day-item__date {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1;
+      border-radius: 50%;
+      font-variant-numeric: tabular-nums;
+      transition: all 0.3s var(--ios-ease-out);
+    }
+
+    .week-day-item__dots {
+      display: flex;
+      gap: 2px;
+      height: 4px;
+      align-items: center;
+    }
+
+    .week-day-item__dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: transparent;
+      transition: background-color 0.2s var(--ios-ease-out);
+    }
+
+    .week-day-item.has-class .week-day-item__dot {
+      background: var(--ios-blue);
+    }
+
+    /* Active / today state */
+    .week-day-item.is-active .week-day-item__weekday {
+      color: var(--ios-blue);
+    }
+
+    .week-day-item.is-active .week-day-item__date {
+      background: var(--ios-blue);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+
+    .week-day-item.is-active.has-class .week-day-item__dot {
+      background: var(--ios-blue);
+    }
+
+    /* ============================================================
+       Main Content — Scrollable
+       ============================================================ */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      background: var(--background);
+    }
+
+    /* ============================================================
+       Timetable Grid
+       ============================================================ */
+    .timetable-wrapper {
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .timetable-wrapper::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .timetable-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: var(--time-col-width) repeat(7, 1fr);
+      min-width: 100%;
+      min-height: calc(var(--hour-height) * 12);
+    }
+
+    /* Time labels column */
+    .time-col {
+      position: relative;
+      border-right: 0.5px solid var(--border);
+      background: var(--background);
+    }
+
+    .time-label {
+      position: absolute;
+      right: calc(var(--spacing) * 1.5);
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-400);
+      text-align: right;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Day columns */
+    .day-col {
+      position: relative;
+      border-right: 0.5px solid var(--border);
+      min-width: 60px;
+    }
+
+    .day-col:last-child {
+      border-right: none;
+    }
+
+    .day-col.today-col {
+      background: rgba(0, 122, 255, 0.04);
+    }
+
+    /* Horizontal grid lines */
+    .grid-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 0.5px;
+      background: var(--border);
+      opacity: 0.4;
+    }
+
+    .grid-lines-container {
+      position: absolute;
+      left: var(--time-col-width);
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       Course Cards — colored rectangles with white text
+       ============================================================ */
+    .tt-course {
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      border-radius: 8px;
+      padding: 6px 7px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s var(--ios-ease-out),
+                  box-shadow 0.25s var(--ios-ease-out);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 2;
+    }
+
+    .tt-course:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 5;
+    }
+
+    .tt-course__name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .tt-course__location {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      line-height: 1.1;
+    }
+
+    .tt-course__location .icon {
+      width: 9px;
+      height: 9px;
+      color: rgba(255, 255, 255, 0.8);
+      opacity: 0.9;
+      flex-shrink: 0;
+    }
+
+    /* Course color variants */
+    .tt-course--blue { background: var(--ios-blue); }
+    .tt-course--green { background: var(--ios-green); }
+    .tt-course--orange { background: var(--ios-orange); }
+    .tt-course--purple { background: var(--ios-purple); }
+    .tt-course--red { background: var(--ios-red); }
+    .tt-course--teal { background: var(--ios-teal); }
+    .tt-course--indigo { background: var(--ios-indigo); }
+    .tt-course--pink { background: var(--ios-pink); }
+
+    /* ============================================================
+       Now Indicator
+       ============================================================ */
+    .now-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      pointer-events: none;
+      height: 0;
+    }
+
+    .now-indicator__dot {
+      position: absolute;
+      left: calc(var(--time-col-width) - 3px);
+      top: 0;
+      width: 7px;
+      height: 7px;
+      background: var(--ios-orange);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2px var(--background);
+    }
+
+    .now-indicator__line {
+      position: absolute;
+      left: var(--time-col-width);
+      right: 0;
+      top: 0;
+      height: 1.5px;
+      background: var(--ios-orange);
+    }
+
+    .now-indicator__time {
+      position: absolute;
+      left: 4px;
+      top: 0;
+      transform: translateY(-50%);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ios-orange);
+      background: var(--background);
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ============================================================
+       Bottom Tab Bar — Frosted Glass
+       ============================================================ */
+    .tab-bar {
+      position: relative;
+      z-index: 40;
+      flex-shrink: 0;
+      height: 83px;
+      padding-top: 6px;
+      background: rgba(249, 249, 249, 0.82);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border-top: 0.5px solid var(--ios-separator);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -0.5px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    .tab-bar__items {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 49px;
+      padding: 0 calc(var(--spacing) * 1);
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      height: 100%;
+      color: var(--ios-gray);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+      transition: color 0.25s var(--ios-ease-out), transform 0.2s var(--ios-ease-out);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tab-item .icon {
+      width: 26px;
+      height: 26px;
+      transition: transform 0.25s var(--ios-ease-out);
+    }
+
+    .tab-item.is-active {
+      color: var(--ios-blue);
+    }
+
+    .tab-item.is-active .icon {
+      transform: scale(1.05);
+    }
+
+    .tab-item:hover {
+      color: var(--ios-blue);
+    }
+
+    .tab-item:active {
+      transform: scale(0.92);
+    }
+
+    .tab-item:active .icon {
+      transform: scale(0.9);
+    }
+
+    .tab-item.is-active::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 122, 255, 0.08);
+      z-index: -1;
+      transition: all 0.3s var(--ios-ease-out);
+    }
+
+    /* Home indicator */
+    .home-indicator {
+      flex-shrink: 0;
+      height: 34px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 8px;
+    }
+
+    .home-indicator__bar {
+      width: 134px;
+      height: 5px;
+      border-radius: 3px;
+      background: var(--foreground);
+      opacity: 0.3;
+    }
+
+    /* ============================================================
+       Utility
+       ============================================================ */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell" id="app-shell">
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="status-bar">
+      <span class="status-bar__time">9:41</span>
+      <div class="status-bar__right">
+        <div class="signal-bars" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="wifi-icon" aria-hidden="true">
+          <div class="wifi-dot"></div>
+        </div>
+        <div class="battery" aria-hidden="true">
+          <div class="battery__body">
+            <div class="battery__level"></div>
+          </div>
+          <div class="battery__cap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Bar (standard, centered title) -->
+    <nav class="nav-bar--standard" id="nav-bar" aria-label="主导航">
+      <div class="nav-bar__left">
+        <button class="nav-icon-btn" id="btn-menu" aria-label="菜单">
+          <span class="icon icon-menu" aria-hidden="true"></span>
+        </button>
+      </div>
+      <h1 class="nav-bar__title">课表</h1>
+      <div class="nav-bar__right">
+        <button class="nav-icon-btn" id="btn-add" aria-label="添加">
+          <span class="icon icon-plus" aria-hidden="true"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Week Selector Strip -->
+    <div class="week-selector" style="height: 75.375px; flex-grow: 0; flex-basis: auto;">
+      <div class="week-selector__scroll">
+        <div class="week-day-item has-class" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周一</span>
+          <span class="week-day-item__date">8</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item has-class" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周二</span>
+          <span class="week-day-item__date">9</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item is-active has-class" role="button" tabindex="0" aria-current="date">
+          <span class="week-day-item__weekday">周三</span>
+          <span class="week-day-item__date">10</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item has-class" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周四</span>
+          <span class="week-day-item__date">11</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item has-class" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周五</span>
+          <span class="week-day-item__date">12</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周六</span>
+          <span class="week-day-item__date">13</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+        <div class="week-day-item" role="button" tabindex="0">
+          <span class="week-day-item__weekday">周日</span>
+          <span class="week-day-item__date">14</span>
+          <div class="week-day-item__dots"><span class="week-day-item__dot"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Timetable Area -->
+    <div class="main-content" id="main-content">
+      <div class="timetable-wrapper">
+        <div class="timetable-grid" id="timetable-grid">
+
+          <!-- Time Labels Column -->
+          <div class="time-col" id="time-col" style="height: 728px;"></div>
+
+          <!-- Day 1: 周一 -->
+          <div class="day-col" data-day="1">
+            <!-- 高等数学 08:00-09:40 -->
+            <div class="tt-course tt-course--blue" style="top: 0; height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">高等数学</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教1-201</span>
+              </div>
+            </div>
+            <!-- 大学英语 10:00-11:40 -->
+            <div class="tt-course tt-course--green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">大学英语</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教3-105</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 2: 周二 -->
+          <div class="day-col" data-day="2">
+            <!-- 程序设计 08:00-09:40 -->
+            <div class="tt-course tt-course--orange" style="top: 0; height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">程序设计</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>实验楼A302</span>
+              </div>
+            </div>
+            <!-- 物理实验 14:00-15:40 -->
+            <div class="tt-course tt-course--purple" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">物理实验</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>物理实验中心</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 3: 周三 (Today) -->
+          <div class="day-col today-col" data-day="3">
+            <!-- 线性代数 08:00-09:40 -->
+            <div class="tt-course tt-course--blue" style="top: 0; height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">线性代数</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教2-301</span>
+              </div>
+            </div>
+            <!-- 数据结构 10:00-11:40 -->
+            <div class="tt-course tt-course--green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">数据结构</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教4-203</span>
+              </div>
+            </div>
+            <!-- 计算机网络 14:00-15:40 -->
+            <div class="tt-course tt-course--teal" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">计算机网络</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>实验楼B201</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 4: 周四 -->
+          <div class="day-col" data-day="4">
+            <!-- 高等数学 08:00-09:40 -->
+            <div class="tt-course tt-course--blue" style="top: 0; height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">高等数学</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教1-201</span>
+              </div>
+            </div>
+            <!-- 大学英语 10:00-11:40 -->
+            <div class="tt-course tt-course--green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">大学英语</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教3-105</span>
+              </div>
+            </div>
+            <!-- 概率论 14:00-15:40 -->
+            <div class="tt-course tt-course--indigo" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">概率论</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>教2-101</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 5: 周五 -->
+          <div class="day-col" data-day="5">
+            <!-- 程序设计 08:00-09:40 -->
+            <div class="tt-course tt-course--orange" style="top: 0; height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">程序设计</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>实验楼A302</span>
+              </div>
+            </div>
+            <!-- 体育 14:00-15:40 -->
+            <div class="tt-course tt-course--red" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.67);">
+              <div class="tt-course__name">体育</div>
+              <div class="tt-course__location">
+                <span class="icon icon-pin" aria-hidden="true"></span>
+                <span>田径场</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 6: 周六 -->
+          <div class="day-col" data-day="6"></div>
+
+          <!-- Day 7: 周日 -->
+          <div class="day-col" data-day="7"></div>
+
+          <!-- Grid lines -->
+          <div class="grid-lines-container" id="grid-lines"></div>
+
+          <!-- Now indicator (at ~10:30 = 2.5 hours from 8:00) -->
+          <div class="now-indicator" style="top: calc(var(--hour-height) * 2.5);">
+            <span class="now-indicator__time">10:30</span>
+            <div class="now-indicator__dot"></div>
+            <div class="now-indicator__line"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="tab-bar" id="tab-bar" aria-label="底部导航">
+      <div class="tab-bar__items">
+        <a href="index.html" class="tab-item" id="tab-today">
+          <span class="icon icon-house" aria-hidden="true"></span>
+          <span>今日</span>
+        </a>
+        <a href="mobile-timetable.html" class="tab-item is-active" id="tab-timetable" aria-current="page">
+          <span class="icon icon-calendar-week" aria-hidden="true"></span>
+          <span>课表</span>
+        </a>
+        <a href="#" class="tab-item" id="tab-import">
+          <span class="icon icon-arrow-down" aria-hidden="true"></span>
+          <span>导入</span>
+        </a>
+        <a href="profile.html" class="tab-item" id="tab-profile">
+          <span class="icon icon-user" aria-hidden="true"></span>
+          <span>我的</span>
+        </a>
+      </div>
+      <div class="home-indicator" aria-hidden="true">
+        <div class="home-indicator__bar"></div>
+      </div>
+    </nav>
+
+  </div>
+
+  <script>
+    // Generate time labels (08:00 - 20:00 every 2 hours) and grid lines
+    (function() {
+      const timeCol = document.getElementById('time-col');
+      const gridLines = document.getElementById('grid-lines');
+      const startHour = 8;
+      const endHour = 20;
+
+      for (let h = startHour; h <= endHour; h += 2) {
+        const top = ((h - startHour) / 2) * 2 * 60; // 60px per hour
+
+        // Time label
+        const label = document.createElement('div');
+        label.className = 'time-label';
+        label.style.top = top + 'px';
+        label.textContent = h.toString().padStart(2, '0') + ':00';
+        timeCol.appendChild(label);
+      }
+
+      // Grid lines - hourly
+      const totalHours = endHour - startHour;
+      for (let h = 1; h <= totalHours; h++) {
+        const top = h * 60;
+        const line = document.createElement('div');
+        line.className = 'grid-line';
+        line.style.top = top + 'px';
+        gridLines.appendChild(line);
+      }
+    })();
+  </script>
+</body>
+</html>

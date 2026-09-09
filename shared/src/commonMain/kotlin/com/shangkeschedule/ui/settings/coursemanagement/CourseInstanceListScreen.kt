@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,8 +38,10 @@ import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppFab
+import com.shangkeschedule.ui.components.AppSelectableCard
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.appSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
@@ -247,30 +247,20 @@ fun CourseInstanceCard(
     val dayName = weekDays.getOrElse(course.day - 1) { "?" }
 
     // 卡片颜色：始终使用课程颜色作为背景；文字色按底色明暗自适应（保证深色课程底上的可读性）
-    val cardColors = CardDefaults.cardColors(
-        containerColor = courseBackgroundColor,
-        contentColor = adaptiveTextColor(
-            background = courseBackgroundColor,
-            fallback = MaterialTheme.colorScheme.onSurface
-        )
+    val contentColor = adaptiveTextColor(
+        background = courseBackgroundColor,
+        fallback = MaterialTheme.colorScheme.onSurface
     )
 
-    Card(
-        modifier = Modifier
-            .height(IntrinsicSize.Max)
-            .combinedClickable(
-                onClick = { onCourseClick(courseId) },
-                onLongClick = { onCourseLongClick(courseId) }
-            )
-            .then(
-                if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
-                } else Modifier
-            ),
-        colors = cardColors
+    AppSelectableCard(
+        selected = isSelected,
+        onClick = { onCourseClick(courseId) },
+        onLongClick = { onCourseLongClick(courseId) },
+        modifier = Modifier.height(IntrinsicSize.Max),
+        containerColor = courseBackgroundColor
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             // 教师信息
             Text(

@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,6 +52,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.IntSize
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
@@ -72,6 +73,7 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AdvancedColorPicker
+import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppSwitch
@@ -222,7 +224,7 @@ fun ThemeSettingsScreen(
             // 1. 主题预览固定在页面顶部（约 1/5 屏高，随主题色实时变化）
             AppearanceStylePreview(styleState, demoUiState, heightFraction = 0.20f)
 
-            HorizontalDivider()
+            HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
 
             // 2. 主题配置滚动区
             Column(
@@ -239,7 +241,7 @@ fun ThemeSettingsScreen(
                 Text(
                     text = stringResource(Res.string.theme_style_desc),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColors().textSecondary,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                 )
                 AppearancePresetSelector(
@@ -251,7 +253,7 @@ fun ThemeSettingsScreen(
                     }
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = appColors().divider, thickness = 0.5.dp)
                 AppearanceSectionHeader(stringResource(Res.string.theme_mode_label))
                 AppearanceThemeModeSelector(
                     selectedMode = settings.themeMode,
@@ -272,7 +274,7 @@ fun ThemeSettingsScreen(
                         Text(
                             text = stringResource(Res.string.theme_color_disabled_hint),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = appColors().textSecondary,
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     }
@@ -299,7 +301,7 @@ fun ThemeSettingsScreen(
                     Text(
                         text = stringResource(Res.string.theme_color_hint),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = appColors().textSecondary,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
@@ -411,7 +413,7 @@ fun ScheduleStyleSettingsScreen(
             // 1. 个性化配置预览固定在页面顶部
             AppearanceStylePreview(styleState, demoUiState)
 
-            HorizontalDivider()
+            HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
 
             // 2. 下方为课表页个性化微调（壁纸 / 样式 / 功能色）
             Column(
@@ -421,7 +423,7 @@ fun ScheduleStyleSettingsScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)
                 ) {
                     AppearanceSectionHeader(stringResource(Res.string.item_personalization))
                 }
@@ -486,14 +488,14 @@ private fun AppearanceStylePreview(
         tween<IntSize>(durationMillis = motion.tokens.resizeDurationMs, easing = motion.tokens.resizeEasing)
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+    AppCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(previewHeightDp)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .background(appColors().primarySoft.copy(alpha = 0.3f))
                 .horizontalScroll(rememberScrollState())
                 .animateContentSize(animationSpec = resizeSpec)
                 .pointerInput(Unit) {

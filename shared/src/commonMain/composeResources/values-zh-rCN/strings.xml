@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <!-- 应用基础信息 -->
     <string name="app_name">上课</string>
     <string name="hero_subtitle">让每一节课都有迹可循</string>
@@ -34,6 +34,18 @@
     <string name="nav_course_schedule">课表</string>
     <string name="nav_settings">我的</string>
     <string name="title_today_schedule">今日课表</string>
+    <string name="title_today_courses">今日课程</string>
+    <string name="title_week_overview">本周概览</string>
+    <string name="title_tomorrow_courses">明日课程</string>
+    <string name="text_courses_count">共 %1$s 节</string>
+    <string name="text_week_courses">本周课程</string>
+    <string name="text_today_courses_label">今日课程</string>
+    <string name="text_todo_pending">待完成</string>
+    <string name="action_view_all">查看全部</string>
+    <string name="action_week_view">周视图</string>
+    <string name="settings_group_course">课程设置</string>
+    <string name="settings_group_tools">工具</string>
+    <string name="settings_group_other">其他</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="label_crush_course">TA的课</string>
     <string name="text_course_in_progress">正在上课</string>

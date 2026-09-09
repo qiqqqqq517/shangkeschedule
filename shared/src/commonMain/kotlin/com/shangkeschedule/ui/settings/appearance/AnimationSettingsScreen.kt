@@ -22,7 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import com.shangkeschedule.ui.components.AppRadioIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,9 +45,9 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.rememberFabPressedScale
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
-import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
@@ -139,7 +139,7 @@ fun AnimationSettingsScreen(
             // 1) 实时预览（随风格与分组开关即时变化）
             MotionPreviewCard()
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
             // 2) 动效风格
             Text(
@@ -152,7 +152,7 @@ fun AnimationSettingsScreen(
             Text(
                 text = stringResource(Res.string.anim_section_style_desc),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
             AnimationStyle.entries.forEach { style ->
@@ -163,7 +163,7 @@ fun AnimationSettingsScreen(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
             // 3) 动画分组
             Text(
@@ -176,7 +176,7 @@ fun AnimationSettingsScreen(
             Text(
                 text = stringResource(Res.string.anim_section_groups_desc),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
             AnimationGroup.entries.forEach { group ->
@@ -223,7 +223,7 @@ private fun MotionPreviewCard() {
     var previewKey by remember { mutableStateOf(0) }
 
     Surface(
-        shape = AppShape.card,
+        shape = appShapes().card,
         color = tokens.pageBg,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -240,7 +240,7 @@ private fun MotionPreviewCard() {
                 )
                 Surface(
                     onClick = { previewKey++ },
-                    shape = AppShape.capsule,
+                    shape = appShapes().capsule,
                     color = tokens.primary.copy(alpha = 0.12f)
                 ) {
                     Text(
@@ -267,7 +267,7 @@ private fun MotionPreviewCard() {
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = appColors().divider, thickness = 0.5.dp)
 
             // 演示胶囊（按压反馈；对应「玻璃悬浮件」分组的 pressSpec/pressScale）
             PressDemoPill()
@@ -385,10 +385,10 @@ private fun MotionStyleCard(
                 Text(
                     text = stringResource(style.descRes),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = appColors().textSecondary
                 )
             }
-            RadioButton(selected = selected, onClick = onSelect)
+            AppRadioIndicator(selected = selected)
         }
     }
 }
@@ -419,7 +419,7 @@ private fun MotionGroupToggle(
                 Text(
                     text = desc,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = appColors().textSecondary
                 )
             }
             AppSwitch(

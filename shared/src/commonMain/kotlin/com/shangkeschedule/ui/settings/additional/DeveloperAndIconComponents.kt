@@ -1,7 +1,11 @@
-package com.shangkeschedule.ui.settings.additional
+﻿package com.shangkeschedule.ui.settings.additional
 
-import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -71,7 +75,7 @@ fun DynamicAppIconHeader(
     Box(
         modifier = modifier
             .size(120.dp)
-            .clip(AppShape.heroCard)
+            .clip(appShapes().heroCard)
             .background(animatedBgColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -135,8 +139,9 @@ fun DeveloperModeSettingItem(
             HorizontalDivider(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                thickness = 1.dp
+                    .padding(horizontal = appSpacing().pageHorizontal),
+                color = appColors().divider,
+                thickness = 0.5.dp
             )
         }
     }

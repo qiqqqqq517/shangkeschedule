@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.import
 
+import com.shangkeschedule.ui.theme.appColors
+
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
@@ -95,7 +97,7 @@ fun ExcelImportScreen(
             Text(
                 text = stringResource(Res.string.import_excel_desc_support),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColors().textSecondary
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -127,7 +129,7 @@ fun ExcelImportScreen(
 
             uiState.error?.let { err ->
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = err, color = MaterialTheme.colorScheme.error)
+                Text(text = err, color = appColors().danger)
             }
 
             if (uiState.isLoading && uiState.parseResult == null) {

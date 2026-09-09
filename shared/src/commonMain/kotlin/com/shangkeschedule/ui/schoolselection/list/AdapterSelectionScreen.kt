@@ -1,5 +1,9 @@
 package com.shangkeschedule.ui.schoolselection.list
 
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,8 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -197,19 +199,12 @@ fun AdapterCard(
     adapter: Adapter,
     onClick: (Adapter) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onClick(adapter) },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onClick(adapter) }
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -226,7 +221,7 @@ fun AdapterCard(
             Text(
                 text = adapter.description.ifBlank { stringResource(Res.string.text_no_detailed_description) },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
@@ -234,7 +229,7 @@ fun AdapterCard(
                 Icon(
                     imageVector = vectorResource(Res.drawable.info_24px),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
+                    tint = appColors().divider,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(4.dp))
@@ -244,7 +239,7 @@ fun AdapterCard(
                         adapter.maintainer.ifBlank { stringResource(Res.string.label_contributor_unknown) }
                     ),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = appColors().divider
                 )
             }
         }

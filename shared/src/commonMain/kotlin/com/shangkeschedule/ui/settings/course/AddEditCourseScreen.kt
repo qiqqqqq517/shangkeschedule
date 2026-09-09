@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.course
+﻿package com.shangkeschedule.ui.settings.course
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +45,7 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -203,7 +204,7 @@ fun AddEditCourseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {

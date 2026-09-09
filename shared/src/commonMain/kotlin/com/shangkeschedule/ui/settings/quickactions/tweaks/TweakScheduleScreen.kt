@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.quickactions.tweaks
 
+import com.shangkeschedule.ui.theme.appSpacing
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,9 +38,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.repository.CourseTableRepository.TweakMode
+import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.DatePickerModal
+import com.shangkeschedule.ui.components.TelegramMenu
+import com.shangkeschedule.ui.components.TelegramMenuItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -171,7 +173,7 @@ fun TweakScheduleScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = appSpacing().pageHorizontal),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -316,12 +318,12 @@ private fun TweakModeSelector(currentMode: TweakMode, onModeSelected: (TweakMode
             Text(text = label, style = MaterialTheme.typography.labelLarge)
             Icon(vectorResource(Res.drawable.arrow_drop_down_24px), contentDescription = null)
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        TelegramMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             TweakMode.entries.forEach { mode ->
                 val (mIcon, mLabel) = getTweakModeDisplayInfo(mode)
-                DropdownMenuItem(
-                    leadingIcon = { Icon(mIcon, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    text = { Text(mLabel) },
+                TelegramMenuItem(
+                    icon = mIcon,
+                    text = mLabel,
                     onClick = { onModeSelected(mode); expanded = false }
                 )
             }
@@ -344,8 +346,8 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
     val sectionFormatRes = Res.string.course_time_day_section_details_tweak
     val customTimeFormatRes = Res.string.course_time_day_time_details_tweak
 
-    Card(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    AppCard(modifier = modifier) {
+        Column(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)) {
             Text(text = title, style = MaterialTheme.typography.titleLarge)
             LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp)) {
                 if (courses.isEmpty()) {
