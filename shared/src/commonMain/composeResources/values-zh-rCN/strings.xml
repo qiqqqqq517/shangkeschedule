@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <!-- 应用基础信息 -->
     <string name="app_name">上课</string>
     <string name="hero_subtitle">让每一节课都有迹可循</string>
@@ -31,21 +31,43 @@
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>
+    <string name="nav_today">今日</string>
     <string name="nav_course_schedule">课表</string>
     <string name="nav_settings">我的</string>
+    <string name="nav_schedule">日程</string>
     <string name="title_today_schedule">今日课表</string>
     <string name="title_today_courses">今日课程</string>
-    <string name="title_week_overview">本周概览</string>
     <string name="title_tomorrow_courses">明日课程</string>
     <string name="text_courses_count">共 %1$s 节</string>
-    <string name="text_week_courses">本周课程</string>
-    <string name="text_today_courses_label">今日课程</string>
-    <string name="text_todo_pending">待完成</string>
-    <string name="action_view_all">查看全部</string>
     <string name="action_week_view">周视图</string>
+    <!-- Claude 主题 · 今日课表页（对齐设计包 claude-schedule-page.design/pages/今日日程.html） -->
+    <string name="today_claude_date_format">%1$d月%2$d日 %3$s</string>
+    <string name="today_claude_week_range">%1$d月%2$d日 – %3$d月%4$d日</string>
+    <string name="today_claude_week_prev">上一周</string>
+    <string name="today_claude_week_next">下一周</string>
+    <string name="today_claude_remaining">剩余 %1$s 节</string>
+    <string name="today_claude_tomorrow_format">明日 · %1$d月%2$d日</string>
+    <string name="today_claude_view_all">查看全部</string>
+    <string name="today_claude_status_done">已结束</string>
+    <string name="today_claude_status_live">进行中</string>
+    <string name="today_claude_status_upcoming">未开始</string>
+    <string name="today_claude_badge_required">必修</string>
+    <string name="today_claude_badge_elective">选修</string>
+    <string name="today_claude_badge_lab">实验</string>
+    <string name="today_claude_meta_time">上课时间</string>
+    <string name="today_claude_meta_room">上课地点</string>
+    <string name="today_claude_meta_teacher">授课教师</string>
+    <string name="today_claude_meta_weeks">上课周次</string>
+    <string name="today_claude_meta_credit">学分</string>
+    <string name="today_claude_sheet_close">关闭</string>
+    <string name="today_claude_sheet_edit">编辑课程</string>
     <string name="settings_group_course">课程设置</string>
     <string name="settings_group_tools">工具</string>
     <string name="settings_group_other">其他</string>
+    <string name="settings_group_timetable">课表</string>
+    <string name="settings_group_courses">课程</string>
+    <string name="settings_group_preference">偏好</string>
+    <string name="settings_group_about">关于</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="label_crush_course">TA的课</string>
     <string name="text_course_in_progress">正在上课</string>
@@ -55,6 +77,58 @@
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>
     <string name="title_semester_not_set">请设置开学日期</string>
     <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
+
+    <!-- 日程页 -->
+    <string name="title_agenda">日程</string>
+    <string name="agenda_today_badge">今天</string>
+    <string name="agenda_day_title_format">%1$d月%2$d日 %3$s</string>
+    <string name="agenda_lunar_format">农历%1$s</string>
+    <string name="agenda_count_format">%1$d 个日程</string>
+    <string name="agenda_empty">这天还没有日程</string>
+    <string name="agenda_group_morning">上午</string>
+    <string name="agenda_group_afternoon">下午</string>
+    <string name="agenda_group_evening">晚上</string>
+    <string name="agenda_group_allday">全天</string>
+    <string name="agenda_status_finished">已结束</string>
+    <string name="agenda_status_ongoing">进行中</string>
+    <string name="agenda_status_upcoming">未开始</string>
+    <string name="agenda_category_course">课程</string>
+    <string name="agenda_category_todo">待办</string>
+    <string name="agenda_category_activity">活动</string>
+    <string name="agenda_category_exam">考试</string>
+    <string name="agenda_category_homework">作业</string>
+    <string name="agenda_category_other">其他</string>
+    <string name="agenda_new_title">新建日程</string>
+    <string name="agenda_ai_hint">用一句话描述，AI 帮你填好</string>
+    <string name="agenda_ai_coming_soon">AI 智能填写即将上线</string>
+    <string name="agenda_title_hint">日程标题</string>
+    <string name="agenda_all_day">全天</string>
+    <string name="agenda_start_label">开始</string>
+    <string name="agenda_end_label">结束</string>
+    <string name="agenda_add_location">添加地点</string>
+    <string name="agenda_add_note">添加备注</string>
+    <string name="agenda_create">创建日程</string>
+    <string name="agenda_delete_title">删除日程</string>
+    <string name="agenda_delete_message">确定要删除「%1$s」吗？</string>
+    <string name="agenda_duration_hours">%1$d小时</string>
+    <string name="agenda_duration_minutes">%1$d分钟</string>
+    <string name="agenda_back_to_today">回到今天</string>
+    <string name="agenda_teacher_prefix">教师：%1$s</string>
+    <string name="a11y_agenda_add">新建日程</string>
+    <string-array name="month_names">
+        <item>1月</item>
+        <item>2月</item>
+        <item>3月</item>
+        <item>4月</item>
+        <item>5月</item>
+        <item>6月</item>
+        <item>7月</item>
+        <item>8月</item>
+        <item>9月</item>
+        <item>10月</item>
+        <item>11月</item>
+        <item>12月</item>
+    </string-array>
 
     <!-- 添加课程 -->
     <string name="toast_save_success">保存成功</string>
@@ -646,6 +720,7 @@
     <string name="theme_preset_classic">经典</string>
     <string name="theme_preset_cloud">云舒</string>
     <string name="theme_preset_clean">利落</string>
+    <string name="theme_preset_claude">书卷</string>
     <string name="theme_style_section">主题风格</string>
     <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>

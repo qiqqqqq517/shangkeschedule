@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+<title>组件预览 · 上课Shangke 设计系统</title>
+<link rel="stylesheet" href="../assets/claude-tokens.css" />
+<link rel="stylesheet" href="../assets/claude-components.css" />
+<style>
+  body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header-actions { display: flex; align-items: center; gap: 8px; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; width: 100%; }
+  .input-label { display: block; margin-bottom: 6px; font: 600 12px/1.3 var(--font-sans); color: var(--foreground); }
+  .field.error { border-color: var(--destructive); }
+  .input-error { margin: 6px 0 0; font: 500 12px/1.4 var(--font-sans); color: var(--destructive); }
+  .badge.success { background: var(--success-solid, var(--success)); color: var(--success-foreground); border: 1px solid transparent; }
+  .badge.warning { background: var(--amber-500, var(--warning, #f0b43c)); color: var(--primary-foreground); border: 1px solid transparent; }
+  .badge.error-badge { background: var(--error-500); color: var(--error-foreground); border: 1px solid transparent; }
+  .badge.lg { min-height: 36px; font-size: 13px; }
+  .badge.sm { min-height: 26px; font-size: 11px; }
+  .badge-dot { display: inline-block; width: 7px; height: 7px; border-radius: var(--radius-full); background: var(--success); }
+  .nav-item-app { display: grid; gap: 4px; justify-items: center; padding: 10px 8px; border: 1px solid transparent; border-radius: calc(var(--radius) - 6px); background: transparent; color: var(--muted-foreground); font: 600 11px/1.1 var(--font-sans); cursor: pointer; transition: background-color .16s ease, color .16s ease, border-color .16s ease; }
+  .nav-item-app:hover { background: var(--muted); color: var(--foreground); }
+  .nav-item-app.active { background: var(--primary-solid, var(--primary)); color: var(--primary-foreground); }
+  .nav-item-app .nav-icon { width: 20px; height: 20px; }
+  .chat-thread { display: grid; gap: 12px; width: 100%; padding: 16px; background: var(--popover); border: 1px solid var(--border); border-radius: calc(var(--radius) + 6px); box-shadow: var(--shadow-sm); }
+  .btn.outline { background: var(--popover); color: var(--foreground); border-color: var(--border); }
+  .btn.lg { min-height: 52px; padding: 0 22px; font-size: 15px; }
+  .section-anchor { scroll-margin-top: 88px; }
+
+  /* 顶部粘性工具栏 */
+  .page-toolbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px clamp(16px, 3vw, 32px); background: color-mix(in srgb, var(--background) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .page-toolbar .brand-line { font: 600 12px/1.2 var(--font-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); margin-right: auto; }
+  .page-toolbar .tabs { padding: 4px; }
+  .page-toolbar .tab { padding: 8px 12px; font-size: 12px; }
+
+  /* 复制提示 */
+  .copy-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px); padding: 10px 18px; border-radius: var(--radius-full); background: var(--foreground); color: var(--background); font: 600 12px/1 var(--font-sans); opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 300; }
+  .copy-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .token-code { cursor: pointer; }
+  .token-code:hover { background: var(--secondary); }
+
+  @media (max-width: 640px) {
+    .page-toolbar { gap: 8px; }
+    .page-toolbar .tabs { width: 100%; overflow-x: auto; }
+    .component-row { padding: 16px; }
+  }
+</style>
+</head>
+<body data-page="components">
+<div class="app-shell">
+  <!-- ===== 侧栏导航 ===== -->
+  <aside class="app-rail" aria-label="主导航">
+    <nav class="rail" style="height:100%; border-radius:0; border:0; border-right:1px solid var(--border);">
+      <p class="brand">上课Shangke</p>
+      <div class="stack">
+        <a class="item" href="今日日程.html" data-nav-key="today">今日</a>
+        <a class="item" href="周课表.html" data-nav-key="schedule">课表</a>
+        <a class="item" href="多学期管理.html" data-nav-key="semester">学期</a>
+        <a class="item" href="教务导入.html" data-nav-key="import">导入</a>
+        <a class="item active" href="组件预览.html" data-nav-key="components">组件</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <!-- 顶部工具栏 -->
+    <div class="page-toolbar">
+      <span class="brand-line">Claude 组件库</span>
+      <nav class="tabs" role="tablist" data-roving aria-label="组件分区导航">
+        <button class="tab active" type="button" role="tab" data-jump="section-colors">色彩</button>
+        <button class="tab" type="button" role="tab" data-jump="section-typography">字体</button>
+        <button class="tab" type="button" role="tab" data-jump="section-button">按钮</button>
+        <button class="tab" type="button" role="tab" data-jump="section-card">卡片</button>
+        <button class="tab" type="button" role="tab" data-jump="section-input">输入</button>
+        <button class="tab" type="button" role="tab" data-jump="section-badge">徽章</button>
+        <button class="tab" type="button" role="tab" data-jump="section-navigation">导航</button>
+        <button class="tab" type="button" role="tab" data-jump="section-chat-bubble">气泡</button>
+      </nav>
+      <button class="ui-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式">
+        <svg class="ui-toggle-icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+        <span>深色</span>
+      </button>
+    </div>
+
+    <div class="page-wrap app-view">
+      <!-- 标题区 -->
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Claude Design System</p>
+          <h1>Claude 组件库</h1>
+          <p class="subtitle">上课Shangke 设计系统</p>
+          <span class="meta">v1.0.0 · 2026-09-09 · 多端适配版</span>
+        </div>
+      </header>
+
+      <!-- ===== 色彩系统 ===== -->
+      <section class="section section-anchor" id="section-colors">
+        <div class="section-title">
+          <h2>色彩系统</h2>
+          <span class="token-name">color tokens</span>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">品牌色 Brand</span>
+          <div class="color-grid">
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-50)"></div><span class="swatch-label">brand-50</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-100)"></div><span class="swatch-label">brand-100</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-200)"></div><span class="swatch-label">brand-200</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-300)"></div><span class="swatch-label">brand-300</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-400)"></div><span class="swatch-label">brand-400</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-500)"></div><span class="swatch-label">brand-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-600)"></div><span class="swatch-label">brand-600</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-700)"></div><span class="swatch-label">brand-700</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-800)"></div><span class="swatch-label">brand-800</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--brand-900)"></div><span class="swatch-label">brand-900</span></div>
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">背景色 Background</span>
+          <div class="color-grid">
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-50)"></div><span class="swatch-label">bg-50</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-100)"></div><span class="swatch-label">bg-100</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-200)"></div><span class="swatch-label">bg-200</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-300)"></div><span class="swatch-label">bg-300</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-400)"></div><span class="swatch-label">bg-400</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-500)"></div><span class="swatch-label">bg-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-600)"></div><span class="swatch-label">bg-600</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-700)"></div><span class="swatch-label">bg-700</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-800)"></div><span class="swatch-label">bg-800</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--bg-900)"></div><span class="swatch-label">bg-900</span></div>
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">文字色 Text</span>
+          <div class="color-grid">
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-50)"></div><span class="swatch-label">text-50</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-100)"></div><span class="swatch-label">text-100</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-200)"></div><span class="swatch-label">text-200</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-300)"></div><span class="swatch-label">text-300</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-400)"></div><span class="swatch-label">text-400</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-500)"></div><span class="swatch-label">text-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-600)"></div><span class="swatch-label">text-600</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-700)"></div><span class="swatch-label">text-700</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-800)"></div><span class="swatch-label">text-800</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--text-900)"></div><span class="swatch-label">text-900</span></div>
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">边框色 Border</span>
+          <div class="color-grid">
+            <div class="color-swatch"><div class="swatch" style="background: var(--border-50)"></div><span class="swatch-label">border-50</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--border-200)"></div><span class="swatch-label">border-200</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--border-300)"></div><span class="swatch-label">border-300</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--border-500)"></div><span class="swatch-label">border-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--border-700)"></div><span class="swatch-label">border-700</span></div>
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">功能色 Status & Chart</span>
+          <div class="color-grid">
+            <div class="color-swatch"><div class="swatch" style="background: var(--success-500)"></div><span class="swatch-label">success-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--error-500)"></div><span class="swatch-label">error-500</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--chart-1)"></div><span class="swatch-label">chart-1</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--chart-2)"></div><span class="swatch-label">chart-2</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--chart-3)"></div><span class="swatch-label">chart-3</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--chart-4)"></div><span class="swatch-label">chart-4</span></div>
+            <div class="color-swatch"><div class="swatch" style="background: var(--chart-5)"></div><span class="swatch-label">chart-5</span></div>
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="section-label">语义映射 Semantic（点击复制变量名）</span>
+          <div class="component-row">
+            <span class="token-code" data-copy="var(--background)">--background → var(--bg-100)</span>
+            <span class="token-code" data-copy="var(--foreground)">--foreground → var(--text-800)</span>
+            <span class="token-code" data-copy="var(--primary)">--primary → var(--brand-500)</span>
+            <span class="token-code" data-copy="var(--card)">--card → var(--bg-200)</span>
+            <span class="token-code" data-copy="var(--muted)">--muted → var(--bg-300)</span>
+            <span class="token-code" data-copy="var(--border)">--border → var(--border-300)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 字体排印 ===== -->
+      <section class="section section-anchor" id="section-typography">
+        <div class="section-title">
+          <h2>字体排印</h2>
+          <span class="token-name">typography</span>
+        </div>
+
+        <div class="type-sample">
+          <span class="section-label">Newsreader · Display Serif · 标题</span>
+          <div class="type-display" style="font-weight:500; font-size:36px; line-height:1.1; margin-bottom:8px">书卷多情似故人</div>
+          <div class="type-display" style="font-weight:400; font-size:24px; line-height:1.2; margin-bottom:8px">晨昏忧乐每相亲</div>
+          <div class="type-display" style="font-style:italic; font-weight:400; font-size:18px; line-height:1.3; color: var(--secondary-foreground)">— 于谦《观书》</div>
+        </div>
+
+        <div class="type-sample">
+          <span class="section-label">Poppins · Sans-serif · UI 正文</span>
+          <div class="type-sans" style="font-weight:600; font-size:18px; line-height:1.2; margin-bottom:8px">Compact UI Typography</div>
+          <div class="type-sans" style="font-weight:400; font-size:14px; line-height:1.5; margin-bottom:8px">Poppins provides clean, legible text for interface components and controls.</div>
+          <div class="type-sans" style="font-weight:500; font-size:12px; line-height:1.3; color: var(--muted-foreground)">Caption text · Small metadata · 辅助说明文字</div>
+        </div>
+
+        <div class="type-sample">
+          <span class="section-label">Lora · Reading Serif · 阅读正文</span>
+          <div class="type-serif" style="font-weight:400; font-size:16px; line-height:1.7; margin-bottom:8px">
+            Lora 是一款精心设计的衬线字体，非常适合长文本阅读。它在保持传统衬线优雅的同时，兼顾了屏幕显示的清晰度。
+          </div>
+          <div class="type-serif" style="font-style:italic; font-weight:400; font-size:15px; line-height:1.6; color: var(--secondary-foreground)">
+            “Reading is to the mind what exercise is to the body.” — Joseph Addison
+          </div>
+        </div>
+
+        <div class="type-sample">
+          <span class="section-label">Geist Mono · Monospace · 代码 / Token</span>
+          <div class="type-mono" style="font-weight:400; font-size:13px; line-height:1.5">
+            <div>const schedule = {</div>
+            <div style="padding-left:1.5rem">monday: ["高数", "英语"],</div>
+            <div style="padding-left:1.5rem">tuesday: ["物理", "编程"]</div>
+            <div>};</div>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+            <span class="token-code" data-copy="--brand-500">--brand-500</span>
+            <span class="token-code" data-copy="--radius-md">--radius-md</span>
+            <span class="token-code" data-copy="--shadow-sm">--shadow-sm</span>
+          </div>
+        </div>
+
+        <div class="type-sample">
+          <span class="section-label">字号阶梯 Type Scale</span>
+          <div style="display:grid; gap:12px">
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap">
+              <span class="token-code" style="min-width:64px">12px</span>
+              <span style="font:500 12px/1.3 var(--font-sans); color: var(--muted-foreground)">Caption · 辅助说明</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap">
+              <span class="token-code" style="min-width:64px">14px</span>
+              <span style="font:400 14px/1.5 var(--font-sans)">Body · 正文内容</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap">
+              <span class="token-code" style="min-width:64px">16px</span>
+              <span style="font:400 16px/1.6 var(--font-serif)">Reading · 阅读正文</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap">
+              <span class="token-code" style="min-width:64px">21px</span>
+              <span style="font:600 21px/1.18 var(--font-sans)">Card Title · 卡片标题</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap">
+              <span class="token-code" style="min-width:64px">36px</span>
+              <span style="font:500 36px/1.1 var(--font-display)">Display · 大标题</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Button ===== -->
+      <section class="section section-anchor" id="section-button">
+        <div class="section-title">
+          <h2>Button 按钮</h2>
+          <span class="token-name">component: button</span>
+        </div>
+
+        <span class="section-label">变体 Variants</span>
+        <div class="component-row">
+          <button class="btn primary" type="button">Primary 主要</button>
+          <button class="btn secondary" type="button">Secondary 次要</button>
+          <button class="btn outline" type="button">Outline 线框</button>
+          <button class="btn ghost" type="button">Ghost 幽灵</button>
+        </div>
+
+        <span class="section-label">尺寸 Sizes</span>
+        <div class="component-row">
+          <button class="btn primary lg" type="button">Large 大号</button>
+          <button class="btn primary" type="button">Medium 中号</button>
+          <button class="btn primary sm" type="button">Small 小号</button>
+        </div>
+
+        <span class="section-label">禁用状态 Disabled</span>
+        <div class="component-row">
+          <button class="btn primary" type="button" disabled>Primary</button>
+          <button class="btn secondary" type="button" disabled>Secondary</button>
+          <button class="btn ghost" type="button" disabled>Ghost</button>
+        </div>
+
+        <span class="section-label">带图标 With Icon</span>
+        <div class="component-row">
+          <a class="btn primary" href="教务导入.html" style="gap:8px">
+            <svg class="icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+            开始导入
+          </a>
+          <a class="btn secondary" href="周课表.html" style="gap:8px">
+            <svg class="icon" aria-hidden="true"><use href="#i-layout-grid"></use></svg>
+            查看课表
+          </a>
+        </div>
+      </section>
+
+      <!-- ===== Card ===== -->
+      <section class="section section-anchor" id="section-card">
+        <div class="section-title">
+          <h2>Card 卡片</h2>
+          <span class="token-name">component: card</span>
+        </div>
+
+        <span class="section-label">基础卡片 Floating</span>
+        <div class="component-row">
+          <div class="card-grid">
+            <article class="card">
+              <p class="eyebrow">今日课程</p>
+              <h3 class="title">高等数学</h3>
+              <p class="body">第 3 周 · 第三章 导数与微分 · 主教 201 · 08:00 - 09:40</p>
+            </article>
+          </div>
+        </div>
+
+        <span class="section-label">表面对比 Surface Contrast</span>
+        <div class="component-row">
+          <div class="card-grid">
+            <article class="card sunken">
+              <p class="eyebrow">编辑侧栏</p>
+              <h3 class="title">课程备注</h3>
+              <p class="body">凹陷表面用于承载辅助内容，与主内容区形成层次而不抢占视觉焦点。</p>
+            </article>
+            <article class="card emphasis">
+              <p class="eyebrow">重要提醒</p>
+              <h3 class="title">明天有考试</h3>
+              <p class="body">高对比度强调卡片用于发布重要通知和高优先级引导。</p>
+            </article>
+          </div>
+        </div>
+
+        <span class="section-label">带操作按钮 With Action</span>
+        <div class="component-row">
+          <div class="card-grid">
+            <article class="card" style="min-height:auto">
+              <p class="eyebrow">课程卡片</p>
+              <h3 class="title">大学物理</h3>
+              <p class="body" style="margin-bottom:14px">第 3 周 · 力学部分复习</p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap">
+                <button class="btn primary sm" type="button">查看详情</button>
+                <button class="btn ghost sm" type="button">加入收藏</button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Input ===== -->
+      <section class="section section-anchor" id="section-input">
+        <div class="section-title">
+          <h2>Input 输入框</h2>
+          <span class="token-name">component: input</span>
+        </div>
+
+        <span class="section-label">文本输入 Plain</span>
+        <div class="component-row" style="flex-direction:column; align-items:stretch">
+          <input class="field" type="text" placeholder="搜索课程…" aria-label="搜索课程" />
+          <input class="field" type="text" value="高等数学上册" aria-label="已填输入框" />
+        </div>
+
+        <span class="section-label">带标签 Labeled</span>
+        <div class="component-row" style="flex-direction:column; align-items:stretch">
+          <div>
+            <label class="input-label" for="course-name">课程名称</label>
+            <input class="field" id="course-name" type="text" placeholder="请输入课程名称" style="width:100%" />
+          </div>
+          <div>
+            <label class="input-label" for="teacher">授课教师</label>
+            <input class="field" id="teacher" type="text" value="张教授" style="width:100%" />
+          </div>
+        </div>
+
+        <span class="section-label">状态 States</span>
+        <div class="component-row" style="flex-direction:column; align-items:stretch">
+          <div>
+            <label class="input-label" for="input-disabled">禁用状态</label>
+            <input class="field" id="input-disabled" type="text" value="不可编辑" disabled style="width:100%" />
+          </div>
+          <div>
+            <label class="input-label" for="input-error">错误状态</label>
+            <input class="field error" id="input-error" type="text" value="课程时间冲突" aria-invalid="true" aria-describedby="input-error-msg" style="width:100%" />
+            <p class="input-error" id="input-error-msg">请检查课程时间是否与已有课程重叠</p>
+          </div>
+        </div>
+
+        <span class="section-label">嵌入样式 Embedded</span>
+        <div class="component-row" style="flex-direction:column; align-items:stretch">
+          <label class="bar">
+            <svg class="icon-sm" aria-hidden="true" style="color: var(--muted-foreground)"><use href="#i-eye"></use></svg>
+            <input type="text" placeholder="搜索组件…" aria-label="嵌入搜索输入框" />
+          </label>
+        </div>
+      </section>
+
+      <!-- ===== Badge ===== -->
+      <section class="section section-anchor" id="section-badge">
+        <div class="section-title">
+          <h2>Badge 徽章</h2>
+          <span class="token-name">component: badge</span>
+        </div>
+
+        <span class="section-label">变体 Variants</span>
+        <div class="component-row">
+          <span class="badge filled">Filled</span>
+          <span class="badge muted">Muted</span>
+          <span class="badge outline">Outline</span>
+        </div>
+
+        <span class="section-label">语义状态 Status</span>
+        <div class="component-row">
+          <span class="badge success">成功</span>
+          <span class="badge warning">警告</span>
+          <span class="badge error-badge">错误</span>
+          <span class="badge filled">默认</span>
+        </div>
+
+        <span class="section-label">尺寸 Sizes</span>
+        <div class="component-row">
+          <span class="badge filled lg">Large</span>
+          <span class="badge filled">Medium</span>
+          <span class="badge filled sm">Small</span>
+        </div>
+
+        <span class="section-label">点状指示器 Dot Indicator</span>
+        <div class="component-row">
+          <span class="badge muted"><span class="badge-dot" style="margin-right:8px"></span>在线</span>
+          <span class="badge muted"><span class="badge-dot" style="margin-right:8px; background: var(--error-500)"></span>异常</span>
+          <span class="badge muted"><span class="badge-dot" style="margin-right:8px; background: var(--muted-foreground); opacity:.5"></span>离线</span>
+        </div>
+      </section>
+
+      <!-- ===== Navigation ===== -->
+      <section class="section section-anchor" id="section-navigation">
+        <div class="section-title">
+          <h2>Navigation 导航</h2>
+          <span class="token-name">component: navigation</span>
+        </div>
+
+        <span class="section-label">标签页 Tabs</span>
+        <div class="component-row">
+          <nav class="tabs" role="tablist" data-roving aria-label="导航标签页">
+            <button class="tab active" type="button" role="tab">今日</button>
+            <button class="tab" type="button" role="tab">本周</button>
+            <button class="tab" type="button" role="tab">本月</button>
+            <button class="tab" type="button" role="tab">全部</button>
+          </nav>
+        </div>
+
+        <span class="section-label">面包屑 Breadcrumbs</span>
+        <div class="component-row">
+          <nav class="breadcrumbs" aria-label="面包屑">
+            <span>首页</span><span class="sep">/</span>
+            <span>课表</span><span class="sep">/</span>
+            <span class="crumb-current">高等数学</span>
+          </nav>
+        </div>
+
+        <span class="section-label">底部导航栏 Bottom Nav</span>
+        <div class="component-row">
+          <nav style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:8px; background:var(--popover); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-xs); width:100%; max-width:420px" aria-label="底部导航预览">
+            <button class="nav-item-app active" type="button">
+              <span class="nav-icon"><svg class="icon-lg" aria-hidden="true"><use href="#i-calendar-check"></use></svg></span>
+              <span>今日</span>
+            </button>
+            <button class="nav-item-app" type="button">
+              <span class="nav-icon"><svg class="icon-lg" aria-hidden="true"><use href="#i-layout-grid"></use></svg></span>
+              <span>课表</span>
+            </button>
+            <button class="nav-item-app" type="button">
+              <span class="nav-icon"><svg class="icon-lg" aria-hidden="true"><use href="#i-upload-cloud"></use></svg></span>
+              <span>导入</span>
+            </button>
+            <button class="nav-item-app" type="button">
+              <span class="nav-icon"><svg class="icon-lg" aria-hidden="true"><use href="#i-user-circle"></use></svg></span>
+              <span>我的</span>
+            </button>
+          </nav>
+        </div>
+      </section>
+
+      <!-- ===== Chat Bubble ===== -->
+      <section class="section section-anchor" id="section-chat-bubble">
+        <div class="section-title">
+          <h2>Chat Bubble 对话气泡</h2>
+          <span class="token-name">component: chat-bubble</span>
+        </div>
+
+        <span class="section-label">用户消息 User</span>
+        <div class="component-row">
+          <div class="bubble user">
+            <span class="meta">你 · 刚刚</span>
+            <p class="copy">帮我看看今天有什么课？</p>
+          </div>
+        </div>
+
+        <span class="section-label">AI 回复 Assistant</span>
+        <div class="component-row">
+          <div class="bubble assistant">
+            <span class="meta">上课Shangke · 1 分钟</span>
+            <p class="copy">今天是周三，你有两节课：高等数学（上午）和大学物理（下午）。需要查看详情吗？</p>
+          </div>
+        </div>
+
+        <span class="section-label">带代码块 With Code</span>
+        <div class="component-row">
+          <div class="bubble assistant" style="max-width:320px">
+            <span class="meta">上课Shangke · AI 助手</span>
+            <p class="copy">这是课表数据的 JSON 格式：</p>
+            <div class="code-block">{
+  "course": "高等数学",
+  "time": "08:00-09:40",
+  "room": "主教201",
+  "week": "1-16周"
+}</div>
+          </div>
+        </div>
+
+        <span class="section-label">对话线程 Thread</span>
+        <div class="component-row" style="flex-direction:column; align-items:stretch">
+          <div class="chat-thread">
+            <div class="bubble user" style="justify-self:end">
+              <span class="meta">你 · 刚刚</span>
+              <p class="copy">明天有什么课？</p>
+            </div>
+            <div class="bubble assistant" style="justify-self:start">
+              <span class="meta">上课Shangke · 1 分钟</span>
+              <p class="copy">明天周四，你有：大学英语、数据结构、体育。共 3 门课程。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== 桌面端目录 ===== -->
+  <aside class="app-aside" aria-label="组件目录">
+    <div style="position:sticky; top:24px; padding: 0 calc(var(--spacing) * 5)">
+      <div class="card" style="min-height:auto; padding:16px">
+        <p class="eyebrow">目录</p>
+        <div class="stack">
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-colors">色彩系统</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-typography">字体排印</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-button">Button 按钮</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-card">Card 卡片</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-input">Input 输入框</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-badge">Badge 徽章</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-navigation">Navigation 导航</a>
+          <a class="item" style="color: var(--foreground); background: transparent; border: 0" href="#section-chat-bubble">Chat Bubble 气泡</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="copy-toast" id="copy-toast" role="status" aria-live="polite"></div>
+
+<script src="../assets/claude-icons.js"></script>
+<script src="../assets/claude-app.js"></script>
+<script>
+/* ============================================================================
+ * 组件预览页交互：分区跳转、token 复制、tab 切换
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ---------- 分区跳转 ---------- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.page-toolbar .tab'));
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var id = tab.getAttribute('data-jump');
+      var target = document.getElementById(id);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+    });
+  });
+
+  /* 滚动时高亮当前分区 */
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.section-anchor'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var id = e.target.id;
+        tabs.forEach(function (t) {
+          t.classList.toggle('active', t.getAttribute('data-jump') === id);
+        });
+      });
+    }, { rootMargin: '-88px 0px -70% 0px', threshold: 0 });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---------- token 复制 ---------- */
+  var toast = document.getElementById('copy-toast');
+  var toastTimer = null;
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
+  }
+  document.querySelectorAll('[data-copy]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var text = el.getAttribute('data-copy');
+      function done() { showToast('已复制 ' + text); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { showToast('复制失败，请手动选择'); });
+      } else {
+        showToast('已选中 ' + text);
+      }
+    });
+  });
+
+  /* ---------- 组件内 tab 切换（演示用） ---------- */
+  document.querySelectorAll('nav.tabs[role="tablist"]').forEach(function (nav) {
+    if (nav.closest('.page-toolbar')) return;
+    nav.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        nav.querySelectorAll('.tab').forEach(function (t) {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

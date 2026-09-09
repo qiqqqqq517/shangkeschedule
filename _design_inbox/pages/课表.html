@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周课表 · Claude</title>
+    <style id="theme-vars">
+﻿/* Source: structured-spec */
+/* Brand fonts — Anthropic official: Newsreader (editorial display/slogan) +
+   Poppins (compact UI) + Lora (reading). Mono kept for code/token surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+/* ============================================================
+   Token model
+   1) Primitives — 7 key color cards as 10-step scales (50→900).
+      These are the single source of truth (mirrored in the linshi
+      preview tool). The flagged "standard" step per group:
+        brand-500 · text-800 · bg-100 · icon-700 · border-300 · success-500 · error-500
+   2) Semantic tokens — reference the primitives above (no raw hex
+      duplicates). These are the API consumed by preview / ui_kits /
+      components.
+   3) Non-color tokens — font, spacing, radius, shadow, type.
+   ============================================================ */
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --claude-background: var(--background, #ffffff);
+  --claude-foreground: var(--foreground, #0f172a);
+  --claude-card: var(--card, var(--background));
+  --claude-card-foreground: var(--card-foreground, var(--foreground));
+  --claude-popover: var(--popover, var(--card));
+  --claude-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --claude-primary: var(--primary, #111827);
+  --claude-primary-foreground: var(--primary-foreground, #ffffff);
+  --claude-secondary: var(--secondary, var(--muted, var(--card)));
+  --claude-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --claude-muted: var(--muted, var(--card));
+  --claude-muted-foreground: var(--muted-foreground, var(--foreground));
+  --claude-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --claude-accent-foreground: var(--accent-foreground, var(--foreground));
+  --claude-destructive: var(--destructive, #ef4444);
+  --claude-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --claude-border: var(--border, currentColor);
+  --claude-input: var(--input, var(--border));
+  --claude-ring: var(--ring, var(--primary));
+  --claude-chart-1: var(--chart-1, var(--primary));
+  --claude-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --claude-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --claude-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --claude-chart-5: var(--chart-5, var(--foreground));
+  --claude-sidebar: var(--sidebar, var(--background));
+  --claude-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --claude-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --claude-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --claude-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --claude-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #c96442 */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  /* text — standard: --text-800 #3d3929 */
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  /* background — standard: --bg-100 #faf9f5 */
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  /* icon — standard: --icon-700 #3d3929 */
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  /* border — standard: --border-300 #dad9d4 */
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  /* state · success — standard: --success-500 #788c5d */
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  /* state · error — standard: --error-500 #d64545 */
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-50);
+  --muted: var(--bg-300);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--icon-900);
+  --popover-foreground: var(--text-900);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-600);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: var(--text-900);
+  --destructive-foreground: #ffffff;
+  /* semantic */
+  --primary: var(--brand-500);
+  --secondary: #e9e6dc;
+  --accent: var(--secondary);
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — display (Newsreader) for slogans/headlines, sans (Poppins) for compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* spacing */
+  --spacing: 0.25rem;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+  /* type */
+  --tracking-normal: 0em;
+}
+
+.dark {
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #d97757 */
+  --brand-50: #3a2a22;
+  --brand-100: #4d3528;
+  --brand-200: #6b4533;
+  --brand-300: #8a5740;
+  --brand-400: #b0683f;
+  --brand-500: #d97757;
+  --brand-600: #e08d6f;
+  --brand-700: #e8a98f;
+  --brand-800: #f0c6b3;
+  --brand-900: #f8e3d8;
+  /* text — standard: --text-800 #f1f1ef */
+  --text-50: #1b1b19;
+  --text-100: #2c2c2b;
+  --text-200: #46443b;
+  --text-300: #6e6d68;
+  --text-400: #908e84;
+  --text-500: #b7b5a9;
+  --text-600: #c3c0b6;
+  --text-700: #d8d6cd;
+  --text-800: #f1f1ef;
+  --text-900: #faf9f5;
+  /* background — standard: --bg-100 #262624 */
+  --bg-50: #1b1b19;
+  --bg-100: #262624;
+  --bg-200: #2c2c2b;
+  --bg-300: #30302e;
+  --bg-400: #3e3e38;
+  --bg-500: #4a4a43;
+  --bg-600: #52514a;
+  --bg-700: #6e6d68;
+  --bg-800: #908e84;
+  --bg-900: #b7b5a9;
+  /* icon — standard: --icon-700 #f1f1ef */
+  --icon-50: #1b1b19;
+  --icon-100: #2c2c2b;
+  --icon-200: #46443b;
+  --icon-300: #6e6d68;
+  --icon-400: #908e84;
+  --icon-500: #b7b5a9;
+  --icon-600: #d8d6cd;
+  --icon-700: #f1f1ef;
+  --icon-800: #f8f8f6;
+  --icon-900: #ffffff;
+  /* border — standard: --border-300 #3e3e38 */
+  --border-50: #1f1e1d;
+  --border-100: #2c2c2b;
+  --border-200: #343430;
+  --border-300: #3e3e38;
+  --border-400: #4a4a43;
+  --border-500: #52514a;
+  --border-600: #6e6d68;
+  --border-700: #908e84;
+  --border-800: #b7b5a9;
+  --border-900: #d8d6cd;
+  /* state · success — standard: --success-500 #8ca06f */
+  --success-50: #232a1c;
+  --success-100: #2e3823;
+  --success-200: #3f4d30;
+  --success-300: #556640;
+  --success-400: #708353;
+  --success-500: #8ca06f;
+  --success-600: #a3b58a;
+  --success-700: #bccaa8;
+  --success-800: #d6dfc8;
+  --success-900: #edf2e4;
+  /* state · error — standard: --error-500 #ef4444 */
+  --error-50: #3a1f1f;
+  --error-100: #4d2424;
+  --error-200: #6e2c2c;
+  --error-300: #93302f;
+  --error-400: #c43a39;
+  --error-500: #ef4444;
+  --error-600: #f26b6b;
+  --error-700: #f59292;
+  --error-800: #f9b9b9;
+  --error-900: #fcdede;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-300);
+  --muted: var(--bg-50);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--text-900);
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #141413;
+  --secondary-foreground: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: #f5f4ee;
+  --destructive-foreground: #ffffff;
+  /* accent */
+  --primary: var(--brand-500);
+  --secondary: var(--text-900);
+  --accent: #1a1915;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  /* border */
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #141413;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — sans (Poppins) for headings + compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+}
+/* Project-level bridge CSS for Claude Design Library.
+   Adds the missing --radius-lg semantic alias required by
+   apply-html-head-contract.mjs so the head contract script
+   can run successfully in prefixless mode.
+   All values alias the Library's own tokens — strict fidelity. */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ===== 1) Primitive scales (from Claude Library) ===== */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens ===== */
+  --background: var(--bg-100);
+  --foreground: var(--text-800);
+  --card: var(--bg-200);
+  --card-foreground: var(--icon-900);
+  --popover: var(--bg-50);
+  --popover-foreground: var(--text-900);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --secondary: #e9e6dc;
+  --secondary-foreground: var(--text-600);
+  --muted: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent: var(--secondary);
+  --accent-foreground: var(--text-900);
+  --destructive: var(--error-500);
+  --destructive-foreground: #ffffff;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+
+  /* ===== 3) Non-color tokens ===== */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  --spacing: 0.25rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px; /* BRIDGE: maps to Library --radius-xl */
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --claude-radius-sm: 8px;
+  --claude-radius-md: 12px;
+  --claude-radius-lg: 20px;
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  /* Course block colors */
+  --course-amber-bg: #c96442;
+  --course-amber-fg: #ffffff;
+  --course-amber-border: rgba(201, 100, 66, 0.3);
+  --course-purple-bg: #8b7cf0;
+  --course-purple-fg: #ffffff;
+  --course-purple-border: rgba(139, 124, 240, 0.3);
+  --course-beige-striped-bg: #ede7d9;
+  --course-beige-striped-fg: #5a5545;
+  --course-purple-striped-bg: #d8d2f5;
+  --course-purple-striped-fg: #4a3f8a;
+  --course-striped-pattern: rgba(255, 255, 255, 0.55);
+  /* Grid */
+  --grid-line: rgba(200, 195, 180, 0.25);
+}
+
+.dark {
+  --background: #262624;
+  --foreground: #f1f1ef;
+  --card: #2c2c2b;
+  --card-foreground: #faf9f5;
+  --popover: #30302e;
+  --primary: #d97757;
+  --primary-foreground: #141413;
+  --secondary: #1a1915;
+  --muted: #1b1b19;
+  --muted-foreground: #b7b5a9;
+  --accent: #1a1915;
+  --destructive: #ef4444;
+  --border: #3e3e38;
+  --input: #52514a;
+  --ring: #d97757;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--claude-background);
+    --color-foreground: var(--claude-foreground);
+    --color-card: var(--claude-card);
+    --color-card-foreground: var(--claude-card-foreground);
+    --color-popover: var(--claude-popover);
+    --color-popover-foreground: var(--claude-popover-foreground);
+    --color-primary: var(--claude-primary);
+    --color-primary-foreground: var(--claude-primary-foreground);
+    --color-secondary: var(--claude-secondary);
+    --color-secondary-foreground: var(--claude-secondary-foreground);
+    --color-muted: var(--claude-muted);
+    --color-muted-foreground: var(--claude-muted-foreground);
+    --color-accent: var(--claude-accent);
+    --color-accent-foreground: var(--claude-accent-foreground);
+    --color-destructive: var(--claude-destructive);
+    --color-destructive-foreground: var(--claude-destructive-foreground);
+    --color-border: var(--claude-border);
+    --color-input: var(--claude-input);
+    --color-ring: var(--claude-ring);
+    --color-chart-1: var(--claude-chart-1);
+    --color-chart-2: var(--claude-chart-2);
+    --color-chart-3: var(--claude-chart-3);
+    --color-chart-4: var(--claude-chart-4);
+    --color-chart-5: var(--claude-chart-5);
+    --color-sidebar: var(--claude-sidebar);
+    --color-sidebar-foreground: var(--claude-sidebar-foreground);
+    --color-sidebar-primary: var(--claude-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--claude-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--claude-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--claude-sidebar-accent-foreground);
+    --radius-sm: var(--claude-radius-sm);
+    --radius-md: var(--claude-radius-md);
+    --radius-lg: var(--claude-radius-lg);
+  }
+  @layer base {
+    body { background: var(--claude-background); color: var(--claude-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--claude-background); }
+      .text-background { color: var(--claude-background); }
+      .border-background { border-color: var(--claude-background); }
+      .ring-background { --tw-ring-color: var(--claude-background); }
+      .bg-foreground { background-color: var(--claude-foreground); }
+      .text-foreground { color: var(--claude-foreground); }
+      .border-foreground { border-color: var(--claude-foreground); }
+      .ring-foreground { --tw-ring-color: var(--claude-foreground); }
+      .bg-card { background-color: var(--claude-card); }
+      .text-card { color: var(--claude-card); }
+      .border-card { border-color: var(--claude-card); }
+      .ring-card { --tw-ring-color: var(--claude-card); }
+      .bg-card-foreground { background-color: var(--claude-card-foreground); }
+      .text-card-foreground { color: var(--claude-card-foreground); }
+      .border-card-foreground { border-color: var(--claude-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--claude-card-foreground); }
+      .bg-popover { background-color: var(--claude-popover); }
+      .text-popover { color: var(--claude-popover); }
+      .border-popover { border-color: var(--claude-popover); }
+      .ring-popover { --tw-ring-color: var(--claude-popover); }
+      .bg-popover-foreground { background-color: var(--claude-popover-foreground); }
+      .text-popover-foreground { color: var(--claude-popover-foreground); }
+      .border-popover-foreground { border-color: var(--claude-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--claude-popover-foreground); }
+      .bg-primary { background-color: var(--claude-primary); }
+      .text-primary { color: var(--claude-primary); }
+      .border-primary { border-color: var(--claude-primary); }
+      .ring-primary { --tw-ring-color: var(--claude-primary); }
+      .bg-primary-foreground { background-color: var(--claude-primary-foreground); }
+      .text-primary-foreground { color: var(--claude-primary-foreground); }
+      .border-primary-foreground { border-color: var(--claude-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--claude-primary-foreground); }
+      .bg-secondary { background-color: var(--claude-secondary); }
+      .text-secondary { color: var(--claude-secondary); }
+      .border-secondary { border-color: var(--claude-secondary); }
+      .ring-secondary { --tw-ring-color: var(--claude-secondary); }
+      .bg-secondary-foreground { background-color: var(--claude-secondary-foreground); }
+      .text-secondary-foreground { color: var(--claude-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--claude-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--claude-secondary-foreground); }
+      .bg-muted { background-color: var(--claude-muted); }
+      .text-muted { color: var(--claude-muted); }
+      .border-muted { border-color: var(--claude-muted); }
+      .ring-muted { --tw-ring-color: var(--claude-muted); }
+      .bg-muted-foreground { background-color: var(--claude-muted-foreground); }
+      .text-muted-foreground { color: var(--claude-muted-foreground); }
+      .border-muted-foreground { border-color: var(--claude-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--claude-muted-foreground); }
+      .bg-accent { background-color: var(--claude-accent); }
+      .text-accent { color: var(--claude-accent); }
+      .border-accent { border-color: var(--claude-accent); }
+      .ring-accent { --tw-ring-color: var(--claude-accent); }
+      .bg-accent-foreground { background-color: var(--claude-accent-foreground); }
+      .text-accent-foreground { color: var(--claude-accent-foreground); }
+      .border-accent-foreground { border-color: var(--claude-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--claude-accent-foreground); }
+      .bg-destructive { background-color: var(--claude-destructive); }
+      .text-destructive { color: var(--claude-destructive); }
+      .border-destructive { border-color: var(--claude-destructive); }
+      .ring-destructive { --tw-ring-color: var(--claude-destructive); }
+      .bg-destructive-foreground { background-color: var(--claude-destructive-foreground); }
+      .text-destructive-foreground { color: var(--claude-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--claude-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--claude-destructive-foreground); }
+      .bg-border { background-color: var(--claude-border); }
+      .text-border { color: var(--claude-border); }
+      .border-border { border-color: var(--claude-border); }
+      .ring-border { --tw-ring-color: var(--claude-border); }
+      .bg-input { background-color: var(--claude-input); }
+      .text-input { color: var(--claude-input); }
+      .border-input { border-color: var(--claude-input); }
+      .ring-input { --tw-ring-color: var(--claude-input); }
+      .bg-ring { background-color: var(--claude-ring); }
+      .text-ring { color: var(--claude-ring); }
+      .border-ring { border-color: var(--claude-ring); }
+      .ring-ring { --tw-ring-color: var(--claude-ring); }
+      .bg-chart-1 { background-color: var(--claude-chart-1); }
+      .text-chart-1 { color: var(--claude-chart-1); }
+      .border-chart-1 { border-color: var(--claude-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--claude-chart-1); }
+      .bg-chart-2 { background-color: var(--claude-chart-2); }
+      .text-chart-2 { color: var(--claude-chart-2); }
+      .border-chart-2 { border-color: var(--claude-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--claude-chart-2); }
+      .bg-chart-3 { background-color: var(--claude-chart-3); }
+      .text-chart-3 { color: var(--claude-chart-3); }
+      .border-chart-3 { border-color: var(--claude-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--claude-chart-3); }
+      .bg-chart-4 { background-color: var(--claude-chart-4); }
+      .text-chart-4 { color: var(--claude-chart-4); }
+      .border-chart-4 { border-color: var(--claude-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--claude-chart-4); }
+      .bg-chart-5 { background-color: var(--claude-chart-5); }
+      .text-chart-5 { color: var(--claude-chart-5); }
+      .border-chart-5 { border-color: var(--claude-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--claude-chart-5); }
+      .bg-sidebar { background-color: var(--claude-sidebar); }
+      .text-sidebar { color: var(--claude-sidebar); }
+      .border-sidebar { border-color: var(--claude-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--claude-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--claude-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--claude-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--claude-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--claude-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--claude-sidebar-primary); }
+      .text-sidebar-primary { color: var(--claude-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--claude-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--claude-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--claude-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--claude-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--claude-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--claude-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--claude-sidebar-accent); }
+      .text-sidebar-accent { color: var(--claude-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--claude-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--claude-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--claude-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--claude-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--claude-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--claude-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="phone-canvas">
+
+      <!-- ===== Status Bar ===== -->
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="icons">
+          <!-- Signal -->
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
+            <rect x="0" y="8" width="3" height="4" rx="0.8" opacity="0.3"></rect>
+            <rect x="3.75" y="6" width="3" height="6" rx="0.8" opacity="0.5"></rect>
+            <rect x="7.5" y="4" width="3" height="8" rx="0.8" opacity="0.7"></rect>
+            <rect x="11.25" y="2" width="3" height="10" rx="0.8" opacity="0.9"></rect>
+            <rect x="15" y="0" width="3" height="12" rx="0.8"></rect>
+          </svg>
+          <!-- WiFi -->
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <path d="M1.5 4.5 C3.5 2.5 5.5 1.5 8 1.5 C10.5 1.5 12.5 2.5 14.5 4.5"></path>
+            <path d="M3.5 7 C4.8 5.7 6.3 5 8 5 C9.7 5 11.2 5.7 12.5 7"></path>
+            <path d="M5.5 9 C6.3 8.2 7.1 7.8 8 7.8 C8.9 7.8 9.7 8.2 10.5 9"></path>
+            <circle cx="8" cy="10.5" r="1" fill="currentColor" stroke="none"></circle>
+          </svg>
+          <!-- Battery -->
+          <svg width="26" height="12" viewBox="0 0 26 12" fill="none">
+            <rect x="0.5" y="0.5" width="22" height="11" rx="2.5" stroke="currentColor" stroke-opacity="0.35"></rect>
+            <rect x="2" y="2" width="19" height="8" rx="1.5" fill="#788c5d"></rect>
+            <rect x="23.5" y="4" width="1.5" height="4" rx="0.75" fill="currentColor" fill-opacity="0.35"></rect>
+          </svg>
+        </div>
+      </div>
+
+      <!-- ===== Top Toolbar ===== -->
+      <div class="top-toolbar">
+        <button class="toolbar-icon-btn" aria-label="切换视图">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-dom-id="interaction-id-9uu7qgc">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+        </button>
+
+        <div class="week-pill">
+          <span style="font-size: 20px;">第 2 周</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="toolbar-right">
+          <button class="toolbar-icon-btn" aria-label="跳转">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+          <button class="toolbar-icon-btn" aria-label="更多">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="1.8"></circle>
+              <circle cx="12" cy="12" r="1.8"></circle>
+              <circle cx="19" cy="12" r="1.8"></circle>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Week Header (sticky) ===== -->
+      <div class="week-header">
+        <div class="year-week-col">
+          <span class="year-text">2026</span>
+          <span class="week-text">2周</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周一</span>
+          <span class="day-date">09-07</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周二</span>
+          <span class="day-date">09-08</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周三</span>
+          <span class="day-date">09-09</span>
+        </div>
+        <div class="day-col today">
+          <span class="day-name">周四</span>
+          <span class="day-date">10</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周五</span>
+          <span class="day-date">09-11</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周六</span>
+          <span class="day-date">09-12</span>
+        </div>
+        <div class="day-col">
+          <span class="day-name">周日</span>
+          <span class="day-date">09-13</span>
+        </div>
+      </div>
+
+      <!-- ===== Schedule Grid ===== -->
+      <div class="schedule-grid">
+
+        <!-- Row 1 (period 1) -->
+        <div class="time-cell" style="grid-row: 1;">
+          <span class="period-num">1</span>
+          <span class="time-range">07:50<br>08:30</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 1;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 1;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 1;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 1;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 1;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 1;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 1;"></div>
+
+        <!-- Row 2 (period 2) -->
+        <div class="time-cell" style="grid-row: 2;">
+          <span class="period-num">2</span>
+          <span class="time-range">08:40<br>09:20</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 2;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 2;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 2;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 2;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 2;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 2;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 2;"></div>
+
+        <!-- Row 3 (period 3) -->
+        <div class="time-cell" style="grid-row: 3;">
+          <span class="period-num">3</span>
+          <span class="time-range">09:35<br>10:15</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 3;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 3;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 3;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 3;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 3;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 3;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 3;"></div>
+
+        <!-- Row 4 (period 4) -->
+        <div class="time-cell" style="grid-row: 4;">
+          <span class="period-num">4</span>
+          <span class="time-range">10:30<br>11:10</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 4;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 4;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 4;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 4;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 4;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 4;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 4;"></div>
+
+        <!-- Row 5 (period 5) -->
+        <div class="time-cell" style="grid-row: 5;">
+          <span class="period-num">5</span>
+          <span class="time-range">11:20<br>12:00</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 5;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 5;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 5;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 5;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 5;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 5;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 5;"></div>
+
+        <!-- Row 6 (period 6) -->
+        <div class="time-cell" style="grid-row: 6;">
+          <span class="period-num">6</span>
+          <span class="time-range">14:00<br>14:40</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 6;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 6;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 6;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 6;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 6;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 6;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 6;"></div>
+
+        <!-- Row 7 (period 7) -->
+        <div class="time-cell" style="grid-row: 7;">
+          <span class="period-num">7</span>
+          <span class="time-range">14:50<br>15:30</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 7;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 7;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 7;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 7;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 7;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 7;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 7;"></div>
+
+        <!-- Row 8 (period 8) -->
+        <div class="time-cell" style="grid-row: 8;">
+          <span class="period-num">8</span>
+          <span class="time-range">15:50<br>16:30</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 8;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 8;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 8;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 8;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 8;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 8;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 8;"></div>
+
+        <!-- Row 9 (period 9) -->
+        <div class="time-cell" style="grid-row: 9;">
+          <span class="period-num">9</span>
+          <span class="time-range">16:40<br>17:20</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 9;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 9;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 9;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 9;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 9;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 9;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 9;"></div>
+
+        <!-- Row 10 (period 10) -->
+        <div class="time-cell" style="grid-row: 10;">
+          <span class="period-num">10</span>
+          <span class="time-range">19:00<br>19:40</span>
+        </div>
+        <div class="grid-cell col-2" style="grid-column: 2; grid-row: 10;"></div>
+        <div class="grid-cell col-3" style="grid-column: 3; grid-row: 10;"></div>
+        <div class="grid-cell col-4" style="grid-column: 4; grid-row: 10;"></div>
+        <div class="grid-cell col-5" style="grid-column: 5; grid-row: 10;"></div>
+        <div class="grid-cell col-6" style="grid-column: 6; grid-row: 10;"></div>
+        <div class="grid-cell col-7" style="grid-column: 7; grid-row: 10;"></div>
+        <div class="grid-cell col-8" style="grid-column: 8; grid-row: 10;"></div>
+
+        <!-- ===== Course Blocks (overlay via grid-row span) ===== -->
+
+        <!-- 药剂学(上) — 周一 1-2节 (span 2) — 琥珀色实心 -->
+        <div class="course-block amber" style="grid-column: 2; grid-row: 1 / span 2;">
+          <span class="course-name">药剂学(上)</span>
+          <span class="course-location">@教学楼B303</span>
+          <span class="course-teacher">凌家俊, …</span>
+        </div>
+
+        <!-- 药理学 — 周二 2-4节 (span 3) — 琥珀色实心 -->
+        <div class="course-block amber" style="grid-column: 3; grid-row: 2 / span 3;">
+          <span class="course-name">药理学</span>
+          <span class="course-location">@教学楼B503</span>
+          <span class="course-teacher">白云龙, …</span>
+        </div>
+
+        <!-- 虚拟仿真实训 — 周三 2-4节 (span 3) — 米色斜线 -->
+        <div class="course-block striped-beige" style="grid-column: 4; grid-row: 2 / span 3;">
+          <span class="course-name">虚拟仿真实训</span>
+          <span class="course-location">@虚拟仿真实验中心</span>
+          <span class="course-teacher">凌家俊, …</span>
+        </div>
+
+        <!-- 药物化学 — 周四 2-4节 (span 3) — 紫色实心 -->
+        <div class="course-block purple" style="grid-column: 5; grid-row: 2 / span 3;">
+          <span class="course-name">药物化学</span>
+          <span class="course-location">@教学楼B509</span>
+          <span class="course-teacher">刘芳, 罗翔</span>
+        </div>
+
+        <!-- 药理学 — 周五 2-4节 (span 3) — 琥珀色实心 -->
+        <div class="course-block amber" style="grid-column: 6; grid-row: 2 / span 3;">
+          <span class="course-name">药理学</span>
+          <span class="course-location">@教学楼B503</span>
+          <span class="course-teacher">白云龙, …</span>
+        </div>
+
+        <!-- 药剂... — 周一 第3节 (span 1) — 琥珀色实心 -->
+        <div class="course-block amber" style="grid-column: 2; grid-row: 3 / span 1;">
+          <span class="course-name">药剂…</span>
+          <span class="course-location">@B303</span>
+        </div>
+
+        <!-- 药物化学 — 周一 6-8节 (span 3) — 紫色 -->
+        <div class="course-block purple" style="grid-column: 2; grid-row: 6 / span 3;">
+          <span class="course-name">药物化学</span>
+          <span class="course-location">@教学楼B509</span>
+          <span class="course-teacher">罗翔</span>
+        </div>
+
+        <!-- 药理学实验 — 周二 6-8节 (span 3) — 紫色 -->
+        <div class="course-block purple" style="grid-column: 3; grid-row: 6 / span 3;">
+          <span class="course-name" style="width: 24.7188px;">药理学实验</span>
+          <span class="course-location">@药科楼B220</span>
+          <span class="course-teacher">白云龙, …</span>
+        </div>
+
+        <!-- 分子生物学 — 周三 6-8节 (span 3) — 紫色 -->
+        <div class="course-block purple" style="grid-column: 4; grid-row: 6 / span 3;">
+          <span class="course-name">分子生物学</span>
+          <span class="course-location">@教学楼B305</span>
+          <span class="course-teacher">黄莉莉, …</span>
+        </div>
+
+        <!-- 虚拟仿真实训 — 周四 6-8节 (span 3) — 米色斜线 -->
+        <div class="course-block striped-beige" style="grid-column: 5; grid-row: 6 / span 3;">
+          <span class="course-name">虚拟仿真实训</span>
+          <span class="course-location">@虚拟仿真实验中心</span>
+          <span class="course-teacher">李景艳</span>
+        </div>
+
+        <!-- 药剂学(上) — 周五 7-8节 (span 2) — 琥珀色 -->
+        <div class="course-block amber" style="grid-column: 6; grid-row: 7 / span 2;">
+          <span class="course-name">药剂学(上)</span>
+          <span class="course-location">@教学楼B303</span>
+          <span class="course-teacher">凌家俊</span>
+        </div>
+
+        <!-- 分子生物学 — 周六 6-8节 (span 3) — 淡紫色斜线 -->
+        <div class="course-block striped-purple" style="grid-column: 7; grid-row: 6 / span 3;">
+          <span class="course-name">分子生物学</span>
+          <span class="course-location">@教学楼B305</span>
+          <span class="course-teacher">黄莉莉</span>
+        </div>
+
+      </div>
+
+      <!-- ===== Bottom Spacer ===== -->
+      <div class="grid-spacer"></div>
+
+      <!-- ===== Bottom Tab Bar ===== -->
+      <div class="bottom-tabbar">
+        <div class="tabbar-pill">
+          <button class="tab-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>今日</span>
+          </button>
+          <button class="tab-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+            <span>课表</span>
+          </button>
+          <button class="tab-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <circle cx="12" cy="16" r="2" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <span>日程</span>
+          </button>
+          <button class="tab-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>我的</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Home Indicator ===== -->
+      <div class="home-indicator">
+        <div class="home-indicator-bar"></div>
+      </div>
+
+    </div>
+  </div>
+
+    <style id="page-styles">
+    /* ===== Page Shell ===== */
+    .page-shell {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .phone-canvas {
+      width: 375px;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Status Bar ===== */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .status-bar .icons {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ===== Top Toolbar ===== */
+    .top-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 16px 12px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-icon-btn {
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+    }
+
+    .week-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 18px;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* ===== Week Header (sticky) ===== */
+    .week-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      display: grid;
+      grid-template-columns: 52px repeat(7, 1fr);
+      padding: 6px 12px 8px;
+      border-bottom: 0.5px solid var(--divider);
+    }
+
+    .year-week-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 2px;
+    }
+
+    .year-week-col .year-text {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    .year-week-col .week-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    .day-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 2px;
+      gap: 4px;
+    }
+
+    .day-col .day-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .day-col .day-date {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .day-col.today .day-name {
+      color: var(--brand-700);
+      font-weight: 700;
+    }
+
+    .day-col.today .day-date {
+      background: var(--brand-500);
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ===== Schedule Grid ===== */
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: 52px repeat(7, 1fr);
+      grid-template-rows: repeat(10, 68px);
+      width: 100%;
+      padding: 0 12px;
+      position: relative;
+    }
+
+    /* ===== Time Column ===== */
+    .time-cell {
+      grid-column: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 0.5px solid var(--divider);
+      border-bottom: 0.5px solid var(--divider);
+      padding: 4px 2px;
+    }
+
+    .time-cell .period-num {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .time-cell .time-range {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ===== Grid Cells (80 cells total) ===== */
+    .grid-cell {
+      border-right: 0.5px solid var(--divider);
+      border-bottom: 0.5px solid var(--divider);
+      background: transparent;
+    }
+
+    /* Remove right border from last column cells */
+    .schedule-grid .grid-cell.col-8 {
+      border-right: none;
+    }
+
+    /* Time cells have right border (they are col 1) */
+    /* Last row bottom border removal handled by padding */
+
+    /* ===== Course Blocks ===== */
+    .course-block {
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      margin: 3px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+      line-height: 1.3;
+      overflow: hidden;
+      z-index: 2;
+      position: relative;
+    }
+
+    .course-block .course-name {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .course-block .course-location {
+      font-size: 10px;
+      opacity: 0.85;
+      margin-top: auto;
+    }
+
+    .course-block .course-teacher {
+      font-size: 9px;
+      opacity: 0.7;
+    }
+
+    /* Amber solid */
+    .course-block.amber {
+      background: var(--course-amber-bg);
+      color: var(--course-amber-fg);
+    }
+
+    /* Purple solid */
+    .course-block.purple {
+      background: var(--course-purple-bg);
+      color: var(--course-purple-fg);
+    }
+
+    /* Beige striped */
+    .course-block.striped-beige {
+      background-color: var(--course-beige-striped-bg);
+      color: var(--course-beige-striped-fg);
+      background-image: repeating-linear-gradient(
+        -45deg,
+        var(--course-striped-pattern),
+        var(--course-striped-pattern) 5px,
+        transparent 5px,
+        transparent 10px
+      );
+    }
+
+    /* Purple striped */
+    .course-block.striped-purple {
+      background-color: var(--course-purple-striped-bg);
+      color: var(--course-purple-striped-fg);
+      background-image: repeating-linear-gradient(
+        -45deg,
+        var(--course-striped-pattern),
+        var(--course-striped-pattern) 5px,
+        transparent 5px,
+        transparent 10px
+      );
+    }
+
+    /* ===== Bottom Tab Bar ===== */
+    .bottom-tabbar {
+      padding: 10px 16px 20px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .tabbar-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: var(--bg-card);
+      border-radius: var(--radius-2xl);
+      padding: 8px 10px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .tab-item.active {
+      color: var(--amber-500);
+    }
+
+    .tab-item svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* ===== Home Indicator ===== */
+    .home-indicator {
+      display: flex;
+      justify-content: center;
+      padding-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .home-indicator-bar {
+      width: 134px;
+      height: 5px;
+      background: var(--text-primary);
+      border-radius: 3px;
+      opacity: 0.2;
+    }
+
+    /* ===== Spacer for scroll area ===== */
+    .grid-spacer {
+      flex: 1;
+    }
+  </style>
+</body>
+</html>

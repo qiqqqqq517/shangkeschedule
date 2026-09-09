@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "children": [
+      "page-today",
+      "page-week",
+      "page-import",
+      "page-semesters",
+      "page-course-edit",
+      "page-components"
+    ]
+  },
+  "nodes": {
+    "page-today": {
+      "id": "page-today",
+      "type": "page-leaf",
+      "title": "今日日程",
+      "parent": "root",
+      "children": []
+    },
+    "page-week": {
+      "id": "page-week",
+      "type": "page-leaf",
+      "title": "周课表",
+      "parent": "root",
+      "children": []
+    },
+    "page-import": {
+      "id": "page-import",
+      "type": "page-leaf",
+      "title": "教务导入",
+      "parent": "root",
+      "children": []
+    },
+    "page-semesters": {
+      "id": "page-semesters",
+      "type": "page-leaf",
+      "title": "多学期管理",
+      "parent": "root",
+      "children": []
+    },
+    "page-course-edit": {
+      "id": "page-course-edit",
+      "type": "page-leaf",
+      "title": "课程编辑",
+      "parent": "root",
+      "children": []
+    },
+    "page-components": {
+      "id": "page-components",
+      "type": "page-leaf",
+      "title": "组件预览",
+      "parent": "root",
+      "children": []
+    }
+  }
+}

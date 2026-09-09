@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <!-- 應用基礎資訊 -->
     <string name="app_name">上課</string>
     <string name="hero_subtitle">讓每一堂課都有跡可循</string>
@@ -31,21 +31,43 @@
     <string name="floating_course_hint">已掛起，左右滑周點擊空白處放下</string>
     <string name="a11y_back_to_current_week">回到本週</string>
     <string name="nav_today_schedule">今日課表</string>
+    <string name="nav_today">今日</string>
     <string name="nav_course_schedule">課表</string>
     <string name="nav_settings">我的</string>
+    <string name="nav_schedule">日程</string>
     <string name="title_today_schedule">今日課表</string>
     <string name="title_today_courses">今日課程</string>
-    <string name="title_week_overview">本週概覽</string>
     <string name="title_tomorrow_courses">明日課程</string>
     <string name="text_courses_count">共 %1$s 節</string>
-    <string name="text_week_courses">本週課程</string>
-    <string name="text_today_courses_label">今日課程</string>
-    <string name="text_todo_pending">待完成</string>
-    <string name="action_view_all">查看全部</string>
     <string name="action_week_view">週視圖</string>
+    <!-- Claude 主題 · 今日課表頁（對齊設計包 claude-schedule-page.design/pages/今日日程.html） -->
+    <string name="today_claude_date_format">%1$d月%2$d日 %3$s</string>
+    <string name="today_claude_week_range">%1$d月%2$d日 – %3$d月%4$d日</string>
+    <string name="today_claude_week_prev">上一週</string>
+    <string name="today_claude_week_next">下一週</string>
+    <string name="today_claude_remaining">剩餘 %1$s 節</string>
+    <string name="today_claude_tomorrow_format">明日 · %1$d月%2$d日</string>
+    <string name="today_claude_view_all">查看全部</string>
+    <string name="today_claude_status_done">已結束</string>
+    <string name="today_claude_status_live">進行中</string>
+    <string name="today_claude_status_upcoming">未開始</string>
+    <string name="today_claude_badge_required">必修</string>
+    <string name="today_claude_badge_elective">選修</string>
+    <string name="today_claude_badge_lab">實驗</string>
+    <string name="today_claude_meta_time">上課時間</string>
+    <string name="today_claude_meta_room">上課地點</string>
+    <string name="today_claude_meta_teacher">授課教師</string>
+    <string name="today_claude_meta_weeks">上課週次</string>
+    <string name="today_claude_meta_credit">學分</string>
+    <string name="today_claude_sheet_close">關閉</string>
+    <string name="today_claude_sheet_edit">編輯課程</string>
     <string name="settings_group_course">課程設定</string>
     <string name="settings_group_tools">工具</string>
     <string name="settings_group_other">其他</string>
+    <string name="settings_group_timetable">課表</string>
+    <string name="settings_group_courses">課程</string>
+    <string name="settings_group_preference">偏好</string>
+    <string name="settings_group_about">關於</string>
     <string name="text_no_courses_today">今天沒有課程</string>
     <string name="label_crush_course">TA的課</string>
     <string name="text_course_in_progress">正在上課</string>
@@ -55,6 +77,58 @@
     <string name="title_vacation_until_start">假期中（距離開學還有%1$s天）</string>
     <string name="title_semester_not_set">請設定開學日期</string>
     <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
+
+    <!-- 行程頁 -->
+    <string name="title_agenda">行程</string>
+    <string name="agenda_today_badge">今天</string>
+    <string name="agenda_day_title_format">%1$d月%2$d日 %3$s</string>
+    <string name="agenda_lunar_format">農曆%1$s</string>
+    <string name="agenda_count_format">%1$d 個行程</string>
+    <string name="agenda_empty">這天還沒有行程</string>
+    <string name="agenda_group_morning">上午</string>
+    <string name="agenda_group_afternoon">下午</string>
+    <string name="agenda_group_evening">晚上</string>
+    <string name="agenda_group_allday">全天</string>
+    <string name="agenda_status_finished">已結束</string>
+    <string name="agenda_status_ongoing">進行中</string>
+    <string name="agenda_status_upcoming">未開始</string>
+    <string name="agenda_category_course">課程</string>
+    <string name="agenda_category_todo">待辦</string>
+    <string name="agenda_category_activity">活動</string>
+    <string name="agenda_category_exam">考試</string>
+    <string name="agenda_category_homework">作業</string>
+    <string name="agenda_category_other">其他</string>
+    <string name="agenda_new_title">新增行程</string>
+    <string name="agenda_ai_hint">用一句話描述，AI 幫你填好</string>
+    <string name="agenda_ai_coming_soon">AI 智慧填寫即將上線</string>
+    <string name="agenda_title_hint">行程標題</string>
+    <string name="agenda_all_day">全天</string>
+    <string name="agenda_start_label">開始</string>
+    <string name="agenda_end_label">結束</string>
+    <string name="agenda_add_location">新增地點</string>
+    <string name="agenda_add_note">新增備註</string>
+    <string name="agenda_create">建立行程</string>
+    <string name="agenda_delete_title">刪除行程</string>
+    <string name="agenda_delete_message">確定要刪除「%1$s」嗎？</string>
+    <string name="agenda_duration_hours">%1$d小時</string>
+    <string name="agenda_duration_minutes">%1$d分鐘</string>
+    <string name="agenda_back_to_today">回到今天</string>
+    <string name="agenda_teacher_prefix">教師：%1$s</string>
+    <string name="a11y_agenda_add">新增行程</string>
+    <string-array name="month_names">
+        <item>1月</item>
+        <item>2月</item>
+        <item>3月</item>
+        <item>4月</item>
+        <item>5月</item>
+        <item>6月</item>
+        <item>7月</item>
+        <item>8月</item>
+        <item>9月</item>
+        <item>10月</item>
+        <item>11月</item>
+        <item>12月</item>
+    </string-array>
 
     <!-- 新增課程 -->
     <string name="toast_save_success">儲存成功</string>
@@ -640,6 +714,7 @@
     <string name="theme_preset_classic">經典</string>
     <string name="theme_preset_cloud">雲舒</string>
     <string name="theme_preset_clean">利落</string>
+    <string name="theme_preset_claude">書卷</string>
     <string name="theme_style_section">主題風格</string>
     <string name="theme_style_desc">每個主題同時套用配色與課表樣式</string>
     <string name="desc_theme_settings">自訂應用程式主題與配色</string>

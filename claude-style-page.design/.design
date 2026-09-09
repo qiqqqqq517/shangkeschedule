@@ -1,0 +1,375 @@
+{
+  "data": [
+    {
+      "id": "page-today",
+      "title": "今日日程",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-d6b87fc7",
+          "measuredAt": 1788978069561
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/today.html",
+        "interactions": [
+          {
+            "domId": "interaction-id-7kiryas",
+            "targetPageId": "page-profile"
+          },
+          {
+            "domId": "interaction-id-k6cru8y",
+            "targetPageId": "page-week"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-week",
+      "title": "课表",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000001,
+      "canvasData": {
+        "x": 507,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 966,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-956ed695",
+          "measuredAt": 1788978069561
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/week.html",
+        "interactions": [
+          {
+            "domId": "interaction-id-9uu7qgc",
+            "targetPageId": "page-week-list"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-import",
+      "title": "课表导入导出",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000003,
+      "canvasData": {
+        "x": 338,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-273da476",
+          "measuredAt": 1788975796662
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/import.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-semesters",
+      "title": "学期管理",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000004,
+      "canvasData": {
+        "x": 338,
+        "y": 868,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1946,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-4024801f",
+          "measuredAt": 1788978069561
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/semesters.html",
+        "interactions": [
+          {
+            "domId": "interaction-id-he5jkti",
+            "targetPageId": "page-week"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-components",
+      "title": "组件预览",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000005,
+      "canvasData": {
+        "x": 0,
+        "y": 3465,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 7023,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-dd095b3c",
+          "measuredAt": 1788970077820
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/components.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-profile",
+      "title": "我的",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000006,
+      "canvasData": {
+        "x": 169,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1560,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-57080e10",
+          "measuredAt": 1788978069561
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/profile.html",
+        "interactions": [
+          {
+            "domId": "interaction-id-bxm7ek5",
+            "targetPageId": "page-import"
+          },
+          {
+            "domId": "interaction-id-tnik3ez",
+            "targetPageId": "page-time-slots"
+          },
+          {
+            "domId": "interaction-id-xhm79m5",
+            "targetPageId": "page-semesters"
+          },
+          {
+            "domId": "interaction-id-hdsdion",
+            "targetPageId": "page-course-mgmt"
+          },
+          {
+            "domId": "interaction-id-vfev6te",
+            "targetPageId": "page-reminder"
+          },
+          {
+            "domId": "interaction-id-82dy7ct",
+            "targetPageId": "page-backup"
+          },
+          {
+            "domId": "interaction-id-oxubaoe",
+            "targetPageId": "page-about"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-week-list",
+      "title": "本周课程",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000007,
+      "canvasData": {
+        "x": 676,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 2002,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-387731cb",
+          "measuredAt": 1788974791896
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/week-list.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-course-mgmt",
+      "title": "课程管理",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000008,
+      "canvasData": {
+        "x": 338,
+        "y": 1544,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1194,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-3c345202",
+          "measuredAt": 1788978069561
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/course-mgmt.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-time-slots",
+      "title": "时间段管理",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000009,
+      "canvasData": {
+        "x": 338,
+        "y": 372,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1327,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-0baa54f2",
+          "measuredAt": 1788977056978
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/time-slots.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-reminder",
+      "title": "课程提醒",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000010,
+      "canvasData": {
+        "x": 338,
+        "y": 2001,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1400,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-reminder01",
+          "measuredAt": 1789000000000
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/reminder.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-backup",
+      "title": "备份与恢复",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000011,
+      "canvasData": {
+        "x": 338,
+        "y": 2518,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-backup001",
+          "measuredAt": 1789000000001
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/backup.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-about",
+      "title": "更多关于",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000012,
+      "canvasData": {
+        "x": 338,
+        "y": 2890,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1600,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-about0001",
+          "measuredAt": 1789000000002
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/about.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-floating",
+      "title": "悬浮窗",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000013,
+      "canvasData": {
+        "x": 169,
+        "y": 3465,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 2200,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-float0001",
+          "measuredAt": 1789000000003
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/floating.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile",
+    "projectName": "上课课表",
+    "designLibrary": {
+      "name": "Claude",
+      "id": "dl_builtin_claude",
+      "version": 0,
+      "path": "c:\\Users\\30458\\.trae-cn\\design_libraries\\Claude",
+      "scope": "builtin-global",
+      "versionSource": "metadata.json"
+    },
+    "visualEditorEnabled": false,
+    "showEdge": true
+  }
+}

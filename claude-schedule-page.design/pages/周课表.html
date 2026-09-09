@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+<title>周课表 · 上课Shangke</title>
+<link rel="stylesheet" href="../assets/claude-tokens.css" />
+<link rel="stylesheet" href="../assets/claude-components.css" />
+<style>
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-serif); -webkit-font-smoothing: antialiased; }
+
+  #page-container { display: flex; flex-direction: column; position: relative; min-height: 100vh; }
+
+  /* ===== 状态栏 ===== */
+  #status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 5) calc(var(--spacing) * 2);
+    font: 600 12px/1 var(--font-sans); color: var(--muted-foreground);
+  }
+  .status-icons { display: flex; gap: calc(var(--spacing) * 1.5); align-items: center; }
+
+  /* ===== 顶部工具栏 ===== */
+  #top-toolbar { padding: calc(var(--spacing) * 2) calc(var(--spacing) * 5) calc(var(--spacing) * 4); display: flex; flex-direction: column; gap: calc(var(--spacing) * 4); }
+  .toolbar-row { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 3); }
+  .term-block { display: flex; flex-direction: column; gap: calc(var(--spacing) * 0.5); }
+  .term-eyebrow { margin: 0; font: 600 10px/1.2 var(--font-serif); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
+  .term-title { margin: 0; font: 500 24px/1.1 var(--font-display); color: var(--foreground); letter-spacing: -0.01em; }
+  .week-nav { display: flex; gap: calc(var(--spacing) * 2); align-items: center; }
+  .week-nav .btn { width: 38px; height: 38px; min-height: 38px; padding: 0; border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.9); background: var(--popover); color: var(--foreground); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs); }
+  .week-nav .btn:hover { background: var(--muted); }
+  .week-nav .btn:disabled { opacity: .4; }
+
+  /* ===== 星期表头 ===== */
+  #week-header {
+    display: grid; grid-template-columns: 48px repeat(7, 1fr); gap: 0;
+    padding: 0 calc(var(--spacing) * 3); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5; background: var(--background);
+  }
+  .day-col { display: flex; flex-direction: column; align-items: center; padding: calc(var(--spacing) * 2) 0 calc(var(--spacing) * 3); gap: calc(var(--spacing) * 1); }
+  .day-col .day-name { font: 600 10px/1.2 var(--font-serif); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-foreground); }
+  .day-col .day-num { font: 500 15px/1 var(--font-sans); color: var(--foreground); }
+  .day-col.today .day-name { color: var(--primary); }
+  .day-col.today .day-num {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-full); background: var(--primary-solid, var(--primary)); color: var(--primary-foreground);
+    font: 600 13px/1 var(--font-sans); box-shadow: var(--shadow-sm);
+  }
+  .day-col[data-day] { cursor: pointer; border-radius: var(--radius-sm); }
+  .day-col[data-day]:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+  /* ===== 课程网格 ===== */
+  #course-grid-wrapper { flex: 1; overflow-y: auto; padding: 0 0 calc(var(--spacing) * 5); }
+  #course-grid { display: grid; grid-template-columns: 48px repeat(7, 1fr); gap: 0; padding: 0 calc(var(--spacing) * 3); position: relative; }
+  .time-slot {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(var(--spacing) * 2) 0; border-right: 1px solid var(--border-200, var(--border));
+    min-height: 88px; gap: calc(var(--spacing) * 0.5);
+  }
+  .time-slot .slot-range { font: 600 11px/1 var(--font-sans); color: var(--foreground); }
+  .time-slot .slot-time { font: 400 9px/1 var(--font-sans); color: var(--muted-foreground); }
+  .course-cell { padding: calc(var(--spacing) * 1); border-right: 1px solid var(--border-200, var(--border)); border-bottom: 1px solid var(--border-200, var(--border)); min-height: 88px; }
+  .course-cell:last-child { border-right: 0; }
+  .course-block {
+    height: 100%; border-radius: var(--radius-sm); padding: calc(var(--spacing) * 2);
+    box-shadow: var(--shadow-xs); cursor: pointer; display: flex; flex-direction: column;
+    gap: calc(var(--spacing) * 1); border: 1px solid var(--border); text-align: left;
+    width: 100%; font: inherit;
+    transition: transform .16s ease, box-shadow .16s ease;
+  }
+  .course-block:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .course-block:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .course-block .cb-name { font: 600 11px/1.2 var(--font-sans); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .course-block .cb-room { font: 400 9px/1.2 var(--font-sans); }
+  .course-block.on-primary { color: var(--primary-foreground); }
+  .course-block.on-primary .cb-room { opacity: 0.85; }
+  .course-block.on-foreground { color: var(--foreground); }
+  .course-block.on-foreground .cb-room { color: var(--muted-foreground); }
+  .course-block.is-today { box-shadow: var(--shadow-sm); }
+
+  /* ===== 周次选择条 ===== */
+  #week-selector { padding: calc(var(--spacing) * 4) calc(var(--spacing) * 5); border-top: 1px solid var(--border); background: var(--card); }
+  #week-selector > p { margin: 0 0 calc(var(--spacing) * 3); font: 600 10px/1.2 var(--font-serif); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
+  #week-strip { display: flex; gap: calc(var(--spacing) * 1.5); overflow-x: auto; padding-bottom: calc(var(--spacing) * 1); }
+  .week-chip {
+    flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); background: var(--popover); border: 1px solid var(--border);
+    color: var(--foreground); font: 600 12px/1 var(--font-sans); cursor: pointer;
+    transition: all .16s ease;
+  }
+  .week-chip:hover { background: var(--muted); }
+  .week-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .week-chip.active { background: var(--primary-solid, var(--primary)); border-color: transparent; color: var(--primary-foreground); box-shadow: var(--shadow-sm); }
+
+  /* ===== 底栏（手机 / 竖屏） ===== */
+  #bottom-nav {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px;
+    background: var(--popover); border-top: 1px solid var(--border); position: sticky; bottom: 0; z-index: 10;
+  }
+  #bottom-nav .nav-item { display: grid; gap: 4px; justify-items: center; padding: 10px 8px; border-radius: calc(var(--radius) - 6px); text-decoration: none; }
+  #bottom-nav .nav-item.active { background: var(--primary-solid, var(--primary)); color: var(--primary-foreground); border-color: transparent; }
+
+  /* ===== 课程详情弹层 ===== */
+  #course-modal {
+    position: fixed; inset: 0; background: color-mix(in srgb, var(--foreground) 42%, transparent);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  #course-modal.open { opacity: 1; pointer-events: auto; }
+  #modal-content {
+    width: 100%; max-width: 430px; background: var(--popover);
+    border: 1px solid var(--border); border-bottom: 0;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    padding: calc(var(--spacing) * 6); box-shadow: var(--shadow-2xl);
+    transform: translateY(24px); transition: transform .25s ease;
+    max-height: 86vh; overflow-y: auto;
+  }
+  #course-modal.open #modal-content { transform: translateY(0); }
+  .modal-grip { width: 40px; height: 4px; background: var(--border); border-radius: var(--radius-full); margin: 0 auto calc(var(--spacing) * 5); }
+  .modal-head { display: flex; gap: calc(var(--spacing) * 4); margin-bottom: calc(var(--spacing) * 5); }
+  .modal-icon { width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .modal-head .eyebrow { margin: 0 0 calc(var(--spacing) * 1.5); }
+  .modal-title { margin: 0 0 calc(var(--spacing) * 2); font: 500 22px/1.15 var(--font-display); color: var(--foreground); }
+  .modal-sub { margin: 0; font: 400 13px/1.6 var(--font-sans); color: var(--secondary-foreground); }
+  .modal-rows { display: grid; gap: calc(var(--spacing) * 4); margin-bottom: calc(var(--spacing) * 6); }
+  .modal-row { display: flex; gap: calc(var(--spacing) * 3); align-items: flex-start; }
+  .modal-row .row-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
+  .modal-row dt { margin: 0 0 calc(var(--spacing) * 0.5); font: 600 12px/1.2 var(--font-sans); color: var(--foreground); }
+  .modal-row dd { margin: 0; font: 400 13px/1.5 var(--font-sans); color: var(--secondary-foreground); }
+
+  /* ===== 宽屏详情栏 ===== */
+  .app-aside { padding: calc(var(--spacing) * 6) calc(var(--spacing) * 5); border-left: 1px solid var(--border); background: var(--card); }
+  .aside-card { padding: calc(var(--spacing) * 4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-xs); margin-bottom: calc(var(--spacing) * 4); }
+  .aside-card h3 { margin: 0 0 calc(var(--spacing) * 3); font: 600 11px/1.2 var(--font-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+  .aside-item { display: flex; gap: calc(var(--spacing) * 2); align-items: center; padding: calc(var(--spacing) * 2) 0; }
+  .aside-item .ai-bar { width: 4px; height: 32px; border-radius: var(--radius-full); flex-shrink: 0; }
+  .aside-item .ai-name { font: 600 13px/1.3 var(--font-sans); color: var(--foreground); }
+  .aside-item .ai-meta { font: 500 11px/1.4 var(--font-sans); color: var(--muted-foreground); }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 400px) {
+    #top-toolbar { padding-left: calc(var(--spacing) * 3); padding-right: calc(var(--spacing) * 3); }
+    #week-header, #course-grid { padding-left: calc(var(--spacing) * 2); padding-right: calc(var(--spacing) * 2); }
+    .term-title { font-size: 20px; }
+    .course-block { padding: calc(var(--spacing) * 1.5); }
+    .course-block .cb-name { font-size: 10px; }
+  }
+  @media (min-width: 768px) {
+    #status-bar { display: none; }
+    #top-toolbar { padding-top: calc(var(--spacing) * 6); }
+    #week-header, #course-grid { grid-template-columns: 52px repeat(7, minmax(0, 1fr)); }
+    .time-slot, .course-cell { min-height: 96px; }
+    .course-block .cb-name { font-size: 11px; }
+    .course-block .cb-room { font-size: 9px; }
+    #week-selector { border-radius: var(--radius); margin: 0 calc(var(--spacing) * 5) calc(var(--spacing) * 5); border: 1px solid var(--border); }
+    #bottom-nav { display: none; }
+  }
+  @media (min-width: 1200px) {
+    #week-header, #course-grid { grid-template-columns: 64px repeat(7, minmax(96px, 1fr)); }
+    .time-slot, .course-cell { min-height: 112px; }
+    .course-block .cb-name { font-size: 12px; }
+    .course-block .cb-room { font-size: 10px; }
+  }
+  @media (max-height: 560px) and (orientation: landscape) {
+    #status-bar { display: none; }
+    .time-slot, .course-cell { min-height: 72px; }
+  }
+</style>
+</head>
+<body data-page="schedule">
+<div class="app-shell">
+  <!-- ===== 平板及以上：侧栏导航 ===== -->
+  <aside class="app-rail" aria-label="主导航">
+    <nav class="rail" style="height:100%; border-radius:0; border:0; border-right:1px solid var(--border);">
+      <p class="brand">上课Shangke</p>
+      <div class="stack">
+        <a class="item" href="今日日程.html" data-nav-key="today">今日</a>
+        <a class="item active" href="周课表.html" data-nav-key="schedule">课表</a>
+        <a class="item" href="多学期管理.html" data-nav-key="semester">学期</a>
+        <a class="item" href="教务导入.html" data-nav-key="import">导入</a>
+        <a class="item" href="组件预览.html" data-nav-key="components">组件</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <div id="page-container" class="app-view">
+      <!-- ===== 状态栏 ===== -->
+      <div id="status-bar">
+        <span>9:41</span>
+        <span class="status-icons">
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-signal"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-wifi"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-battery-full"></use></svg>
+        </span>
+      </div>
+
+      <!-- ===== 顶部工具栏 ===== -->
+      <header id="top-toolbar">
+        <div class="toolbar-row">
+          <div class="term-block">
+            <p class="term-eyebrow">2024 秋季学期</p>
+            <h1 class="term-title" id="week-title">第 3 周</h1>
+          </div>
+          <div class="week-nav">
+            <button id="btn-prev-week" class="btn ghost" type="button" aria-label="上一周">
+              <svg class="icon-sm" aria-hidden="true"><use href="#i-chevron-left"></use></svg>
+            </button>
+            <button id="btn-next-week" class="btn ghost" type="button" aria-label="下一周">
+              <svg class="icon-sm" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-row">
+          <nav id="view-toggle" class="tabs" role="tablist" data-roving aria-label="视图切换">
+            <button class="tab" type="button" role="tab" aria-selected="false" data-view="day">日</button>
+            <button class="tab active" type="button" role="tab" aria-selected="true" data-view="week">周</button>
+          </nav>
+          <div style="display:flex; align-items:center; gap: calc(var(--spacing) * 2)">
+            <button class="icon-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式" style="width:36px;height:36px">
+              <svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+            </button>
+            <span id="today-badge" class="badge filled">今天 · 周三</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===== 星期表头 ===== -->
+      <div id="week-header" role="row">
+        <div aria-hidden="true"></div>
+        <div class="day-col" data-day="mon" role="columnheader" tabindex="0"><span class="day-name">周一</span><span class="day-num">9</span></div>
+        <div class="day-col" data-day="tue" role="columnheader" tabindex="0"><span class="day-name">周二</span><span class="day-num">10</span></div>
+        <div class="day-col today" data-day="wed" role="columnheader" tabindex="0"><span class="day-name">周三</span><span class="day-num">11</span></div>
+        <div class="day-col" data-day="thu" role="columnheader" tabindex="0"><span class="day-name">周四</span><span class="day-num">12</span></div>
+        <div class="day-col" data-day="fri" role="columnheader" tabindex="0"><span class="day-name">周五</span><span class="day-num">13</span></div>
+        <div class="day-col" data-day="sat" role="columnheader" tabindex="0"><span class="day-name">周六</span><span class="day-num">14</span></div>
+        <div class="day-col" data-day="sun" role="columnheader" tabindex="0"><span class="day-name">周日</span><span class="day-num">15</span></div>
+      </div>
+
+      <!-- ===== 课程网格（由脚本按周次渲染） ===== -->
+      <div id="course-grid-wrapper">
+        <div id="course-grid" role="grid" aria-label="周课表"></div>
+      </div>
+
+      <!-- ===== 周次选择条 ===== -->
+      <section id="week-selector" aria-label="周次选择">
+        <p>周次选择</p>
+        <div id="week-strip" data-roving role="group"></div>
+      </section>
+
+      <!-- ===== 底栏 ===== -->
+      <nav id="bottom-nav" aria-label="底部导航">
+        <a class="nav-item" href="今日日程.html" data-nav-key="today">
+          <svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg>
+          <span class="nav-label">今日</span>
+        </a>
+        <a class="nav-item active" href="周课表.html" data-nav-key="schedule">
+          <svg class="nav-icon" aria-hidden="true"><use href="#i-layout-grid"></use></svg>
+          <span class="nav-label">课表</span>
+        </a>
+        <a class="nav-item" href="教务导入.html" data-nav-key="import">
+          <svg class="nav-icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+          <span class="nav-label">导入</span>
+        </a>
+        <a class="nav-item" href="多学期管理.html" data-nav-key="semester">
+          <svg class="nav-icon" aria-hidden="true"><use href="#i-user-circle"></use></svg>
+          <span class="nav-label">学期</span>
+        </a>
+      </nav>
+    </div>
+  </main>
+
+  <!-- ===== 桌面端：当日课程侧栏 ===== -->
+  <aside class="app-aside" aria-label="周三课程">
+    <div class="aside-card">
+      <h3>周三 · 9月11日</h3>
+      <div id="aside-list"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== 课程详情弹层 ===== -->
+<div id="course-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div id="modal-content" tabindex="-1">
+    <div class="modal-grip" aria-hidden="true"></div>
+    <div class="modal-head">
+      <div class="modal-icon" id="modal-icon" style="background: var(--chart-5)">
+        <svg class="icon" aria-hidden="true" style="color: var(--primary-foreground)"><use href="#i-book-open"></use></svg>
+      </div>
+      <div style="flex:1; min-width:0">
+        <p class="eyebrow">课程详情</p>
+        <h2 class="modal-title" id="modal-title">数据结构</h2>
+        <p class="modal-sub" id="modal-sub">计算机科学与技术学院 · 专业必修</p>
+      </div>
+    </div>
+    <dl class="modal-rows" id="modal-rows"></dl>
+    <button id="modal-close" class="btn secondary block" type="button">关闭</button>
+  </div>
+</div>
+
+<script src="../assets/claude-icons.js"></script>
+<script src="../assets/claude-app.js"></script>
+<script>
+/* ============================================================================
+ * 周课表页交互
+ * 数据沿用设计稿课程块（高等数学 / 大学英语 / 数据结构 / 操作系统 / 计算机网络 /
+ * 线性代数 / 软件工程 / 数据库原理 / 编译原理 / 思想道德 / 大学物理 /
+ * 算法设计 / 人工智能 / 大学体育 / 心理学导论），接入真实数据时替换 LESSONS。
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  var PERIODS = [
+    { range: '1-2', start: '08:00', end: '09:40' },
+    { range: '3-4', start: '10:00', end: '11:40' },
+    { range: '5-6', start: '14:00', end: '15:40' },
+    { range: '7-8', start: '19:00', end: '20:40' }
+  ];
+  var DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  var DAY_LABEL = { mon: '周一', tue: '周二', wed: '周三', thu: '周四', fri: '周五', sat: '周六', sun: '周日' };
+  var DAY_DATE = { mon: 9, tue: 10, wed: 11, thu: 12, fri: 13, sat: 14, sun: 15 };
+
+  /* 课程块：day + period 定位，chart 为设计稿色板编号 */
+  var LESSONS = [
+    { id: 'c1', day: 'mon', period: 0, name: '高等数学', room: '教三 201', chart: 1, onPrimary: true, dept: '数学学院 · 公共必修', teacher: '王教授', credit: '4.0 学分 · 64 学时' },
+    { id: 'c2', day: 'tue', period: 0, name: '大学英语', room: '外语楼 305', chart: 2, onPrimary: true, dept: '外国语学院 · 公共必修', teacher: '李老师', credit: '3.0 学分 · 48 学时' },
+    { id: 'c3', day: 'wed', period: 0, name: '数据结构', room: '信院 B203', chart: 5, onPrimary: true, today: true, dept: '计算机科学与技术学院 · 专业必修', teacher: '张明 教授', credit: '4.0 学分 · 64 学时' },
+    { id: 'c4', day: 'thu', period: 0, name: '操作系统', room: '信院 A102', chart: 1, onPrimary: true, dept: '计算机科学与技术学院 · 专业必修', teacher: '刘教授', credit: '3.5 学分 · 56 学时' },
+    { id: 'c5', day: 'fri', period: 0, name: '计算机网络', room: '信院 C301', chart: 4, onPrimary: false, dept: '计算机科学与技术学院 · 专业必修', teacher: '赵教授', credit: '3.0 学分 · 48 学时' },
+
+    { id: 'c6', day: 'mon', period: 1, name: '线性代数', room: '教二 105', chart: 3, onPrimary: false, dept: '数学学院 · 公共必修', teacher: '孙老师', credit: '3.0 学分 · 48 学时' },
+    { id: 'c7', day: 'wed', period: 1, name: '软件工程', room: '信院 B301', chart: 2, onPrimary: true, today: true, dept: '计算机科学与技术学院 · 专业必修', teacher: '周教授', credit: '3.0 学分 · 48 学时' },
+    { id: 'c8', day: 'thu', period: 1, name: '数据库原理', room: '信院 A201', chart: 5, onPrimary: true, dept: '计算机科学与技术学院 · 专业必修', teacher: '吴老师', credit: '3.5 学分 · 56 学时' },
+    { id: 'c9', day: 'fri', period: 1, name: '编译原理', room: '教一 402', chart: 3, onPrimary: false, dept: '计算机科学与技术学院 · 专业必修', teacher: '郑教授', credit: '3.0 学分 · 48 学时' },
+
+    { id: 'c10', day: 'mon', period: 2, name: '思想道德', room: '教一 101', chart: 4, onPrimary: false, dept: '马克思主义学院 · 公共必修', teacher: '冯老师', credit: '3.0 学分 · 48 学时' },
+    { id: 'c11', day: 'tue', period: 2, name: '大学物理', room: '理学楼 208', chart: 1, onPrimary: true, dept: '物理学院 · 公共必修', teacher: '陈教授', credit: '4.0 学分 · 64 学时' },
+    { id: 'c12', day: 'thu', period: 2, name: '算法设计', room: '信院 B105', chart: 2, onPrimary: true, dept: '计算机科学与技术学院 · 专业必修', teacher: '许老师', credit: '3.0 学分 · 48 学时' },
+    { id: 'c13', day: 'fri', period: 2, name: '人工智能', room: '信院 A302', chart: 5, onPrimary: true, dept: '计算机科学与技术学院 · 专业选修', teacher: '何教授', credit: '2.0 学分 · 32 学时' },
+
+    { id: 'c14', day: 'tue', period: 3, name: '大学体育', room: '田径场', chart: 3, onPrimary: false, dept: '体育学院 · 公共必修', teacher: '钱老师', credit: '1.0 学分 · 32 学时' },
+    { id: 'c15', day: 'wed', period: 3, name: '心理学导论', room: '教五 301', chart: 4, onPrimary: false, today: true, dept: '心理学院 · 公共选修', teacher: '林老师', credit: '2.0 学分 · 32 学时' }
+  ];
+
+  var week = 3;
+  var MAX_WEEK = 20;
+
+  function el(html) {
+    var t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- 渲染网格 ---------- */
+  function renderGrid() {
+    var grid = document.getElementById('course-grid');
+    grid.innerHTML = '';
+    PERIODS.forEach(function (p, pi) {
+      // 时间列
+      grid.appendChild(el(
+        '<div class="time-slot" role="rowheader">' +
+        '<span class="slot-range">' + p.range + '</span>' +
+        '<span class="slot-time">' + p.start + '</span>' +
+        '<span class="slot-time">' + p.end + '</span>' +
+        '</div>'
+      ));
+      // 7 天单元格
+      DAYS.forEach(function (d) {
+        var cell = el('<div class="course-cell" role="gridcell"></div>');
+        var lesson = LESSONS.find(function (l) { return l.day === d && l.period === pi; });
+        if (lesson) {
+          var block = el(
+            '<button class="course-block chart-' + lesson.chart + ' ' +
+            (lesson.onPrimary ? 'on-primary' : 'on-foreground') + ' ' +
+            (lesson.today ? 'is-today' : '') + '" type="button" data-course-block="' + lesson.id + '"' +
+            ' aria-label="' + esc(lesson.name) + '，' + esc(lesson.room) + '">' +
+            '<span class="cb-name">' + esc(lesson.name) + '</span>' +
+            '<span class="cb-room">' + esc(lesson.room) + '</span>' +
+            '</button>'
+          );
+          block.style.background = 'var(--chart-' + lesson.chart + ')';
+          block.addEventListener('click', function () { openModal(lesson); });
+          cell.appendChild(block);
+        }
+        grid.appendChild(cell);
+      });
+    });
+  }
+
+  /* ---------- 周次 ---------- */
+  function renderWeekChips() {
+    var strip = document.getElementById('week-strip');
+    strip.innerHTML = '';
+    for (var i = 1; i <= MAX_WEEK; i++) {
+      var chip = el('<button class="week-chip' + (i === week ? ' active' : '') + '" data-week="' + i + '" type="button" role="tab" aria-selected="' + (i === week) + '">' + i + '</button>');
+      chip.addEventListener('click', function (e) {
+        week = parseInt(e.currentTarget.getAttribute('data-week'), 10);
+        renderWeekChips();
+        renderWeekTitle();
+        renderAside();
+        e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
+      });
+      strip.appendChild(chip);
+    }
+  }
+
+  function renderWeekTitle() {
+    document.getElementById('week-title').textContent = '第 ' + week + ' 周';
+    document.getElementById('btn-prev-week').disabled = week <= 1;
+    document.getElementById('btn-next-week').disabled = week >= MAX_WEEK;
+    try { localStorage.setItem('shangke-claude-week', String(week)); } catch (e) {}
+  }
+
+  /* ---------- 桌面侧栏 ---------- */
+  function renderAside() {
+    var list = document.getElementById('aside-list');
+    if (!list) return;
+    var items = LESSONS.filter(function (l) { return l.day === 'wed'; })
+      .sort(function (a, b) { return a.period - b.period; });
+    list.innerHTML = items.map(function (l) {
+      return '<div class="aside-item">' +
+        '<span class="ai-bar" style="background: var(--chart-' + l.chart + ')"></span>' +
+        '<span><span class="ai-name">' + esc(l.name) + '</span><br>' +
+        '<span class="ai-meta">' + PERIODS[l.period].range + ' 节 · ' + esc(l.room) + '</span></span>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ---------- 弹层 ---------- */
+  var modal = document.getElementById('course-modal');
+  var modalContent = document.getElementById('modal-content');
+  var lastFocused = null;
+
+  function openModal(lesson) {
+    lastFocused = document.activeElement;
+    document.getElementById('modal-title').textContent = lesson.name;
+    document.getElementById('modal-sub').textContent = lesson.dept;
+    document.getElementById('modal-icon').style.background = 'var(--chart-' + lesson.chart + ')';
+    document.getElementById('modal-rows').innerHTML =
+      row('#i-map-pin', '上课地点', lesson.room) +
+      row('#i-clock', '上课时间', DAY_LABEL[lesson.day] + ' 第' + PERIODS[lesson.period].range + '节 · ' +
+        PERIODS[lesson.period].start + '-' + PERIODS[lesson.period].end) +
+      row('#i-user', '授课教师', lesson.teacher) +
+      row('#i-book-open', '学分', lesson.credit);
+    modal.classList.add('open');
+    modalContent.focus();
+  }
+  function row(icon, k, v) {
+    return '<div class="modal-row">' +
+      '<span class="row-icon"><svg class="icon-sm" aria-hidden="true"><use href="' + icon + '"></use></svg></span>' +
+      '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div></div>';
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  /* ---------- 周次前后翻 ---------- */
+  document.getElementById('btn-prev-week').addEventListener('click', function () {
+    if (week > 1) { week--; renderWeekChips(); renderWeekTitle(); renderAside(); }
+  });
+  document.getElementById('btn-next-week').addEventListener('click', function () {
+    if (week < MAX_WEEK) { week++; renderWeekChips(); renderWeekTitle(); renderAside(); }
+  });
+
+  /* ---------- 视图切换（日 / 周） ---------- */
+  document.querySelectorAll('#view-toggle .tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('#view-toggle .tab').forEach(function (t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      if (tab.getAttribute('data-view') === 'day') {
+        // 日视图：只保留今天列（演示用，真实实现切换为单日时间轴）
+        document.getElementById('week-header').style.gridTemplateColumns = '48px 1fr';
+        document.getElementById('course-grid').style.gridTemplateColumns = '48px 1fr';
+        document.querySelectorAll('.day-col').forEach(function (c) {
+          c.style.display = c.getAttribute('data-day') === 'wed' ? '' : 'none';
+        });
+      } else {
+        document.getElementById('week-header').style.gridTemplateColumns = '';
+        document.getElementById('course-grid').style.gridTemplateColumns = '';
+        document.querySelectorAll('.day-col').forEach(function (c) { c.style.display = ''; });
+        renderGrid();
+      }
+    });
+  });
+
+  /* ---------- 星期表头点击：滚动到该天 ---------- */
+  document.querySelectorAll('.day-col[data-day]').forEach(function (col, i) {
+    function jump() {
+      var grid = document.getElementById('course-grid');
+      var target = grid.children[1 + i];
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    col.addEventListener('click', jump);
+    col.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jump(); }
+    });
+  });
+
+  /* ---------- 初始化 ---------- */
+  try {
+    var saved = parseInt(localStorage.getItem('shangke-claude-week'), 10);
+    if (saved >= 1 && saved <= MAX_WEEK) week = saved;
+  } catch (e) {}
+
+  renderGrid();
+  renderWeekChips();
+  renderWeekTitle();
+  renderAside();
+})();
+</script>
+</body>
+</html>

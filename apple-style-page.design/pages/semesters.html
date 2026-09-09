@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学期管理</title>
+    <style id="theme-vars">
+﻿/*
+ * Pinguo design tokens
+ * Brand: Pinguo
+ * Domain: Consumer imaging product
+ * Style: Restrained, elegant, Apple-inspired
+ * Theme mode: light-dark
+ * Source language: zh
+ * Output language: en
+ *
+ * Color architecture (two layers):
+ *   1. Primitive palette - six categories. brand / background / text / icon
+ *      are each a 10-step scale (50 lightest to 900 darkest). state-success and
+ *      state-error are functional colors anchored on Apple system colors.
+ *      Anchors follow Apple Human Interface Guidelines system colors
+ *      (System Blue #007AFF, System Green #34C759, System Red #FF3B30,
+ *      system grays / label / background colors).
+ *   2. Semantic tokens - :root (light) and .dark map roles onto primitives.
+ *      Components and UI kits must only consume the semantic tokens below.
+ */
+
+/* @group-priority: brand, background, text, icon, state-success, state-error */
+
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --apple-background: var(--background, #ffffff);
+  --apple-foreground: var(--foreground, #0f172a);
+  --apple-card: var(--card, var(--background));
+  --apple-card-foreground: var(--card-foreground, var(--foreground));
+  --apple-popover: var(--popover, var(--card));
+  --apple-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --apple-primary: var(--primary, #111827);
+  --apple-primary-foreground: var(--primary-foreground, #ffffff);
+  --apple-secondary: var(--secondary, var(--muted, var(--card)));
+  --apple-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --apple-muted: var(--muted, var(--card));
+  --apple-muted-foreground: var(--muted-foreground, var(--foreground));
+  --apple-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --apple-accent-foreground: var(--accent-foreground, var(--foreground));
+  --apple-destructive: var(--destructive, #ef4444);
+  --apple-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --apple-border: var(--border, currentColor);
+  --apple-input: var(--input, var(--border));
+  --apple-ring: var(--ring, var(--primary));
+  --apple-chart-1: var(--chart-1, var(--primary));
+  --apple-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --apple-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --apple-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --apple-chart-5: var(--chart-5, var(--foreground));
+  --apple-sidebar: var(--sidebar, var(--background));
+  --apple-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --apple-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --apple-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --apple-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --apple-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== PRIMITIVE PALETTE ===== */
+
+  /* brand */
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff; /* @primary */
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  /* background */
+  --background-50: #ffffff;
+  --background-100: #f7f7fa;
+  --background-200: #f2f2f7;
+  --background-300: #e5e5ea;
+  --background-400: #d1d1d6;
+  --background-500: #aeaeb2;
+  --background-600: #8e8e93;
+  --background-700: #3a3a3c;
+  --background-800: #1c1c1e;
+  --background-900: #000000;
+
+  /* text */
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  /* icon */
+  --icon-50: #f5f5f7;
+  --icon-100: #e5e5ea;
+  --icon-200: #d1d1d6;
+  --icon-300: #c7c7cc;
+  --icon-400: #aeaeb2;
+  --icon-500: #8e8e93;
+  --icon-600: #6e6e73;
+  --icon-700: #48484a;
+  --icon-800: #2c2c2e;
+  --icon-900: #1d1d1f;
+
+  /* state-success */
+  --state-success: #34c759; /* @primary */
+  --state-success-dark: #30d158;
+  --state-success-surface: #e9f9ee;
+  --state-success-foreground: #ffffff;
+
+  /* state-error */
+  --state-error: #ff3b30; /* @primary */
+  --state-error-dark: #ff453a;
+  --state-error-surface: #ffecea;
+  --state-error-foreground: #ffffff;
+
+  /* ===== SEMANTIC ROLES ===== */
+
+  /* semantic */
+  --background: var(--background-50);
+  --foreground: var(--text-800);
+  --card: var(--background-50);
+  --card-foreground: var(--text-800);
+  --popover: var(--background-50);
+  --popover-foreground: var(--text-900);
+
+  --primary: var(--brand-500);
+  --primary-foreground: var(--background-50);
+  --secondary: var(--background-200);
+  --secondary-foreground: var(--text-800);
+  --muted: var(--background-200);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-100);
+  --accent-foreground: var(--text-800);
+  --destructive: var(--state-error);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-300);
+  --input: var(--background-400);
+  --ring: var(--brand-500);
+
+  --icon: var(--icon-900);
+  --icon-muted: var(--icon-500);
+
+  /* chart */
+  --chart-1: var(--state-success);
+  --chart-2: var(--brand-500);
+  --chart-3: #ff9500;
+  --chart-4: #5856d6;
+  --chart-5: #af52de;
+
+  /* sidebar */
+  --sidebar: var(--background-200);
+  --sidebar-foreground: var(--text-800);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--background-50);
+  --sidebar-accent: var(--background-300);
+  --sidebar-accent-foreground: var(--text-800);
+  --sidebar-border: var(--background-300);
+  --sidebar-ring: var(--brand-500);
+
+  /* TYPOGRAPHY */
+  --font-sans: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-serif: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-mono: JetBrains Mono, monospace;
+  --tracking-normal: 0em;
+
+  /* RADIUS */
+  --radius: 1.2rem;
+
+  /* SHADOWS */
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04); /* Hairline */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04); /* Subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05); /* Card */
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05); /* Raised */
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05); /* Card Hover */
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05); /* Float */
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06); /* Overlay */
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.12); /* Modal */
+
+  /* SPACING */
+  --spacing: 0.24rem;
+}
+
+/* ===== SEMANTIC ROLES - dark (primitive palette inherited) ===== */
+.dark {
+  --background: var(--background-900);
+  --foreground: var(--text-50);
+  --card: var(--background-800);
+  --card-foreground: var(--text-50);
+  --popover: var(--background-700);
+  --popover-foreground: var(--text-50);
+
+  --primary: var(--brand-400);
+  --primary-foreground: var(--background-900);
+  --secondary: var(--background-800);
+  --secondary-foreground: var(--text-50);
+  --muted: var(--background-800);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-700);
+  --accent-foreground: var(--text-50);
+  --destructive: var(--state-error-dark);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success-dark);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-700);
+  --input: var(--background-700);
+  --ring: var(--brand-400);
+
+  --icon: var(--icon-50);
+  --icon-muted: var(--icon-500);
+
+  --chart-1: var(--state-success-dark);
+  --chart-2: var(--brand-400);
+  --chart-3: #ff9f0a;
+  --chart-4: #5e5ce6;
+  --chart-5: #bf5af2;
+
+  --sidebar: var(--background-800);
+  --sidebar-foreground: var(--text-50);
+  --sidebar-primary: var(--brand-400);
+  --sidebar-primary-foreground: var(--background-900);
+  --sidebar-accent: var(--background-700);
+  --sidebar-accent-foreground: var(--text-50);
+  --sidebar-border: var(--background-700);
+  --sidebar-ring: var(--brand-400);
+
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.36), 0 1px 3px -1px rgba(0, 0, 0, 0.36);
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.40), 0 1px 2px -1px rgba(0, 0, 0, 0.36);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.44), 0 2px 4px -2px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.50), 0 4px 8px -4px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(0, 0, 0, 0.44);
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.60);
+}
+/* Apple Design Library - Semantic token bridge
+ * Adds radius sm/md/lg aliases required by apply-html-head-contract.mjs
+ */
+
+:root {
+  --apple-radius-sm: 0.6rem;
+  --apple-radius-md: 0.9rem;
+  --apple-radius-lg: 1.2rem;
+  --apple-radius: var(--apple-radius-lg);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--apple-background);
+    --color-foreground: var(--apple-foreground);
+    --color-card: var(--apple-card);
+    --color-card-foreground: var(--apple-card-foreground);
+    --color-popover: var(--apple-popover);
+    --color-popover-foreground: var(--apple-popover-foreground);
+    --color-primary: var(--apple-primary);
+    --color-primary-foreground: var(--apple-primary-foreground);
+    --color-secondary: var(--apple-secondary);
+    --color-secondary-foreground: var(--apple-secondary-foreground);
+    --color-muted: var(--apple-muted);
+    --color-muted-foreground: var(--apple-muted-foreground);
+    --color-accent: var(--apple-accent);
+    --color-accent-foreground: var(--apple-accent-foreground);
+    --color-destructive: var(--apple-destructive);
+    --color-destructive-foreground: var(--apple-destructive-foreground);
+    --color-border: var(--apple-border);
+    --color-input: var(--apple-input);
+    --color-ring: var(--apple-ring);
+    --color-chart-1: var(--apple-chart-1);
+    --color-chart-2: var(--apple-chart-2);
+    --color-chart-3: var(--apple-chart-3);
+    --color-chart-4: var(--apple-chart-4);
+    --color-chart-5: var(--apple-chart-5);
+    --color-sidebar: var(--apple-sidebar);
+    --color-sidebar-foreground: var(--apple-sidebar-foreground);
+    --color-sidebar-primary: var(--apple-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--apple-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--apple-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--apple-sidebar-accent-foreground);
+    --radius-sm: var(--apple-radius-sm);
+    --radius-md: var(--apple-radius-md);
+    --radius-lg: var(--apple-radius-lg);
+  }
+  @layer base {
+    body { background: var(--apple-background); color: var(--apple-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--apple-background); }
+      .text-background { color: var(--apple-background); }
+      .border-background { border-color: var(--apple-background); }
+      .ring-background { --tw-ring-color: var(--apple-background); }
+      .bg-foreground { background-color: var(--apple-foreground); }
+      .text-foreground { color: var(--apple-foreground); }
+      .border-foreground { border-color: var(--apple-foreground); }
+      .ring-foreground { --tw-ring-color: var(--apple-foreground); }
+      .bg-card { background-color: var(--apple-card); }
+      .text-card { color: var(--apple-card); }
+      .border-card { border-color: var(--apple-card); }
+      .ring-card { --tw-ring-color: var(--apple-card); }
+      .bg-card-foreground { background-color: var(--apple-card-foreground); }
+      .text-card-foreground { color: var(--apple-card-foreground); }
+      .border-card-foreground { border-color: var(--apple-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--apple-card-foreground); }
+      .bg-popover { background-color: var(--apple-popover); }
+      .text-popover { color: var(--apple-popover); }
+      .border-popover { border-color: var(--apple-popover); }
+      .ring-popover { --tw-ring-color: var(--apple-popover); }
+      .bg-popover-foreground { background-color: var(--apple-popover-foreground); }
+      .text-popover-foreground { color: var(--apple-popover-foreground); }
+      .border-popover-foreground { border-color: var(--apple-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--apple-popover-foreground); }
+      .bg-primary { background-color: var(--apple-primary); }
+      .text-primary { color: var(--apple-primary); }
+      .border-primary { border-color: var(--apple-primary); }
+      .ring-primary { --tw-ring-color: var(--apple-primary); }
+      .bg-primary-foreground { background-color: var(--apple-primary-foreground); }
+      .text-primary-foreground { color: var(--apple-primary-foreground); }
+      .border-primary-foreground { border-color: var(--apple-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--apple-primary-foreground); }
+      .bg-secondary { background-color: var(--apple-secondary); }
+      .text-secondary { color: var(--apple-secondary); }
+      .border-secondary { border-color: var(--apple-secondary); }
+      .ring-secondary { --tw-ring-color: var(--apple-secondary); }
+      .bg-secondary-foreground { background-color: var(--apple-secondary-foreground); }
+      .text-secondary-foreground { color: var(--apple-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--apple-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--apple-secondary-foreground); }
+      .bg-muted { background-color: var(--apple-muted); }
+      .text-muted { color: var(--apple-muted); }
+      .border-muted { border-color: var(--apple-muted); }
+      .ring-muted { --tw-ring-color: var(--apple-muted); }
+      .bg-muted-foreground { background-color: var(--apple-muted-foreground); }
+      .text-muted-foreground { color: var(--apple-muted-foreground); }
+      .border-muted-foreground { border-color: var(--apple-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--apple-muted-foreground); }
+      .bg-accent { background-color: var(--apple-accent); }
+      .text-accent { color: var(--apple-accent); }
+      .border-accent { border-color: var(--apple-accent); }
+      .ring-accent { --tw-ring-color: var(--apple-accent); }
+      .bg-accent-foreground { background-color: var(--apple-accent-foreground); }
+      .text-accent-foreground { color: var(--apple-accent-foreground); }
+      .border-accent-foreground { border-color: var(--apple-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--apple-accent-foreground); }
+      .bg-destructive { background-color: var(--apple-destructive); }
+      .text-destructive { color: var(--apple-destructive); }
+      .border-destructive { border-color: var(--apple-destructive); }
+      .ring-destructive { --tw-ring-color: var(--apple-destructive); }
+      .bg-destructive-foreground { background-color: var(--apple-destructive-foreground); }
+      .text-destructive-foreground { color: var(--apple-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--apple-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--apple-destructive-foreground); }
+      .bg-border { background-color: var(--apple-border); }
+      .text-border { color: var(--apple-border); }
+      .border-border { border-color: var(--apple-border); }
+      .ring-border { --tw-ring-color: var(--apple-border); }
+      .bg-input { background-color: var(--apple-input); }
+      .text-input { color: var(--apple-input); }
+      .border-input { border-color: var(--apple-input); }
+      .ring-input { --tw-ring-color: var(--apple-input); }
+      .bg-ring { background-color: var(--apple-ring); }
+      .text-ring { color: var(--apple-ring); }
+      .border-ring { border-color: var(--apple-ring); }
+      .ring-ring { --tw-ring-color: var(--apple-ring); }
+      .bg-chart-1 { background-color: var(--apple-chart-1); }
+      .text-chart-1 { color: var(--apple-chart-1); }
+      .border-chart-1 { border-color: var(--apple-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--apple-chart-1); }
+      .bg-chart-2 { background-color: var(--apple-chart-2); }
+      .text-chart-2 { color: var(--apple-chart-2); }
+      .border-chart-2 { border-color: var(--apple-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--apple-chart-2); }
+      .bg-chart-3 { background-color: var(--apple-chart-3); }
+      .text-chart-3 { color: var(--apple-chart-3); }
+      .border-chart-3 { border-color: var(--apple-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--apple-chart-3); }
+      .bg-chart-4 { background-color: var(--apple-chart-4); }
+      .text-chart-4 { color: var(--apple-chart-4); }
+      .border-chart-4 { border-color: var(--apple-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--apple-chart-4); }
+      .bg-chart-5 { background-color: var(--apple-chart-5); }
+      .text-chart-5 { color: var(--apple-chart-5); }
+      .border-chart-5 { border-color: var(--apple-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--apple-chart-5); }
+      .bg-sidebar { background-color: var(--apple-sidebar); }
+      .text-sidebar { color: var(--apple-sidebar); }
+      .border-sidebar { border-color: var(--apple-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--apple-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--apple-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--apple-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--apple-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--apple-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--apple-sidebar-primary); }
+      .text-sidebar-primary { color: var(--apple-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--apple-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--apple-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--apple-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--apple-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--apple-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--apple-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--apple-sidebar-accent); }
+      .text-sidebar-accent { color: var(--apple-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--apple-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--apple-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--apple-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--apple-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--apple-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--apple-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+    <div class="phone-canvas no-scrollbar">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span class="time">9:41</span>
+            <div class="status-icons" aria-hidden="true">
+                <!-- Signal -->
+                <svg viewBox="0 0 18 18" fill="currentColor">
+                    <rect x="1" y="10" width="3" height="7" rx="1"/>
+                    <rect x="5.5" y="7" width="3" height="10" rx="1"/>
+                    <rect x="10" y="4" width="3" height="13" rx="1"/>
+                    <rect x="14.5" y="1" width="3" height="16" rx="1"/>
+                </svg>
+                <!-- WiFi -->
+                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M1 6.5c4.5-4 11.5-4 16 0"/>
+                    <path d="M3.5 9c3-2.5 8-2.5 11 0"/>
+                    <path d="M6 11.5c1.7-1.3 4.3-1.3 6 0"/>
+                    <circle cx="9" cy="14.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <!-- Battery -->
+                <svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <rect x="0.5" y="0.5" width="22" height="11" rx="3"/>
+                    <rect x="2.5" y="2.5" width="16" height="7" rx="1.5" fill="currentColor"/>
+                    <rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor" stroke="none"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <nav class="nav-bar" aria-label="主导航">
+            <button class="nav-btn" aria-label="返回">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="12.5 3 5.5 10 12.5 17"/>
+                </svg>
+            </button>
+            <span class="nav-title">学期管理</span>
+            <div style="width: 44px;"></div>
+        </nav>
+
+        <!-- Large Title -->
+        <div class="large-title-section">
+            <h1 class="large-title">学期管理</h1>
+        </div>
+
+        <!-- Main Content -->
+        <main class="content-area">
+            <!-- Current Semester Card -->
+            <section class="current-semester-card" aria-label="当前学期">
+                <div class="current-badge-row">
+                    <span class="current-check-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </span>
+                    <span class="current-label">当前学期</span>
+                </div>
+                <h2 class="current-semester-name">2024-2025 学年第一学期</h2>
+                <p class="current-semester-date">2024.09.01 - 2025.01.15</p>
+                <p class="current-semester-weeks">共 20 周</p>
+            </section>
+
+            <!-- Group 1: 所有学期 -->
+            <section class="grouped-list-section">
+                <div class="list-header">
+                    <h3 class="list-header-title">所有学期</h3>
+                </div>
+                <div class="inset-grouped-list" role="list">
+                    <!-- Cell 1: Current semester -->
+                    <div class="list-cell semester-cell" role="listitem" tabindex="0">
+                        <span class="cell-check" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label">2024-2025 第一学期</span>
+                        <span class="cell-value current-tag">当前</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 2 -->
+                    <div class="list-cell semester-cell" role="listitem" tabindex="0">
+                        <span class="cell-check" aria-hidden="true" style="visibility: hidden;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label">2023-2024 第二学期</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 3 -->
+                    <div class="list-cell semester-cell" role="listitem" tabindex="0">
+                        <span class="cell-check" aria-hidden="true" style="visibility: hidden;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label">2023-2024 第一学期</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Group 2: 学期设置 -->
+            <section class="grouped-list-section">
+                <div class="inset-grouped-list" role="list">
+                    <!-- Cell 1: 新增学期 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                <line x1="8" y1="12" x2="16" y2="12"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label primary-text">新增学期</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 2: 编辑学期 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label">编辑学期</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 3: 删除学期 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-icon red" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </span>
+                        <span class="cell-label destructive-text">删除学期</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Group 3: 周次设置 -->
+            <section class="grouped-list-section">
+                <div class="inset-grouped-list" role="list">
+                    <!-- Cell 1: 每周起始日 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-label">每周起始日</span>
+                        <span class="cell-value">周一</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 2: 显示周数 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-label">显示周数</span>
+                        <span class="cell-value">20 周</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <!-- Cell 3: 调休安排 -->
+                    <div class="list-cell" role="listitem" tabindex="0">
+                        <span class="cell-label">调休安排</span>
+                        <span class="cell-value">已配置 2 条</span>
+                        <span class="cell-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 2 9 10 3 18"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+                <div class="list-footer">
+                    <p class="list-footer-text">调休安排用于调整节假日期间的课程排布，支持将工作日课程平移至其他日期。</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Safe Area Bottom -->
+        <div class="safe-area-bottom"></div>
+
+        <!-- Home Indicator -->
+        <div class="home-indicator" aria-hidden="true"></div>
+    </div>
+
+    <script>
+        // Dark mode toggle - for preview purposes
+        // To enable dark mode, add class "dark" to the <html> element
+        // e.g., document.documentElement.classList.add('dark');
+    </script>
+
+    <style>
+        /* ===== Apple Design Tokens ===== */
+        :root {
+            /* System Colors */
+            --apple-system-blue: #007AFF;
+            --apple-system-green: #34C759;
+            --apple-system-red: #FF3B30;
+            --apple-system-gray: #8E8E93;
+            --apple-system-gray2: #AEAEB2;
+            --apple-system-gray3: #C7C7CC;
+            --apple-system-gray4: #D1D1D6;
+            --apple-system-gray5: #E5E5EA;
+            --apple-system-gray6: #F2F2F7;
+
+            /* Background */
+            --apple-background: #ffffff;
+            --apple-grouped-background: #f2f2f7;
+            --apple-secondary-grouped-background: #ffffff;
+            --apple-tertiary-grouped-background: #f2f2f7;
+
+            /* Label */
+            --apple-label: #000000;
+            --apple-secondary-label: rgba(60, 60, 67, 0.6);
+            --apple-tertiary-label: rgba(60, 60, 67, 0.3);
+            --apple-quaternary-label: rgba(60, 60, 67, 0.18);
+
+            /* Separator */
+            --apple-separator: rgba(60, 60, 67, 0.29);
+            --apple-separator-transparent: rgba(60, 60, 67, 0.15);
+
+            /* Fill */
+            --apple-fill: rgba(120, 120, 128, 0.12);
+            --apple-secondary-fill: rgba(120, 120, 128, 0.08);
+
+            /* Typography - SF Pro style */
+            --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+            /* Font sizes */
+            --apple-font-large-title: 28px;
+            --apple-font-title-1: 22px;
+            --apple-font-title-2: 17px;
+            --apple-font-body: 17px;
+            --apple-font-callout: 16px;
+            --apple-font-subhead: 15px;
+            --apple-font-footnote: 13px;
+            --apple-font-caption-1: 12px;
+
+            /* Radius */
+            --apple-radius-grouped: 10px;
+            --apple-radius-large: 14px;
+
+            /* Spacing */
+            --apple-safe-bottom: 34px;
+        }
+
+        /* Dark mode */
+        .dark {
+            --apple-background: #000000;
+            --apple-grouped-background: #000000;
+            --apple-secondary-grouped-background: #1c1c1e;
+            --apple-tertiary-grouped-background: #2c2c2e;
+
+            --apple-label: #ffffff;
+            --apple-secondary-label: rgba(235, 235, 245, 0.6);
+            --apple-tertiary-label: rgba(235, 235, 245, 0.3);
+            --apple-quaternary-label: rgba(235, 235, 245, 0.18);
+
+            --apple-separator: rgba(84, 84, 88, 0.65);
+            --apple-separator-transparent: rgba(84, 84, 88, 0.35);
+
+            --apple-fill: rgba(120, 120, 128, 0.36);
+            --apple-secondary-fill: rgba(120, 120, 128, 0.16);
+
+            --apple-system-blue: #0A84FF;
+            --apple-system-green: #30D158;
+            --apple-system-red: #FF453A;
+        }
+
+        /* ===== Reset & Base ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--apple-font);
+            background: var(--apple-grouped-background);
+            color: var(--apple-label);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* ===== Phone Canvas ===== */
+        .phone-canvas {
+            width: 375px;
+            min-height: 100vh;
+            background: var(--apple-grouped-background);
+            position: relative;
+        }
+
+        /* ===== Status Bar ===== */
+        .status-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 44px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--apple-label);
+            background: var(--apple-grouped-background);
+            flex-shrink: 0;
+        }
+
+        .status-bar .time {
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-icons svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ===== Navigation Bar ===== */
+        .nav-bar {
+            position: sticky;
+            top: 44px;
+            z-index: 99;
+            height: 44px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(242, 242, 247, 0.82);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+        }
+
+        .dark .nav-bar {
+            background: rgba(0, 0, 0, 0.82);
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            color: var(--apple-system-blue);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .nav-btn:active {
+            background: var(--apple-secondary-fill);
+        }
+
+        .nav-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--apple-label);
+            letter-spacing: -0.01em;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ===== Large Title ===== */
+        .large-title-section {
+            padding: 4px 20px 12px;
+        }
+
+        .large-title {
+            font-size: var(--apple-font-large-title);
+            font-weight: 700;
+            color: var(--apple-label);
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+
+        /* ===== Content Area ===== */
+        .content-area {
+            padding: 0 16px calc(40px + var(--apple-safe-bottom));
+        }
+
+        /* ===== Current Semester Card ===== */
+        .current-semester-card {
+            background: var(--apple-secondary-grouped-background);
+            border-radius: var(--apple-radius-large);
+            padding: 18px 16px;
+            margin-bottom: 24px;
+            position: relative;
+            border: 0.5px solid var(--apple-separator-transparent);
+        }
+
+        .current-badge-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .current-check-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            color: var(--apple-system-green);
+        }
+
+        .current-check-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .current-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--apple-system-green);
+            letter-spacing: -0.01em;
+        }
+
+        .current-semester-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--apple-label);
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .current-semester-date {
+            font-size: 15px;
+            color: var(--apple-secondary-label);
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .current-semester-weeks {
+            font-size: 13px;
+            color: var(--apple-secondary-label);
+            letter-spacing: -0.01em;
+        }
+
+        /* ===== Grouped List ===== */
+        .grouped-list-section {
+            margin-bottom: 28px;
+        }
+
+        .list-header {
+            padding: 0 14px;
+            margin-bottom: 6px;
+        }
+
+        .list-header-title {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--apple-secondary-label);
+            text-transform: none;
+            letter-spacing: -0.01em;
+        }
+
+        .inset-grouped-list {
+            background: var(--apple-secondary-grouped-background);
+            border-radius: var(--apple-radius-grouped);
+            overflow: hidden;
+            border: 0.5px solid var(--apple-separator-transparent);
+        }
+
+        /* ===== List Cell ===== */
+        .list-cell {
+            display: flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 10px 16px;
+            background: var(--apple-secondary-grouped-background);
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            position: relative;
+            gap: 12px;
+        }
+
+        .list-cell:active {
+            background: var(--apple-secondary-fill);
+        }
+
+        .list-cell + .list-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 16px;
+            right: 0;
+            height: 0.5px;
+            background: var(--apple-separator-transparent);
+        }
+
+        /* Cell content layout */
+        .cell-icon {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--apple-system-blue);
+        }
+
+        .cell-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .cell-icon.green {
+            color: var(--apple-system-green);
+        }
+
+        .cell-icon.red {
+            color: var(--apple-system-red);
+        }
+
+        .cell-label {
+            flex: 1;
+            font-size: 17px;
+            color: var(--apple-label);
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+
+        .cell-label.primary-text {
+            color: var(--apple-system-blue);
+        }
+
+        .cell-label.destructive-text {
+            color: var(--apple-system-red);
+        }
+
+        .cell-check {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--apple-system-blue);
+        }
+
+        .cell-check svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .cell-value {
+            flex-shrink: 0;
+            font-size: 17px;
+            color: var(--apple-secondary-label);
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        .cell-value.current-tag {
+            color: var(--apple-system-blue);
+            font-weight: 400;
+        }
+
+        .cell-chevron {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--apple-tertiary-label);
+            margin-left: 2px;
+        }
+
+        .cell-chevron svg {
+            width: 12px;
+            height: 20px;
+        }
+
+        /* Semester item with checkmark variant */
+        .semester-cell .cell-check {
+            margin-right: 2px;
+        }
+
+        /* ===== List Footer ===== */
+        .list-footer {
+            padding: 0 14px;
+            margin-top: 6px;
+        }
+
+        .list-footer-text {
+            font-size: 13px;
+            color: var(--apple-secondary-label);
+            line-height: 1.35;
+            letter-spacing: -0.01em;
+        }
+
+        /* ===== Safe Area Bottom ===== */
+        .safe-area-bottom {
+            height: var(--apple-safe-bottom);
+            flex-shrink: 0;
+        }
+
+        /* ===== Home Indicator ===== */
+        .home-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 134px;
+            height: 5px;
+            border-radius: 999px;
+            background: var(--apple-label);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Utility: hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</body>
+</html>

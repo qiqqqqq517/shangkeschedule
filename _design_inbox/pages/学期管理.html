@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多学期管理</title>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style id="theme-vars">
+/* Source: structured-spec */
+/* Brand fonts — Anthropic official: Newsreader (editorial display/slogan) +
+   Poppins (compact UI) + Lora (reading). Mono kept for code/token surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+/* ============================================================
+   Token model
+   1) Primitives — 7 key color cards as 10-step scales (50→900).
+      These are the single source of truth (mirrored in the linshi
+      preview tool). The flagged "standard" step per group:
+        brand-500 · text-800 · bg-100 · icon-700 · border-300 · success-500 · error-500
+   2) Semantic tokens — reference the primitives above (no raw hex
+      duplicates). These are the API consumed by preview / ui_kits /
+      components.
+   3) Non-color tokens — font, spacing, radius, shadow, type.
+   ============================================================ */
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --claude-background: var(--background, #ffffff);
+  --claude-foreground: var(--foreground, #0f172a);
+  --claude-card: var(--card, var(--background));
+  --claude-card-foreground: var(--card-foreground, var(--foreground));
+  --claude-popover: var(--popover, var(--card));
+  --claude-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --claude-primary: var(--primary, #111827);
+  --claude-primary-foreground: var(--primary-foreground, #ffffff);
+  --claude-secondary: var(--secondary, var(--muted, var(--card)));
+  --claude-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --claude-muted: var(--muted, var(--card));
+  --claude-muted-foreground: var(--muted-foreground, var(--foreground));
+  --claude-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --claude-accent-foreground: var(--accent-foreground, var(--foreground));
+  --claude-destructive: var(--destructive, #ef4444);
+  --claude-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --claude-border: var(--border, currentColor);
+  --claude-input: var(--input, var(--border));
+  --claude-ring: var(--ring, var(--primary));
+  --claude-chart-1: var(--chart-1, var(--primary));
+  --claude-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --claude-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --claude-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --claude-chart-5: var(--chart-5, var(--foreground));
+  --claude-sidebar: var(--sidebar, var(--background));
+  --claude-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --claude-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --claude-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --claude-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --claude-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #c96442 */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  /* text — standard: --text-800 #3d3929 */
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  /* background — standard: --bg-100 #faf9f5 */
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  /* icon — standard: --icon-700 #3d3929 */
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  /* border — standard: --border-300 #dad9d4 */
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #6e6d68;
+  --border-700: #535146;
+  --border-800: #3d3929;
+  --border-900: #28261b;
+  /* state · success — standard: --success-500 #788c5d */
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  /* state · error — standard: --error-500 #d64545 */
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-50);
+  --muted: var(--bg-300);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--icon-900);
+  --popover-foreground: var(--text-900);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-600);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: var(--text-900);
+  --destructive-foreground: #ffffff;
+  /* semantic */
+  --primary: var(--brand-500);
+  --secondary: #e9e6dc;
+  --accent: var(--secondary);
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — display (Newsreader) for slogans/headlines, sans (Poppins) for compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* spacing */
+  --spacing: 0.25rem;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+  /* type */
+  --tracking-normal: 0em;
+}
+
+.dark {
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #d97757 */
+  --brand-50: #3a2a22;
+  --brand-100: #4d3528;
+  --brand-200: #6b4533;
+  --brand-300: #8a5740;
+  --brand-400: #b0683f;
+  --brand-500: #d97757;
+  --brand-600: #e08d6f;
+  --brand-700: #e8a98f;
+  --brand-800: #f0c6b3;
+  --brand-900: #f8e3d8;
+  /* text — standard: --text-800 #f1f1ef */
+  --text-50: #1b1b19;
+  --text-100: #2c2c2b;
+  --text-200: #46443b;
+  --text-300: #6e6d68;
+  --text-400: #908e84;
+  --text-500: #b7b5a9;
+  --text-600: #c3c0b6;
+  --text-700: #d8d6cd;
+  --text-800: #f1f1ef;
+  --text-900: #faf9f5;
+  /* background — standard: --bg-100 #262624 */
+  --bg-50: #1b1b19;
+  --bg-100: #262624;
+  --bg-200: #2c2c2b;
+  --bg-300: #30302e;
+  --bg-400: #3e3e38;
+  --bg-500: #4a4a43;
+  --bg-600: #52514a;
+  --bg-700: #6e6d68;
+  --bg-800: #908e84;
+  --bg-900: #b7b5a9;
+  /* icon — standard: --icon-700 #f1f1ef */
+  --icon-50: #1b1b19;
+  --icon-100: #2c2c2b;
+  --icon-200: #46443b;
+  --icon-300: #6e6d68;
+  --icon-400: #908e84;
+  --icon-500: #b7b5a9;
+  --icon-600: #d8d6cd;
+  --icon-700: #f1f1ef;
+  --icon-800: #f8f8f6;
+  --icon-900: #ffffff;
+  /* border — standard: --border-300 #3e3e38 */
+  --border-50: #1f1e1d;
+  --border-100: #2c2c2b;
+  --border-200: #343430;
+  --border-300: #3e3e38;
+  --border-400: #4a4a43;
+  --border-500: #52514a;
+  --border-600: #6e6d68;
+  --border-700: #908e84;
+  --border-800: #b7b5a9;
+  --border-900: #d8d6cd;
+  /* state · success — standard: --success-500 #8ca06f */
+  --success-50: #232a1c;
+  --success-100: #2e3823;
+  --success-200: #3f4d30;
+  --success-300: #556640;
+  --success-400: #708353;
+  --success-500: #8ca06f;
+  --success-600: #a3b58a;
+  --success-700: #bccaa8;
+  --success-800: #d6dfc8;
+  --success-900: #edf2e4;
+  /* state · error — standard: --error-500 #ef4444 */
+  --error-50: #3a1f1f;
+  --error-100: #4d2424;
+  --error-200: #6e2c2c;
+  --error-300: #93302f;
+  --error-400: #c43a39;
+  --error-500: #ef4444;
+  --error-600: #f26b6b;
+  --error-700: #f59292;
+  --error-800: #f9b9b9;
+  --error-900: #fcdede;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-300);
+  --muted: var(--bg-50);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--text-900);
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #141413;
+  --secondary-foreground: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: #f5f4ee;
+  --destructive-foreground: #ffffff;
+  /* accent */
+  --primary: var(--brand-500);
+  --secondary: var(--text-900);
+  --accent: #1a1915;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  /* border */
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #141413;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — sans (Poppins) for headings + compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+}
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-xl);
+  }
+  @layer base {
+    body { background: var(--background); color: var(--foreground); }
+    td, th { word-break: break-all; word-break: auto-phrase; }
+    th { white-space: nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--background); }
+      .text-background { color: var(--background); }
+      .border-background { border-color: var(--background); }
+      .bg-foreground { background-color: var(--foreground); }
+      .text-foreground { color: var(--foreground); }
+      .border-foreground { border-color: var(--foreground); }
+      .bg-card { background-color: var(--card); }
+      .text-card { color: var(--card); }
+      .border-card { border-color: var(--card); }
+      .bg-card-foreground { background-color: var(--card-foreground); }
+      .text-card-foreground { color: var(--card-foreground); }
+      .border-card-foreground { border-color: var(--card-foreground); }
+      .bg-popover { background-color: var(--popover); }
+      .text-popover { color: var(--popover); }
+      .border-popover { border-color: var(--popover); }
+      .bg-popover-foreground { background-color: var(--popover-foreground); }
+      .text-popover-foreground { color: var(--popover-foreground); }
+      .border-popover-foreground { border-color: var(--popover-foreground); }
+      .bg-primary { background-color: var(--primary); }
+      .text-primary { color: var(--primary); }
+      .border-primary { border-color: var(--primary); }
+      .bg-primary-foreground { background-color: var(--primary-foreground); }
+      .text-primary-foreground { color: var(--primary-foreground); }
+      .border-primary-foreground { border-color: var(--primary-foreground); }
+      .bg-secondary { background-color: var(--secondary); }
+      .text-secondary { color: var(--secondary); }
+      .border-secondary { border-color: var(--secondary); }
+      .bg-secondary-foreground { background-color: var(--secondary-foreground); }
+      .text-secondary-foreground { color: var(--secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--secondary-foreground); }
+      .bg-muted { background-color: var(--muted); }
+      .text-muted { color: var(--muted); }
+      .border-muted { border-color: var(--muted); }
+      .bg-muted-foreground { background-color: var(--muted-foreground); }
+      .text-muted-foreground { color: var(--muted-foreground); }
+      .border-muted-foreground { border-color: var(--muted-foreground); }
+      .bg-accent { background-color: var(--accent); }
+      .text-accent { color: var(--accent); }
+      .border-accent { border-color: var(--accent); }
+      .bg-accent-foreground { background-color: var(--accent-foreground); }
+      .text-accent-foreground { color: var(--accent-foreground); }
+      .border-accent-foreground { border-color: var(--accent-foreground); }
+      .bg-destructive { background-color: var(--destructive); }
+      .text-destructive { color: var(--destructive); }
+      .border-destructive { border-color: var(--destructive); }
+      .bg-destructive-foreground { background-color: var(--destructive-foreground); }
+      .text-destructive-foreground { color: var(--destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--destructive-foreground); }
+      .bg-border { background-color: var(--border); }
+      .text-border { color: var(--border); }
+      .border-border { border-color: var(--border); }
+      .bg-input { background-color: var(--input); }
+      .text-input { color: var(--input); }
+      .border-input { border-color: var(--input); }
+      .bg-ring { background-color: var(--ring); }
+      .text-ring { color: var(--ring); }
+      .border-ring { border-color: var(--ring); }
+      .bg-chart-1 { background-color: var(--chart-1); }
+      .text-chart-1 { color: var(--chart-1); }
+      .border-chart-1 { border-color: var(--chart-1); }
+      .bg-chart-2 { background-color: var(--chart-2); }
+      .text-chart-2 { color: var(--chart-2); }
+      .border-chart-2 { border-color: var(--chart-2); }
+      .bg-chart-3 { background-color: var(--chart-3); }
+      .text-chart-3 { color: var(--chart-3); }
+      .border-chart-3 { border-color: var(--chart-3); }
+      .bg-chart-4 { background-color: var(--chart-4); }
+      .text-chart-4 { color: var(--chart-4); }
+      .border-chart-4 { border-color: var(--chart-4); }
+      .bg-chart-5 { background-color: var(--chart-5); }
+      .text-chart-5 { color: var(--chart-5); }
+      .border-chart-5 { border-color: var(--chart-5); }
+      .bg-sidebar { background-color: var(--sidebar); }
+      .text-sidebar { color: var(--sidebar); }
+      .border-sidebar { border-color: var(--sidebar); }
+      .bg-sidebar-foreground { background-color: var(--sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--sidebar-primary); }
+      .text-sidebar-primary { color: var(--sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--sidebar-accent); }
+      .text-sidebar-accent { color: var(--sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--sidebar-accent-foreground); }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main id="page-semesters" class="page-semesters">
+      <!-- 顶部状态栏 -->
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <i data-lucide="signal" class="status-icon"></i>
+          <i data-lucide="wifi" class="status-icon"></i>
+          <i data-lucide="battery-full" class="status-icon"></i>
+        </div>
+      </div>
+
+      <!-- 顶部区域 -->
+      <header id="top-bar" class="top-bar">
+        <div class="top-bar-left">
+          <p class="page-eyebrow">学期档案</p>
+          <div class="title-row">
+            <h1 id="semesters-header" class="page-title">学期管理</h1>
+          </div>
+          <div class="overview-row">
+            <span class="overview-text">共 <strong>6</strong> 个学期</span>
+            <span class="overview-dot">·</span>
+            <span class="badge success current-semester-badge">
+              <i data-lucide="circle-play" class="badge-icon"></i>
+              当前学期
+            </span>
+          </div>
+        </div>
+        <button id="btn-new-semester" class="btn primary btn-icon" type="button" aria-label="新建学期">
+          <i data-lucide="plus" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <!-- 当前学期卡片（高亮突出） -->
+      <section id="current-semester-section" class="semester-section">
+        <article id="current-semester-card" class="card current-semester-card" data-semester="current">
+          <div class="semester-card-header">
+            <span class="badge success semester-status-badge">
+              <i data-lucide="circle-play" class="badge-icon-sm"></i>
+              当前学期
+            </span>
+          </div>
+          <h2 class="semester-name">2024-2025学年 第一学期</h2>
+          <div class="semester-meta-row">
+            <div class="meta-item">
+              <i data-lucide="calendar" class="meta-icon-sm"></i>
+              <span class="meta-text">2024.09.01 - 2025.01.15</span>
+            </div>
+            <div class="meta-item">
+              <i data-lucide="book-open" class="meta-icon-sm"></i>
+              <span class="meta-text">24 门课程</span>
+            </div>
+          </div>
+
+          <!-- 进度条 -->
+          <div class="progress-section">
+            <div class="progress-header">
+              <span class="progress-label">学期进度</span>
+              <span class="progress-value">第 9 周 / 共 20 周</span>
+            </div>
+            <div class="progress-shell">
+              <div class="progress-fill progress-45"></div>
+            </div>
+            <span class="progress-percent">已过 45%</span>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="button-row">
+            <button class="btn primary" type="button" data-dom-id="interaction-id-he5jkti">
+              <i data-lucide="layout-grid" class="btn-icon-sm"></i>
+              查看课表
+            </button>
+            <button class="btn secondary" type="button">
+              <i data-lucide="settings" class="btn-icon-sm"></i>
+              学期设置
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <!-- 历史学期列表 -->
+      <section id="history-section" class="semester-section">
+        <!-- 2023-2024 学年 -->
+        <div class="year-group">
+          <div class="year-group-header">
+            <h3 class="year-title">2023-2024 学年</h3>
+            <span class="year-count">2 个学期</span>
+          </div>
+
+          <div class="semester-list">
+            <!-- 历史学期 1 -->
+            <article id="semester-2023-2" class="card history-card" data-semester="2023-2">
+              <div class="history-card-header">
+                <div class="history-card-title-row">
+                  <h4 class="history-semester-name">第二学期</h4>
+                  <span class="badge outline completed-badge">
+                    <i data-lucide="circle-check" class="badge-icon-sm success-icon"></i>
+                    已完成
+                  </span>
+                </div>
+                <p class="history-semester-date">2024.02.26 - 2024.07.10</p>
+              </div>
+              <div class="history-card-stats">
+                <div class="stat-mini">
+                  <span class="stat-mini-value">22</span>
+                  <span class="stat-mini-label">门课程</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-mini">
+                  <span class="stat-mini-value">20</span>
+                  <span class="stat-mini-label">教学周</span>
+                </div>
+              </div>
+              <div class="history-card-actions">
+                <button class="btn ghost action-btn" type="button">
+                  <i data-lucide="eye" class="action-icon"></i>
+                  查看
+                </button>
+                
+                <button class="btn ghost action-btn action-destructive" type="button">
+                  <i data-lucide="trash-2" class="action-icon"></i>
+                  删除
+                </button>
+              </div>
+            </article>
+
+            <!-- 历史学期 2 -->
+            <article id="semester-2023-1" class="card history-card" data-semester="2023-1">
+              <div class="history-card-header">
+                <div class="history-card-title-row">
+                  <h4 class="history-semester-name">第一学期</h4>
+                  <span class="badge outline completed-badge">
+                    <i data-lucide="circle-check" class="badge-icon-sm success-icon"></i>
+                    已完成
+                  </span>
+                </div>
+                <p class="history-semester-date">2023.09.04 - 2024.01.19</p>
+              </div>
+              <div class="history-card-stats">
+                <div class="stat-mini">
+                  <span class="stat-mini-value">25</span>
+                  <span class="stat-mini-label">门课程</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-mini">
+                  <span class="stat-mini-value">20</span>
+                  <span class="stat-mini-label">教学周</span>
+                </div>
+              </div>
+              <div class="history-card-actions">
+                <button class="btn ghost action-btn" type="button">
+                  <i data-lucide="eye" class="action-icon"></i>
+                  查看
+                </button>
+                
+                <button class="btn ghost action-btn action-destructive" type="button">
+                  <i data-lucide="trash-2" class="action-icon"></i>
+                  删除
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- 2022-2023 学年 -->
+        <div class="year-group">
+          <div class="year-group-header">
+            <h3 class="year-title">2022-2023 学年</h3>
+            <span class="year-count">2 个学期</span>
+          </div>
+
+          <div class="semester-list">
+            <!-- 历史学期 3 -->
+            <article id="semester-2022-2" class="card history-card sunken" data-semester="2022-2">
+              <div class="history-card-header">
+                <div class="history-card-title-row">
+                  <h4 class="history-semester-name">第二学期</h4>
+                  <span class="badge outline completed-badge">
+                    <i data-lucide="circle-check" class="badge-icon-sm success-icon"></i>
+                    已完成
+                  </span>
+                </div>
+                <p class="history-semester-date">2023.02.27 - 2023.07.14</p>
+              </div>
+              <div class="history-card-stats">
+                <div class="stat-mini">
+                  <span class="stat-mini-value">23</span>
+                  <span class="stat-mini-label">门课程</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-mini">
+                  <span class="stat-mini-value">20</span>
+                  <span class="stat-mini-label">教学周</span>
+                </div>
+              </div>
+              <div class="history-card-actions">
+                <button class="btn ghost action-btn" type="button">
+                  <i data-lucide="eye" class="action-icon"></i>
+                  查看
+                </button>
+                
+                <button class="btn ghost action-btn action-destructive" type="button">
+                  <i data-lucide="trash-2" class="action-icon"></i>
+                  删除
+                </button>
+              </div>
+            </article>
+
+            <!-- 历史学期 4 -->
+            <article id="semester-2022-1" class="card history-card sunken" data-semester="2022-1">
+              <div class="history-card-header">
+                <div class="history-card-title-row">
+                  <h4 class="history-semester-name">第一学期</h4>
+                  <span class="badge outline completed-badge">
+                    <i data-lucide="circle-check" class="badge-icon-sm success-icon"></i>
+                    已完成
+                  </span>
+                </div>
+                <p class="history-semester-date">2022.09.05 - 2023.01.13</p>
+              </div>
+              <div class="history-card-stats">
+                <div class="stat-mini">
+                  <span class="stat-mini-value">21</span>
+                  <span class="stat-mini-label">门课程</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-mini">
+                  <span class="stat-mini-value">19</span>
+                  <span class="stat-mini-label">教学周</span>
+                </div>
+              </div>
+              <div class="history-card-actions">
+                <button class="btn ghost action-btn" type="button">
+                  <i data-lucide="eye" class="action-icon"></i>
+                  查看
+                </button>
+                
+                <button class="btn ghost action-btn action-destructive" type="button">
+                  <i data-lucide="trash-2" class="action-icon"></i>
+                  删除
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- 更多学期折叠按钮 -->
+        <button id="btn-more-semesters" class="btn ghost more-semesters-btn" type="button">
+          <i data-lucide="chevron-down" class="action-icon"></i>
+          查看更早的学期
+        </button>
+      </section>
+
+      <!-- 学期操作区（底部卡片） -->
+      <section id="actions-section" class="semester-section">
+        <div class="card actions-card">
+          <p class="eyebrow">新建学期</p>
+          <h2 class="section-title">添加新学期的方式</h2>
+
+          <div class="action-options">
+            <button class="option-item" type="button">
+              <div class="option-icon-wrap option-icon-primary">
+                <i data-lucide="upload-cloud" class="option-icon"></i>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">导入新学期</h4>
+                <p class="option-desc">从教务系统一键导入课表数据</p>
+              </div>
+              <i data-lucide="chevron-right" class="option-arrow"></i>
+            </button>
+
+            <button class="option-item" type="button">
+              <div class="option-icon-wrap option-icon-secondary">
+                <i data-lucide="pen-line" class="option-icon"></i>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">手动创建学期</h4>
+                <p class="option-desc">从零开始手动添加课程信息</p>
+              </div>
+              <i data-lucide="chevron-right" class="option-arrow"></i>
+            </button>
+
+            <button class="option-item" type="button">
+              <div class="option-icon-wrap option-icon-muted">
+                <i data-lucide="folder-open" class="option-icon"></i>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">从备份恢复</h4>
+                <p class="option-desc">从本地备份文件恢复学期数据</p>
+              </div>
+              <i data-lucide="chevron-right" class="option-arrow"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <style id="page-semesters-styles">
+      /* ===== Reset & base ===== */
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      button { font: inherit; }
+
+      /* ===== Page layout ===== */
+      .page-semesters {
+        max-width: 430px;
+        margin: 0 auto;
+        min-height: 100vh;
+        padding: 0 calc(var(--spacing) * 5);
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 6);
+        padding-bottom: calc(var(--spacing) * 4);
+        position: relative;
+      }
+
+      /* ===== Status bar ===== */
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 1);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+      }
+      .status-time {
+        flex: 1;
+        text-align: center;
+        padding-left: calc(var(--spacing) * 8);
+      }
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .status-icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ===== Top bar ===== */
+      .top-bar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: calc(var(--spacing) * 3);
+        padding-top: calc(var(--spacing) * 2);
+      }
+      .top-bar-left {
+        flex: 1;
+        min-width: 0;
+      }
+      .page-eyebrow {
+        margin: 0 0 calc(var(--spacing) * 1.5);
+        color: var(--muted-foreground);
+        font: 600 11px/1.3 var(--font-serif);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        margin-bottom: calc(var(--spacing) * 2.5);
+      }
+      .page-title {
+        margin: 0;
+        font: 600 28px/1.15 var(--font-display);
+        color: var(--foreground);
+        letter-spacing: -0.01em;
+      }
+      .overview-row {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+        flex-wrap: wrap;
+      }
+      .overview-text {
+        font-size: 13px;
+        color: var(--secondary-foreground);
+        font-family: var(--font-sans);
+      }
+      .overview-text strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .overview-dot {
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .current-semester-badge {
+        min-height: 28px;
+        padding: 0 calc(var(--spacing) * 2.5);
+        font-size: 11px;
+        gap: calc(var(--spacing) * 1.25);
+      }
+      .badge-icon {
+        width: 12px;
+        height: 12px;
+      }
+      .badge-icon-sm {
+        width: 12px;
+        height: 12px;
+      }
+      .success-icon {
+        color: var(--success);
+      }
+
+      /* ===== Semester section ===== */
+      .semester-section {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 4);
+      }
+
+      /* ===== Current semester card ===== */
+      .current-semester-card {
+        padding: calc(var(--spacing) * 5);
+        gap: calc(var(--spacing) * 4);
+        border-color: var(--primary);
+        border-width: 1.5px;
+        box-shadow: var(--shadow-md);
+        position: relative;
+      }
+      .current-semester-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary);
+        border-radius: var(--radius) var(--radius) 0 0;
+      }
+      .semester-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .semester-status-badge {
+        min-height: 28px;
+        padding: 0 calc(var(--spacing) * 3);
+        font-size: 11px;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .semester-name {
+        margin: 0;
+        font: 600 22px/1.2 var(--font-display);
+        color: var(--foreground);
+        letter-spacing: -0.01em;
+      }
+      .semester-meta-row {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        font-size: 13px;
+        color: var(--secondary-foreground);
+        font-family: var(--font-sans);
+      }
+      .meta-icon-sm {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        color: var(--muted-foreground);
+      }
+
+      /* ===== Progress bar ===== */
+      .progress-section {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .progress-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .progress-label {
+        font: 600 11px/1.2 var(--font-serif);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .progress-value {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--secondary-foreground);
+        font-family: var(--font-sans);
+      }
+      .progress-shell {
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--secondary);
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--success);
+        border-radius: var(--radius-full);
+        transition: width .3s ease;
+      }
+      .progress-45 { width: 45%; }
+      .progress-percent {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--success);
+        font-family: var(--font-sans);
+        align-self: flex-end;
+      }
+
+      /* ===== Button row ===== */
+      .button-row {
+        display: flex;
+        gap: calc(var(--spacing) * 2.5);
+        flex-wrap: wrap;
+        padding-top: calc(var(--spacing) * 1);
+      }
+      .button-row .btn {
+        flex: 1 1 140px;
+        min-height: 42px;
+        font-size: 13px;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .btn-icon-sm {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ===== Year group ===== */
+      .year-group {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 3);
+      }
+      .year-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .year-title {
+        margin: 0;
+        font: 600 12px/1.2 var(--font-serif);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .year-count {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+      }
+
+      /* ===== Semester list ===== */
+      .semester-list {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 3);
+      }
+
+      /* ===== History card ===== */
+      .history-card {
+        padding: calc(var(--spacing) * 4);
+        gap: calc(var(--spacing) * 3.5);
+      }
+      .history-card-header {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .history-card-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: calc(var(--spacing) * 2);
+      }
+      .history-semester-name {
+        margin: 0;
+        font: 600 17px/1.2 var(--font-sans);
+        color: var(--foreground);
+      }
+      .completed-badge {
+        min-height: 26px;
+        padding: 0 calc(var(--spacing) * 2.5);
+        font-size: 11px;
+        gap: calc(var(--spacing) * 1);
+        flex-shrink: 0;
+      }
+      .history-semester-date {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+      }
+      .history-card-stats {
+        display: flex;
+        align-items: center;
+        padding: calc(var(--spacing) * 2.5) 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+      .stat-mini {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(var(--spacing) * 0.5);
+      }
+      .stat-mini-value {
+        font: 600 18px/1 var(--font-display);
+        color: var(--foreground);
+      }
+      .stat-mini-label {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+      }
+      .stat-divider {
+        width: 1px;
+        height: 28px;
+        background: var(--border);
+      }
+      .history-card-actions {
+        display: flex;
+        gap: calc(var(--spacing) * 2);
+      }
+      .action-btn {
+        flex: 1;
+        min-height: 36px;
+        padding: 0 calc(var(--spacing) * 2);
+        font-size: 12px;
+        gap: calc(var(--spacing) * 1);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) * 0.8);
+      }
+      .action-icon {
+        width: 14px;
+        height: 14px;
+      }
+      .action-destructive {
+        color: var(--destructive);
+      }
+      .action-destructive:hover {
+        background: var(--error-50);
+        border-color: var(--error-300);
+      }
+
+      /* ===== More semesters button ===== */
+      .more-semesters-btn {
+        width: 100%;
+        min-height: 44px;
+        font-size: 13px;
+        gap: calc(var(--spacing) * 1.5);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        color: var(--muted-foreground);
+      }
+      .more-semesters-btn:hover {
+        background: var(--muted);
+        color: var(--foreground);
+        border-style: solid;
+      }
+
+      /* ===== Actions card ===== */
+      .actions-card {
+        padding: calc(var(--spacing) * 5);
+        gap: calc(var(--spacing) * 4);
+      }
+      .section-title {
+        margin: 0;
+        font: 600 20px/1.2 var(--font-sans);
+        color: var(--foreground);
+      }
+      .action-options {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 2);
+      }
+      .option-item {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 3.5);
+        border-radius: calc(var(--radius) * 0.9);
+        background: var(--card);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        text-align: left;
+        transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+        min-width: 0;
+      }
+      .option-item:hover {
+        background: var(--muted);
+        border-color: var(--ring);
+        transform: translateY(-1px);
+      }
+      .option-icon-wrap {
+        width: 40px;
+        height: 40px;
+        border-radius: calc(var(--radius) * 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .option-icon-primary {
+        background: var(--brand-100);
+        color: var(--brand-600);
+      }
+      .option-icon-secondary {
+        background: var(--success-100);
+        color: var(--success-600);
+      }
+      .option-icon-muted {
+        background: var(--bg-300);
+        color: var(--text-600);
+      }
+      .option-icon {
+        width: 18px;
+        height: 18px;
+      }
+      .option-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .option-title {
+        margin: 0 0 calc(var(--spacing) * 0.5);
+        font: 600 14px/1.3 var(--font-sans);
+        color: var(--foreground);
+      }
+      .option-desc {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+      }
+      .option-arrow {
+        width: 16px;
+        height: 16px;
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+      }
+
+      /* ===== Bottom nav spacer ===== */
+      .bottom-nav-spacer {
+        height: calc(80px + var(--spacing) * 2);
+        flex-shrink: 0;
+      }
+
+      /* ===== Bottom navigation ===== */
+      #bottom-nav {
+        position: fixed;
+        bottom: calc(var(--spacing) * 3);
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 390px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        padding: 8px;
+        background: var(--popover);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        z-index: 100;
+      }
+      #bottom-nav .nav-item {
+        display: grid;
+        gap: 4px;
+        justify-items: center;
+        padding: 10px 8px;
+        border-radius: calc(var(--radius) - 4px);
+        appearance: none;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted-foreground);
+        font: 600 11px/1.1 var(--font-sans);
+        cursor: pointer;
+        transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+      }
+      #bottom-nav .nav-item:hover {
+        background: var(--muted);
+        color: var(--foreground);
+      }
+      #bottom-nav .nav-item:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+      }
+      #bottom-nav .nav-item.active {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: transparent;
+        box-shadow: var(--shadow-sm);
+      }
+      .nav-icon {
+        width: 20px;
+        height: 20px;
+      }
+      .nav-label {
+        font-size: 11px;
+        white-space: nowrap;
+      }
+    </style>
+
+    <script>
+      // Initialize Lucide icons
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+    </script>
+    <style id="component-styles">
+      /* ===== Button component ===== */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        background: transparent;
+        color: var(--foreground);
+        font: 600 14px/1.1 var(--font-sans);
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+      }
+      .btn:hover, .btn:focus-visible { box-shadow: var(--shadow-md); }
+      .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .btn:disabled { cursor: not-allowed; box-shadow: none; }
+      .btn.primary { background: var(--primary); color: var(--primary-foreground); }
+      .btn.primary:disabled { background: var(--secondary); color: var(--muted-foreground); border-color: var(--border); }
+      .btn.secondary { background: var(--secondary); color: var(--foreground); border-color: var(--border); }
+      .btn.secondary:disabled { background: var(--background); color: var(--muted-foreground); border-color: var(--border); }
+      .btn.ghost { background: transparent; color: var(--foreground); box-shadow: none; }
+      .btn.ghost:hover, .btn.ghost:focus-visible { background: var(--muted); }
+      .btn.ghost:disabled { background: transparent; color: var(--muted-foreground); border-color: transparent; }
+      .btn-icon {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border-radius: var(--radius);
+      }
+      .btn-icon svg, .btn-icon i { width: 18px; height: 18px; }
+
+      /* ===== Card component ===== */
+      .card {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--popover);
+        box-shadow: var(--shadow-sm);
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+      }
+      .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+      .card .eyebrow {
+        margin: 0 0 10px;
+        font: 600 10px/1.2 var(--font-serif);
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .card .title {
+        margin: 0 0 10px;
+        font: 600 21px/1.18 var(--font-sans);
+        color: var(--foreground);
+      }
+      .card .body {
+        margin: 0;
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--secondary-foreground);
+      }
+      .card.sunken { background: var(--card); box-shadow: none; }
+      .card.sunken .body { color: var(--foreground); }
+      .card.emphasis {
+        background: var(--foreground);
+        color: var(--background);
+        border-color: transparent;
+        box-shadow: var(--shadow-xl);
+      }
+      .card.emphasis .eyebrow { color: var(--secondary); }
+      .card.emphasis .body, .card.emphasis .title { color: var(--background); }
+
+      /* ===== Badge component ===== */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 calc(var(--spacing) * 3.5);
+        border-radius: var(--radius);
+        font: 600 12px/1 var(--font-sans);
+        letter-spacing: .01em;
+        white-space: nowrap;
+        transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, color .16s ease, border-color .16s ease;
+      }
+      .badge:hover { transform: translateY(-1px); }
+      .badge.filled {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border: 1px solid transparent;
+        box-shadow: var(--shadow-xs);
+      }
+      .badge.filled:hover { box-shadow: var(--shadow-sm); }
+      .badge.muted {
+        background: var(--muted);
+        color: var(--foreground);
+        border: 1px solid transparent;
+      }
+      .badge.outline {
+        background: var(--popover);
+        color: var(--foreground);
+        border: 1px solid var(--border);
+      }
+      .badge.success {
+        background: var(--success);
+        color: var(--success-foreground);
+        border: 1px solid transparent;
+        box-shadow: var(--shadow-xs);
+      }
+      .badge.is-disabled { pointer-events: none; box-shadow: none; }
+      .badge.filled.is-disabled { background: var(--secondary); color: var(--muted-foreground); border-color: var(--border); }
+      .badge.muted.is-disabled { background: var(--card); color: var(--muted-foreground); border-color: transparent; }
+      .badge.outline.is-disabled { background: var(--background); color: var(--muted-foreground); }
+
+      /* ===== Navigation component ===== */
+      .tabs, .rail, .bottom-nav {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-xs);
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        max-width: 100%;
+        padding: 6px;
+        background: var(--card);
+      }
+      .tab, .item, .nav-item {
+        appearance: none;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted-foreground);
+        font: 600 13px/1.1 var(--font-sans);
+        cursor: pointer;
+        transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+      }
+      .tab { padding: 11px 15px; border-radius: calc(var(--radius) - 6px); }
+      .tab:hover, .nav-item:hover { background: var(--popover); color: var(--foreground); }
+      .item:hover { background: var(--sidebar-accent); color: var(--foreground); }
+      .tab:focus-visible, .item:focus-visible, .nav-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .tab.active, .nav-item.active {
+        background: var(--popover);
+        color: var(--foreground);
+        border-color: var(--border);
+        box-shadow: var(--shadow-xs);
+      }
+      .tab.active { box-shadow: var(--shadow-sm); }
+      .tab:disabled, .item:disabled, .nav-item:disabled {
+        cursor: not-allowed;
+        box-shadow: none;
+        background: transparent;
+        color: var(--muted-foreground);
+      }
+      .bottom-nav {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        width: 100%;
+        padding: 8px;
+        background: var(--popover);
+      }
+      .nav-item {
+        display: grid;
+        gap: 4px;
+        justify-items: center;
+        padding: 12px 10px;
+        border-radius: calc(var(--radius) - 6px);
+      }
+      .nav-item svg, .nav-item i { width: 18px; height: 18px; }
+      .nav-label { font-size: 11px; font-weight: 500; }
+    </style>
+</body>
+</html>

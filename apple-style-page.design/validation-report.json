@@ -1,0 +1,227 @@
+{
+  "success": true,
+  "outcome": "passed",
+  "repairable": true,
+  "terminalViolations": [],
+  "terminalBlockingSummary": null,
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": null,
+    "version_source": "unknown",
+    "runtime_skill_dir": null,
+    "recorded_at": null,
+    "expected_version": "2026.08.06.19.15.08",
+    "status": "observed_unknown",
+    "read_status": "unknown"
+  },
+  "operatingMode": "free-explore",
+  "renderBlockingErrorCount": 0,
+  "softWarningCount": 12,
+  "renderBlockingErrors": [],
+  "errorSignatures": [],
+  "softWarnings": [
+    "[orchestration-summary] runtime-orchestration-summary.json is missing skillProvenance.name/version/version_source. Version provenance will be reported as observed_unknown by external evaluators.",
+    "[html-quality] components.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] components.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] course-edit.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] course-edit.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] import.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] import.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] semesters.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] semesters.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] today.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] week.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] week.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states."
+  ],
+  "repairPlanHints": [
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "components.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    },
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "course-edit.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    },
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "import.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    },
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "semesters.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    },
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "week.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    }
+  ],
+  "repairActionTable": [],
+  "errorCount": 0,
+  "warningCount": 12,
+  "errors": [],
+  "warnings": [
+    "[orchestration-summary] runtime-orchestration-summary.json is missing skillProvenance.name/version/version_source. Version provenance will be reported as observed_unknown by external evaluators.",
+    "[html-quality] components.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] components.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] course-edit.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] course-edit.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] import.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] import.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] semesters.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] semesters.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] today.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states.",
+    "[html-quality] week.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] week.html: free-explore pages must not use secondary/accent brand variables. Use the single primary hue, neutral tints, or --state-success/warning/error/info for real semantic states."
+  ],
+  "validationRunDisciplineStatus": {
+    "declared": true,
+    "restoreMode": false,
+    "maxFullValidationRuns": null,
+    "validationHistoryCount": 0,
+    "repairLedgerCount": 0,
+    "softWarningsTriggerRepair": null,
+    "terminalState": null,
+    "nextAction": null,
+    "violations": [],
+    "success": true
+  },
+  "terminalState": null,
+  "nextCheck": {
+    "type": "finish-readiness",
+    "command": "node \"c:\\Users\\30458\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"d:\\01课程表\\shangkeschedule\\apple-style-page.design\" --check=all",
+    "fullValidationAllowed": false,
+    "reason": "workspace validation passed; run complete finish readiness before final delivery"
+  },
+  "repairBatch": [],
+  "repairContextPacket": {
+    "schema_version": "1.0",
+    "purpose": "small-context repair packet; read this before full validation-report.json",
+    "success": true,
+    "terminalState": null,
+    "skillProvenance": {
+      "name": "solo-design",
+      "version": null,
+      "version_source": "unknown",
+      "runtime_skill_dir": null,
+      "recorded_at": null,
+      "expected_version": "2026.08.06.19.15.08",
+      "status": "observed_unknown",
+      "read_status": "unknown"
+    },
+    "renderBlockingErrorCount": 0,
+    "softWarningCount": 12,
+    "renderBlockingErrors": [],
+    "repairActionTable": [],
+    "nextCheck": {
+      "type": "finish-readiness",
+      "command": "node \"c:\\Users\\30458\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"d:\\01课程表\\shangkeschedule\\apple-style-page.design\" --check=all",
+      "fullValidationAllowed": false,
+      "reason": "workspace validation passed; run complete finish readiness before final delivery"
+    },
+    "forbidden": [
+      "do not read validator source",
+      "do not rerun full validation when nextCheck.fullValidationAllowed=false",
+      "do not start preview/browser unless user explicitly asks",
+      "do not hand-edit repair ledger fields"
+    ]
+  },
+  "projectFileHashes": {
+    ".design": "984ad1a4abc092314f8b4217e19018d22a68ef5a92883839d512044bdba0d05e",
+    "runtime-orchestration-summary.json": "181c45d78e575f4026a78b5553cac5187f70cc76c86e8d4bd772667cb9c5b26a",
+    "pages/components.html": "1213cbfab3cf9dfc24805c9e9f6dabd6234aae0b369ce0f20d77417fc8975f4e",
+    "pages/course-edit.html": "8cb55bb571e5904162543c45a4370b4e8a2ad747abde1dbe71a45c8f1a9e0689",
+    "pages/import.html": "5da7693116511b19e4fb98957d74d97fbc6797d513a0447e5d884465e6c54072",
+    "pages/semesters.html": "1c53c6a80765f4f6f22a579ea87e36d7d75d2f77c5bac70d7fa4f6dd63a8cb11",
+    "pages/today.html": "249cbbb5efed560e493796beebaa32629cd7f526901fe8188d7c7e9c890108c6",
+    "pages/week.html": "e01df4dc1f357b70ee9a349206a9ba76c4a7bca7bcef657100df53ed5de8ac12",
+    "assets/icons/arrow-down.svg": "0ba482e989813473fb7b1c8da6081a84ce399367f70dbee0a448deeeaeb5d9d4",
+    "assets/icons/arrow-left.svg": "ea2b7505ca9d8d2ab540075c3df561ed6a9c54e5b903d373daab015d0b79342d",
+    "assets/icons/arrow-right.svg": "03e8f44a4b87f3710bf316c5ed18f16025448ffe9652a229c974df98341c8d78",
+    "assets/icons/arrow-up.svg": "79fdc29ee76c6ee063e91438e0b11cddbe1a2518738ecd1b5281078b5124db20",
+    "assets/icons/box.svg": "1db0a26d9adc0cda81e13b567ebfc864c65bf8b9f6b23544c593691340ddef21",
+    "assets/icons/check.svg": "3751b37796055d12e3b955b9afb117878d82ba26d35629afd460d7b070885c17",
+    "assets/icons/chevron-down.svg": "0a5ff8f13c5861be96eca045603615b025d055e6344905022f055296bbba81c2",
+    "assets/icons/chevron-left.svg": "ae598e5b255e99fe38f04008bbbe9c5eb24bd6ac7653818d1068222c97cfaa39",
+    "assets/icons/chevron-right.svg": "84c4556f40f1cfabf8fed81ab8bc90addb6c36e568f8cf2d4990848040fc8887",
+    "assets/icons/chevron-up.svg": "5a30c030845466c3057dfdf6f54b55e494704e8bc9ded91536b3cee70bebc80d",
+    "assets/icons/chevrons-down-up.svg": "af7e6cd31cf6d4436a1e472052529aafb7f57dd0dadfdd44d640df9b4169ff80",
+    "assets/icons/chevrons-up-down.svg": "c61ce3fdbbe28e12062e48186e176be417247e61397054e262ee3845632422dc",
+    "assets/icons/circle-alert.svg": "6a07619ece8ec24375e1a4ee6c3342215bcefa8af390abff04823a997debc8a7",
+    "assets/icons/circle-check.svg": "ed2073e251ed25da05818ebe53b2d497872bc4fa6a7cf144266408bd784ce0c2",
+    "assets/icons/circle-minus.svg": "7b316dc9a348ea6415048761e02b510171c08e652f860783c7a19f9c1f1ee52b",
+    "assets/icons/circle-pause.svg": "4f09bc91014d6dca9ade460593bd6ee6f005cbbd893b8230949df16ced02e8d8",
+    "assets/icons/circle-play.svg": "65a23c6a42c01cf5d38eda7910a2d2920d4d7b8446e436fe59c36ca052319cd5",
+    "assets/icons/circle-plus.svg": "2c9c672c51a9a60990345b8343c696478dd1226632b6dfdf8fa32601ff07f5c8",
+    "assets/icons/circle-question-mark.svg": "7ef09a23072eb27481102edad35e814de9a52564b58386d26cc51a90fc6988f6",
+    "assets/icons/external-link.svg": "30840ed2fef0173daf2b7f7bc775cfb8e2094e9c60d1e66329a5906d9e67a14c",
+    "assets/icons/file.svg": "260c7166ff9dd09523c168413274b0f01f14e09cdc85cd75437fbfd0553d6bc3",
+    "assets/icons/folder-open.svg": "b12357a409f5d6780b316620d06053c95aba7f623b50f8724ca27f7b48aa3aa0",
+    "assets/icons/folder.svg": "5e090b139b5abb4e2a28086481e9796e7da0f5fcc7b23e522a086b27a2697ecb",
+    "assets/icons/funnel.svg": "8e889269c049f3eddb51a0279ae3bf668cf36fbefe88baa0ca7bf507616fa3c3",
+    "assets/icons/grip.svg": "060ac44d862a876eeb9249b80a36abf458e13b64d7d22d5173720109e4cc0929",
+    "assets/icons/heart.svg": "3692e05ac920566b35190759dfcb399a59d882c3aaab8023a032f45875817ca0",
+    "assets/icons/house.svg": "52414e22f5ed41f5e8796b60678b93bbc5d85ac04c289355e2cdad5ccc68c3a0",
+    "assets/icons/mail.svg": "0d5e6736075b77609e6e372935bffe61c507897982510e8bd3ce69f906abe2cc",
+    "assets/icons/map-pin.svg": "1ea7968eb4af4b58ec6203641a4929c2bf1fe46a039d4aa2537633c1c6852996",
+    "assets/icons/message-circle-more.svg": "a77029a6625e0349dc699de751c3717f218f0a8cb7169deca2eba45b2635b88d",
+    "assets/icons/mouse-pointer-click.svg": "11d0b4e1ce72ea57d1c2a51d47ae699f1cd4148765e150e66332369028d9370e",
+    "assets/icons/pen-line.svg": "79816c9cefbd0ed1478a283aafe928ba984ab51543db8ae212a71e1b57fdae93",
+    "assets/icons/send-horizontal.svg": "96c108603d6970272d6ab45d50983a2d97e73bc997064a23234d53295858710b",
+    "assets/icons/star.svg": "bd67f6ef8f9eda67bc811feea126d302eafbeb374db9dde2d718e60ce50b5d9a",
+    "assets/icons/tag.svg": "1889e819b259f30af27c068f119ba2d10f8e5920467ccd6ca172546740bca4f3",
+    "assets/icons/thumbs-down.svg": "d2cd3a25a2cf32fda5a8dead998dd31b04acff3bc483ca412fb4443728f658ff",
+    "assets/icons/thumbs-up.svg": "80d1d40398f52edfbdfc9c4d4ba4c075fe2ab48dca7e55401ded9cd14b8d61cc",
+    "assets/icons/trash-2.svg": "caa750bd9cea0dba3a2427d2ce27eb752b5ee71bee45c6e68d7f08bd5e2e7f47",
+    "assets/icons/triangle-alert.svg": "dced410589d46f7b2be2d3a301c0feea08d0f0aea3b1134ce4d34f5779633b6f",
+    "assets/icons/user.svg": "4bdceb57f2eeca2020dde928173734d68d905932e75a8ab4acfaa0f40945eaa0"
+  },
+  "designDir": "d:\\01课程表\\shangkeschedule\\apple-style-page.design",
+  "expectedPages": 6,
+  "requireInteractions": null,
+  "checkedAt": "2026-09-09T17:18:25.053Z"
+}

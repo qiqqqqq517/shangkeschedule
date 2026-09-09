@@ -31,21 +31,43 @@
     <string name="floating_course_hint">Suspended. Swipe weeks and tap a blank space to drop.</string>
     <string name="a11y_back_to_current_week">Back to this week</string>
     <string name="nav_today_schedule">Today</string>
+    <string name="nav_today">Today</string>
     <string name="nav_course_schedule">Schedule</string>
     <string name="nav_settings">Settings</string>
+    <string name="nav_schedule">Agenda</string>
     <string name="title_today_schedule">Today\'s schedule</string>
     <string name="title_today_courses">Today\'s Courses</string>
-    <string name="title_week_overview">This Week</string>
     <string name="title_tomorrow_courses">Tomorrow</string>
     <string name="text_courses_count">%1$s classes</string>
-    <string name="text_week_courses">This Week</string>
-    <string name="text_today_courses_label">Today</string>
-    <string name="text_todo_pending">To Do</string>
-    <string name="action_view_all">View All</string>
     <string name="action_week_view">Week View</string>
+    <!-- Claude theme · Today page (mirrors claude-schedule-page.design/pages/今日日程.html) -->
+    <string name="today_claude_date_format">%2$s %1$s</string>
+    <string name="today_claude_week_range">%1$s – %2$s</string>
+    <string name="today_claude_week_prev">Previous week</string>
+    <string name="today_claude_week_next">Next week</string>
+    <string name="today_claude_remaining">%1$s left</string>
+    <string name="today_claude_tomorrow_format">Tomorrow · %1$s</string>
+    <string name="today_claude_view_all">View all</string>
+    <string name="today_claude_status_done">Finished</string>
+    <string name="today_claude_status_live">In progress</string>
+    <string name="today_claude_status_upcoming">Upcoming</string>
+    <string name="today_claude_badge_required">Required</string>
+    <string name="today_claude_badge_elective">Elective</string>
+    <string name="today_claude_badge_lab">Lab</string>
+    <string name="today_claude_meta_time">Time</string>
+    <string name="today_claude_meta_room">Location</string>
+    <string name="today_claude_meta_teacher">Teacher</string>
+    <string name="today_claude_meta_weeks">Weeks</string>
+    <string name="today_claude_meta_credit">Credits</string>
+    <string name="today_claude_sheet_close">Close</string>
+    <string name="today_claude_sheet_edit">Edit course</string>
     <string name="settings_group_course">Courses</string>
     <string name="settings_group_tools">Tools</string>
     <string name="settings_group_other">Other</string>
+    <string name="settings_group_timetable">Timetable</string>
+    <string name="settings_group_courses">Courses</string>
+    <string name="settings_group_preference">Preferences</string>
+    <string name="settings_group_about">About</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="label_crush_course">Partner's class</string>
     <string name="text_course_in_progress">In class now</string>
@@ -55,6 +77,58 @@
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
     <string name="date_format_year_month_day">%2$s/%3$s/%1$s</string>
+
+    <!-- Agenda -->
+    <string name="title_agenda">Agenda</string>
+    <string name="agenda_today_badge">Today</string>
+    <string name="agenda_day_title_format">%1$d/%2$d %3$s</string>
+    <string name="agenda_lunar_format">Lunar %1$s</string>
+    <string name="agenda_count_format">%1$d events</string>
+    <string name="agenda_empty">No events on this day</string>
+    <string name="agenda_group_morning">Morning</string>
+    <string name="agenda_group_afternoon">Afternoon</string>
+    <string name="agenda_group_evening">Evening</string>
+    <string name="agenda_group_allday">All day</string>
+    <string name="agenda_status_finished">Ended</string>
+    <string name="agenda_status_ongoing">In progress</string>
+    <string name="agenda_status_upcoming">Upcoming</string>
+    <string name="agenda_category_course">Course</string>
+    <string name="agenda_category_todo">To-do</string>
+    <string name="agenda_category_activity">Activity</string>
+    <string name="agenda_category_exam">Exam</string>
+    <string name="agenda_category_homework">Homework</string>
+    <string name="agenda_category_other">Other</string>
+    <string name="agenda_new_title">New event</string>
+    <string name="agenda_ai_hint">Describe it in one sentence, AI fills it in</string>
+    <string name="agenda_ai_coming_soon">AI auto-fill is coming soon</string>
+    <string name="agenda_title_hint">Event title</string>
+    <string name="agenda_all_day">All day</string>
+    <string name="agenda_start_label">Starts</string>
+    <string name="agenda_end_label">Ends</string>
+    <string name="agenda_add_location">Add location</string>
+    <string name="agenda_add_note">Add note</string>
+    <string name="agenda_create">Create event</string>
+    <string name="agenda_delete_title">Delete event</string>
+    <string name="agenda_delete_message">Delete “%1$s”?</string>
+    <string name="agenda_duration_hours">%1$d h</string>
+    <string name="agenda_duration_minutes">%1$d min</string>
+    <string name="agenda_back_to_today">Today</string>
+    <string name="agenda_teacher_prefix">Teacher: %1$s</string>
+    <string name="a11y_agenda_add">New event</string>
+    <string-array name="month_names">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
 
     <!-- Add Course -->
     <string name="toast_save_success">Saved successfully</string>
@@ -645,6 +719,7 @@
     <string name="theme_preset_cloud">Cloud</string>
     <string name="theme_preset_clean">Clean</string>
     <string name="theme_preset_ios">Airy</string>
+    <string name="theme_preset_claude">Shujuan</string>
     <string name="theme_style_section">Theme Style</string>
     <string name="theme_style_desc">Applies both color scheme and schedule style</string>
     <string name="desc_theme_settings">Customize the app theme and colors</string>

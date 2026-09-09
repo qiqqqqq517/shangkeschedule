@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
@@ -93,6 +95,9 @@ import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
+import com.shangkeschedule.ui.theme.claudeDisplaySerif
+import com.shangkeschedule.ui.theme.claudeReadingSerif
+import com.shangkeschedule.ui.theme.claudeUiSans
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
@@ -108,6 +113,8 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -134,19 +141,14 @@ import shangkeschedule.shared.generated.resources.text_countdown_start
 import shangkeschedule.shared.generated.resources.text_course_in_progress
 import shangkeschedule.shared.generated.resources.text_courses_count
 import shangkeschedule.shared.generated.resources.text_courses_finished
-import shangkeschedule.shared.generated.resources.action_view_all
 import shangkeschedule.shared.generated.resources.action_week_view
 import shangkeschedule.shared.generated.resources.text_no_courses_today
-import shangkeschedule.shared.generated.resources.text_todo_pending
-import shangkeschedule.shared.generated.resources.text_today_courses_label
-import shangkeschedule.shared.generated.resources.text_week_courses
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
 import shangkeschedule.shared.generated.resources.title_today_courses
 import shangkeschedule.shared.generated.resources.title_today_schedule
 import shangkeschedule.shared.generated.resources.title_tomorrow_courses
 import shangkeschedule.shared.generated.resources.title_vacation_until_start
-import shangkeschedule.shared.generated.resources.title_week_overview
 import shangkeschedule.shared.generated.resources.todo_add
 import shangkeschedule.shared.generated.resources.todo_delete_message
 import shangkeschedule.shared.generated.resources.todo_delete_title
@@ -154,10 +156,32 @@ import shangkeschedule.shared.generated.resources.todo_edit
 import shangkeschedule.shared.generated.resources.todo_note_label
 import shangkeschedule.shared.generated.resources.todo_time_label
 import shangkeschedule.shared.generated.resources.todo_title_label
+import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.arrow_forward_24px
+import shangkeschedule.shared.generated.resources.build_24px
+import shangkeschedule.shared.generated.resources.schedule_24px
+import shangkeschedule.shared.generated.resources.today_claude_badge_lab
+import shangkeschedule.shared.generated.resources.today_claude_badge_required
+import shangkeschedule.shared.generated.resources.today_claude_date_format
+import shangkeschedule.shared.generated.resources.today_claude_meta_credit
+import shangkeschedule.shared.generated.resources.today_claude_meta_room
+import shangkeschedule.shared.generated.resources.today_claude_meta_teacher
+import shangkeschedule.shared.generated.resources.today_claude_meta_time
+import shangkeschedule.shared.generated.resources.today_claude_remaining
+import shangkeschedule.shared.generated.resources.today_claude_sheet_close
+import shangkeschedule.shared.generated.resources.today_claude_sheet_edit
+import shangkeschedule.shared.generated.resources.today_claude_status_done
+import shangkeschedule.shared.generated.resources.today_claude_status_live
+import shangkeschedule.shared.generated.resources.today_claude_status_upcoming
+import shangkeschedule.shared.generated.resources.today_claude_tomorrow_format
+import shangkeschedule.shared.generated.resources.today_claude_view_all
+import shangkeschedule.shared.generated.resources.today_claude_week_next
+import shangkeschedule.shared.generated.resources.today_claude_week_prev
+import shangkeschedule.shared.generated.resources.today_claude_week_range
+import shangkeschedule.shared.generated.resources.widget_title_today
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
 
-private const val DEFAULT_TIME_ZERO = "00:00"
 private const val EMPTY_TIME_PLACEHOLDER = "--:--"
 private const val DEFAULT_DAYS_ZERO = "0"
 private const val DEFAULT_OVERDUE_DAYS = 1
@@ -172,6 +196,10 @@ fun TodayScheduleScreen(
     val uiState by viewModel.uiState.collectAsState()
     val gridStyle by viewModel.gridStyle.collectAsState()
     val isDark = LocalIsDarkTheme.current
+    // Claude 主题：设计包的今日日程页自带「日期 eyebrow + 大标题 + 课程数徽标 + 图标钮」页头，
+    // 不再叠加 M3 CenterAlignedTopAppBar；右下角待办 FAB 在 Claude 主题下同样隐藏
+    // （设计包无此元素），待办仍可通过「日程」页访问。
+    val isClaudePreset = LocalThemePreset.current == AppThemePreset.CLAUDE
 
     // 待办弹窗状态提升到页面层，供右下角悬浮「+」号触发
     var showTodoDialog by remember { mutableStateOf(false) }
@@ -199,31 +227,34 @@ fun TodayScheduleScreen(
             // 内层再套默认 contentWindowInsets=navigationBars 会导致底部内边距叠加，列表/FAB 偏高。
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(Res.string.title_today_schedule),
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().pageTitle),
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors()
-                )
+                if (!isClaudePreset) {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            Text(
+                                text = stringResource(Res.string.title_today_schedule),
+                                style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().pageTitle),
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors()
+                    )
+                }
             },
             floatingActionButton = {
-                // Telegram 风格 FAB：56dp 圆形、主色、大投影 + 按压缩放（v2 规范 §4.1）
-                // bottom padding 避让玻璃底栏（内容穿越后 FAB 不再被 scaffold 抬升）
-                AppFab(
-                    onClick = {
-                        editingTodo = null
-                        showTodoDialog = true
-                    },
-                    icon = vectorResource(Res.drawable.add_24px),
-                    contentDescription = stringResource(Res.string.a11y_todo_add),
-                    // 液态玻璃 FAB：复用页面既有 hazeState（内容已 hazeSource）
-                    hazeState = hazeState,
-                    modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
-                )
+                // Claude 主题隐藏待办 FAB（设计包无此元素），待办改由「日程」页承载
+                if (!isClaudePreset) {
+                    AppFab(
+                        onClick = {
+                            editingTodo = null
+                            showTodoDialog = true
+                        },
+                        icon = vectorResource(Res.drawable.add_24px),
+                        contentDescription = stringResource(Res.string.a11y_todo_add),
+                        // 液态玻璃 FAB：复用页面既有 hazeState（内容已 hazeSource）
+                        hazeState = hazeState,
+                        modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
+                    )
+                }
             }
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding).hazeSource(hazeState)) {
@@ -239,6 +270,11 @@ fun TodayScheduleScreen(
                             onEditTodo = { todo ->
                                 editingTodo = todo
                                 showTodoDialog = true
+                            },
+                            onNavigateWeekly = { onNavigate(Destination.CourseSchedule) },
+                            onOpenSettings = { onNavigate(Destination.Settings) },
+                            onEditCourse = { courseId ->
+                                onNavigate(Destination.AddEditCourse(courseId))
                             }
                         )
                     }
@@ -297,7 +333,12 @@ fun TodayContent(
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
     onToggleTodo: (String, Boolean) -> Unit,
-    onEditTodo: (TodoItem) -> Unit
+    onEditTodo: (TodoItem) -> Unit,
+    onNavigateWeekly: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onEditCourse: (String) -> Unit = {},
+    // 仅用于视觉回归预览：覆盖主题预设，避免预览宿主必须走完整 CompositionLocal 链
+    presetOverride: AppThemePreset? = null
 ) {
     var currentTime by remember {
         mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time)
@@ -313,8 +354,9 @@ fun TodayContent(
     }
 
     val scrollState = rememberLazyListState()
-    val themePreset = LocalThemePreset.current
+    val themePreset = presetOverride ?: LocalThemePreset.current
     val isIosPreset = themePreset == AppThemePreset.IOS
+    val isClaudePreset = themePreset == AppThemePreset.CLAUDE
 
     Column(
         modifier = Modifier
@@ -361,6 +403,24 @@ fun TodayContent(
             }
 
             TodayStatus.Normal -> stringResource(Res.string.title_current_week, state.weekIndex.toString())
+        }
+
+        if (isClaudePreset) {
+            // ===== Claude 主题：页头 + 周次条 + 课程卡片流 + 明日预览（对齐设计包 pages/今日日程.html） =====
+            ClaudeTodayContent(
+                state = state,
+                gridStyle = gridStyle,
+                isDark = isDark,
+                now = currentTime,
+                bottomInset = bottomInset,
+                weekDays = weekDays,
+                statusText = subTitle,
+                scrollState = scrollState,
+                onOpenWeeklySchedule = onNavigateWeekly,
+                onOpenSettings = onOpenSettings,
+                onEditCourse = onEditCourse
+            )
+            return@Column
         }
 
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -438,29 +498,6 @@ fun TodayContent(
                             )
                         }
                     }
-
-                    // iOS 主题：本周概览
-                    item {
-                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            IosGroupHeader(
-                                title = stringResource(Res.string.title_week_overview),
-                                action = stringResource(Res.string.action_view_all)
-                            )
-                        }
-                    }
-
-                    // iOS 主题：本周概览统计卡
-                    item {
-                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
-                            IosStatsCard(
-                                weekCourseCount = state.weekCourseCount,
-                                todayCourseCount = state.courses.size,
-                                todoCount = state.todos.count { !it.done }
-                            )
-                        }
-                    }
-
                     // iOS 主题：明日课程区块
                     if (state.tomorrowCourses.isNotEmpty()) {
                         item {
@@ -513,6 +550,931 @@ fun TodayContent(
             }
         }
     }
+}
+
+// ============================================================================
+// Claude 主题 · 今日课表页
+//
+// 严格对齐设计包 claude-schedule-page.design/pages/今日日程.html：
+//   页头（日期 eyebrow + 28sp 标题 + 课程数徽标 + 圆形图标钮）
+//   → 周次条（左右翻页 + 周次 / 日期区间）
+//   → 课程卡片流（5dp 色条 + 课程名 + 类型徽标 + 时间/地点/教师三行元信息；
+//      已结束降透明度 + 删除线，进行中主色描边 + 顶部 2dp 主色线 + 呼吸圆点）
+//   → 明日预览（4dp 色条 + 名称 + 时间·地点一行）
+//
+// 设计稿的「状态栏」「底部导航」由系统与 App 底栏承担，不在页面内重复绘制；
+// 设计稿的「课程详情弹层」在此实现为 AppGlassBottomSheet，字段与设计稿一致。
+// ============================================================================
+
+/** 设计稿 .course-card：5dp 色条宽度（明日预览为 4dp）。 */
+private val ClaudeCourseAccentWidth = 5.dp
+private val ClaudeTomorrowAccentWidth = 4.dp
+
+@Composable
+private fun ClaudeTodayContent(
+    state: TodayUiState.Success,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    bottomInset: Dp,
+    weekDays: List<String>,
+    statusText: String,
+    scrollState: androidx.compose.foundation.lazy.LazyListState,
+    onOpenWeeklySchedule: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onEditCourse: (String) -> Unit
+) {
+    val colors = appColors()
+    var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
+
+    val weekDayName = remember(state.today, weekDays) {
+        weekDays.getOrNull(state.today.dayOfWeek.isoDayNumber - 1).orEmpty()
+    }
+    val dateEyebrow = stringResource(
+        Res.string.today_claude_date_format,
+        state.today.month.number,
+        state.today.day,
+        weekDayName
+    )
+    val remainingCount = remember(state.courses, now) {
+        state.courses.count { !isClaudeCourseFinished(it, now) }
+    }
+    val tomorrowDate = stringResource(
+        Res.string.today_claude_tomorrow_format,
+        state.today.month.number,
+        state.today.day
+    )
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        ClaudeTodayHeader(
+            dateEyebrow = dateEyebrow,
+            courseCount = state.courses.size,
+            onOpenSettings = onOpenSettings
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        ClaudeWeekSwitcher(
+            weekIndex = state.weekIndex,
+            startDate = state.startDate,
+            status = state.status,
+            subTitle = if (state.status == TodayStatus.Normal) null else statusText
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        LazyColumn(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = bottomInset + 24.dp)
+        ) {
+            item {
+                ClaudeSectionLabelRow(
+                    label = stringResource(Res.string.widget_title_today),
+                    trailing = stringResource(
+                        Res.string.today_claude_remaining,
+                        remainingCount.toString()
+                    )
+                )
+            }
+
+            if (state.courses.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(Res.string.text_no_courses_today),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                itemsIndexed(
+                    state.courses,
+                    key = { _, model -> model.course.id }
+                ) { _, model ->
+                    ClaudeCourseCard(
+                        model = model,
+                        gridStyle = gridStyle,
+                        isDark = isDark,
+                        now = now,
+                        onClick = { detailCourse = model }
+                    )
+                }
+            }
+
+            if (state.tomorrowCourses.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            ClaudeSectionLabelRow(
+                                label = tomorrowDate,
+                                trailing = stringResource(
+                                    Res.string.text_courses_count,
+                                    state.tomorrowCourses.size.toString()
+                                ),
+                                fillWidth = false
+                            )
+                        }
+                        ClaudeGhostButton(
+                            text = stringResource(Res.string.today_claude_view_all),
+                            onClick = onOpenWeeklySchedule
+                        )
+                    }
+                }
+                itemsIndexed(
+                    state.tomorrowCourses,
+                    key = { _, model -> "tomorrow-${model.course.id}" }
+                ) { _, model ->
+                    ClaudeTomorrowCard(model = model, gridStyle = gridStyle, isDark = isDark)
+                }
+            }
+        }
+    }
+
+    detailCourse?.let { model ->
+        ClaudeCourseDetailSheet(
+            model = model,
+            gridStyle = gridStyle,
+            isDark = isDark,
+            now = now,
+            onDismiss = { detailCourse = null },
+            onEdit = {
+                detailCourse = null
+                onEditCourse(model.course.id)
+            }
+        )
+    }
+}
+
+/** 页头：日期 eyebrow（Lora 11sp 大写字距）+ 28sp 标题 + 课程数徽标 + 圆形图标钮。 */
+@Composable
+private fun ClaudeTodayHeader(
+    dateEyebrow: String,
+    courseCount: Int,
+    onOpenSettings: () -> Unit
+) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = dateEyebrow.uppercase(),
+                style = TextStyle(
+                    fontFamily = claudeReadingSerif(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.1.em,
+                    lineHeight = 14.sp
+                ),
+                color = colors.textSecondary
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.title_today_courses),
+                    style = TextStyle(
+                        fontFamily = claudeDisplaySerif(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 32.sp,
+                        letterSpacing = (-0.01).em
+                    ),
+                    color = colors.textPrimary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                ClaudeBadge(
+                    text = stringResource(Res.string.text_courses_count, courseCount.toString()),
+                    variant = ClaudeBadgeVariant.Filled
+                )
+            }
+        }
+        ClaudeIconButton(
+            icon = Res.drawable.build_24px,
+            contentDescription = stringResource(Res.string.title_today_schedule),
+            onClick = onOpenSettings
+        )
+    }
+}
+
+/** 周次条：设计稿 .week-switcher（1px 边框 + 16dp 圆角 + 左右翻页钮 + 周次/日期区间）。 */
+@Composable
+private fun ClaudeWeekSwitcher(
+    weekIndex: Int,
+    startDate: LocalDate?,
+    status: TodayStatus,
+    subTitle: String?
+) {
+    val colors = appColors()
+    val weekRange = remember(weekIndex, startDate) {
+        if (startDate == null) {
+            null
+        } else {
+            val offset = (weekIndex - 1).coerceAtLeast(0) * 7
+            val from = LocalDate.fromEpochDays(startDate.toEpochDays() + offset)
+            val to = LocalDate.fromEpochDays(from.toEpochDays() + 6)
+            Triple(from.month.number, from.day, to)
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(appShapes().chip)
+            .background(colors.cardBg)
+            .border(1.dp, colors.divider, appShapes().chip)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ClaudeWeekStepButton(
+            icon = Res.drawable.arrow_back_24px,
+            contentDescription = stringResource(Res.string.today_claude_week_prev),
+            enabled = false,
+            onClick = {}
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = if (status == TodayStatus.Normal) {
+                    stringResource(Res.string.title_current_week, weekIndex.toString())
+                } else {
+                    subTitle.orEmpty()
+                },
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 17.sp
+                ),
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = weekRange?.let {
+                    stringResource(
+                        Res.string.today_claude_week_range,
+                        it.first, it.second, it.third.month.number, it.third.day
+                    )
+                }.orEmpty(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                ),
+                color = colors.textSecondary
+            )
+        }
+        ClaudeWeekStepButton(
+            icon = Res.drawable.arrow_forward_24px,
+            contentDescription = stringResource(Res.string.today_claude_week_next),
+            enabled = false,
+            onClick = {}
+        )
+    }
+}
+
+@Composable
+private fun ClaudeWeekStepButton(
+    icon: DrawableResource,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = appColors()
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(colors.cardBgElevated)
+            .border(1.dp, colors.divider, CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(16.dp),
+            tint = if (enabled) colors.textPrimary else colors.textSecondary.copy(alpha = 0.4f)
+        )
+    }
+}
+
+/** 分区标题行：Lora 12sp 大写字距标签 + 右侧辅助文案。 */
+@Composable
+private fun ClaudeSectionLabelRow(
+    label: String,
+    trailing: String?,
+    fillWidth: Boolean = true
+) {
+    val colors = appColors()
+    Row(
+        modifier = (if (fillWidth) Modifier.fillMaxWidth() else Modifier),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label.uppercase(),
+            style = TextStyle(
+                fontFamily = claudeReadingSerif(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.14.em,
+                lineHeight = 16.sp
+            ),
+            color = colors.textSecondary
+        )
+        if (trailing != null) {
+            if (fillWidth) Spacer(modifier = Modifier.weight(1f))
+            else Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = trailing,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 16.sp
+                ),
+                color = colors.textSecondary
+            )
+        }
+    }
+}
+
+/** 课程卡片：设计稿 .course-card（色条 + 内容 + 进行中/已结束态）。 */
+@Composable
+private fun ClaudeCourseCard(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    onClick: () -> Unit
+) {
+    val colors = appColors()
+    val isFinished = isClaudeCourseFinished(model, now)
+    val isCurrent = !isFinished && isClaudeCourseOngoing(model, now)
+    val accent = claudeAccentColor(model, gridStyle, isDark)
+
+    val borderColor = if (isCurrent) colors.primary else colors.divider
+    val cardBg = if (isFinished) colors.cardBg else colors.cardBgElevated
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(alpha = if (isFinished) 0.55f else 1f)
+            .shadow(
+                elevation = if (isCurrent) 4.dp else 1.dp,
+                shape = appShapes().card,
+                clip = false,
+                ambientColor = colors.shadow,
+                spotColor = colors.shadow
+            )
+            .clip(appShapes().card)
+            .background(cardBg)
+            .border(1.dp, borderColor, appShapes().card)
+            .clickable(onClick = onClick)
+    ) {
+        // 进行中：顶部 2dp 主色线（设计稿 .course-current::before）
+        if (isCurrent) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(colors.primary)
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            // 色条高度跟随卡片内容：Row 先按内容量出高度（IntrinsicSize.Min），
+            // 再让色条 fillMaxHeight 撑满——否则 Row 的高度约束是 Infinity，
+            // fillMaxHeight 会塌成 0 高度，色条不可见。
+            Box(
+                modifier = Modifier
+                    .width(ClaudeCourseAccentWidth)
+                    .fillMaxHeight()
+                    .background(accent)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = model.course.name,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 22.sp,
+                            textDecoration = if (isFinished) TextDecoration.LineThrough else null
+                        ),
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    ClaudeCourseTypeBadge(model = model)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ClaudeMetaRow(
+                        icon = Res.drawable.schedule_24px,
+                        text = claudeTimeRange(model)
+                    )
+                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                        ClaudeMetaRow(
+                            icon = Res.drawable.location_on_24px,
+                            text = model.course.position
+                        )
+                    }
+                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                        ClaudeMetaRow(
+                            icon = Res.drawable.person_24px,
+                            text = model.course.teacher
+                        )
+                    }
+                }
+            }
+        }
+
+        // 进行中呼吸圆点指示（设计稿 .live-indicator）
+        if (isCurrent) {
+            ClaudeLiveIndicator(
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 16.dp)
+            )
+        }
+    }
+}
+
+/** 元信息行：14dp 图标 + 13sp 文字（设计稿 .meta-item）。 */
+@Composable
+private fun ClaudeMetaRow(
+    icon: DrawableResource,
+    text: String
+) {
+    val colors = appColors()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 18.sp
+            ),
+            color = colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** 进行中指示：主色圆点 + 主色文字 + brand-50 底。 */
+@Composable
+private fun ClaudeLiveIndicator(modifier: Modifier = Modifier) {
+    val colors = appColors()
+    val pulse by animateFloatAsState(
+        targetValue = 0.45f,
+        animationSpec = tween(durationMillis = 1400),
+        label = "claude-live-pulse"
+    )
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.primarySoft)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(colors.primary.copy(alpha = pulse))
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = stringResource(Res.string.today_claude_status_live),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 12.sp
+            ),
+            color = colors.primary
+        )
+    }
+}
+
+/** 明日预览卡片：设计稿 .tomorrow-card（凹陷卡 + 4dp 色条 + 名称 + 时间·地点）。 */
+@Composable
+private fun ClaudeTomorrowCard(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean
+) {
+    val colors = appColors()
+    val accent = claudeAccentColor(model, gridStyle, isDark)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(appShapes().card)
+            .background(colors.cardBg)
+            .border(1.dp, colors.divider, appShapes().card)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(ClaudeTomorrowAccentWidth)
+                .fillMaxHeight()
+                .background(accent)
+        )
+        Column(modifier = Modifier.weight(1f).padding(14.dp)) {
+            Text(
+                text = model.course.name,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 19.sp
+                ),
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = claudeTimeRange(model),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = colors.textSecondary
+                )
+                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    Text(
+                        text = " · ",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                        color = colors.divider
+                    )
+                    Text(
+                        text = model.course.position,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 类型徽标：必修（chart-2 实底）/ 选修（muted）/ 实验（chart-3 实底）。 */
+@Composable
+private fun ClaudeCourseTypeBadge(model: CourseDisplayModel) {
+    val isLab = model.course.isLab
+    val text = stringResource(
+        when {
+            isLab -> Res.string.today_claude_badge_lab
+            else -> Res.string.today_claude_badge_required
+        }
+    )
+    val bg = when {
+        isLab -> appColors().amberSoft
+        else -> appColors().primarySoft
+    }
+    ClaudeBadge(
+        text = text,
+        variant = ClaudeBadgeVariant.Muted,
+        backgroundOverride = bg
+    )
+}
+
+private enum class ClaudeBadgeVariant { Filled, Muted, Outline }
+
+/** 徽标：设计稿 .badge（26dp 高 + 16dp 圆角 + 11sp 半粗）。 */
+@Composable
+private fun ClaudeBadge(
+    text: String,
+    variant: ClaudeBadgeVariant,
+    backgroundOverride: Color? = null
+) {
+    val colors = appColors()
+    val bg = backgroundOverride ?: when (variant) {
+        ClaudeBadgeVariant.Filled -> colors.primary
+        ClaudeBadgeVariant.Muted -> colors.inputBg
+        ClaudeBadgeVariant.Outline -> colors.cardBgElevated
+    }
+    val fg = when (variant) {
+        ClaudeBadgeVariant.Filled -> colors.textOnPrimary
+        ClaudeBadgeVariant.Muted -> colors.textPrimary
+        ClaudeBadgeVariant.Outline -> colors.textPrimary
+    }
+    val border = when (variant) {
+        ClaudeBadgeVariant.Outline -> colors.divider
+        else -> Color.Transparent
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 13.sp
+            ),
+            color = fg
+        )
+    }
+}
+
+/** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
+@Composable
+private fun ClaudeIconButton(
+    icon: DrawableResource,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(appShapes().chip)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = appColors().textPrimary
+        )
+    }
+}
+
+/** 幽灵小按钮：设计稿 .btn.ghost.view-all-btn（32dp 高 + 12sp + chevron）。 */
+@Composable
+private fun ClaudeGhostButton(text: String, onClick: () -> Unit) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .clip(appShapes().chip)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = colors.textPrimary
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = colors.textPrimary
+        )
+    }
+}
+
+/** 课程详情弹层：字段与设计包 pages/今日日程.html 的详情弹层一致。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClaudeCourseDetailSheet(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit
+) {
+    val colors = appColors()
+    val isFinished = isClaudeCourseFinished(model, now)
+    val isCurrent = !isFinished && isClaudeCourseOngoing(model, now)
+    val statusText = stringResource(
+        when {
+            isCurrent -> Res.string.today_claude_status_live
+            isFinished -> Res.string.today_claude_status_done
+            else -> Res.string.today_claude_status_upcoming
+        }
+    )
+
+    AppGlassBottomSheet(
+        hazeState = null,
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
+        ) {
+            Text(
+                text = statusText,
+                style = TextStyle(
+                    fontFamily = claudeReadingSerif(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.1.em
+                ),
+                color = colors.textSecondary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = model.course.name,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = colors.textPrimary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(appShapes().chip)
+                    .border(1.dp, colors.divider, appShapes().chip)
+            ) {
+                ClaudeDetailRow(
+                    label = stringResource(Res.string.today_claude_meta_time),
+                    value = claudeTimeRange(model)
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                if (model.course.position.isNotBlank()) {
+                    ClaudeDetailRow(
+                        label = stringResource(Res.string.today_claude_meta_room),
+                        value = model.course.position
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                }
+                if (model.course.teacher.isNotBlank()) {
+                    ClaudeDetailRow(
+                        label = stringResource(Res.string.today_claude_meta_teacher),
+                        value = model.course.teacher
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                }
+                model.course.credit?.takeIf { it.isNotBlank() }?.let { credit ->
+                    ClaudeDetailRow(
+                        label = stringResource(Res.string.today_claude_meta_credit),
+                        value = credit
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.inputBg)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.today_claude_sheet_close),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textPrimary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.primary)
+                        .clickable(onClick = onEdit),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.today_claude_sheet_edit),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textOnPrimary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClaudeDetailRow(label: String, value: String) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.cardBgElevated)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = colors.textPrimary,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+/** 时间区间文本：优先自定义时间，否则用节次时间。 */
+private fun claudeTimeRange(model: CourseDisplayModel): String {
+    val start = model.startTime?.takeIf { it.isNotBlank() }
+    val end = model.endTime?.takeIf { it.isNotBlank() }
+    return when {
+        start != null && end != null -> "$start - $end"
+        start != null -> start
+        end != null -> end
+        else -> EMPTY_TIME_PLACEHOLDER
+    }
+}
+
+private fun isClaudeCourseFinished(model: CourseDisplayModel, now: LocalTime): Boolean {
+    val endText = model.endTime?.takeIf { it.isNotBlank() } ?: return false
+    return try {
+        LocalTime.parse(endText) < now
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private fun isClaudeCourseOngoing(model: CourseDisplayModel, now: LocalTime): Boolean {
+    val startText = model.startTime?.takeIf { it.isNotBlank() } ?: return false
+    val endText = model.endTime?.takeIf { it.isNotBlank() } ?: return false
+    return try {
+        val start = LocalTime.parse(startText)
+        val end = LocalTime.parse(endText)
+        now >= start && now < end
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/**
+ * 课程色条颜色：设计稿用 `--chart-1…5` 实色作色条。
+ * CLAUDE 课表样式的 light 档是 12% 透明度的 chart 色（等价于设计稿实色叠在卡片白底上的观感），
+ * dark 档是 chart 实色，正好对应设计稿浅色 / 深色两套写法。
+ */
+private fun claudeAccentColor(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean
+): Color {
+    val pair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
+        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
+    }
+    return if (isDark) pair.dark else pair.light
 }
 
 @Composable
@@ -1084,9 +2046,14 @@ fun CourseTimelineItem(
     // 用 TodayContent 里每分钟跳动的 now，而不是组合期固定快照，
     // 否则「已结束」状态（删除线/透明度）在页面停留期间永不更新。
     val isFinished = remember(model.endTime, now) {
-        try {
-            LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) < now
-        } catch (e: Exception) { false }
+        val endText = model.endTime?.takeIf { it.isNotBlank() }
+        if (endText == null) {
+            false
+        } else {
+            try {
+                LocalTime.parse(endText) < now
+            } catch (e: Exception) { false }
+        }
     }
 
     val colorPair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
@@ -1364,7 +2331,7 @@ private fun IosSectionTitle(
 
 /**
  * iOS 风格小组标题：13sp Semibold uppercase + 主色链接
- * 对齐画布 .group-header（本周概览 / 明日课程）
+ * 对齐画布 .group-header（明日课程）
  */
 @Composable
 private fun IosGroupHeader(
@@ -1395,69 +2362,6 @@ private fun IosGroupHeader(
         }
     }
 }
-
-/**
- * iOS 风格本周概览统计卡：三列等分，竖线分隔
- * 对齐画布 .stats-card（本周课程 / 今日课程 / 待完成）
- */
-@Composable
-private fun IosStatsCard(
-    weekCourseCount: Int,
-    todayCourseCount: Int,
-    todoCount: Int
-) {
-    val items = listOf(
-        weekCourseCount.toString() to stringResource(Res.string.text_week_courses),
-        todayCourseCount.toString() to stringResource(Res.string.text_today_courses_label),
-        todoCount.toString() to stringResource(Res.string.text_todo_pending)
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(appShapes().card)
-            .background(appColors().cardBg)
-            .padding(vertical = 16.dp)
-    ) {
-        items.forEachIndexed { index, (value, label) ->
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.01).sp,
-                        fontFeatureSettings = "tnum"
-                    ),
-                    color = appColors().textPrimary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = appColors().textSecondary
-                )
-            }
-            if (index != items.lastIndex) {
-                // 竖线分隔：用 Box + 固定高度（与文字区域对齐）
-                Box(
-                    modifier = Modifier
-                        .width(0.5.dp)
-                        .height(32.dp)
-                        .background(appColors().divider)
-                        .align(Alignment.CenterVertically)
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun IosCourseGroup(
     courses: List<CourseDisplayModel>,
@@ -1497,9 +2401,14 @@ private fun IosCourseCard(
 ) {
     val isFinished = if (showFinishedState) {
         remember(model.endTime, now) {
-            try {
-                LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) < now
-            } catch (e: Exception) { false }
+            val endText = model.endTime?.takeIf { it.isNotBlank() }
+            if (endText == null) {
+                false
+            } else {
+                try {
+                    LocalTime.parse(endText) < now
+                } catch (e: Exception) { false }
+            }
         }
     } else false
 
@@ -1559,16 +2468,22 @@ private fun IosCourseCard(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${model.startTime ?: ""}-${model.endTime ?: ""}",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFeatureSettings = "tnum"
-                    ),
-                    color = textSecondary,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                val timeText = listOfNotNull(
+                    model.startTime?.takeIf { it.isNotBlank() },
+                    model.endTime?.takeIf { it.isNotBlank() }
+                ).joinToString("-")
+                if (timeText.isNotBlank()) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFeatureSettings = "tnum"
+                        ),
+                        color = textSecondary,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

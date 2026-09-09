@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+<title>多学期管理 · 上课Shangke</title>
+<link rel="stylesheet" href="../assets/claude-tokens.css" />
+<link rel="stylesheet" href="../assets/claude-components.css" />
+<style>
+  body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; }
+
+  .page-semesters {
+    display: flex; flex-direction: column; gap: calc(var(--spacing) * 6);
+    padding: 0 calc(var(--spacing) * 5) calc(var(--spacing) * 4);
+    position: relative;
+  }
+
+  /* ===== 状态栏 ===== */
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 1); font: 600 12px/1 var(--font-sans); color: var(--muted-foreground); }
+  .status-time { flex: 1; text-align: center; padding-left: calc(var(--spacing) * 8); }
+  .status-icons { display: flex; align-items: center; gap: calc(var(--spacing) * 1.5); }
+
+  /* ===== 顶部 ===== */
+  .top-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: calc(var(--spacing) * 3); padding-top: calc(var(--spacing) * 2); }
+  .top-bar-left { flex: 1; min-width: 0; }
+  .page-eyebrow { margin: 0 0 calc(var(--spacing) * 1.5); color: var(--muted-foreground); font: 600 11px/1.3 var(--font-serif); text-transform: uppercase; letter-spacing: 0.1em; }
+  .title-row { display: flex; align-items: center; gap: calc(var(--spacing) * 3); }
+  .page-title { margin: 0; font: 600 28px/1.15 var(--font-display); color: var(--foreground); letter-spacing: -0.01em; }
+  .overview-row { display: flex; align-items: center; gap: calc(var(--spacing) * 2); margin-top: calc(var(--spacing) * 3); flex-wrap: wrap; }
+  .overview-text { font: 500 13px/1.4 var(--font-sans); color: var(--secondary-foreground); }
+  .overview-text strong { font-weight: 600; color: var(--foreground); }
+  .overview-dot { color: var(--border-500); }
+  .current-semester-badge { min-height: 26px; font-size: 11px; gap: 6px; }
+  .badge.success { background: var(--success-solid, var(--success)); color: var(--success-foreground); border: 1px solid transparent; }
+  .badge-icon, .badge-icon-sm { width: 12px; height: 12px; }
+  .btn-icon { width: 44px; height: 44px; min-height: 44px; padding: 0; flex-shrink: 0; }
+
+  /* ===== 分区 ===== */
+  .semester-section { display: flex; flex-direction: column; gap: calc(var(--spacing) * 3); }
+
+  /* ===== 当前学期卡片 ===== */
+  .current-semester-card { min-height: auto; gap: calc(var(--spacing) * 3); border-color: var(--primary); box-shadow: var(--shadow-md); }
+  .semester-card-header { display: flex; align-items: center; justify-content: space-between; }
+  .semester-name { margin: 0; font: 600 19px/1.25 var(--font-sans); color: var(--foreground); }
+  .semester-meta-row { display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 2) calc(var(--spacing) * 4); }
+  .meta-item { display: flex; align-items: center; gap: calc(var(--spacing) * 1.5); color: var(--secondary-foreground); font: 500 13px/1.4 var(--font-sans); }
+  .meta-icon-sm { width: 14px; height: 14px; color: var(--muted-foreground); }
+
+  /* 进度条 */
+  .progress-section { display: grid; gap: calc(var(--spacing) * 2); }
+  .progress-header { display: flex; align-items: center; justify-content: space-between; }
+  .progress-label { font: 600 12px/1.2 var(--font-sans); color: var(--foreground); }
+  .progress-value { font: 500 12px/1.2 var(--font-sans); color: var(--muted-foreground); }
+  .progress-shell { height: 8px; border-radius: var(--radius-full); background: var(--muted); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: var(--radius-full); background: var(--primary); transition: width .4s cubic-bezier(.2, .8, .2, 1); }
+  .progress-percent { font: 500 11px/1.2 var(--font-sans); color: var(--muted-foreground); }
+
+  .button-row { display: flex; gap: calc(var(--spacing) * 3); }
+  .button-row .btn { flex: 1; gap: calc(var(--spacing) * 1.5); }
+  .btn-icon-sm { width: 15px; height: 15px; }
+
+  /* ===== 学年分组 ===== */
+  .year-group { display: grid; gap: calc(var(--spacing) * 3); margin-bottom: calc(var(--spacing) * 5); }
+  .year-group-header { display: flex; align-items: baseline; justify-content: space-between; }
+  .year-title { margin: 0; font: 600 13px/1.3 var(--font-serif); letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); }
+  .year-count { font: 500 12px/1.3 var(--font-sans); color: var(--muted-foreground); }
+  .semester-list { display: grid; gap: calc(var(--spacing) * 3); }
+
+  /* ===== 历史学期卡片 ===== */
+  .history-card { min-height: auto; gap: calc(var(--spacing) * 3); }
+  .history-card-header { display: grid; gap: calc(var(--spacing) * 1); }
+  .history-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 2); }
+  .history-semester-name { margin: 0; font: 600 17px/1.25 var(--font-sans); color: var(--foreground); }
+  .history-semester-date { margin: 0; font: 500 12px/1.4 var(--font-mono); color: var(--muted-foreground); }
+  .completed-badge { min-height: 26px; font-size: 11px; gap: 6px; }
+  .success-icon { color: var(--success); }
+  .history-card-stats { display: flex; align-items: center; gap: calc(var(--spacing) * 4); }
+  .stat-mini { display: grid; gap: 2px; }
+  .stat-mini-value { font: 600 20px/1.1 var(--font-display); color: var(--foreground); }
+  .stat-mini-label { font: 500 11px/1.2 var(--font-sans); color: var(--muted-foreground); }
+  .stat-divider { width: 1px; height: 28px; background: var(--border); }
+  .history-card-actions { display: flex; gap: calc(var(--spacing) * 2); border-top: 1px solid var(--border); padding-top: calc(var(--spacing) * 3); }
+  .action-btn { flex: 1; min-height: 36px; padding: 0; font-size: 12px; gap: 6px; box-shadow: none; }
+  .action-icon { width: 14px; height: 14px; }
+  .action-destructive { color: var(--destructive); }
+  .action-destructive:hover { background: var(--error-50); }
+
+  .more-semesters-btn { align-self: center; gap: calc(var(--spacing) * 1.5); font-size: 13px; box-shadow: none; }
+  .more-semesters-btn .action-icon { transition: transform .2s ease; }
+  .more-semesters-btn.expanded .action-icon { transform: rotate(180deg); }
+
+  /* ===== 新建学期操作区 ===== */
+  .actions-card { min-height: auto; gap: calc(var(--spacing) * 3); }
+  .section-title { margin: 0; font: 600 20px/1.25 var(--font-sans); color: var(--foreground); }
+  .action-options { display: grid; gap: calc(var(--spacing) * 2.5); }
+  .option-item {
+    display: flex; align-items: center; gap: calc(var(--spacing) * 3); width: 100%;
+    padding: calc(var(--spacing) * 3); border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--background); cursor: pointer; text-align: left;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+  }
+  .option-item:hover { border-color: var(--ring); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .option-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .option-icon-wrap { width: 40px; height: 40px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .option-icon-primary { background: var(--brand-50); color: var(--primary); }
+  .option-icon-secondary { background: var(--secondary); color: var(--foreground); }
+  .option-icon-muted { background: var(--muted); color: var(--muted-foreground); }
+  .option-icon { width: 20px; height: 20px; }
+  .option-content { flex: 1; min-width: 0; }
+  .option-title { margin: 0 0 2px; font: 600 15px/1.3 var(--font-sans); color: var(--foreground); }
+  .option-desc { margin: 0; font: 400 12px/1.4 var(--font-sans); color: var(--muted-foreground); }
+  .option-arrow { width: 16px; height: 16px; color: var(--muted-foreground); flex-shrink: 0; }
+
+  /* ===== 确认删除弹层 ===== */
+  .dialog-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--foreground) 42%, transparent); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 200; }
+  .dialog-backdrop.open { opacity: 1; pointer-events: auto; }
+  .confirm-dialog {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -46%) scale(.98);
+    width: calc(100% - 48px); max-width: 360px; padding: calc(var(--spacing) * 6);
+    background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl); opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease; z-index: 210;
+  }
+  .confirm-dialog.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+  .confirm-dialog h2 { margin: 0 0 calc(var(--spacing) * 2); font: 600 19px/1.25 var(--font-sans); color: var(--foreground); }
+  .confirm-dialog p { margin: 0 0 calc(var(--spacing) * 5); font: 400 14px/1.6 var(--font-sans); color: var(--secondary-foreground); }
+  .dialog-actions { display: flex; gap: calc(var(--spacing) * 3); }
+  .dialog-actions .btn { flex: 1; }
+  .btn.destructive { background: var(--destructive); color: var(--destructive-foreground); }
+  .btn.destructive:hover { box-shadow: var(--shadow-md); }
+
+  /* ===== 桌面端侧栏 ===== */
+  .app-aside { padding: calc(var(--spacing) * 6) calc(var(--spacing) * 5); border-left: 1px solid var(--border); background: var(--card); }
+  .aside-card { padding: calc(var(--spacing) * 4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-xs); margin-bottom: calc(var(--spacing) * 4); }
+  .aside-card h3 { margin: 0 0 calc(var(--spacing) * 3); font: 600 11px/1.2 var(--font-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+  .aside-stat { display: flex; align-items: baseline; justify-content: space-between; padding: calc(var(--spacing) * 1.5) 0; }
+  .aside-stat dt { font: 500 13px/1.4 var(--font-sans); color: var(--secondary-foreground); }
+  .aside-stat dd { margin: 0; font: 600 18px/1.2 var(--font-display); color: var(--foreground); }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 380px) {
+    .page-semesters { padding-left: calc(var(--spacing) * 4); padding-right: calc(var(--spacing) * 4); }
+    .page-title { font-size: 24px; }
+    .button-row { flex-direction: column; }
+  }
+  @media (min-width: 768px) {
+    .status-bar { display: none; }
+    .page-semesters { padding: calc(var(--spacing) * 6) calc(var(--spacing) * 8) calc(var(--spacing) * 8); gap: calc(var(--spacing) * 7); }
+    .page-title { font-size: 34px; }
+    .semester-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .action-options { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .option-item { flex-direction: column; align-items: flex-start; gap: calc(var(--spacing) * 2); }
+    .option-arrow { align-self: flex-end; }
+  }
+</style>
+</head>
+<body data-page="semester">
+<div class="app-shell">
+  <!-- ===== 侧栏导航（平板及以上） ===== -->
+  <aside class="app-rail" aria-label="主导航">
+    <nav class="rail" style="height:100%; border-radius:0; border:0; border-right:1px solid var(--border);">
+      <p class="brand">上课Shangke</p>
+      <div class="stack">
+        <a class="item" href="今日日程.html" data-nav-key="today">今日</a>
+        <a class="item" href="周课表.html" data-nav-key="schedule">课表</a>
+        <a class="item active" href="多学期管理.html" data-nav-key="semester">学期</a>
+        <a class="item" href="教务导入.html" data-nav-key="import">导入</a>
+        <a class="item" href="组件预览.html" data-nav-key="components">组件</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-semesters app-view">
+      <!-- 状态栏 -->
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-signal"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-wifi"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-battery-full"></use></svg>
+        </div>
+      </div>
+
+      <!-- 顶部 -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <p class="page-eyebrow">学期档案</p>
+          <div class="title-row">
+            <h1 class="page-title">学期管理</h1>
+          </div>
+          <div class="overview-row">
+            <span class="overview-text">共 <strong id="semester-total">6</strong> 个学期</span>
+            <span class="overview-dot">·</span>
+            <span class="badge success current-semester-badge">
+              <svg class="badge-icon" aria-hidden="true"><use href="#i-circle-play"></use></svg>
+              当前学期
+            </span>
+          </div>
+        </div>
+        <div style="display:flex; gap:4px; align-items:center">
+          <button class="icon-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式">
+            <svg class="icon-lg" aria-hidden="true"><use href="#i-eye"></use></svg>
+          </button>
+          <button id="btn-new-semester" class="btn primary btn-icon" type="button" aria-label="新建学期">
+            <svg class="icon-lg" aria-hidden="true"><use href="#i-plus"></use></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 当前学期卡片 -->
+      <section class="semester-section" aria-labelledby="current-label">
+        <h2 class="sr-only" id="current-label">当前学期</h2>
+        <article class="card current-semester-card" data-semester="current">
+          <div class="semester-card-header">
+            <span class="badge success semester-status-badge">
+              <svg class="badge-icon-sm" aria-hidden="true"><use href="#i-circle-play"></use></svg>
+              当前学期
+            </span>
+          </div>
+          <h2 class="semester-name">2024-2025学年 第一学期</h2>
+          <div class="semester-meta-row">
+            <div class="meta-item">
+              <svg class="meta-icon-sm" aria-hidden="true"><use href="#i-calendar"></use></svg>
+              <span>2024.09.01 - 2025.01.15</span>
+            </div>
+            <div class="meta-item">
+              <svg class="meta-icon-sm" aria-hidden="true"><use href="#i-book-open"></use></svg>
+              <span>24 门课程</span>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-header">
+              <span class="progress-label">学期进度</span>
+              <span class="progress-value" id="progress-value">第 9 周 / 共 20 周</span>
+            </div>
+            <div class="progress-shell" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="45" aria-label="学期进度">
+              <div class="progress-fill" id="progress-fill" style="width:45%"></div>
+            </div>
+            <span class="progress-percent" id="progress-percent">已过 45%</span>
+          </div>
+
+          <div class="button-row">
+            <a class="btn primary" href="周课表.html">
+              <svg class="btn-icon-sm" aria-hidden="true"><use href="#i-layout-grid"></use></svg>
+              查看课表
+            </a>
+            <button class="btn secondary" type="button" id="btn-semester-settings">
+              <svg class="btn-icon-sm" aria-hidden="true"><use href="#i-settings"></use></svg>
+              学期设置
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <!-- 历史学期列表 -->
+      <section class="semester-section" aria-labelledby="history-label">
+        <h2 class="sr-only" id="history-label">历史学期</h2>
+        <div id="history-container"></div>
+
+        <button id="btn-more-semesters" class="btn ghost more-semesters-btn" type="button" aria-expanded="false">
+          <svg class="action-icon" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+          <span>查看更早的学期</span>
+        </button>
+      </section>
+
+      <!-- 新建学期操作区 -->
+      <section class="semester-section" aria-labelledby="actions-label">
+        <div class="card actions-card">
+          <p class="eyebrow">新建学期</p>
+          <h2 class="section-title" id="actions-label">添加新学期的方式</h2>
+
+          <div class="action-options">
+            <button class="option-item" type="button" data-action="import">
+              <div class="option-icon-wrap option-icon-primary">
+                <svg class="option-icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">导入新学期</h4>
+                <p class="option-desc">从教务系统一键导入课表数据</p>
+              </div>
+              <svg class="option-arrow" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </button>
+
+            <button class="option-item" type="button" data-action="manual">
+              <div class="option-icon-wrap option-icon-secondary">
+                <svg class="option-icon" aria-hidden="true"><use href="#i-pen-line"></use></svg>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">手动创建学期</h4>
+                <p class="option-desc">从零开始手动添加课程信息</p>
+              </div>
+              <svg class="option-arrow" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </button>
+
+            <button class="option-item" type="button" data-action="restore">
+              <div class="option-icon-wrap option-icon-muted">
+                <svg class="option-icon" aria-hidden="true"><use href="#i-folder-open"></use></svg>
+              </div>
+              <div class="option-content">
+                <h4 class="option-title">从备份恢复</h4>
+                <p class="option-desc">从本地备份文件恢复学期数据</p>
+              </div>
+              <svg class="option-arrow" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="bottom-nav-spacer"></div>
+    </div>
+  </main>
+
+  <!-- ===== 桌面端概览 ===== -->
+  <aside class="app-aside" aria-label="学期概览">
+    <div class="aside-card">
+      <h3>档案概览</h3>
+      <dl style="margin:0">
+        <div class="aside-stat"><dt>学期总数</dt><dd id="aside-total">6</dd></div>
+        <div class="aside-stat"><dt>课程总数</dt><dd id="aside-courses">133</dd></div>
+        <div class="aside-stat"><dt>教学周</dt><dd id="aside-weeks">119</dd></div>
+      </dl>
+    </div>
+    <div class="aside-card">
+      <h3>提示</h3>
+      <p style="margin:0; font:400 13px/1.6 var(--font-sans); color: var(--secondary-foreground)">
+        历史学期可复制为新学期模板，课程、时间与教室设置会一并带过来。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== 底栏导航 ===== -->
+<nav id="bottom-nav" aria-label="底部导航" class="bottom-nav app-bottom" style="position:fixed; bottom:calc(var(--spacing) * 3); left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:390px; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); z-index:100;">
+  <a class="nav-item" href="今日日程.html" data-nav-key="today">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg>
+    <span class="nav-label">今日</span>
+  </a>
+  <a class="nav-item" href="周课表.html" data-nav-key="schedule">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-layout-grid"></use></svg>
+    <span class="nav-label">课表</span>
+  </a>
+  <a class="nav-item" href="教务导入.html" data-nav-key="import">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+    <span class="nav-label">导入</span>
+  </a>
+  <a class="nav-item active" href="多学期管理.html" data-nav-key="semester">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-user-circle"></use></svg>
+    <span class="nav-label">学期</span>
+  </a>
+</nav>
+
+<!-- ===== 删除确认弹窗 ===== -->
+<div class="dialog-backdrop" id="dialog-backdrop"></div>
+<div class="confirm-dialog" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <h2 id="confirm-title">删除学期？</h2>
+  <p id="confirm-desc">删除后该学期的课程与课表数据将无法恢复。</p>
+  <div class="dialog-actions">
+    <button class="btn secondary" type="button" id="confirm-cancel">取消</button>
+    <button class="btn destructive" type="button" id="confirm-ok">删除</button>
+  </div>
+</div>
+
+<script src="../assets/claude-icons.js"></script>
+<script src="../assets/claude-app.js"></script>
+<script>
+/* ============================================================================
+ * 多学期管理页交互
+ * 学期数据为设计稿示例数据，接入真实数据时替换 SEMESTERS 即可。
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  var SEMESTERS = [    { id: '2023-2', year: '2023-2024 学年', name: '第二学期', date: '2024.02.26 - 2024.07.10', courses: 22, weeks: 20, done: true, sunken: false },
+    { id: '2023-1', year: '2023-2024 学年', name: '第一学期', date: '2023.09.04 - 2024.01.19', courses: 25, weeks: 20, done: true, sunken: false },
+    { id: '2022-2', year: '2022-2023 学年', name: '第二学期', date: '2023.02.27 - 2023.07.14', courses: 23, weeks: 20, done: true, sunken: true },
+    { id: '2022-1', year: '2022-2023 学年', name: '第一学期', date: '2022.09.05 - 2023.01.13', courses: 21, weeks: 19, done: true, sunken: true },
+    { id: '2021-2', year: '2021-2022 学年', name: '第二学期', date: '2022.02.28 - 2022.07.08', courses: 20, weeks: 20, done: true, sunken: true },
+    { id: '2021-1', year: '2021-2022 学年', name: '第一学期', date: '2021.09.06 - 2022.01.14', courses: 22, weeks: 20, done: true, sunken: true }
+  ];
+
+  var SHOW_INITIAL = 4;
+  var expanded = false;
+  var pendingDelete = null;
+
+  function el(html) {
+    var t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- 渲染历史学期 ---------- */
+  function renderHistory() {
+    var container = document.getElementById('history-container');
+    container.innerHTML = '';
+    var list = expanded ? SEMESTERS : SEMESTERS.slice(0, SHOW_INITIAL);
+    var groups = [];
+    list.forEach(function (s) {
+      var g = groups.find(function (x) { return x.year === s.year; });
+      if (!g) { g = { year: s.year, items: [] }; groups.push(g); }
+      g.items.push(s);
+    });
+
+    groups.forEach(function (g) {
+      var group = el('<div class="year-group"></div>');
+      group.appendChild(el(
+        '<div class="year-group-header"><h3 class="year-title">' + esc(g.year) + '</h3>' +
+        '<span class="year-count">' + g.items.length + ' 个学期</span></div>'
+      ));
+      var listEl = el('<div class="semester-list"></div>');
+      g.items.forEach(function (s) {
+        var card = el(
+          '<article class="card history-card' + (s.sunken ? ' sunken' : '') + '" data-semester="' + esc(s.id) + '">' +
+          '<div class="history-card-header">' +
+          '<div class="history-card-title-row">' +
+          '<h4 class="history-semester-name">' + esc(s.name) + '</h4>' +
+          '<span class="badge outline completed-badge"><svg class="badge-icon-sm success-icon" aria-hidden="true"><use href="#i-circle-check"></use></svg>已完成</span>' +
+          '</div>' +
+          '<p class="history-semester-date">' + esc(s.date) + '</p>' +
+          '</div>' +
+          '<div class="history-card-stats">' +
+          '<div class="stat-mini"><span class="stat-mini-value">' + s.courses + '</span><span class="stat-mini-label">门课程</span></div>' +
+          '<div class="stat-divider"></div>' +
+          '<div class="stat-mini"><span class="stat-mini-value">' + s.weeks + '</span><span class="stat-mini-label">教学周</span></div>' +
+          '</div>' +
+          '<div class="history-card-actions">' +
+          '<button class="btn ghost action-btn" type="button" data-act="view"><svg class="action-icon" aria-hidden="true"><use href="#i-eye"></use></svg>查看</button>' +
+          '<button class="btn ghost action-btn" type="button" data-act="copy"><svg class="action-icon" aria-hidden="true"><use href="#i-copy"></use></svg>复制</button>' +
+          '<button class="btn ghost action-btn action-destructive" type="button" data-act="delete"><svg class="action-icon" aria-hidden="true"><use href="#i-trash-2"></use></svg>删除</button>' +
+          '</div>' +
+          '</article>'
+        );
+        card.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-act]');
+          if (!btn) return;
+          var act = btn.getAttribute('data-act');
+          if (act === 'delete') askDelete(s);
+          else if (act === 'copy') copySemester(s);
+          else viewSemester(s);
+        });
+        listEl.appendChild(card);
+      });
+      group.appendChild(listEl);
+      container.appendChild(group);
+    });
+
+    document.getElementById('btn-more-semesters').style.display =
+      SEMESTERS.length > SHOW_INITIAL ? '' : 'none';
+    updateOverview();
+  }
+
+  function updateOverview() {
+    var total = SEMESTERS.length + 1; // + 当前学期
+    var courses = SEMESTERS.reduce(function (a, s) { return a + s.courses; }, 24);
+    var weeks = SEMESTERS.reduce(function (a, s) { return a + s.weeks; }, 20);
+    document.getElementById('semester-total').textContent = total;
+    document.getElementById('aside-total').textContent = total;
+    document.getElementById('aside-courses').textContent = courses;
+    document.getElementById('aside-weeks').textContent = weeks;
+  }
+
+  /* ---------- 操作 ---------- */
+  function viewSemester(s) {
+    window.location.href = '周课表.html?semester=' + encodeURIComponent(s.id);
+  }
+
+  function copySemester(s) {
+    var copy = {
+      id: s.id + '-copy-' + Date.now(),
+      year: s.year,
+      name: s.name + '（副本）',
+      date: s.date,
+      courses: s.courses,
+      weeks: s.weeks,
+      done: false,
+      sunken: false
+    };
+    SEMESTERS.unshift(copy);
+    renderHistory();
+    var card = document.querySelector('[data-semester="' + copy.id + '"]');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  var dialog = document.getElementById('confirm-dialog');
+  var backdrop = document.getElementById('dialog-backdrop');
+  var lastFocused = null;
+
+  function askDelete(s) {
+    pendingDelete = s;
+    lastFocused = document.activeElement;
+    document.getElementById('confirm-desc').textContent =
+      '「' + s.year + ' ' + s.name + '」的课程与课表数据将无法恢复。';
+    dialog.classList.add('open');
+    backdrop.classList.add('open');
+    document.getElementById('confirm-cancel').focus();
+  }
+  function closeDialog() {
+    dialog.classList.remove('open');
+    backdrop.classList.remove('open');
+    pendingDelete = null;
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  document.getElementById('confirm-cancel').addEventListener('click', closeDialog);
+  backdrop.addEventListener('click', closeDialog);
+  document.getElementById('confirm-ok').addEventListener('click', function () {
+    if (!pendingDelete) return closeDialog();
+    SEMESTERS = SEMESTERS.filter(function (x) { return x.id !== pendingDelete.id; });
+    closeDialog();
+    renderHistory();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && dialog.classList.contains('open')) closeDialog();
+  });
+
+  /* ---------- 展开更多 ---------- */
+  document.getElementById('btn-more-semesters').addEventListener('click', function (e) {
+    expanded = !expanded;
+    var btn = e.currentTarget;
+    btn.classList.toggle('expanded', expanded);
+    btn.setAttribute('aria-expanded', String(expanded));
+    btn.querySelector('span').textContent = expanded ? '收起更早的学期' : '查看更早的学期';
+    renderHistory();
+  });
+
+  /* ---------- 新建学期 / 操作入口 ---------- */
+  document.getElementById('btn-new-semester').addEventListener('click', function () {
+    window.location.href = '教务导入.html';
+  });
+  document.getElementById('btn-semester-settings').addEventListener('click', function () {
+    window.location.href = '组件预览.html#section-forms';
+  });
+  document.querySelectorAll('.option-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      var act = item.getAttribute('data-action');
+      if (act === 'import') window.location.href = '教务导入.html';
+      else if (act === 'manual') window.location.href = '组件预览.html#section-forms';
+      else window.location.href = '教务导入.html#restore';
+    });
+  });
+
+  /* ---------- 进度条动画（进入视口时） ---------- */
+  var fill = document.getElementById('progress-fill');
+  fill.style.width = '0%';
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { fill.style.width = '45%'; });
+  });
+
+  renderHistory();
+})();
+</script>
+</body>
+</html>

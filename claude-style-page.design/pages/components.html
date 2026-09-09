@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组件预览</title>
+    <style id="theme-vars">
+/* Source: structured-spec */
+/* Brand fonts — Anthropic official: Newsreader (editorial display/slogan) +
+   Poppins (compact UI) + Lora (reading). Mono kept for code/token surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --claude-background: var(--background, #ffffff);
+  --claude-foreground: var(--foreground, #0f172a);
+  --claude-card: var(--card, var(--background));
+  --claude-card-foreground: var(--card-foreground, var(--foreground));
+  --claude-popover: var(--popover, var(--card));
+  --claude-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --claude-primary: var(--primary, #111827);
+  --claude-primary-foreground: var(--primary-foreground, #ffffff);
+  --claude-secondary: var(--secondary, var(--muted, var(--card)));
+  --claude-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --claude-muted: var(--muted, var(--card));
+  --claude-muted-foreground: var(--muted-foreground, var(--foreground));
+  --claude-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --claude-accent-foreground: var(--accent-foreground, var(--foreground));
+  --claude-destructive: var(--destructive, #ef4444);
+  --claude-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --claude-border: var(--border, currentColor);
+  --claude-input: var(--input, var(--border));
+  --claude-ring: var(--ring, var(--primary));
+  --claude-chart-1: var(--chart-1, var(--primary));
+  --claude-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --claude-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --claude-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --claude-chart-5: var(--chart-5, var(--foreground));
+  --claude-sidebar: var(--sidebar, var(--background));
+  --claude-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --claude-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --claude-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --claude-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --claude-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #c96442 */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  /* text — standard: --text-800 #3d3929 */
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  /* background — standard: --bg-100 #faf9f5 */
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  /* icon — standard: --icon-700 #3d3929 */
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  /* border — standard: --border-300 #dad9d4 */
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  /* state · success — standard: --success-500 #788c5d */
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  /* state · error — standard: --error-500 #d64545 */
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-50);
+  --muted: var(--bg-300);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--icon-900);
+  --popover-foreground: var(--text-900);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-600);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: var(--text-900);
+  --destructive-foreground: #ffffff;
+  /* semantic */
+  --primary: var(--brand-500);
+  --secondary: #e9e6dc;
+  --accent: var(--secondary);
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — display (Newsreader) for slogans/headlines, sans (Poppins) for compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* spacing */
+  --spacing: 0.25rem;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+  /* type */
+  --tracking-normal: 0em;
+}
+
+.dark {
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #d97757 */
+  --brand-50: #3a2a22;
+  --brand-100: #4d3528;
+  --brand-200: #6b4533;
+  --brand-300: #8a5740;
+  --brand-400: #b0683f;
+  --brand-500: #d97757;
+  --brand-600: #e08d6f;
+  --brand-700: #e8a98f;
+  --brand-800: #f0c6b3;
+  --brand-900: #f8e3d8;
+  /* text — standard: --text-800 #f1f1ef */
+  --text-50: #1b1b19;
+  --text-100: #2c2c2b;
+  --text-200: #46443b;
+  --text-300: #6e6d68;
+  --text-400: #908e84;
+  --text-500: #b7b5a9;
+  --text-600: #c3c0b6;
+  --text-700: #d8d6cd;
+  --text-800: #f1f1ef;
+  --text-900: #faf9f5;
+  /* background — standard: --bg-100 #262624 */
+  --bg-50: #1b1b19;
+  --bg-100: #262624;
+  --bg-200: #2c2c2b;
+  --bg-300: #30302e;
+  --bg-400: #3e3e38;
+  --bg-500: #4a4a43;
+  --bg-600: #52514a;
+  --bg-700: #6e6d68;
+  --bg-800: #908e84;
+  --bg-900: #b7b5a9;
+  /* icon — standard: --icon-700 #f1f1ef */
+  --icon-50: #1b1b19;
+  --icon-100: #2c2c2b;
+  --icon-200: #46443b;
+  --icon-300: #6e6d68;
+  --icon-400: #908e84;
+  --icon-500: #b7b5a9;
+  --icon-600: #d8d6cd;
+  --icon-700: #f1f1ef;
+  --icon-800: #f8f8f6;
+  --icon-900: #ffffff;
+  /* border — standard: --border-300 #3e3e38 */
+  --border-50: #1f1e1d;
+  --border-100: #2c2c2b;
+  --border-200: #343430;
+  --border-300: #3e3e38;
+  --border-400: #4a4a43;
+  --border-500: #52514a;
+  --border-600: #6e6d68;
+  --border-700: #908e84;
+  --border-800: #b7b5a9;
+  --border-900: #d8d6cd;
+  /* state · success — standard: --success-500 #8ca06f */
+  --success-50: #232a1c;
+  --success-100: #2e3823;
+  --success-200: #3f4d30;
+  --success-300: #556640;
+  --success-400: #708353;
+  --success-500: #8ca06f;
+  --success-600: #a3b58a;
+  --success-700: #bccaa8;
+  --success-800: #d6dfc8;
+  --success-900: #edf2e4;
+  /* state · error — standard: --error-500 #ef4444 */
+  --error-50: #3a1f1f;
+  --error-100: #4d2424;
+  --error-200: #6e2c2c;
+  --error-300: #93302f;
+  --error-400: #c43a39;
+  --error-500: #ef4444;
+  --error-600: #f26b6b;
+  --error-700: #f59292;
+  --error-800: #f9b9b9;
+  --error-900: #fcdede;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-300);
+  --muted: var(--bg-50);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--text-900);
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #141413;
+  --secondary-foreground: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: #f5f4ee;
+  --destructive-foreground: #ffffff;
+  /* accent */
+  --primary: var(--brand-500);
+  --secondary: var(--text-900);
+  --accent: #1a1915;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  /* border */
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #141413;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — sans (Poppins) for headings + compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--claude-background);
+    --color-foreground: var(--claude-foreground);
+    --color-card: var(--claude-card);
+    --color-card-foreground: var(--claude-card-foreground);
+    --color-popover: var(--claude-popover);
+    --color-popover-foreground: var(--claude-popover-foreground);
+    --color-primary: var(--claude-primary);
+    --color-primary-foreground: var(--claude-primary-foreground);
+    --color-secondary: var(--claude-secondary);
+    --color-secondary-foreground: var(--claude-secondary-foreground);
+    --color-muted: var(--claude-muted);
+    --color-muted-foreground: var(--claude-muted-foreground);
+    --color-accent: var(--claude-accent);
+    --color-accent-foreground: var(--claude-accent-foreground);
+    --color-destructive: var(--claude-destructive);
+    --color-destructive-foreground: var(--claude-destructive-foreground);
+    --color-border: var(--claude-border);
+    --color-input: var(--claude-input);
+    --color-ring: var(--claude-ring);
+    --color-chart-1: var(--claude-chart-1);
+    --color-chart-2: var(--claude-chart-2);
+    --color-chart-3: var(--claude-chart-3);
+    --color-chart-4: var(--claude-chart-4);
+    --color-chart-5: var(--claude-chart-5);
+    --color-sidebar: var(--claude-sidebar);
+    --color-sidebar-foreground: var(--claude-sidebar-foreground);
+    --color-sidebar-primary: var(--claude-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--claude-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--claude-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--claude-sidebar-accent-foreground);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-xl);
+    --radius-xl: var(--radius-2xl);
+  }
+  @layer base {
+    body { background: var(--claude-background); color: var(--claude-foreground); }
+    td, th { word-break: break-all; word-break: auto-phrase; }
+    th { white-space: nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--claude-background); }
+      .text-foreground { color: var(--claude-foreground); }
+      .border-border { border-color: var(--claude-border); }
+      .ring-ring { --tw-ring-color: var(--claude-ring); }
+      .bg-card { background-color: var(--claude-card); }
+      .text-card-foreground { color: var(--claude-card-foreground); }
+      .border-card { border-color: var(--claude-card); }
+      .ring-card { --tw-ring-color: var(--claude-card); }
+      .bg-popover { background-color: var(--claude-popover); }
+      .text-popover-foreground { color: var(--claude-popover-foreground); }
+      .border-popover { border-color: var(--claude-popover); }
+      .ring-popover { --tw-ring-color: var(--claude-popover); }
+      .bg-primary { background-color: var(--claude-primary); }
+      .text-primary-foreground { color: var(--claude-primary-foreground); }
+      .border-primary { border-color: var(--claude-primary); }
+      .ring-primary { --tw-ring-color: var(--claude-primary); }
+      .bg-secondary { background-color: var(--claude-secondary); }
+      .text-secondary-foreground { color: var(--claude-secondary-foreground); }
+      .border-secondary { border-color: var(--claude-secondary); }
+      .ring-secondary { --tw-ring-color: var(--claude-secondary); }
+      .bg-muted { background-color: var(--claude-muted); }
+      .text-muted-foreground { color: var(--claude-muted-foreground); }
+      .border-muted { border-color: var(--claude-muted); }
+      .ring-muted { --tw-ring-color: var(--claude-muted); }
+      .bg-accent { background-color: var(--claude-accent); }
+      .text-accent-foreground { color: var(--claude-accent-foreground); }
+      .border-accent { border-color: var(--claude-accent); }
+      .ring-accent { --tw-ring-color: var(--claude-accent); }
+      .bg-destructive { background-color: var(--claude-destructive); }
+      .text-destructive-foreground { color: var(--claude-destructive-foreground); }
+      .border-destructive { border-color: var(--claude-destructive); }
+      .ring-destructive { --tw-ring-color: var(--claude-destructive); }
+      .bg-input { background-color: var(--claude-input); }
+      .text-input-foreground { color: var(--claude-input); }
+      .border-input { border-color: var(--claude-input); }
+      .ring-input { --tw-ring-color: var(--claude-input); }
+      .bg-chart-1 { background-color: var(--claude-chart-1); }
+      .text-chart-1 { color: var(--claude-chart-1); }
+      .border-chart-1 { border-color: var(--claude-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--claude-chart-1); }
+      .bg-chart-2 { background-color: var(--claude-chart-2); }
+      .text-chart-2 { color: var(--claude-chart-2); }
+      .border-chart-2 { border-color: var(--claude-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--claude-chart-2); }
+      .bg-chart-3 { background-color: var(--claude-chart-3); }
+      .text-chart-3 { color: var(--claude-chart-3); }
+      .border-chart-3 { border-color: var(--claude-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--claude-chart-3); }
+      .bg-chart-4 { background-color: var(--claude-chart-4); }
+      .text-chart-4 { color: var(--claude-chart-4); }
+      .border-chart-4 { border-color: var(--claude-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--claude-chart-4); }
+      .bg-chart-5 { background-color: var(--claude-chart-5); }
+      .text-chart-5 { color: var(--claude-chart-5); }
+      .border-chart-5 { border-color: var(--claude-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--claude-chart-5); }
+      .bg-sidebar { background-color: var(--claude-sidebar); }
+      .text-sidebar-foreground { color: var(--claude-sidebar-foreground); }
+      .border-sidebar { border-color: var(--claude-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--claude-sidebar); }
+      .bg-sidebar-primary { background-color: var(--claude-sidebar-primary); }
+      .text-sidebar-primary-foreground { color: var(--claude-sidebar-primary-foreground); }
+      .border-sidebar-primary { border-color: var(--claude-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--claude-sidebar-primary); }
+      .bg-sidebar-accent { background-color: var(--claude-sidebar-accent); }
+      .text-sidebar-accent-foreground { color: var(--claude-sidebar-accent-foreground); }
+      .border-sidebar-accent { border-color: var(--claude-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--claude-sidebar-accent); }
+    </style>
+    
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+      <div class="page-wrap" id="page-components">
+        <!-- 顶部标题区 -->
+        <header class="page-header" id="page-header">
+          <p class="eyebrow">Claude Design System</p>
+          <h1>Claude 组件库</h1>
+          <p class="subtitle">上课Shangke 设计系统</p>
+          <span class="meta">v1.0.0 · 2026-09-09</span>
+        </header>
+
+        <!-- 色彩系统 -->
+        <section class="section" id="section-colors">
+          <div class="section-title">
+            <h2>色彩系统</h2>
+            <span class="token-name">color tokens</span>
+          </div>
+
+          <!-- 品牌色阶 -->
+          <div class="color-row">
+            <span class="section-label">品牌色 Brand</span>
+            <div class="color-grid">
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-50);"></div>
+                <span class="swatch-label">brand-50</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-100);"></div>
+                <span class="swatch-label">brand-100</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-200);"></div>
+                <span class="swatch-label">brand-200</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-300);"></div>
+                <span class="swatch-label">brand-300</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-400);"></div>
+                <span class="swatch-label">brand-400</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-500);"></div>
+                <span class="swatch-label">brand-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-600);"></div>
+                <span class="swatch-label">brand-600</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-700);"></div>
+                <span class="swatch-label">brand-700</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-800);"></div>
+                <span class="swatch-label">brand-800</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--brand-900);"></div>
+                <span class="swatch-label">brand-900</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 中性色阶 - 背景 -->
+          <div class="color-row">
+            <span class="section-label">背景色 Background</span>
+            <div class="color-grid">
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-50);"></div>
+                <span class="swatch-label">bg-50</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-100);"></div>
+                <span class="swatch-label">bg-100</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-200);"></div>
+                <span class="swatch-label">bg-200</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-300);"></div>
+                <span class="swatch-label">bg-300</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-400);"></div>
+                <span class="swatch-label">bg-400</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-500);"></div>
+                <span class="swatch-label">bg-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-600);"></div>
+                <span class="swatch-label">bg-600</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-700);"></div>
+                <span class="swatch-label">bg-700</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-800);"></div>
+                <span class="swatch-label">bg-800</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--bg-900);"></div>
+                <span class="swatch-label">bg-900</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 中性色阶 - 文字 -->
+          <div class="color-row">
+            <span class="section-label">文字色 Text</span>
+            <div class="color-grid">
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-50);"></div>
+                <span class="swatch-label">text-50</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-100);"></div>
+                <span class="swatch-label">text-100</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-200);"></div>
+                <span class="swatch-label">text-200</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-300);"></div>
+                <span class="swatch-label">text-300</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-400);"></div>
+                <span class="swatch-label">text-400</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-500);"></div>
+                <span class="swatch-label">text-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-600);"></div>
+                <span class="swatch-label">text-600</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-700);"></div>
+                <span class="swatch-label">text-700</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-800);"></div>
+                <span class="swatch-label">text-800</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--text-900);"></div>
+                <span class="swatch-label">text-900</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 边框色 -->
+          <div class="color-row">
+            <span class="section-label">边框色 Border</span>
+            <div class="color-grid">
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--border-50);"></div>
+                <span class="swatch-label">border-50</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--border-200);"></div>
+                <span class="swatch-label">border-200</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--border-300);"></div>
+                <span class="swatch-label">border-300</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--border-500);"></div>
+                <span class="swatch-label">border-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--border-700);"></div>
+                <span class="swatch-label">border-700</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 功能色 -->
+          <div class="color-row">
+            <span class="section-label">功能色 Status & Chart</span>
+            <div class="color-grid">
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--success-500);"></div>
+                <span class="swatch-label">success-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--error-500);"></div>
+                <span class="swatch-label">error-500</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--chart-1);"></div>
+                <span class="swatch-label">chart-1</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--chart-2);"></div>
+                <span class="swatch-label">chart-2</span>
+              </div>
+              <div class="color-swatch">
+                <div class="swatch" style="background: var(--chart-3);"></div>
+                <span class="swatch-label">chart-3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语义 token -->
+          <div class="color-row">
+            <span class="section-label">语义映射 Semantic</span>
+            <div class="component-row">
+              <span class="token-code">--background → var(--bg-100)</span>
+              <span class="token-code">--foreground → var(--text-800)</span>
+              <span class="token-code">--primary → var(--brand-500)</span>
+              <span class="token-code">--card → var(--bg-200)</span>
+              <span class="token-code">--muted → var(--bg-300)</span>
+              <span class="token-code">--border → var(--border-300)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 字体排印 -->
+        <section class="section" id="section-typography">
+          <div class="section-title">
+            <h2>字体排印</h2>
+            <span class="token-name">typography</span>
+          </div>
+
+          <!-- Newsreader 衬线标题 -->
+          <div class="type-sample">
+            <span class="sample-label">Newsreader · Display Serif · 标题</span>
+            <div class="type-display" style="font-weight: 500; font-size: 36px; line-height: 1.1; color: var(--foreground); margin-bottom: 8px;">书卷多情似故人</div>
+            <div class="type-display" style="font-weight: 400; font-size: 24px; line-height: 1.2; color: var(--foreground); margin-bottom: 8px;">晨昏忧乐每相亲</div>
+            <div class="type-display" style="font-style: italic; font-weight: 400; font-size: 18px; line-height: 1.3; color: var(--secondary-foreground);">— 于谦《观书》</div>
+          </div>
+
+          <!-- Poppins 无衬线 -->
+          <div class="type-sample">
+            <span class="sample-label">Poppins · Sans-serif · UI 正文</span>
+            <div class="type-sans" style="font-weight: 600; font-size: 18px; line-height: 1.2; color: var(--foreground); margin-bottom: 8px;">Compact UI Typography</div>
+            <div class="type-sans" style="font-weight: 400; font-size: 14px; line-height: 1.5; color: var(--foreground); margin-bottom: 8px;">Poppins provides clean, legible text for interface components and controls.</div>
+            <div class="type-sans" style="font-weight: 500; font-size: 12px; line-height: 1.3; color: var(--muted-foreground);">Caption text · Small metadata · 辅助说明文字</div>
+          </div>
+
+          <!-- Lora 衬线阅读 -->
+          <div class="type-sample">
+            <span class="sample-label">Lora · Reading Serif · 阅读正文</span>
+            <div class="type-serif" style="font-weight: 400; font-size: 16px; line-height: 1.7; color: var(--foreground); margin-bottom: 8px;">
+              Lora 是一款精心设计的衬线字体，非常适合长文本阅读。它在保持传统衬线优雅的同时，兼顾了屏幕显示的清晰度。
+            </div>
+            <div class="type-serif" style="font-style: italic; font-weight: 400; font-size: 15px; line-height: 1.6; color: var(--secondary-foreground);">
+              "Reading is to the mind what exercise is to the body." — Joseph Addison
+            </div>
+          </div>
+
+          <!-- Geist Mono 等宽 -->
+          <div class="type-sample">
+            <span class="sample-label">Geist Mono · Monospace · 代码 / Token</span>
+            <div class="type-mono" style="font-weight: 400; font-size: 13px; line-height: 1.5; color: var(--foreground);">
+              <div>const schedule = {</div>
+              <div style="padding-left: 1.5rem;">monday: ["高数", "英语"],</div>
+              <div style="padding-left: 1.5rem;">tuesday: ["物理", "编程"]</div>
+              <div>};</div>
+            </div>
+            <div style="margin-top: 12px;">
+              <span class="token-code">--brand-500</span>
+              <span class="token-code" style="margin-left: 8px;">--radius-md</span>
+              <span class="token-code" style="margin-left: 8px;">--shadow-sm</span>
+            </div>
+          </div>
+
+          <!-- 字号阶梯 -->
+          <div class="type-sample">
+            <span class="sample-label">字号阶梯 Type Scale</span>
+            <div style="display: grid; gap: 12px;">
+              <div style="display: flex; align-items: baseline; gap: 16px;">
+                <span class="token-code" style="min-width: 80px;">12px</span>
+                <span style="font: 500 12px/1.3 var(--font-sans); color: var(--muted-foreground);">Caption · 辅助说明</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 16px;">
+                <span class="token-code" style="min-width: 80px;">14px</span>
+                <span style="font: 400 14px/1.5 var(--font-sans); color: var(--foreground);">Body · 正文内容</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 16px;">
+                <span class="token-code" style="min-width: 80px;">16px</span>
+                <span style="font: 400 16px/1.6 var(--font-serif); color: var(--foreground);">Reading · 阅读正文</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 16px;">
+                <span class="token-code" style="min-width: 80px;">21px</span>
+                <span style="font: 600 21px/1.18 var(--font-sans); color: var(--foreground);">Card Title · 卡片标题</span>
+              </div>
+              <div style="display: flex; align-items: baseline; gap: 16px;">
+                <span class="token-code" style="min-width: 80px;">36px</span>
+                <span style="font: 500 36px/1.1 var(--font-display); color: var(--foreground);">Display · 大标题</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Button 组件 -->
+        <section class="section" id="section-button">
+          <div class="section-title">
+            <h2>Button 按钮</h2>
+            <span class="token-name">component: button</span>
+          </div>
+
+          <span class="section-label">变体 Variants</span>
+          <div class="component-row">
+            <button class="btn primary" type="button">Primary 主要</button>
+            <button class="btn secondary" type="button">Secondary 次要</button>
+            <button class="btn outline" type="button">Outline 线框</button>
+            <button class="btn ghost" type="button">Ghost 幽灵</button>
+          </div>
+
+          <span class="section-label">尺寸 Sizes</span>
+          <div class="component-row">
+            <button class="btn primary lg" type="button">Large 大号</button>
+            <button class="btn primary" type="button">Medium 中号</button>
+            <button class="btn primary sm" type="button">Small 小号</button>
+          </div>
+
+          <span class="section-label">禁用状态 Disabled</span>
+          <div class="component-row">
+            <button class="btn primary" type="button" disabled>Primary</button>
+            <button class="btn secondary" type="button" disabled>Secondary</button>
+            <button class="btn ghost" type="button" disabled>Ghost</button>
+          </div>
+
+          <span class="section-label">带图标 With Icon</span>
+          <div class="component-row">
+            <button class="btn primary" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              开始导入
+            </button>
+            <button class="btn secondary" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              下载课表
+            </button>
+          </div>
+        </section>
+
+        <!-- Card 组件 -->
+        <section class="section" id="section-card">
+          <div class="section-title">
+            <h2>Card 卡片</h2>
+            <span class="token-name">component: card</span>
+          </div>
+
+          <span class="section-label">基础卡片 Floating</span>
+          <div class="component-row column">
+            <div class="card-grid">
+              <article class="card">
+                <p class="eyebrow">今日课程</p>
+                <h3 class="title">高等数学</h3>
+                <p class="body">第 3 周 · 第三章 导数与微分 · 主教 201 · 08:00 - 09:40</p>
+              </article>
+            </div>
+          </div>
+
+          <span class="section-label">表面对比 Surface Contrast</span>
+          <div class="component-row column">
+            <div class="card-grid">
+              <article class="card sunken">
+                <p class="eyebrow">编辑侧栏</p>
+                <h3 class="title">课程备注</h3>
+                <p class="body">凹陷表面用于承载辅助内容，与主内容区形成层次而不抢占视觉焦点。</p>
+              </article>
+              <article class="card emphasis">
+                <p class="eyebrow">重要提醒</p>
+                <h3 class="title">明天有考试</h3>
+                <p class="body">高对比度强调卡片用于发布重要通知和高优先级引导。</p>
+              </article>
+            </div>
+          </div>
+
+          <span class="section-label">带操作按钮 With Action</span>
+          <div class="component-row column">
+            <div class="card-grid">
+              <article class="card" style="min-height: auto;">
+                <p class="eyebrow">课程卡片</p>
+                <h3 class="title">大学物理</h3>
+                <p class="body" style="margin-bottom: 14px;">第 3 周 · 力学部分复习</p>
+                <div style="display: flex; gap: 10px;">
+                  <button class="btn primary sm" type="button">查看详情</button>
+                  <button class="btn ghost sm" type="button">加入收藏</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- Input 组件 -->
+        <section class="section" id="section-input">
+          <div class="section-title">
+            <h2>Input 输入框</h2>
+            <span class="token-name">component: input</span>
+          </div>
+
+          <span class="section-label">文本输入 Plain</span>
+          <div class="component-row column">
+            <input class="field" type="text" placeholder="搜索课程…" aria-label="搜索课程">
+            <input class="field" type="text" value="高等数学上册" aria-label="已填输入框">
+          </div>
+
+          <span class="section-label">带标签 Labeled</span>
+          <div class="component-row column">
+            <div>
+              <label class="input-label" for="course-name">课程名称</label>
+              <input class="field" id="course-name" type="text" placeholder="请输入课程名称" style="width: 100%;">
+            </div>
+            <div>
+              <label class="input-label" for="teacher">授课教师</label>
+              <input class="field" id="teacher" type="text" value="张教授" style="width: 100%;">
+            </div>
+          </div>
+
+          <span class="section-label">状态 States</span>
+          <div class="component-row column">
+            <div>
+              <label class="input-label" for="input-disabled">禁用状态</label>
+              <input class="field" id="input-disabled" type="text" value="不可编辑" disabled style="width: 100%;">
+            </div>
+            <div>
+              <label class="input-label" for="input-error">错误状态</label>
+              <input class="field error" id="input-error" type="text" value="课程时间冲突" style="width: 100%;">
+              <p class="input-error">请检查课程时间是否与已有课程重叠</p>
+            </div>
+          </div>
+
+          <span class="section-label">嵌入样式 Embedded</span>
+          <div class="component-row column">
+            <label class="bar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted-foreground);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" placeholder="搜索组件…" aria-label="嵌入搜索输入框">
+            </label>
+          </div>
+        </section>
+
+        <!-- Badge 组件 -->
+        <section class="section" id="section-badge">
+          <div class="section-title">
+            <h2>Badge 徽章</h2>
+            <span class="token-name">component: badge</span>
+          </div>
+
+          <span class="section-label">变体 Variants</span>
+          <div class="component-row">
+            <span class="badge filled">Filled</span>
+            <span class="badge muted">Muted</span>
+            <span class="badge outline">Outline</span>
+          </div>
+
+          <span class="section-label">语义状态 Status</span>
+          <div class="component-row">
+            <span class="badge success">成功</span>
+            <span class="badge warning">警告</span>
+            <span class="badge error-badge">错误</span>
+            <span class="badge filled">默认</span>
+          </div>
+
+          <span class="section-label">尺寸 Sizes</span>
+          <div class="component-row">
+            <span class="badge filled lg">Large</span>
+            <span class="badge filled">Medium</span>
+            <span class="badge filled sm">Small</span>
+          </div>
+
+          <span class="section-label">点状指示器 Dot Indicator</span>
+          <div class="component-row">
+            <span class="badge muted">
+              <span class="badge-dot" style="margin-right: 8px;"></span>
+              在线
+            </span>
+            <span class="badge muted">
+              <span class="badge-dot" style="margin-right: 8px; background: var(--error-500);"></span>
+              异常
+            </span>
+            <span class="badge muted">
+              <span class="badge-dot" style="margin-right: 8px; background: var(--muted-foreground); opacity: 0.5;"></span>
+              离线
+            </span>
+          </div>
+        </section>
+
+        <!-- Navigation 组件 -->
+        <section class="section" id="section-navigation">
+          <div class="section-title">
+            <h2>Navigation 导航</h2>
+            <span class="token-name">component: navigation</span>
+          </div>
+
+          <span class="section-label">标签页 Tabs</span>
+          <div class="component-row column">
+            <nav class="tabs" aria-label="导航标签页">
+              <button class="tab active" type="button">今日</button>
+              <button class="tab" type="button">本周</button>
+              <button class="tab" type="button">本月</button>
+              <button class="tab" type="button">全部</button>
+            </nav>
+          </div>
+
+          <span class="section-label">面包屑 Breadcrumbs</span>
+          <div class="component-row">
+            <nav class="breadcrumbs" aria-label="面包屑">
+              <span>首页</span>
+              <span class="sep">/</span>
+              <span>课表</span>
+              <span class="sep">/</span>
+              <span class="crumb-current">高等数学</span>
+            </nav>
+          </div>
+
+          <span class="section-label">底部导航栏 Bottom Nav</span>
+          <div class="component-row column">
+            <nav style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px; background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-xs);" aria-label="底部导航预览">
+              <button class="nav-item-app active" type="button">
+                <span class="nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </span>
+                <span>今日</span>
+              </button>
+              <button class="nav-item-app" type="button">
+                <span class="nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <span>课表</span>
+              </button>
+              <button class="nav-item-app" type="button">
+                <span class="nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </span>
+                <span>导入</span>
+              </button>
+              <button class="nav-item-app" type="button">
+                <span class="nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span>我的</span>
+              </button>
+            </nav>
+          </div>
+        </section>
+
+        <!-- Chat Bubble 组件 -->
+        <section class="section" id="section-chat-bubble">
+          <div class="section-title">
+            <h2>Chat Bubble 对话气泡</h2>
+            <span class="token-name">component: chat-bubble</span>
+          </div>
+
+          <span class="section-label">用户消息 User</span>
+          <div class="component-row">
+            <div class="bubble user">
+              <span class="meta">你 · 刚刚</span>
+              <p class="copy">帮我看看今天有什么课？</p>
+            </div>
+          </div>
+
+          <span class="section-label">AI 回复 Assistant</span>
+          <div class="component-row">
+            <div class="bubble assistant">
+              <span class="meta">上课Shangke · 1 分钟</span>
+              <p class="copy">今天是周三，你有两节课：高等数学（上午）和大学物理（下午）。需要查看详情吗？</p>
+            </div>
+          </div>
+
+          <span class="section-label">带代码块 With Code</span>
+          <div class="component-row">
+            <div class="bubble assistant" style="max-width: 320px;">
+              <span class="meta">上课Shangke · AI 助手</span>
+              <p class="copy">这是课表数据的 JSON 格式：</p>
+              <div class="code-block">{
+  "course": "高等数学",
+  "time": "08:00-09:40",
+  "room": "主教201",
+  "week": "1-16周"
+}</div>
+            </div>
+          </div>
+
+          <span class="section-label">对话线程 Thread</span>
+          <div class="component-row column">
+            <div class="chat-thread">
+              <div class="bubble user" style="justify-self: end;">
+                <span class="meta">你 · 刚刚</span>
+                <p class="copy">明天有什么课？</p>
+              </div>
+              <div class="bubble assistant" style="justify-self: start;">
+                <span class="meta">上课Shangke · 1 分钟</span>
+                <p class="copy">明天周四，你有：大学英语、数据结构、体育。共 3 门课程。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 底部固定导航 -->
+      <nav class="bottom-nav-app" id="bottom-nav" aria-label="底部导航">
+        <button class="nav-item-app" type="button">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </span>
+          <span>今日</span>
+        </button>
+        <button class="nav-item-app" type="button">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <span>课表</span>
+        </button>
+        <button class="nav-item-app" type="button">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </span>
+          <span>导入</span>
+        </button>
+        <button class="nav-item-app active" type="button">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span>我的</span>
+        </button>
+      </nav>
+    </main>
+    <script>lucide.createIcons();</script>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+
+      /* ========== Page-specific styles ========== */
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: var(--font-serif);
+        -webkit-font-smoothing: antialiased;
+      }
+      .page-wrap {
+        max-width: 480px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--foreground);
+        padding-bottom: calc(var(--spacing) * 20);
+      }
+      .page-header {
+        padding: calc(var(--spacing) * 10) calc(var(--spacing) * 5) calc(var(--spacing) * 6);
+        border-bottom: 1px solid var(--border);
+      }
+      .page-header .eyebrow {
+        margin: 0 0 calc(var(--spacing) * 2);
+        font: 600 11px/1.3 var(--font-serif);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .page-header h1 {
+        margin: 0 0 calc(var(--spacing) * 2);
+        font: 500 36px/1.1 var(--font-display);
+        color: var(--foreground);
+        letter-spacing: -0.01em;
+      }
+      .page-header .subtitle {
+        margin: 0 0 calc(var(--spacing) * 3);
+        font: 400 16px/1.5 var(--font-serif);
+        color: var(--secondary-foreground);
+      }
+      .page-header .meta {
+        font: 500 12px/1.3 var(--font-mono);
+        color: var(--muted-foreground);
+        letter-spacing: 0.02em;
+      }
+
+      .section {
+        padding: calc(var(--spacing) * 7) calc(var(--spacing) * 5);
+        border-bottom: 1px solid var(--border);
+      }
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        gap: calc(var(--spacing) * 3);
+        margin: 0 0 calc(var(--spacing) * 4);
+      }
+      .section-title h2 {
+        margin: 0;
+        font: 600 20px/1.2 var(--font-display);
+        color: var(--foreground);
+      }
+      .section-title .token-name {
+        font: 500 11px/1 var(--font-mono);
+        color: var(--muted-foreground);
+        letter-spacing: 0.02em;
+      }
+      .section-label {
+        display: block;
+        margin: 0 0 calc(var(--spacing) * 3);
+        font: 600 10px/1.2 var(--font-serif);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+
+      /* Color swatches */
+      .color-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: calc(var(--spacing) * 2);
+      }
+      .color-swatch {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1.5);
+      }
+      .color-swatch .swatch {
+        aspect-ratio: 1;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-xs);
+      }
+      .color-swatch .swatch-label {
+        font: 500 10px/1.2 var(--font-mono);
+        color: var(--muted-foreground);
+        text-align: center;
+        word-break: break-all;
+      }
+      .color-row {
+        margin-bottom: calc(var(--spacing) * 5);
+      }
+      .color-row:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Typography samples */
+      .type-sample {
+        padding: calc(var(--spacing) * 4);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 4px);
+        background: var(--popover);
+        box-shadow: var(--shadow-xs);
+        margin-bottom: calc(var(--spacing) * 4);
+      }
+      .type-sample:last-child {
+        margin-bottom: 0;
+      }
+      .type-sample .sample-label {
+        display: block;
+        margin-bottom: calc(var(--spacing) * 3);
+        font: 600 10px/1.2 var(--font-mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .type-display { font-family: var(--font-display); }
+      .type-sans { font-family: var(--font-sans); }
+      .type-serif { font-family: var(--font-serif); }
+      .type-mono { font-family: var(--font-mono); }
+
+      /* Component preview areas */
+      .component-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: calc(var(--spacing) * 3);
+        align-items: center;
+        padding: calc(var(--spacing) * 4.5);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 4px);
+        background: var(--popover);
+        box-shadow: var(--shadow-xs);
+        margin-bottom: calc(var(--spacing) * 4);
+      }
+      .component-row:last-child {
+        margin-bottom: 0;
+      }
+      .component-row.column {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      /* Token code display */
+      .token-code {
+        display: inline-block;
+        padding: calc(var(--spacing) * 0.5) calc(var(--spacing) * 2);
+        font: 500 11px/1.4 var(--font-mono);
+        color: var(--secondary-foreground);
+        background: var(--muted);
+        border-radius: var(--radius-sm);
+        letter-spacing: 0.01em;
+      }
+
+      /* Button component (from preview) */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        background: transparent;
+        color: var(--foreground);
+        font: 600 14px/1.1 var(--font-sans);
+        white-space: nowrap;
+        transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+        cursor: pointer;
+      }
+      .btn:hover, .btn:focus-visible { box-shadow: var(--shadow-md); }
+      .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .btn:disabled { cursor: not-allowed; box-shadow: none; }
+      .btn.primary { background: var(--primary); color: var(--primary-foreground); }
+      .btn.primary:disabled { background: var(--secondary); color: var(--muted-foreground); border-color: var(--border); }
+      .btn.secondary { background: var(--secondary); color: var(--foreground); border-color: var(--border); }
+      .btn.secondary:disabled { background: var(--background); color: var(--muted-foreground); border-color: var(--border); }
+      .btn.outline { background: transparent; color: var(--foreground); border-color: var(--border); box-shadow: none; }
+      .btn.outline:hover { background: var(--muted); }
+      .btn.outline:disabled { color: var(--muted-foreground); border-color: var(--border); }
+      .btn.ghost { background: transparent; color: var(--foreground); box-shadow: none; }
+      .btn.ghost:hover, .btn.ghost:focus-visible { background: var(--muted); }
+      .btn.ghost:disabled { background: transparent; color: var(--muted-foreground); border-color: transparent; }
+      .btn.sm { min-height: 36px; padding: 0 14px; font-size: 13px; }
+      .btn.lg { min-height: 52px; padding: 0 24px; font-size: 15px; }
+      .btn .icon { width: 16px; height: 16px; margin-right: 8px; }
+
+      /* Card component (from preview) */
+      .card {
+        width: 100%;
+        min-height: 150px;
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--popover);
+        box-shadow: var(--shadow-sm);
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+      }
+      .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+      .card .eyebrow {
+        margin: 0 0 10px;
+        font: 600 10px/1.2 var(--font-serif);
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .card .title {
+        margin: 0 0 10px;
+        font: 600 21px/1.18 var(--font-sans);
+        color: var(--foreground);
+      }
+      .card .body {
+        margin: 0;
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--secondary-foreground);
+      }
+      .card.sunken { background: var(--card); box-shadow: none; }
+      .card.sunken .body { color: var(--foreground); }
+      .card.emphasis {
+        background: var(--foreground);
+        color: var(--background);
+        border-color: transparent;
+        box-shadow: var(--shadow-xl);
+      }
+      .card.emphasis .eyebrow { color: var(--secondary); }
+      .card.emphasis .body, .card.emphasis .title { color: var(--background); }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: calc(var(--spacing) * 4);
+      }
+
+      /* Input component (from preview) */
+      .field, .bar {
+        flex: 1 1 100%;
+        min-width: 200px;
+        height: 40px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--background);
+        box-shadow: var(--shadow-sm);
+      }
+      .field {
+        padding: 0 calc(var(--spacing) * 3);
+        color: var(--foreground);
+        font: 14px/1.4 var(--font-sans);
+      }
+      .field::placeholder, .bar input::placeholder { color: var(--muted-foreground); }
+      .field:focus, .bar:focus-within { outline: none; border-color: var(--ring); box-shadow: var(--shadow-sm); }
+      .field:disabled, .bar.disabled { background: var(--card); color: var(--muted-foreground); box-shadow: none; }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 calc(var(--spacing) * 3);
+        background: var(--card);
+        border-color: transparent;
+      }
+      .bar input { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
+      .bar .dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--muted-foreground); opacity: .5; }
+      .input-label {
+        display: block;
+        margin-bottom: calc(var(--spacing) * 1.5);
+        font: 600 12px/1.2 var(--font-sans);
+        color: var(--foreground);
+      }
+      .input-error {
+        margin-top: calc(var(--spacing) * 1.5);
+        font: 500 12px/1.3 var(--font-sans);
+        color: var(--destructive);
+      }
+      .field.error { border-color: var(--destructive); }
+
+      /* Badge component (from preview) */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 calc(var(--spacing) * 3.5);
+        border-radius: var(--radius);
+        font: 600 12px/1 var(--font-sans);
+        letter-spacing: .01em;
+        white-space: nowrap;
+        transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, color .16s ease, border-color .16s ease;
+      }
+      .badge:hover { transform: translateY(-1px); }
+      .badge.filled { background: var(--primary); color: var(--primary-foreground); border: 1px solid transparent; box-shadow: var(--shadow-xs); }
+      .badge.filled:hover { box-shadow: var(--shadow-sm); }
+      .badge.muted { background: var(--muted); color: var(--foreground); border: 1px solid transparent; }
+      .badge.outline { background: var(--popover); color: var(--foreground); border: 1px solid var(--border); }
+      .badge.success { background: var(--success); color: var(--success-foreground); border: 1px solid transparent; box-shadow: var(--shadow-xs); }
+      .badge.warning { background: var(--brand-400); color: var(--primary-foreground); border: 1px solid transparent; box-shadow: var(--shadow-xs); }
+      .badge.error-badge { background: var(--error); color: var(--error-foreground); border: 1px solid transparent; box-shadow: var(--shadow-xs); }
+      .badge.sm { min-height: 24px; padding: 0 calc(var(--spacing) * 2.5); font-size: 11px; }
+      .badge.lg { min-height: 38px; padding: 0 calc(var(--spacing) * 4.5); font-size: 13px; }
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--success);
+        display: inline-block;
+      }
+
+      /* Navigation component (from preview) */
+      .tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        max-width: 100%;
+        padding: 6px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-xs);
+      }
+      .tab {
+        appearance: none;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted-foreground);
+        font: 600 13px/1.1 var(--font-sans);
+        cursor: pointer;
+        padding: 11px 15px;
+        border-radius: calc(var(--radius) - 6px);
+        transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+      }
+      .tab:hover { background: var(--popover); color: var(--foreground); }
+      .tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .tab.active { background: var(--popover); color: var(--foreground); border-color: var(--border); box-shadow: var(--shadow-sm); }
+      .tab:disabled { cursor: not-allowed; box-shadow: none; background: transparent; color: var(--muted-foreground); }
+
+      .breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+        font: 500 13px/1.3 var(--font-sans);
+        color: var(--muted-foreground);
+      }
+      .breadcrumbs .crumb-current { color: var(--foreground); font-weight: 600; }
+      .breadcrumbs .sep { color: var(--border-400); }
+
+      /* Bottom nav (app style) */
+      .bottom-nav-app {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3) calc(var(--spacing) * 3);
+        background: var(--popover);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -1px 3px 0px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+      }
+      .nav-item-app {
+        display: grid;
+        gap: 4px;
+        justify-items: center;
+        padding: 10px 8px;
+        border-radius: calc(var(--radius) - 6px);
+        appearance: none;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted-foreground);
+        font: 500 11px/1.1 var(--font-sans);
+        cursor: pointer;
+        transition: background-color .16s ease, color .16s ease;
+      }
+      .nav-item-app:hover { background: var(--muted); color: var(--foreground); }
+      .nav-item-app.active { color: var(--primary); font-weight: 600; }
+      .nav-item-app .nav-icon {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nav-item-app .nav-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
+
+      /* Chat bubble component (from preview) */
+      .bubble {
+        display: grid;
+        gap: 8px;
+        max-width: 280px;
+        padding: calc(var(--spacing) * 3.5) calc(var(--spacing) * 4);
+        border-radius: calc(var(--radius) + 2px);
+        box-shadow: var(--shadow-sm);
+      }
+      .bubble.user { background: var(--primary); color: var(--primary-foreground); }
+      .bubble.assistant { background: var(--popover); color: var(--card-foreground); border: 1px solid var(--border); }
+      .bubble .meta {
+        display: block;
+        font: 500 11px/1.3 var(--font-sans);
+        letter-spacing: .01em;
+      }
+      .bubble.user .meta { color: var(--primary-foreground); opacity: .78; }
+      .bubble.assistant .meta { color: var(--muted-foreground); }
+      .bubble .copy { margin: 0; font-size: 14px; line-height: 1.6; }
+      .bubble .code-block {
+        margin-top: calc(var(--spacing) * 2);
+        padding: calc(var(--spacing) * 3);
+        background: var(--foreground);
+        color: var(--background);
+        border-radius: var(--radius-sm);
+        font: 400 12px/1.5 var(--font-mono);
+        overflow-x: auto;
+      }
+      .chat-thread {
+        display: grid;
+        gap: 12px;
+        width: 100%;
+        padding: calc(var(--spacing) * 4);
+        background: var(--popover);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 6px);
+        box-shadow: var(--shadow-sm);
+      }
+      .chat-thread .bubble.user { justify-self: end; }
+      .chat-thread .bubble.assistant { justify-self: start; }
+    </style>
+</body>
+</html>

@@ -23,12 +23,19 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.ui.tooling.preview)
+
+    // 视觉回归预览宿主（claude_preview.kt）需要的直接依赖：
+    // material3 / kotlinx-datetime 在 shared 内是间接依赖，桌面模块显式声明后才能被预览代码引用
+    implementation(libs.compose.material3)
+    implementation(libs.kotlinx.datetime)
 }
 
 
 compose.desktop {
     application {
-        mainClass = "com.shangkeschedule.MainKt"
+        // 视觉回归预览宿主可通过 -PpreviewMainClass=... 临时切换入口，默认仍是正式 App
+        mainClass = (project.findProperty("previewMainClass") as String?)
+            ?: "com.shangkeschedule.MainKt"
 
         buildTypes.release.proguard {
             isEnabled.set(false)

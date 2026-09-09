@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课表导入/导出 · 上课</title>
+    <style id="theme-vars">
+﻿/* Source: structured-spec */
+/* Brand fonts — Anthropic official: Newsreader (editorial display/slogan) +
+   Poppins (compact UI) + Lora (reading). Mono kept for code/token surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+/* ============================================================
+   Token model
+   1) Primitives — 7 key color cards as 10-step scales (50→900).
+      These are the single source of truth (mirrored in the linshi
+      preview tool). The flagged "standard" step per group:
+        brand-500 · text-800 · bg-100 · icon-700 · border-300 · success-500 · error-500
+   2) Semantic tokens — reference the primitives above (no raw hex
+      duplicates). These are the API consumed by preview / ui_kits /
+      components.
+   3) Non-color tokens — font, spacing, radius, shadow, type.
+   ============================================================ */
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --claude-background: var(--background, #ffffff);
+  --claude-foreground: var(--foreground, #0f172a);
+  --claude-card: var(--card, var(--background));
+  --claude-card-foreground: var(--card-foreground, var(--foreground));
+  --claude-popover: var(--popover, var(--card));
+  --claude-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --claude-primary: var(--primary, #111827);
+  --claude-primary-foreground: var(--primary-foreground, #ffffff);
+  --claude-secondary: var(--secondary, var(--muted, var(--card)));
+  --claude-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --claude-muted: var(--muted, var(--card));
+  --claude-muted-foreground: var(--muted-foreground, var(--foreground));
+  --claude-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --claude-accent-foreground: var(--accent-foreground, var(--foreground));
+  --claude-destructive: var(--destructive, #ef4444);
+  --claude-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --claude-border: var(--border, currentColor);
+  --claude-input: var(--input, var(--border));
+  --claude-ring: var(--ring, var(--primary));
+  --claude-chart-1: var(--chart-1, var(--primary));
+  --claude-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --claude-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --claude-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --claude-chart-5: var(--chart-5, var(--foreground));
+  --claude-sidebar: var(--sidebar, var(--background));
+  --claude-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --claude-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --claude-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --claude-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --claude-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #c96442 */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  /* text — standard: --text-800 #3d3929 */
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  /* background — standard: --bg-100 #faf9f5 */
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  /* icon — standard: --icon-700 #3d3929 */
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  /* border — standard: --border-300 #dad9d4 */
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  /* state · success — standard: --success-500 #788c5d */
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  /* state · error — standard: --error-500 #d64545 */
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-50);
+  --muted: var(--bg-300);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--icon-900);
+  --popover-foreground: var(--text-900);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-600);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: var(--text-900);
+  --destructive-foreground: #ffffff;
+  /* semantic */
+  --primary: var(--brand-500);
+  --secondary: #e9e6dc;
+  --accent: var(--secondary);
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — display (Newsreader) for slogans/headlines, sans (Poppins) for compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* spacing */
+  --spacing: 0.25rem;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+  /* type */
+  --tracking-normal: 0em;
+}
+
+.dark {
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #d97757 */
+  --brand-50: #3a2a22;
+  --brand-100: #4d3528;
+  --brand-200: #6b4533;
+  --brand-300: #8a5740;
+  --brand-400: #b0683f;
+  --brand-500: #d97757;
+  --brand-600: #e08d6f;
+  --brand-700: #e8a98f;
+  --brand-800: #f0c6b3;
+  --brand-900: #f8e3d8;
+  /* text — standard: --text-800 #f1f1ef */
+  --text-50: #1b1b19;
+  --text-100: #2c2c2b;
+  --text-200: #46443b;
+  --text-300: #6e6d68;
+  --text-400: #908e84;
+  --text-500: #b7b5a9;
+  --text-600: #c3c0b6;
+  --text-700: #d8d6cd;
+  --text-800: #f1f1ef;
+  --text-900: #faf9f5;
+  /* background — standard: --bg-100 #262624 */
+  --bg-50: #1b1b19;
+  --bg-100: #262624;
+  --bg-200: #2c2c2b;
+  --bg-300: #30302e;
+  --bg-400: #3e3e38;
+  --bg-500: #4a4a43;
+  --bg-600: #52514a;
+  --bg-700: #6e6d68;
+  --bg-800: #908e84;
+  --bg-900: #b7b5a9;
+  /* icon — standard: --icon-700 #f1f1ef */
+  --icon-50: #1b1b19;
+  --icon-100: #2c2c2b;
+  --icon-200: #46443b;
+  --icon-300: #6e6d68;
+  --icon-400: #908e84;
+  --icon-500: #b7b5a9;
+  --icon-600: #d8d6cd;
+  --icon-700: #f1f1ef;
+  --icon-800: #f8f8f6;
+  --icon-900: #ffffff;
+  /* border — standard: --border-300 #3e3e38 */
+  --border-50: #1f1e1d;
+  --border-100: #2c2c2b;
+  --border-200: #343430;
+  --border-300: #3e3e38;
+  --border-400: #4a4a43;
+  --border-500: #52514a;
+  --border-600: #6e6d68;
+  --border-700: #908e84;
+  --border-800: #b7b5a9;
+  --border-900: #d8d6cd;
+  /* state · success — standard: --success-500 #8ca06f */
+  --success-50: #232a1c;
+  --success-100: #2e3823;
+  --success-200: #3f4d30;
+  --success-300: #556640;
+  --success-400: #708353;
+  --success-500: #8ca06f;
+  --success-600: #a3b58a;
+  --success-700: #bccaa8;
+  --success-800: #d6dfc8;
+  --success-900: #edf2e4;
+  /* state · error — standard: --error-500 #ef4444 */
+  --error-50: #3a1f1f;
+  --error-100: #4d2424;
+  --error-200: #6e2c2c;
+  --error-300: #93302f;
+  --error-400: #c43a39;
+  --error-500: #ef4444;
+  --error-600: #f26b6b;
+  --error-700: #f59292;
+  --error-800: #f9b9b9;
+  --error-900: #fcdede;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-300);
+  --muted: var(--bg-50);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--text-900);
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #141413;
+  --secondary-foreground: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: #f5f4ee;
+  --destructive-foreground: #ffffff;
+  /* accent */
+  --primary: var(--brand-500);
+  --secondary: var(--text-900);
+  --accent: #1a1915;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  /* border */
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #141413;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — sans (Poppins) for headings + compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+}
+/* Project-level bridge CSS for Claude Design Library.
+   Adds the missing --radius-lg semantic alias required by
+   apply-html-head-contract.mjs so the head contract script
+   can run successfully in prefixless mode.
+   All values alias the Library's own tokens — strict fidelity. */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ===== 1) Primitive scales (from Claude Library) ===== */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens ===== */
+  --background: var(--bg-100);
+  --foreground: var(--text-800);
+  --card: var(--bg-200);
+  --card-foreground: var(--icon-900);
+  --popover: var(--bg-50);
+  --popover-foreground: var(--text-900);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --secondary: #e9e6dc;
+  --secondary-foreground: var(--text-600);
+  --muted: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent: var(--secondary);
+  --accent-foreground: var(--text-900);
+  --destructive: var(--error-500);
+  --destructive-foreground: #ffffff;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+
+  /* ===== 3) Non-color tokens ===== */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  --spacing: 0.25rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px; /* BRIDGE: maps to Library --radius-xl */
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --claude-radius-sm: 8px;
+  --claude-radius-md: 12px;
+  --claude-radius-lg: 20px;
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --background: #262624;
+  --foreground: #f1f1ef;
+  --card: #2c2c2b;
+  --card-foreground: #faf9f5;
+  --popover: #30302e;
+  --primary: #d97757;
+  --primary-foreground: #141413;
+  --secondary: #1a1915;
+  --muted: #1b1b19;
+  --muted-foreground: #b7b5a9;
+  --accent: #1a1915;
+  --destructive: #ef4444;
+  --border: #3e3e38;
+  --input: #52514a;
+  --ring: #d97757;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--claude-background);
+    --color-foreground: var(--claude-foreground);
+    --color-card: var(--claude-card);
+    --color-card-foreground: var(--claude-card-foreground);
+    --color-popover: var(--claude-popover);
+    --color-popover-foreground: var(--claude-popover-foreground);
+    --color-primary: var(--claude-primary);
+    --color-primary-foreground: var(--claude-primary-foreground);
+    --color-secondary: var(--claude-secondary);
+    --color-secondary-foreground: var(--claude-secondary-foreground);
+    --color-muted: var(--claude-muted);
+    --color-muted-foreground: var(--claude-muted-foreground);
+    --color-accent: var(--claude-accent);
+    --color-accent-foreground: var(--claude-accent-foreground);
+    --color-destructive: var(--claude-destructive);
+    --color-destructive-foreground: var(--claude-destructive-foreground);
+    --color-border: var(--claude-border);
+    --color-input: var(--claude-input);
+    --color-ring: var(--claude-ring);
+    --color-chart-1: var(--claude-chart-1);
+    --color-chart-2: var(--claude-chart-2);
+    --color-chart-3: var(--claude-chart-3);
+    --color-chart-4: var(--claude-chart-4);
+    --color-chart-5: var(--claude-chart-5);
+    --color-sidebar: var(--claude-sidebar);
+    --color-sidebar-foreground: var(--claude-sidebar-foreground);
+    --color-sidebar-primary: var(--claude-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--claude-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--claude-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--claude-sidebar-accent-foreground);
+    --radius-sm: var(--claude-radius-sm);
+    --radius-md: var(--claude-radius-md);
+    --radius-lg: var(--claude-radius-lg);
+  }
+  @layer base {
+    body { background: var(--claude-background); color: var(--claude-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--claude-background); }
+      .text-background { color: var(--claude-background); }
+      .border-background { border-color: var(--claude-background); }
+      .ring-background { --tw-ring-color: var(--claude-background); }
+      .bg-foreground { background-color: var(--claude-foreground); }
+      .text-foreground { color: var(--claude-foreground); }
+      .border-foreground { border-color: var(--claude-foreground); }
+      .ring-foreground { --tw-ring-color: var(--claude-foreground); }
+      .bg-card { background-color: var(--claude-card); }
+      .text-card { color: var(--claude-card); }
+      .border-card { border-color: var(--claude-card); }
+      .ring-card { --tw-ring-color: var(--claude-card); }
+      .bg-card-foreground { background-color: var(--claude-card-foreground); }
+      .text-card-foreground { color: var(--claude-card-foreground); }
+      .border-card-foreground { border-color: var(--claude-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--claude-card-foreground); }
+      .bg-popover { background-color: var(--claude-popover); }
+      .text-popover { color: var(--claude-popover); }
+      .border-popover { border-color: var(--claude-popover); }
+      .ring-popover { --tw-ring-color: var(--claude-popover); }
+      .bg-popover-foreground { background-color: var(--claude-popover-foreground); }
+      .text-popover-foreground { color: var(--claude-popover-foreground); }
+      .border-popover-foreground { border-color: var(--claude-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--claude-popover-foreground); }
+      .bg-primary { background-color: var(--claude-primary); }
+      .text-primary { color: var(--claude-primary); }
+      .border-primary { border-color: var(--claude-primary); }
+      .ring-primary { --tw-ring-color: var(--claude-primary); }
+      .bg-primary-foreground { background-color: var(--claude-primary-foreground); }
+      .text-primary-foreground { color: var(--claude-primary-foreground); }
+      .border-primary-foreground { border-color: var(--claude-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--claude-primary-foreground); }
+      .bg-secondary { background-color: var(--claude-secondary); }
+      .text-secondary { color: var(--claude-secondary); }
+      .border-secondary { border-color: var(--claude-secondary); }
+      .ring-secondary { --tw-ring-color: var(--claude-secondary); }
+      .bg-secondary-foreground { background-color: var(--claude-secondary-foreground); }
+      .text-secondary-foreground { color: var(--claude-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--claude-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--claude-secondary-foreground); }
+      .bg-muted { background-color: var(--claude-muted); }
+      .text-muted { color: var(--claude-muted); }
+      .border-muted { border-color: var(--claude-muted); }
+      .ring-muted { --tw-ring-color: var(--claude-muted); }
+      .bg-muted-foreground { background-color: var(--claude-muted-foreground); }
+      .text-muted-foreground { color: var(--claude-muted-foreground); }
+      .border-muted-foreground { border-color: var(--claude-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--claude-muted-foreground); }
+      .bg-accent { background-color: var(--claude-accent); }
+      .text-accent { color: var(--claude-accent); }
+      .border-accent { border-color: var(--claude-accent); }
+      .ring-accent { --tw-ring-color: var(--claude-accent); }
+      .bg-accent-foreground { background-color: var(--claude-accent-foreground); }
+      .text-accent-foreground { color: var(--claude-accent-foreground); }
+      .border-accent-foreground { border-color: var(--claude-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--claude-accent-foreground); }
+      .bg-destructive { background-color: var(--claude-destructive); }
+      .text-destructive { color: var(--claude-destructive); }
+      .border-destructive { border-color: var(--claude-destructive); }
+      .ring-destructive { --tw-ring-color: var(--claude-destructive); }
+      .bg-destructive-foreground { background-color: var(--claude-destructive-foreground); }
+      .text-destructive-foreground { color: var(--claude-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--claude-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--claude-destructive-foreground); }
+      .bg-border { background-color: var(--claude-border); }
+      .text-border { color: var(--claude-border); }
+      .border-border { border-color: var(--claude-border); }
+      .ring-border { --tw-ring-color: var(--claude-border); }
+      .bg-input { background-color: var(--claude-input); }
+      .text-input { color: var(--claude-input); }
+      .border-input { border-color: var(--claude-input); }
+      .ring-input { --tw-ring-color: var(--claude-input); }
+      .bg-ring { background-color: var(--claude-ring); }
+      .text-ring { color: var(--claude-ring); }
+      .border-ring { border-color: var(--claude-ring); }
+      .ring-ring { --tw-ring-color: var(--claude-ring); }
+      .bg-chart-1 { background-color: var(--claude-chart-1); }
+      .text-chart-1 { color: var(--claude-chart-1); }
+      .border-chart-1 { border-color: var(--claude-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--claude-chart-1); }
+      .bg-chart-2 { background-color: var(--claude-chart-2); }
+      .text-chart-2 { color: var(--claude-chart-2); }
+      .border-chart-2 { border-color: var(--claude-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--claude-chart-2); }
+      .bg-chart-3 { background-color: var(--claude-chart-3); }
+      .text-chart-3 { color: var(--claude-chart-3); }
+      .border-chart-3 { border-color: var(--claude-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--claude-chart-3); }
+      .bg-chart-4 { background-color: var(--claude-chart-4); }
+      .text-chart-4 { color: var(--claude-chart-4); }
+      .border-chart-4 { border-color: var(--claude-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--claude-chart-4); }
+      .bg-chart-5 { background-color: var(--claude-chart-5); }
+      .text-chart-5 { color: var(--claude-chart-5); }
+      .border-chart-5 { border-color: var(--claude-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--claude-chart-5); }
+      .bg-sidebar { background-color: var(--claude-sidebar); }
+      .text-sidebar { color: var(--claude-sidebar); }
+      .border-sidebar { border-color: var(--claude-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--claude-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--claude-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--claude-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--claude-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--claude-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--claude-sidebar-primary); }
+      .text-sidebar-primary { color: var(--claude-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--claude-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--claude-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--claude-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--claude-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--claude-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--claude-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--claude-sidebar-accent); }
+      .text-sidebar-accent { color: var(--claude-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--claude-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--claude-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--claude-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--claude-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--claude-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--claude-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased bg-background text-foreground">
+    <div class="phone-frame">
+      <main id="page-import-export" class="page-import-export">
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+          <span class="status-time">9:41</span>
+          <div class="status-icons">
+            <svg class="status-icon" viewBox="0 0 18 12" fill="currentColor">
+              <path d="M1 12h2V8H1v4zm4 0h2V4H5v8zm4 0h2V0H9v12zm4 0h2V6h-2v6zm4 0h2V2h-2v10z"></path>
+            </svg>
+            <svg class="status-icon" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1.5 6.5a10 10 0 0 1 13 0"></path>
+              <path d="M4 9a6 6 0 0 1 8 0"></path>
+              <circle cx="8" cy="11" r="1" fill="currentColor"></circle>
+            </svg>
+            <svg class="status-icon battery-icon" viewBox="0 0 26 12" fill="none">
+              <rect x="0.5" y="0.5" width="22" height="11" rx="2.5" stroke="currentColor" opacity="0.5"></rect>
+              <rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"></rect>
+              <rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity="0.5"></rect>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 导航栏 -->
+        <nav class="nav-bar">
+          <button class="nav-back" type="button" aria-label="返回">
+            <img src="../assets/icons/dl_builtin_claude/chevron-left.svg" alt="" class="nav-back-icon">
+          </button>
+          <h1 class="nav-title">课表导入/导出</h1>
+          <div class="nav-placeholder"></div>
+        </nav>
+
+        <!-- 页面内容区 -->
+        <div class="content-scroll">
+
+          <!-- 分组 1：文件导入/导出 -->
+          <section class="list-group" data-editor-id="editor-node-mtudetq8-1">
+            <h2 class="group-label">教务导入</h2>
+            <div class="group-card">
+              <!-- 列表项 1 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-green">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                  </svg>
+                </div>
+                <div class="item-content">
+                  <span class="item-title">教务系统导入</span>
+                  <span class="item-subtitle">从教务系统导入课程，方便快捷</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+              <!-- 分割线 -->
+              <div class="item-divider"></div>
+              <!-- 列表项 2 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-blue">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </div>
+                <div class="item-content">
+                  <span class="item-title">文本粘贴导入</span>
+                  <span class="item-subtitle">WakeUp文本/纯文本/JSON/CSV/ICS 分类导入，先预览再导入</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+            </div>
+          </section><section class="list-group">
+            <h2 class="group-label">文件导入/导出</h2>
+            <div class="group-card">
+              <!-- 列表项 1 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-amber">
+                  <img src="../assets/icons/dl_builtin_claude/folder-open.svg" alt="" class="item-icon">
+                </div>
+                <div class="item-content">
+                  <span class="item-title">文件导入</span>
+                  <span class="item-subtitle">Excel / JSON / 文本文件，分类导入</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+              <!-- 分割线 -->
+              <div class="item-divider"></div>
+              <!-- 列表项 2 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-amber">
+                  <img src="../assets/icons/dl_builtin_claude/file.svg" alt="" class="item-icon">
+                </div>
+                <div class="item-content">
+                  <span class="item-title">课程文件导出</span>
+                  <span class="item-subtitle">导出携带时间段配置的json课程文件</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+              <!-- 分割线 -->
+              <div class="item-divider"></div>
+              <!-- 列表项 3 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-amber">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+                    <line x1="16" x2="16" y1="2" y2="6"></line>
+                    <line x1="8" x2="8" y1="2" y2="6"></line>
+                    <line x1="3" x2="21" y1="10" y2="10"></line>
+                  </svg>
+                </div>
+                <div class="item-content">
+                  <span class="item-title">日历文件导出</span>
+                  <span class="item-subtitle">导出ics文件，点击生成指定提醒时间参数的文件</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+            </div>
+          </section>
+
+          <!-- 分组 2：教务导入 -->
+          
+
+          <!-- 分组 3：同步 -->
+          <section class="list-group">
+            <h2 class="group-label">同步</h2>
+            <div class="group-card">
+              <!-- 列表项 1 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-purple">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                  </svg>
+                </div>
+                <div class="item-content">
+                  <span class="item-title">同步到系统日历</span>
+                  <span class="item-subtitle">将当前课表一键同步至手机系统日历</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+              <!-- 分割线 -->
+              <div class="item-divider"></div>
+              <!-- 列表项 2 -->
+              <button class="list-item" type="button">
+                <div class="item-icon-wrap item-icon-amber">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div class="item-content">
+                  <span class="item-title">备份与恢复</span>
+                  <span class="item-subtitle">支持云盘与本地文件多渠道备份，保障课表数据安全</span>
+                </div>
+                <img src="../assets/icons/dl_builtin_claude/chevron-right.svg" alt="" class="item-chevron">
+              </button>
+            </div>
+          </section>
+
+          <!-- 底部留白 -->
+          <div class="bottom-spacing"></div>
+
+        </div>
+
+        <!-- Home Indicator -->
+        <div class="home-indicator-wrap">
+          <div class="home-indicator"></div>
+        </div>
+
+      </main>
+    </div>
+
+    <style id="page-import-export-styles">
+      /* ===== Phone frame & page layout ===== */
+      .phone-frame {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        background: var(--bg-200);
+      }
+      .page-import-export {
+        width: 100%;
+        max-width: 375px;
+        min-height: 100vh;
+        background: var(--background);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* ===== Status bar ===== */
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 24px 6px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        flex-shrink: 0;
+      }
+      .status-time {
+        flex: 1;
+        text-align: center;
+        padding-left: 32px;
+        letter-spacing: -0.01em;
+      }
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-icon {
+        width: 18px;
+        height: 12px;
+        color: var(--foreground);
+      }
+      .battery-icon {
+        width: 26px;
+        height: 12px;
+      }
+
+      /* ===== Navigation bar ===== */
+      .nav-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 44px;
+        padding: 0 8px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .nav-back {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color .16s ease;
+        flex-shrink: 0;
+      }
+      .nav-back:hover {
+        background: var(--muted);
+      }
+      .nav-back-icon {
+        width: 22px;
+        height: 22px;
+        color: var(--foreground);
+      }
+      .nav-title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        font: 600 17px/1.2 var(--font-sans);
+        color: var(--foreground);
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+      .nav-placeholder {
+        width: 40px;
+        flex-shrink: 0;
+      }
+
+      /* ===== Content scroll area ===== */
+      .content-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 20px 0;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* ===== List group (inset grouped) ===== */
+      .list-group {
+        margin-bottom: 28px;
+      }
+      .group-label {
+        margin: 0 0 8px 14px;
+        font: 600 13px/1.3 var(--font-sans);
+        color: var(--primary);
+        letter-spacing: -0.01em;
+      }
+      .group-card {
+        background: var(--popover);
+        border-radius: 14px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+        border: 0.5px solid var(--border-200, #e3e0d4);
+        transition: box-shadow .2s ease;
+      }
+      .group-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+      }
+
+      /* ===== List item ===== */
+      .list-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        background: transparent;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color .15s ease;
+      }
+      .list-item:hover {
+        background: var(--bg-100);
+      }
+      .list-item:active {
+        background: var(--bg-200);
+      }
+
+      /* Item icon */
+      .item-icon-wrap {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .item-icon-amber {
+        background: var(--brand-50, #fbf2ed);
+        color: var(--brand-500);
+      }
+      .item-icon-green {
+        background: var(--success-50, #f0f3ea);
+        color: var(--success-500);
+      }
+      .item-icon-blue {
+        background: #e8f0fe;
+        color: #4a7dcf;
+      }
+      .item-icon-purple {
+        background: #f0ebf8;
+        color: #7c5cbf;
+      }
+      .item-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Item content */
+      .item-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .item-title {
+        font: 500 16px/1.3 var(--font-sans);
+        color: var(--foreground);
+        letter-spacing: -0.01em;
+      }
+      .item-subtitle {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--muted-foreground);
+        font-family: var(--font-sans);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* Chevron */
+      .item-chevron {
+        width: 18px;
+        height: 18px;
+        color: var(--text-400, #9b988c);
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      /* Divider */
+      .item-divider {
+        height: 0.5px;
+        background: var(--border-200, #e3e0d4);
+        margin-left: 62px;
+      }
+
+      /* ===== Bottom spacing ===== */
+      .bottom-spacing {
+        height: 20px;
+      }
+
+      /* ===== Home indicator ===== */
+      .home-indicator-wrap {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--background);
+        flex-shrink: 0;
+      }
+      .home-indicator {
+        width: 134px;
+        height: 5px;
+        border-radius: var(--radius-full);
+        background: var(--foreground);
+        opacity: 0.25;
+      }
+
+      /* Scrollbar styling */
+      .content-scroll::-webkit-scrollbar {
+        width: 0;
+        background: transparent;
+      }
+    </style>
+</body>
+</html>

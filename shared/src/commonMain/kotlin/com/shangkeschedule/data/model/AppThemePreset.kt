@@ -6,6 +6,7 @@ import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.theme_preset_classic
+import shangkeschedule.shared.generated.resources.theme_preset_claude
 import shangkeschedule.shared.generated.resources.theme_preset_clean
 import shangkeschedule.shared.generated.resources.theme_preset_cloud
 import shangkeschedule.shared.generated.resources.theme_preset_ios
@@ -13,7 +14,7 @@ import shangkeschedule.shared.generated.resources.theme_preset_ios
 /**
  * App 主题预设：把全局配色种子色与课表视觉样式统一为一套主题。
  *
- * IOS = 「通透」iOS 风格严格 Apple 系统色；ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；TIMETABLE = 「利落」白底左侧色条紧凑。
+ * IOS = 「通透」iOS 风格严格 Apple 系统色；ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；TIMETABLE = 「利落」白底左侧色条紧凑；CLAUDE = 「Claude」Anthropic 设计系统暖砂纸底 + 赤陶主色。
  */
 enum class AppThemePreset(
     val value: String,
@@ -26,6 +27,12 @@ enum class AppThemePreset(
         labelRes = Res.string.theme_preset_ios,
         seedColor = Color(0xFF007AFF),
         gridStyle = ScheduleGridStyle.IOS
+    ),
+    CLAUDE(
+        value = "CLAUDE",
+        labelRes = Res.string.theme_preset_claude,
+        seedColor = Color(0xFFC96442),
+        gridStyle = ClaudeGridStyle
     ),
     ORIGINAL(
         value = "ORIGINAL",
@@ -124,6 +131,49 @@ private val CleanGridStyle = ScheduleGridStyle(
     hideLocation = false,
     hideTeacher = false,
     removeLocationAt = true,
+    textAlignCenterHorizontal = false,
+    textAlignCenterVertical = false,
+    borderType = BorderTypeProto.BORDER_TYPE_NONE,
+    scheduleMode = ScheduleModeProto.SECTION_MODE,
+    pageTextColorLong = null,
+    courseTextColorLong = null,
+    backgroundImagePath = null
+)
+
+// --- CLAUDE 主题专属课表样式 ---
+// 设计原则：Claude 设计系统课程配色只有 5 个 chart 色（chart-1 ~ chart-5），
+// 12 个课程槽位按 1→5 循环取色；浅色用 chart 色 0x40 淡底（与 iOS 色条主题同款约定），
+// 深色用 chart 色实底，保证暖炭底上的可读性。
+private val ClaudeGridStyle = ScheduleGridStyle(
+    timeColumnWidthDp = 44f,
+    dayHeaderHeightDp = 48f,
+    sectionHeightDp = 76f,
+    courseBlockCornerRadiusDp = 8f,
+    courseBlockOuterPaddingDp = 1f,
+    courseBlockInnerPaddingDp = 3f,
+    courseBlockAlphaFloat = 1f,
+    courseColorMaps = listOf(
+        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
+        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
+        DualColor(light = Color(0x40DED8C4), dark = Color(0xFFDED8C4)), // chart-3
+        DualColor(light = Color(0x40DBD3F0), dark = Color(0xFFDBD3F0)), // chart-4
+        DualColor(light = Color(0x40B4552D), dark = Color(0xFFB4552D)), // chart-5
+        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
+        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
+        DualColor(light = Color(0x40DED8C4), dark = Color(0xFFDED8C4)), // chart-3
+        DualColor(light = Color(0x40DBD3F0), dark = Color(0xFFDBD3F0)), // chart-4
+        DualColor(light = Color(0x40B4552D), dark = Color(0xFFB4552D)), // chart-5
+        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
+        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
+    ),
+    courseBlockFontScale = 1.15f,
+    hideGridLines = false,
+    hideSectionTime = false,
+    hideDateUnderDay = false,
+    showStartTime = false,
+    hideLocation = false,
+    hideTeacher = false,
+    removeLocationAt = false,
     textAlignCenterHorizontal = false,
     textAlignCenterVertical = false,
     borderType = BorderTypeProto.BORDER_TYPE_NONE,
