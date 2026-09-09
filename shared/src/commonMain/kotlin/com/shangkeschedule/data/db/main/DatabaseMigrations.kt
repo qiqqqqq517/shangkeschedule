@@ -281,6 +281,34 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
+/**
+ * 数据库版本 10 迁移到 版本 11 的迁移代码。
+ * 新增 schedule_events 日程事件表（供「日程」页月历与日程列表展示）。
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `schedule_events` (
+                `id` TEXT NOT NULL,
+                `date` TEXT NOT NULL,
+                `title` TEXT NOT NULL,
+                `category` TEXT NOT NULL,
+                `isAllDay` INTEGER NOT NULL,
+                `startTime` TEXT,
+                `endTime` TEXT,
+                `location` TEXT,
+                `note` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_schedule_events_date` ON `schedule_events` (`date`)")
+    }
+}
+
 // 【集中管理所有迁移对象】
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -290,4 +318,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_7_8,
     MIGRATION_8_9,
     MIGRATION_9_10,
+    MIGRATION_10_11,
 )

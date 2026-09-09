@@ -1,0 +1,163 @@
+{
+  "data": [
+    {
+      "id": "page-today",
+      "title": "今日日程",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 903,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-012d1ee7",
+          "measuredAt": 1788970043746
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/today.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-week",
+      "title": "周课表",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000001,
+      "canvasData": {
+        "x": 169,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 940,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-1a5a746d",
+          "measuredAt": 1788974948377
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/week.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-import",
+      "title": "教务导入",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000002,
+      "canvasData": {
+        "x": 338,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-df978561",
+          "measuredAt": 1788974948377
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/import.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-semesters",
+      "title": "多学期管理",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000003,
+      "canvasData": {
+        "x": 507,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 812,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-522df362",
+          "measuredAt": 1788974948377
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/semesters.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-course-edit",
+      "title": "课程编辑",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000004,
+      "canvasData": {
+        "x": 676,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1109,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-7f9dfa0d",
+          "measuredAt": 1788974948377
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/course-edit.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-components",
+      "title": "组件预览",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1757412000005,
+      "canvasData": {
+        "x": 845,
+        "y": 0,
+        "group": 0,
+        "deviceType": "mobile",
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 940,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-26dbc543",
+          "measuredAt": 1788974948377
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/components.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile",
+    "projectName": "上课课表",
+    "designLibrary": {
+      "name": "Apple",
+      "id": "dl_builtin_apple",
+      "version": 0,
+      "path": "c:\\Users\\30458\\.trae-cn\\design_libraries\\Apple",
+      "scope": "builtin-global",
+      "versionSource": "metadata.json"
+    },
+    "visualEditorEnabled": false,
+    "showEdge": false
+  }
+}

@@ -1,0 +1,10 @@
+/* Apple Design Library - Semantic token bridge
+ * Adds radius sm/md/lg aliases required by apply-html-head-contract.mjs
+ */
+
+:root {
+  --apple-radius-sm: 0.6rem;
+  --apple-radius-md: 0.9rem;
+  --apple-radius-lg: 1.2rem;
+  --apple-radius: var(--apple-radius-lg);
+}

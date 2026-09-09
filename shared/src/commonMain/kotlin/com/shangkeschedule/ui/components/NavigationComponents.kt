@@ -71,9 +71,11 @@ import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.account_circle_24px
 import shangkeschedule.shared.generated.resources.account_circle_filled_24px
+import shangkeschedule.shared.generated.resources.calendar_today_24px
 import shangkeschedule.shared.generated.resources.nav_course_schedule
+import shangkeschedule.shared.generated.resources.nav_schedule
 import shangkeschedule.shared.generated.resources.nav_settings
-import shangkeschedule.shared.generated.resources.nav_today_schedule
+import shangkeschedule.shared.generated.resources.nav_today
 import shangkeschedule.shared.generated.resources.view_agenda_24px
 import shangkeschedule.shared.generated.resources.view_agenda_filled_24px
 import shangkeschedule.shared.generated.resources.view_week_24px
@@ -111,7 +113,8 @@ fun AdaptiveNavigationScaffold(
 ) {
     val navItems = listOf(
         NavItemData(
-            label = stringResource(Res.string.nav_today_schedule),
+            // 底栏 4 个 Tab 后横向空间紧张，首项用短标签「今日」避免换行（完整名称见页面标题）
+            label = stringResource(Res.string.nav_today),
             destination = Destination.TodaySchedule,
             selectedIcon = vectorResource(Res.drawable.view_agenda_filled_24px),
             unselectedIcon = vectorResource(Res.drawable.view_agenda_24px)
@@ -121,6 +124,12 @@ fun AdaptiveNavigationScaffold(
             destination = Destination.CourseSchedule,
             selectedIcon = vectorResource(Res.drawable.view_week_filled_24px),
             unselectedIcon = vectorResource(Res.drawable.view_week_24px)
+        ),
+        NavItemData(
+            label = stringResource(Res.string.nav_schedule),
+            destination = Destination.Schedule,
+            selectedIcon = vectorResource(Res.drawable.calendar_today_24px),
+            unselectedIcon = vectorResource(Res.drawable.calendar_today_24px)
         ),
         NavItemData(
             label = stringResource(Res.string.nav_settings),
@@ -350,7 +359,7 @@ fun AdaptiveNavigationScaffold(
                                             role = Role.Tab,
                                             onClick = { if (!isSelected) onTabSelected(item.destination) }
                                         )
-                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -367,7 +376,10 @@ fun AdaptiveNavigationScaffold(
                                         fontSize = if (isSelected) appType().hint else appType().badge,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
-                                        modifier = Modifier.padding(start = 5.dp)
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
                             }

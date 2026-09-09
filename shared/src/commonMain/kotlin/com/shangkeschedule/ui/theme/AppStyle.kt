@@ -183,12 +183,15 @@ fun appColorTokens(isDark: Boolean): AppColorTokens =
 
 /**
  * 按主题预设取颜色 tokens：通透（iOS）深浅模式均走独立 Apple HIG 色板，
- * 严格锁定 Apple 系统色系（不跟随动态取色/自定义主色），
- * 其余预设沿用 v2 基线 token；深色模式下非 iOS 预设走统一深色 tokens。
+ * Claude（CLAUDE）深浅模式均走 Anthropic/Claude 设计系统色板，
+ * 两者严格锁定各自系统色系（不跟随动态取色/自定义主色），
+ * 其余预设沿用 v2 基线 token；深色模式下非 iOS / 非 CLAUDE 预设走统一深色 tokens。
  */
 fun appColorTokens(isDark: Boolean, preset: AppThemePreset): AppColorTokens = when {
     preset == AppThemePreset.IOS && isDark -> iosDarkAppColorTokens()
     preset == AppThemePreset.IOS -> iosLightAppColorTokens()
+    preset == AppThemePreset.CLAUDE && isDark -> claudeDarkAppColorTokens()
+    preset == AppThemePreset.CLAUDE -> claudeLightAppColorTokens()
     isDark -> darkAppColorTokens()
     else -> lightAppColorTokens()
 }
@@ -648,21 +651,24 @@ private val iosTypeTokens = AppTypeTokens(
     hint = 12.sp
 )
 
-/** 按主题预设取形状 tokens：通透（iOS）走 iOS 系统规范，其余走默认基线。 */
+/** 按主题预设取形状 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统圆角阶梯，其余走默认基线。 */
 fun appShapeTokens(preset: AppThemePreset): AppShapeTokens = when (preset) {
     AppThemePreset.IOS -> iosShapeTokens
+    AppThemePreset.CLAUDE -> claudeShapeTokens
     else -> defaultShapeTokens
 }
 
-/** 按主题预设取间距 tokens：通透（iOS）走 iOS 系统规范，其余走默认基线。 */
+/** 按主题预设取间距 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统留白，其余走默认基线。 */
 fun appSpacingTokens(preset: AppThemePreset): AppSpacingTokens = when (preset) {
     AppThemePreset.IOS -> iosSpacingTokens
+    AppThemePreset.CLAUDE -> claudeSpacingTokens
     else -> defaultSpacingTokens
 }
 
-/** 按主题预设取字阶 tokens：通透（iOS）走 iOS 系统规范，其余走默认基线。 */
+/** 按主题预设取字阶 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统字阶，其余走默认基线。 */
 fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
     AppThemePreset.IOS -> iosTypeTokens
+    AppThemePreset.CLAUDE -> claudeTypeTokens
     else -> defaultTypeTokens
 }
 

@@ -145,23 +145,9 @@ class TodayScheduleViewModel(
                         } else {
                             flowOf(emptyList())
                         }
-
-                    // 本周课程总数（iOS 主题用：累加一周 7 天课程数）
-                    val weekCourseCountFlow: Flow<Int> =
-                        if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null) {
-                            val dayFlows = (1..7).map { day ->
-                                courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, day)
-                            }
-                            combine(dayFlows) { dayResults ->
-                                dayResults.sumOf { it.size }
-                            }
-                        } else {
-                            flowOf(0)
-                        }
-
                     // 今日待办与课程并行组合进同一状态；待办不受学期状态影响，跨天随 currentDateFlow 自动重算
-                    combine(coursesFlow, tomorrowCoursesFlow, weekCourseCountFlow, todoRepository.getTodosByDate(todayStr)) { courses, tomorrowCourses, weekCourseCount, todos ->
-                        createSuccessState(courses, tomorrowCourses, weekCourseCount, snapshot, today, todos)
+                    combine(coursesFlow, tomorrowCoursesFlow, todoRepository.getTodosByDate(todayStr)) { courses, tomorrowCourses, todos ->
+                        createSuccessState(courses, tomorrowCourses, snapshot, today, todos)
                     }
                 }
             }
@@ -215,7 +201,6 @@ class TodayScheduleViewModel(
     private fun createSuccessState(
         courses: List<CourseWithWeeks>,
         tomorrowCourses: List<CourseWithWeeks>,
-        weekCourseCount: Int,
         snapshot: DataSnapshot,
         today: LocalDate,
         todos: List<TodoItem> = emptyList()
@@ -251,7 +236,6 @@ class TodayScheduleViewModel(
         return TodayUiState.Success(
             courses = displayModels,
             tomorrowCourses = tomorrowDisplayModels,
-            weekCourseCount = weekCourseCount,
             todos = todos,
             weekIndex = snapshot.weekIndex ?: 0,
             today = today,
@@ -276,7 +260,6 @@ sealed class TodayUiState {
     data class Success(
         val courses: List<CourseDisplayModel>,
         val tomorrowCourses: List<CourseDisplayModel>,
-        val weekCourseCount: Int,
         val todos: List<TodoItem>,
         val weekIndex: Int,
         val today: LocalDate,

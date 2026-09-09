@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+<title>教务导入 · 上课Shangke</title>
+<link rel="stylesheet" href="../assets/claude-tokens.css" />
+<link rel="stylesheet" href="../assets/claude-components.css" />
+<style>
+  body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+  .page-import { display: flex; flex-direction: column; gap: calc(var(--spacing) * 6); padding: 0 calc(var(--spacing) * 5) calc(var(--spacing) * 4); position: relative; }
+
+  /* ===== 状态栏 ===== */
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 1); font: 600 12px/1 var(--font-sans); color: var(--muted-foreground); }
+  .status-time { flex: 1; text-align: center; padding-left: calc(var(--spacing) * 8); }
+  .status-icons { display: flex; align-items: center; gap: calc(var(--spacing) * 1.5); }
+
+  /* ===== 标题 ===== */
+  .import-header { display: flex; flex-direction: column; gap: calc(var(--spacing) * 1.5); padding-top: calc(var(--spacing) * 2); }
+  .import-eyebrow { margin: 0; color: var(--muted-foreground); font: 600 11px/1.3 var(--font-serif); text-transform: uppercase; letter-spacing: 0.1em; }
+  .import-title { margin: 0; font: 600 32px/1.1 var(--font-display); color: var(--foreground); letter-spacing: -0.01em; }
+  .import-subtitle { margin: 0; font-size: 14px; line-height: 1.6; color: var(--secondary-foreground); }
+
+  /* ===== 步骤指示器 ===== */
+  .step-indicator { display: flex; align-items: flex-start; justify-content: space-between; padding: calc(var(--spacing) * 2) 0; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: calc(var(--spacing) * 1.5); flex: 0 0 auto; position: relative; z-index: 1; background: none; border: 0; padding: 0; cursor: pointer; }
+  .step-circle { width: 32px; height: 32px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font: 600 13px/1 var(--font-sans); background: var(--secondary); color: var(--muted-foreground); border: 1px solid var(--border); transition: all .2s ease; }
+  .step-check { width: 16px; height: 16px; }
+  .step-label { font: 500 11px/1.2 var(--font-sans); color: var(--muted-foreground); white-space: nowrap; }
+  .step:focus-visible .step-circle { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .step-done .step-circle { background: var(--success-solid, var(--success)); color: var(--success-foreground); border-color: transparent; }
+  .step-done .step-label { color: var(--success); }
+  .step-active .step-circle { background: var(--primary-solid, var(--primary)); color: var(--primary-foreground); border-color: transparent; box-shadow: var(--shadow-sm); }
+  .step-active .step-label { color: var(--primary); font-weight: 600; }
+  .step-line { flex: 1; height: 2px; background: var(--border); margin: 15px calc(var(--spacing) * 1) 0; border-radius: var(--radius-full); }
+  .step-line-done { background: var(--success); }
+
+  /* ===== 步骤区 ===== */
+  .step-section { display: none; flex-direction: column; gap: calc(var(--spacing) * 5); }
+  .step-section-active { display: flex; }
+
+  /* ===== 搜索栏 ===== */
+  .search-bar { display: flex; align-items: center; gap: calc(var(--spacing) * 2.5); padding: 0 calc(var(--spacing) * 3.5); height: 48px; background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .search-bar:focus-within { border-color: var(--ring); }
+  .search-icon { width: 18px; height: 18px; color: var(--muted-foreground); flex-shrink: 0; }
+  .search-input { flex: 1; min-width: 0; border: none; background: transparent; color: var(--foreground); font: 14px/1.4 var(--font-sans); outline: none; }
+  .search-input::placeholder { color: var(--muted-foreground); }
+
+  /* ===== 分区头 ===== */
+  .section-header { display: flex; align-items: center; justify-content: space-between; }
+  .section-label { font: 600 10px/1.2 var(--font-serif); letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+  .section-count, .section-sub { font: 500 12px/1.3 var(--font-sans); color: var(--muted-foreground); }
+
+  /* ===== 学校列表 ===== */
+  .school-section { display: flex; flex-direction: column; gap: calc(var(--spacing) * 3); }
+  .school-list { display: grid; gap: calc(var(--spacing) * 2.5); }
+  .school-card { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 3); padding: calc(var(--spacing) * 3.5); background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-xs); cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+  .school-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--ring); }
+  .school-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .school-card.selected { border-color: var(--primary); box-shadow: var(--shadow-md); }
+  .school-info { display: flex; flex-direction: column; gap: calc(var(--spacing) * 1.5); min-width: 0; }
+  .school-name { margin: 0; font: 600 16px/1.25 var(--font-sans); color: var(--foreground); }
+  .school-meta { display: flex; align-items: center; gap: calc(var(--spacing) * 1.5); }
+  .meta-icon-sm { width: 14px; height: 14px; color: var(--muted-foreground); flex-shrink: 0; }
+  .meta-text-sm { font: 500 12px/1.4 var(--font-sans); color: var(--muted-foreground); }
+  .school-badge { min-height: 26px; font-size: 11px; flex-shrink: 0; }
+  .empty-hint { padding: calc(var(--spacing) * 6) 0; text-align: center; font: 400 14px/1.6 var(--font-sans); color: var(--muted-foreground); }
+
+  /* ===== 登录卡片 ===== */
+  .login-card { min-height: auto; gap: calc(var(--spacing) * 3); }
+  .login-title { margin: 0; }
+  .login-desc { margin: 0; flex: none; }
+  .login-form { display: grid; gap: calc(var(--spacing) * 4); margin-top: calc(var(--spacing) * 2); }
+  .field-wrapper { display: grid; gap: calc(var(--spacing) * 1.5); }
+  .field-label { font: 600 12px/1.3 var(--font-sans); color: var(--foreground); }
+  .field-full { width: 100%; flex: none; min-width: 0; height: 44px; }
+  .password-wrapper { position: relative; }
+  .password-field { padding-right: 44px; }
+  .password-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer; border-radius: var(--radius-sm); }
+  .password-toggle:hover { color: var(--foreground); }
+  .password-toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .toggle-icon { width: 18px; height: 18px; }
+  .captcha-row { display: flex; gap: calc(var(--spacing) * 2.5); align-items: stretch; }
+  .captcha-input { flex: 1; min-width: 0; }
+  .captcha-image { display: flex; align-items: center; justify-content: center; width: 96px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); flex-shrink: 0; cursor: pointer; }
+  .captcha-text { font: 600 18px/1 var(--font-mono); letter-spacing: .18em; color: var(--foreground); }
+  .btn-full { width: 100%; }
+  .login-btn { gap: calc(var(--spacing) * 2); }
+  .btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid currentColor; border-top-color: transparent; border-radius: var(--radius-full); animation: spin .7s linear infinite; }
+  .login-btn.loading .btn-spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .form-hint { margin: 0; font: 400 12px/1.5 var(--font-sans); color: var(--muted-foreground); }
+
+  /* ===== 学期选择 ===== */
+  .semester-list { display: grid; gap: calc(var(--spacing) * 2.5); }
+  .semester-card { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 3); padding: calc(var(--spacing) * 3.5); background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-xs); cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+  .semester-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--ring); }
+  .semester-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .semester-card.selected { border-color: var(--primary); box-shadow: var(--shadow-md); }
+  .semester-info { display: grid; gap: calc(var(--spacing) * 1.5); min-width: 0; }
+  .semester-header { display: flex; align-items: center; gap: calc(var(--spacing) * 2); }
+  .semester-name { margin: 0; font: 600 15px/1.3 var(--font-sans); color: var(--foreground); }
+  .semester-badge { min-height: 24px; font-size: 10px; padding: 0 calc(var(--spacing) * 2); }
+  .badge-success { background: var(--success-solid, var(--success)); color: var(--success-foreground); border: 1px solid transparent; }
+  .semester-meta { display: flex; align-items: center; gap: calc(var(--spacing) * 1.5); }
+  .chevron-right { width: 18px; height: 18px; color: var(--muted-foreground); flex-shrink: 0; }
+
+  /* ===== 导入状态 ===== */
+  .import-state { display: flex; flex-direction: column; }
+  .import-state-hidden { display: none; }
+  .import-progress-card, .import-result-card { min-height: auto; align-items: center; text-align: center; gap: calc(var(--spacing) * 3); padding: calc(var(--spacing) * 6); }
+  .progress-icon-wrap, .result-icon-wrap { width: 56px; height: 56px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; background: var(--brand-50); color: var(--primary); }
+  .progress-icon, .result-icon { width: 26px; height: 26px; }
+  .result-success { background: var(--success-50); color: var(--success); }
+  .result-error { background: var(--error-50); color: var(--error); }
+  .import-status-label { margin: 0; }
+  .import-progress-title, .result-title { margin: 0; }
+  .import-current-course, .result-desc { margin: 0; flex: none; }
+  .progress-shell { width: 100%; height: 8px; border-radius: var(--radius-full); background: var(--muted); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: var(--radius-full); background: var(--primary); transition: width .35s ease; }
+  .progress-stats { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .progress-percent { font: 600 12px/1.2 var(--font-sans); color: var(--foreground); }
+  .progress-count { font: 500 12px/1.2 var(--font-sans); color: var(--muted-foreground); }
+  .result-stats { display: flex; align-items: center; justify-content: center; gap: calc(var(--spacing) * 5); margin: calc(var(--spacing) * 2) 0; }
+  .result-stat { display: grid; gap: 2px; }
+  .stat-number { font: 600 24px/1.1 var(--font-display); color: var(--foreground); }
+  .stat-label { font: 500 11px/1.2 var(--font-sans); color: var(--muted-foreground); }
+  .result-stat-divider { width: 1px; height: 32px; background: var(--border); }
+  .result-actions { display: flex; gap: calc(var(--spacing) * 3); width: 100%; }
+  .result-actions .btn { flex: 1; }
+  .result-btn { margin-top: calc(var(--spacing) * 2); }
+
+  /* ===== 桌面端侧栏 ===== */
+  .app-aside { padding: calc(var(--spacing) * 6) calc(var(--spacing) * 5); border-left: 1px solid var(--border); background: var(--card); }
+  .aside-card { padding: calc(var(--spacing) * 4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-xs); margin-bottom: calc(var(--spacing) * 4); }
+  .aside-card h3 { margin: 0 0 calc(var(--spacing) * 3); font: 600 11px/1.2 var(--font-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+  .aside-card ol { margin: 0; padding-left: 18px; display: grid; gap: calc(var(--spacing) * 2); }
+  .aside-card li { font: 400 13px/1.5 var(--font-sans); color: var(--secondary-foreground); }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 380px) {
+    .page-import { padding-left: calc(var(--spacing) * 4); padding-right: calc(var(--spacing) * 4); }
+    .import-title { font-size: 26px; }
+    .step-label { font-size: 10px; }
+    .captcha-image { width: 76px; }
+  }
+  @media (min-width: 768px) {
+    .status-bar { display: none; }
+    .page-import { padding: calc(var(--spacing) * 6) calc(var(--spacing) * 8) calc(var(--spacing) * 8); gap: calc(var(--spacing) * 7); }
+    .import-title { font-size: 40px; }
+    .step-indicator { max-width: 640px; }
+    .school-list, .semester-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .school-card, .semester-card { flex-direction: column; align-items: flex-start; }
+    .school-card { flex-direction: row; align-items: center; }
+  }
+  @media (min-width: 1200px) {
+    .school-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body data-page="import">
+<div class="app-shell">
+  <!-- ===== 侧栏导航 ===== -->
+  <aside class="app-rail" aria-label="主导航">
+    <nav class="rail" style="height:100%; border-radius:0; border:0; border-right:1px solid var(--border);">
+      <p class="brand">上课Shangke</p>
+      <div class="stack">
+        <a class="item" href="今日日程.html" data-nav-key="today">今日</a>
+        <a class="item" href="周课表.html" data-nav-key="schedule">课表</a>
+        <a class="item" href="多学期管理.html" data-nav-key="semester">学期</a>
+        <a class="item active" href="教务导入.html" data-nav-key="import">导入</a>
+        <a class="item" href="组件预览.html" data-nav-key="components">组件</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <div class="page-import app-view">
+      <!-- 状态栏 -->
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-signal"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-wifi"></use></svg>
+          <svg class="icon-sm" aria-hidden="true"><use href="#i-battery-full"></use></svg>
+        </div>
+      </div>
+
+      <!-- 标题 -->
+      <header class="import-header">
+        <p class="import-eyebrow">教务系统</p>
+        <h1 class="import-title">教务导入</h1>
+        <p class="import-subtitle">从学校教务系统一键导入课程表，安全便捷</p>
+      </header>
+
+      <!-- 步骤指示器 -->
+      <nav class="step-indicator" aria-label="导入步骤">
+        <button class="step step-done" type="button" data-step="1">
+          <span class="step-circle"><svg class="step-check" aria-hidden="true"><use href="#i-check"></use></svg></span>
+          <span class="step-label">选择学校</span>
+        </button>
+        <span class="step-line step-line-done" aria-hidden="true"></span>
+        <button class="step step-active" type="button" data-step="2" aria-current="step">
+          <span class="step-circle">2</span>
+          <span class="step-label">登录验证</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button class="step step-pending" type="button" data-step="3">
+          <span class="step-circle">3</span>
+          <span class="step-label">选择学期</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button class="step step-pending" type="button" data-step="4">
+          <span class="step-circle">4</span>
+          <span class="step-label">导入完成</span>
+        </button>
+      </nav>
+
+      <!-- 步骤 1：选择学校 -->
+      <section class="step-section" data-step-panel="1">
+        <div class="search-bar">
+          <svg class="search-icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+          <input type="text" class="search-input" id="school-search" placeholder="搜索学校名称..." aria-label="搜索学校" autocomplete="off" />
+        </div>
+
+        <div class="school-section">
+          <div class="section-header">
+            <span class="section-label">热门学校</span>
+            <span class="section-count" id="school-count">6 所</span>
+          </div>
+          <div class="school-list" id="school-list"></div>
+          <div class="empty-hint" id="school-empty" style="display:none">没有匹配的学校，试试搜索简称</div>
+          <button class="btn ghost btn-full" type="button" id="missing-school-btn">找不到我的学校？</button>
+        </div>
+      </section>
+
+      <!-- 步骤 2：登录验证 -->
+      <section class="step-section" data-step-panel="2">
+        <div class="card login-card">
+          <p class="eyebrow">账号验证</p>
+          <h2 class="title login-title">登录教务系统</h2>
+          <p class="body login-desc">请使用教务系统账号登录，我们不会保存您的密码</p>
+
+          <form class="login-form" id="login-form" novalidate>
+            <div class="field-wrapper">
+              <label class="field-label" for="student-id">学号 / 工号</label>
+              <input id="student-id" type="text" class="field field-full" placeholder="请输入学号或工号" autocomplete="username" required />
+            </div>
+
+            <div class="field-wrapper">
+              <label class="field-label" for="password">密码</label>
+              <div class="password-wrapper">
+                <input id="password" type="password" class="field field-full password-field" placeholder="请输入密码" autocomplete="current-password" required />
+                <button type="button" class="password-toggle" id="password-toggle" aria-label="显示密码" aria-pressed="false">
+                  <svg class="toggle-icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="field-wrapper">
+              <label class="field-label" for="captcha">验证码</label>
+              <div class="captcha-row">
+                <input id="captcha" type="text" class="field captcha-input" placeholder="请输入验证码" maxlength="4" inputmode="text" required />
+                <button class="captcha-image" type="button" id="captcha-refresh" aria-label="刷新验证码">
+                  <span class="captcha-text" id="captcha-text">A7K9</span>
+                </button>
+              </div>
+            </div>
+
+            <button class="btn primary btn-full login-btn" type="submit" id="login-btn">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-text">登录并导入</span>
+            </button>
+            <p class="form-hint" id="login-hint" role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- 步骤 3：选择学期 -->
+      <section class="step-section" data-step-panel="3">
+        <div class="section-header">
+          <span class="section-label">选择学期</span>
+          <span class="section-sub">请选择要导入的学期</span>
+        </div>
+        <div class="semester-list" id="import-semester-list"></div>
+      </section>
+
+      <!-- 步骤 4：导入结果 -->
+      <section class="step-section" data-step-panel="4">
+        <!-- 导入中 -->
+        <div class="import-state" id="importing-state">
+          <div class="card import-progress-card">
+            <div class="progress-icon-wrap">
+              <svg class="progress-icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+            </div>
+            <p class="eyebrow import-status-label">正在导入</p>
+            <h2 class="title import-progress-title">课程导入中</h2>
+            <p class="body import-current-course" id="import-current">正在导入：高等数学...</p>
+            <div class="progress-shell" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="import-progress">
+              <div class="progress-fill" id="import-fill" style="width:0%"></div>
+            </div>
+            <div class="progress-stats">
+              <span class="progress-percent" id="import-percent">0%</span>
+              <span class="progress-count" id="import-count">已导入 0 / 32 门</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 成功 -->
+        <div class="import-state import-state-hidden" id="success-state">
+          <div class="card import-result-card import-success">
+            <div class="result-icon-wrap result-success">
+              <svg class="result-icon" aria-hidden="true"><use href="#i-check"></use></svg>
+            </div>
+            <p class="eyebrow result-eyebrow">导入完成</p>
+            <h2 class="title result-title">导入成功</h2>
+            <p class="body result-desc">已成功导入 <strong id="result-count">32</strong> 门课程到课表</p>
+            <div class="result-stats">
+              <div class="result-stat"><span class="stat-number">32</span><span class="stat-label">课程总数</span></div>
+              <div class="result-stat-divider"></div>
+              <div class="result-stat"><span class="stat-number">16</span><span class="stat-label">本周课程</span></div>
+              <div class="result-stat-divider"></div>
+              <div class="result-stat"><span class="stat-number">8</span><span class="stat-label">教师</span></div>
+            </div>
+            <a class="btn primary btn-full result-btn" href="周课表.html">查看课表</a>
+          </div>
+        </div>
+
+        <!-- 失败 -->
+        <div class="import-state import-state-hidden" id="error-state">
+          <div class="card import-result-card import-error">
+            <div class="result-icon-wrap result-error">
+              <svg class="result-icon" aria-hidden="true"><use href="#i-circle-alert"></use></svg>
+            </div>
+            <p class="eyebrow result-eyebrow">导入失败</p>
+            <h2 class="title result-title">无法完成导入</h2>
+            <p class="body result-desc">网络连接中断，请检查网络后重试</p>
+            <div class="result-actions">
+              <button class="btn primary result-btn" type="button" id="retry-btn">重试</button>
+              <button class="btn ghost result-btn" type="button" id="back-btn">返回</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="bottom-nav-spacer"></div>
+    </div>
+  </main>
+
+  <!-- ===== 桌面端说明 ===== -->
+  <aside class="app-aside" aria-label="导入说明">
+    <div class="aside-card">
+      <h3>导入流程</h3>
+      <ol>
+        <li>搜索并选择你的学校</li>
+        <li>使用教务系统账号登录验证</li>
+        <li>选择要导入的学期</li>
+        <li>等待解析完成，自动写入课表</li>
+      </ol>
+    </div>
+    <div class="aside-card">
+      <h3>安全说明</h3>
+      <p style="margin:0; font:400 13px/1.6 var(--font-sans); color: var(--secondary-foreground)">
+        账号密码仅用于本次登录，不会上传或保存在任何服务器。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== 底栏导航 ===== -->
+<nav id="bottom-nav" class="bottom-nav app-bottom" aria-label="底部导航" style="position:fixed; bottom:calc(var(--spacing) * 3); left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:390px; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); z-index:100;">
+  <a class="nav-item" href="今日日程.html" data-nav-key="today">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg>
+    <span class="nav-label">今日</span>
+  </a>
+  <a class="nav-item" href="周课表.html" data-nav-key="schedule">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-layout-grid"></use></svg>
+    <span class="nav-label">课表</span>
+  </a>
+  <a class="nav-item active" href="教务导入.html" data-nav-key="import">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-upload-cloud"></use></svg>
+    <span class="nav-label">导入</span>
+  </a>
+  <a class="nav-item" href="多学期管理.html" data-nav-key="semester">
+    <svg class="nav-icon" aria-hidden="true"><use href="#i-user-circle"></use></svg>
+    <span class="nav-label">学期</span>
+  </a>
+</nav>
+
+<script src="../assets/claude-icons.js"></script>
+<script src="../assets/claude-app.js"></script>
+<script>
+/* ============================================================================
+ * 教务导入页交互（四步向导）
+ * 数据为设计稿示例数据；真实实现把 SCHOOLS / SEMESTERS 换成教务接口返回即可。
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  var SCHOOLS = [
+    { id: 1, name: '清华大学', city: '北京', adapter: '正方教务' },
+    { id: 2, name: '北京大学', city: '北京', adapter: '强智教务' },
+    { id: 3, name: '复旦大学', city: '上海', adapter: '金智教务' },
+    { id: 4, name: '浙江大学', city: '杭州', adapter: '正方教务' },
+    { id: 5, name: '南京大学', city: '南京', adapter: '强智教务' },
+    { id: 6, name: '武汉大学', city: '武汉', adapter: '金智教务' }
+  ];
+
+  var SEMESTERS = [
+    { id: 1, name: '2024-2025学年第一学期', courses: 32, current: true },
+    { id: 2, name: '2023-2024学年第二学期', courses: 28, current: false },
+    { id: 3, name: '2023-2024学年第一学期', courses: 30, current: false },
+    { id: 4, name: '2022-2023学年第二学期', courses: 26, current: false }
+  ];
+
+  var COURSE_NAMES = ['高等数学', '大学英语', '数据结构', '操作系统', '计算机网络', '线性代数',
+    '软件工程', '数据库原理', '编译原理', '思想道德', '大学物理', '算法设计',
+    '人工智能', '大学体育', '心理学导论', '概率论'];
+
+  var currentStep = 1;
+  var selectedSchool = null;
+  var importTimer = null;
+
+  function el(html) {
+    var t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- 步骤切换 ---------- */
+  function goStep(n) {
+    currentStep = Math.min(4, Math.max(1, n));
+    document.querySelectorAll('[data-step-panel]').forEach(function (p) {
+      p.classList.toggle('step-section-active', parseInt(p.getAttribute('data-step-panel'), 10) === currentStep);
+    });
+    document.querySelectorAll('.step').forEach(function (s) {
+      var i = parseInt(s.getAttribute('data-step'), 10);
+      s.classList.remove('step-done', 'step-active', 'step-pending');
+      if (i < currentStep) s.classList.add('step-done');
+      else if (i === currentStep) s.classList.add('step-active');
+      else s.classList.add('step-pending');
+      if (i === currentStep) s.setAttribute('aria-current', 'step');
+      else s.removeAttribute('aria-current');
+      var circle = s.querySelector('.step-circle');
+      if (i < currentStep) {
+        circle.innerHTML = '<svg class="step-check" aria-hidden="true"><use href="#i-check"></use></svg>';
+      } else {
+        circle.textContent = String(i);
+      }
+    });
+    document.querySelectorAll('.step-line').forEach(function (line, idx) {
+      line.classList.toggle('step-line-done', idx < currentStep - 1);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* 步骤指示器可点击回退（仅已完成的步骤） */
+  document.querySelectorAll('.step').forEach(function (s) {
+    s.addEventListener('click', function () {
+      var i = parseInt(s.getAttribute('data-step'), 10);
+      if (i < currentStep) goStep(i);
+    });
+  });
+
+  /* ---------- 步骤 1：学校 ---------- */
+  function renderSchools(keyword) {
+    var list = document.getElementById('school-list');
+    var kw = (keyword || '').trim();
+    var filtered = kw
+      ? SCHOOLS.filter(function (s) { return s.name.indexOf(kw) !== -1 || s.city.indexOf(kw) !== -1; })
+      : SCHOOLS;
+    list.innerHTML = '';
+    filtered.forEach(function (s) {
+      var card = el(
+        '<button class="school-card' + (selectedSchool && selectedSchool.id === s.id ? ' selected' : '') + '" type="button" data-school="' + s.id + '">' +
+        '<span class="school-info">' +
+        '<h3 class="school-name">' + esc(s.name) + '</h3>' +
+        '<span class="school-meta"><svg class="meta-icon-sm" aria-hidden="true"><use href="#i-map-pin"></use></svg>' +
+        '<span class="meta-text-sm">' + esc(s.city) + '</span></span>' +
+        '</span>' +
+        '<span class="badge outline school-badge">' + esc(s.adapter) + '</span>' +
+        '</button>'
+      );
+      card.addEventListener('click', function () {
+        selectedSchool = s;
+        renderSchools(document.getElementById('school-search').value);
+        goStep(2);
+        document.getElementById('student-id').focus();
+      });
+      list.appendChild(card);
+    });
+    document.getElementById('school-count').textContent = filtered.length + ' 所';
+    document.getElementById('school-empty').style.display = filtered.length ? 'none' : '';
+  }
+
+  document.getElementById('school-search').addEventListener('input', function (e) {
+    renderSchools(e.target.value);
+  });
+  document.getElementById('missing-school-btn').addEventListener('click', function () {
+    document.getElementById('school-search').focus();
+    document.getElementById('school-search').placeholder = '输入学校全称或简称，如「汕大」';
+  });
+
+  /* ---------- 步骤 2：登录 ---------- */
+  var passwordToggle = document.getElementById('password-toggle');
+  passwordToggle.addEventListener('click', function () {
+    var input = document.getElementById('password');
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    passwordToggle.setAttribute('aria-pressed', String(show));
+    passwordToggle.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
+  });
+
+  document.getElementById('captcha-refresh').addEventListener('click', function () {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var out = '';
+    for (var i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('captcha-text').textContent = out;
+    document.getElementById('captcha').value = '';
+  });
+
+  document.getElementById('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var sid = document.getElementById('student-id').value.trim();
+    var pwd = document.getElementById('password').value;
+    var cap = document.getElementById('captcha').value.trim();
+    var hint = document.getElementById('login-hint');
+    if (!sid || !pwd || !cap) {
+      hint.textContent = '请填写学号、密码与验证码';
+      hint.style.color = 'var(--destructive)';
+      return;
+    }
+    hint.textContent = '';
+    var btn = document.getElementById('login-btn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = '正在登录...';
+    setTimeout(function () {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      btn.querySelector('.btn-text').textContent = '登录并导入';
+      renderSemesters();
+      goStep(3);
+    }, 1200);
+  });
+
+  /* ---------- 步骤 3：学期 ---------- */
+  function renderSemesters() {
+    var list = document.getElementById('import-semester-list');
+    list.innerHTML = '';
+    SEMESTERS.forEach(function (s) {
+      var card = el(
+        '<button class="semester-card" type="button" data-semester="' + s.id + '">' +
+        '<span class="semester-info">' +
+        '<span class="semester-header">' +
+        '<h3 class="semester-name">' + esc(s.name) + '</h3>' +
+        (s.current ? '<span class="badge filled badge-success semester-badge">当前</span>' : '') +
+        '</span>' +
+        '<span class="semester-meta">' +
+        '<svg class="meta-icon-sm" aria-hidden="true"><use href="#i-calendar"></use></svg>' +
+        '<span class="meta-text-sm">共 ' + s.courses + ' 门课程</span>' +
+        '</span>' +
+        '</span>' +
+        '<svg class="chevron-right" aria-hidden="true"><use href="#i-chevron-right"></use></svg>' +
+        '</button>'
+      );
+      card.addEventListener('click', function () {
+        document.querySelectorAll('.semester-card').forEach(function (c) { c.classList.remove('selected'); });
+        card.classList.add('selected');
+        startImport(s.courses);
+      });
+      list.appendChild(card);
+    });
+  }
+
+  /* ---------- 步骤 4：导入进度 ---------- */
+  function startImport(total) {
+    goStep(4);
+    document.getElementById('importing-state').classList.remove('import-state-hidden');
+    document.getElementById('success-state').classList.add('import-state-hidden');
+    document.getElementById('error-state').classList.add('import-state-hidden');
+
+    var done = 0;
+    var fill = document.getElementById('import-fill');
+    var percent = document.getElementById('import-percent');
+    var count = document.getElementById('import-count');
+    var current = document.getElementById('import-current');
+    var progress = document.getElementById('import-progress');
+    fill.style.width = '0%';
+    percent.textContent = '0%';
+    count.textContent = '已导入 0 / ' + total + ' 门';
+    progress.setAttribute('aria-valuenow', '0');
+
+    clearInterval(importTimer);
+    importTimer = setInterval(function () {
+      done++;
+      var p = Math.round((done / total) * 100);
+      fill.style.width = p + '%';
+      percent.textContent = p + '%';
+      count.textContent = '已导入 ' + done + ' / ' + total + ' 门';
+      progress.setAttribute('aria-valuenow', String(p));
+      current.textContent = '正在导入：' + COURSE_NAMES[done % COURSE_NAMES.length] + '...';
+      if (done >= total) {
+        clearInterval(importTimer);
+        document.getElementById('result-count').textContent = String(total);
+        document.getElementById('importing-state').classList.add('import-state-hidden');
+        document.getElementById('success-state').classList.remove('import-state-hidden');
+      }
+    }, 90);
+  }
+
+  document.getElementById('retry-btn').addEventListener('click', function () {
+    goStep(1);
+  });
+  document.getElementById('back-btn').addEventListener('click', function () {
+    goStep(3);
+  });
+
+  /* ---------- 初始化 ---------- */
+  renderSchools('');
+  goStep(1);
+  if (window.location.hash === '#restore') {
+    document.getElementById('missing-school-btn').textContent = '从备份文件恢复学期数据';
+  }
+})();
+</script>
+</body>
+</html>

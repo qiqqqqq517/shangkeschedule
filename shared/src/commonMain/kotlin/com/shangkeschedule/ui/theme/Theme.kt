@@ -48,11 +48,13 @@ fun ShangKeScheduleTheme(
     // 配色优先级：动态取色 > 当前模式的自定义主色 > 主题预设种子色
     // 浅色和深色主色独立保存，必须按当前模式检查对应字段；否则深色模式修改
     // customDarkPrimary 时仍会因 customLightPrimary 未变化而回退到预设色。
-    // 例外：iOS 预设主色锁定 systemBlue，不跟随动态取色 / 自定义主色。
+    // 例外：iOS 预设主色锁定 systemBlue，CLAUDE 预设主色锁定赤陶 brand-500，
+    // 两者都不跟随动态取色 / 自定义主色。
     val defaultPrimaryArgb = DefaultThemeColor.toArgb().toLong()
     val currentCustomPrimary = if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary
     val seedColor: Color? = when {
         settings.themePreset == AppThemePreset.IOS -> settings.themePreset.seedColor
+        settings.themePreset == AppThemePreset.CLAUDE -> settings.themePreset.seedColor
         settings.useDynamicColor && supportsDynamicColor -> null
         currentCustomPrimary != defaultPrimaryArgb -> Color(currentCustomPrimary)
         else -> settings.themePreset.seedColor
@@ -94,8 +96,11 @@ fun ShangKeScheduleTheme(
 ) {
     // iOS 预设：锁定 Apple 系统色系，绕过 MaterialKolor Expressive 的色相旋转
     // （Expressive 会对种子色做 hue 旋转，systemBlue #007AFF 会被派生成绿色系 primary）
+    // CLAUDE 预设：同样锁定 Anthropic/Claude 设计系统色板，不跟随动态取色 / 自定义主色
     val colorScheme = if (themePreset == AppThemePreset.IOS) {
         if (darkTheme) iosDarkColorScheme() else iosLightColorScheme()
+    } else if (themePreset == AppThemePreset.CLAUDE) {
+        if (darkTheme) claudeDarkColorScheme() else claudeLightColorScheme()
     } else {
         rememberColorScheme(
             darkTheme = darkTheme,
@@ -129,6 +134,9 @@ fun ShangKeScheduleTheme(
     val spacingTokens = appSpacingTokens(themePreset)
     val typeTokens = appTypeTokens(themePreset)
 
+    // 字阶：CLAUDE 预设走 Poppins / Newsreader / Lora 专属字体族，其余沿用全局基线 Typography
+    val typography = if (themePreset == AppThemePreset.CLAUDE) claudeTypography() else Typography
+
     // 按主题预设构建 MaterialTheme Shapes（让 M3 内置组件同步圆角）
     val materialShapes = Shapes(
         extraSmall = RoundedCornerShape(8.dp),
@@ -154,7 +162,7 @@ fun ShangKeScheduleTheme(
 
         MaterialTheme(
             colorScheme = styledScheme,
-            typography = Typography,
+            typography = typography,
             shapes = materialShapes,
             content = content
         )

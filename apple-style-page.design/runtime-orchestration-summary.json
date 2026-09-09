@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "project": {
+    "resolvedLane": "library_bound",
+    "selectedIntentWorkflowRead": true,
+    "contextRequirementsLoaded": [
+      {
+        "path": "intent-workflows/intent-page-library-bound/INTENT_WORKFLOW.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/page-rendering-quality-gate.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/design-artifact-validation.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      }
+    ],
+    "contextReadScope": "library-bound-page-dispatch",
+    "validationRunDiscipline": {
+      "maxRepairLoops": 3,
+      "currentLoop": 0,
+      "terminalState": null
+    },
+    "lowValueCallWatchdog": {
+      "noProgressNextAction": "move-to-readiness",
+      "consecutiveNoProgressCount": 0
+    },
+    "generationTreeLoaded": true,
+    "deviceType": "mobile",
+    "viewportMode": "document-scroll",
+    "designLibraryId": "dl_builtin_apple",
+    "designLibraryName": "Apple",
+    "designLibraryPath": "c:\\Users\\30458\\.trae-cn\\design_libraries\\Apple",
+    "aestheticsMode": "library-bound",
+    "brandPrefix": "apple",
+    "validationHistory": [],
+    "validationRepairLedger": [],
+    "dispatchPreflightManifest": [],
+    "expectedDispatches": [],
+    "readScopeLedger": [],
+    "cssPreflightEvidence": {
+      "prefixMode": "standard",
+      "brandPrefix": ""
+    }
+  },
+  "designSource": {
+    "type": "library-bound",
+    "libraryId": "dl_builtin_apple",
+    "libraryName": "Apple"
+  },
+  "pages": [
+    {
+      "nodeId": "page-today",
+      "title": "今日日程",
+      "htmlSrc": "pages/today.html"
+    },
+    {
+      "nodeId": "page-week",
+      "title": "周课表",
+      "htmlSrc": "pages/week.html"
+    },
+    {
+      "nodeId": "page-import",
+      "title": "教务导入",
+      "htmlSrc": "pages/import.html"
+    },
+    {
+      "nodeId": "page-semesters",
+      "title": "多学期管理",
+      "htmlSrc": "pages/semesters.html"
+    },
+    {
+      "nodeId": "page-course-edit",
+      "title": "课程编辑",
+      "htmlSrc": "pages/course-edit.html"
+    },
+    {
+      "nodeId": "page-components",
+      "title": "组件预览",
+      "htmlSrc": "pages/components.html"
+    }
+  ],
+  "skillProvenance": {
+    "name": "solo-design"
+  }
+}

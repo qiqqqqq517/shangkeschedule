@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日 - 上课课表</title>
+    <style>
+/* ===== Apple Design System Tokens ===== */
+:root {
+    /* System Colors - Light */
+    --apple-system-blue: #007AFF;
+    --apple-system-green: #34C759;
+    --apple-system-orange: #FF9500;
+    --apple-system-pink: #FF2D55;
+    --apple-system-purple: #AF52DE;
+    --apple-system-teal: #5AC8FA;
+    --apple-system-red: #FF3B30;
+    --apple-system-indigo: #5856D6;
+    --apple-system-yellow: #FFCC00;
+
+    /* Backgrounds - Light */
+    --apple-background: #ffffff;
+    --apple-grouped-background: #f2f2f7;
+    --apple-secondary-system-background: #ffffff;
+    --apple-tertiary-system-background: #f2f2f7;
+
+    /* Labels / Text - Light */
+    --apple-label: #000000;
+    --apple-secondary-label: rgba(60, 60, 67, 0.6);
+    --apple-tertiary-label: rgba(60, 60, 67, 0.3);
+    --apple-quaternary-label: rgba(60, 60, 67, 0.18);
+
+    /* Separators - Light */
+    --apple-separator: rgba(60, 60, 67, 0.29);
+    --apple-opaque-separator: #c6c6c8;
+
+    /* Fill - Light */
+    --apple-system-fill: rgba(120, 120, 128, 0.2);
+    --apple-secondary-system-fill: rgba(120, 120, 128, 0.16);
+    --apple-tertiary-system-fill: rgba(118, 118, 128, 0.12);
+    --apple-quaternary-system-fill: rgba(116, 116, 128, 0.08);
+
+    /* Typography */
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    /* Typography sizes */
+    --apple-text-large-title: 34px;
+    --apple-text-title-1: 28px;
+    --apple-text-title-2: 22px;
+    --apple-text-title-3: 20px;
+    --apple-text-headline: 17px;
+    --apple-text-body: 17px;
+    --apple-text-callout: 16px;
+    --apple-text-subhead: 15px;
+    --apple-text-footnote: 13px;
+    --apple-text-caption-1: 12px;
+    --apple-text-caption-2: 11px;
+
+    /* Radius */
+    --apple-radius-grouped: 12px;
+    --apple-radius-card: 16px;
+    --apple-radius-pill: 999px;
+
+    /* Spacing */
+    --apple-spacing-margin: 16px;
+    --apple-spacing-section: 20px;
+}
+
+/* ===== Dark Mode ===== */
+.dark {
+    /* System Colors - Dark (same hues) */
+
+    /* Backgrounds - Dark */
+    --apple-background: #000000;
+    --apple-grouped-background: #000000;
+    --apple-secondary-system-background: #1c1c1e;
+    --apple-tertiary-system-background: #2c2c2e;
+
+    /* Labels / Text - Dark */
+    --apple-label: #ffffff;
+    --apple-secondary-label: rgba(235, 235, 245, 0.6);
+    --apple-tertiary-label: rgba(235, 235, 245, 0.3);
+    --apple-quaternary-label: rgba(235, 235, 245, 0.18);
+
+    /* Separators - Dark */
+    --apple-separator: rgba(84, 84, 88, 0.6);
+    --apple-opaque-separator: #38383a;
+
+    /* Fill - Dark */
+    --apple-system-fill: rgba(120, 120, 128, 0.36);
+    --apple-secondary-system-fill: rgba(120, 120, 128, 0.32);
+    --apple-tertiary-system-fill: rgba(118, 118, 128, 0.24);
+    --apple-quaternary-system-fill: rgba(116, 116, 128, 0.18);
+}
+
+/* ===== Reset & Base ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-family: var(--apple-font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background: var(--apple-grouped-background);
+    color: var(--apple-label);
+    font-size: var(--apple-text-body);
+    line-height: 1.4;
+    min-height: 100vh;
+}
+
+/* ===== Phone Canvas ===== */
+.phone-canvas {
+    width: 375px;
+    min-height: 100vh;
+    margin: 0 auto;
+    background: var(--apple-grouped-background);
+    position: relative;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+}
+
+/* ===== Status Bar ===== */
+.status-bar {
+    height: 44px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--apple-label);
+    background: var(--apple-grouped-background);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.status-bar .time {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-icons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-icons svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===== Large Title Header ===== */
+.large-header {
+    padding: 2px var(--apple-spacing-margin) 14px;
+    background: var(--apple-grouped-background);
+    position: sticky;
+    top: 44px;
+    z-index: 99;
+}
+
+.large-header h1 {
+    font-size: var(--apple-text-large-title);
+    font-weight: 700;
+    color: var(--apple-label);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.large-header .subtitle {
+    font-size: var(--apple-text-subhead);
+    font-weight: 400;
+    color: var(--apple-secondary-label);
+    margin-top: 2px;
+}
+
+/* ===== Date Scroll Strip ===== */
+.date-strip {
+    display: flex;
+    gap: 8px;
+    padding: 0 var(--apple-spacing-margin);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 20px;
+    background: var(--apple-grouped-background);
+}
+
+.date-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.date-item {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 68px;
+    border-radius: 14px;
+    gap: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.date-item .day-name {
+    font-size: var(--apple-text-caption-1);
+    font-weight: 600;
+    color: var(--apple-secondary-label);
+    letter-spacing: 0.02em;
+}
+
+.date-item .day-num {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--apple-label);
+    font-variant-numeric: tabular-nums;
+}
+
+.date-item.today {
+    background: var(--apple-system-blue);
+}
+
+.date-item.today .day-name,
+.date-item.today .day-num {
+    color: #ffffff;
+}
+
+.date-item.has-events::after {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--apple-system-blue);
+    position: absolute;
+    bottom: 8px;
+}
+
+.date-item.today.has-events::after {
+    background: #ffffff;
+}
+
+.date-item {
+    position: relative;
+}
+
+/* ===== Section ===== */
+.section {
+    margin-top: var(--apple-spacing-section);
+}
+
+.section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 var(--apple-spacing-margin);
+    margin-bottom: 6px;
+}
+
+.section-title {
+    font-size: var(--apple-text-footnote);
+    font-weight: 600;
+    color: var(--apple-secondary-label);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.section-link {
+    font-size: var(--apple-text-subhead);
+    font-weight: 400;
+    color: var(--apple-system-blue);
+    text-decoration: none;
+}
+
+/* ===== Grouped List (Course Cards) ===== */
+.grouped-list {
+    margin: 0 var(--apple-spacing-margin);
+    background: var(--apple-secondary-system-background);
+    border-radius: var(--apple-radius-grouped);
+    overflow: hidden;
+}
+
+.course-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 16px 12px 0;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.course-row:active {
+    background: var(--apple-tertiary-system-fill);
+}
+
+.course-row + .course-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 0.5px;
+    background: var(--apple-separator);
+}
+
+/* Left color bar */
+.course-color-bar {
+    width: 4px;
+    align-self: stretch;
+    margin-right: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+.course-color-bar.blue { background: var(--apple-system-blue); }
+.course-color-bar.green { background: var(--apple-system-green); }
+.course-color-bar.orange { background: var(--apple-system-orange); }
+.course-color-bar.pink { background: var(--apple-system-pink); }
+.course-color-bar.purple { background: var(--apple-system-purple); }
+.course-color-bar.teal { background: var(--apple-system-teal); }
+.course-color-bar.red { background: var(--apple-system-red); }
+.course-color-bar.indigo { background: var(--apple-system-indigo); }
+.course-color-bar.yellow { background: var(--apple-system-yellow); }
+
+.course-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.course-top-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.course-name {
+    font-size: var(--apple-text-headline);
+    font-weight: 600;
+    color: var(--apple-label);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-time {
+    font-size: var(--apple-text-subhead);
+    font-weight: 500;
+    color: var(--apple-secondary-label);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.course-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.course-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--apple-text-footnote);
+    color: var(--apple-secondary-label);
+}
+
+.course-meta-item svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: var(--apple-tertiary-label);
+}
+
+.course-disclosure {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+    flex-shrink: 0;
+    align-self: center;
+    color: var(--apple-tertiary-label);
+}
+
+.course-disclosure svg {
+    width: 10px;
+    height: 14px;
+}
+
+/* ===== Stats Card ===== */
+.stats-card {
+    margin: var(--apple-spacing-section) var(--apple-spacing-margin) 0;
+    background: var(--apple-secondary-system-background);
+    border-radius: var(--apple-radius-card);
+    padding: 18px 0;
+    display: flex;
+    align-items: stretch;
+}
+
+.stat-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    position: relative;
+}
+
+.stat-item + .stat-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10%;
+    bottom: 10%;
+    width: 0.5px;
+    background: var(--apple-separator);
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--apple-label);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.stat-label {
+    font-size: var(--apple-text-footnote);
+    font-weight: 500;
+    color: var(--apple-secondary-label);
+}
+
+.stat-item.primary .stat-number {
+    color: var(--apple-system-blue);
+}
+
+/* ===== Tomorrow Section ===== */
+.tomorrow-card {
+    margin: 0 var(--apple-spacing-margin);
+    background: var(--apple-secondary-system-background);
+    border-radius: var(--apple-radius-grouped);
+    overflow: hidden;
+}
+
+.tomorrow-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    gap: 12px;
+}
+
+.tomorrow-row:active {
+    background: var(--apple-tertiary-system-fill);
+}
+
+.tomorrow-row + .tomorrow-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    height: 0.5px;
+    background: var(--apple-separator);
+}
+
+.tomorrow-time {
+    flex-shrink: 0;
+    width: 70px;
+    font-size: var(--apple-text-subhead);
+    font-weight: 500;
+    color: var(--apple-secondary-label);
+    font-variant-numeric: tabular-nums;
+}
+
+.tomorrow-course-color {
+    width: 4px;
+    height: 28px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.tomorrow-course-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tomorrow-course-name {
+    font-size: var(--apple-text-body);
+    font-weight: 500;
+    color: var(--apple-label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tomorrow-course-location {
+    font-size: var(--apple-text-footnote);
+    color: var(--apple-secondary-label);
+    margin-top: 2px;
+}
+
+.tomorrow-disclosure {
+    flex-shrink: 0;
+    color: var(--apple-tertiary-label);
+}
+
+.tomorrow-disclosure svg {
+    width: 10px;
+    height: 14px;
+}
+
+/* ===== Footer Spacer ===== */
+.page-footer {
+    padding: 24px var(--apple-spacing-margin);
+    text-align: center;
+    font-size: var(--apple-text-caption-1);
+    color: var(--apple-tertiary-label);
+}
+
+/* ===== SVG icon base ===== */
+.sf-icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+    </style>
+</head>
+<body>
+    <div class="phone-canvas">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span class="time">9:41</span>
+            <div class="status-icons" aria-hidden="true">
+                <!-- Signal -->
+                <svg class="sf-icon" viewBox="0 0 18 18" fill="currentColor">
+                    <rect x="1" y="10" width="3" height="7" rx="1"/>
+                    <rect x="5.5" y="7" width="3" height="10" rx="1"/>
+                    <rect x="10" y="4" width="3" height="13" rx="1"/>
+                    <rect x="14.5" y="1" width="3" height="16" rx="1"/>
+                </svg>
+                <!-- WiFi -->
+                <svg class="sf-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M1 6.5c4.5-4 11.5-4 16 0"/>
+                    <path d="M3.5 9c3-2.5 8-2.5 11 0"/>
+                    <path d="M6 11.5c1.7-1.3 4.3-1.3 6 0"/>
+                    <circle cx="9" cy="14.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <!-- Battery -->
+                <svg class="sf-icon" viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <rect x="0.5" y="0.5" width="22" height="11" rx="3"/>
+                    <rect x="2.5" y="2.5" width="16" height="7" rx="1.5" fill="currentColor"/>
+                    <rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor" stroke="none"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Large Title Header -->
+        <header class="large-header">
+            <h1>今日</h1>
+            <div class="subtitle">9月9日 周二</div>
+        </header>
+
+        <!-- Date Scroll Strip -->
+        <div class="date-strip" role="tablist" aria-label="日期选择">
+            <div class="date-item" role="tab">
+                <span class="day-name">周一</span>
+                <span class="day-num">8</span>
+            </div>
+            <div class="date-item today has-events" role="tab" aria-selected="true">
+                <span class="day-name">周二</span>
+                <span class="day-num">9</span>
+            </div>
+            <div class="date-item has-events" role="tab">
+                <span class="day-name">周三</span>
+                <span class="day-num">10</span>
+            </div>
+            <div class="date-item has-events" role="tab">
+                <span class="day-name">周四</span>
+                <span class="day-num">11</span>
+            </div>
+            <div class="date-item has-events" role="tab">
+                <span class="day-name">周五</span>
+                <span class="day-num">12</span>
+            </div>
+            <div class="date-item" role="tab">
+                <span class="day-name">周六</span>
+                <span class="day-num">13</span>
+            </div>
+            <div class="date-item" role="tab">
+                <span class="day-name">周日</span>
+                <span class="day-num">14</span>
+            </div>
+        </div>
+
+        <!-- Today's Courses Section -->
+        <section class="section" aria-labelledby="today-courses-title">
+            <div class="section-header">
+                <h2 id="today-courses-title" class="section-title">今日课程</h2>
+                <a href="#" class="section-link">共 4 节</a>
+            </div>
+            <div class="grouped-list">
+                <!-- 高等数学 -->
+                <article class="course-row">
+                    <div class="course-color-bar blue"></div>
+                    <div class="course-content">
+                        <div class="course-top-row">
+                            <h3 class="course-name">高等数学</h3>
+                            <span class="course-time">08:00-09:40</span>
+                        </div>
+                        <div class="course-meta">
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span>教1-201</span>
+                            </div>
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>王老师</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="course-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+
+                <!-- 大学英语 -->
+                <article class="course-row">
+                    <div class="course-color-bar green"></div>
+                    <div class="course-content">
+                        <div class="course-top-row">
+                            <h3 class="course-name">大学英语</h3>
+                            <span class="course-time">10:00-11:40</span>
+                        </div>
+                        <div class="course-meta">
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span>教3-105</span>
+                            </div>
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>李老师</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="course-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+
+                <!-- 程序设计 -->
+                <article class="course-row">
+                    <div class="course-color-bar orange"></div>
+                    <div class="course-content">
+                        <div class="course-top-row">
+                            <h3 class="course-name">程序设计</h3>
+                            <span class="course-time">14:00-15:40</span>
+                        </div>
+                        <div class="course-meta">
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span>实验楼A301</span>
+                            </div>
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>张老师</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="course-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+
+                <!-- 体育 -->
+                <article class="course-row">
+                    <div class="course-color-bar pink"></div>
+                    <div class="course-content">
+                        <div class="course-top-row">
+                            <h3 class="course-name">体育</h3>
+                            <span class="course-time">16:00-17:40</span>
+                        </div>
+                        <div class="course-meta">
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span>体育馆</span>
+                            </div>
+                            <div class="course-meta-item">
+                                <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <span>刘老师</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="course-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Week Overview Stats Card -->
+        <section class="section" aria-label="本周概览">
+            <div class="stats-card">
+                <div class="stat-item">
+                    <span class="stat-number">12</span>
+                    <span class="stat-label">本周课程</span>
+                </div>
+                <div class="stat-item primary">
+                    <span class="stat-number">4</span>
+                    <span class="stat-label">今日课程</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label">待完成</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tomorrow's Courses Section -->
+        <section class="section" aria-labelledby="tomorrow-title">
+            <div class="section-header">
+                <h2 id="tomorrow-title" class="section-title">明日</h2>
+                <a href="#" class="section-link">周视图</a>
+            </div>
+            <div class="tomorrow-card">
+                <!-- 明日课程1 -->
+                <article class="tomorrow-row">
+                    <span class="tomorrow-time">08:00</span>
+                    <div class="tomorrow-course-color" style="background: var(--apple-system-indigo);"></div>
+                    <div class="tomorrow-course-info">
+                        <div class="tomorrow-course-name">线性代数</div>
+                        <div class="tomorrow-course-location">教2-401</div>
+                    </div>
+                    <div class="tomorrow-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+
+                <!-- 明日课程2 -->
+                <article class="tomorrow-row">
+                    <span class="tomorrow-time">14:00</span>
+                    <div class="tomorrow-course-color" style="background: var(--apple-system-teal);"></div>
+                    <div class="tomorrow-course-info">
+                        <div class="tomorrow-course-name">计算机网络</div>
+                        <div class="tomorrow-course-location">实验楼B201</div>
+                    </div>
+                    <div class="tomorrow-disclosure" aria-hidden="true">
+                        <svg class="sf-icon" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="2 2 8 7 2 12"/>
+                        </svg>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Page Footer -->
+        <div class="page-footer">
+            2025-2026学年 第一学期
+        </div>
+    </div>
+</body>
+</html>

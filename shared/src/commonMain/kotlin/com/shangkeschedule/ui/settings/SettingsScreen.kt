@@ -153,6 +153,10 @@ import shangkeschedule.shared.generated.resources.view_week_24px
 import shangkeschedule.shared.generated.resources.settings_group_course
 import shangkeschedule.shared.generated.resources.settings_group_tools
 import shangkeschedule.shared.generated.resources.settings_group_other
+import shangkeschedule.shared.generated.resources.settings_group_timetable
+import shangkeschedule.shared.generated.resources.settings_group_courses
+import shangkeschedule.shared.generated.resources.settings_group_preference
+import shangkeschedule.shared.generated.resources.settings_group_about
 import shangkeschedule.shared.generated.resources.item_backup_restore
 import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.cloud_24px
@@ -183,6 +187,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val themePreset = LocalThemePreset.current
     val isIosPreset = themePreset == AppThemePreset.IOS
+    val isClaudePreset = themePreset == AppThemePreset.CLAUDE
     // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
     val hazeState = rememberHazeState()
     val glassTint = appColors().pageBg.copy(alpha = 0.72f)
@@ -195,7 +200,9 @@ fun SettingsScreen(
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
-                if (isIosPreset) {
+                if (isClaudePreset) {
+                    // 书卷主题：无独立 TopAppBar，页面大标题由内容区 ClaudePageHeader 承担
+                } else if (isIosPreset) {
                     // iOS 风格：左对齐大标题（对齐设计稿 .nav-bar__title）
                     TopAppBar(
                         title = {
@@ -254,7 +261,160 @@ fun SettingsScreen(
                     bottom = navPadding.calculateBottomPadding() + 16.dp
                 )
             ) {
-                if (isIosPreset) {
+                if (isClaudePreset) {
+                    // ===== 书卷主题：inset grouped 分组列表（对齐设计稿 profile.html）=====
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            ClaudePageHeader(
+                                title = stringResource(Res.string.nav_settings),
+                                subtitle = stringResource(Res.string.hero_subtitle)
+                            )
+                            ClaudeUserRow(
+                                name = stringResource(Res.string.app_name),
+                                school = stringResource(Res.string.hero_subtitle),
+                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                            )
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            ClaudeGroupLabel(stringResource(Res.string.settings_group_timetable))
+                            ClaudeInsetGroup {
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_course_conversion),
+                                    icon = vectorResource(Res.drawable.school_24px),
+                                    tone = ClaudeCellTone.PURPLE,
+                                    onClick = { onNavigate(Destination.CourseTableConversion) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.section_title_semester_settings),
+                                    icon = vectorResource(Res.drawable.calendar_today_24px),
+                                    tone = ClaudeCellTone.ORANGE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.SemesterSettings) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_time_slot_customization),
+                                    icon = vectorResource(Res.drawable.schedule_24px),
+                                    tone = ClaudeCellTone.RED,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.title_manage_course_tables),
+                                    icon = vectorResource(Res.drawable.class_24px),
+                                    tone = ClaudeCellTone.OLIVE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.ManageCourseTables) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            ClaudeGroupLabel(stringResource(Res.string.settings_group_courses))
+                            ClaudeInsetGroup {
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_course_management),
+                                    icon = vectorResource(Res.drawable.edit_24px),
+                                    tone = ClaudeCellTone.MATCHA,
+                                    onClick = { onNavigate(Destination.CourseManagementList) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_couple_schedule),
+                                    icon = vectorResource(Res.drawable.favorite_24px),
+                                    tone = ClaudeCellTone.PINK,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            ClaudeGroupLabel(stringResource(Res.string.settings_group_preference))
+                            ClaudeInsetGroup {
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_appearance_settings),
+                                    icon = vectorResource(Res.drawable.palette_24px),
+                                    tone = ClaudeCellTone.ORANGE,
+                                    onClick = { onNavigate(Destination.AppearanceSettings) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.title_course_notification_settings),
+                                    icon = vectorResource(Res.drawable.notifications_24px),
+                                    tone = ClaudeCellTone.PURPLE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.NotificationSettings) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_backup_restore),
+                                    icon = vectorResource(Res.drawable.cloud_24px),
+                                    tone = ClaudeCellTone.GREEN,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.BackupAndRestore) }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_show_non_current_week),
+                                    icon = vectorResource(Res.drawable.filter_list_24px),
+                                    tone = ClaudeCellTone.GRAY,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
+                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
+                                        )
+                                    }
+                                )
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_show_weekends),
+                                    icon = vectorResource(Res.drawable.view_week_24px),
+                                    tone = ClaudeCellTone.AMBER,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.courseConfig?.showWeekends ?: false,
+                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            ClaudeGroupLabel(stringResource(Res.string.settings_group_about))
+                            ClaudeInsetGroup {
+                                ClaudeListItem(
+                                    title = stringResource(Res.string.item_more_options),
+                                    icon = vectorResource(Res.drawable.more_horiz_24px),
+                                    tone = ClaudeCellTone.BROWN,
+                                    onClick = { onNavigate(Destination.MoreOptions) }
+                                )
+                            }
+                        }
+                    }
+                } else if (isIosPreset) {
                     // ===== iOS 主题：分组列表风格（对齐设计稿 profile.html）=====
                     item { IosProfileHeader(modifier = Modifier.widthIn(max = 640.dp)) }
                     item {

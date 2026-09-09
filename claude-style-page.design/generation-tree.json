@@ -1,0 +1,124 @@
+{
+  "root": {
+    "nodeId": "gen-project-root",
+    "kind": "project-shell",
+    "pageIds": [
+      "page-today",
+      "page-week",
+      "page-course-edit",
+      "page-import",
+      "page-semesters",
+      "page-components"
+    ],
+    "output": null,
+    "sharedRegions": [
+      "Claude design token system (brand, background, text, icon, border, state colors)",
+      "Typography scale (Newsreader / Poppins / Lora / Geist Mono)",
+      "Radius scale and shadow system",
+      "Global page header pattern and bottom navigation visual language"
+    ],
+    "privateRegions": [],
+    "mutableSlots": [
+      "pageTitle",
+      "activeNavItem"
+    ],
+    "status": "planned",
+    "children": [
+      {
+        "nodeId": "page-today",
+        "kind": "page-leaf",
+        "pageIds": ["page-today"],
+        "output": "pages/today.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "today-course-list",
+          "tomorrow-preview",
+          "empty-state"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      },
+      {
+        "nodeId": "page-week",
+        "kind": "page-leaf",
+        "pageIds": ["page-week"],
+        "output": "pages/week.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "week-grid",
+          "course-blocks",
+          "week-switcher",
+          "time-axis"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      },
+      {
+        "nodeId": "page-course-edit",
+        "kind": "page-leaf",
+        "pageIds": ["page-course-edit"],
+        "output": "pages/course-edit.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "course-form",
+          "color-picker",
+          "week-range-selector",
+          "time-picker"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      },
+      {
+        "nodeId": "page-import",
+        "kind": "page-leaf",
+        "pageIds": ["page-import"],
+        "output": "pages/import.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "school-selector",
+          "login-form",
+          "import-progress",
+          "import-result"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      },
+      {
+        "nodeId": "page-semesters",
+        "kind": "page-leaf",
+        "pageIds": ["page-semesters"],
+        "output": "pages/semesters.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "semester-list",
+          "semester-switcher",
+          "semester-detail"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      },
+      {
+        "nodeId": "page-components",
+        "kind": "page-leaf",
+        "pageIds": ["page-components"],
+        "output": "pages/components.html",
+        "sharedRegions": [],
+        "privateRegions": [
+          "component-showcase",
+          "color-palette",
+          "typography-specimen",
+          "button-variants",
+          "card-variants"
+        ],
+        "mutableSlots": [],
+        "status": "generated",
+        "children": []
+      }
+    ]
+  }
+}

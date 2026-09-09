@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#262624" media="(prefers-color-scheme: dark)" />
+<title>上课Shangke · Claude 设计系统</title>
+<link rel="stylesheet" href="assets/claude-tokens.css" />
+<link rel="stylesheet" href="assets/claude-components.css" />
+<style>
+  body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  .page-wrap { width: min(100%, 1120px); margin: 0 auto; padding: clamp(28px, 5vw, 64px) clamp(16px, 3vw, 32px) clamp(72px, 8vw, 104px); }
+  .hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: clamp(28px, 4vw, 44px); }
+  .hero h1 { margin: 0 0 10px; font: 600 clamp(30px, 5vw, 46px)/1.08 var(--font-display); letter-spacing: -.015em; color: var(--foreground); }
+  .hero .lede { margin: 0; max-width: 56ch; font: 400 15px/1.7 var(--font-serif); color: var(--secondary-foreground); }
+  .hero-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: clamp(14px, 2vw, 20px); }
+  .page-card { display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; text-decoration: none; color: inherit; }
+  .page-card .thumb { position: relative; height: 132px; background: var(--card); border-bottom: 1px solid var(--border); overflow: hidden; }
+  .page-card .thumb-inner { position: absolute; inset: 12px 12px -20px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--popover); border: 1px solid var(--border); box-shadow: var(--shadow-xs); padding: 12px; display: grid; gap: 8px; align-content: start; }
+  .page-card .thumb-bar { height: 8px; border-radius: var(--radius-full); background: var(--primary); opacity: .9; }
+  .page-card .thumb-bar.soft { background: var(--muted); opacity: 1; }
+  .page-card .thumb-bar.short { width: 62%; }
+  .page-card .body { padding: 16px 18px 18px; display: grid; gap: 6px; }
+  .page-card h2 { margin: 0; font: 600 18px/1.25 var(--font-sans); color: var(--foreground); }
+  .page-card p { margin: 0; font: 400 13px/1.6 var(--font-sans); color: var(--secondary-foreground); }
+  .page-card .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .page-card .tag { font: 500 10px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); background: var(--muted); padding: 4px 7px; border-radius: var(--radius-sm); }
+  .page-card:hover .thumb-inner { transform: translateY(-2px); transition: transform .18s ease; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; margin-top: clamp(28px, 4vw, 44px); }
+  .meta-card { padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-xs); }
+  .meta-card dt { font: 600 10px/1.2 var(--font-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 6px; }
+  .meta-card dd { margin: 0; font: 600 15px/1.4 var(--font-sans); color: var(--foreground); }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: clamp(34px, 5vw, 52px) 0 16px; }
+  .section-head h2 { margin: 0; font: 600 22px/1.2 var(--font-sans); color: var(--foreground); }
+  .section-head span { font: 500 11px/1.2 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); }
+  .bp-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--popover); box-shadow: var(--shadow-xs); }
+  .bp-table th, .bp-table td { padding: 12px 16px; text-align: left; font: 500 13px/1.5 var(--font-sans); border-bottom: 1px solid var(--border); }
+  .bp-table th { font: 600 11px/1.3 var(--font-serif); letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); background: var(--card); }
+  .bp-table td:first-child { font-family: var(--font-mono); font-size: 12px; color: var(--primary); white-space: nowrap; }
+  .bp-table tr:last-child td { border-bottom: 0; }
+  @media (max-width: 640px) { .bp-table th, .bp-table td { padding: 10px 12px; } }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <header class="hero">
+    <div>
+      <p class="eyebrow" style="margin:0 0 10px">Claude Design System · 上课Shangke</p>
+      <h1>课表应用设计包</h1>
+      <p class="lede">基于 Claude / Anthropic 设计系统复刻，含 5 个页面、完整交互与手机 / 平板 / 桌面三端适配。所有色值、圆角、阴影与字体均逐值对齐设计稿。</p>
+    </div>
+    <div class="hero-actions">
+      <button class="ui-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式">
+        <svg class="ui-toggle-icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+        <span>深色</span>
+      </button>
+      <a class="btn primary" href="pages/今日日程.html">打开今日日程</a>
+    </div>
+  </header>
+
+  <div class="page-grid">
+    <a class="card page-card" href="pages/今日日程.html">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar soft short"></span>
+      </div></div>
+      <div class="body">
+        <h2>今日日程</h2>
+        <p>今日课程卡片流 + 明日预览，含已结束 / 进行中 / 未开始三态、课程详情弹层。</p>
+        <div class="tags"><span class="tag">course-list</span><span class="tag">detail-sheet</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="pages/周课表.html">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft short"></span>
+      </div></div>
+      <div class="body">
+        <h2>周课表</h2>
+        <p>7 天 × 4 大节网格、15 个课程块、周次胶囊切换、日 / 周视图切换与课程详情。</p>
+        <div class="tags"><span class="tag">week-grid</span><span class="tag">week-switcher</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="pages/多学期管理.html">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar soft"></span>
+      </div></div>
+      <div class="body">
+        <h2>多学期管理</h2>
+        <p>当前学期进度卡 + 按学年分组的历史学期，支持复制、删除确认与展开更多。</p>
+        <div class="tags"><span class="tag">semester</span><span class="tag">progress</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="pages/教务导入.html">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar soft short"></span>
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft"></span>
+      </div></div>
+      <div class="body">
+        <h2>教务导入</h2>
+        <p>四步向导：选学校（可搜索）→ 登录验证 → 选学期 → 导入进度与成功 / 失败态。</p>
+        <div class="tags"><span class="tag">wizard</span><span class="tag">progress</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="pages/组件预览.html">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft"></span>
+      </div></div>
+      <div class="body">
+        <h2>组件预览</h2>
+        <p>色板 / 字体 / 按钮 / 卡片 / 输入框 / 徽章 / 导航 / 对话气泡，token 可点击复制。</p>
+        <div class="tags"><span class="tag">tokens</span><span class="tag">components</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="docs/设计token规范.md">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar"></span>
+      </div></div>
+      <div class="body">
+        <h2>设计 token 规范</h2>
+        <p>色阶 / 语义 token / 字阶 / 圆角 / 阴影 / 间距 / 断点的完整取值表，设计包唯一事实来源。</p>
+        <div class="tags"><span class="tag">docs</span><span class="tag">tokens</span></div>
+      </div>
+    </a>
+
+    <a class="card page-card" href="docs/Compose映射清单.md">
+      <div class="thumb"><div class="thumb-inner">
+        <span class="thumb-bar"></span>
+        <span class="thumb-bar soft"></span>
+        <span class="thumb-bar soft"></span>
+      </div></div>
+      <div class="body">
+        <h2>Compose 映射清单</h2>
+        <p>色板 → M3 ColorScheme、字阶 → Typography、圆角阴影 → Shapes、断点 → 窗口尺寸类的逐项对照。</p>
+        <div class="tags"><span class="tag">docs</span><span class="tag">compose</span></div>
+      </div>
+    </a>
+  </div>
+
+  <div class="section-head">
+    <h2>多端断点</h2>
+    <span>breakpoints</span>
+  </div>
+  <table class="bp-table">
+    <thead>
+      <tr><th>断点</th><th>宽度</th><th>导航</th><th>布局</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>phone-sm</td><td>≤ 380px</td><td>底部导航</td><td>单列，收紧内边距与字号</td></tr>
+      <tr><td>phone</td><td>381 – 767px</td><td>底部导航（浮起胶囊）</td><td>单列，430px 内容宽居中</td></tr>
+      <tr><td>tablet</td><td>768 – 1199px</td><td>左侧栏（236px）</td><td>内容区居中，列表转多列网格</td></tr>
+      <tr><td>desktop</td><td>≥ 1200px</td><td>左侧栏 + 右详情栏</td><td>三栏：侧栏 / 主区 / 概览</td></tr>
+    </tbody>
+  </table>
+
+  <div class="meta-grid">
+    <dl class="meta-card"><dt>字体</dt><dd>Newsreader · Poppins · Lora · Geist Mono</dd></dl>
+    <dl class="meta-card"><dt>主色</dt><dd>#c96442（浅） / #d97757（深）</dd></dl>
+    <dl class="meta-card"><dt>页面底色</dt><dd>#faf9f5（浅） / #262624（深）</dd></dl>
+    <dl class="meta-card"><dt>卡片圆角</dt><dd>16px · 弹层 20–24px</dd></dl>
+  </div>
+</div>
+
+<script src="assets/claude-icons.js"></script>
+<script src="assets/claude-app.js"></script>
+</body>
+</html>

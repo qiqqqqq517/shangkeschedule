@@ -529,15 +529,18 @@ private fun AppearancePresetSelector(
     selectedPreset: AppThemePreset,
     onSelect: (AppThemePreset) -> Unit
 ) {
+    // 预设数量会随主题增加（经典/云舒/利落/通透/Claude …），等分 Row 在窄屏会把
+    // 标签挤到换行甚至截断。改为横向可滚动 + 固定项宽：项数与屏幕宽度解耦，
+    // 5 个及以上预设也不会挤压，宽屏下同样完整可见。
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AppThemePreset.entries.forEach { preset ->
             val selected = preset == selectedPreset
             Surface(
                 onClick = { onSelect(preset) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(84.dp),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
                 border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
@@ -553,7 +556,8 @@ private fun AppearancePresetSelector(
                     Text(
                         text = stringResource(preset.labelRes),
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1
                     )
                     Text(
                         text = if (selected) "✓" else " ",

@@ -4664,8 +4664,8 @@
  {
   "id": "u_15f498f5",
   "name": "汕头大学",
-  "type": "qiangzhi",
-  "url": "http://jw-stu-edu-cn.webvpn.stu.edu.cn:8118/"
+  "type": "stu",
+  "url": "https://jw.stu.edu.cn/jsxsd/framework/xsMainV.htmlx"
  },
  {
   "id": "u_baac317d",
@@ -10654,5 +10654,11 @@
   "name": "湖南财政经济学院",
   "type": "hufe",
   "url": "https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx"
+ },
+ {
+  "id": "u_gzutcm_001",
+  "name": "广州中医药大学",
+  "type": "gzutcm",
+  "url": "https://jw.gzucm.edu.cn/"
  }
 ]

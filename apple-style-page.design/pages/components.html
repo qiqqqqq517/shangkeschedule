@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组件 · Apple Design System</title>
+    <style id="theme-vars">
+﻿/*
+ * Pinguo design tokens
+ * Brand: Pinguo
+ * Domain: Consumer imaging product
+ * Style: Restrained, elegant, Apple-inspired
+ * Theme mode: light-dark
+ * Source language: zh
+ * Output language: en
+ *
+ * Color architecture (two layers):
+ *   1. Primitive palette - six categories. brand / background / text / icon
+ *      are each a 10-step scale (50 lightest to 900 darkest). state-success and
+ *      state-error are functional colors anchored on Apple system colors.
+ *      Anchors follow Apple Human Interface Guidelines system colors
+ *      (System Blue #007AFF, System Green #34C759, System Red #FF3B30,
+ *      system grays / label / background colors).
+ *   2. Semantic tokens - :root (light) and .dark map roles onto primitives.
+ *      Components and UI kits must only consume the semantic tokens below.
+ */
+
+/* @group-priority: brand, background, text, icon, state-success, state-error */
+
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --apple-background: var(--background, #ffffff);
+  --apple-foreground: var(--foreground, #0f172a);
+  --apple-card: var(--card, var(--background));
+  --apple-card-foreground: var(--card-foreground, var(--foreground));
+  --apple-popover: var(--popover, var(--card));
+  --apple-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --apple-primary: var(--primary, #111827);
+  --apple-primary-foreground: var(--primary-foreground, #ffffff);
+  --apple-secondary: var(--secondary, var(--muted, var(--card)));
+  --apple-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --apple-muted: var(--muted, var(--card));
+  --apple-muted-foreground: var(--muted-foreground, var(--foreground));
+  --apple-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --apple-accent-foreground: var(--accent-foreground, var(--foreground));
+  --apple-destructive: var(--destructive, #ef4444);
+  --apple-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --apple-border: var(--border, currentColor);
+  --apple-input: var(--input, var(--border));
+  --apple-ring: var(--ring, var(--primary));
+  --apple-chart-1: var(--chart-1, var(--primary));
+  --apple-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --apple-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --apple-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --apple-chart-5: var(--chart-5, var(--foreground));
+  --apple-sidebar: var(--sidebar, var(--background));
+  --apple-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --apple-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --apple-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --apple-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --apple-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== PRIMITIVE PALETTE ===== */
+
+  /* brand */
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff; /* @primary */
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  /* background */
+  --background-50: #ffffff;
+  --background-100: #f7f7fa;
+  --background-200: #f2f2f7;
+  --background-300: #e5e5ea;
+  --background-400: #d1d1d6;
+  --background-500: #aeaeb2;
+  --background-600: #8e8e93;
+  --background-700: #3a3a3c;
+  --background-800: #1c1c1e;
+  --background-900: #000000;
+
+  /* text */
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  /* icon */
+  --icon-50: #f5f5f7;
+  --icon-100: #e5e5ea;
+  --icon-200: #d1d1d6;
+  --icon-300: #c7c7cc;
+  --icon-400: #aeaeb2;
+  --icon-500: #8e8e93;
+  --icon-600: #6e6e73;
+  --icon-700: #48484a;
+  --icon-800: #2c2c2e;
+  --icon-900: #1d1d1f;
+
+  /* state-success */
+  --state-success: #34c759; /* @primary */
+  --state-success-dark: #30d158;
+  --state-success-surface: #e9f9ee;
+  --state-success-foreground: #ffffff;
+
+  /* state-error */
+  --state-error: #ff3b30; /* @primary */
+  --state-error-dark: #ff453a;
+  --state-error-surface: #ffecea;
+  --state-error-foreground: #ffffff;
+
+  /* ===== SEMANTIC ROLES ===== */
+
+  /* semantic */
+  --background: var(--background-50);
+  --foreground: var(--text-800);
+  --card: var(--background-50);
+  --card-foreground: var(--text-800);
+  --popover: var(--background-50);
+  --popover-foreground: var(--text-900);
+
+  --primary: var(--brand-500);
+  --primary-foreground: var(--background-50);
+  --secondary: var(--background-200);
+  --secondary-foreground: var(--text-800);
+  --muted: var(--background-200);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-100);
+  --accent-foreground: var(--text-800);
+  --destructive: var(--state-error);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-300);
+  --input: var(--background-400);
+  --ring: var(--brand-500);
+
+  --icon: var(--icon-900);
+  --icon-muted: var(--icon-500);
+
+  /* chart */
+  --chart-1: var(--state-success);
+  --chart-2: var(--brand-500);
+  --chart-3: #ff9500;
+  --chart-4: #5856d6;
+  --chart-5: #af52de;
+
+  /* sidebar */
+  --sidebar: var(--background-200);
+  --sidebar-foreground: var(--text-800);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--background-50);
+  --sidebar-accent: var(--background-300);
+  --sidebar-accent-foreground: var(--text-800);
+  --sidebar-border: var(--background-300);
+  --sidebar-ring: var(--brand-500);
+
+  /* TYPOGRAPHY */
+  --font-sans: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-serif: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-mono: JetBrains Mono, monospace;
+  --tracking-normal: 0em;
+
+  /* RADIUS */
+  --radius: 1.2rem;
+
+  /* SHADOWS */
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04); /* Hairline */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04); /* Subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05); /* Card */
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05); /* Raised */
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05); /* Card Hover */
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05); /* Float */
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06); /* Overlay */
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.12); /* Modal */
+
+  /* SPACING */
+  --spacing: 0.24rem;
+}
+
+/* ===== SEMANTIC ROLES - dark (primitive palette inherited) ===== */
+.dark {
+  --background: var(--background-900);
+  --foreground: var(--text-50);
+  --card: var(--background-800);
+  --card-foreground: var(--text-50);
+  --popover: var(--background-700);
+  --popover-foreground: var(--text-50);
+
+  --primary: var(--brand-400);
+  --primary-foreground: var(--background-900);
+  --secondary: var(--background-800);
+  --secondary-foreground: var(--text-50);
+  --muted: var(--background-800);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-700);
+  --accent-foreground: var(--text-50);
+  --destructive: var(--state-error-dark);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success-dark);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-700);
+  --input: var(--background-700);
+  --ring: var(--brand-400);
+
+  --icon: var(--icon-50);
+  --icon-muted: var(--icon-500);
+
+  --chart-1: var(--state-success-dark);
+  --chart-2: var(--brand-400);
+  --chart-3: #ff9f0a;
+  --chart-4: #5e5ce6;
+  --chart-5: #bf5af2;
+
+  --sidebar: var(--background-800);
+  --sidebar-foreground: var(--text-50);
+  --sidebar-primary: var(--brand-400);
+  --sidebar-primary-foreground: var(--background-900);
+  --sidebar-accent: var(--background-700);
+  --sidebar-accent-foreground: var(--text-50);
+  --sidebar-border: var(--background-700);
+  --sidebar-ring: var(--brand-400);
+
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.36), 0 1px 3px -1px rgba(0, 0, 0, 0.36);
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.40), 0 1px 2px -1px rgba(0, 0, 0, 0.36);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.44), 0 2px 4px -2px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.50), 0 4px 8px -4px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(0, 0, 0, 0.44);
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.60);
+}
+/* Apple Design Library - Semantic token bridge
+ * Adds radius sm/md/lg aliases required by apply-html-head-contract.mjs
+ */
+
+:root {
+  --apple-radius-sm: 0.6rem;
+  --apple-radius-md: 0.9rem;
+  --apple-radius-lg: 1.2rem;
+  --apple-radius: var(--apple-radius-lg);
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--apple-background);
+    --color-foreground: var(--apple-foreground);
+    --color-card: var(--apple-card);
+    --color-card-foreground: var(--apple-card-foreground);
+    --color-popover: var(--apple-popover);
+    --color-popover-foreground: var(--apple-popover-foreground);
+    --color-primary: var(--apple-primary);
+    --color-primary-foreground: var(--apple-primary-foreground);
+    --color-secondary: var(--apple-secondary);
+    --color-secondary-foreground: var(--apple-secondary-foreground);
+    --color-muted: var(--apple-muted);
+    --color-muted-foreground: var(--apple-muted-foreground);
+    --color-accent: var(--apple-accent);
+    --color-accent-foreground: var(--apple-accent-foreground);
+    --color-destructive: var(--apple-destructive);
+    --color-destructive-foreground: var(--apple-destructive-foreground);
+    --color-border: var(--apple-border);
+    --color-input: var(--apple-input);
+    --color-ring: var(--apple-ring);
+    --color-chart-1: var(--apple-chart-1);
+    --color-chart-2: var(--apple-chart-2);
+    --color-chart-3: var(--apple-chart-3);
+    --color-chart-4: var(--apple-chart-4);
+    --color-chart-5: var(--apple-chart-5);
+    --color-sidebar: var(--apple-sidebar);
+    --color-sidebar-foreground: var(--apple-sidebar-foreground);
+    --color-sidebar-primary: var(--apple-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--apple-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--apple-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--apple-sidebar-accent-foreground);
+    --radius-sm: var(--apple-radius-sm);
+    --radius-md: var(--apple-radius-md);
+    --radius-lg: var(--apple-radius-lg);
+  }
+  @layer base {
+    body { background: var(--apple-background); color: var(--apple-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--apple-background); }
+      .text-background { color: var(--apple-background); }
+      .border-background { border-color: var(--apple-background); }
+      .ring-background { --tw-ring-color: var(--apple-background); }
+      .bg-foreground { background-color: var(--apple-foreground); }
+      .text-foreground { color: var(--apple-foreground); }
+      .border-foreground { border-color: var(--apple-foreground); }
+      .ring-foreground { --tw-ring-color: var(--apple-foreground); }
+      .bg-card { background-color: var(--apple-card); }
+      .text-card { color: var(--apple-card); }
+      .border-card { border-color: var(--apple-card); }
+      .ring-card { --tw-ring-color: var(--apple-card); }
+      .bg-card-foreground { background-color: var(--apple-card-foreground); }
+      .text-card-foreground { color: var(--apple-card-foreground); }
+      .border-card-foreground { border-color: var(--apple-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--apple-card-foreground); }
+      .bg-popover { background-color: var(--apple-popover); }
+      .text-popover { color: var(--apple-popover); }
+      .border-popover { border-color: var(--apple-popover); }
+      .ring-popover { --tw-ring-color: var(--apple-popover); }
+      .bg-popover-foreground { background-color: var(--apple-popover-foreground); }
+      .text-popover-foreground { color: var(--apple-popover-foreground); }
+      .border-popover-foreground { border-color: var(--apple-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--apple-popover-foreground); }
+      .bg-primary { background-color: var(--apple-primary); }
+      .text-primary { color: var(--apple-primary); }
+      .border-primary { border-color: var(--apple-primary); }
+      .ring-primary { --tw-ring-color: var(--apple-primary); }
+      .bg-primary-foreground { background-color: var(--apple-primary-foreground); }
+      .text-primary-foreground { color: var(--apple-primary-foreground); }
+      .border-primary-foreground { border-color: var(--apple-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--apple-primary-foreground); }
+      .bg-secondary { background-color: var(--apple-secondary); }
+      .text-secondary { color: var(--apple-secondary); }
+      .border-secondary { border-color: var(--apple-secondary); }
+      .ring-secondary { --tw-ring-color: var(--apple-secondary); }
+      .bg-secondary-foreground { background-color: var(--apple-secondary-foreground); }
+      .text-secondary-foreground { color: var(--apple-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--apple-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--apple-secondary-foreground); }
+      .bg-muted { background-color: var(--apple-muted); }
+      .text-muted { color: var(--apple-muted); }
+      .border-muted { border-color: var(--apple-muted); }
+      .ring-muted { --tw-ring-color: var(--apple-muted); }
+      .bg-muted-foreground { background-color: var(--apple-muted-foreground); }
+      .text-muted-foreground { color: var(--apple-muted-foreground); }
+      .border-muted-foreground { border-color: var(--apple-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--apple-muted-foreground); }
+      .bg-accent { background-color: var(--apple-accent); }
+      .text-accent { color: var(--apple-accent); }
+      .border-accent { border-color: var(--apple-accent); }
+      .ring-accent { --tw-ring-color: var(--apple-accent); }
+      .bg-accent-foreground { background-color: var(--apple-accent-foreground); }
+      .text-accent-foreground { color: var(--apple-accent-foreground); }
+      .border-accent-foreground { border-color: var(--apple-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--apple-accent-foreground); }
+      .bg-destructive { background-color: var(--apple-destructive); }
+      .text-destructive { color: var(--apple-destructive); }
+      .border-destructive { border-color: var(--apple-destructive); }
+      .ring-destructive { --tw-ring-color: var(--apple-destructive); }
+      .bg-destructive-foreground { background-color: var(--apple-destructive-foreground); }
+      .text-destructive-foreground { color: var(--apple-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--apple-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--apple-destructive-foreground); }
+      .bg-border { background-color: var(--apple-border); }
+      .text-border { color: var(--apple-border); }
+      .border-border { border-color: var(--apple-border); }
+      .ring-border { --tw-ring-color: var(--apple-border); }
+      .bg-input { background-color: var(--apple-input); }
+      .text-input { color: var(--apple-input); }
+      .border-input { border-color: var(--apple-input); }
+      .ring-input { --tw-ring-color: var(--apple-input); }
+      .bg-ring { background-color: var(--apple-ring); }
+      .text-ring { color: var(--apple-ring); }
+      .border-ring { border-color: var(--apple-ring); }
+      .ring-ring { --tw-ring-color: var(--apple-ring); }
+      .bg-chart-1 { background-color: var(--apple-chart-1); }
+      .text-chart-1 { color: var(--apple-chart-1); }
+      .border-chart-1 { border-color: var(--apple-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--apple-chart-1); }
+      .bg-chart-2 { background-color: var(--apple-chart-2); }
+      .text-chart-2 { color: var(--apple-chart-2); }
+      .border-chart-2 { border-color: var(--apple-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--apple-chart-2); }
+      .bg-chart-3 { background-color: var(--apple-chart-3); }
+      .text-chart-3 { color: var(--apple-chart-3); }
+      .border-chart-3 { border-color: var(--apple-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--apple-chart-3); }
+      .bg-chart-4 { background-color: var(--apple-chart-4); }
+      .text-chart-4 { color: var(--apple-chart-4); }
+      .border-chart-4 { border-color: var(--apple-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--apple-chart-4); }
+      .bg-chart-5 { background-color: var(--apple-chart-5); }
+      .text-chart-5 { color: var(--apple-chart-5); }
+      .border-chart-5 { border-color: var(--apple-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--apple-chart-5); }
+      .bg-sidebar { background-color: var(--apple-sidebar); }
+      .text-sidebar { color: var(--apple-sidebar); }
+      .border-sidebar { border-color: var(--apple-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--apple-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--apple-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--apple-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--apple-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--apple-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--apple-sidebar-primary); }
+      .text-sidebar-primary { color: var(--apple-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--apple-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--apple-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--apple-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--apple-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--apple-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--apple-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--apple-sidebar-accent); }
+      .text-sidebar-accent { color: var(--apple-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--apple-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--apple-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--apple-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--apple-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--apple-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--apple-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+    <div class="phone-frame" id="phoneFrame">
+        <div class="phone-notch"></div>
+
+        <!-- Theme Toggle -->
+        <div class="theme-toggle" onclick="toggleTheme()">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2"/>
+                <path d="M12 20v2"/>
+                <path d="m4.93 4.93 1.41 1.41"/>
+                <path d="m17.66 17.66 1.41 1.41"/>
+                <path d="M2 12h2"/>
+                <path d="M20 12h2"/>
+                <path d="m6.34 17.66-1.41 1.41"/>
+                <path d="m19.07 4.93-1.41 1.41"/>
+            </svg>
+            <span id="themeLabel">浅色</span>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="icons">
+                <!-- Signal -->
+                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <rect x="2" y="14" width="3" height="8" rx="1"/>
+                    <rect x="7" y="11" width="3" height="11" rx="1"/>
+                    <rect x="12" y="8" width="3" height="14" rx="1"/>
+                    <rect x="17" y="5" width="3" height="17" rx="1"/>
+                </svg>
+                <!-- WiFi -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                </svg>
+                <!-- Battery -->
+                <svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="0.5" y="0.5" width="22" height="11" rx="2.5"/>
+                    <rect x="2" y="2" width="16" height="8" rx="1" fill="currentColor" stroke="none"/>
+                    <rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor" stroke="none"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Scroll Content -->
+        <div class="scroll-content">
+
+            <!-- Large Title -->
+            <div class="large-title">
+                <h1>组件</h1>
+                <div class="subtitle">Apple Design System</div>
+            </div>
+
+            <!-- 颜色系统 -->
+            <div class="section">
+                <div class="section-header">颜色</div>
+                <div class="section-body">
+                    <div class="color-grid">
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemBlue);"></div>
+                            <div class="color-name">systemBlue</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemGreen);"></div>
+                            <div class="color-name">systemGreen</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemOrange);"></div>
+                            <div class="color-name">systemOrange</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemRed);"></div>
+                            <div class="color-name">systemRed</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemPurple);"></div>
+                            <div class="color-name">systemPurple</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemPink);"></div>
+                            <div class="color-name">systemPink</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemTeal);"></div>
+                            <div class="color-name">systemTeal</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemIndigo);"></div>
+                            <div class="color-name">systemIndigo</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemYellow);"></div>
+                            <div class="color-name">systemYellow</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemGray);"></div>
+                            <div class="color-name">systemGray</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemGray2);"></div>
+                            <div class="color-name">systemGray2</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-swatch" style="background: var(--systemGray5);"></div>
+                            <div class="color-name">systemGray5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 按钮 -->
+            <div class="section">
+                <div class="section-header">按钮</div>
+                <div class="section-body">
+                    <div class="button-list">
+                        <div class="button-row">
+                            <span class="button-label">Primary</span>
+                            <button class="apple-btn apple-btn-primary">主按钮</button>
+                        </div>
+                        <div class="button-row">
+                            <span class="button-label">Secondary</span>
+                            <button class="apple-btn apple-btn-secondary">次按钮</button>
+                        </div>
+                        <div class="button-row">
+                            <span class="button-label">Destructive</span>
+                            <button class="apple-btn apple-btn-destructive">删除</button>
+                        </div>
+                        <div class="button-row">
+                            <span class="button-label">With Icon</span>
+                            <button class="apple-btn apple-btn-primary apple-btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14"/>
+                                    <path d="m12 5 7 7-7 7"/>
+                                </svg>
+                                继续
+                            </button>
+                        </div>
+                        <div class="button-row">
+                            <span class="button-label">Disabled</span>
+                            <button class="apple-btn apple-btn-disabled" disabled>不可用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 -->
+            <div class="section">
+                <div class="section-header">卡片</div>
+                <div class="cards-container">
+                    <!-- 普通卡片 -->
+                    <div class="card-basic">
+                        <div class="card-title">欢迎使用</div>
+                        <div class="card-body-text">探索 Apple 设计系统的精美组件，打造克制优雅的用户体验。</div>
+                        <div class="card-action">
+                            了解更多
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- 带图标卡片 -->
+                    <div class="card-icon">
+                        <div class="icon-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+                                <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-title">首页推荐</div>
+                            <div class="card-subtitle">为你精选的内容</div>
+                        </div>
+                    </div>
+
+                    <!-- 分组列表样式卡片 -->
+                    <div class="inset-grouped">
+                        <div class="inset-item">
+                            <div class="item-icon" style="background: var(--systemBlue);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                </svg>
+                            </div>
+                            <span class="item-text">通用</span>
+                            <span class="item-chevron">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m9 18 6-6-6-6"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="inset-item">
+                            <div class="item-icon" style="background: var(--systemGreen);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <span class="item-text">账户</span>
+                            <span class="item-chevron">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m9 18 6-6-6-6"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="inset-item">
+                            <div class="item-icon" style="background: var(--systemOrange);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </div>
+                            <span class="item-text">设置</span>
+                            <span class="item-chevron">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m9 18 6-6-6-6"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表单控件 -->
+            <div class="section">
+                <div class="section-header">表单</div>
+                <div class="section-body">
+                    <div class="form-row">
+                        <span class="form-label">用户名</span>
+                        <input type="text" class="apple-textfield" placeholder="请输入">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">通知</span>
+                        <label class="apple-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">视图</span>
+                        <div class="segmented-wrapper">
+                            <div class="segmented-control" id="segmented">
+                                <div class="segment-thumb" style="width: calc(33.333% - 2px); transform: translateX(0);"></div>
+                                <div class="segment active" data-index="0">列表</div>
+                                <div class="segment" data-index="1">网格</div>
+                                <div class="segment" data-index="2">图标</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">音量</span>
+                        <div class="slider-wrapper">
+                            <input type="range" class="apple-slider" min="0" max="100" value="60">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签/徽章 -->
+            <div class="section">
+                <div class="section-header">标签</div>
+                <div class="section-body">
+                    <div class="tags-container">
+                        <div class="tags-row">
+                            <span class="pill-tag" style="background: rgba(0, 122, 255, 0.12); color: var(--systemBlue);">主要</span>
+                            <span class="pill-tag" style="background: rgba(52, 199, 89, 0.12); color: var(--systemGreen);">成功</span>
+                            <span class="pill-tag" style="background: rgba(255, 149, 0, 0.12); color: var(--systemOrange);">警告</span>
+                            <span class="pill-tag" style="background: rgba(255, 59, 48, 0.12); color: var(--systemRed);">错误</span>
+                            <span class="pill-tag" style="background: rgba(175, 82, 222, 0.12); color: var(--systemPurple);">紫色</span>
+                            <span class="pill-tag" style="background: var(--systemFill); color: var(--label);">默认</span>
+                        </div>
+                        <div class="badge-row">
+                            <div class="badge-item">
+                                <div class="badge-icon-wrapper">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                                    </svg>
+                                    <span class="badge-dot">3</span>
+                                </div>
+                                <span class="badge-label">通知</span>
+                            </div>
+                            <div class="badge-item">
+                                <div class="badge-icon-wrapper">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                    </svg>
+                                    <span class="badge-dot">12</span>
+                                </div>
+                                <span class="badge-label">邮件</span>
+                            </div>
+                            <div class="badge-item">
+                                <div class="badge-icon-wrapper">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                    <span class="badge-dot">99+</span>
+                                </div>
+                                <span class="badge-label">好友</span>
+                            </div>
+                            <div class="badge-item">
+                                <div class="badge-icon-wrapper">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+                                    </svg>
+                                    <span class="badge-dot">5</span>
+                                </div>
+                                <span class="badge-label">收藏</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图标 -->
+            <div class="section">
+                <div class="section-header">图标</div>
+                <div class="section-body">
+                    <div class="icon-grid">
+                        <!-- Row 1 -->
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">house</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">user</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">map-pin</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                                    <line x1="16" x2="16" y1="2" y2="6"/>
+                                    <line x1="8" x2="8" y1="2" y2="6"/>
+                                    <line x1="3" x2="21" y1="10" y2="10"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">calendar</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">clock</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">star</span>
+                        </div>
+                        <!-- Row 2 -->
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">heart</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">tag</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">folder</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">file</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 6 9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">check</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M8 12h8"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">circle-plus</span>
+                        </div>
+                        <!-- Row 3 -->
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M8 12h8"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">circle-minus</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" x2="12" y1="8" y2="12"/>
+                                    <line x1="12" x2="12.01" y1="16" y2="16"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">circle-alert</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">circle-check</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">settings</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">mail</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">bell</span>
+                        </div>
+                        <!-- Row 4 -->
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.3-4.3"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">search</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"/>
+                                    <path d="M7 12h10"/>
+                                    <path d="M10 18h4"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">filter</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" x2="11" y1="2" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">send</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 20h9"/>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">pen-line</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"/>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">trash-2</span>
+                        </div>
+                        <div class="icon-item">
+                            <div class="icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <line x1="10" x2="21" y1="14" y2="3"/>
+                                </svg>
+                            </div>
+                            <span class="icon-name">external-link</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safe Area -->
+            <div class="safe-area-bottom"></div>
+
+        </div>
+
+        <!-- Home Indicator -->
+        <div class="home-indicator"></div>
+    </div>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const label = document.getElementById('themeLabel');
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                label.textContent = '浅色';
+                icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+            } else {
+                html.classList.add('dark');
+                label.textContent = '深色';
+                icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            }
+        }
+
+        // Segmented control interaction
+        document.querySelectorAll('.segmented-control').forEach(seg => {
+            const items = seg.querySelectorAll('.segment');
+            const thumb = seg.querySelector('.segment-thumb');
+            items.forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    items.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    const percent = index * 100 / items.length;
+                    thumb.style.transform = `translateX(${percent}%)`;
+                });
+            });
+        });
+    </script>
+
+    <style>
+        /* ========== Apple Design Tokens ========== */
+        :root {
+            /* System Colors */
+            --systemBlue: #007AFF;
+            --systemGreen: #34C759;
+            --systemOrange: #FF9500;
+            --systemRed: #FF3B30;
+            --systemPurple: #AF52DE;
+            --systemPink: #FF2D55;
+            --systemTeal: #5AC8FA;
+            --systemIndigo: #5856D6;
+            --systemYellow: #FFCC00;
+            --systemGray: #8E8E93;
+            --systemGray2: #AEAEB2;
+            --systemGray3: #C7C7CC;
+            --systemGray4: #D1D1D6;
+            --systemGray5: #E5E5EA;
+            --systemGray6: #F2F2F7;
+
+            /* Background */
+            --background: #ffffff;
+            --secondaryBackground: #f2f2f7;
+            --tertiaryBackground: #ffffff;
+
+            /* Labels / Text */
+            --label: #000000;
+            --secondaryLabel: rgba(60, 60, 67, 0.6);
+            --tertiaryLabel: rgba(60, 60, 67, 0.3);
+            --quaternaryLabel: rgba(60, 60, 67, 0.12);
+
+            /* Separators */
+            --separator: rgba(60, 60, 67, 0.29);
+            --opaqueSeparator: #C6C6C8;
+
+            /* Fill */
+            --systemFill: rgba(120, 120, 128, 0.2);
+            --secondarySystemFill: rgba(120, 120, 128, 0.16);
+            --tertiarySystemFill: rgba(118, 118, 128, 0.12);
+            --quaternarySystemFill: rgba(116, 116, 128, 0.08);
+
+            /* Typography - SF Pro style */
+            --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+            /* Radius */
+            --radius-card: 12px;
+            --radius-button: 10px;
+            --radius-chip: 8px;
+            --radius-pill: 999px;
+        }
+
+        .dark {
+            /* System Colors (dark mode variants) */
+            --systemBlue: #0A84FF;
+            --systemGreen: #30D158;
+            --systemOrange: #FF9F0A;
+            --systemRed: #FF453A;
+            --systemPurple: #BF5AF2;
+            --systemPink: #FF375F;
+            --systemTeal: #64D2FF;
+            --systemIndigo: #5E5CE6;
+            --systemYellow: #FFD60A;
+            --systemGray: #8E8E93;
+            --systemGray2: #636366;
+            --systemGray3: #48484A;
+            --systemGray4: #3A3A3C;
+            --systemGray5: #2C2C2E;
+            --systemGray6: #1C1C1E;
+
+            /* Background */
+            --background: #000000;
+            --secondaryBackground: #1c1c1e;
+            --tertiaryBackground: #2c2c2e;
+
+            /* Labels / Text */
+            --label: #ffffff;
+            --secondaryLabel: rgba(235, 235, 245, 0.6);
+            --tertiaryLabel: rgba(235, 235, 245, 0.3);
+            --quaternaryLabel: rgba(235, 235, 245, 0.12);
+
+            /* Separators */
+            --separator: rgba(84, 84, 88, 0.6);
+            --opaqueSeparator: #38383A;
+
+            /* Fill */
+            --systemFill: rgba(120, 120, 128, 0.36);
+            --secondarySystemFill: rgba(120, 120, 128, 0.32);
+            --tertiarySystemFill: rgba(118, 118, 128, 0.24);
+            --quaternarySystemFill: rgba(116, 116, 128, 0.18);
+        }
+
+        /* ========== Base Reset ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        html, body {
+            font-family: var(--font-sans);
+            background: var(--secondaryBackground);
+            color: var(--label);
+            font-size: 17px;
+            line-height: 1.47;
+            letter-spacing: -0.02em;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        /* ========== Phone Frame ========== */
+        .phone-frame {
+            width: 375px;
+            min-height: 100vh;
+            background: var(--background);
+            border-radius: 44px;
+            position: relative;
+            box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 32px;
+            background: #000;
+            border-radius: 20px;
+            z-index: 100;
+        }
+
+        /* ========== Status Bar ========== */
+        .status-bar {
+            height: 54px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 28px 6px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--label);
+            position: sticky;
+            top: 0;
+            background: var(--background);
+            z-index: 50;
+        }
+
+        .status-bar .icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-bar .icons svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ========== Scroll Content ========== */
+        .scroll-content {
+            padding: 8px 20px 50px;
+            overflow-y: auto;
+            height: calc(100vh - 54px);
+            max-height: 758px;
+        }
+
+        /* ========== Large Title ========== */
+        .large-title {
+            padding: 4px 4px 20px;
+        }
+
+        .large-title h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--label);
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+
+        .large-title .subtitle {
+            font-size: 15px;
+            color: var(--secondaryLabel);
+            margin-top: 2px;
+            font-weight: 400;
+        }
+
+        /* ========== Section ========== */
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-header {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--secondaryLabel);
+            padding: 0 4px 8px;
+        }
+
+        .section-body {
+            background: var(--tertiaryBackground);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+
+        /* ========== Color Grid ========== */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .color-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: var(--radius-chip);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .color-name {
+            font-size: 11px;
+            color: var(--secondaryLabel);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* ========== Buttons Section ========== */
+        .button-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .button-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .button-label {
+            font-size: 13px;
+            color: var(--secondaryLabel);
+            flex-shrink: 0;
+        }
+
+        .apple-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 44px;
+            padding: 0 20px;
+            border: none;
+            border-radius: var(--radius-button);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: opacity 0.15s ease, transform 0.1s ease;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+        }
+
+        .apple-btn:active {
+            transform: scale(0.97);
+        }
+
+        .apple-btn-primary {
+            background: var(--systemBlue);
+            color: #ffffff;
+        }
+
+        .apple-btn-secondary {
+            background: var(--systemFill);
+            color: var(--label);
+        }
+
+        .apple-btn-destructive {
+            background: transparent;
+            color: var(--systemRed);
+        }
+
+        .apple-btn-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .apple-btn-disabled {
+            background: var(--systemFill);
+            color: var(--tertiaryLabel);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* ========== Cards Section ========== */
+        .cards-container {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Basic Card */
+        .card-basic {
+            background: var(--secondaryBackground);
+            border-radius: var(--radius-card);
+            padding: 16px;
+        }
+
+        .card-basic .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--label);
+            margin-bottom: 4px;
+        }
+
+        .card-basic .card-body-text {
+            font-size: 14px;
+            color: var(--secondaryLabel);
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .card-basic .card-action {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--systemBlue);
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* Card with Icon */
+        .card-icon {
+            background: var(--secondaryBackground);
+            border-radius: var(--radius-card);
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .card-icon .icon-wrapper {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-chip);
+            background: var(--systemBlue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-icon .icon-wrapper svg {
+            width: 22px;
+            height: 22px;
+            color: #fff;
+        }
+
+        .card-icon .card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-icon .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--label);
+            margin-bottom: 2px;
+        }
+
+        .card-icon .card-subtitle {
+            font-size: 14px;
+            color: var(--secondaryLabel);
+        }
+
+        /* Inset Grouped List Card */
+        .inset-grouped {
+            background: var(--secondaryBackground);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+
+        .inset-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--separator);
+            background: var(--secondaryBackground);
+        }
+
+        .inset-item:last-child {
+            border-bottom: none;
+        }
+
+        .inset-item .item-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .inset-item .item-icon svg {
+            width: 18px;
+            height: 18px;
+            color: #fff;
+        }
+
+        .inset-item .item-text {
+            flex: 1;
+            font-size: 16px;
+            color: var(--label);
+            font-weight: 400;
+        }
+
+        .inset-item .item-chevron {
+            color: var(--tertiaryLabel);
+            flex-shrink: 0;
+        }
+
+        .inset-item .item-chevron svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* ========== Form Controls ========== */
+        .form-list {
+            background: var(--tertiaryBackground);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--separator);
+            min-height: 44px;
+        }
+
+        .form-row:last-child {
+            border-bottom: none;
+        }
+
+        .form-label {
+            font-size: 16px;
+            color: var(--label);
+            flex-shrink: 0;
+            width: 60px;
+        }
+
+        /* TextField */
+        .apple-textfield {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            font-family: var(--font-sans);
+            color: var(--label);
+            text-align: right;
+        }
+
+        .apple-textfield::placeholder {
+            color: var(--tertiaryLabel);
+        }
+
+        /* Switch */
+        .apple-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .apple-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .apple-switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--systemGray4);
+            border-radius: 999px;
+            transition: background 0.3s;
+        }
+
+        .apple-switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            top: 2px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .apple-switch input:checked + .slider {
+            background: var(--systemGreen);
+        }
+
+        .apple-switch input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Segmented Control */
+        .segmented-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .segmented-control {
+            display: flex;
+            padding: 2px;
+            background: var(--systemFill);
+            border-radius: 9px;
+            position: relative;
+        }
+
+        .segmented-control .segment {
+            padding: 6px 15px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--label);
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            border-radius: 7px;
+            transition: color 0.2s;
+        }
+
+        .segmented-control .segment.active {
+            font-weight: 600;
+        }
+
+        .segmented-control .segment-thumb {
+            position: absolute;
+            top: 2px;
+            height: calc(100% - 4px);
+            background: var(--tertiaryBackground);
+            border-radius: 7px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 0;
+        }
+
+        /* Slider */
+        .slider-wrapper {
+            flex: 1;
+            padding: 0 4px;
+        }
+
+        .apple-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--systemFill);
+            outline: none;
+            position: relative;
+        }
+
+        .apple-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .apple-slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ========== Tags / Badges ========== */
+        .tags-container {
+            padding: 16px;
+        }
+
+        .tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tags-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .pill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            height: 26px;
+            padding: 0 12px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .pill-tag svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 20px;
+            padding-top: 4px;
+        }
+
+        .badge-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-icon-wrapper {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            background: var(--systemFill);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge-icon-wrapper svg {
+            width: 22px;
+            height: 22px;
+            color: var(--systemBlue);
+        }
+
+        .badge-dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background: var(--systemRed);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--tertiaryBackground);
+        }
+
+        .badge-label {
+            font-size: 11px;
+            color: var(--secondaryLabel);
+        }
+
+        /* ========== Icon Grid ========== */
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px 8px;
+            padding: 16px;
+        }
+
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .icon-item .icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-chip);
+            background: var(--systemFill);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-item .icon-box svg {
+            width: 24px;
+            height: 24px;
+            color: var(--systemBlue);
+        }
+
+        .icon-item .icon-name {
+            font-size: 10px;
+            color: var(--secondaryLabel);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* ========== Home Indicator ========== */
+        .home-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 134px;
+            height: 5px;
+            background: var(--label);
+            border-radius: 3px;
+            opacity: 0.3;
+            z-index: 60;
+        }
+
+        /* ========== Safe Area ========== */
+        .safe-area-bottom {
+            height: 34px;
+        }
+
+        /* ========== Dark Mode Toggle ========== */
+        .theme-toggle {
+            position: absolute;
+            top: 58px;
+            right: 20px;
+            z-index: 55;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--systemFill);
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--label);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .theme-toggle svg {
+            width: 14px;
+            height: 14px;
+        }
+    </style>
+</body>
+</html>

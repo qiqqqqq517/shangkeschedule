@@ -40,6 +40,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.shangkeschedule.data.model.StartScreen
+import com.shangkeschedule.ui.agenda.AgendaScreen
 import com.shangkeschedule.ui.schedule.WeeklyScheduleScreen
 import com.shangkeschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.shangkeschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -242,6 +243,7 @@ fun ScreenContent(
         Destination.CourseSchedule -> WeeklyScheduleScreen(onNavigate, onBack)
         Destination.Settings -> SettingsScreen(onNavigate, onBack)
         Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
+        Destination.Schedule -> AgendaScreen(onNavigate, onBack)
         Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack)
         Destination.SemesterSettings -> SemesterSettingsScreen(onBack)
         Destination.CoupleScheduleSettings -> CoupleScheduleSettingsScreen(onNavigate, onBack)

@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "repairedPages": [],
+  "skippedPages": [],
+  "failedPages": [
+    {
+      "reason": "sharedProjectShellContract.mobileNavigation.applies is not true"
+    },
+    {
+      "reason": "mobileNavigation.structure.canonicalHtmlByKey is missing"
+    }
+  ],
+  "repairCount": 0,
+  "previousFailedReportDetected": true,
+  "checkedAt": "2026-09-09T15:37:53.288Z"
+}
