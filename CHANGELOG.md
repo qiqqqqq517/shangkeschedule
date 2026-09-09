@@ -7,15 +7,26 @@
 
 ## 最新版本
 
-### v3.33.0（2026-09-10）· 书卷主题设置页落地 + 资源访问修复
+### v3.33.0（2026-09-10）· 书卷主题落地 + 日程事件模块
 
 **功能**
-- 主题预设「Claude」正式更名显示为「书卷」（三语：书卷 / 書卷 / Shujuan），枚举值仍为 `CLAUDE`
-- 书卷主题「我的/设置」页按设计稿重绘：28sp Newsreader 大标题 + 用户信息行 + 四组 inset grouped 列表（课表 / 课程 / 偏好 / 关于），采用浅米色卡片 `#f3efe4` + 28dp 圆角图标容器 + 琥珀色分组标签
-- 新增 `ClaudeSettingsComponents` 组件库：`ClaudeInsetGroup` / `ClaudeListItem` / `ClaudeGroupLabel` / `ClaudePageHeader` / `ClaudeUserRow`，含多色调图标容器（PURPLE / ORANGE / RED / OLIVE / MATCHA / PINK / GREEN / GRAY / AMBER / BROWN）
+- 新增第 5 套主题预设「书卷」（CLAUDE，Anthropic 设计系统）：暖砂纸底 `#faf9f5` + 浅米色卡片 + 赤陶主色 `#c96442`，深色为暖炭底 `#262624` + 亮赤陶 `#d97757`；主色与动态取色 / 自定义主色解耦，像素级锁定
+- 书卷主题字体族：标题 Newsreader（衬线）、UI Poppins、正文 Lora，随主题自动切换
+- 书卷课表样式：Anthropic chart-1~chart-5 五色循环配色（浅色约 25% 透明淡底 / 深色实底）、8dp 圆角、44dp 时间列、76dp 节次行高
+- 「今日课表」页按设计稿重绘：日期 eyebrow（Lora 大字距）+ 28sp Newsreader 大标题 + 课程数徽标 + 周次条 + 课程卡片流（色条 / 类型徽标 / 时间地点教师三行元信息，进行中呼吸圆点、已结束删除线）+ 明日预览 + 课程详情弹层
+- 「我的 / 设置」页改为 inset grouped 列表：用户信息行 + 课表 / 课程 / 偏好 / 关于四组；新增 `ClaudeSettingsComponents` 组件库（`ClaudeInsetGroup` / `ClaudeListItem` / `ClaudeGroupLabel` / `ClaudePageHeader` / `ClaudeUserRow`，含多色调图标容器）
+- 主题预设「Claude」显示名正式定名「书卷」（三语：书卷 / 書卷 / Shujuan），枚举值仍为 `CLAUDE`
+- 新增「日程」模块：日程事件表 `schedule_events`（数据库迁移 10 → 11，含 date 索引）+ 日程页（月历 + 日程列表），支持待办 / 活动 / 考试 / 作业 / 其他分类，全天或定时日程
+- 新增农历工具 `LunarCalendar`，供日期展示使用
+- 底部导航调整为 4 个 Tab：今日 / 课表 / 日程 / 我的（新增「日程」，首项短标签「今日」避免换行）
+- 学校资源更新：刷新索引 `school_index.pb`，新增 GZUTCM / STU 离线教务适配资源
+
+**外观**
+- 设计包重组：`ios-style-page.design` → `apple-style-page.design`，新增 `claude-style-page.design`（13 个页面）与 `claude-schedule-page.design`
+- 新增 Newsreader / Poppins / Lora / Geist Mono 字体资源
 
 **修复**
-- 修复 SettingsScreen.kt 书卷分支新增字符串（`settings_group_timetable` 等）因缺失扩展属性 import 导致的 `Unresolved reference` 编译错误
+- 修复设置页书卷分支新增字符串（`settings_group_timetable` 等）因缺失扩展属性 import 导致的 `Unresolved reference` 编译错误
 
 **构建**
 - versionCode 150 · arm64-v8a / armeabi-v7a / x86_64
