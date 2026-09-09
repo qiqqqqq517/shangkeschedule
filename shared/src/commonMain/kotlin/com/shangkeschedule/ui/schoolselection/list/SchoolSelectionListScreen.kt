@@ -10,24 +10,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,13 +40,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.ui.components.AlphabetIndexerList
+import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppLoading
+import com.shangkeschedule.ui.components.AppSegmentedControl
+import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -242,14 +246,14 @@ private fun SchoolContent(
                                         imageVector = vectorResource(Res.drawable.close_24px),
                                         contentDescription = stringResource(Res.string.a11y_delete),
                                         modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.outline
+                                        tint = appColors().divider
                                     )
                                 }
                             }
                             HorizontalDivider(
                                 modifier = Modifier.padding(top = 12.dp, start = 8.dp, end = 8.dp),
                                 thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
+                                color = appColors().divider
                             )
                         }
                     }
@@ -267,9 +271,8 @@ private fun SchoolContent(
 }
 
 /**
- * 类别选择器，使用最新的 PrimaryTabRow。
+ * 类别选择器，使用胶囊分段控件替代 M3 PrimaryTabRow。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryTabs(
     selectedCategory: AdapterCategory,
@@ -287,36 +290,20 @@ fun CategoryTabs(
     }
 
     val selectedIndex = displayCategories.indexOf(selectedCategory).coerceAtLeast(0)
+    val options = displayCategories.map { getDisplayName(it) }
 
-    PrimaryTabRow(
-        selectedTabIndex = selectedIndex,
-        modifier = Modifier.fillMaxWidth(),
-        indicator = {
-            TabRowDefaults.PrimaryIndicator(
-                modifier = Modifier.tabIndicatorOffset(selectedIndex),
-                width = 24.dp,
-            )
-        }
-    ) {
-        displayCategories.forEachIndexed { index, category ->
-            Tab(
-                selected = index == selectedIndex,
-                onClick = { onCategorySelected(category) },
-                text = {
-                    Text(
-                        text = getDisplayName(category),
-                        fontWeight = if (index == selectedIndex) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
-        }
-    }
+    AppSegmentedControl(
+        options = options,
+        selectedIndex = selectedIndex,
+        onSelect = { index -> onCategorySelected(displayCategories[index]) },
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 /**
- * 带有标题和搜索功能的自定义 SearchBar 组件。
+ * 带有标题和搜索功能的自定义搜索组件。
+ * 用胶囊输入框替代 M3 SearchBar，行为与旧实现保持一致。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBarWithTitle(
     onBack: () -> Unit,
@@ -330,84 +317,84 @@ fun SearchBarWithTitle(
     onSchoolSelected: (School) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
+    val tokens = appColors()
 
-    SearchBar(
-        modifier = Modifier.fillMaxWidth(),
-        // Telegram 全圆角浅灰胶囊搜索框（v2 规范 §4.3，页面已有搜索能力才换肤）
-        shape = com.shangkeschedule.ui.theme.AppShape.capsule,
-        inputField = {
-            SearchBarDefaults.InputField(
-                query = searchQuery,
-                onQueryChange = onQueryChange,
-                // 回车＝执行搜索：保留关键词并让结果列表继续可见。
-                // 旧实现是 onSearchActiveChange(false)，而"收起搜索条"在本页会连带把 query 清空，
-                // 于是按回车后搜索结果直接消失，表现为"等于没搜索"。
-                // 只有空查询（确实无可搜内容）时才收起。
-                onSearch = { query ->
-                    if (query.isBlank()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(top = 8.dp)
+    ) {
+        AppTextField(
+            value = searchQuery,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = if (searchActive) placeholderText else titleText,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    if (searchQuery.isBlank()) {
                         onSearchActiveChange(false)
                     } else {
-                        // 桌面端可能在折叠态用物理键盘输入，先展开保证结果可见
                         if (!searchActive) onSearchActiveChange(true)
-                        // 收起软键盘，避免键盘挡住结果列表；输入框仍持有焦点，可继续改词
                         keyboardController?.hide()
                     }
-                },
-                expanded = searchActive,
-                onExpandedChange = onSearchActiveChange,
-                placeholder = { Text(if (searchActive) placeholderText else titleText) },
-                leadingIcon = {
-                    IconButton(onClick = {
-                        if (searchActive) {
-                            onSearchActiveChange(false)
-                            onQueryChange("")
-                        } else {
-                            onBack()
-                        }
-                    }) {
+                }
+            ),
+            leadingIcon = {
+                IconButton(onClick = {
+                    if (searchActive) {
+                        onSearchActiveChange(false)
+                        onQueryChange("")
+                    } else {
+                        onBack()
+                    }
+                }) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.arrow_back_24px),
+                        contentDescription = stringResource(Res.string.a11y_back),
+                        tint = tokens.textSecondary
+                    )
+                }
+            },
+            trailingIcon = {
+                if (!searchActive) {
+                    IconButton(onClick = { onSearchActiveChange(true) }) {
                         Icon(
-                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
-                            contentDescription = stringResource(Res.string.a11y_back)
+                            imageVector = vectorResource(Res.drawable.search_24px),
+                            contentDescription = stringResource(Res.string.a11y_search),
+                            tint = tokens.textSecondary
                         )
                     }
-                },
-                trailingIcon = {
-                    if (!searchActive) {
-                        IconButton(onClick = { onSearchActiveChange(true) }) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.search_24px),
-                                contentDescription = stringResource(Res.string.a11y_search)
-                            )
-                        }
-                    } else if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.close_24px),
-                                contentDescription = stringResource(Res.string.a11y_clear_search)
-                            )
-                        }
+                } else if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.close_24px),
+                            contentDescription = stringResource(Res.string.a11y_clear_search),
+                            tint = tokens.textSecondary
+                        )
                     }
                 }
-            )
-        },
-        expanded = searchActive,
-        onExpandedChange = onSearchActiveChange,
-    ) {
-        // 搜索结果内容
-        if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
-            // 统一空状态
-            AppEmptyState(
-                hint = stringResource(Res.string.text_no_school_found),
-                fillScreen = true
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(filteredSchools) { school ->
-                    SchoolItem(school = school) { onSchoolSelected(it) }
+            }
+        )
+
+        if (searchActive) {
+            // 搜索结果内容
+            if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
+                AppEmptyState(
+                    hint = stringResource(Res.string.text_no_school_found),
+                    fillScreen = true
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().cardGap),
+                    verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
+                ) {
+                    items(filteredSchools) { school ->
+                        SchoolItem(school = school) { onSchoolSelected(it) }
+                    }
                 }
             }
         }
@@ -419,18 +406,12 @@ fun SearchBarWithTitle(
  */
 @Composable
 fun SchoolItem(school: School, onClick: (School) -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onClick(school) },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onClick(school) }
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -439,7 +420,7 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
                 modifier = Modifier
                     .size(24.dp)
                     .padding(end = 8.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = appColors().textSecondary
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(

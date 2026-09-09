@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.components
 
-import com.shangkeschedule.ui.theme.AppShape
+import com.shangkeschedule.ui.theme.appShapes
+
+import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -246,7 +248,7 @@ fun AdvancedColorPicker(
         if (config.showHex) {
             Spacer(modifier = Modifier.height(24.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                Surface(color = appColors().primarySoft, shape = MaterialTheme.shapes.small) {
                     Text(text = ColorInternalUtils.colorToHex(currentColor), modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
             }
@@ -278,7 +280,7 @@ private fun InternalGradientSlider(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 4.dp)
-                .clip(AppShape.chipSmall)
+                .clip(appShapes().chipSmall)
                 .background(gradient)
                 .pointerInput(range, widthPx) {
                     awaitEachGesture {
@@ -358,7 +360,7 @@ private fun RgbInputField(
 @Composable
 private fun ColorLabel(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = appColors().textSecondary)
         Text(value, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
     }
 }

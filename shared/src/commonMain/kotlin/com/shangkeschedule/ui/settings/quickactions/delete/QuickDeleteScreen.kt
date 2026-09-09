@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.quickactions.delete
+﻿package com.shangkeschedule.ui.settings.quickactions.delete
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +60,7 @@ import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.AppSpacing
+import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.datetime.LocalDate
@@ -174,7 +174,7 @@ fun QuickDeleteScreen(
                             .padding(16.dp),
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
+                            containerColor = appColors().danger,
                             contentColor = Color.White
                         )
                     ) {
@@ -190,8 +190,8 @@ fun QuickDeleteScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)
+                .padding(horizontal = appSpacing().pageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             // 维度一：周次和星期筛选卡片
             item {
@@ -276,7 +276,7 @@ fun QuickDeleteScreen(
                 Text(
                     text = if (count > 0) stringResource(Res.string.hint_affected_count, count)
                     else stringResource(Res.string.hint_no_selection),
-                    color = if (count > 0) MaterialTheme.colorScheme.error else appColors().textSecondary,
+                    color = if (count > 0) appColors().danger else appColors().textSecondary,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)
@@ -483,16 +483,16 @@ fun DeletePreviewCard(
     val course = courseWithWeeks.course
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)),
+        colors = CardDefaults.cardColors(containerColor = appColors().dangerSoft.copy(alpha = 0.15f)),
         modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+        border = BorderStroke(0.5.dp, appColors().danger.copy(alpha = 0.3f))
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = course.name,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = appColors().danger,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -520,7 +520,7 @@ fun DeletePreviewCard(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Icon(vectorResource(Res.drawable.delete_24px), null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            Icon(vectorResource(Res.drawable.delete_24px), null, tint = appColors().danger.copy(alpha = 0.5f))
         }
     }
 }

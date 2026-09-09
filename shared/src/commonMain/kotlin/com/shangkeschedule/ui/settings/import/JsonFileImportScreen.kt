@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.import
 
+import com.shangkeschedule.ui.theme.appColors
+
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
@@ -122,7 +124,7 @@ fun JsonFileImportScreen(
             Text(
                 text = stringResource(Res.string.import_json_desc_support),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = appColors().textSecondary
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -172,7 +174,7 @@ fun JsonFileImportScreen(
 
             uiState.error?.let { err ->
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = err, color = MaterialTheme.colorScheme.error)
+                Text(text = err, color = appColors().danger)
             }
         }
     }

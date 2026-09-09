@@ -1,5 +1,9 @@
 package com.shangkeschedule.ui.settings.import
 
+import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
+
 import androidx.compose.material3.IconButton
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -27,8 +31,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -104,16 +106,13 @@ internal fun ImportPreviewSection(
                 .height(200.dp)
         ) {
             itemsIndexed(model.courses.take(50)) { index, course ->
-                Card(
+                AppCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        .padding(vertical = 2.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -130,20 +129,20 @@ internal fun ImportPreviewSection(
                                     course.weeks.size
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = appColors().textSecondary
                             )
                             course.credit?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     text = stringResource(Res.string.import_preview_credit_fmt, it),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = appColors().textSecondary
                                 )
                             }
                             course.remark?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     text = stringResource(Res.string.import_preview_remark_fmt, it),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = appColors().textSecondary
                                 )
                             }
                         }
@@ -153,7 +152,7 @@ internal fun ImportPreviewSection(
                                     vectorResource(Res.drawable.edit_24px),
                                     contentDescription = stringResource(Res.string.a11y_edit),
                                     modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = appColors().textSecondary
                                 )
                             }
                             IconButton(onClick = {
@@ -163,7 +162,7 @@ internal fun ImportPreviewSection(
                                     vectorResource(Res.drawable.delete_24px),
                                     contentDescription = stringResource(Res.string.a11y_delete),
                                     modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = appColors().danger
                                 )
                             }
                         }
@@ -293,7 +292,7 @@ private fun ImportEntryEditDialog(
                     Text(
                         text = stringResource(Res.string.import_edit_error_invalid),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = appColors().danger
                     )
                 }
             }
@@ -410,7 +409,7 @@ internal fun ImportDestinationForm(
                     containerColor = if (mode == ImportDestinationMode.NEW_TABLE) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = if (mode == ImportDestinationMode.NEW_TABLE) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    else appColors().textSecondary
                 )
             ) { Text(stringResource(Res.string.import_preview_action_save_as_new)) }
             Button(
@@ -421,7 +420,7 @@ internal fun ImportDestinationForm(
                     containerColor = if (mode == ImportDestinationMode.EXISTING_TABLE) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = if (mode == ImportDestinationMode.EXISTING_TABLE) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    else appColors().textSecondary
                 )
             ) { Text(stringResource(Res.string.import_preview_action_overwrite)) }
         }

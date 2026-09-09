@@ -1,4 +1,7 @@
-package com.shangkeschedule.ui.settings.import
+﻿package com.shangkeschedule.ui.settings.import
+
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -64,7 +67,7 @@ fun FileImportHubScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(8.dp))
@@ -103,7 +106,7 @@ fun FileImportHubScreen(
             Text(
                 text = stringResource(Res.string.import_file_hub_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
             Spacer(Modifier.height(24.dp))

@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,16 +32,12 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
@@ -53,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,10 +60,10 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
 import org.jetbrains.compose.resources.stringResource
@@ -154,17 +152,6 @@ fun AdaptiveNavigationScaffold(
         bottomBarSelectedColor?.copy(alpha = 0.12f) ?: tokens.navSelectedBg
     }
 
-    // Rail（宽屏侧边栏）配色；手机端底栏已改为自绘紧凑胶囊，不再走 NavigationBarItem
-    val itemColors: NavigationSuiteItemColors = NavigationSuiteDefaults.itemColors(
-        navigationRailItemColors = NavigationRailItemDefaults.colors(
-            indicatorColor = resolvedIndicatorColor,
-            selectedIconColor = resolvedSelectedColor,
-            selectedTextColor = resolvedSelectedTextColor,
-            unselectedIconColor = resolvedUnselectedColor,
-            unselectedTextColor = resolvedUnselectedColor
-        )
-    )
-
     val layoutType = if (!showNavigation) {
         NavigationSuiteType.None
     } else {
@@ -174,29 +161,48 @@ fun AdaptiveNavigationScaffold(
     Box(modifier = modifier.fillMaxSize()) {
         when (layoutType) {
             NavigationSuiteType.NavigationRail -> {
-                // 宽屏侧边栏沿用 M3 NavigationRail 规格（图标 24dp / 文字 12sp）
+                // 宽屏侧边栏自绘：主题化胶囊选中 + 图文上下排列
                 val railIconSize = 24.dp
-                val railTextSize = AppType.hint
+                val railTextSize = appType().hint
+                val railWidth = 80.dp
                 Row(modifier = Modifier.fillMaxSize()) {
-                    NavigationRail(
-                        containerColor = if (isTransparent) Color.Transparent else resolvedContainerColor,
-                        modifier = Modifier.fillMaxHeight()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(railWidth)
+                            .background(if (isTransparent) Color.Transparent else resolvedContainerColor)
+                            .padding(vertical = appSpacing().navBarBottom),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         navItems.forEach { item ->
                             val isSelected = currentDestination::class == item.destination::class
-                            NavigationRailItem(
-                                selected = isSelected,
-                                onClick = { if (!isSelected) onTabSelected(item.destination) },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                        contentDescription = item.label,
-                                        modifier = Modifier.size(railIconSize)
-                                    )
-                                },
-                                label = { Text(item.label, fontSize = railTextSize) },
-                                colors = itemColors.navigationRailItemColors
-                            )
+                            val itemColor = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp)
+                                    .clip(appShapes().capsule)
+                                    .background(if (isSelected) resolvedIndicatorColor else Color.Transparent)
+                                    .clickable { if (!isSelected) onTabSelected(item.destination) }
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label,
+                                    modifier = Modifier.size(railIconSize),
+                                    tint = itemColor
+                                )
+                                Text(
+                                    text = item.label,
+                                    fontSize = railTextSize,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = itemColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
@@ -213,7 +219,7 @@ fun AdaptiveNavigationScaffold(
                 val density = LocalDensity.current
                 val navInsetPx = WindowInsets.navigationBars.getBottom(density)
                 // 底栏占用 = 胶囊高（touchMin 48 + 上下 7dp）+ 上下外距（navBarBottom × 2）
-                val barOccupied = AppSpacing.touchMin + 14.dp + AppSpacing.navBarBottom * 2
+                val barOccupied = appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2
                 val barInsetBottom = barOccupied + (navInsetPx / density.density).dp
 
                 // 滚动隐藏（Telegram 手势）：下滑累积超过阈值隐藏，上滑立即显示；
@@ -307,8 +313,8 @@ fun AdaptiveNavigationScaffold(
                             }
                             .navigationBarsPadding()
                             .padding(
-                                horizontal = AppSpacing.navBarHorizontal,
-                                vertical = AppSpacing.navBarBottom
+                                horizontal = appSpacing().navBarHorizontal,
+                                vertical = appSpacing().navBarBottom
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -320,7 +326,7 @@ fun AdaptiveNavigationScaffold(
                                 // 任何一处单独调参都会让底栏与其余玻璃件再次分叉。
                                 .liquidGlass(
                                     hazeState = hazeState,
-                                    shape = AppShape.capsule,
+                                    shape = appShapes().capsule,
                                     containerColor = bottomBarContainerColor ?: tokens.inputBg,
                                     isTransparent = isTransparent
                                 )
@@ -332,13 +338,13 @@ fun AdaptiveNavigationScaffold(
                                 val isSelected = currentDestination::class == item.destination::class
                                 Row(
                                     modifier = Modifier
-                                        .clip(AppShape.capsule)
+                                        .clip(appShapes().capsule)
                                         .background(
                                             if (isSelected) resolvedIndicatorColor else Color.Transparent
                                         )
-                                        // 触控标准 ≥48dp（AppSpacing.touchMin）+ 无障碍：selectable 提供
+                                        // 触控标准 ≥48dp（appSpacing().touchMin）+ 无障碍：selectable 提供
                                         // selected 语义与 Tab 角色（TalkBack 播报「已选中」且无重复朗读）
-                                        .heightIn(min = AppSpacing.touchMin)
+                                        .heightIn(min = appSpacing().touchMin)
                                         .selectable(
                                             selected = isSelected,
                                             role = Role.Tab,
@@ -358,7 +364,7 @@ fun AdaptiveNavigationScaffold(
                                         text = item.label,
                                         // v3.23.10 对比增强：选中项字号 11sp(badge)→12sp(hint)（保持 Bold），
                                         // 未选中 11sp Medium，字号+字重双通道拉开层级
-                                        fontSize = if (isSelected) AppType.hint else AppType.badge,
+                                        fontSize = if (isSelected) appType().hint else appType().badge,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
                                         modifier = Modifier.padding(start = 5.dp)

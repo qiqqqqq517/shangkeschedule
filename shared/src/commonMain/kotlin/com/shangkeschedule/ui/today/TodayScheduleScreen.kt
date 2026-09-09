@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,7 +25,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -76,6 +76,7 @@ import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppFab
@@ -88,10 +89,10 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
@@ -116,6 +117,7 @@ import shangkeschedule.shared.generated.resources.a11y_todo_add
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.add_24px
+import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.close_24px
 import shangkeschedule.shared.generated.resources.confirm_delete
 import shangkeschedule.shared.generated.resources.course_position_prefix
@@ -124,16 +126,27 @@ import shangkeschedule.shared.generated.resources.date_format_year_month_day
 import shangkeschedule.shared.generated.resources.delete_24px
 import shangkeschedule.shared.generated.resources.label_crush_course
 import shangkeschedule.shared.generated.resources.label_remark
+import shangkeschedule.shared.generated.resources.location_on_24px
+import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.status_semester_ended
 import shangkeschedule.shared.generated.resources.text_countdown_remaining
 import shangkeschedule.shared.generated.resources.text_countdown_start
 import shangkeschedule.shared.generated.resources.text_course_in_progress
+import shangkeschedule.shared.generated.resources.text_courses_count
 import shangkeschedule.shared.generated.resources.text_courses_finished
+import shangkeschedule.shared.generated.resources.action_view_all
+import shangkeschedule.shared.generated.resources.action_week_view
 import shangkeschedule.shared.generated.resources.text_no_courses_today
+import shangkeschedule.shared.generated.resources.text_todo_pending
+import shangkeschedule.shared.generated.resources.text_today_courses_label
+import shangkeschedule.shared.generated.resources.text_week_courses
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
+import shangkeschedule.shared.generated.resources.title_today_courses
 import shangkeschedule.shared.generated.resources.title_today_schedule
+import shangkeschedule.shared.generated.resources.title_tomorrow_courses
 import shangkeschedule.shared.generated.resources.title_vacation_until_start
+import shangkeschedule.shared.generated.resources.title_week_overview
 import shangkeschedule.shared.generated.resources.todo_add
 import shangkeschedule.shared.generated.resources.todo_delete_message
 import shangkeschedule.shared.generated.resources.todo_delete_title
@@ -190,7 +203,7 @@ fun TodayScheduleScreen(
                     title = {
                         Text(
                             text = stringResource(Res.string.title_today_schedule),
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.pageTitle),
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().pageTitle),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -300,11 +313,13 @@ fun TodayContent(
     }
 
     val scrollState = rememberLazyListState()
+    val themePreset = LocalThemePreset.current
+    val isIosPreset = themePreset == AppThemePreset.IOS
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = appSpacing().pageHorizontal)
     ) {
         val weekDays = stringArrayResource(Res.array.week_days_full_names)
 
@@ -351,20 +366,20 @@ fun TodayContent(
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Text(
                 text = dateStr,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.bigNumber),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().bigNumber),
                 fontWeight = FontWeight.Bold,
                 color = appColors().textPrimary
             )
             Text(
                 text = subTitle,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().caption),
                 color = appColors().textSecondary
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (state.courses.isNotEmpty() && state.status == TodayStatus.Normal) {
+        if (state.courses.isNotEmpty() && state.status == TodayStatus.Normal && !isIosPreset) {
             NextCourseCard(
                 courses = state.courses,
                 gridStyle = gridStyle,
@@ -396,17 +411,89 @@ fun TodayContent(
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.listGap),
-                contentPadding = PaddingValues(bottom = bottomInset + AppSpacing.listGap)
+                verticalArrangement = Arrangement.spacedBy(if (isIosPreset) 28.dp else appSpacing().listGap),
+                // iOS 主题：宽屏（平板/桌面）内容限宽 640dp 居中
+                horizontalAlignment = if (isIosPreset) Alignment.CenterHorizontally else Alignment.Start,
+                contentPadding = PaddingValues(bottom = bottomInset + appSpacing().listGap)
             ) {
-                itemsIndexed(state.courses) { index, model ->
-                    CourseTimelineItem(
-                        model,
-                        gridStyle,
-                        isDark,
-                        now = currentTime,
-                        entranceDelayMs = todayEntranceMotion.tokens.entranceStaggerMs * index
-                    )
+                // iOS 主题：「今日课程」大标题 + 课程数
+                if (isIosPreset) {
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                            IosSectionTitle(
+                                title = stringResource(Res.string.title_today_courses),
+                                subtitle = stringResource(Res.string.text_courses_count, state.courses.size.toString())
+                            )
+                        }
+                    }
+
+                    // iOS 主题：今日课程扁平列表
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                            IosCourseGroup(
+                                courses = state.courses,
+                                gridStyle = gridStyle,
+                                isDark = isDark,
+                                now = currentTime
+                            )
+                        }
+                    }
+
+                    // iOS 主题：本周概览
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            IosGroupHeader(
+                                title = stringResource(Res.string.title_week_overview),
+                                action = stringResource(Res.string.action_view_all)
+                            )
+                        }
+                    }
+
+                    // iOS 主题：本周概览统计卡
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                            IosStatsCard(
+                                weekCourseCount = state.weekCourseCount,
+                                todayCourseCount = state.courses.size,
+                                todoCount = state.todos.count { !it.done }
+                            )
+                        }
+                    }
+
+                    // iOS 主题：明日课程区块
+                    if (state.tomorrowCourses.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                IosGroupHeader(
+                                    title = stringResource(Res.string.title_tomorrow_courses),
+                                    action = stringResource(Res.string.action_week_view)
+                                )
+                            }
+                        }
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp)) {
+                                IosCourseGroup(
+                                    courses = state.tomorrowCourses,
+                                    gridStyle = gridStyle,
+                                    isDark = isDark,
+                                    now = currentTime,
+                                    showFinishedState = false
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    itemsIndexed(state.courses) { index, model ->
+                        CourseTimelineItem(
+                            model,
+                            gridStyle,
+                            isDark,
+                            now = currentTime,
+                            entranceDelayMs = todayEntranceMotion.tokens.entranceStaggerMs * index
+                        )
+                    }
                 }
                 // 今日待办自动排到课程列表之后（页面最底部）
                 if (state.todos.isNotEmpty()) {
@@ -487,7 +574,7 @@ private fun TodoRow(
     } else Modifier
 
     // 与课程条一致的边框样式
-    val borderColor = MaterialTheme.colorScheme.outline
+    val borderColor = appColors().divider
     val borderWidth = 1.dp
     val borderAlpha = gridStyle.courseBlockAlphaFloat
     val borderModifier = when (gridStyle.borderType) {
@@ -537,7 +624,7 @@ private fun TodoRow(
                 Text(
                     text = todo.time,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = AppType.timeLabel,
+                        fontSize = appType().timeLabel,
                         textDecoration = if (todo.done) TextDecoration.LineThrough else null
                     ),
                     fontWeight = FontWeight.Bold,
@@ -572,9 +659,11 @@ private fun TodoRow(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 复选框放在色块内容最前
-                    Checkbox(
+                    AppCheckboxIndicator(
                         checked = todo.done,
-                        onCheckedChange = { checked -> onToggle(todo.id, checked) }
+                        modifier = Modifier.clickable {
+                            onToggle(todo.id, !todo.done)
+                        }
                     )
                     Text(
                         text = todo.title,
@@ -906,7 +995,7 @@ private fun NextCourseCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = target.course.name,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().hero),
                     fontWeight = FontWeight.ExtraBold,
                     color = textColor,
                     modifier = Modifier.weight(1f)
@@ -974,7 +1063,7 @@ private fun NextCourseCard(
             if (countdownText != null) {
                 Text(
                     text = countdownText,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().hero),
                     fontWeight = FontWeight.ExtraBold,
                     color = textColor,
                     modifier = Modifier.padding(top = 10.dp)
@@ -1030,7 +1119,7 @@ fun CourseTimelineItem(
     } else Modifier
 
     // 与主课表 CourseBlock 一致：边框样式 + 课程块透明度
-    val borderColor = MaterialTheme.colorScheme.outline
+    val borderColor = appColors().divider
     val borderWidth = 1.dp
     val borderAlpha = gridStyle.courseBlockAlphaFloat
     val borderModifier = when (gridStyle.borderType) {
@@ -1100,7 +1189,7 @@ fun CourseTimelineItem(
             Text(
                 text = model.startTime ?: EMPTY_TIME_PLACEHOLDER,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = AppType.timeLabel,
+                    fontSize = appType().timeLabel,
                     textDecoration = if (isFinished) TextDecoration.LineThrough else null
                 ),
                 fontWeight = FontWeight.Bold,
@@ -1109,7 +1198,7 @@ fun CourseTimelineItem(
             Text(
                 text = model.endTime ?: EMPTY_TIME_PLACEHOLDER,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
+                color = appColors().divider
             )
         }
 
@@ -1216,7 +1305,7 @@ fun CourseTimelineItem(
                         .fillMaxWidth()
                         .background(
                             color = appColors().inputBg,
-                            shape = AppShape.bubble
+                            shape = appShapes().bubble
                         )
                         .padding(8.dp)
                 ) {
@@ -1224,20 +1313,316 @@ fun CourseTimelineItem(
                         Text(
                             text = stringResource(Res.string.label_remark),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = appColors().divider,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = remark,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = appColors().textSecondary,
                             lineHeight = 18.sp
                         )
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * iOS 风格分区大标题：22sp Bold + 13sp 次级文字
+ * 对齐画布 .section-header（今日课程 / 共 X 节）
+ */
+@Composable
+private fun IosSectionTitle(
+    title: String,
+    subtitle: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.01).sp
+            ),
+            color = appColors().textPrimary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+            color = appColors().textSecondary,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+/**
+ * iOS 风格小组标题：13sp Semibold uppercase + 主色链接
+ * 对齐画布 .group-header（本周概览 / 明日课程）
+ */
+@Composable
+private fun IosGroupHeader(
+    title: String,
+    action: String? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.8.sp
+            ),
+            color = appColors().textSecondary
+        )
+        if (action != null) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = action,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                color = appColors().primary,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+/**
+ * iOS 风格本周概览统计卡：三列等分，竖线分隔
+ * 对齐画布 .stats-card（本周课程 / 今日课程 / 待完成）
+ */
+@Composable
+private fun IosStatsCard(
+    weekCourseCount: Int,
+    todayCourseCount: Int,
+    todoCount: Int
+) {
+    val items = listOf(
+        weekCourseCount.toString() to stringResource(Res.string.text_week_courses),
+        todayCourseCount.toString() to stringResource(Res.string.text_today_courses_label),
+        todoCount.toString() to stringResource(Res.string.text_todo_pending)
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(appShapes().card)
+            .background(appColors().cardBg)
+            .padding(vertical = 16.dp)
+    ) {
+        items.forEachIndexed { index, (value, label) ->
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.01).sp,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    color = appColors().textPrimary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = appColors().textSecondary
+                )
+            }
+            if (index != items.lastIndex) {
+                // 竖线分隔：用 Box + 固定高度（与文字区域对齐）
+                Box(
+                    modifier = Modifier
+                        .width(0.5.dp)
+                        .height(32.dp)
+                        .background(appColors().divider)
+                        .align(Alignment.CenterVertically)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun IosCourseGroup(
+    courses: List<CourseDisplayModel>,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    showFinishedState: Boolean = true
+) {
+    // iOS 风格：扁平列表，每行课程左侧色条 + 内容 + 右箭头，行间半透明分隔线
+    Column(modifier = Modifier.fillMaxWidth()) {
+        courses.forEachIndexed { index, model ->
+            IosCourseCard(
+                model = model,
+                gridStyle = gridStyle,
+                isDark = isDark,
+                now = now,
+                showFinishedState = showFinishedState
+            )
+            if (index != courses.lastIndex) {
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = appColors().divider,
+                    modifier = Modifier.padding(start = 56.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun IosCourseCard(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    showFinishedState: Boolean = true
+) {
+    val isFinished = if (showFinishedState) {
+        remember(model.endTime, now) {
+            try {
+                LocalTime.parse(model.endTime ?: DEFAULT_TIME_ZERO) < now
+            } catch (e: Exception) { false }
+        }
+    } else false
+
+    val colorPair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
+        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
+    }
+
+    // iOS 风格：背景色 = 系统色 12% 透明度，色条色 = 系统色
+    val bgColor = colorPair.dark.copy(alpha = if (isDark) 0.2f else 0.12f)
+    val accentColor = colorPair.dark
+    val textPrimary = appColors().textPrimary
+    val textSecondary = appColors().textSecondary
+
+    val contentAlpha = if (isFinished) 0.5f else 1f
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(alpha = contentAlpha)
+            .padding(end = 8.dp)
+            .clickable { /* 预留点击跳转 */ },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 左侧色条：4dp 宽，上下各留 8dp 间距
+        Box(
+            modifier = Modifier
+                .padding(vertical = 8.dp)
+                .width(4.dp)
+                .height(40.dp)
+                .background(
+                    color = accentColor,
+                    shape = RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp)
+                )
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // 中间内容区
+        Column(
+            modifier = Modifier.weight(1f).padding(vertical = 14.dp)
+        ) {
+            // 顶部：课程名 + 时间徽章
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = model.course.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 20.sp
+                    ),
+                    color = textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${model.startTime ?: ""}-${model.endTime ?: ""}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    color = textSecondary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 元信息：地点 + 教师
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.location_on_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = textSecondary.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = model.course.position,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
+                            color = textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.person_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = textSecondary.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = model.course.teacher,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
+                            color = textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(4.dp))
+
+        // 右侧 chevron
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = appColors().divider
+        )
     }
 }
 
@@ -1248,7 +1633,7 @@ private fun EmptyStateView() {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(AppShape.card)
+                .clip(appShapes().card)
                 .background(appColors().inputBg.copy(alpha = 0.55f))
                 .padding(horizontal = 28.dp, vertical = 22.dp)
         ) {

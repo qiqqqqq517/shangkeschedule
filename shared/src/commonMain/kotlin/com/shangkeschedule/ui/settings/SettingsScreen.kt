@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
@@ -45,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -55,6 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
@@ -69,11 +74,12 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
@@ -142,6 +148,11 @@ import shangkeschedule.shared.generated.resources.edit_24px
 import shangkeschedule.shared.generated.resources.section_title_semester_settings
 import shangkeschedule.shared.generated.resources.more_horiz_24px
 import shangkeschedule.shared.generated.resources.notifications_24px
+import shangkeschedule.shared.generated.resources.filter_list_24px
+import shangkeschedule.shared.generated.resources.view_week_24px
+import shangkeschedule.shared.generated.resources.settings_group_course
+import shangkeschedule.shared.generated.resources.settings_group_tools
+import shangkeschedule.shared.generated.resources.settings_group_other
 import shangkeschedule.shared.generated.resources.item_backup_restore
 import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.cloud_24px
@@ -158,8 +169,8 @@ import shangkeschedule.shared.generated.resources.title_schedule_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 
 // 页面节奏对齐全局 token（v2 规范 §2：pageHorizontal=16 / cardGap=12）
-private val SETTING_PADDING = AppSpacing.pageHorizontal
-private val ITEM_SPACING = AppSpacing.cardGap
+// 注意：已迁移为主题化 token，各 Composable 内用 appSpacing().pageHorizontal / appSpacing().cardGap 读取，
+// 保证通透（iOS）主题下自动切换到 Apple HIG 更大留白值。
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,6 +181,8 @@ fun SettingsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val uiState by viewModel.uiState.collectAsState()
+    val themePreset = LocalThemePreset.current
+    val isIosPreset = themePreset == AppThemePreset.IOS
     // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
     val hazeState = rememberHazeState()
     val glassTint = appColors().pageBg.copy(alpha = 0.72f)
@@ -182,53 +195,211 @@ fun SettingsScreen(
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text(stringResource(Res.string.nav_settings)) },
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent
-                    ),
-                    modifier = Modifier.hazeEffect(hazeState) {
-                        blurRadius = 16.dp
-                        noiseFactor = 0.1f
-                        tints = listOf(HazeTint(glassTint))
-                        fallbackTint = HazeTint(glassFallback)
-                        backgroundColor = Color.Transparent
-                    }
-                )
+                if (isIosPreset) {
+                    // iOS 风格：左对齐大标题（对齐设计稿 .nav-bar__title）
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = stringResource(Res.string.nav_settings),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = appColors().textPrimary
+                            )
+                        },
+                        scrollBehavior = scrollBehavior,
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = Color.Transparent
+                        ),
+                        modifier = Modifier.hazeEffect(hazeState) {
+                            blurRadius = 16.dp
+                            noiseFactor = 0.1f
+                            tints = listOf(HazeTint(glassTint))
+                            fallbackTint = HazeTint(glassFallback)
+                            backgroundColor = Color.Transparent
+                        }
+                    )
+                } else {
+                    CenterAlignedTopAppBar(
+                        title = { Text(stringResource(Res.string.nav_settings)) },
+                        scrollBehavior = scrollBehavior,
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = Color.Transparent
+                        ),
+                        modifier = Modifier.hazeEffect(hazeState) {
+                            blurRadius = 16.dp
+                            noiseFactor = 0.1f
+                            tints = listOf(HazeTint(glassTint))
+                            fallbackTint = HazeTint(glassFallback)
+                            backgroundColor = Color.Transparent
+                        }
+                    )
+                }
             }
         ) { innerPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
-                    .padding(horizontal = SETTING_PADDING),
-                verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
+                    .padding(horizontal = appSpacing().pageHorizontal),
+                verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
+                // iOS 主题：宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
+                horizontalAlignment = if (isIosPreset) Alignment.CenterHorizontally else Alignment.Start,
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     bottom = navPadding.calculateBottomPadding() + 16.dp
                 )
             ) {
+                if (isIosPreset) {
+                    // ===== iOS 主题：分组列表风格（对齐设计稿 profile.html）=====
+                    item { IosProfileHeader(modifier = Modifier.widthIn(max = 640.dp)) }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_course))
+                            IosSettingsGroup {
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_course_conversion),
+                                    icon = vectorResource(Res.drawable.school_24px),
+                                    tone = IosCellTone.BLUE,
+                                    onClick = { onNavigate(Destination.CourseTableConversion) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.section_title_semester_settings),
+                                    icon = vectorResource(Res.drawable.calendar_today_24px),
+                                    tone = IosCellTone.PURPLE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.SemesterSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_time_slot_customization),
+                                    icon = vectorResource(Res.drawable.schedule_24px),
+                                    tone = IosCellTone.ORANGE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.title_manage_course_tables),
+                                    icon = vectorResource(Res.drawable.class_24px),
+                                    tone = IosCellTone.TEAL,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.ManageCourseTables) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_course_management),
+                                    icon = vectorResource(Res.drawable.edit_24px),
+                                    tone = IosCellTone.GREEN,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.CourseManagementList) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_show_non_current_week),
+                                    icon = vectorResource(Res.drawable.filter_list_24px),
+                                    tone = IosCellTone.INDIGO,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
+                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
+                                        )
+                                    }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_show_weekends),
+                                    icon = vectorResource(Res.drawable.view_week_24px),
+                                    tone = IosCellTone.TEAL,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.courseConfig?.showWeekends ?: false,
+                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_tools))
+                            IosSettingsGroup {
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_couple_schedule),
+                                    icon = vectorResource(Res.drawable.favorite_24px),
+                                    tone = IosCellTone.PINK,
+                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_backup_restore),
+                                    icon = vectorResource(Res.drawable.cloud_24px),
+                                    tone = IosCellTone.BLUE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.BackupAndRestore) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_other))
+                            IosSettingsGroup {
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_appearance_settings),
+                                    icon = vectorResource(Res.drawable.palette_24px),
+                                    tone = IosCellTone.INDIGO,
+                                    onClick = { onNavigate(Destination.AppearanceSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.title_course_notification_settings),
+                                    icon = vectorResource(Res.drawable.notifications_24px),
+                                    tone = IosCellTone.ORANGE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.NotificationSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_more_options),
+                                    icon = vectorResource(Res.drawable.more_horiz_24px),
+                                    tone = IosCellTone.GRAY,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.MoreOptions) }
+                                )
+                            }
+                        }
+                    }
+                } else {
                 // 头部渐变卡（v2 基线「我的」页样式：紫渐变 + 半透明白图标锚点 + 白字）
                 item {
                     GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.padding(AppSpacing.cardInner),
+                            modifier = Modifier.padding(appSpacing().cardInner),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .clip(AppShape.chipSmall)
-                                    .background(Color.White.copy(alpha = 0.18f)),
+                                    .clip(appShapes().chipSmall)
+                                    .background(appColors().textOnPrimary.copy(alpha = 0.18f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     vectorResource(Res.drawable.calendar_today_24px),
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = appColors().textOnPrimary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -236,14 +407,14 @@ fun SettingsScreen(
                             Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
                                 Text(
                                     text = stringResource(Res.string.app_name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = AppType.hero),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().hero),
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
+                                    color = appColors().textOnPrimary
                                 )
                                 Text(
                                     text = stringResource(Res.string.hero_subtitle),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.hint),
-                                    color = Color.White.copy(alpha = 0.75f),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().hint),
+                                    color = appColors().textOnPrimary.copy(alpha = 0.75f),
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -288,7 +459,7 @@ fun SettingsScreen(
                                 Text(
                                     text = stringResource(Res.string.item_show_non_current_week),
                                     style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = AppType.body,
+                                        fontSize = appType().body,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     maxLines = 2,
@@ -315,7 +486,7 @@ fun SettingsScreen(
                                 Text(
                                     text = stringResource(Res.string.item_show_weekends),
                                     style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = AppType.body,
+                                        fontSize = appType().body,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     maxLines = 2,
@@ -405,6 +576,7 @@ fun SettingsScreen(
                         onClick = { onNavigate(Destination.MoreOptions) }
                     )
                 }
+                } // 非 iOS 主题布局结束
             }
         }
     }
@@ -422,11 +594,7 @@ internal fun SettingCard(
     leadingIcon: ImageVector? = null,
     accent: AccentTone = AccentTone.PRIMARY,
     modifier: Modifier = Modifier,
-    titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
-        fontSize = AppType.rowTitle,
-        fontWeight = FontWeight.SemiBold,
-        color = appColors().textPrimary
-    ),
+    titleStyle: TextStyle? = null,
     itemVerticalPadding: Dp = 10.dp,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = {
@@ -437,9 +605,14 @@ internal fun SettingCard(
         )
     }
 ) {
+    val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
+        fontSize = appType().rowTitle,
+        fontWeight = FontWeight.SemiBold,
+        color = appColors().textPrimary
+    )
     AppCard(modifier = modifier.fillMaxWidth()) {
         // 内容 16dp 水平缩进（与 SectionCard 一致）：图标 chip / chevron 不贴卡片边缘
-        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING)) {
+        Column(modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)) {
             SettingItem(
                 title = title,
                 subtitle = subtitle,
@@ -465,7 +638,7 @@ internal fun SectionCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(horizontal = SETTING_PADDING), content = content)
+        Column(modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal), content = content)
     }
 }
 
@@ -476,8 +649,212 @@ internal fun SectionCard(
 internal fun SectionDivider() {
     HorizontalDivider(
         modifier = Modifier.fillMaxWidth(),
-        color = appColors().divider
+        color = appColors().divider,
+        thickness = 0.5.dp
     )
+}
+
+// ==================== iOS 主题「我的」页分组列表组件（对齐设计稿 profile.html）====================
+
+/**
+ * iOS 设置行图标徽章色系：Apple 系统色深浅两套。
+ */
+private enum class IosCellTone { BLUE, GREEN, ORANGE, PURPLE, TEAL, INDIGO, PINK, GRAY }
+
+@Composable
+private fun iosCellToneColor(tone: IosCellTone): Color {
+    val isDark = LocalIsDarkTheme.current
+    return if (isDark) when (tone) {
+        IosCellTone.BLUE -> Color(0xFF0A84FF)      // systemBlue (dark)
+        IosCellTone.GREEN -> Color(0xFF30D158)     // systemGreen (dark)
+        IosCellTone.ORANGE -> Color(0xFFFF9F0A)    // systemOrange (dark)
+        IosCellTone.PURPLE -> Color(0xFFBF5AF2)    // systemPurple (dark)
+        IosCellTone.TEAL -> Color(0xFF40C8E0)      // systemTeal (dark)
+        IosCellTone.INDIGO -> Color(0xFF5E5CE6)    // systemIndigo (dark)
+        IosCellTone.PINK -> Color(0xFFFF375F)      // systemPink (dark)
+        IosCellTone.GRAY -> Color(0xFF98989D)      // systemGray (dark)
+    } else when (tone) {
+        IosCellTone.BLUE -> Color(0xFF007AFF)      // systemBlue
+        IosCellTone.GREEN -> Color(0xFF34C759)     // systemGreen
+        IosCellTone.ORANGE -> Color(0xFFFF9500)    // systemOrange
+        IosCellTone.PURPLE -> Color(0xFFAF52DE)    // systemPurple
+        IosCellTone.TEAL -> Color(0xFF30B0C7)      // systemTeal
+        IosCellTone.INDIGO -> Color(0xFF5856D6)    // systemIndigo
+        IosCellTone.PINK -> Color(0xFFFF2D55)      // systemPink
+        IosCellTone.GRAY -> Color(0xFF8E8E93)      // systemGray
+    }
+}
+
+/**
+ * iOS 我的页头卡：白卡 + 60dp 蓝→紫渐变圆头像 + 名称 + 副标题 + 灰 chevron。
+ * 对齐设计稿 .profile-header（张三 / 计算机科学与技术 · 2023级 → 应用名 / 副标题）。
+ */
+@Composable
+private fun IosProfileHeader(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(appShapes().card)
+            .background(appColors().cardBg)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 渐变圆头像：systemBlue → systemPurple（135deg）
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(iosCellToneColor(IosCellTone.BLUE), iosCellToneColor(IosCellTone.PURPLE))
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(Res.string.app_name).take(1),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.01).sp
+                ),
+                color = Color.White
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.app_name),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = appColors().textPrimary
+            )
+            Text(
+                text = stringResource(Res.string.hero_subtitle),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                color = appColors().textSecondary,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+        }
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = appColors().textSecondary,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+/**
+ * iOS 分组小标题：13sp 灰、大写、字距 0.6sp。
+ * 对齐设计稿 .settings-group-header（左缘相对组卡缩进 4dp）。
+ */
+@Composable
+private fun IosGroupLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.6.sp
+        ),
+        color = appColors().textSecondary,
+        modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
+    )
+}
+
+/**
+ * iOS 分组卡：白底 19dp 圆角容器，内含多个 [IosSettingCell]。
+ * 对齐设计稿 .settings-group（cell 间分隔线由 cell 的 showDivider 控制）。
+ */
+@Composable
+private fun IosSettingsGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(appShapes().card)
+            .background(appColors().cardBg),
+        content = content
+    )
+}
+
+/**
+ * iOS 设置行：28dp 系统色图标徽章（7dp 圆角、纯色底、白图标）+ 16sp 标题 + 可选 detail + 尾部内容。
+ * 对齐设计稿 .settings-cell；分隔线左缩进 60dp（18 padding + 28 icon + 14 gap）。
+ */
+@Composable
+private fun IosSettingCell(
+    title: String,
+    icon: ImageVector,
+    tone: IosCellTone,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+    showDivider: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = appColors().textSecondary,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (showDivider) {
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = appColors().divider,
+                modifier = Modifier.padding(start = 60.dp)
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 56.dp)
+                .clickable(enabled = onClick != null) { onClick?.invoke() }
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(iosCellToneColor(tone)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                color = appColors().textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            if (detail != null) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                    color = appColors().textSecondary,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
+            trailing()
+        }
+    }
 }
 
 @Composable
@@ -593,11 +970,7 @@ internal fun SettingItem(
     icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
     leadingIcon: ImageVector? = null,
     accent: AccentTone = AccentTone.PRIMARY,
-    titleStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(
-        fontSize = AppType.rowTitle,
-        fontWeight = FontWeight.SemiBold,
-        color = appColors().textPrimary
-    ),
+    titleStyle: TextStyle? = null,
     verticalPadding: Dp = 6.dp,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = {
@@ -608,10 +981,15 @@ internal fun SettingItem(
         )
     }
 ) {
+    val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
+        fontSize = appType().rowTitle,
+        fontWeight = FontWeight.SemiBold,
+        color = appColors().textPrimary
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = AppSpacing.rowMinHeight)
+            .defaultMinSize(minHeight = appSpacing().rowMinHeight)
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -625,12 +1003,12 @@ internal fun SettingItem(
             )
         }
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(title, style = titleStyle)
+            Text(title, style = effectiveTitleStyle)
             if (subtitle != null) {
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = AppType.caption,
+                        fontSize = appType().caption,
                         lineHeight = 18.sp
                     ),
                     color = appColors().textSecondary,

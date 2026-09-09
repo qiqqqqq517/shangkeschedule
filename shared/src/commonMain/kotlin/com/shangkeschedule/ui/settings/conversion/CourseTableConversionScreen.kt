@@ -1,4 +1,6 @@
-package com.shangkeschedule.ui.settings.conversion
+﻿package com.shangkeschedule.ui.settings.conversion
+
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -183,7 +185,7 @@ fun CourseTableConversionScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,17 +62,35 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import com.shangkeschedule.ui.theme.TouchFeedbackStyle
+import kotlinx.coroutines.launch
 import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.AppColorTokens
 import com.shangkeschedule.ui.theme.AppSemanticColors
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
-import com.shangkeschedule.ui.theme.AppType
 import com.shangkeschedule.ui.theme.appColors
+import org.jetbrains.compose.resources.vectorResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.check_24px
 
 /**
  * 风格基线通用组件（v2 规范 §2 / §4）。
@@ -78,13 +99,231 @@ import com.shangkeschedule.ui.theme.appColors
  * 溢出菜单 / 徽标 / 开关 / Snackbar / 分段控件。行为一律由调用方既有逻辑提供。
  */
 
+// ============================================================
+// 触摸反馈（v3.27.2 Apple HIG 风格）
+// ============================================================
+
+/**
+ * 触摸反馈状态：跟踪触点位置与扩散进度，由调用方在 pointerInput 的 onPress 中驱动。
+ *
+ * 使用方式：
+ * ```
+ * val state = rememberTouchFeedbackState()
+ * Box(Modifier.touchFeedback(state, style).pointerInput(Unit) {
+ *     detectTapGestures(onPress = { offset ->
+ *         state.show(offset)
+ *         try { awaitRelease() } finally { state.hide() }
+ *     })
+ * })
+ * ```
+ */
+class TouchFeedbackState {
+    /** 当前触点位置（组件内坐标），null 表示未激活 */
+    var touchPosition by mutableStateOf<Offset?>(null)
+        private set
+
+    /** 扩散进度 0f~1f：0=刚按下，1=最大扩散 */
+    val progress: Float get() = _progress.value
+
+    private val _progress = Animatable(0f)
+    private val _fade = Animatable(0f)
+
+    /** 淡出透明度 0f~1f：1=完全显示，0=消失 */
+    val alpha: Float get() = _fade.value
+
+    /** 按下时启动扩散动画 */
+    fun show(position: Offset, scope: kotlinx.coroutines.CoroutineScope) {
+        touchPosition = position
+        scope.launch {
+            _fade.snapTo(1f)
+            _progress.snapTo(0f)
+            _progress.animateTo(
+                1f,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = TouchEaseOut
+                )
+            )
+        }
+    }
+
+    /** 抬起时淡出 */
+    fun hide(scope: kotlinx.coroutines.CoroutineScope) {
+        scope.launch {
+            _fade.animateTo(
+                0f,
+                animationSpec = tween(
+                    durationMillis = 220,
+                    easing = TouchEaseOut
+                )
+            )
+            // 淡出结束后重置触点，避免下一帧在旧位置闪烁
+            if (_fade.value == 0f) {
+                touchPosition = null
+                _progress.snapTo(0f)
+            }
+        }
+    }
+}
+
+/** Apple HIG 触摸反馈缓动：快出慢收，柔和克制 */
+private val TouchEaseOut = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
+
+/** 创建并记住一个触摸反馈状态 */
+@Composable
+fun rememberTouchFeedbackState(): TouchFeedbackState {
+    return remember { TouchFeedbackState() }
+}
+
+/**
+ * 苹果风格触摸反馈 Modifier：手指到哪，动效跟到哪。
+ *
+ * 两种风格：
+ * - [TouchFeedbackStyle.RIPPLE] 涟漪式：从触点向外扩散的柔和圆形，低透明度边缘渐隐
+ * - [TouchFeedbackStyle.HALO] 光晕式：触点周围柔和光晕，模糊边缘，更梦幻
+ * - [TouchFeedbackStyle.NONE] 关闭：不绘制任何效果
+ *
+ * 需配合 [TouchFeedbackState] 使用，在 pointerInput 的 onPress 中调用
+ * state.show() / state.hide() 驱动动画。
+ */
+fun Modifier.touchFeedback(
+    state: TouchFeedbackState,
+    style: TouchFeedbackStyle,
+    color: Color = Color.White
+): Modifier {
+    if (style == TouchFeedbackStyle.NONE) return this
+    return this.drawWithContent {
+        // 先绘制原始内容
+        drawContent()
+        // 再在内容之上绘制触摸反馈
+        val position = state.touchPosition ?: return@drawWithContent
+        val progress = state.progress.coerceIn(0f, 1f)
+        val alpha = state.alpha.coerceIn(0f, 1f)
+        if (alpha <= 0f) return@drawWithContent
+
+        when (style) {
+            TouchFeedbackStyle.RIPPLE -> drawRipple(
+                center = position,
+                progress = progress,
+                alpha = alpha,
+                color = color,
+                size = size
+            )
+            TouchFeedbackStyle.HALO -> drawHalo(
+                center = position,
+                progress = progress,
+                alpha = alpha,
+                color = color,
+                size = size
+            )
+            TouchFeedbackStyle.NONE -> Unit
+        }
+    }
+}
+
+/**
+ * 涟漪式：从触点向外扩散的圆环，内实外虚，类似 iOS 列表 cell 按压。
+ * 涟漪环厚度随进度逐渐变薄，透明度随进度渐隐。
+ */
+private fun DrawScope.drawRipple(
+    center: Offset,
+    progress: Float,
+    alpha: Float,
+    color: Color,
+    size: Size
+) {
+    // 最大半径：到最远角落距离的 ~75%，不会充满整个元素
+    val maxRadius = kotlin.math.sqrt(
+        size.width * size.width + size.height * size.height
+    ) * 0.5f * 0.75f
+    // 起始半径很小（8dp），逐渐扩散到最大
+    val minRadius = 8.dp.toPx()
+    val radius = minRadius + (maxRadius - minRadius) * progress
+
+    // 涟漪环：外边缘透明、中间最亮、内边缘稍淡
+    // 环厚度：起始 12dp，随扩散逐渐变薄
+    val ringThickness = (12.dp.toPx()) * (1f - progress * 0.6f)
+
+    // 用径向渐变模拟涟漪环
+    val innerRadius = (radius - ringThickness).coerceAtLeast(0f)
+    drawCircle(
+        brush = Brush.radialGradient(
+            colorStops = arrayOf(
+                0f to Color.Transparent,
+                (innerRadius / radius).coerceIn(0f, 1f) to Color.Transparent,
+                (innerRadius / radius + 0.15f).coerceIn(0f, 1f) to color.copy(alpha = 0.18f * alpha),
+                0.85f to color.copy(alpha = 0.12f * alpha),
+                1f to Color.Transparent
+            ),
+            center = center,
+            radius = radius
+        ),
+        radius = radius,
+        center = center
+    )
+}
+
+/**
+ * 光晕式：触点周围一团柔和的光韵扩散，模糊边缘，更梦幻更「玻璃」。
+ * 中心亮、向外渐隐，像一盏灯从手指下晕开。
+ */
+private fun DrawScope.drawHalo(
+    center: Offset,
+    progress: Float,
+    alpha: Float,
+    color: Color,
+    size: Size
+) {
+    // 光晕扩散范围比涟漪小，更聚焦于触点周围
+    val maxRadius = kotlin.math.sqrt(
+        size.width * size.width + size.height * size.height
+    ) * 0.5f * 0.55f
+    val minRadius = 6.dp.toPx()
+    val radius = minRadius + (maxRadius - minRadius) * progress
+
+    // 光晕：中心最亮（柔和白光），向外逐渐消散为透明
+    // 用多层径向渐变模拟柔和发光感
+    drawCircle(
+        brush = Brush.radialGradient(
+            colorStops = arrayOf(
+                0f to color.copy(alpha = 0.22f * alpha),
+                0.3f to color.copy(alpha = 0.14f * alpha),
+                0.6f to color.copy(alpha = 0.06f * alpha),
+                1f to Color.Transparent
+            ),
+            center = center,
+            radius = radius
+        ),
+        radius = radius,
+        center = center
+    )
+
+    // 中心加一个更小更亮的光点，模拟「光源」
+    val coreRadius = radius * 0.25f
+    if (coreRadius > 0f) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to color.copy(alpha = 0.35f * alpha),
+                    0.5f to color.copy(alpha = 0.18f * alpha),
+                    1f to Color.Transparent
+                ),
+                center = center,
+                radius = coreRadius
+            ),
+            radius = coreRadius,
+            center = center
+        )
+    }
+}
+
 /**
  * 基线白卡：白底、20dp 圆角、无边框、极轻投影（y≈2 blur≈8 6–8% 黑）。
  */
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = AppShape.card,
+    shape: RoundedCornerShape = appShapes().card,
     containerColor: Color? = null,
     elevation: Int = 2,
     onClick: (() -> Unit)? = null,
@@ -117,8 +356,8 @@ fun IconChip(
     icon: ImageVector,
     tone: AccentTone,
     modifier: Modifier = Modifier,
-    size: Dp = AppSpacing.chipIcon,
-    cornerRadius: Dp = AppShape.chipSmallRadius,
+    size: Dp = appSpacing().chipIcon,
+    cornerRadius: Dp = appShapes().chipSmallRadius,
     iconSize: Dp = 22.dp,
     semantic: AppSemanticColors? = null
 ) {
@@ -157,12 +396,12 @@ fun GradientHeroCard(
         modifier = modifier
             .shadow(
                 elevation = 2.dp,
-                shape = AppShape.heroCard,
+                shape = appShapes().heroCard,
                 clip = false,
                 ambientColor = tokens.shadow,
                 spotColor = tokens.shadow
             )
-            .clip(AppShape.heroCard)
+            .clip(appShapes().heroCard)
             .background(
                 Brush.linearGradient(
                     colors = listOf(tokens.gradientStart, tokens.gradientEnd)
@@ -278,7 +517,7 @@ fun TelegramMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
         modifier = modifier,
-        shape = AppShape.menu,
+        shape = appShapes().menu,
         containerColor = tokens.cardBg,
         shadowElevation = 8.dp,
         content = content
@@ -315,7 +554,7 @@ fun TelegramMenuItem(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = AppType.body),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
             fontWeight = FontWeight.Medium,
             color = if (danger) tokens.danger else tokens.textPrimary,
             modifier = Modifier.padding(start = 14.dp)
@@ -353,7 +592,7 @@ fun AppBadge(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = AppType.badge),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = appType().badge),
             fontWeight = FontWeight.Bold,
             color = tokens.badgeFg,
             maxLines = 1,
@@ -392,6 +631,144 @@ fun AppSwitch(
 }
 
 /**
+ * iOS 风格单选指示器：空心圆环，选中时内部填充主色圆点。
+ */
+@Composable
+fun AppRadioIndicator(
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val tokens = appColors()
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .border(2.dp, if (selected) tokens.primary else tokens.divider, CircleShape)
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(tokens.primary)
+            )
+        }
+    }
+}
+
+/**
+ * iOS 风格多选指示器：圆角方块，选中时填充主色并显示对勾。
+ */
+@Composable
+fun AppCheckboxIndicator(
+    checked: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val tokens = appColors()
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (checked) tokens.primary else tokens.inputBg)
+            .border(1.5.dp, if (checked) tokens.primary else tokens.divider, RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = vectorResource(Res.drawable.check_24px),
+                contentDescription = null,
+                tint = tokens.textOnPrimary,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 胶囊单选行：iOS 风格，整行可点击，选中时右侧显示实心圆点。
+ */
+@Composable
+fun AppRadioRow(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null
+) {
+    val tokens = appColors()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = appSpacing().rowMinHeight)
+            .clip(appShapes().menu)
+            .clickable(onClick = onClick)
+            .padding(horizontal = appSpacing().pageHorizontal, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
+                fontWeight = FontWeight.Medium,
+                color = tokens.textPrimary
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = appType().hint),
+                    color = tokens.textSecondary
+                )
+            }
+        }
+        AppRadioIndicator(selected = selected)
+    }
+}
+
+/**
+ * 胶囊多选行：iOS 风格，整行可点击，选中时右侧显示对勾。
+ */
+@Composable
+fun AppCheckboxRow(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null
+) {
+    val tokens = appColors()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = appSpacing().rowMinHeight)
+            .clip(appShapes().menu)
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = appSpacing().pageHorizontal, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
+                fontWeight = FontWeight.Medium,
+                color = tokens.textPrimary
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = appType().hint),
+                    color = tokens.textSecondary
+                )
+            }
+        }
+        AppCheckboxIndicator(checked = checked)
+    }
+}
+
+/**
  * 统一 Snackbar 宿主：深色圆角 16dp 条（Telegram 形态），深浅色两套一致。
  * 底色/文字色走 [AppColorTokens.snackbarBg]/[snackbarFg]，不再依赖深浅色推断。
  */
@@ -404,7 +781,7 @@ fun AppSnackbarHost(
     SnackbarHost(hostState = hostState, modifier = modifier) { data: SnackbarData ->
         Snackbar(
             data,
-            shape = AppShape.menu,
+            shape = appShapes().menu,
             containerColor = tokens.snackbarBg,
             contentColor = tokens.snackbarFg,
             actionColor = tokens.primary
@@ -535,7 +912,7 @@ fun AppTextField(
         leadingIcon = leadingIcon,
         supportingText = supportingText,
         trailingIcon = trailingIcon,
-        shape = AppShape.chipSmall,
+        shape = appShapes().chipSmall,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = tokens.inputBg,
             unfocusedContainerColor = tokens.inputBg,
@@ -578,7 +955,7 @@ fun AppDialogActions(
                 onClick = onDismiss,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = AppSpacing.touchMin)
+                    .heightIn(min = appSpacing().touchMin)
             ) {
                 Text(
                     dismissText,
@@ -592,7 +969,7 @@ fun AppDialogActions(
             enabled = confirmEnabled,
             modifier = Modifier
                 .then(if (dismissText != null && onDismiss != null) Modifier.weight(1f) else Modifier)
-                .heightIn(min = AppSpacing.touchMin),
+                .heightIn(min = appSpacing().touchMin),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (danger) tokens.danger else tokens.primary,

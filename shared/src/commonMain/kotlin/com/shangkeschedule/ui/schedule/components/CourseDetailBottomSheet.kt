@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.schedule.components
 
+import com.shangkeschedule.ui.theme.appColors
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -115,8 +117,8 @@ fun CourseDetailBottomSheet(
 
                 DetailItem(vectorResource(Res.drawable.schedule_24px)) {
                     Column {
-                        Text(dayStr, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(timeStr, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                        Text(dayStr, style = MaterialTheme.typography.bodyLarge, color = appColors().textSecondary)
+                        Text(timeStr, style = MaterialTheme.typography.bodyMedium, color = appColors().textSecondary.copy(alpha = 0.7f))
                     }
                 }
 
@@ -148,7 +150,7 @@ fun CourseDetailBottomSheet(
                     onClick = { onEditClick(course.id) },
                     modifier = Modifier.align(Alignment.TopEnd).size(40.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        containerColor = appColors().primarySoft,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 ) {
@@ -162,7 +164,7 @@ fun CourseDetailBottomSheet(
 @Composable
 private fun DetailItem(icon: ImageVector, text: String) {
     DetailItem(icon = icon) {
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = appColors().textSecondary)
     }
 }
 
@@ -176,7 +178,7 @@ private fun DetailItem(icon: ImageVector, content: @Composable () -> Unit) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = appColors().textSecondary.copy(alpha = 0.6f),
                 modifier = Modifier.size(20.dp)
             )
         }
