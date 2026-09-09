@@ -1,4 +1,6 @@
-package com.shangkeschedule.ui.settings
+﻿package com.shangkeschedule.ui.settings
+
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -131,7 +133,7 @@ fun SemesterSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SectionCard {

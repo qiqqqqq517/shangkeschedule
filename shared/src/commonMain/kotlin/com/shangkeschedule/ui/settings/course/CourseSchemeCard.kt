@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,9 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppTextField
-import com.shangkeschedule.ui.theme.AppShape
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -69,14 +69,12 @@ fun CourseSchemeCard(
     onToggleCustomTime: (Boolean) -> Unit,
     showRemoveButton: Boolean
 ) {
-    Card(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        shape = AppShape.menu,
-        colors = CardDefaults.cardColors(
-            containerColor = appColors().cardBg
-        )
+        shape = appShapes().menu,
+        containerColor = appColors().cardBg
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
 
@@ -88,7 +86,7 @@ fun CourseSchemeCard(
             )
 
             // 右侧内容区
-            Column(modifier = Modifier.padding(16.dp).weight(1f)) {
+            Column(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(vectorResource(Res.drawable.person_24px), null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     TextField(
@@ -114,7 +112,7 @@ fun CourseSchemeCard(
 
                     if (showRemoveButton) {
                         IconButton(onClick = onRemoveClick) {
-                            Icon(vectorResource(Res.drawable.delete_24px), null, tint = MaterialTheme.colorScheme.error)
+                            Icon(vectorResource(Res.drawable.delete_24px), null, tint = appColors().danger)
                         }
                     }
                 }

@@ -40,9 +40,9 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
-import com.shangkeschedule.ui.theme.AppShape
-import com.shangkeschedule.ui.theme.AppSpacing
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.liquidGlass
 
 /**
@@ -89,7 +89,7 @@ fun AppEmptyState(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(AppShape.card)
+                .clip(appShapes().card)
                 .background(appColors().inputBg.copy(alpha = 0.55f))
                 .padding(horizontal = 28.dp, vertical = 22.dp)
         ) {
@@ -134,7 +134,7 @@ fun AppFab(
         FloatingActionButton(
             onClick = onClick,
             modifier = modifier
-                .size(AppSpacing.fab)
+                .size(appSpacing().fab)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -157,7 +157,7 @@ fun AppFab(
         // 液态玻璃圆钮：表面极淡 + 轻模糊 + 边缘光学，主色图标保持视觉锚点
         Box(
             modifier = modifier
-                .size(AppSpacing.fab)
+                .size(appSpacing().fab)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -227,7 +227,7 @@ fun AppSelectableCard(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     containerColor: Color? = null,
-    shape: Shape = AppShape.card,
+    shape: Shape = appShapes().card,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
@@ -281,7 +281,7 @@ fun AppGlassBottomSheet(
             onDismissRequest = onDismissRequest,
             sheetState = sheetState,
             containerColor = tokens.cardBg,
-            shape = AppShape.sheetTop,
+            shape = appShapes().sheetTop,
             modifier = modifier,
             content = content
         )
@@ -291,7 +291,7 @@ fun AppGlassBottomSheet(
             sheetState = sheetState,
             containerColor = Color.Transparent,
             tonalElevation = 0.dp,
-            shape = AppShape.sheetTop,
+            shape = appShapes().sheetTop,
             modifier = modifier
         ) {
             Column(

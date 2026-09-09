@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课程表 - iOS 风格</title>
+  <script src="https://cdn.tailwindcss.com/@tailwindcss/browser@4"></script>
+  <style id="theme-vars">
+    :root {
+      --radius-sm: calc(var(--radius) * 0.5);
+      --radius-md: var(--radius);
+      --radius-lg: calc(var(--radius) * 1.5);
+    }
+  </style>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-card: var(--card);
+      --color-card-foreground: var(--card-foreground);
+      --color-primary: var(--primary);
+      --color-primary-foreground: var(--primary-foreground);
+      --color-secondary: var(--secondary);
+      --color-secondary-foreground: var(--secondary-foreground);
+      --color-muted: var(--muted);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-accent: var(--accent);
+      --color-accent-foreground: var(--accent-foreground);
+      --color-destructive: var(--destructive);
+      --color-destructive-foreground: var(--destructive-foreground);
+      --color-border: var(--border);
+      --color-ring: var(--ring);
+      --radius-sm: var(--radius-sm);
+      --radius-md: var(--radius-md);
+      --radius-lg: var(--radius-lg);
+    }
+    @layer base {
+      * { border-color: var(--border); }
+      body {
+        background-color: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+      }
+    }
+  </style>
+  <style id="page-styles">
+    /* ============================================================
+       Apple Design System Tokens
+       ============================================================ */
+    :root {
+      /* Primitive palette — brand */
+      --brand-50: #e8f2ff;
+      --brand-100: #cfe5ff;
+      --brand-200: #9fcbff;
+      --brand-300: #66abff;
+      --brand-400: #2e8dff;
+      --brand-500: #007aff;
+      --brand-600: #0064d6;
+      --brand-700: #004fad;
+      --brand-800: #003b82;
+      --brand-900: #00275a;
+
+      /* Primitive palette — background */
+      --background-50: #ffffff;
+      --background-100: #f7f7fa;
+      --background-200: #f2f2f7;
+      --background-300: #e5e5ea;
+      --background-400: #d1d1d6;
+      --background-500: #aeaeb2;
+      --background-600: #8e8e93;
+      --background-700: #3a3a3c;
+      --background-800: #1c1c1e;
+      --background-900: #000000;
+
+      /* Primitive palette — text */
+      --text-50: #f5f5f7;
+      --text-100: #e3e3e8;
+      --text-200: #c7c7cc;
+      --text-300: #aeaeb2;
+      --text-400: #8e8e93;
+      --text-500: #6e6e73;
+      --text-600: #48484a;
+      --text-700: #3c3c43;
+      --text-800: #1d1d1f;
+      --text-900: #000000;
+
+      /* Primitive palette — icon */
+      --icon-50: #f5f5f7;
+      --icon-100: #e5e5ea;
+      --icon-200: #d1d1d6;
+      --icon-300: #c7c7cc;
+      --icon-400: #aeaeb2;
+      --icon-500: #8e8e93;
+      --icon-600: #6e6e73;
+      --icon-700: #48484a;
+      --icon-800: #2c2c2e;
+      --icon-900: #1d1d1f;
+
+      /* Primitive palette — state */
+      --state-success: #34c759;
+      --state-success-dark: #30d158;
+      --state-success-surface: #e9f9ee;
+      --state-success-foreground: #ffffff;
+      --state-error: #ff3b30;
+      --state-error-dark: #ff453a;
+      --state-error-surface: #ffecea;
+      --state-error-foreground: #ffffff;
+
+      /* Semantic roles — light */
+      --background: var(--background-200);
+      --foreground: var(--text-800);
+      --card: var(--background-50);
+      --card-foreground: var(--text-800);
+      --popover: var(--background-50);
+      --popover-foreground: var(--text-900);
+      --primary: var(--brand-500);
+      --primary-foreground: var(--background-50);
+      --secondary: var(--background-200);
+      --secondary-foreground: var(--text-800);
+      --muted: var(--background-200);
+      --muted-foreground: var(--text-400);
+      --accent: var(--background-100);
+      --accent-foreground: var(--text-800);
+      --destructive: var(--state-error);
+      --destructive-foreground: var(--state-error-foreground);
+      --success: var(--state-success);
+      --success-foreground: var(--state-success-foreground);
+      --border: var(--background-300);
+      --input: var(--background-400);
+      --ring: var(--brand-500);
+      --icon: var(--icon-900);
+      --icon-muted: var(--icon-500);
+
+      /* Chart / accent colors */
+      --chart-1: var(--state-success);
+      --chart-2: var(--brand-500);
+      --chart-3: #ff9500;
+      --chart-4: #5856d6;
+      --chart-5: #af52de;
+
+      /* Sidebar */
+      --sidebar: rgba(242, 242, 247, 0.72);
+      --sidebar-foreground: var(--text-800);
+      --sidebar-primary: var(--brand-500);
+      --sidebar-primary-foreground: var(--background-50);
+      --sidebar-accent: var(--background-300);
+      --sidebar-accent-foreground: var(--text-800);
+      --sidebar-border: var(--background-300);
+      --sidebar-ring: var(--brand-500);
+
+      /* Typography */
+      --font-sans: DM Sans, ui-sans-serif, sans-serif, system-ui, -apple-system, "SF Pro Text", "Helvetica Neue";
+      --font-mono: JetBrains Mono, monospace;
+      --tracking-normal: 0em;
+
+      /* Radius */
+      --radius: 1.2rem;
+
+      /* Shadows */
+      --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+      --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06);
+      --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.12);
+
+      /* Spacing base unit */
+      --spacing: 0.24rem;
+
+      /* iOS System Colors — precise HIG values */
+      --ios-system-blue: #007AFF;
+      --ios-system-green: #34C759;
+      --ios-system-orange: #FF9500;
+      --ios-system-red: #FF3B30;
+      --ios-system-purple: #AF52DE;
+      --ios-system-pink: #FF2D55;
+      --ios-system-teal: #30B0C7;
+      --ios-system-indigo: #5856D6;
+      --ios-system-yellow: #FFCC00;
+
+      /* iOS grays */
+      --ios-gray1: #8E8E93;
+      --ios-gray2: #AEAEB2;
+      --ios-gray3: #C7C7CC;
+      --ios-gray4: #D1D1D6;
+      --ios-gray5: #E5E5EA;
+      --ios-gray6: #F2F2F7;
+
+      /* iOS separators */
+      --ios-separator: rgba(60, 60, 67, 0.36);
+      --ios-separator-opaque: #C6C6C8;
+
+      /* iOS motion */
+      --ios-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ios-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ios-ease-in: cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+    /* ============================================================
+       Reset & Base
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.4;
+      letter-spacing: var(--tracking-normal);
+      background: var(--background-200);
+      color: var(--foreground);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* iOS-style scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--ios-gray3);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--ios-gray2);
+    }
+
+    /* Page entrance animation */
+    @keyframes ios-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ============================================================
+       Icon System (CSS Mask approach)
+       ============================================================ */
+    .icon {
+      display: inline-block;
+      flex-shrink: 0;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+    }
+
+    .icon-calendar {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    }
+
+    .icon-calendar-week {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Cline x1='8' y1='14' x2='8' y2='18'/%3E%3Cline x1='12' y1='14' x2='12' y2='18'/%3E%3Cline x1='16' y1='14' x2='16' y2='18'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Cline x1='8' y1='14' x2='8' y2='18'/%3E%3Cline x1='12' y1='14' x2='12' y2='18'/%3E%3Cline x1='16' y1='14' x2='16' y2='18'/%3E%3C/svg%3E");
+    }
+
+    .icon-list {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='8' y1='6' x2='21' y2='6'/%3E%3Cline x1='8' y1='12' x2='21' y2='12'/%3E%3Cline x1='8' y1='18' x2='21' y2='18'/%3E%3Cline x1='3' y1='6' x2='3.01' y2='6'/%3E%3Cline x1='3' y1='12' x2='3.01' y2='12'/%3E%3Cline x1='3' y1='18' x2='3.01' y2='18'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='8' y1='6' x2='21' y2='6'/%3E%3Cline x1='8' y1='12' x2='21' y2='12'/%3E%3Cline x1='8' y1='18' x2='21' y2='18'/%3E%3Cline x1='3' y1='6' x2='3.01' y2='6'/%3E%3Cline x1='3' y1='12' x2='3.01' y2='12'/%3E%3Cline x1='3' y1='18' x2='3.01' y2='18'/%3E%3C/svg%3E");
+    }
+
+    .icon-book {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+    }
+
+    .icon-settings {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E");
+    }
+
+    .icon-download {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E");
+    }
+
+    .icon-clock {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
+    }
+
+    .icon-trophy {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9H4.5a2.5 2.5 0 0 1 0-5H6'/%3E%3Cpath d='M18 9h1.5a2.5 2.5 0 0 0 0-5H18'/%3E%3Cpath d='M4 22h16'/%3E%3Cpath d='M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22'/%3E%3Cpath d='M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22'/%3E%3Cpath d='M18 2H6v7a6 6 0 0 0 12 0V2Z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9H4.5a2.5 2.5 0 0 1 0-5H6'/%3E%3Cpath d='M18 9h1.5a2.5 2.5 0 0 0 0-5H18'/%3E%3Cpath d='M4 22h16'/%3E%3Cpath d='M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22'/%3E%3Cpath d='M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22'/%3E%3Cpath d='M18 2H6v7a6 6 0 0 0 12 0V2Z'/%3E%3C/svg%3E");
+    }
+
+    .icon-search {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    }
+
+    .icon-plus {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-left {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-right {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-down {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+
+    .icon-map-pin {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+    }
+
+    .icon-user {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+    }
+
+    .icon-palette {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.5' cy='6.5' r='1'/%3E%3Ccircle cx='17.5' cy='10.5' r='1'/%3E%3Ccircle cx='8.5' cy='7.5' r='1'/%3E%3Ccircle cx='6.5' cy='12.5' r='1'/%3E%3Cpath d='M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.5' cy='6.5' r='1'/%3E%3Ccircle cx='17.5' cy='10.5' r='1'/%3E%3Ccircle cx='8.5' cy='7.5' r='1'/%3E%3Ccircle cx='6.5' cy='12.5' r='1'/%3E%3Cpath d='M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z'/%3E%3C/svg%3E");
+    }
+
+    .icon-bell {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E");
+    }
+
+    /* ============================================================
+       Desktop App Layout
+       ============================================================ */
+    .app-desktop {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--background-200);
+      animation: ios-fade-in 0.5s var(--ios-ease-out);
+    }
+
+    /* ============================================================
+       Left Sidebar — Frosted Glass
+       ============================================================ */
+    .sidebar-left {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--sidebar);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border-right: 0.5px solid var(--ios-separator);
+      overflow: hidden;
+    }
+
+    .sidebar-left__header {
+      padding: calc(var(--spacing) * 6) calc(var(--spacing) * 5) calc(var(--spacing) * 4);
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 3);
+    }
+
+    .sidebar-left__app-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--ios-system-blue), var(--ios-system-indigo));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-foreground);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    }
+
+    .sidebar-left__app-icon .icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .sidebar-left__app-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--foreground);
+    }
+
+    .sidebar-left__nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+    }
+
+    .nav-section {
+      margin-bottom: calc(var(--spacing) * 5);
+    }
+
+    .nav-section__title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted-foreground);
+      padding: 0 calc(var(--spacing) * 3) calc(var(--spacing) * 2);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 3);
+      padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
+      border-radius: calc(var(--radius) * 0.7);
+      cursor: pointer;
+      transition: all 0.25s var(--ios-ease-out);
+      color: var(--foreground);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-item:hover {
+      background: var(--background-300);
+    }
+
+    .nav-item:active {
+      transform: scale(0.98);
+      background: var(--ios-gray4);
+    }
+
+    .nav-item.is-active {
+      background: var(--ios-system-blue);
+      color: var(--primary-foreground);
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+    }
+
+    .nav-item.is-active:hover {
+      background: var(--brand-600);
+    }
+
+    .nav-item .icon {
+      width: 18px;
+      height: 18px;
+      color: inherit;
+      opacity: 0.9;
+    }
+
+    .sidebar-left__footer {
+      flex-shrink: 0;
+      padding: calc(var(--spacing) * 3);
+      border-top: 0.5px solid var(--ios-separator);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 3);
+      padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
+      border-radius: calc(var(--radius) * 0.7);
+      cursor: pointer;
+      transition: background-color 0.25s var(--ios-ease-out);
+    }
+
+    .user-profile:hover {
+      background: var(--background-300);
+    }
+
+    .user-profile__avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ios-system-teal), var(--ios-system-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-foreground);
+      font-weight: 600;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user-profile__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .user-profile__name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-profile__sub {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .user-profile__chevron {
+      color: var(--icon-muted);
+      flex-shrink: 0;
+    }
+
+    .user-profile__chevron .icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ============================================================
+       Main Content Area
+       ============================================================ */
+    .main-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--background-200);
+    }
+
+    /* Toolbar */
+    .toolbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(var(--spacing) * 5) calc(var(--spacing) * 8);
+      background: var(--background-200);
+      border-bottom: 0.5px solid transparent;
+    }
+
+    .toolbar__title-group {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing) * 0.5);
+    }
+
+    .toolbar__title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      line-height: 1.1;
+    }
+
+    .toolbar__subtitle {
+      font-size: 13px;
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+
+    .toolbar__actions {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 3);
+    }
+
+    .toolbar-btn {
+      height: 36px;
+      padding: 0 calc(var(--spacing) * 4);
+      border-radius: calc(var(--radius) * 0.7);
+      border: none;
+      background: var(--card);
+      color: var(--foreground);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 2);
+      transition: all 0.25s var(--ios-ease-out);
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--ios-separator);
+    }
+
+    .toolbar-btn:hover {
+      background: var(--background-100);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toolbar-btn:active {
+      transform: scale(0.97);
+    }
+
+    .toolbar-btn.is-primary {
+      background: var(--ios-system-blue);
+      color: var(--primary-foreground);
+      border-color: transparent;
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+    }
+
+    .toolbar-btn.is-primary:hover {
+      background: var(--brand-600);
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    }
+
+    .toolbar-btn .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--card);
+      border-radius: calc(var(--radius) * 0.7);
+      padding: 3px;
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--ios-separator);
+    }
+
+    .week-nav__btn {
+      width: 30px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: var(--foreground);
+      cursor: pointer;
+      border-radius: calc(var(--radius) * 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ios-ease-out);
+    }
+
+    .week-nav__btn:hover {
+      background: var(--background-200);
+    }
+
+    .week-nav__btn:active {
+      transform: scale(0.9);
+    }
+
+    .week-nav__btn .icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .view-switch {
+      display: flex;
+      background: var(--card);
+      border-radius: calc(var(--radius) * 0.7);
+      padding: 3px;
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--ios-separator);
+    }
+
+    .view-switch__btn {
+      padding: 0 calc(var(--spacing) * 3);
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: calc(var(--radius) * 0.5);
+      transition: all 0.25s var(--ios-ease-out);
+    }
+
+    .view-switch__btn.is-active {
+      background: var(--ios-system-blue);
+      color: var(--primary-foreground);
+      box-shadow: 0 1px 3px rgba(0, 122, 255, 0.2);
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: calc(var(--radius) * 0.7);
+      border: 0.5px solid var(--ios-separator);
+      background: var(--card);
+      color: var(--foreground);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s var(--ios-ease-out);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .icon-btn:hover {
+      background: var(--background-100);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    .icon-btn .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ============================================================
+       Week View Calendar Grid
+       ============================================================ */
+    .calendar-container {
+      flex: 1;
+      overflow: auto;
+      padding: 0 calc(var(--spacing) * 8) calc(var(--spacing) * 8);
+    }
+
+    .calendar-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: 64px repeat(7, 1fr);
+      gap: 0;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 0.5px solid var(--ios-separator);
+      overflow: hidden;
+      min-height: 600px;
+    }
+
+    /* Day headers */
+    .day-header {
+      padding: calc(var(--spacing) * 4) calc(var(--spacing) * 2);
+      text-align: center;
+      border-bottom: 0.5px solid var(--ios-separator);
+      background: var(--background-100);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(var(--spacing) * 1);
+    }
+
+    .day-header__weekday {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-foreground);
+    }
+
+    .day-header__date {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--foreground);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .day-header.is-today {
+      background: rgba(0, 122, 255, 0.06);
+    }
+
+    .day-header.is-today .day-header__weekday {
+      color: var(--ios-system-blue);
+    }
+
+    .day-header.is-today .day-header__date {
+      color: var(--ios-system-blue);
+    }
+
+    .day-header.is-today .day-header__date::after {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ios-system-blue);
+      margin: 4px auto 0;
+    }
+
+    /* Time axis */
+    .time-axis {
+      position: relative;
+      border-right: 0.5px solid var(--ios-separator);
+    }
+
+    .time-slot {
+      height: 64px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3) 0 0;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-slot + .time-slot {
+      border-top: 0.5px solid var(--ios-separator);
+    }
+
+    /* Day columns */
+    .day-column {
+      position: relative;
+      border-right: 0.5px solid var(--ios-separator);
+    }
+
+    .day-column:last-child {
+      border-right: none;
+    }
+
+    .day-column.is-today {
+      background: rgba(0, 122, 255, 0.03);
+    }
+
+    .day-column__time-slot {
+      height: 64px;
+      border-top: 0.5px solid var(--ios-separator);
+    }
+
+    .day-column__time-slot:first-child {
+      border-top: none;
+    }
+
+    /* Now indicator */
+    .now-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--ios-system-red);
+      z-index: 10;
+      pointer-events: none;
+      top: 200px; /* Will be positioned via JS, fallback */
+    }
+
+    .now-indicator::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ios-system-red);
+    }
+
+    .now-indicator__time {
+      position: absolute;
+      left: -44px;
+      top: -8px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ios-system-red);
+      font-variant-numeric: tabular-nums;
+      background: var(--card);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    /* Course cards in grid */
+    .course-grid-card {
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      background: var(--card);
+      border-radius: calc(var(--radius) * 0.6);
+      padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2.5);
+      box-shadow: var(--shadow-sm);
+      border: 0.5px solid var(--ios-separator);
+      cursor: pointer;
+      transition: all 0.25s var(--ios-ease-out);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing) * 1.5);
+    }
+
+    .course-grid-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      border-radius: 0 calc(var(--radius) * 0.3) calc(var(--radius) * 0.3) 0;
+    }
+
+    .course-grid-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+      z-index: 5;
+    }
+
+    .course-grid-card:active {
+      transform: scale(0.98);
+    }
+
+    .course-grid-card--blue::before { background: var(--ios-system-blue); }
+    .course-grid-card--green::before { background: var(--ios-system-green); }
+    .course-grid-card--orange::before { background: var(--ios-system-orange); }
+    .course-grid-card--purple::before { background: var(--ios-system-purple); }
+    .course-grid-card--red::before { background: var(--ios-system-red); }
+    .course-grid-card--teal::before { background: var(--ios-system-teal); }
+    .course-grid-card--indigo::before { background: var(--ios-system-indigo); }
+
+    .course-grid-card__name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1.2;
+      padding-left: calc(var(--spacing) * 2);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .course-grid-card__location {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 1);
+      padding-left: calc(var(--spacing) * 2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .course-grid-card__location .icon {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+    }
+
+    .course-grid-card__time {
+      font-size: 10px;
+      color: var(--muted-foreground);
+      padding-left: calc(var(--spacing) * 2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Empty day state */
+    .empty-day {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       Right Sidebar — Today Overview
+       ============================================================ */
+    .sidebar-right {
+      width: 280px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--sidebar);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border-left: 0.5px solid var(--ios-separator);
+      overflow-y: auto;
+    }
+
+    .sidebar-right__section {
+      padding: calc(var(--spacing) * 5) calc(var(--spacing) * 5) 0;
+    }
+
+    .sidebar-right__section:last-child {
+      padding-bottom: calc(var(--spacing) * 5);
+    }
+
+    .sidebar-right__title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-foreground);
+      margin-bottom: calc(var(--spacing) * 3);
+    }
+
+    /* Up Next card */
+    .up-next-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: calc(var(--spacing) * 5);
+      box-shadow: var(--shadow-sm);
+      border: 0.5px solid var(--ios-separator);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .up-next-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--ios-system-orange), var(--ios-system-red));
+    }
+
+    .up-next-card__label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ios-system-orange);
+      margin-bottom: calc(var(--spacing) * 2);
+    }
+
+    .up-next-card__course {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--foreground);
+      letter-spacing: -0.01em;
+      margin-bottom: calc(var(--spacing) * 1.5);
+    }
+
+    .up-next-card__countdown {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ios-system-orange);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      margin-bottom: calc(var(--spacing) * 2);
+    }
+
+    .up-next-card__meta {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 2);
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .up-next-card__meta .icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: calc(var(--spacing) * 2);
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: calc(var(--radius) * 0.8);
+      padding: calc(var(--spacing) * 3) calc(var(--spacing) * 2);
+      text-align: center;
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--ios-separator);
+      transition: all 0.25s var(--ios-ease-out);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card__value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--foreground);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      margin-bottom: calc(var(--spacing) * 1);
+    }
+
+    .stat-card__label {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+
+    .stat-card.is-primary .stat-card__value {
+      color: var(--ios-system-blue);
+    }
+
+    .stat-card.is-success .stat-card__value {
+      color: var(--ios-system-green);
+    }
+
+    .stat-card.is-warning .stat-card__value {
+      color: var(--ios-system-orange);
+    }
+
+    /* Quick actions */
+    .quick-actions {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing) * 2);
+    }
+
+    .quick-action {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 3);
+      padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+      background: var(--card);
+      border-radius: calc(var(--radius) * 0.7);
+      cursor: pointer;
+      transition: all 0.25s var(--ios-ease-out);
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--ios-separator);
+      text-decoration: none;
+      color: var(--foreground);
+    }
+
+    .quick-action:hover {
+      background: var(--background-100);
+      transform: translateX(2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quick-action:active {
+      transform: scale(0.98);
+    }
+
+    .quick-action__icon {
+      width: 32px;
+      height: 32px;
+      border-radius: calc(var(--radius) * 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .quick-action__icon .icon {
+      width: 16px;
+      height: 16px;
+      color: var(--primary-foreground);
+    }
+
+    .quick-action__icon--blue { background: var(--ios-system-blue); }
+    .quick-action__icon--green { background: var(--ios-system-green); }
+    .quick-action__icon--purple { background: var(--ios-system-purple); }
+
+    .quick-action__text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quick-action__title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    .quick-action__desc {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      margin-top: 2px;
+    }
+
+    .quick-action__arrow {
+      color: var(--icon-muted);
+      flex-shrink: 0;
+    }
+
+    .quick-action__arrow .icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ============================================================
+       Utility
+       ============================================================ */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-desktop">
+
+    <!-- ===== Left Sidebar ===== -->
+    <aside class="sidebar-left" aria-label="主导航">
+      <!-- App Header -->
+      <div class="sidebar-left__header">
+        <div class="sidebar-left__app-icon">
+          <span class="icon icon-calendar" aria-hidden="true"></span>
+        </div>
+        <span class="sidebar-left__app-title">课程表</span>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-left__nav">
+        <!-- Calendar section -->
+        <div class="nav-section">
+          <div class="nav-section__title">日历</div>
+          <a href="#" class="nav-item is-active">
+            <span class="icon icon-calendar" aria-hidden="true"></span>
+            <span>今日</span>
+          </a>
+          <a href="#" class="nav-item">
+            <span class="icon icon-calendar-week" aria-hidden="true"></span>
+            <span>周视图</span>
+          </a>
+          <a href="#" class="nav-item">
+            <span class="icon icon-list" aria-hidden="true"></span>
+            <span>日程</span>
+          </a>
+        </div>
+
+        <!-- Courses section -->
+        <div class="nav-section">
+          <div class="nav-section__title">课程</div>
+          <a href="#" class="nav-item">
+            <span class="icon icon-book" aria-hidden="true"></span>
+            <span>全部课程</span>
+          </a>
+          <a href="#" class="nav-item">
+            <span class="icon icon-settings" aria-hidden="true"></span>
+            <span>课程设置</span>
+          </a>
+        </div>
+
+        <!-- Tools section -->
+        <div class="nav-section">
+          <div class="nav-section__title">工具</div>
+          <a href="#" class="nav-item">
+            <span class="icon icon-download" aria-hidden="true"></span>
+            <span>导入课表</span>
+          </a>
+          <a href="#" class="nav-item">
+            <span class="icon icon-clock" aria-hidden="true"></span>
+            <span>考试倒计时</span>
+          </a>
+          <a href="#" class="nav-item">
+            <span class="icon icon-trophy" aria-hidden="true"></span>
+            <span>成绩查询</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- User Profile -->
+      <div class="sidebar-left__footer">
+        <div class="user-profile" role="button" tabindex="0">
+          <div class="user-profile__avatar">学</div>
+          <div class="user-profile__info">
+            <div class="user-profile__name">张同学</div>
+            <div class="user-profile__sub">计算机科学与技术</div>
+          </div>
+          <div class="user-profile__chevron">
+            <span class="icon icon-chevron-right" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== Main Content ===== -->
+    <main class="main-content">
+      <!-- Toolbar -->
+      <header class="toolbar">
+        <div class="toolbar__title-group">
+          <h1 class="toolbar__title">第3周 · 2025年9月</h1>
+          <span class="toolbar__subtitle">2025-2026学年 第一学期</span>
+        </div>
+        <div class="toolbar__actions">
+          <button class="toolbar-btn is-primary">
+            <span class="icon icon-calendar" aria-hidden="true"></span>
+            <span>今天</span>
+          </button>
+          <div class="week-nav" role="group" aria-label="周导航">
+            <button class="week-nav__btn" aria-label="上一周">
+              <span class="icon icon-chevron-left" aria-hidden="true"></span>
+            </button>
+            <button class="week-nav__btn" aria-label="下一周">
+              <span class="icon icon-chevron-right" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="view-switch" role="group" aria-label="视图切换">
+            <button class="view-switch__btn is-active">周</button>
+            <button class="view-switch__btn">日</button>
+          </div>
+          <button class="icon-btn" aria-label="搜索">
+            <span class="icon icon-search" aria-hidden="true"></span>
+          </button>
+          <button class="icon-btn" aria-label="添加课程">
+            <span class="icon icon-plus" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Calendar Grid -->
+      <div class="calendar-container">
+        <div class="calendar-grid">
+          <!-- Empty corner -->
+          <div></div>
+
+          <!-- Day headers -->
+          <div class="day-header">
+            <span class="day-header__weekday">周一</span>
+            <span class="day-header__date">15</span>
+          </div>
+          <div class="day-header">
+            <span class="day-header__weekday">周二</span>
+            <span class="day-header__date">16</span>
+          </div>
+          <div class="day-header is-today">
+            <span class="day-header__weekday">周三</span>
+            <span class="day-header__date">17</span>
+          </div>
+          <div class="day-header">
+            <span class="day-header__weekday">周四</span>
+            <span class="day-header__date">18</span>
+          </div>
+          <div class="day-header">
+            <span class="day-header__weekday">周五</span>
+            <span class="day-header__date">19</span>
+          </div>
+          <div class="day-header">
+            <span class="day-header__weekday">周六</span>
+            <span class="day-header__date">20</span>
+          </div>
+          <div class="day-header">
+            <span class="day-header__weekday">周日</span>
+            <span class="day-header__date">21</span>
+          </div>
+
+          <!-- Time axis (left column) -->
+          <div class="time-axis">
+            <div class="time-slot">08:00</div>
+            <div class="time-slot">09:00</div>
+            <div class="time-slot">10:00</div>
+            <div class="time-slot">11:00</div>
+            <div class="time-slot">12:00</div>
+            <div class="time-slot">13:00</div>
+            <div class="time-slot">14:00</div>
+            <div class="time-slot">15:00</div>
+            <div class="time-slot">16:00</div>
+            <div class="time-slot">17:00</div>
+            <div class="time-slot">18:00</div>
+            <div class="time-slot">19:00</div>
+            <div class="time-slot">20:00</div>
+          </div>
+
+          <!-- Monday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <!-- 高等数学 08:00-09:40 (slot 0, height ~2 slots) -->
+            <div class="course-grid-card course-grid-card--blue" style="top: 4px; height: 120px;">
+              <span class="course-grid-card__name">高等数学</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                教学楼A301
+              </span>
+              <span class="course-grid-card__time">08:00 - 09:40</span>
+            </div>
+            <!-- 大学英语 10:00-11:40 (slot 2, height ~2 slots) -->
+            <div class="course-grid-card course-grid-card--green" style="top: 132px; height: 120px;">
+              <span class="course-grid-card__name">大学英语</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                外语楼B205
+              </span>
+              <span class="course-grid-card__time">10:00 - 11:40</span>
+            </div>
+          </div>
+
+          <!-- Tuesday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <!-- 程序设计 08:00-09:40 -->
+            <div class="course-grid-card course-grid-card--orange" style="top: 4px; height: 120px;">
+              <span class="course-grid-card__name">程序设计</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                计算机楼C501
+              </span>
+              <span class="course-grid-card__time">08:00 - 09:40</span>
+            </div>
+            <!-- 物理实验 14:00-15:40 (slot 6, ~2 slots) -->
+            <div class="course-grid-card course-grid-card--purple" style="top: 388px; height: 120px;">
+              <span class="course-grid-card__name">物理实验</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                实验楼D102
+              </span>
+              <span class="course-grid-card__time">14:00 - 15:40</span>
+            </div>
+          </div>
+
+          <!-- Wednesday column (today) -->
+          <div class="day-column is-today">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <!-- 线性代数 08:00-09:40 -->
+            <div class="course-grid-card course-grid-card--blue" style="top: 4px; height: 120px;">
+              <span class="course-grid-card__name">线性代数</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                教学楼A203
+              </span>
+              <span class="course-grid-card__time">08:00 - 09:40</span>
+            </div>
+            <!-- 数据结构 10:00-11:40 -->
+            <div class="course-grid-card course-grid-card--green" style="top: 132px; height: 120px;">
+              <span class="course-grid-card__name">数据结构</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                计算机楼C402
+              </span>
+              <span class="course-grid-card__time">10:00 - 11:40</span>
+            </div>
+            <!-- 计算机网络 14:00-15:40 -->
+            <div class="course-grid-card course-grid-card--teal" style="top: 388px; height: 120px;">
+              <span class="course-grid-card__name">计算机网络</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                计算机楼C301
+              </span>
+              <span class="course-grid-card__time">14:00 - 15:40</span>
+            </div>
+            <!-- Now indicator -->
+            <div class="now-indicator" style="top: 256px;">
+              <span class="now-indicator__time">12:00</span>
+            </div>
+          </div>
+
+          <!-- Thursday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <!-- 高等数学 08:00-09:40 -->
+            <div class="course-grid-card course-grid-card--blue" style="top: 4px; height: 120px;">
+              <span class="course-grid-card__name">高等数学</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                教学楼A301
+              </span>
+              <span class="course-grid-card__time">08:00 - 09:40</span>
+            </div>
+            <!-- 大学英语 10:00-11:40 -->
+            <div class="course-grid-card course-grid-card--green" style="top: 132px; height: 120px;">
+              <span class="course-grid-card__name">大学英语</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                外语楼B205
+              </span>
+              <span class="course-grid-card__time">10:00 - 11:40</span>
+            </div>
+            <!-- 概率论 14:00-15:40 -->
+            <div class="course-grid-card course-grid-card--indigo" style="top: 388px; height: 120px;">
+              <span class="course-grid-card__name">概率论</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                教学楼B105
+              </span>
+              <span class="course-grid-card__time">14:00 - 15:40</span>
+            </div>
+          </div>
+
+          <!-- Friday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <!-- 程序设计 08:00-09:40 -->
+            <div class="course-grid-card course-grid-card--orange" style="top: 4px; height: 120px;">
+              <span class="course-grid-card__name">程序设计</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                计算机楼C501
+              </span>
+              <span class="course-grid-card__time">08:00 - 09:40</span>
+            </div>
+            <!-- 体育 14:00-15:40 -->
+            <div class="course-grid-card course-grid-card--red" style="top: 388px; height: 120px;">
+              <span class="course-grid-card__name">体育</span>
+              <span class="course-grid-card__location">
+                <span class="icon icon-map-pin" aria-hidden="true"></span>
+                体育馆
+              </span>
+              <span class="course-grid-card__time">14:00 - 15:40</span>
+            </div>
+          </div>
+
+          <!-- Saturday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="empty-day">无课</div>
+          </div>
+
+          <!-- Sunday column -->
+          <div class="day-column">
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="day-column__time-slot"></div>
+            <div class="empty-day">无课</div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== Right Sidebar ===== -->
+    <aside class="sidebar-right" aria-label="今日概览">
+      <!-- Up Next -->
+      <div class="sidebar-right__section">
+        <div class="sidebar-right__title">下一节课</div>
+        <div class="up-next-card">
+          <div class="up-next-card__label">即将开始</div>
+          <div class="up-next-card__course">数据结构</div>
+          <div class="up-next-card__countdown">02:15:30</div>
+          <div class="up-next-card__meta">
+            <span class="icon icon-map-pin" aria-hidden="true"></span>
+            <span>计算机楼C402 · 10:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today Stats -->
+      <div class="sidebar-right__section">
+        <div class="sidebar-right__title">今日统计</div>
+        <div class="stats-row">
+          <div class="stat-card is-primary">
+            <div class="stat-card__value">3</div>
+            <div class="stat-card__label">课程数</div>
+          </div>
+          <div class="stat-card is-success">
+            <div class="stat-card__value">1</div>
+            <div class="stat-card__label">已完成</div>
+          </div>
+          <div class="stat-card is-warning">
+            <div class="stat-card__value">2</div>
+            <div class="stat-card__label">待上</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="sidebar-right__section">
+        <div class="sidebar-right__title">快捷操作</div>
+        <div class="quick-actions">
+          <a href="#" class="quick-action">
+            <div class="quick-action__icon quick-action__icon--blue">
+              <span class="icon icon-download" aria-hidden="true"></span>
+            </div>
+            <div class="quick-action__text">
+              <div class="quick-action__title">导入课表</div>
+              <div class="quick-action__desc">从教务系统导入</div>
+            </div>
+            <div class="quick-action__arrow">
+              <span class="icon icon-chevron-right" aria-hidden="true"></span>
+            </div>
+          </a>
+          <a href="#" class="quick-action">
+            <div class="quick-action__icon quick-action__icon--green">
+              <span class="icon icon-settings" aria-hidden="true"></span>
+            </div>
+            <div class="quick-action__text">
+              <div class="quick-action__title">课程设置</div>
+              <div class="quick-action__desc">管理课程与时间</div>
+            </div>
+            <div class="quick-action__arrow">
+              <span class="icon icon-chevron-right" aria-hidden="true"></span>
+            </div>
+          </a>
+          <a href="#" class="quick-action">
+            <div class="quick-action__icon quick-action__icon--purple">
+              <span class="icon icon-palette" aria-hidden="true"></span>
+            </div>
+            <div class="quick-action__text">
+              <div class="quick-action__title">主题切换</div>
+              <div class="quick-action__desc">更换外观与配色</div>
+            </div>
+            <div class="quick-action__arrow">
+              <span class="icon icon-chevron-right" aria-hidden="true"></span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</body>
+</html>

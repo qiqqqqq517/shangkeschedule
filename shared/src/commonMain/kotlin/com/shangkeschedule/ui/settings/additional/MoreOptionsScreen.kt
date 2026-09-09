@@ -1,5 +1,10 @@
-package com.shangkeschedule.ui.settings.additional
+﻿package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.theme.appType
+import com.shangkeschedule.ui.theme.appSpacing
+
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.shangkeschedule.ui.theme.AppType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.Destination
 import com.shangkeschedule.ui.settings.SectionCard
@@ -119,12 +123,12 @@ fun MoreOptionsScreen(
                     text = stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    fontSize = AppType.hero
+                    fontSize = appType().hero
                 )
                 Text(
                     text = stringResource(Res.string.label_version_prefix, appVersionName),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = appColors().textSecondary
                 )
             }
 
@@ -134,12 +138,12 @@ fun MoreOptionsScreen(
             DeveloperModeSettingItem(
                 isDeveloperModeEnabled = isDeveloperModeEnabled,
                 onDeveloperModeChanged = { viewModel.onDeveloperModeChanged(it) },
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             )
 
             // 语言/启动页/GitHub/开源许可证（分区大卡，组内分割）
             SectionCard(
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
                 SettingItem(
                     title = stringResource(Res.string.item_language_settings),
@@ -177,7 +181,7 @@ fun MoreOptionsScreen(
 
             // 联系作者反馈（欢迎新功能建议 / 教务适配请求）
             SectionCard(
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
                 SettingItem(
                     title = stringResource(Res.string.item_contact_author),
@@ -195,7 +199,7 @@ fun MoreOptionsScreen(
                 Text(
                     text = stringResource(Res.string.contact_author_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = appColors().textSecondary,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }

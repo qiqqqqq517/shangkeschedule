@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.settings.notification
 
+import com.shangkeschedule.ui.theme.appType
+
+import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -23,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppSectionHeader
-import com.shangkeschedule.ui.theme.AppType
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.item_clear_skipped_dates
 import shangkeschedule.shared.generated.resources.item_update_holiday_info
@@ -51,8 +53,8 @@ fun AdvancedSettingsCard(
         AppSectionHeader(stringResource(Res.string.section_title_advanced))
         Text(
             text = stringResource(Res.string.text_skip_dates_experimental),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().caption),
+            color = appColors().textSecondary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -94,7 +96,7 @@ fun AdvancedSettingsCard(
         Text(
             text = stringResource(Res.string.update_holiday_info_hint),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = appColors().textSecondary.copy(alpha = 0.6f),
             modifier = Modifier.padding(start = 16.dp, top = 4.dp)
         )
     }

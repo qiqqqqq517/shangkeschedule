@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>课程表</title>
+  <script src="https://cdn.tailwindcss.com/@tailwindcss/browser@4"></script>
+  <style id="theme-vars">
+    :root {
+      /* Spacing base unit */
+      --spacing: 0.24rem;
+
+      /* Radius */
+      --radius: 1.2rem;
+      --radius-sm: calc(var(--radius) * 0.5);
+      --radius-md: var(--radius);
+      --radius-lg: calc(var(--radius) * 1.5);
+
+      /* Typography */
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
+      /* Brand / Primary — iOS System Blue */
+      --brand-50: #e8f2ff;
+      --brand-100: #cfe5ff;
+      --brand-200: #9fcbff;
+      --brand-300: #66abff;
+      --brand-400: #2e8dff;
+      --brand-500: #007AFF;
+      --brand-600: #0064d6;
+      --brand-700: #004fad;
+      --brand-800: #003b82;
+      --brand-900: #00275a;
+      --primary: var(--brand-500);
+
+      /* Backgrounds */
+      --background: #ffffff;
+      --background-100: #f7f7fa;
+      --background-200: #f2f2f7;
+      --background-300: #e5e5ea;
+      --background-400: #d1d1d6;
+
+      /* Text */
+      --foreground: #1d1d1f;
+      --text-400: #8e8e93;
+      --text-500: #6e6e73;
+      --muted-foreground: var(--text-400);
+
+      /* Border / Separator */
+      --border: var(--background-300);
+      --ios-separator: rgba(60, 60, 67, 0.36);
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+
+      /* iOS System Colors — course categories */
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-orange: #FF9500;
+      --ios-purple: #AF52DE;
+      --ios-red: #FF3B30;
+      --ios-teal: #30B0C7;
+      --ios-indigo: #5856D6;
+      --ios-pink: #FF2D55;
+      --ios-yellow: #FFCC00;
+
+      /* Timetable dimensions */
+      --time-col-width: 56px;
+      --hour-height: 64px;
+      --top-bar-height: 52px;
+      --week-header-height: 64px;
+
+      /* Frosted glass */
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(0, 0, 0, 0.08);
+
+      /* Brand tints (alpha variants) */
+      --brand-tint-xs: rgba(0, 122, 255, 0.035);
+      --brand-tint-sm: rgba(0, 122, 255, 0.08);
+      --brand-tint-md: rgba(0, 122, 255, 0.12);
+      --brand-tint-lg: rgba(0, 122, 255, 0.2);
+
+      /* Card border */
+      --card-border: rgba(0, 0, 0, 0.04);
+    }
+  </style>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-card: var(--background);
+      --color-card-foreground: var(--foreground);
+      --color-popover: var(--background);
+      --color-popover-foreground: var(--foreground);
+      --color-primary: var(--primary);
+      --color-primary-foreground: var(--background);
+      --color-secondary: var(--background-200);
+      --color-secondary-foreground: var(--foreground);
+      --color-muted: var(--background-200);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-accent: var(--background-100);
+      --color-accent-foreground: var(--foreground);
+      --color-destructive: #ff3b30;
+      --color-destructive-foreground: #ffffff;
+      --color-border: var(--border);
+      --color-input: var(--background-400);
+      --color-ring: var(--primary);
+      --radius-sm: var(--radius-sm);
+      --radius-md: var(--radius-md);
+      --radius-lg: var(--radius-lg);
+    }
+    @layer base {
+      * { border-color: var(--border); }
+      body {
+        background-color: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+      }
+    }
+  </style>
+  <style id="page-styles">
+    /* ===== Base Reset ===== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      font-family: var(--font-sans);
+      background-color: var(--background);
+      color: var(--foreground);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== Icon Masks (inline SVG data URIs) ===== */
+    .icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: currentColor;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+    }
+
+    .icon-chevron-left {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-up {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='18 15 12 9 6 15'%3E%3C/polyline%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='18 15 12 9 6 15'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .icon-chevron-down {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .icon-calendar {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2.5' ry='2.5'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2.5' ry='2.5'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+    }
+
+    .icon-more {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Ccircle cx='5' cy='12' r='2'%3E%3C/circle%3E%3Ccircle cx='12' cy='12' r='2'%3E%3C/circle%3E%3Ccircle cx='19' cy='12' r='2'%3E%3C/circle%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Ccircle cx='5' cy='12' r='2'%3E%3C/circle%3E%3Ccircle cx='12' cy='12' r='2'%3E%3C/circle%3E%3Ccircle cx='19' cy='12' r='2'%3E%3C/circle%3E%3C/svg%3E");
+    }
+
+    .icon-pin {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E");
+    }
+
+    /* ===== Top Bar ===== */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--top-bar-height);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 calc(var(--spacing) * 4);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+
+    .top-bar-left,
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 2);
+      min-width: 120px;
+    }
+
+    .top-bar-right {
+      justify-content: flex-end;
+    }
+
+    .top-bar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 0.5);
+      padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
+      border-radius: var(--radius-sm);
+      color: var(--primary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 17px;
+      font-weight: 400;
+      transition: background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .back-btn:hover {
+      background-color: var(--brand-tint-sm);
+    }
+
+    .back-btn .icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .top-bar-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--foreground);
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .week-pill {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 1.5);
+      padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 5);
+      background: var(--background-200);
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+      cursor: pointer;
+      transition: background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .week-pill:hover {
+      background: var(--background-300);
+    }
+
+    .week-pill:active {
+      transform: scale(0.97);
+    }
+
+    .week-pill-chevrons {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .week-pill-chevrons .icon {
+      width: 12px;
+      height: 12px;
+      color: var(--text-400);
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      transition: background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .icon-btn:hover {
+      background-color: var(--brand-tint-sm);
+    }
+
+    .icon-btn .icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .today-btn {
+      padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 4);
+      border-radius: 999px;
+      background: var(--brand-tint-md);
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .today-btn:hover {
+      background: var(--brand-tint-lg);
+    }
+
+    .today-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* ===== Week Day Header ===== */
+    .week-header {
+      position: fixed;
+      top: var(--top-bar-height);
+      left: 0;
+      right: 0;
+      height: var(--week-header-height);
+      z-index: 90;
+      display: grid;
+      grid-template-columns: var(--time-col-width) repeat(7, 1fr);
+      align-items: center;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 0.5px solid var(--ios-separator);
+    }
+
+    .week-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      height: 100%;
+      position: relative;
+    }
+
+    .week-day-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-400);
+      letter-spacing: 0.02em;
+    }
+
+    .week-day-date {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1;
+    }
+
+    .week-day.today .week-day-name {
+      color: var(--primary);
+    }
+
+    .week-day.today .week-day-date {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+      color: var(--background);
+      border-radius: 50%;
+      font-size: 17px;
+    }
+
+    .week-day.today::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 2px 2px 0 0;
+    }
+
+    /* ===== Main Timetable Area ===== */
+    .timetable-scroll {
+      position: fixed;
+      top: calc(var(--top-bar-height) + var(--week-header-height));
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .timetable-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .timetable-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .timetable-scroll::-webkit-scrollbar-thumb {
+      background: var(--background-400);
+      border-radius: 2px;
+    }
+
+    .timetable-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: var(--time-col-width) repeat(7, 1fr);
+      min-height: calc(var(--hour-height) * 12);
+    }
+
+    .grid-lines-wrapper {
+      position: absolute;
+      left: var(--time-col-width);
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+
+    /* Time column labels */
+    .time-labels {
+      position: relative;
+      border-right: 0.5px solid var(--ios-separator);
+    }
+
+    .time-label {
+      position: absolute;
+      right: calc(var(--spacing) * 2);
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-400);
+      text-align: right;
+      line-height: 1;
+    }
+
+    /* Day columns */
+    .day-column {
+      position: relative;
+      border-right: 0.5px solid var(--border);
+    }
+
+    .day-column:last-child {
+      border-right: none;
+    }
+
+    .day-column.today-col {
+      background: var(--brand-tint-xs);
+    }
+
+    /* Horizontal grid lines */
+    .grid-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 0.5px;
+      background: var(--border);
+      opacity: 0.5;
+    }
+
+    .grid-line.half-hour {
+      opacity: 0.25;
+    }
+
+    /* ===== Course Cards ===== */
+    .course-card {
+      position: absolute;
+      left: calc(var(--spacing) * 1);
+      right: calc(var(--spacing) * 1);
+      border-radius: calc(var(--radius) * 0.7);
+      padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing) * 1);
+      background: var(--background);
+      box-shadow: var(--shadow-xs);
+      border: 0.5px solid var(--card-border);
+    }
+
+    .course-card:hover {
+      transform: scale(1.02) translateY(-1px);
+      box-shadow: var(--shadow-md);
+      z-index: 10;
+    }
+
+    .course-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--course-color);
+    }
+
+    .course-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .course-location {
+      font-size: 12px;
+      color: var(--text-400);
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing) * 1);
+    }
+
+    .course-location .icon {
+      width: 12px;
+      height: 12px;
+      opacity: 0.7;
+    }
+
+    /* Course color variants */
+    .course-blue { --course-color: var(--ios-blue); }
+    .course-green { --course-color: var(--ios-green); }
+    .course-orange { --course-color: var(--ios-orange); }
+    .course-purple { --course-color: var(--ios-purple); }
+    .course-red { --course-color: var(--ios-red); }
+    .course-teal { --course-color: var(--ios-teal); }
+    .course-indigo { --course-color: var(--ios-indigo); }
+    .course-pink { --course-color: var(--ios-pink); }
+    .course-yellow { --course-color: var(--ios-yellow); }
+
+    /* ===== Now Indicator ===== */
+    .now-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      pointer-events: none;
+      height: 0;
+    }
+
+    .now-dot {
+      position: absolute;
+      left: calc(var(--time-col-width) - 4px);
+      top: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--ios-orange);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2px var(--background);
+    }
+
+    .now-line {
+      position: absolute;
+      left: var(--time-col-width);
+      right: 0;
+      top: 0;
+      height: 1.5px;
+      background: var(--ios-orange);
+    }
+
+    .now-time-label {
+      position: absolute;
+      left: calc(var(--spacing) * 2);
+      top: 0;
+      transform: translateY(-50%);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ios-orange);
+      background: var(--background);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== Top Bar ===== -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="back-btn">
+        <span class="icon icon-chevron-left"></span>
+        <span>课程表</span>
+      </button>
+    </div>
+    <div class="top-bar-center">
+      <div class="week-pill">
+        <span>第3周</span>
+        <div class="week-pill-chevrons">
+          <span class="icon icon-chevron-up"></span>
+          <span class="icon icon-chevron-down"></span>
+        </div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <button class="today-btn">今天</button>
+      <button class="icon-btn" aria-label="日历">
+        <span class="icon icon-calendar"></span>
+      </button>
+      <button class="icon-btn" aria-label="更多">
+        <span class="icon icon-more"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Week Day Header ===== -->
+  <div class="week-header">
+    <div></div> <!-- empty for time column -->
+    <div class="week-day">
+      <span class="week-day-name">周一</span>
+      <span class="week-day-date">8</span>
+    </div>
+    <div class="week-day">
+      <span class="week-day-name">周二</span>
+      <span class="week-day-date">9</span>
+    </div>
+    <div class="week-day today">
+      <span class="week-day-name">周三</span>
+      <span class="week-day-date">10</span>
+    </div>
+    <div class="week-day">
+      <span class="week-day-name">周四</span>
+      <span class="week-day-date">11</span>
+    </div>
+    <div class="week-day">
+      <span class="week-day-name">周五</span>
+      <span class="week-day-date">12</span>
+    </div>
+    <div class="week-day">
+      <span class="week-day-name">周六</span>
+      <span class="week-day-date">13</span>
+    </div>
+    <div class="week-day">
+      <span class="week-day-name">周日</span>
+      <span class="week-day-date">14</span>
+    </div>
+  </div>
+
+  <!-- ===== Main Timetable Grid ===== -->
+  <div class="timetable-scroll">
+    <div class="timetable-grid">
+      <!-- Time Labels Column -->
+      <div class="time-labels" id="timeLabels"></div>
+
+      <!-- Day Column 1: Monday -->
+      <div class="day-column" data-day="1">
+        <div class="course-card course-blue" style="top: calc(var(--hour-height) * 0); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">高等数学</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教1-201</span>
+          </div>
+        </div>
+        <div class="course-card course-green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">大学英语</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教3-105</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Column 2: Tuesday -->
+      <div class="day-column" data-day="2">
+        <div class="course-card course-orange" style="top: calc(var(--hour-height) * 0); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">程序设计</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>实验楼A302</span>
+          </div>
+        </div>
+        <div class="course-card course-purple" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">物理实验</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>物理实验中心</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Column 3: Wednesday (Today) -->
+      <div class="day-column today-col" data-day="3">
+        <div class="course-card course-blue" style="top: calc(var(--hour-height) * 0); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">线性代数</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教2-301</span>
+          </div>
+        </div>
+        <div class="course-card course-green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">数据结构</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教4-203</span>
+          </div>
+        </div>
+        <div class="course-card course-teal" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">计算机网络</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>实验楼B201</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Column 4: Thursday -->
+      <div class="day-column" data-day="4">
+        <div class="course-card course-blue" style="top: calc(var(--hour-height) * 0); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">高等数学</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教1-201</span>
+          </div>
+        </div>
+        <div class="course-card course-green" style="top: calc(var(--hour-height) * 2); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">大学英语</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教3-105</span>
+          </div>
+        </div>
+        <div class="course-card course-indigo" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">概率论</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>教2-101</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Column 5: Friday -->
+      <div class="day-column" data-day="5">
+        <div class="course-card course-orange" style="top: calc(var(--hour-height) * 0); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">程序设计</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>实验楼A302</span>
+          </div>
+        </div>
+        <div class="course-card course-red" style="top: calc(var(--hour-height) * 6); height: calc(var(--hour-height) * 1.667);">
+          <div class="course-name">体育</div>
+          <div class="course-location">
+            <span class="icon icon-pin"></span>
+            <span>田径场</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Column 6: Saturday -->
+      <div class="day-column" data-day="6"></div>
+
+      <!-- Day Column 7: Sunday -->
+      <div class="day-column" data-day="7"></div>
+
+      <!-- Grid lines (hourly + half-hour) -->
+      <div class="grid-lines-wrapper" id="gridLines"></div>
+
+      <!-- Now indicator -->
+      <div class="now-indicator" style="top: calc(var(--hour-height) * 2.5);">
+        <span class="now-time-label">10:30</span>
+        <div class="now-dot"></div>
+        <div class="now-line"></div>
+      </div>
+    </div>
+    <!-- closes timetable-grid -->
+  </div>
+  <!-- closes timetable-scroll -->
+
+  <script>
+    // Generate time labels (08:00 - 20:00)
+    (function() {
+      const timeLabels = document.getElementById('timeLabels');
+      const gridLines = document.getElementById('gridLines');
+      const startHour = 8;
+      const endHour = 20;
+
+      for (let h = startHour; h <= endHour; h++) {
+        const top = (h - startHour) * 64; // var(--hour-height) = 64px
+
+        // Time label
+        const label = document.createElement('div');
+        label.className = 'time-label';
+        label.style.top = top + 'px';
+        label.textContent = h.toString().padStart(2, '0') + ':00';
+        timeLabels.appendChild(label);
+
+        // Hour grid line (skip first and last for cleaner look)
+        if (h > startHour && h <= endHour) {
+          const line = document.createElement('div');
+          line.className = 'grid-line';
+          line.style.top = top + 'px';
+          gridLines.appendChild(line);
+        }
+
+        // Half-hour grid line
+        if (h < endHour) {
+          const halfLine = document.createElement('div');
+          halfLine.className = 'grid-line half-hour';
+          halfLine.style.top = (top + 32) + 'px';
+          gridLines.appendChild(halfLine);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

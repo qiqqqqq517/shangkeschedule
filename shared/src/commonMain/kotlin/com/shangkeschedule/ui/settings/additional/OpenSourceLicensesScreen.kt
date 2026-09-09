@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.theme.appColors
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -92,7 +94,7 @@ fun OpenSourceLicensesScreen(onBack: () -> Unit) {
                 is ResourceState.Error -> {
                     Text(
                         text = stringResource(Res.string.text_loading_failed, state.message),
-                        color = MaterialTheme.colorScheme.error,
+                        color = appColors().danger,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(16.dp)
                     )

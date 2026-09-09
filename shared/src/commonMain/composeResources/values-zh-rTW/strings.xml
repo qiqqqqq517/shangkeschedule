@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <!-- 應用基礎資訊 -->
     <string name="app_name">上課</string>
     <string name="hero_subtitle">讓每一堂課都有跡可循</string>
@@ -34,6 +34,18 @@
     <string name="nav_course_schedule">課表</string>
     <string name="nav_settings">我的</string>
     <string name="title_today_schedule">今日課表</string>
+    <string name="title_today_courses">今日課程</string>
+    <string name="title_week_overview">本週概覽</string>
+    <string name="title_tomorrow_courses">明日課程</string>
+    <string name="text_courses_count">共 %1$s 節</string>
+    <string name="text_week_courses">本週課程</string>
+    <string name="text_today_courses_label">今日課程</string>
+    <string name="text_todo_pending">待完成</string>
+    <string name="action_view_all">查看全部</string>
+    <string name="action_week_view">週視圖</string>
+    <string name="settings_group_course">課程設定</string>
+    <string name="settings_group_tools">工具</string>
+    <string name="settings_group_other">其他</string>
     <string name="text_no_courses_today">今天沒有課程</string>
     <string name="label_crush_course">TA的課</string>
     <string name="text_course_in_progress">正在上課</string>
