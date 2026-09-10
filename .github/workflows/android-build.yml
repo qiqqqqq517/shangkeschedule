@@ -121,12 +121,27 @@ jobs:
       - name: 运行 Release 构建任务 (Build Release APK)
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file="${{ github.workspace }}/androidApp/release.jks" \
-            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
-            --stacktrace
+          SIGNING_ARGS=(
+            "-Pandroid.injected.signing.store.file=${{ github.workspace }}/androidApp/release.jks"
+            "-Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }}"
+            "-Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }}"
+            "-Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}"
+          )
+          # 插件仓库（Gradle Plugin Portal / Maven Central）偶发抖动会让 KSP 等插件解析失败，
+          # 这里最多重试 3 次，并在重试时用 --refresh-dependencies 刷新依赖元数据，
+          # 避免沿用上一次解析失败留下的缓存结果。
+          for attempt in 1 2 3; do
+            echo "--- assembleRelease attempt $attempt ---"
+            if [ "$attempt" -eq 1 ]; then
+              if ./gradlew assembleRelease "${SIGNING_ARGS[@]}" --stacktrace; then exit 0; fi
+            else
+              if ./gradlew assembleRelease "${SIGNING_ARGS[@]}" --refresh-dependencies --stacktrace; then exit 0; fi
+            fi
+            echo "attempt $attempt failed; retrying in 20s..."
+            sleep 20
+          done
+          echo "Gradle 构建连续 3 次失败"
+          exit 1
 
       - name: 上传构建产物到仓库 (Upload Artifact)
         uses: actions/upload-artifact@v4
