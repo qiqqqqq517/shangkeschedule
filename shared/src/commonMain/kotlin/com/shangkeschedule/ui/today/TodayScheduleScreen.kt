@@ -690,11 +690,15 @@ private fun ClaudeTodayContent(
     ) {
         item {
             ClaudeTodayHeader(
+                dateText = dateText,
+            )
+        }
+
+        item {
+            ClaudeWeekLabel(
                 weekIndex = state.weekIndex,
                 status = state.status,
-                statusText = statusText,
-                dateText = dateText,
-                onOpenSettings = onOpenSettings
+                statusText = statusText
             )
         }
 
@@ -798,42 +802,14 @@ private fun ClaudeTodayContent(
     }
 }
 
-/** 页头：设计稿 .header-section（周次胶囊 + 居中日期大字）。 */
+/** 页头：居中日期大字。 */
 @Composable
 private fun ClaudeTodayHeader(
-    weekIndex: Int,
-    status: TodayStatus,
-    statusText: String,
     dateText: String,
-    onOpenSettings: () -> Unit
 ) {
     val colors = appColors()
-    val weekLabel = if (status == TodayStatus.Normal) {
-        stringResource(Res.string.title_current_week, weekIndex.toString())
-    } else {
-        statusText
-    }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp)) {
-        // 周次胶囊：方形块，无箭头，与日期平齐
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(colors.primarySoft)
-                .padding(horizontal = 8.dp, vertical = 3.dp)
-        ) {
-            Text(
-                text = weekLabel,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.02.em,
-                    lineHeight = 14.sp
-                ),
-                color = colors.primary,
-                maxLines = 1
-            )
-        }
-        // 日期：紧接周次下方，间距缩小（不触碰状态栏）
+        // 日期：居中大字
         Text(
             text = dateText,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -844,8 +820,48 @@ private fun ClaudeTodayHeader(
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+/** 周次标签：方形胶囊，置于日期与课程之间，略放大。 */
+@Composable
+private fun ClaudeWeekLabel(
+    weekIndex: Int,
+    status: TodayStatus,
+    statusText: String
+) {
+    val colors = appColors()
+    val weekLabel = if (status == TodayStatus.Normal) {
+        stringResource(Res.string.title_current_week, weekIndex.toString())
+    } else {
+        statusText
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.primarySoft)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
+        ) {
+            Text(
+                text = weekLabel,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.02.em,
+                    lineHeight = 16.sp
+                ),
+                color = colors.primary,
+                maxLines = 1
+            )
+        }
     }
 }
 
