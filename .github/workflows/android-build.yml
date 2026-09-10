@@ -118,6 +118,20 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > androidApp/release.jks
 
+      - name: 诊断：插件仓库可达性 (Diagnose repositories)
+        run: |
+          POM="com/google/devtools/ksp/com.google.devtools.ksp.gradle.plugin/2.3.10/com.google.devtools.ksp.gradle.plugin-2.3.10.pom"
+          for base in \
+            "https://repo1.maven.org/maven2" \
+            "https://plugins.gradle.org/m2" \
+            "https://dl.google.com/dl/android/maven2" \
+            "https://maven.aliyun.com/repository/google" \
+            "https://maven.aliyun.com/repository/central" \
+            "https://maven.aliyun.com/repository/gradle-plugin" ; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$base/$POM" 2>/dev/null || echo "ERR")
+            echo "[diag] $code  $base"
+          done
+
       - name: 运行 Release 构建任务 (Build Release APK)
         run: |
           chmod +x ./gradlew
