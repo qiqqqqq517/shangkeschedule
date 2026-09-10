@@ -7,6 +7,54 @@
 
 ## 最新版本
 
+### v3.41.1（2026-09-11）· 修复通透「我的」页开关行与其它设置行高度不一致
+
+**修复**
+- **「我的」页所有设置行现在完全等宽等高**：修复前「显示非本周课程 / 是否显示周末」两行被行尾开关撑开（行距 189px vs 其它行 144px，行宽 628px vs 725px），现在 12 行统一为 **宽 612px × 高 57px、行距 145px**
+- 根因是行尾插槽按内容自适应：导航行的箭头只有 15dp，而开关自带 48dp 触控扩张，两类行的宽度、高度、点击热区都被拉得不一致。改为**固定尺寸尾部插槽**（宽 56dp × 高 32dp），箭头与开关在同一盒内居中，行高统一由图标/文字决定
+- 顺带统一了两类行的点击热区（此前开关行的可点范围明显窄于导航行）
+
+**构建信息**：versionCode 174 · 本地构建 · 支持 arm64-v8a / armeabi-v7a / x86_64
+
+**验证**：编译三端全部通过；真机装机逐行量测 12 行宽度/高度/行距唯一值一致；两套主题（通透 / 书卷）像素核验仍互不串色
+
+**涉及文件**：`IosSettingsComponents.kt`
+
+---
+
+### v3.41.0（2026-09-11）· 通透主题重做为 iOS 26 Liquid Glass ｜ 书卷主题完整保留
+
+**功能**
+- **主题精简为两套**：删除「经典」与「云舒」；保留「书卷」并新增/重做「通透」。主题页只展示这两项
+- **通透主题（iOS 26 / Liquid Glass）**：功能面**完全参照书卷**——同一批页面、同一批分组与条目、同一批字段与位置，只替换 UI 与动画组件
+  - 今日页：周次胶囊 + 日期大字页头 → 下节课卡 → 今日课程时间轴（时间列 / 节点圆点 / 连线 / 节数徽标 / 信息胶囊）→ 日程事件 → 明日预览 → 课程详情玻璃面板
+  - 设置页：「我的」4 组 inset grouped 列表【课表 / 课程 / 偏好 / 关于】，条目与开关位置与书卷一一对应
+  - 课表页：左侧色条 + 极淡同色底 + 隐藏网格线 + 文字左对齐 + 70dp 节高 + 12dp 连续圆角
+- **书卷主题零改动**：配色（暖砂纸底 / 赤陶主色）、字体（Poppins / Newsreader / Lora）、inset grouped 暖米色分组卡、今日页设计稿形态全部原样保留
+- 老用户主题偏好自动迁移：`ORIGINAL` / `SLEEPY` / `TIMETABLE` / `AIRY` 统一落到「通透」，历史配色池（书卷 12/20 色、经典马卡龙、云舒 Material）首次启动平滑升级为系统色池
+
+**外观**
+- 通透色板严格取 Apple 系统色：分组列表底 `#F2F2F7`、卡片白 `#FFFFFF`、systemBlue `#007AFF`、深色 `#0A84FF`；深浅两套完整 systemGrouped 层级
+- Liquid Glass 材质：不透明卡片改用「高光 + 反射 + 厚度」三层玻璃描边（`iosGlassRim`），悬浮件（底栏胶囊 / 圆钮 / 挂起条 / FAB / 详情面板）共用 haze 背景模糊 + 边缘光学
+- iOS 26 连续圆角阶梯（卡片 16 / hero 22 / 控件 12 / chip 10）、8pt 网格间距、SF 字阶（Large Title 34 / Body 17 / Footnote 13 / Caption 2 11 + HIG 字距）
+- 导航栏：44pt 高 + 居中 17pt SemiBold 标题 + 玻璃底衬 + 底部发丝线
+- 今日页时间轴卡片按系统蓝 / 系统橙交替渐变；周次胶囊、今天列、进行中圆点统一系统蓝
+
+**动效**
+- 三档动效重写为 iOS 26 物理弹簧：`柔和顺滑`（无过冲、丝滑收束，默认）、`轻盈舒缓`、`灵动跟手`（短促弹回），对应 SwiftUI `.smooth` / `.snappy` / `.bouncy` 语义
+- 时带重排：导航 350ms / 底栏隐藏 240ms / 页面入场 320ms（40ms 错峰）/ 展开 280ms
+
+**修复**
+- 删除「云舒」主题后清理其遗留的课程块投影分支（`isSleepyPreset`），避免死分支继续影响课程块渲染
+
+**构建信息**：versionCode 173 · 本地构建 · 支持 arm64-v8a / armeabi-v7a / x86_64
+
+**验证**：`:shared:compileKotlinJvm` / `:androidApp:assembleDebug` / `:desktopApp:compileKotlin` 全部通过；真机（22041216UC 同型号 arm64 设备）装机运行无崩溃；像素级核验确认两套主题互不串色（脚本 `tools/verify_dual_themes.py`）
+
+**涉及文件**：`IosStyle.kt`(新增) · `IosSettingsComponents.kt`(新增) · `IosPreview.kt`(新增) · `AppThemePreset.kt` · `ScheduleGridStyle.kt` · `StyleSettingsRepository.kt` · `Theme.kt` · `AppStyle.kt` · `AppMotion.kt` · `LiquidGlass.kt` · `TodayScheduleScreen.kt` · `SettingsScreen.kt` · `AppTopAppBar.kt` · `AppBasicComponents.kt` · `StyleComponents.kt` · `FloatingCourseBar.kt` · `ScheduleGridComponents.kt` · `WeeklyScheduleScreen.kt` · `CourseBlock.kt` · `ManageCourseTablesScreen.kt` · `TimeSlotManagementScreen.kt` · `strings.xml`×4
+
+---
+
 ### v3.40.0（2026-09-10）· 学期管理页 + 时间段管理页全新设计
 
 **功能**

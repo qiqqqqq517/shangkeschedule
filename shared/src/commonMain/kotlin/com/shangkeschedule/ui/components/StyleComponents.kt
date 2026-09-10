@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.components
+﻿package com.shangkeschedule.ui.components
 
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -91,6 +91,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
+import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.data.model.AppThemePreset
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -340,7 +341,7 @@ fun AppCard(
     Box(
         modifier = modifier
             .shadow(
-                elevation = (if (isClaude) 1 else elevation).dp,
+                elevation = (if (isClaude) 1 else 1).dp,
                 shape = finalShape,
                 clip = false,
                 ambientColor = tokens.shadow,
@@ -352,7 +353,8 @@ fun AppCard(
                 if (isClaude) {
                     Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
                 } else {
-                    Modifier
+                    // 通透（iOS 26）：白卡 + 玻璃高光内描边（靠材质分层，不用实色描边）
+                    Modifier.iosGlassRim(finalShape)
                 }
             )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)

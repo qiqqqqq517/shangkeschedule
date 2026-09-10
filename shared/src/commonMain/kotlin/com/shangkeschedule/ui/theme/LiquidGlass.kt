@@ -218,3 +218,69 @@ fun Modifier.liquidGlass(
 
 private fun containerColorOrBlack(containerColor: Color, isTransparent: Boolean): Color =
     if (isTransparent) Color.Black else containerColor
+
+/**
+ * iOS 26 Liquid Glass **描边环**（轻量玻璃，用于不透明卡片）。
+ *
+ * 与 [liquidGlass] 的分工：
+ * - [liquidGlass] 是**悬浮层**玻璃（底栏胶囊 / 圆钮 / 挂起条 / FAB）：带 haze 背景模糊、
+ *   多层 tint 与大面积边缘光学，必须叠在可滚动内容之上才有意义；
+ * - [iosGlassRim] 是**不透明卡片**的玻璃感描边：卡片本身是实底（分组列表里的白卡必须
+ *   保证文字对比度，不能真的半透明），但 iOS 26 的白卡并不是纯平面——它在顶边有一道
+ *   镜面高光、底边有一道极淡的反射暗边，四角还有一圈更亮的「玻璃厚度」内描边。
+ *
+ * 三层，全部在形状内侧（调用前应先 clip）：
+ * 1. 顶边高光带（垂直渐变，仅上部 38%）—— 光线从上方打到玻璃上沿；
+ * 2. 底边反射暗带（仅下部 22%）—— 玻璃下沿把环境光反射成一层深色；
+ * 3. 内描边环（1dp 亮线）—— 玻璃的边缘厚度。
+ *
+ * 深浅模式力度不同：浅色卡在白底上需要更明显的高光才有「玻璃」感，
+ * 深色卡（#1C1C1E）在纯黑页面上只需极淡的白线即可立形。
+ */
+@Composable
+fun Modifier.iosGlassRim(
+    shape: Shape,
+    enabled: Boolean = true
+): Modifier {
+    if (!enabled) return this
+    val isDark = LocalIsDarkTheme.current
+
+    val topHighlight = if (isDark) 0.06f else 0.55f
+    val bottomShade = if (isDark) 0.10f else 0.035f
+    val rimBright = if (isDark) 0.10f else 0.95f
+    val rimDim = if (isDark) 0.04f else 0.10f
+
+    return this
+        .drawBehind {
+            // ① 顶边镜面高光：只覆盖上部 38%，中心与下半部保持卡片本色
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = topHighlight),
+                    0.16f to Color.White.copy(alpha = topHighlight * 0.45f),
+                    0.38f to Color.Transparent
+                )
+            )
+            // ② 底边反射暗带：仅下部 22%
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0.78f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = bottomShade)
+                )
+            )
+        }
+        // ③ 内描边环：由亮到暗的斜向渐变，模拟玻璃边缘的厚度与方向性
+        .border(
+            width = 1.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = rimBright),
+                    Color.White.copy(alpha = rimDim),
+                    Color.White.copy(alpha = rimBright * 0.7f),
+                    Color.White.copy(alpha = rimDim)
+                ),
+                start = Offset.Zero,
+                end = Offset.Infinite
+            ),
+            shape = shape
+        )
+}

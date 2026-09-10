@@ -58,7 +58,8 @@
     <string name="today_claude_meta_room">Location</string>
     <string name="today_claude_meta_teacher">Teacher</string>
     <string name="today_claude_meta_weeks">Weeks</string>
-    <string name="today_claude_meta_credit">Credits</string>
+    <string name="today_claude_meta_credit">Credits</string>
+
     <string name="today_claude_next_label">Next class</string>
     <string name="today_claude_note_type">Type</string>
     <string name="today_claude_note_hours">Hours</string>
@@ -68,6 +69,33 @@
     <string name="today_claude_countdown_label">min to start</string>
     <string name="today_claude_sheet_close">Close</string>
     <string name="today_claude_sheet_edit">Edit course</string>
+    <string name="today_ios_date_format">%2$s %1$s</string>
+    <string name="today_ios_week_range">%1$s – %2$s</string>
+    <string name="today_ios_week_prev">Previous week</string>
+    <string name="today_ios_week_next">Next week</string>
+    <string name="today_ios_remaining">%1$s left</string>
+    <string name="today_ios_tomorrow_format">Tomorrow · %1$s</string>
+    <string name="today_ios_view_all">View all</string>
+    <string name="today_ios_status_done">Finished</string>
+    <string name="today_ios_status_live">In progress</string>
+    <string name="today_ios_status_upcoming">Upcoming</string>
+    <string name="today_ios_badge_required">Required</string>
+    <string name="today_ios_badge_elective">Elective</string>
+    <string name="today_ios_badge_lab">Lab</string>
+    <string name="today_ios_meta_time">Time</string>
+    <string name="today_ios_meta_room">Location</string>
+    <string name="today_ios_meta_teacher">Teacher</string>
+    <string name="today_ios_meta_weeks">Weeks</string>
+    <string name="today_ios_meta_credit">Credits</string>
+    <string name="today_ios_next_label">Next class</string>
+    <string name="today_ios_note_type">Type</string>
+    <string name="today_ios_note_hours">Hours</string>
+    <string name="today_ios_type_theory">Theory</string>
+    <string name="today_ios_type_lab">Lab</string>
+    <string name="today_ios_sections_format">%1$s sections</string>
+    <string name="today_ios_countdown_label">min to start</string>
+    <string name="today_ios_sheet_close">Close</string>
+    <string name="today_ios_sheet_edit">Edit course</string>
     <string name="settings_group_course">Courses</string>
     <string name="settings_group_tools">Tools</string>
     <string name="settings_group_other">Other</string>
@@ -371,7 +399,8 @@
     <string name="toast_break_duration_non_negative">Break duration cannot be negative</string>
     <string name="text_no_time_slots_hint">No time periods yet. Tap the \'+\' icon to add one.</string>
     <string name="toast_slot_removed_unsaved">Time period removed from list, tap save to update database</string>
-    <string name="time_slot_section_number">Period %1$s</string>
+    <string name="time_slot_section_number">Period %1$s</string>
+
     <string name="title_time_slot_list">Section List</string>
     <string name="a11y_delete_time_slot">Delete time period</string>
     <string name="dialog_title_edit_time_slot">Edit time period</string>

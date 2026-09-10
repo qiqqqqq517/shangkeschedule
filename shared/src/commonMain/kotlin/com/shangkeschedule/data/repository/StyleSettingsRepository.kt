@@ -30,13 +30,17 @@ import org.koin.core.annotation.Single
 const val SCHEDULE_STYLE_DATASTORE_FILE_NAME = "schedule_style_settings.pb"
 
 /**
- * 已知的「历史预设调色板」→ 所属主题预设。
+ * 已知的「历史预设调色板」→ 当前主题预设。
  *
  * 用途见 [StyleSettingsRepository.upgradeLegacyPresetPalette]：把老用户 DataStore 里快照的旧配色
- * 升级为当前预设配色。以后若再次重做某个主题的调色板，把被替换掉的那一版登记到这里即可。
+ * 升级为当前预设配色。
+ *
+ * v3.41.0：App 只剩「通透」一套主题，所以历史上的各套预设调色板（书卷暖砂 12/20 色、
+ * 经典马卡龙 12 色、云舒 Material 12 色）**全部**登记为「旧 → 通透」，
+ * 老用户首次启动即被平滑迁移到 iOS 系统色池，不会停留在已删除主题的配色上。
  */
 private val LEGACY_PRESET_PALETTES: List<Pair<List<DualColor>, AppThemePreset>> = listOf(
-    // 「书卷」旧 12 色（v3.35.4 及以前）：赤陶/珊瑚/红/玫瑰/棕 等暖色色差过小难以区分，已被 20 色取代
+    // 「书卷」旧 12 色（v3.35.4 及以前）：赤陶/珊瑚/红/玫瑰/棕 等暖色色差过小难以区分
     listOf(
         DualColor(Color(0x40C96442), Color(0xFFC96442)),
         DualColor(Color(0x409C87F5), Color(0xFF9C87F5)),
@@ -50,7 +54,60 @@ private val LEGACY_PRESET_PALETTES: List<Pair<List<DualColor>, AppThemePreset>> 
         DualColor(Color(0x40D86485), Color(0xFFD86485)),
         DualColor(Color(0x409A6B4E), Color(0xFF9A6B4E)),
         DualColor(Color(0x404E8F8A), Color(0xFF4E8F8A)),
-    ) to AppThemePreset.CLAUDE,
+    ) to AppThemePreset.IOS,
+    // 「书卷」20 色（v3.35.5 ~ v3.40.x）：赤红/赭石/琥珀…342° 等距环绕
+    listOf(
+        DualColor(Color(0x40913030), Color(0xFFD04343)),
+        DualColor(Color(0x40EE4B04), Color(0xFF9B4A27)),
+        DualColor(Color(0x40FFA51D), Color(0xFFD09843)),
+        DualColor(Color(0x40E5DA76), Color(0xFF9B8F27)),
+        DualColor(Color(0x405E7502), Color(0xFFB4D043)),
+        DualColor(Color(0x4088F31E), Color(0xFF619B27)),
+        DualColor(Color(0x406BAF5B), Color(0xFF5FD043)),
+        DualColor(Color(0x4026FF3B), Color(0xFF279B32)),
+        DualColor(Color(0x4002B048), Color(0xFF43D07C)),
+        DualColor(Color(0x4001593F), Color(0xFF279B78)),
+        DualColor(Color(0x401EC0C0), Color(0xFF43D0D0)),
+        DualColor(Color(0x406FD4FF), Color(0xFF27789B)),
+        DualColor(Color(0x400062F1), Color(0xFF437CD0)),
+        DualColor(Color(0x404A5191), Color(0xFF27329B)),
+        DualColor(Color(0x40968CBC), Color(0xFF5F43D0)),
+        DualColor(Color(0x408F39E6), Color(0xFF61279B)),
+        DualColor(Color(0x40E478FF), Color(0xFFB443D0)),
+        DualColor(Color(0x40F5CEF1), Color(0xFF9B278F)),
+        DualColor(Color(0x40D50D85), Color(0xFFD04398)),
+        DualColor(Color(0x40EF628D), Color(0xFF9B274A)),
+    ) to AppThemePreset.IOS,
+    // 「经典」马卡龙 12 色（ORIGINAL，已删除）
+    listOf(
+        DualColor(Color(0xFFFFCDD2), Color(0xFFD32F2F)),
+        DualColor(Color(0xFFF8BBD0), Color(0xFFC2185B)),
+        DualColor(Color(0xFFE1BEE7), Color(0xFF7B1FA2)),
+        DualColor(Color(0xFFD1C4E9), Color(0xFF512DA8)),
+        DualColor(Color(0xFFC5CAE9), Color(0xFF303F9F)),
+        DualColor(Color(0xFFBBDEFB), Color(0xFF1976D2)),
+        DualColor(Color(0xFFB2EBF2), Color(0xFF0097A7)),
+        DualColor(Color(0xFFB2DFDB), Color(0xFF00796B)),
+        DualColor(Color(0xFFC8E6C9), Color(0xFF388E3C)),
+        DualColor(Color(0xFFDCEDC8), Color(0xFF689F38)),
+        DualColor(Color(0xFFFFF9C4), Color(0xFFFBC02D)),
+        DualColor(Color(0xFFFFE0B2), Color(0xFFF57C00)),
+    ) to AppThemePreset.IOS,
+    // 「云舒」Material 12 色（SLEEPY，已删除）
+    listOf(
+        DualColor(Color(0xFFEADDFF), Color(0xFF4F378B)),
+        DualColor(Color(0xFFD1E4FF), Color(0xFF00497D)),
+        DualColor(Color(0xFFB7F397), Color(0xFF295D09)),
+        DualColor(Color(0xFFFFD8E4), Color(0xFF633B48)),
+        DualColor(Color(0xFFFFDBC8), Color(0xFF783200)),
+        DualColor(Color(0xFFD7E3F7), Color(0xFF3B4858)),
+        DualColor(Color(0xFFF2DAFF), Color(0xFF523F5F)),
+        DualColor(Color(0xFFBCEBEB), Color(0xFF1E4E4E)),
+        DualColor(Color(0xFFE9E4AA), Color(0xFF4A481D)),
+        DualColor(Color(0xFFFFF9C4), Color(0xFF7A5B00)),
+        DualColor(Color(0xFFFFD8D8), Color(0xFF8C1D18)),
+        DualColor(Color(0xFFE3F2E9), Color(0xFF1B5E20)),
+    ) to AppThemePreset.IOS,
 )
 
 /**

@@ -119,7 +119,7 @@ data class AppSettingsModel(
     val themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
 
     /** 应用主题预设：同时决定全局配色种子色与课表视觉样式 */
-    val themePreset: AppThemePreset = AppThemePreset.ORIGINAL,
+    val themePreset: AppThemePreset = AppThemePreset.default,
 
     /** 是否开启动态取色 (Material You) */
     val useDynamicColor: Boolean = false,

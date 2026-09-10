@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.schedule
+﻿package com.shangkeschedule.ui.schedule
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -92,7 +92,6 @@ import coil3.compose.AsyncImage
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
@@ -121,7 +120,6 @@ import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
-import com.shangkeschedule.ui.theme.LocalThemePreset
 
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
@@ -1081,9 +1079,6 @@ private fun ScheduleListViewBlock(
     onLongClick: () -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
-    val themePreset = LocalThemePreset.current
-    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
-
     val firstCourse = block.courses.firstOrNull()?.course
     val colorIndex = firstCourse?.colorInt ?: 0
     val colorPair = composedStyle.courseColorMaps.getOrElse(colorIndex) {
@@ -1099,10 +1094,8 @@ private fun ScheduleListViewBlock(
     val cornerRadius = composedStyle.courseBlockCornerRadius
     val shape = RoundedCornerShape(cornerRadius)
 
-    // 云舒主题加阴影；经典不加
-    val shadowModifier = if (isSleepyPreset && !block.isVisualDemoted) {
-        Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
-    } else Modifier
+    // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层
+    val shadowModifier = Modifier
 
     // 左侧色条用 drawBehind 绘制，不参与测量
     // （fillMaxHeight 子 Box 在宽松/无限高度约束下会失效或撑爆父容器）
