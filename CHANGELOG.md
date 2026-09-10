@@ -7,6 +7,13 @@
 
 ## 最新版本
 
+### v3.35.2（2026-09-10）· 修复 CI 正式版发布链路
+
+**构建**
+- 修复 CI 构建在缺少 `keystore.properties` 时崩溃：`androidApp/build.gradle.kts` 原先无条件创建 release 签名配置并读取该文件，CI 环境下取到 null 抛 `null cannot be cast to non-null type kotlin.String`；现改为仅在存在 `keystore.properties` 时创建本地签名配置，CI 沿用 AGP 注入签名（`-Pandroid.injected.signing.*`），本地与线上签名产物不变
+- CI 构建步骤加入失败重试（最多 3 次，重试时附加 `--refresh-dependencies`），抵御 Gradle Plugin Portal / Maven Central 偶发抖动导致的 KSP 插件解析失败
+- versionCode 154 · arm64-v8a / armeabi-v7a / x86_64
+
 ### v3.35.1（2026-09-10）· 修复「我的」页无法滑动 + 课表课程配色撞色
 
 **修复**

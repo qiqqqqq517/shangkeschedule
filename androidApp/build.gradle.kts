@@ -12,13 +12,16 @@ kotlin {
     jvmToolchain(21)
 }
 
-// 读取 release 签名配置（密码等敏感信息存于 keystore.properties，不硬编码进脚本）
+// 读取 release 签名配置（密码等敏感信息存于 keystore.properties，不硬编码进脚本）。
+// CI 环境不提供 keystore.properties，改由 AGP 注入签名（-Pandroid.injected.signing.*）完成；
+// 此时不创建本地 release 签名配置，避免读到 null 抛 "null cannot be cast to non-null type"。
 val keystoreProperties = Properties().apply {
     val propsFile = file("keystore.properties")
     if (propsFile.exists()) {
         propsFile.inputStream().use { load(it) }
     }
 }
+val hasLocalKeystore = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "com.shangkeschedule"
@@ -28,18 +31,20 @@ android {
         applicationId = "com.shangkeschedule"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 153
-        versionName = "3.35.1"
+        versionCode = 154
+        versionName = "3.35.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
+        if (hasLocalKeystore) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -51,7 +56,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (hasLocalKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
