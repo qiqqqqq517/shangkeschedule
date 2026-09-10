@@ -332,14 +332,14 @@ class WeeklyScheduleViewModel (
             }.collect { _uiState.value = it }
         }
 
-        // 2. 颜色修复只在“课程列表变化”后执行，避免每次样式变更都重复扫描。
+        // 2. 颜色去重 + 越界修复只在“课程列表变化”后执行，避免每次样式变更都重复扫描。
         viewModelScope.launch {
             currentCoursesFlow
                 .map { cache -> cache.values.flatten().flatMap { it.courses } }
                 .distinctUntilChanged()
                 .collect { courses ->
                     val style = styleFlow.firstOrNull() ?: return@collect
-                    fixInvalidCourseColors(courses, style)
+                    ensureDistinctCourseColors(courses, style)
                 }
         }
 
@@ -391,21 +391,31 @@ class WeeklyScheduleViewModel (
         }
     }
 
-    private suspend fun fixInvalidCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
-        val validRange = style.courseColorMaps.indices
-        // 先统计课表内已有的合法颜色，再为越界课程按「全局占用最少」补齐。
-        // 旧实现逐个随机分配，多个课程常被修成同一颜色；这里改为确定性的差异化分配。
-        val usedColorIndices = courses
-            .filter { !it.course.isCrush && it.course.colorInt in validRange }
-            .map { it.course.colorInt }
-            .toMutableList()
-        courses.forEach { cw ->
-            // 跳过 crush 课程：其颜色由 crushCourseColorIndex 统一控制，不应被自动修复
-            if (cw.course.isCrush) return@forEach
-            if (cw.course.colorInt !in validRange) {
-                val picked = style.pickLeastUsedColorIndex(usedColorIndices)
-                courseTableRepository.updateCourseColor(cw.course.id, picked)
-                usedColorIndices += picked
+    /**
+     * 保证当前课表内「不同课程名 → 不同颜色」，并顺带修复越界的颜色索引。
+     *
+     * 历史数据由早前的随机分配产生，极易撞色；原实现只修越界索引、不处理重复，故撞色长期残留。
+     * 这里按课程名归一：同名课次统一为一个颜色（与导入路径 getOrAssignColorByName 语义一致），
+     * 尽量保留课程名已有的颜色，仅在与其它课程名冲突时改配「全局占用最少」的颜色。
+     * crush 课程不参与：其颜色由 crushCourseColorIndex 统一控制。
+     */
+    private suspend fun ensureDistinctCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
+        // 课程会按周在缓存中重复出现，先按 id 去重，避免重复统计与重复写库。
+        val distinctCourses = courses
+            .filter { !it.course.isCrush }
+            .distinctBy { it.course.id }
+        if (distinctCourses.isEmpty()) return
+
+        val colorByName = style.resolveDistinctColorIndices(
+            distinctCourses
+                .groupBy { it.course.name }
+                .mapValues { (_, group) -> group.map { it.course.colorInt } }
+        )
+
+        distinctCourses.forEach { courseWithWeeks ->
+            val target = colorByName[courseWithWeeks.course.name] ?: return@forEach
+            if (courseWithWeeks.course.colorInt != target) {
+                courseTableRepository.updateCourseColor(courseWithWeeks.course.id, target)
             }
         }
     }
