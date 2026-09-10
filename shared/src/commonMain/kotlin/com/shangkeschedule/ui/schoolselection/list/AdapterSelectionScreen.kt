@@ -59,6 +59,32 @@ import shangkeschedule.shared.generated.resources.text_no_adapter_for_category_s
 import shangkeschedule.shared.generated.resources.text_no_detailed_description
 
 /**
+ * 需要强制以「电脑版」进入的学校 ID 集合。
+ *
+ * 这些学校的教务 / 门户页面是**固定宽度的桌面布局**，在手机 UA + `width=device-width` 视口下会被压扁，
+ * 表现为左侧菜单点不开、看不到课表网格、验证码难以输入等。
+ * 强制桌面模式会同时启用桌面 UA 与 1280px 视口修正（见 `WebCompatDelegate.injectDesktopViewportFix`），
+ * 后者会移除页面自带的 `width=device-width` 并改写为 `width=1280`，桌面布局才恢复正常比例。
+ *
+ * 以「学校 ID」而非适配器 ID 判定：一所学校下的所有适配器共享同一套前端页面。
+ */
+private val FORCE_DESKTOP_MODE_SCHOOL_IDS = setOf(
+    // 汕头大学：门户 xsMainV.htmlx 自带 width=device-width，但实际是固定宽度桌面布局
+    // （左侧 edu-sideMenu 侧栏 + 内容 iframe），手机 UA 下被压缩，登录后进不去课表
+    "u_15f498f5",
+    // 武汉纺织大学外经贸学院：手机端教务菜单无法打开课表
+    "u_c0a22802",
+    // 沈阳农业大学：手机端课表页渲染不完整，桌面 UA 下解析稳定
+    "u_26bd7359",
+    // 西安医学院：金智 ehall 手机端入口登录 / 验证码体验差，桌面版登录后进教务稳定
+    "u_308bdd18",
+    // 国科大：xkgo 老选课系统手机端布局错乱，且拦截器仅桌面模式生效
+    "MANUAL_UCAS",
+    // 滁州学院：金智 EAMS 老版手机端页面布局错乱，无法看到课表网格
+    "MANUAL_CHZU",
+)
+
+/**
  * 二级页面：显示特定学校和当前类别下的所有适配器列表。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,13 +198,8 @@ fun AdapterSelectionScreen(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
                                             isCrushImport = isCrushImport,
-                                            // 以下学校教务手机端页面不适配，强制以电脑版（桌面 UA + 1280px 视口）进入：
-                                            //  - 武汉纺织大学外经贸学院（u_c0a22802）：手机端教务菜单无法打开课表
-                                            //  - 沈阳农业大学（u_26bd7359）：手机端课表页渲染不完整，桌面 UA 下解析稳定
-                                            //  - 西安医学院（u_308bdd18）：金智 ehall 手机端入口登录/验证码体验差，桌面版登录后进教务稳定
-                                            //  - 国科大（MANUAL_UCAS）：xkgo 老选课系统手机端布局错乱，且拦截器仅桌面模式生效
-                                            //  - 滁州学院（MANUAL_CHZU）：金智 EAMS 老版手机端页面布局错乱，无法看到课表网格
-                                            forceDesktopMode = (schoolId == "u_c0a22802" || schoolId == "u_26bd7359" || schoolId == "u_308bdd18" || schoolId == "MANUAL_UCAS" || schoolId == "MANUAL_CHZU")
+                                            // 名单与判定理由见文件顶部 FORCE_DESKTOP_MODE_SCHOOL_IDS
+                                            forceDesktopMode = schoolId in FORCE_DESKTOP_MODE_SCHOOL_IDS
                                         )
                                     )
                                 }

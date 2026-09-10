@@ -1,35 +1,49 @@
-// 汕头大学教务（正方教务系统 jwxsd + CAS 统一身份认证 sso.stu.edu.cn）适配器 v3
+// 汕头大学教务（正方教务系统 jwxsd + CAS 统一身份认证 sso.stu.edu.cn）适配器 v4
 //
 // ===== 站点事实（2026-09-10 实测）=====
 //   入口 https://jw.stu.edu.cn/jsxsd/framework/xsMainV.htmlx
-//     302 → http://jw.stu.edu.cn → CAS https://sso.stu.edu.cn/login?service=http%3A%2F%2Fjw.stu.edu.cn%2F
+//     302 → http://jw.stu.edu.cn（该页 200 后用 JS 跳转）→ CAS https://sso.stu.edu.cn/login?service=…
 //     CAS 表单字段：username / password / lt / execution / _eventId=submit（无验证码、无前端加密）
-//     登录成功 → /jsxsd/xk/LoginToXk?method=jwxt&ticket1=… → /jsxsd/framework/xsMainV.htmlx
+//     登录成功 → http://jw.stu.edu.cn/?ticket=ST-… → /jsxsd/xk/LoginToXk?method=jwxt&ticket1=…
+//       → https://jw.stu.edu.cn/jsxsd/framework/xsMainV.htmlx（教务门户）
 //   课表页 /jsxsd/xskb/xskb_list.do（<title>学期理论课表</title>）
 //     学期切换：GET /jsxsd/xskb/xskb_list.do?xnxq01id=<学期ID> 可直接取到该学期课表（实测可用）
 //     学期列表 = select#xnxq01id（如 2026-2027-1 / 2026年秋季学期）
 //
-// ===== 课表表格真实结构（实测，与 v2 的假设完全不同，是导入失败的真因）=====
+// ===== 必须强制「电脑版」=====
+//   门户 xsMainV.htmlx 自带 <meta name="viewport" content="width=device-width">，但页面是
+//   固定宽度的桌面布局（左侧 edu-sideMenu 侧栏 + 内容区 iframe）。手机 UA 下该布局被压成一条，
+//   菜单点不开、登录后进不去课表。因此本适配要求以桌面 UA + 1280px 视口进入
+//   （由 AdapterSelectionScreen 的 FORCE_DESKTOP_MODE_SCHOOL_IDS 对 u_15f498f5 强制开启）。
+//   解析本身只依赖 DOM 结构，与 UA 无关；桌面模式解决的是「人能不能点到课表页」。
+//
+// ===== 课表表格真实结构（实测；这是 v1/v2 导入失败的真因）=====
 //   table#timetable = 1 个表头行 + 5 个「大节」行 + 1 个「备注」行；列 1..7 = 星期一..星期日
-//   行首单元格文字形如「第二大节 (03,04,05小节)」：**大节→小节的映射必须从这行文字里取**。
+//   表头行与行首「大节」格用的是 <th>，课程格才是 <td> —— 必须用 row.cells（按文档顺序含 th+td），
+//     用 getElementsByTagName('td') 会少掉大节标签列，导致**星期整体错位一列**。
+//   行首单元格文字形如「第二大节 (03,04,05小节)」：大节→小节的映射必须从这行文字里取。
 //     该校为 01,02 / 03,04,05 / 06,07 / 08,09,10 / 11,12,13，并非「每大节固定 2 小节」；
-//     v2 的 (行号-1)*2+1 推断会把所有课程节次整体算错。
-//   课程单元格 = 3 个同 GUID 的 div：kbcontent1（简版）/ kbcontent（详版，含教师、教室）/ 备用块；
+//     按 (行号-1)*2+1 推断会把所有节次算错。
+//   课程单元格 = 多个同 GUID 的 div：kbcontent1（简版）/ kbcontent（详版，含教师、教室）等；
 //     空单元格同样有占位 div（内容 &nbsp;），必须按「课程名是否为空」过滤，不能按 class 判断。
 //   字段载体为 <font title="…">：无 title = 课程名；教师 / 周次(节次) / 教学楼 / 教室 / 通知单编号 / 班级 / 备注
 //   周次(节次) 形如 "3-18(周)[01-02节]"、"3-4,6-11(周)[06-07节]"，节次可为三段 "[03-04-05节]"
 //
-// ===== v3 相对 v2 的修复 =====
-//   1. 不再依赖 <font title> 之外的结构假设，按真实 font 字段解析（v2 只会取到空课程名 → 0 门课程）
-//   2. 节次改为「行首大节标签给出的小节范围」+「单元格 [xx节] 优先」，不再用行号推算
-//   3. 课程字段名 room → position（Kotlin 侧 ImportCourseJsonModel.position 必填，写 room 会导致保存失败）
-//   4. 同一 GUID 的多个 div 先归组再取详版，兼容一格多课（同格不同 GUID）
-//   5. 支持学期选择（select#xnxq01id 多学期时弹窗选择，默认当前页学期）
-//   6. 诊断信息改为真实结构计数，失败时给出可执行的排查指引
+// ===== v4 相对 v3 的修复 =====
+//   1. 【核心】不再用 location.href 跳转课表页。v3 在门户首页点导入时会先跳转再 sleep 等待，
+//      但页面一导航当前 JS 上下文即被销毁，await 之后的代码永远不会执行 —— 表现为
+//      「点了导入、页面跳到课表、然后什么都不发生」，用户必须再点一次。
+//      v4 改为**同源 fetch** 课表页（/jsxsd/xskb/xskb_list.do 与门户同源、自动带上会话 Cookie），
+//      用 DOMParser 解析后直接导入，门户首页一次点击即可完成导入。
+//   2. 位置不变：仍在门户首页 / 课表页 / 课表在 iframe 内三种情况下都能导入。
+//   3. 新增 window.shangkeNavigateToTimetable()，供底部栏「一键导航到课表」精确跳转，
+//      不再依赖 DOM 文本模糊探测（门户菜单里「课表」字样较多，易命中错误入口）。
+//   4. 节次、周次、教室、学期选择逻辑与 v3 一致（v3 已实测正确，未改动解析规则）。
 //
 // ===== 桥接契约 =====
 //   window.shangkeImportEntry 由注入器（WebBridgeProtocol.JS_IMPORT_AUTOSTART）自动调用。
 //   课程 JSON 字段：name / teacher / position / day / startSection / endSection / weeks
+//   （position 为 Kotlin 侧 ImportCourseJsonModel 必填字段，不可写成 room）
 
 (function () {
     'use strict';
@@ -63,11 +77,18 @@
         return String(text).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
+    function range(count) {
+        var out = [];
+        for (var i = 1; i <= count; i++) out.push(i);
+        return out;
+    }
+
     // ---------- 文档收集：当前文档 + 所有同源 iframe ----------
     function collectDocuments() {
-        var docs = [document];
+        var docs = [];
         var seen = [];
         seen.push(document);
+        docs.push(document);
 
         function collect(doc) {
             var iframes;
@@ -87,7 +108,7 @@
         return docs;
     }
 
-    // ---------- 判断当前是否停在 CAS 登录页 ----------
+    // ---------- 判断是否停在 CAS 登录页 ----------
     function isLoginPage() {
         if (location.host.indexOf('sso.stu.edu.cn') !== -1) return true;
         if (document.getElementById('fm1') && document.getElementById('username')) return true;
@@ -98,10 +119,8 @@
         return false;
     }
 
-    // ---------- 定位课表表格 ----------
-    function findTimetable() {
-        var docs = collectDocuments();
-
+    // ---------- 定位课表表格（在给定文档集合内查找）----------
+    function findTimetableIn(docs) {
         for (var i = 0; i < docs.length; i++) {
             var byId = docs[i].getElementById ? docs[i].getElementById('timetable') : null;
             if (byId) return { doc: docs[i], table: byId };
@@ -118,6 +137,20 @@
             }
         }
         return null;
+    }
+
+    function findTimetable() {
+        return findTimetableIn(collectDocuments());
+    }
+
+    // ---------- 同源抓取课表页 ----------
+    // 课表页与门户同源，fetch 会自动携带会话 Cookie；credentials 显式声明以兼容旧内核。
+    function fetchDoc(url) {
+        return fetch(url, { credentials: 'include' })
+            .then(function (resp) { return resp.text(); })
+            .then(function (html) {
+                return new DOMParser().parseFromString(html, 'text/html');
+            });
     }
 
     // ---------- 列索引 → 星期几 ----------
@@ -174,10 +207,10 @@
             var part = clean(parts[p]);
             if (!part) continue;
 
-            var range = part.match(/(\d+)\s*[-~－—]+\s*(\d+)/);
-            if (range) {
-                var start = parseInt(range[1], 10);
-                var end = parseInt(range[2], 10);
+            var rangeMatch = part.match(/(\d+)\s*[-~－—]+\s*(\d+)/);
+            if (rangeMatch) {
+                var start = parseInt(rangeMatch[1], 10);
+                var end = parseInt(rangeMatch[2], 10);
                 if (isNaN(start) || start < 1) continue;
                 if (isNaN(end) || end < start) end = start;
                 if (end > 40) end = 40;
@@ -246,16 +279,16 @@
             var secOnly = parseSectionsFromText((text.match(/\[([^\]]*)\]/) || [])[1] || '');
             var weeksOnly = parseWeeks(text.replace(/\[[^\]]*\]/g, ''), '');
             if (!weeksOnly.length) weeksOnly = fallbackWeeks.slice();
-            var range = secOnly || fallbackRange;
-            if (weeksOnly.length && range) {
-                result.push({ weeks: weeksOnly, start: range.start, end: range.end });
+            var r = secOnly || fallbackRange;
+            if (weeksOnly.length && r) {
+                result.push({ weeks: weeksOnly, start: r.start, end: r.end });
             }
         }
         return result;
     }
 
     // ---------- 单元格内的课程块归组 ----------
-    // 同 GUID 的 3 个 div 属于同一门课；不同 GUID 表示同一格里的不同课程
+    // 同 GUID 的多个 div 属于同一门课；不同 GUID 表示同一格里的不同课程
     function groupCourseDivs(cell) {
         var divs = cell.querySelectorAll('div.kbcontent, div.kbcontent1');
         var groups = [];
@@ -402,8 +435,8 @@
 
     // ---------- 学期 ----------
     function readSemesters(doc) {
-        var result = { list: [], currentIndex: -1, total: 0 };
-        if (!doc.getElementById) return result;
+        var result = { list: [], currentIndex: -1 };
+        if (!doc || !doc.getElementById) return result;
         var sel = doc.getElementById('xnxq01id');
         if (!sel) return result;
 
@@ -423,7 +456,7 @@
     function readSemesterWeekCount(doc) {
         var count = 0;
         try {
-            var sel = doc.getElementById('zc');
+            var sel = doc && doc.getElementById ? doc.getElementById('zc') : null;
             if (sel) {
                 var options = sel.getElementsByTagName('option');
                 for (var i = 0; i < options.length; i++) {
@@ -433,15 +466,6 @@
             }
         } catch (e) { }
         return count;
-    }
-
-    function fetchSemesterDoc(semesterId) {
-        var url = KB_PATH + '?xnxq01id=' + encodeURIComponent(semesterId);
-        return fetch(url, { credentials: 'include' })
-            .then(function (resp) { return resp.text(); })
-            .then(function (html) {
-                return new DOMParser().parseFromString(html, 'text/html');
-            });
     }
 
     function totalWeeksOf(doc) {
@@ -484,14 +508,34 @@
         return info;
     }
 
+    // ---------- 取得课表来源：优先当前页面，否则同源抓取课表页 ----------
+    // 关键：不要用 location.href 跳转 —— 一旦导航，当前 JS 上下文立即销毁，
+    // 后续 await / then 不会执行，导入就此静默中断（v3 的缺陷）。
+    function resolveSource() {
+        // 1. 当前文档（含同源 iframe）已有课表
+        var live = findTimetable();
+        if (live) return Promise.resolve({ doc: live.doc, table: live.table, fromPage: true });
+
+        // 2. 不在 jw 主机上（例如仍停在 CAS 或其它域名）→ 无法同源抓取
+        if (location.host.indexOf('jw.stu.edu.cn') === -1) return Promise.resolve(null);
+
+        // 3. 同源抓取课表页（门户首页点导入即走这条路径，一次点击完成）
+        toast('正在读取课表…');
+        return fetchDoc(KB_PATH)
+            .then(function (doc) {
+                var found = findTimetableIn([doc]);
+                if (found) return { doc: found.doc, table: found.table, fromPage: false };
+                return null;
+            })
+            .catch(function () { return null; });
+    }
+
     // ---------- 主流程 ----------
     function runImport() {
         var semesterLabel = '';
 
         function fail(title, message) {
-            return alert(title, message + '\n\n当前页面：\n' + location.href, '确定').then(function () {
-                return null;
-            });
+            return alert(title, message, '确定').then(function () { return null; });
         }
 
         return Promise.resolve()
@@ -502,44 +546,31 @@
                         '请先登录',
                         '当前仍停留在统一身份认证（CAS）登录页。\n\n' +
                         '请先在页面中输入学号与密码完成登录，\n' +
-                        '登录后会自动回到教务系统，再点击导入即可。'
+                        '登录后会自动回到教务系统，再点击「执行导入」即可。'
                     );
                 }
 
-                // 1. 当前不在课表页 → 尝试跳转到课表页
-                var found = findTimetable();
-                if (found) return found;
-
-                if (location.host.indexOf('stu.edu.cn') !== -1) {
-                    toast('正在跳转到课表页面…');
-                    return sleep(1200).then(function () {
-                        location.href = KB_PATH;
-                        return sleep(3500);
-                    }).then(function () {
-                        var again = findTimetable();
-                        if (again) return again;
+                // 1. 取课表来源（当前页面 或 同源抓取课表页）
+                return resolveSource().then(function (src) {
+                    if (!src) {
                         return fail(
-                            '请手动打开课表页面',
-                            '自动跳转到课表页面失败。\n\n' +
-                            '请手动进入：\n' +
-                            '「培养管理 → 我的课表 → 学期理论课表」\n\n' +
-                            '看到课表（有课程方块）后，再点击导入。'
+                            '未找到课表',
+                            '没有读到课表数据。\n\n' +
+                            '请确认：\n' +
+                            '1. 已登录汕头大学教务系统（jw.stu.edu.cn）\n' +
+                            '2. 当前学期已选课\n\n' +
+                            '也可以先点下方「一键导航到课表」，进入课表页后再点「执行导入」。'
                         );
-                    });
-                }
-
-                return fail(
-                    '未找到课表页面',
-                    '当前页面不是汕头大学教务系统。\n\n' +
-                    '请先登录并进入「学期理论课表」页面后再点击导入。'
-                );
+                    }
+                    return src;
+                });
             })
-            .then(function (found) {
-                if (!found) return null;
+            .then(function (src) {
+                if (!src) return null;
 
-                // 2. 确认当前学期是否有课程；无课程时仍允许切换学期
-                var currentCourses = dedupe(parseTimetable(found.doc, found.table, Array.apply(null, Array(totalWeeksOf(found.doc))).map(function (_, i) { return i + 1; })));
-                var sems = readSemesters(found.doc);
+                var weeks = range(totalWeeksOf(src.doc));
+                var currentCourses = dedupe(parseTimetable(src.doc, src.table, weeks));
+                var sems = readSemesters(src.doc);
 
                 if (sems.list.length <= 1) {
                     if (!currentCourses.length) {
@@ -547,7 +578,7 @@
                             '本学期没有课程',
                             '在课表中没有解析到课程。\n\n' +
                             '请确认：\n' +
-                            '1. 已进入「学期理论课表」页面\n' +
+                            '1. 已进入「培养管理 → 我的课表 → 学期理论课表」\n' +
                             '2. 已切换到有课的学期\n' +
                             '3. 课表已完整显示（能看到课程方块）'
                         );
@@ -572,6 +603,7 @@
                         var chosen = sems.list[idx];
                         semesterLabel = chosen.label;
 
+                        // 选中的就是当前页学期：直接用已经解析好的结果
                         if (idx === sems.currentIndex) {
                             if (!currentCourses.length) {
                                 return fail('该学期没有课程', '「' + chosen.label + '」课表中没有解析到课程。');
@@ -580,18 +612,19 @@
                         }
 
                         toast('正在获取「' + chosen.label + '」的课表…');
-                        return fetchSemesterDoc(chosen.value).then(function (doc) {
-                            var table = doc.getElementById('xnxq01id') ? doc.getElementById('timetable') : null;
-                            if (!table) {
-                                return fail('获取课表失败', '未能获取「' + chosen.label + '」的课表页面，请在该页面手动切换学期后重试。');
-                            }
-                            var weeks = Array.apply(null, Array(totalWeeksOf(doc))).map(function (_, i) { return i + 1; });
-                            var courses = dedupe(parseTimetable(doc, table, weeks));
-                            if (!courses.length) {
-                                return fail('该学期没有课程', '「' + chosen.label + '」课表中没有解析到课程。');
-                            }
-                            return { courses: courses, semester: chosen };
-                        });
+                        return fetchDoc(KB_PATH + '?xnxq01id=' + encodeURIComponent(chosen.value))
+                            .then(function (doc) {
+                                var found = findTimetableIn([doc]);
+                                if (!found) {
+                                    return fail('获取课表失败', '未能获取「' + chosen.label + '」的课表页面。\n\n请在该页面手动切换学期后重试。');
+                                }
+                                var w = range(totalWeeksOf(doc));
+                                var courses = dedupe(parseTimetable(found.doc, found.table, w));
+                                if (!courses.length) {
+                                    return fail('该学期没有课程', '「' + chosen.label + '」课表中没有解析到课程。');
+                                }
+                                return { courses: courses, semester: chosen };
+                            });
                     });
             })
             .then(function (payload) {
@@ -627,11 +660,19 @@
                     '诊断：表格 ' + info.tableCount + ' 个 / 课表表格 ' + info.weekHeaderTables +
                     ' 个 / 课程块 ' + info.courseDivs + ' 个 / 有课程名 ' + info.namedDivs +
                     ' 个 / 学期选项 ' + info.semesterOptions + ' 个\n\n' +
-                    '请确认已登录并进入「学期理论课表」页面后重试。',
+                    '请确认已登录并进入「学期理论课表」后重试。',
                     '确定'
                 );
             });
     }
+
+    // ---------- 「一键导航到课表」入口 ----------
+    // 供 WebBridgeProtocol.JS_NAVIGATE_TO_TIMETABLE 直接调用（优先级高于 DOM 文本模糊探测）。
+    // 课表页可独立打开（实测 200 且含完整 table#timetable），因此直接跳转最稳。
+    window.shangkeNavigateToTimetable = function () {
+        location.href = KB_PATH;
+        return true;
+    };
 
     if (typeof window !== 'undefined') {
         window.shangkeImportEntry = runImport;
