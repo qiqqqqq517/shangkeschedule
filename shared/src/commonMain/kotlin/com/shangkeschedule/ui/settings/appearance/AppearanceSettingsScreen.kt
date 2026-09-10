@@ -348,10 +348,6 @@ fun ScheduleStyleSettingsScreen(
     val styleState by styleViewModel.styleState.collectAsStateWithLifecycle()
     val demoUiState by styleViewModel.demoUiState.collectAsStateWithLifecycle()
 
-    var showColorPicker by remember { mutableStateOf(false) }
-    var isDarkTarget by remember { mutableStateOf(false) }
-    var selectedColorIndex by remember { mutableIntStateOf(0) }
-
     var loadedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var showCropper by remember { mutableStateOf(false) }
 
@@ -388,11 +384,6 @@ fun ScheduleStyleSettingsScreen(
         )
     }
 
-    // 悬浮面板玻璃：主内容 hazeSource，功能色取色器面板背板模糊
-    val hazeState = rememberHazeState()
-
-    Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
-
     Scaffold(
         topBar = {
             AppTopAppBar(
@@ -415,7 +406,8 @@ fun ScheduleStyleSettingsScreen(
 
             HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
 
-            // 2. 下方为课表页个性化微调（壁纸 / 样式 / 功能色）
+            // 2. 下方为课表页个性化微调（壁纸 / 网格尺寸 / 课程块外观）。
+            //    课程配色（颜色池 / 课程块与页面文字颜色）已整块迁至「个性化显示 → 个性化配色」页。
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -433,40 +425,9 @@ fun ScheduleStyleSettingsScreen(
                     viewModel = styleViewModel,
                     onWallpaperClick = { fileManager.pickImage() },
                     modifier = Modifier.fillMaxWidth(),
-                    scrollable = false,
-                    hazeState = hazeState
-                ) { isDark, idx ->
-                    isDarkTarget = isDark
-                    selectedColorIndex = idx
-                    showColorPicker = true
-                }
+                    scrollable = false
+                )
             }
-        }
-    }
-    }
-
-    if (showColorPicker) {
-        AppGlassBottomSheet(
-            hazeState = hazeState,
-            onDismissRequest = { showColorPicker = false }
-        ) {
-            // 功能色（豁免声明）：取色器无色池可用时的兜底初始值，
-            // 仅作为拾色起点、不作为界面文字/图标颜色，不随主题 token。
-            val initialColor = styleState.courseColorMaps.getOrNull(selectedColorIndex)?.let { pair ->
-                if (isDarkTarget) pair.dark else pair.light
-            } ?: Color.Gray
-
-            var currentColorInPicker by remember { mutableStateOf(initialColor) }
-
-            AdvancedColorPicker(
-                initialColor = initialColor,
-                config = ColorPickerConfig(showAlpha = false),
-                onColorChanged = { newColor ->
-                    currentColorInPicker = newColor
-                    styleViewModel.updatePrimaryColor(selectedColorIndex, newColor, isDarkTarget)
-                }
-            )
-            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }

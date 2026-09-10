@@ -631,6 +631,11 @@
     <string name="label_inner_padding">內部填充</string>
     <string name="label_outer_padding">外部間距</string>
     <string name="label_opacity">不透明度</string>
+    <string name="item_course_color_settings">個人化配色</string>
+    <string name="desc_course_color_settings">課程顏色池、課程區塊與頁面文字顏色</string>
+    <string name="action_reset_course_colors">一鍵重設配色</string>
+    <string name="dialog_reset_colors_title">重設課程配色？</string>
+    <string name="dialog_reset_colors_message">將把課程顏色池還原為目前主題預設的配色，你手動調整過的顏色會被覆蓋。</string>
     <string name="title_light_color_pool">淺色模式顏色池</string>
     <string name="title_dark_color_pool">深色模式顏色池</string>
     <string name="preview_light_mode">淺色模式預覽\n固定深色文字</string>

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.style
+package com.shangkeschedule.ui.settings.style
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -44,7 +44,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
@@ -111,7 +110,6 @@ import shangkeschedule.shared.generated.resources.format_week_display
 import shangkeschedule.shared.generated.resources.image_24px
 import shangkeschedule.shared.generated.resources.label_border_type
 import shangkeschedule.shared.generated.resources.label_corner_radius
-import shangkeschedule.shared.generated.resources.label_course_text_color
 import shangkeschedule.shared.generated.resources.label_day_header_height
 import shangkeschedule.shared.generated.resources.label_font_scale
 import shangkeschedule.shared.generated.resources.label_hide_date_under_day
@@ -123,7 +121,6 @@ import shangkeschedule.shared.generated.resources.label_inner_padding
 import shangkeschedule.shared.generated.resources.label_none
 import shangkeschedule.shared.generated.resources.label_opacity
 import shangkeschedule.shared.generated.resources.label_outer_padding
-import shangkeschedule.shared.generated.resources.label_page_text_color
 import shangkeschedule.shared.generated.resources.label_range
 import shangkeschedule.shared.generated.resources.label_remove_location_at
 import shangkeschedule.shared.generated.resources.label_schedule_mode_24h
@@ -138,12 +135,9 @@ import shangkeschedule.shared.generated.resources.preview_dark_mode
 import shangkeschedule.shared.generated.resources.preview_light_mode
 import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.status_not_set
-import shangkeschedule.shared.generated.resources.style_category_color_scheme
 import shangkeschedule.shared.generated.resources.style_category_course_block
 import shangkeschedule.shared.generated.resources.style_category_grid_size
 import shangkeschedule.shared.generated.resources.style_category_interface
-import shangkeschedule.shared.generated.resources.title_dark_color_pool
-import shangkeschedule.shared.generated.resources.title_light_color_pool
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 
@@ -153,9 +147,7 @@ fun SettingsListContent(
     viewModel: StyleSettingsViewModel,
     onWallpaperClick: () -> Unit,
     modifier: Modifier = Modifier.fillMaxSize(),
-    scrollable: Boolean = true,
-    hazeState: HazeState? = null,
-    onPick: (isDark: Boolean, index: Int) -> Unit
+    scrollable: Boolean = true
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
 
@@ -214,13 +206,6 @@ fun SettingsListContent(
         StyleSwitchItem(stringResource(Res.string.label_hide_section_time), currentStyle.hideSectionTime) { viewModel.updateHideSectionTime(it) }
         StyleSwitchItem(stringResource(Res.string.label_hide_date_under_day), currentStyle.hideDateUnderDay) { viewModel.updateHideDateUnderDay(it) }
         StyleSwitchItem(label = stringResource(Res.string.label_hide_grid_lines), checked = currentStyle.hideGridLines) { viewModel.updateHideGridLines(it) }
-        ColorPickerItem(
-            label = stringResource(Res.string.label_page_text_color),
-            currentColor = currentStyle.pageTextColor,
-            onColorChanged = { viewModel.updatePageTextColor(it) },
-            onReset = { viewModel.updatePageTextColor(null) },
-            hazeState = hazeState
-        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
@@ -232,12 +217,6 @@ fun SettingsListContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
         AppSectionHeader(stringResource(Res.string.style_category_course_block))
-        ColorPickerItem(
-            label = stringResource(Res.string.label_course_text_color),
-            currentColor = currentStyle.courseTextColor,
-            onColorChanged = { viewModel.updateCourseTextColor(it) },
-            onReset = { viewModel.updateCourseTextColor(null) }
-        )
         StyleSwitchItem(stringResource(Res.string.label_show_start_time), currentStyle.showStartTime) { viewModel.updateShowStartTime(it) }
         StyleSwitchItem(stringResource(Res.string.label_hide_location), currentStyle.hideLocation) { viewModel.updateHideLocation(it) }
         StyleSwitchItem(stringResource(Res.string.label_hide_teacher), currentStyle.hideTeacher) { viewModel.updateHideTeacher(it) }
@@ -251,27 +230,6 @@ fun SettingsListContent(
         StyleSliderItem(stringResource(Res.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
         StyleSliderItem(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
         StyleSliderItem(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
-
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
-
-        AppSectionHeader(stringResource(Res.string.style_category_color_scheme))
-
-        ColorSchemeSection(
-            title = stringResource(Res.string.title_light_color_pool),
-            bgColor = lightColorScheme().surfaceContainerLow,
-            isDarkSection = false,
-            colors = currentStyle.courseColorMaps.map { it.light },
-            onEditColor = { onPick(false, it) }
-        )
-
-        ColorSchemeSection(
-            title = stringResource(Res.string.title_dark_color_pool),
-            bgColor = darkColorScheme().surfaceContainerLow,
-            isDarkSection = true,
-            colors = currentStyle.courseColorMaps.map { it.dark },
-            onEditColor = { onPick( true, it) }
-        )
     }
 }
 

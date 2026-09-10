@@ -292,6 +292,18 @@ class StyleSettingsViewModel(
         styleRepository.setCourseColorMaps(updatedMaps)
     }
 
+    /**
+     * 一键重置课程配色：把颜色池恢复为「当前主题预设」的配色。
+     *
+     * 主题预设配色在切换主题时会被快照写入 DataStore（见 `StyleSettingsRepository.applyStylePreset`），
+     * 预设后续若更新，老用户读到的仍是旧快照；此入口让用户随时手动拉回预设配色。
+     * 只重置颜色池，不动圆角 / 间距 / 壁纸等其它个性化项。
+     */
+    fun resetCourseColorMaps() = viewModelScope.launch {
+        val preset = appSettingsRepository.getAppSettingsOnce().themePreset
+        styleRepository.setCourseColorMaps(preset.gridStyle.courseColorMaps)
+    }
+
     private suspend fun createDemoCourses(dummyTableId: String, is24HourMode: Boolean): List<MergedCourseBlock> {
         return if (is24HourMode) {
             listOf(
