@@ -81,6 +81,20 @@ class AddEditCourseViewModel(
                 try { AddEditCourseChannel.presetDataFlow.first() } catch (_: Exception) { null }
             } else { null }
 
+            // 新建课程时的默认配色：在当前课表已有颜色中挑「全局占用最少」的索引，
+            // 让不同课程尽量拿到不同颜色（颜色池用尽后才复用），避免旧实现随机分配造成撞色。
+            val defaultNewColorIndex: Int = if (courseId == null && initialPresetData?.colorIndex == null) {
+                runCatching {
+                    val tableId = appSettingsRepository.getAppSettingsOnce().currentCourseTableId
+                    val usedColors = courseTableRepository.getCoursesWithWeeksByTableId(tableId).first()
+                        .filter { !it.course.isCrush }
+                        .map { it.course.colorInt }
+                    styleSettingsRepository.styleFlow.first().pickLeastUsedColorIndex(usedColors)
+                }.getOrElse { 0 }
+            } else {
+                0
+            }
+
             val appSettingsFlow = appSettingsRepository.getAppSettings()
             val styleFlow = styleSettingsRepository.styleFlow
 
@@ -124,7 +138,7 @@ class AddEditCourseViewModel(
                     if (currentState.schemes.isEmpty() && !currentState.isDataLoaded) {
                         // 仅在初次加载数据时进行排序，确保进入页面时列表是整齐的
                         val schemes = if (courseId == null) {
-                            val newColor = currentStyle.generateRandomColorIndex()
+                            val newColor = defaultNewColorIndex
                             listOf(
                                 CourseScheme(
                                     teacher = initialPresetData?.teacher.orEmpty(),

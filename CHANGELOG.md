@@ -7,6 +7,15 @@
 
 ## 最新版本
 
+### v3.35.3（2026-09-10）· 修复 CI 插件解析失败 + 课表默认配色撞色
+
+**修复**
+- 修复 CI 构建长期失败（KSP 插件报 `was not found in any of the following sources`）：真因为 GitHub Actions 海外运行器访问阿里云镜像返回 502 Bad Gateway，而 Gradle 命中 5xx 时**不会**回退到后续仓库、直接判定该构件解析失败；现 `settings.gradle.kts` 的阿里云镜像改为由 `-PuseMirror` 开关控制——本地默认开启提速，CI 传 `-PuseMirror=false` 仅走 Google / Maven Central / Gradle Plugin Portal 官方源
+- 修复课表默认配色撞色：新建课程、以及修复越界颜色索引时，原先逐个随机分配（`Random.nextInt`），常把不同课程分到同一颜色；现改为确定性的「全局占用最少」分配——优先使用尚未被占用的颜色，颜色池用尽后才复用被占用次数最少的颜色（并列取最小索引），12 门课程可依次拿到 12 个互不相同的颜色
+
+**构建**
+- versionCode 155 · arm64-v8a / armeabi-v7a / x86_64
+
 ### v3.35.2（2026-09-10）· 修复 CI 正式版发布链路
 
 **构建**

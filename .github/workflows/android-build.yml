@@ -118,20 +118,6 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > androidApp/release.jks
 
-      - name: 诊断：插件仓库可达性 (Diagnose repositories)
-        run: |
-          POM="com/google/devtools/ksp/com.google.devtools.ksp.gradle.plugin/2.3.10/com.google.devtools.ksp.gradle.plugin-2.3.10.pom"
-          for base in \
-            "https://repo1.maven.org/maven2" \
-            "https://plugins.gradle.org/m2" \
-            "https://dl.google.com/dl/android/maven2" \
-            "https://maven.aliyun.com/repository/google" \
-            "https://maven.aliyun.com/repository/central" \
-            "https://maven.aliyun.com/repository/gradle-plugin" ; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$base/$POM" 2>/dev/null || echo "ERR")
-            echo "[diag] $code  $base"
-          done
-
       - name: 运行 Release 构建任务 (Build Release APK)
         run: |
           chmod +x ./gradlew
@@ -140,9 +126,14 @@ jobs:
             "-Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }}"
             "-Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }}"
             "-Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}"
+            "-PuseMirror=false"
           )
-          # 插件仓库（Gradle Plugin Portal / Maven Central）偶发抖动会让 KSP 等插件解析失败，
-          # 这里最多重试 3 次，并在重试时用 --refresh-dependencies 刷新依赖元数据，
+          # 关键：-PuseMirror=false 关闭阿里云镜像。运行器为海外 IP，访问 maven.aliyun.com 会返回
+          # 502 Bad Gateway；Gradle 命中 5xx 时不会回退到下一仓库，会直接判定插件解析失败（此前
+          # KSP 报 "was not found in any of the following sources" 的真因）。关闭后仅走
+          # Google / Maven Central / Gradle Plugin Portal，均为运行器可达的官方源。
+          #
+          # 另外保留重试：官方源偶发抖动时用 --refresh-dependencies 刷新依赖元数据，
           # 避免沿用上一次解析失败留下的缓存结果。
           for attempt in 1 2 3; do
             echo "--- assembleRelease attempt $attempt ---"

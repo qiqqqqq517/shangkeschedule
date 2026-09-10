@@ -393,11 +393,19 @@ class WeeklyScheduleViewModel (
 
     private suspend fun fixInvalidCourseColors(courses: List<CourseWithWeeks>, style: ScheduleGridStyle) {
         val validRange = style.courseColorMaps.indices
+        // 先统计课表内已有的合法颜色，再为越界课程按「全局占用最少」补齐。
+        // 旧实现逐个随机分配，多个课程常被修成同一颜色；这里改为确定性的差异化分配。
+        val usedColorIndices = courses
+            .filter { !it.course.isCrush && it.course.colorInt in validRange }
+            .map { it.course.colorInt }
+            .toMutableList()
         courses.forEach { cw ->
-            // 跳过 crush 课程：其颜色由 crushCourseColorIndex 统一控制，不应被随机修复
+            // 跳过 crush 课程：其颜色由 crushCourseColorIndex 统一控制，不应被自动修复
             if (cw.course.isCrush) return@forEach
             if (cw.course.colorInt !in validRange) {
-                courseTableRepository.updateCourseColor(cw.course.id, style.generateRandomColorIndex())
+                val picked = style.pickLeastUsedColorIndex(usedColorIndices)
+                courseTableRepository.updateCourseColor(cw.course.id, picked)
+                usedColorIndices += picked
             }
         }
     }

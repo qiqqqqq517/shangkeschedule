@@ -54,9 +54,25 @@ data class ScheduleGridStyle(
     val backgroundImagePath: String? = null
 ) {
 
-    fun generateRandomColorIndex(): Int {
+    /**
+     * 在颜色池中挑选「全局占用最少」的索引，供新建课程生成默认配色。
+     *
+     * 策略：优先返回尚未被占用的颜色；颜色池被用尽后，返回被占用次数最少的颜色。
+     * 并列时取索引最小者，保证同一输入得到确定结果（不再是随机分配，避免撞色）。
+     *
+     * @param usedColorIndices 当前课表已有课程的颜色索引，可含重复与越界值（越界项忽略）。
+     */
+    fun pickLeastUsedColorIndex(usedColorIndices: Collection<Int>): Int {
         if (courseColorMaps.isEmpty()) return 0
-        return kotlin.random.Random.nextInt(courseColorMaps.size)
+        val usageCounts = IntArray(courseColorMaps.size)
+        usedColorIndices.forEach { index ->
+            if (index in usageCounts.indices) usageCounts[index]++
+        }
+        var bestIndex = 0
+        for (index in usageCounts.indices) {
+            if (usageCounts[index] < usageCounts[bestIndex]) bestIndex = index
+        }
+        return bestIndex
     }
 
     companion object {
