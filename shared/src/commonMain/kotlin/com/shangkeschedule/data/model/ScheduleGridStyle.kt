@@ -75,6 +75,43 @@ data class ScheduleGridStyle(
         return bestIndex
     }
 
+    /**
+     * 按「课程名」求解一套互不相同的颜色索引，用于消除课表撞色。
+     *
+     * 同名课程共用一个颜色（与导入路径 `getOrAssignColorByName` 语义一致）；
+     * 不同课程名优先使用颜色池中尚未被占用的颜色，用尽后才复用占用次数最少的颜色。
+     * 结果对同一输入稳定（按 Map 迭代顺序处理、并列取索引最小者），可反复执行而不产生抖动。
+     *
+     * @param nameToColorIndices 课程名 → 该课程名现有课次的颜色索引（顺序无关，可含越界值）。
+     * @return 课程名 → 最终颜色索引；颜色池为空时返回空 Map。
+     */
+    fun resolveDistinctColorIndices(nameToColorIndices: Map<String, List<Int>>): Map<String, Int> {
+        if (courseColorMaps.isEmpty()) return emptyMap()
+        val colorCount = courseColorMaps.size
+        val assignedColors = mutableListOf<Int>()
+        val claimedColors = HashSet<Int>()
+        val resolved = LinkedHashMap<String, Int>()
+
+        nameToColorIndices.forEach { (name, colorIndices) ->
+            // 1) 优先保留已有、且未被其它课程名占用的颜色（取出现次数最多者，并列取索引最小者）
+            val keep = colorIndices
+                .filter { it in 0 until colorCount && it !in claimedColors }
+                .groupingBy { it }
+                .eachCount()
+                .entries
+                .maxWithOrNull(compareBy({ it.value }, { -it.key }))
+                ?.key
+
+            // 2) 越界或颜色已被他人占用时，改配「全局占用最少」的颜色
+            val picked = keep ?: pickLeastUsedColorIndex(assignedColors)
+
+            claimedColors += picked
+            repeat(colorIndices.size.coerceAtLeast(1)) { assignedColors += picked }
+            resolved[name] = picked
+        }
+        return resolved
+    }
+
     companion object {
         // --- 默认常量
         val DEFAULT_TIME_COLUMN_WIDTH = 40f
