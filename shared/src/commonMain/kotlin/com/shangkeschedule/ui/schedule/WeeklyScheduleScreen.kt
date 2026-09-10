@@ -112,6 +112,7 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.schedule.components.scaleAlpha
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -1079,11 +1080,13 @@ private fun ScheduleListViewBlock(
     }
 
     // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
-    val bg = if (isTimetablePreset) {
+    // 背景按「课程块不透明度」乘算：颜色池自带 alpha（淡底令牌）必须保留，只在其上缩放，
+    // 与网格视图 CourseBlock 的取色方式保持一致。
+    val bg = (if (isTimetablePreset) {
         if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
     } else {
         if (isDark) colorPair.dark else colorPair.light
-    }
+    }).scaleAlpha(composedStyle.courseBlockAlpha)
     val stripColor = colorPair.dark
     val textColor = if (isTimetablePreset) {
         if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark

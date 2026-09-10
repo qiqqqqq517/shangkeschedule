@@ -83,13 +83,16 @@ private fun buildPresetRenderSpec(
         ?: style.courseColorMaps.firstOrNull()
         ?: TimetableDefaults.fallbackCourseColor
     // 色条主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
-    val timetableBg = timetableDual.dark.copy(alpha = if (isDarkTheme) 0.25f else 0.12f)
+    // （半透明底色同样按「课程块不透明度」乘算，保持与其它主题一致）
+    val timetableBg = timetableDual.dark.scaleAlpha(
+        (if (isDarkTheme) 0.25f else 0.12f) * currentAlpha
+    )
     val timetableStrip = timetableDual.dark
     val timetableText = if (isDarkTheme) appColorTokens(isDarkTheme).timetableTextOnDark else timetableDual.dark
 
     val blockBackgroundColor = if (isStripStylePreset) timetableBg else blockColor
     val stripColor = if (isStripStylePreset) timetableStrip
-        else (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
+        else (courseColorAdapted ?: fallbackColorAdapted).scaleAlpha(currentAlpha)
     val textColor = if (isStripStylePreset) timetableText
         else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
 
@@ -136,7 +139,11 @@ fun CourseBlock(
     val fallbackColorAdapted: Color = if (isDarkTheme) style.courseColorMaps.first().dark else style.courseColorMaps.first().light
 
     val currentAlpha = if (isFloating) 0.95f else style.courseBlockAlpha
-    val blockColor = (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
+    // 【颜色池 alpha 不可覆盖】颜色池里的颜色自带 alpha，且是设计令牌（书卷/通透浅色池 = 0x40 / 0x1F 淡底）。
+    // 此前用 copy(alpha = currentAlpha) 直接覆盖，导致浅色池的淡底在周课表网格里被渲染成实色——
+    // 页面颜色与颜色池里显示的颜色对不上，也与列表视图 / 今日页（均保留原 alpha）不一致。
+    // 改为乘算：「课程块不透明度」在其之上缩放，颜色池的颜色得以原样呈现。
+    val blockColor = (courseColorAdapted ?: fallbackColorAdapted).scaleAlpha(currentAlpha)
     val themePreset = LocalThemePreset.current
     val presetRender = buildPresetRenderSpec(
         themePreset = themePreset,
