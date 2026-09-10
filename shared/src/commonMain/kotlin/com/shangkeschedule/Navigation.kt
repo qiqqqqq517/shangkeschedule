@@ -59,6 +59,8 @@ sealed interface Destination : NavKey {
     @Serializable data object GlassBlurSettings : Destination
     /** 个性化显示三级页：动画效果（三风格 + 六分组开关，v3.26.0 新增） */
     @Serializable data object AnimationSettings : Destination
+    /** 个性化显示三级页：课程配色（颜色池 + 课程块/页面文字颜色 + 一键重置，自「自定义课表页」整块迁入） */
+    @Serializable data object CourseColorSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
 
@@ -133,6 +135,7 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.PersonalizedDisplay::class)
         subclass(Destination.GlassBlurSettings::class)
         subclass(Destination.AnimationSettings::class)
+        subclass(Destination.CourseColorSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
 

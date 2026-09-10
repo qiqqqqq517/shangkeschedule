@@ -633,6 +633,11 @@
     <string name="label_inner_padding">内部填充</string>
     <string name="label_outer_padding">外部间距</string>
     <string name="label_opacity">不透明度</string>
+    <string name="item_course_color_settings">个性化配色</string>
+    <string name="desc_course_color_settings">课程颜色池、课程块与页面文字颜色</string>
+    <string name="action_reset_course_colors">一键重置配色</string>
+    <string name="dialog_reset_colors_title">重置课程配色？</string>
+    <string name="dialog_reset_colors_message">将把课程颜色池恢复为当前主题预设的配色，你手动调整过的颜色会被覆盖。</string>
     <string name="title_light_color_pool">浅色模式颜色池</string>
     <string name="title_dark_color_pool">深色模式颜色池</string>
     <string name="preview_light_mode">浅色模式预览\n固定深色文字</string>

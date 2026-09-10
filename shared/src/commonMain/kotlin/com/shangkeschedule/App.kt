@@ -71,6 +71,7 @@ import com.shangkeschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
 import com.shangkeschedule.ui.settings.appearance.AppearanceSettingsScreen
 import com.shangkeschedule.ui.settings.appearance.ThemeSettingsScreen
 import com.shangkeschedule.ui.settings.appearance.ScheduleStyleSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.CourseColorSettingsScreen
 import com.shangkeschedule.ui.settings.appearance.PersonalizedDisplayScreen
 import com.shangkeschedule.ui.settings.appearance.GlassBlurScreen
 import com.shangkeschedule.ui.settings.appearance.AnimationSettingsScreen
@@ -259,6 +260,7 @@ fun ScreenContent(
         Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
         Destination.ScheduleStyleSettings -> ScheduleStyleSettingsScreen(onBack)
         Destination.PersonalizedDisplay -> PersonalizedDisplayScreen(onBack, onNavigate)
+        Destination.CourseColorSettings -> CourseColorSettingsScreen(onBack)
         Destination.GlassBlurSettings -> GlassBlurScreen(onBack)
         Destination.AnimationSettings -> AnimationSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)

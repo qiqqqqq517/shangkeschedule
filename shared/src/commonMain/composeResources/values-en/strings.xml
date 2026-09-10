@@ -635,6 +635,11 @@
     <string name="label_inner_padding">Inner Padding</string>
     <string name="label_outer_padding">Outer Spacing</string>
     <string name="label_opacity">Opacity</string>
+    <string name="item_course_color_settings">Course Colors</string>
+    <string name="desc_course_color_settings">Course color pool and text colors</string>
+    <string name="action_reset_course_colors">Reset Colors</string>
+    <string name="dialog_reset_colors_title">Reset course colors?</string>
+    <string name="dialog_reset_colors_message">This restores the course color pool to the current theme preset. Colors you adjusted manually will be overwritten.</string>
     <string name="title_light_color_pool">Light Mode Color Pool</string>
     <string name="title_dark_color_pool">Dark Mode Color Pool</string>
     <string name="preview_light_mode">Light Mode Preview\nFixed dark text</string>
