@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.theme
+﻿package com.shangkeschedule.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -193,202 +193,23 @@ fun appColorTokens(isDark: Boolean, preset: AppThemePreset): AppColorTokens = wh
 }
 
 /**
- * iOS 浅色 tokens：严格对齐 iOS 17/18 系统应用风格
- * 设计原则：
- * - 页面底 = systemGroupedBackground (#F2F2F7) —— iOS 设置/健康 App 的分组列表底色
- * - 卡片 = secondarySystemGroupedBackground (#FFFFFF) —— 分组列表内的白卡
- * - 主色严格锁定 systemBlue (#007AFF)，不跟随动态取色/自定义主色
- * - 语义色全部使用 Apple 系统色系（Blue/Green/Indigo/Orange/Red/Pink/Teal/Yellow/Purple）
- * - 分隔线 = separator 半透明色（非不透明色）
- * - 文字 = label / secondaryLabel / tertiaryLabel 三级
- * - 导航栏/底栏 = 毛玻璃材质（ultraThinMaterial 质感）
- * - 阴影极淡，内容优先
+ * 主色同步后的 token 集合：由 Theme 在组合内提供（primary 跟随用户实际主题）。
+ *
+ * 默认值 = 通透（iOS 26）浅色 tokens —— 首次组合（预览宿主 / 未注入时）即落在 iOS 26 基线上，
+ * 不再回落到已随「经典 / 云舒 / 利落」一并删除的 v2 紫渐变基线。
  */
-private fun iosLightAppColorTokens() = AppColorTokens(
-    // 页面与容器 —— iOS 分组列表背景层级
-    pageBg = Color(0xFFF2F2F7),              // systemGroupedBackground
-    cardBg = Color(0xFFFFFFFF),              // secondarySystemGroupedBackground (card)
-    cardBgElevated = Color(0xFFF7F7FA),      // tertiarySystemGroupedBackground
-    inputBg = Color(0xFFE5E5EA),             // systemGray5
-    divider = Color(0x5C3C3C43),             // separator (non-opaque, 0.36 alpha) —— iOS 标准半透明分隔线
-    // 文本 —— Apple label 三级体系
-    textPrimary = Color(0xFF000000),         // label
-    textSecondary = Color(0xFF8E8E93),       // secondaryLabel (systemGray)
-    textOnPrimary = Color.White,             // 主色按钮上的白字
-    // 语义色 —— 严格使用 Apple 系统色系
-    primary = Color(0xFF007AFF),             // systemBlue —— 锁定，不跟随动态取色
-    primarySoft = Color(0x14007AFF),         // 8% 系统蓝淡底（iOS 选中态/胶囊底）
-    success = Color(0xFF34C759),             // systemGreen
-    successSoft = Color(0x1434C759),
-    info = Color(0xFF5AC8FA),                // systemTeal
-    infoSoft = Color(0x145AC8FA),
-    warning = Color(0xFFFF9500),             // systemOrange
-    warningSoft = Color(0x14FF9500),
-    amber = Color(0xFFFFCC00),               // systemYellow
-    amberSoft = Color(0x14FFCC00),
-    danger = Color(0xFFFF3B30),              // systemRed
-    dangerSoft = Color(0x14FF3B30),
-    favorite = Color(0xFFFF2D55),            // systemPink
-    favoriteSoft = Color(0x14FF2D55),
-    // 头部渐变 —— iOS 系统蓝 → 靛蓝 斜向（Health/健身 App 风格）
-    gradientStart = Color(0xFF007AFF),
-    gradientEnd = Color(0xFF5856D6),         // systemIndigo
-    // 底部导航 / 徽标 —— iOS 毛玻璃底栏质感
-    navBarBg = Color(0xE6F9F9F9),            // 90% 不透明 + 毛玻璃 ultraThinMaterial
-    navSelectedBg = Color(0x14007AFF),       // 8% 蓝选底（iOS Tab 选中高亮）
-    badgeBg = Color(0xFFFF3B30),             // systemRed 徽标
-    badgeFg = Color(0xFFFFFFFF),
-    // Snackbar —— iOS 风格深色毛玻璃提示
-    snackbarBg = Color(0xE61C1C1E),
-    snackbarFg = Color(0xFFFFFFFF),
-    // 阴影 —— iOS 风格极淡阴影，几乎不可见
-    shadow = Color(0x0A000000)
-)
-
-/**
- * iOS 深色 tokens：严格对齐 iOS 深色模式规范
- * 设计原则：
- * - 页面底 = systemBackground (#1C1C1E) —— 深灰非纯黑，保护眼睛
- * - 卡片 = secondarySystemBackground (#2C2C2E)
- * - 语义色使用 Apple 深色模式变体（更鲜亮、更高饱和度）
- * - 分隔线 = separator 深色半透明色
- * - 主色 systemBlue (dark) (#0A84FF) 锁定
- * - 毛玻璃效果在深色下更明显（dark chrome 质感）
- */
-private fun iosDarkAppColorTokens() = run {
-    val primary = Color(0xFF0A84FF)          // systemBlue (dark) —— 锁定
-    val success = Color(0xFF30D158)          // systemGreen (dark)
-    val info = Color(0xFF64D2FF)             // systemTeal (dark)
-    val warning = Color(0xFFFF9F0A)          // systemOrange (dark)
-    val amber = Color(0xFFFFD60A)            // systemYellow (dark)
-    val danger = Color(0xFFFF453A)           // systemRed (dark)
-    val favorite = Color(0xFFFF375F)         // systemPink (dark)
-    AppColorTokens(
-        // 页面与容器 —— iOS 深色三级背景
-        pageBg = Color(0xFF1C1C1E),          // systemBackground (dark)
-        cardBg = Color(0xFF2C2C2E),          // secondarySystemBackground (dark)
-        cardBgElevated = Color(0xFF3A3A3C),  // tertiarySystemBackground (dark)
-        inputBg = Color(0xFF3A3A3C),         // tertiarySystemBackground
-        divider = Color(0x5A84848A),         // separator (dark, non-opaque) — 0.35 alpha
-        // 文本 —— 深色 label 三级
-        textPrimary = Color(0xFFFFFFFF),     // label (dark)
-        textSecondary = Color(0xFF98989D),   // secondaryLabel (dark)
-        textOnPrimary = Color.White,
-        // 语义色 —— Apple 深色系统色系
-        primary = primary,
-        primarySoft = Color(0x3D0A84FF),     // 24% 蓝淡底（深色选中态）
-        success = success,
-        successSoft = Color(0x3D30D158),
-        info = info,
-        infoSoft = Color(0x3D64D2FF),
-        warning = warning,
-        warningSoft = Color(0x3DFF9F0A),
-        amber = amber,
-        amberSoft = Color(0x3DFFD60A),
-        danger = danger,
-        dangerSoft = Color(0x3DFF453A),
-        favorite = favorite,
-        favoriteSoft = Color(0x3DFF375F),
-        // 头部渐变 —— 深色蓝 → 靛蓝
-        gradientStart = primary,
-        gradientEnd = Color(0xFF5E5CE6),     // systemIndigo (dark)
-        // 底部导航 / 徽标 —— 深色毛玻璃底栏
-        navBarBg = Color(0xE61C1C1E),        // 90% 不透明 + 毛玻璃
-        navSelectedBg = Color(0x3D0A84FF),   // 24% 蓝选底
-        badgeBg = danger,
-        badgeFg = Color(0xFFFFFFFF),
-        // Snackbar —— 深色毛玻璃提示
-        snackbarBg = Color(0xE62C2C2E),
-        snackbarFg = Color(0xFFFFFFFF),
-        // 阴影 —— 深色下几乎无阴影，靠层级区分
-        shadow = Color(0x05000000)
-    )
-}
-
-/** 主色同步后的 token 集合：由 Theme 在组合内提供（primary 跟随用户实际主题）。 */
-val LocalAppColorTokens = staticCompositionLocalOf { appColorTokens(false) }
+val LocalAppColorTokens = staticCompositionLocalOf { iosLightAppColorTokens() }
 
 /** 组件层快捷访问（跟随全局深浅色与主题主色同步）。 */
 @Composable
 fun appColors(): AppColorTokens = LocalAppColorTokens.current
 
 /**
- * 形状 tokens（v2 规范 §2/§4）：
- * 卡片 20dp、头部渐变卡 24dp、图标 chip / 菜单 16dp、底部菜单顶角 24dp、
- * 气泡 18dp（单侧收尾 6dp）、对话框统一走 extraLarge=24。
+ * 形状 / 间距 / 字阶 tokens 的结构定义见下方 AppShapeTokens / AppSpacingTokens /
+ * AppTypeTokens；具体取值由主题下发（通透走 IosStyle.kt，书卷走 ClaudeStyle.kt），
+ * 组件层统一用 ppShapes() / ppSpacing() / ppType() 读取，不再直接引用常量对象。
  */
-object AppShape {
-    val card = RoundedCornerShape(20.dp)
-    val heroCard = RoundedCornerShape(24.dp)
-    val chip = RoundedCornerShape(16.dp)
-    /** 小号 chip：图标 chip / 输入框等 14dp 形态（原散落的 14dp 魔法数收敛于此）。 */
-    val chipSmallRadius = 14.dp
-    val chipSmall = RoundedCornerShape(chipSmallRadius)
-    val menu = RoundedCornerShape(16.dp)
-    val sheetTop = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    val bubble = RoundedCornerShape(
-        topStart = 6.dp,
-        topEnd = 18.dp,
-        bottomStart = 18.dp,
-        bottomEnd = 18.dp
-    )
-    val capsule = RoundedCornerShape(50)
-}
 
-/** MaterialTheme Shapes 全局覆盖：让 AlertDialog / BottomSheet / Menu 全部对齐基线圆角。
- *  注意 extraLarge 必须是四角 24dp：AlertDialog 四角都用它；BottomSheet 只露出顶部两角，
- *  底部两角贴屏幕边缘不可见，因此统一四角圆角即可，不能用只定义顶角的 sheetTop。
- */
-val AppMaterialShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = AppShape.chip,
-    large = AppShape.card,
-    extraLarge = RoundedCornerShape(24.dp)
-)
-
-/**
- * 间距 / 尺寸 tokens（v2 规范 §2）。
- */
-object AppSpacing {
-    val pageHorizontal: Dp = 16.dp
-    val cardGap: Dp = 12.dp
-    /** 列表纵向节奏：卡与卡 / 分区与分区之间的主力间距。 */
-    val listGap: Dp = 20.dp
-    val cardInner: Dp = 16.dp
-    val rowMinHeight: Dp = 64.dp
-    val touchMin: Dp = 48.dp
-    val chipIcon: Dp = 48.dp
-    val fab: Dp = 56.dp
-    val navBarHorizontal: Dp = 16.dp
-    val navBarBottom: Dp = 12.dp
-}
-
-/**
- * 字阶 tokens（v2 规范 §2）：大数字 28–34 Bold / 页标题 18–20 Bold /
- * 行标题 16 SemiBold / 正文 14–15 / 辅助 12–13 灰。
- */
-object AppType {
-    val bigNumber = 28.sp
-    /** Hero 大标题（设置页头部 / 关于页应用名）：24sp，配合 ExtraBold。 */
-    val hero = 24.sp
-    /** 分区标题（二级页内的小节标题）：18sp，配合 Bold。 */
-    val sectionTitle = 18.sp
-    /** 时间列标签（课表时间轴）：17sp。 */
-    val timeLabel = 17.sp
-    /** 徽标 / 底部导航小字：11sp。 */
-    val badge = 11.sp
-    val pageTitle = 20.sp
-    val rowTitle = 16.sp
-    val body = 15.sp
-    val caption = 13.sp
-    val hint = 12.sp
-}
-
-/**
- * 课表网格微字号（网格微排版收敛）：
- * 课程块内文字基值为 Float，随用户 fontScale 缩放；固定文字直接用 sp。
- */
 object AppTypeGrid {
     /** 课程块名称基值（× fontScale）。 */
     const val courseName = 13f
@@ -424,12 +245,12 @@ object AppAlpha {
 }
 
 /**
- * 把基线页面的结构性颜色映射进 Material ColorScheme：
- * surface/background → 淡灰白页面底，surfaceContainer* → 白色卡片，
+ * 把结构性颜色映射进 Material ColorScheme：
+ * surface/background → 页面底色，surfaceContainer* → 卡片底，
  * surfaceVariant → 输入/嵌入底。
- * 强调/选中容器（primary/secondary/tertiaryContainer）统一收敛为基线淡紫胶囊语言：
+ * 强调/选中容器（primary/secondary/tertiaryContainer）统一收敛为「主色淡底」语言：
  * 动态取色在暖色墙纸下会生成棕/土色容器（浅色模式出现深棕色暗调的根因），在此一并压平。
- * 主色 primary 本身保持用户主题/动态取色不变。
+ * 主色 primary 本身保持主题预设/动态取色不变。
  */
 fun ColorScheme.withAppSurfaces(tokens: AppColorTokens): ColorScheme = copy(
     background = tokens.pageBg,
@@ -515,163 +336,22 @@ data class AppTypeTokens(
     val hint: TextUnit
 )
 
-/** 默认形状 tokens（v2 基线，经典/云舒/利落主题使用，与原 AppShape 对象完全一致）。 */
-private val defaultShapeTokens = AppShapeTokens(
-    card = RoundedCornerShape(20.dp),
-    sheetTop = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-    chip = RoundedCornerShape(16.dp),
-    chipSmall = RoundedCornerShape(14.dp),
-    chipSmallRadius = 14.dp,
-    menu = RoundedCornerShape(16.dp),
-    capsule = RoundedCornerShape(50),
-    fab = RoundedCornerShape(50),
-    heroCard = RoundedCornerShape(24.dp),
-    bubble = RoundedCornerShape(
-        topStart = 6.dp,
-        topEnd = 18.dp,
-        bottomStart = 18.dp,
-        bottomEnd = 18.dp
-    )
-)
-
-/** 默认间距 tokens（v2 基线，经典/云舒/利落主题使用，与原 AppSpacing 对象完全一致）。 */
-private val defaultSpacingTokens = AppSpacingTokens(
-    pageHorizontal = 16.dp,
-    cardGap = 12.dp,
-    listGap = 20.dp,
-    cardInner = 16.dp,
-    rowMinHeight = 52.dp,
-    touchMin = 48.dp,
-    chipIcon = 48.dp,
-    fab = 56.dp,
-    navBarHorizontal = 12.dp,
-    navBarBottom = 8.dp
-)
-
-/** 默认字阶 tokens（v2 基线，经典/云舒/利落主题使用，与原 AppType 对象完全一致）。 */
-private val defaultTypeTokens = AppTypeTokens(
-    bigNumber = 48.sp,
-    hero = 32.sp,
-    sectionTitle = 18.sp,
-    timeLabel = 12.sp,
-    badge = 10.sp,
-    pageTitle = 22.sp,
-    rowTitle = 16.sp,
-    body = 15.sp,
-    caption = 13.sp,
-    hint = 12.sp
-)
-
 // ============================================================================
-// iOS 主题 tokens（严格对齐 iOS 17/18 系统应用）
+// CompositionLocal 与访问器
+//
+// tokens 的具体取值不再放在本文件：通透（iOS 26）在 IosStyle.kt、书卷（CLAUDE）在
+// ClaudeStyle.kt，两者各锁一套系统色/圆角/字阶。本文件只保留结构定义（上面的三个
+// data class）与注入通道，避免「同名两套值」的分叉隐患。
 // ============================================================================
 
-/**
- * iOS 形状 tokens：与画布设计稿完全一致
- * - 卡片 19dp —— 对齐画布 --radius: 1.2rem（基准 16sp 下 ≈ 19.2dp）
- * - heroCard 22dp —— 大卡片/统计卡（画布上统计卡用标准圆角，但 hero 区域略大）
- * - chip 10dp —— 胶囊/标签小圆角
- * - chipSmall 8dp —— 输入框/小标签
- * - menu 14dp —— 弹出菜单
- * - 底部面板顶部 19dp —— 与卡片圆角一致
- * - FAB 圆形
- */
-private val iosShapeTokens = AppShapeTokens(
-    card = RoundedCornerShape(19.dp),
-    sheetTop = RoundedCornerShape(topStart = 19.dp, topEnd = 19.dp),
-    chip = RoundedCornerShape(10.dp),
-    chipSmall = RoundedCornerShape(8.dp),
-    chipSmallRadius = 8.dp,
-    menu = RoundedCornerShape(14.dp),
-    capsule = RoundedCornerShape(50),
-    fab = RoundedCornerShape(50),
-    heroCard = RoundedCornerShape(22.dp),
-    bubble = RoundedCornerShape(
-        topStart = 6.dp,
-        topEnd = 18.dp,
-        bottomStart = 18.dp,
-        bottomEnd = 18.dp
-    )
-)
+/** CompositionLocal：形状 tokens（默认 = 通透 / iOS 26 连续圆角阶梯）。 */
+val LocalAppShapeTokens = staticCompositionLocalOf { iosShapeTokens }
 
-/**
- * iOS 间距 tokens：与画布设计稿完全一致
- * - 页边距 24dp —— 对齐画布 spacing*6（0.24rem × 6 = 23.04dp ≈ 24dp）
- * - 卡片间距 24dp —— 分组列表组间距与页边距一致
- * - 列表纵向节奏 28dp —— 分区之间的大间距
- * - 卡片内边距 18dp —— 画布卡片内 padding
- * - 行高 56dp —— 课程卡片最小高度
- * - 底部导航底部 12dp —— Home Indicator 上方间距
- * - chipIcon 44dp —— 44pt 标准触控
- */
-private val iosSpacingTokens = AppSpacingTokens(
-    pageHorizontal = 24.dp,
-    cardGap = 24.dp,
-    listGap = 28.dp,
-    cardInner = 18.dp,
-    rowMinHeight = 56.dp,
-    touchMin = 48.dp,
-    chipIcon = 44.dp,
-    fab = 56.dp,
-    navBarHorizontal = 16.dp,
-    navBarBottom = 12.dp
-)
+/** CompositionLocal：间距 tokens（默认 = 通透 / iOS 26 8pt 网格）。 */
+val LocalAppSpacingTokens = staticCompositionLocalOf { iosSpacingTokens }
 
-/**
- * iOS 字阶 tokens：与画布设计稿完全一致
- * - hero 34sp Bold —— 导航栏大标题（画布 .nav-bar__title 34px/700）
- * - bigNumber 24sp Bold —— 统计卡大数字（画布 .stat-item__value 24px/700）
- * - pageTitle 22sp Bold —— 页面内大分区标题（画布 .section-header__title 22px/700）
- * - sectionTitle 18sp Bold —— 次级分区标题
- * - rowTitle 17sp Semibold —— 课程卡片标题（画布 .course-card__name 17px/600）
- * - body 15sp Regular —— 正文/卡片次级文字
- * - caption 13sp Medium —— 卡片辅助信息（画布 .course-card__meta-item 13px/500）
- * - hint 12sp Medium —— 最小文字/分组标题（画布 .group-header__title 13px 但 uppercase，取 12sp）
- * - timeLabel 12sp —— 时间标签
- * - badge 11sp —— 徽标/底部导航小字
- */
-private val iosTypeTokens = AppTypeTokens(
-    bigNumber = 24.sp,
-    hero = 34.sp,
-    sectionTitle = 18.sp,
-    timeLabel = 12.sp,
-    badge = 11.sp,
-    pageTitle = 22.sp,
-    rowTitle = 17.sp,
-    body = 15.sp,
-    caption = 13.sp,
-    hint = 12.sp
-)
-
-/** 按主题预设取形状 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统圆角阶梯，其余走默认基线。 */
-fun appShapeTokens(preset: AppThemePreset): AppShapeTokens = when (preset) {
-    AppThemePreset.IOS -> iosShapeTokens
-    AppThemePreset.CLAUDE -> claudeShapeTokens
-    else -> defaultShapeTokens
-}
-
-/** 按主题预设取间距 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统留白，其余走默认基线。 */
-fun appSpacingTokens(preset: AppThemePreset): AppSpacingTokens = when (preset) {
-    AppThemePreset.IOS -> iosSpacingTokens
-    AppThemePreset.CLAUDE -> claudeSpacingTokens
-    else -> defaultSpacingTokens
-}
-
-/** 按主题预设取字阶 tokens：通透（iOS）走 iOS 系统规范，Claude（CLAUDE）走设计系统字阶，其余走默认基线。 */
-fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
-    AppThemePreset.IOS -> iosTypeTokens
-    AppThemePreset.CLAUDE -> claudeTypeTokens
-    else -> defaultTypeTokens
-}
-
-/** CompositionLocal：形状 tokens。 */
-val LocalAppShapeTokens = staticCompositionLocalOf { defaultShapeTokens }
-
-/** CompositionLocal：间距 tokens。 */
-val LocalAppSpacingTokens = staticCompositionLocalOf { defaultSpacingTokens }
-
-/** CompositionLocal：字阶 tokens。 */
-val LocalAppTypeTokens = staticCompositionLocalOf { defaultTypeTokens }
+/** CompositionLocal：字阶 tokens（默认 = 通透 / iOS 26 SF 字阶）。 */
+val LocalAppTypeTokens = staticCompositionLocalOf { iosTypeTokens }
 
 /** 组件层快捷访问形状 tokens。 */
 @Composable
@@ -684,3 +364,21 @@ fun appSpacing(): AppSpacingTokens = LocalAppSpacingTokens.current
 /** 组件层快捷访问字阶 tokens。 */
 @Composable
 fun appType(): AppTypeTokens = LocalAppTypeTokens.current
+
+/** 按主题预设取形状 tokens：通透走 iOS 26 连续圆角，书卷走设计系统圆角阶梯。 */
+fun appShapeTokens(preset: AppThemePreset): AppShapeTokens = when (preset) {
+    AppThemePreset.CLAUDE -> claudeShapeTokens
+    else -> iosShapeTokens
+}
+
+/** 按主题预设取间距 tokens：通透走 iOS 26 8pt 网格，书卷走设计系统留白。 */
+fun appSpacingTokens(preset: AppThemePreset): AppSpacingTokens = when (preset) {
+    AppThemePreset.CLAUDE -> claudeSpacingTokens
+    else -> iosSpacingTokens
+}
+
+/** 按主题预设取字阶 tokens：通透走 iOS 26 SF 字阶，书卷走设计系统字阶。 */
+fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
+    AppThemePreset.CLAUDE -> claudeTypeTokens
+    else -> iosTypeTokens
+}

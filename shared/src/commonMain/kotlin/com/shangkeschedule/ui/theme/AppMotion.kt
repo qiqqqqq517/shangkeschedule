@@ -186,42 +186,67 @@ data class MotionTokens(
 )
 
 /** 缓动曲线（自定义 CubicBezier，避免依赖较新的 Ease* 顶层常量）。 */
-// Apple HIG 标准 ease-out：cubic-bezier(0.32, 0.72, 0, 1)
-// 特点：快速启动、平滑收尾，无过冲，克制精致
-private val AppleEase = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
+// iOS 26 过渡基准曲线：cubic-bezier(0.25, 0.1, 0.25, 1)（CSS ease 的精确值），
+// 用于「物理弹簧不适合、必须给时长」的过渡（导航转场 / 底栏隐藏 / 入场）。
+private val IosEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+// iOS 26 sheet / 面板过渡：cubic-bezier(0.32, 0.72, 0, 1)，快速启动、长尾收束
+private val IosSheetEase = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
 private val GentleEase = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)        // Material 标准，平滑
 private val SnappyEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)          // 快出，跟手
 
-/** 琉璃流畅：Apple HIG 风格——ease-out 平滑曲线 + 克制幅度，通透主题默认。
- *  对齐苹果时带：导航 320ms / 隐藏 220ms / 入场 300ms / 展开 260ms。
- *  全程 tween + AppleEase，零弹簧零过冲，润而不跳。 */
+/**
+ * iOS 26 物理弹簧（SwiftUI 的 `.smooth` / `.snappy` / `.bouncy` 预设）。
+ *
+ * iOS 26 的动效语言是**物理弹簧**：位移、缩放、转场都带轻微过冲并自然收束，
+ * 而不是纯粹的 ease-out tween。三个预设的公开语义（Apple 文档）：
+ * - `.smooth`  ：无过冲、丝滑收束 —— 用于大多数状态变化与入场
+ * - `.snappy`  ：轻微过冲、短促跟手 —— 用于按压反馈、开关、分段控件
+ * - `.bouncy`  ：明显过冲、弹性回弹 —— 用于拖拽落位、FAB 出现、强调元素
+ *
+ * 这里的 dampingRatio / stiffness 按上述语义取值（dampingRatio ≥1 = 无过冲）。
+ */
+private val IosSmoothSpring = spring<Float>(
+    dampingRatio = 1.0f,
+    stiffness = Spring.StiffnessMediumLow
+)
+private val IosSnappySpring = spring<Float>(
+    dampingRatio = 0.86f,
+    stiffness = Spring.StiffnessMedium
+)
+private val IosBouncySpring = spring<Float>(
+    dampingRatio = 0.62f,
+    stiffness = Spring.StiffnessMediumLow
+)
+
+/** 柔和顺滑（iOS 26 默认）：物理弹簧驱动，无过冲、丝滑收束。
+ *  时长型过渡对齐 iOS 26 时带：导航 350ms / 隐藏 240ms / 入场 320ms / 展开 280ms。 */
 private val GlassTokens = MotionTokens(
-    navDurationMs = 320, navEasing = AppleEase,
-    hideDurationMs = 220, hideEasing = AppleEase,
-    emphasisScaleSpec = tween(260, easing = AppleEase),
-    emphasisFadeSpec = tween(260, easing = AppleEase),
-    emphasisInitialScale = 0.92f, emphasisTargetScale = 1f,
-    pressSpec = tween(150, easing = AppleEase),
-    pressScale = 0.96f,
-    cellPressSpec = tween(180, easing = AppleEase),
-    cellPressScale = 0.975f, cellLiftDp = 1.5.dp,
-    entranceDurationMs = 300, entranceEasing = AppleEase, entranceStaggerMs = 40, entranceSlideDp = 8.dp,
-    expandDurationMs = 260, expandEasing = AppleEase,
-    colorDurationMs = 350,
-    resizeDurationMs = 280, resizeEasing = AppleEase,
+    navDurationMs = 350, navEasing = IosSheetEase,
+    hideDurationMs = 240, hideEasing = IosEase,
+    emphasisScaleSpec = IosBouncySpring,
+    emphasisFadeSpec = tween(220, easing = IosEase),
+    emphasisInitialScale = 0.88f, emphasisTargetScale = 1f,
+    pressSpec = IosSnappySpring,
+    pressScale = 0.97f,
+    cellPressSpec = IosSnappySpring,
+    cellPressScale = 0.97f, cellLiftDp = 1.dp,
+    entranceDurationMs = 320, entranceEasing = IosEase, entranceStaggerMs = 40, entranceSlideDp = 10.dp,
+    expandDurationMs = 280, expandEasing = IosSheetEase,
+    colorDurationMs = 320,
+    resizeDurationMs = 300, resizeEasing = IosSheetEase,
     pulseDurationMs = 1200,
 )
 
-/** 舒缓轻移：克制精致，淡入 + 微位移，安静无弹跳。 */
+/** 轻盈舒缓：更慢更柔的弹簧，淡入 + 微位移，安静无弹跳。 */
 private val GentleTokens = MotionTokens(
     navDurationMs = 420, navEasing = GentleEase,
-    hideDurationMs = 340, hideEasing = GentleEase,
-    emphasisScaleSpec = tween(360, easing = GentleEase),
-    emphasisFadeSpec = tween(360, easing = GentleEase),
+    hideDurationMs = 320, hideEasing = GentleEase,
+    emphasisScaleSpec = IosSmoothSpring,
+    emphasisFadeSpec = tween(320, easing = GentleEase),
     emphasisInitialScale = 0.94f, emphasisTargetScale = 1f,
-    pressSpec = tween(200, easing = GentleEase),
+    pressSpec = IosSmoothSpring,
     pressScale = 0.95f,
-    cellPressSpec = tween(240, easing = GentleEase),
+    cellPressSpec = IosSmoothSpring,
     cellPressScale = 0.985f, cellLiftDp = 2.dp,
     entranceDurationMs = 460, entranceEasing = GentleEase, entranceStaggerMs = 70, entranceSlideDp = 8.dp,
     expandDurationMs = 420, expandEasing = GentleEase,
@@ -230,30 +255,21 @@ private val GentleTokens = MotionTokens(
     pulseDurationMs = 1400,
 )
 
-/** 灵动跟手：短促 snappy，硬弹簧快回，反馈强。 */
+/** 灵动跟手（iOS 26 `.snappy` / `.bouncy`）：短促弹回，反馈强、跟手。 */
 private val SnappyTokens = MotionTokens(
-    navDurationMs = 200, navEasing = SnappyEase,
-    hideDurationMs = 150, hideEasing = SnappyEase,
-    emphasisScaleSpec = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessHigh
-    ),
+    navDurationMs = 240, navEasing = SnappyEase,
+    hideDurationMs = 160, hideEasing = SnappyEase,
+    emphasisScaleSpec = IosSnappySpring,
     emphasisFadeSpec = tween(140, easing = LinearOutSlowInEasing),
-    emphasisInitialScale = 0.70f, emphasisTargetScale = 1f,
-    pressSpec = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessHigh
-    ),
-    pressScale = 0.86f,
-    cellPressSpec = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessHigh
-    ),
-    cellPressScale = 0.93f, cellLiftDp = 4.dp,
-    entranceDurationMs = 220, entranceEasing = SnappyEase, entranceStaggerMs = 25, entranceSlideDp = 18.dp,
-    expandDurationMs = 200, expandEasing = SnappyEase,
+    emphasisInitialScale = 0.72f, emphasisTargetScale = 1f,
+    pressSpec = IosSnappySpring,
+    pressScale = 0.88f,
+    cellPressSpec = IosSnappySpring,
+    cellPressScale = 0.94f, cellLiftDp = 3.dp,
+    entranceDurationMs = 240, entranceEasing = SnappyEase, entranceStaggerMs = 25, entranceSlideDp = 16.dp,
+    expandDurationMs = 220, expandEasing = SnappyEase,
     colorDurationMs = 260,
-    resizeDurationMs = 220, resizeEasing = SnappyEase,
+    resizeDurationMs = 240, resizeEasing = SnappyEase,
     pulseDurationMs = 800,
 )
 

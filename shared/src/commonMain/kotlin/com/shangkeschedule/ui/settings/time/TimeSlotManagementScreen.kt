@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.time
+﻿package com.shangkeschedule.ui.settings.time
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -80,6 +80,7 @@ import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -923,7 +924,8 @@ fun TimeSlotItem(
 }
 
 /**
- * 「恢复默认」按钮：设计稿 .reset-btn —— 整宽卡片钮，主色文字；圆角随主题卡 token。
+ * 「恢复默认」按钮：整宽卡片钮，主色文字；圆角随主题卡 token
+ * （书卷 14dp / 通透 iOS 26 16dp 连续圆角，均来自 [appShapes] 分发）。
  */
 @Composable
 private fun RestoreDefaultButton(
@@ -940,7 +942,14 @@ private fun RestoreDefaultButton(
             .fillMaxWidth()
             .clip(shape)
             .background(colors.cardBgElevated)
-            .border(0.5.dp, colors.divider, shape)
+            .then(
+                if (LocalThemePreset.current == AppThemePreset.CLAUDE) {
+                    Modifier.border(0.5.dp, colors.divider, shape)
+                } else {
+                    // 通透（iOS 26）：玻璃高光内描边 + 发丝分隔线
+                    Modifier.iosGlassRim(shape).border(0.5.dp, colors.divider, shape)
+                }
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center

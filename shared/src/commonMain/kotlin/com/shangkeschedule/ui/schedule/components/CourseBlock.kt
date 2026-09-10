@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.schedule.components
+﻿package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,7 +52,6 @@ import com.shangkeschedule.ui.theme.appColors
  * 背景色、文字色、色条、阴影、内边距、虚化遮罩等均直接引用，避免多处重复判断主题。
  */
 private data class CourseBlockPresetRender(
-    val isSleepyPreset: Boolean,
     val blockBackgroundColor: Color,
     val stripColor: Color,
     val textColor: Color,
@@ -73,7 +72,7 @@ private fun buildPresetRenderSpec(
     blockColor: Color,
     style: ScheduleGridStyleComposed
 ): CourseBlockPresetRender {
-    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
+    // 云舒（SLEEPY）主题已删除，其专属投影分支不再存在；isStripStylePreset = 通透（iOS 26）
     val isStripStylePreset = themePreset == AppThemePreset.IOS
 
     // iOS 左侧色条主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light半透明/strip=dark，深色模式 bg=dark半透明/strip=dark
@@ -96,17 +95,14 @@ private fun buildPresetRenderSpec(
         else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
 
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
-    val sleepyShadowModifier = if (isSleepyPreset && !isFloating) {
-        Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
-    } else {
-        Modifier
-    }
+    // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层；
+    // 悬浮态由 floatingShadowModifier 单独抬升。
+    val sleepyShadowModifier = Modifier
     val timetableStartPadding = if (isStripStylePreset) 4.dp else 0.dp
-    // 非当前周降级遮罩：云舒 0.5（档位 dimmed）；经典 0.618 为有意的黄金比例设计值（豁免）
-    val demotedOverlayAlpha = if (isSleepyPreset) AppAlpha.dimmed else 0.618f
+    // 非当前周降级遮罩：0.618 为书卷主题有意的黄金比例设计值（豁免），通透沿用同一档位。
+    val demotedOverlayAlpha = 0.618f
 
     return CourseBlockPresetRender(
-        isSleepyPreset = isSleepyPreset,
         blockBackgroundColor = blockBackgroundColor,
         stripColor = stripColor,
         textColor = textColor,
@@ -222,7 +218,6 @@ fun CourseBlock(
         Modifier
     }
 
-    // SLEEPY 预设：普通课程块叠加轻微悬浮阴影，视觉更接近参考项目
     val sleepyShadowModifier = presetRender.sleepyShadowModifier
 
     BoxWithConstraints(

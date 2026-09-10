@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.schedule.components
+﻿package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -86,6 +86,7 @@ fun FloatingCourseBar(
     ) {
         floatingCourse?.let { cw ->
             val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+            // 书卷：不透明分组底 + 实色描边；通透（iOS 26）：与底栏胶囊同源的 Liquid Glass
             val surfaceModifier = if (isClaude) {
                 Modifier
                     .shadow(

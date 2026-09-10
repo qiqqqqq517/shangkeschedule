@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.components
+﻿package com.shangkeschedule.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +47,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
@@ -78,7 +79,12 @@ fun AppSectionHeader(
                 letterSpacing = (-0.01).em
             )
         } else {
-            MaterialTheme.typography.labelLarge
+            // 通透（iOS 26）：13sp SemiBold + SF 字阶绝对字距
+            MaterialTheme.typography.labelLarge.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.08).sp
+            )
         },
         fontWeight = FontWeight.SemiBold,
         color = appColors().primary,
@@ -248,6 +254,7 @@ fun AppSelectableCard(
 ) {
     val tokens = appColors()
     val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    // 书卷：14dp 圆角 + 暖米色分组底；通透（iOS 26）：16dp 连续圆角 + 白卡 + 玻璃高光内描边
     val finalShape = if (isClaude) RoundedCornerShape(14.dp) else shape
     val bg = when {
         containerColor != null -> containerColor
@@ -258,7 +265,7 @@ fun AppSelectableCard(
     Column(
         modifier = modifier
             .shadow(
-                elevation = (if (isClaude) 1 else 2).dp,
+                elevation = (if (isClaude) 1 else 1).dp,
                 shape = finalShape,
                 clip = false,
                 ambientColor = tokens.shadow,
@@ -277,7 +284,7 @@ fun AppSelectableCard(
                 when {
                     selected -> Modifier.border(2.dp, tokens.primary, finalShape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
-                    else -> Modifier
+                    else -> Modifier.iosGlassRim(finalShape)
                 }
             )
     ) { content() }

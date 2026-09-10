@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.schedule.components
+﻿package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -46,11 +46,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
-import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.AppTypeGrid
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.datetime.TimeZone
@@ -176,8 +174,6 @@ fun DayHeader(
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth().height(style.dayHeaderHeight)) {
         val shouldShowDate = !style.hideDateUnderDay && maxHeight >= 42.dp
-        val themePreset = LocalThemePreset.current
-        val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
         Row(Modifier.fillMaxSize()) {
             Box(
@@ -241,26 +237,15 @@ fun DayHeader(
                             .weight(1f)
                             .fillMaxHeight()
                             .background(
-                                if (isToday && !isSleepyPreset) {
-                                    appColors().primarySoft.copy(0.4f)
-                                } else {
-                                    Color.Transparent
-                                }
+                                // 今天列：8% 主色淡底标记（通透 / iOS 26 与书卷共用同一语义）
+                                if (isToday) appColors().primarySoft.copy(0.4f) else Color.Transparent
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .then(
-                                    if (isSleepyPreset && isToday) {
-                                        Modifier
-                                            .background(MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    } else {
-                                        Modifier.padding(vertical = 1.dp)
-                                    }
-                                ),
+                                .padding(vertical = 1.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -268,7 +253,8 @@ fun DayHeader(
                                 text = day,
                                 fontSize = AppTypeGrid.dayHeader,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSleepyPreset && isToday) Color.White else textColor,
+                                // 今天列：星期名用主色突出（iOS 日历表头语言）
+                                color = if (isToday) appColors().primary else textColor,
                                 maxLines = 1,
                                 style = TextStyle(
                                     lineHeight = 16.sp
@@ -280,10 +266,7 @@ fun DayHeader(
                                 Text(
                                     text = dates[index],
                                     fontSize = AppTypeGrid.timeSmall,
-                                    color = when {
-                                        isSleepyPreset && isToday -> Color.White
-                                        else -> subTextColor
-                                    },
+                                    color = subTextColor,
                                     fontWeight = FontWeight.Normal,
                                     maxLines = 1,
                                     modifier = Modifier,
@@ -330,12 +313,8 @@ fun TimeColumn(
         currentTimeFlow().collect { time -> value = time.hour }
     }
 
-    val themePreset = LocalThemePreset.current
-    val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
-    val activeSectionBackground = when {
-        isSleepyPreset -> appColors().primarySoft.copy(alpha = 0.25f)
-        else -> appColors().primarySoft.copy(alpha = 0.4f)
-    }
+    // 当前节次高亮：主色淡底（通透 / iOS 26 与书卷共用同一语义）
+    val activeSectionBackground = appColors().primarySoft.copy(alpha = 0.4f)
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
 
     Column(modifier.width(style.timeColumnWidth)) {

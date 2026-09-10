@@ -58,7 +58,8 @@
     <string name="today_claude_meta_room">上課地點</string>
     <string name="today_claude_meta_teacher">授課教師</string>
     <string name="today_claude_meta_weeks">上課週次</string>
-    <string name="today_claude_meta_credit">學分</string>
+    <string name="today_claude_meta_credit">學分</string>
+
     <string name="today_claude_next_label">下一節課</string>
     <string name="today_claude_note_type">課程類型</string>
     <string name="today_claude_note_hours">學時</string>
@@ -68,6 +69,33 @@
     <string name="today_claude_countdown_label">分鐘後開始</string>
     <string name="today_claude_sheet_close">關閉</string>
     <string name="today_claude_sheet_edit">編輯課程</string>
+    <string name="today_ios_date_format">%1$d月%2$d日 %3$s</string>
+    <string name="today_ios_week_range">%1$d月%2$d日 – %3$d月%4$d日</string>
+    <string name="today_ios_week_prev">上一週</string>
+    <string name="today_ios_week_next">下一週</string>
+    <string name="today_ios_remaining">剩餘 %1$s 節</string>
+    <string name="today_ios_tomorrow_format">明日 · %1$d月%2$d日</string>
+    <string name="today_ios_view_all">查看全部</string>
+    <string name="today_ios_status_done">已結束</string>
+    <string name="today_ios_status_live">進行中</string>
+    <string name="today_ios_status_upcoming">未開始</string>
+    <string name="today_ios_badge_required">必修</string>
+    <string name="today_ios_badge_elective">選修</string>
+    <string name="today_ios_badge_lab">實驗</string>
+    <string name="today_ios_meta_time">上課時間</string>
+    <string name="today_ios_meta_room">上課地點</string>
+    <string name="today_ios_meta_teacher">授課教師</string>
+    <string name="today_ios_meta_weeks">上課週次</string>
+    <string name="today_ios_meta_credit">學分</string>
+    <string name="today_ios_next_label">下一節課</string>
+    <string name="today_ios_note_type">課程類型</string>
+    <string name="today_ios_note_hours">學時</string>
+    <string name="today_ios_type_theory">理論教學</string>
+    <string name="today_ios_type_lab">實驗教學</string>
+    <string name="today_ios_sections_format">%1$s 節</string>
+    <string name="today_ios_countdown_label">分鐘後開始</string>
+    <string name="today_ios_sheet_close">關閉</string>
+    <string name="today_ios_sheet_edit">編輯課程</string>
     <string name="settings_group_course">課程設定</string>
     <string name="settings_group_tools">工具</string>
     <string name="settings_group_other">其他</string>
@@ -371,7 +399,8 @@
     <string name="toast_break_duration_non_negative">休息時長不能為負</string>
     <string name="text_no_time_slots_hint">目前沒有時間段。點選右上角 \'+\' 新增。</string>
     <string name="toast_slot_removed_unsaved">時間段已從清單移除，請點選儲存以更新資料庫</string>
-    <string name="time_slot_section_number">第 %1$s 節</string>
+    <string name="time_slot_section_number">第 %1$s 節</string>
+
     <string name="title_time_slot_list">節次列表</string>
     <string name="a11y_delete_time_slot">刪除時間段</string>
     <string name="dialog_title_edit_time_slot">編輯時間段</string>

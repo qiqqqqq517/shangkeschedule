@@ -1,8 +1,9 @@
-package com.shangkeschedule.ui.settings.coursetables
+﻿package com.shangkeschedule.ui.settings.coursetables
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 
@@ -657,7 +658,8 @@ private fun SemesterCard(
                 when {
                     highlightBorder -> Modifier.border(1.dp, tokens.primary, shape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
-                    else -> Modifier
+                    // 通透（iOS 26）：白卡 + 玻璃高光内描边
+                    else -> Modifier.iosGlassRim(shape)
                 }
             )
     ) { content() }

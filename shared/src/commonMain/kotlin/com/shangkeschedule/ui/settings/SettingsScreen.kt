@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings
+﻿package com.shangkeschedule.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -421,15 +421,35 @@ fun SettingsScreen(
                         }
                     }
                 } else if (isIosPreset) {
-                    // ===== iOS 主题：分组列表风格（对齐设计稿 profile.html）=====
-                    item { IosProfileHeader(modifier = Modifier.widthIn(max = 640.dp)) }
+                    // ===== 通透主题（iOS 26）：inset grouped 分组列表 =====
+                    // 信息架构（分组数量、分组顺序、每组成员、开关位置）与上面的「书卷」分支
+                    // 逐项一致：同样是 4 组【课表 / 课程 / 偏好 / 关于】，条目与跳转目标一一对应。
+                    // 差别只在材质与字形——书卷是暖米色分组卡 + 0.5dp 实色描边 + 衬线字体，
+                    // 通透是白卡（深色 #1C1C1E）+ 玻璃高光内描边 + SF 系统字体。
                     item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .widthIn(max = 640.dp)
                         ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_course))
+                            IosPageHeader(
+                                title = stringResource(Res.string.nav_settings),
+                                subtitle = stringResource(Res.string.hero_subtitle)
+                            )
+                            IosUserRow(
+                                name = stringResource(Res.string.app_name),
+                                school = stringResource(Res.string.hero_subtitle),
+                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                            )
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_timetable))
                             IosSettingsGroup {
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_course_conversion),
@@ -440,14 +460,14 @@ fun SettingsScreen(
                                 IosSettingCell(
                                     title = stringResource(Res.string.section_title_semester_settings),
                                     icon = vectorResource(Res.drawable.calendar_today_24px),
-                                    tone = IosCellTone.PURPLE,
+                                    tone = IosCellTone.ORANGE,
                                     showDivider = true,
                                     onClick = { onNavigate(Destination.SemesterSettings) }
                                 )
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_time_slot_customization),
                                     icon = vectorResource(Res.drawable.schedule_24px),
-                                    tone = IosCellTone.ORANGE,
+                                    tone = IosCellTone.RED,
                                     showDivider = true,
                                     onClick = { onNavigate(Destination.TimeSlotSettings) }
                                 )
@@ -458,20 +478,68 @@ fun SettingsScreen(
                                     showDivider = true,
                                     onClick = { onNavigate(Destination.ManageCourseTables) }
                                 )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_courses))
+                            IosSettingsGroup {
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_course_management),
                                     icon = vectorResource(Res.drawable.edit_24px),
                                     tone = IosCellTone.GREEN,
-                                    showDivider = true,
                                     onClick = { onNavigate(Destination.CourseManagementList) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_couple_schedule),
+                                    icon = vectorResource(Res.drawable.favorite_24px),
+                                    tone = IosCellTone.PINK,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            IosGroupLabel(stringResource(Res.string.settings_group_preference))
+                            IosSettingsGroup {
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_appearance_settings),
+                                    icon = vectorResource(Res.drawable.palette_24px),
+                                    tone = IosCellTone.ORANGE,
+                                    onClick = { onNavigate(Destination.AppearanceSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.title_course_notification_settings),
+                                    icon = vectorResource(Res.drawable.notifications_24px),
+                                    tone = IosCellTone.PURPLE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.NotificationSettings) }
+                                )
+                                IosSettingCell(
+                                    title = stringResource(Res.string.item_backup_restore),
+                                    icon = vectorResource(Res.drawable.cloud_24px),
+                                    tone = IosCellTone.GREEN,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.BackupAndRestore) }
                                 )
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_show_non_current_week),
                                     icon = vectorResource(Res.drawable.filter_list_24px),
-                                    tone = IosCellTone.INDIGO,
+                                    tone = IosCellTone.GRAY,
                                     showDivider = true,
                                     trailing = {
-                                        AppSwitch(
+                                        IosSwitchTrailing(
                                             checked = uiState.appSettings.showNonCurrentWeekCourses,
                                             onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
                                         )
@@ -480,10 +548,10 @@ fun SettingsScreen(
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_show_weekends),
                                     icon = vectorResource(Res.drawable.view_week_24px),
-                                    tone = IosCellTone.TEAL,
+                                    tone = IosCellTone.YELLOW,
                                     showDivider = true,
                                     trailing = {
-                                        AppSwitch(
+                                        IosSwitchTrailing(
                                             checked = uiState.courseConfig?.showWeekends ?: false,
                                             onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
                                         )
@@ -498,50 +566,12 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .widthIn(max = 640.dp)
                         ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_tools))
+                            IosGroupLabel(stringResource(Res.string.settings_group_about))
                             IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_couple_schedule),
-                                    icon = vectorResource(Res.drawable.favorite_24px),
-                                    tone = IosCellTone.PINK,
-                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_backup_restore),
-                                    icon = vectorResource(Res.drawable.cloud_24px),
-                                    tone = IosCellTone.BLUE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.BackupAndRestore) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_other))
-                            IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_appearance_settings),
-                                    icon = vectorResource(Res.drawable.palette_24px),
-                                    tone = IosCellTone.INDIGO,
-                                    onClick = { onNavigate(Destination.AppearanceSettings) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.title_course_notification_settings),
-                                    icon = vectorResource(Res.drawable.notifications_24px),
-                                    tone = IosCellTone.ORANGE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.NotificationSettings) }
-                                )
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_more_options),
                                     icon = vectorResource(Res.drawable.more_horiz_24px),
                                     tone = IosCellTone.GRAY,
-                                    showDivider = true,
                                     onClick = { onNavigate(Destination.MoreOptions) }
                                 )
                             }
@@ -820,208 +850,8 @@ internal fun SectionDivider() {
     )
 }
 
-// ==================== iOS 主题「我的」页分组列表组件（对齐设计稿 profile.html）====================
-
-/**
- * iOS 设置行图标徽章色系：Apple 系统色深浅两套。
- */
-private enum class IosCellTone { BLUE, GREEN, ORANGE, PURPLE, TEAL, INDIGO, PINK, GRAY }
-
-@Composable
-private fun iosCellToneColor(tone: IosCellTone): Color {
-    val isDark = LocalIsDarkTheme.current
-    return if (isDark) when (tone) {
-        IosCellTone.BLUE -> Color(0xFF0A84FF)      // systemBlue (dark)
-        IosCellTone.GREEN -> Color(0xFF30D158)     // systemGreen (dark)
-        IosCellTone.ORANGE -> Color(0xFFFF9F0A)    // systemOrange (dark)
-        IosCellTone.PURPLE -> Color(0xFFBF5AF2)    // systemPurple (dark)
-        IosCellTone.TEAL -> Color(0xFF40C8E0)      // systemTeal (dark)
-        IosCellTone.INDIGO -> Color(0xFF5E5CE6)    // systemIndigo (dark)
-        IosCellTone.PINK -> Color(0xFFFF375F)      // systemPink (dark)
-        IosCellTone.GRAY -> Color(0xFF98989D)      // systemGray (dark)
-    } else when (tone) {
-        IosCellTone.BLUE -> Color(0xFF007AFF)      // systemBlue
-        IosCellTone.GREEN -> Color(0xFF34C759)     // systemGreen
-        IosCellTone.ORANGE -> Color(0xFFFF9500)    // systemOrange
-        IosCellTone.PURPLE -> Color(0xFFAF52DE)    // systemPurple
-        IosCellTone.TEAL -> Color(0xFF30B0C7)      // systemTeal
-        IosCellTone.INDIGO -> Color(0xFF5856D6)    // systemIndigo
-        IosCellTone.PINK -> Color(0xFFFF2D55)      // systemPink
-        IosCellTone.GRAY -> Color(0xFF8E8E93)      // systemGray
-    }
-}
-
-/**
- * iOS 我的页头卡：白卡 + 60dp 蓝→紫渐变圆头像 + 名称 + 副标题 + 灰 chevron。
- * 对齐设计稿 .profile-header（张三 / 计算机科学与技术 · 2023级 → 应用名 / 副标题）。
- */
-@Composable
-private fun IosProfileHeader(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(appShapes().card)
-            .background(appColors().cardBg)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 渐变圆头像：systemBlue → systemPurple（135deg）
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(iosCellToneColor(IosCellTone.BLUE), iosCellToneColor(IosCellTone.PURPLE))
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(Res.string.app_name).take(1),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.01).sp
-                ),
-                color = Color.White
-            )
-        }
-        Spacer(modifier = Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(Res.string.app_name),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = appColors().textPrimary
-            )
-            Text(
-                text = stringResource(Res.string.hero_subtitle),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                color = appColors().textSecondary,
-                modifier = Modifier.padding(top = 3.dp)
-            )
-        }
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = null,
-            tint = appColors().textSecondary,
-            modifier = Modifier.size(16.dp)
-        )
-    }
-}
-
-/**
- * iOS 分组小标题：13sp 灰、大写、字距 0.6sp。
- * 对齐设计稿 .settings-group-header（左缘相对组卡缩进 4dp）。
- */
-@Composable
-private fun IosGroupLabel(text: String) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.6.sp
-        ),
-        color = appColors().textSecondary,
-        modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
-    )
-}
-
-/**
- * iOS 分组卡：白底 19dp 圆角容器，内含多个 [IosSettingCell]。
- * 对齐设计稿 .settings-group（cell 间分隔线由 cell 的 showDivider 控制）。
- */
-@Composable
-private fun IosSettingsGroup(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(appShapes().card)
-            .background(appColors().cardBg),
-        content = content
-    )
-}
-
-/**
- * iOS 设置行：28dp 系统色图标徽章（7dp 圆角、纯色底、白图标）+ 16sp 标题 + 可选 detail + 尾部内容。
- * 对齐设计稿 .settings-cell；分隔线左缩进 60dp（18 padding + 28 icon + 14 gap）。
- */
-@Composable
-private fun IosSettingCell(
-    title: String,
-    icon: ImageVector,
-    tone: IosCellTone,
-    modifier: Modifier = Modifier,
-    detail: String? = null,
-    showDivider: Boolean = false,
-    onClick: (() -> Unit)? = null,
-    trailing: @Composable () -> Unit = {
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = null,
-            tint = appColors().textSecondary,
-            modifier = Modifier.size(16.dp)
-        )
-    }
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        if (showDivider) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = appColors().divider,
-                modifier = Modifier.padding(start = 60.dp)
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 56.dp)
-                .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(iosCellToneColor(tone)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                color = appColors().textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            if (detail != null) {
-                Text(
-                    text = detail,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                    color = appColors().textSecondary,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-            }
-            trailing()
-        }
-    }
-}
+// ==================== 通透主题「我的」页分组列表组件 ====================
+// 组件本体在 IosSettingsComponents.kt（与 SettingsScreen 分离，供其它页面复用）。
 
 @Composable
 internal fun ColorPreviewDot(colorIndex: Int, colorMaps: List<DualColor>) {

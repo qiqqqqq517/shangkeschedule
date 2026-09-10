@@ -113,7 +113,7 @@ data class ScheduleGridStyle(
     }
 
     companion object {
-        // --- 默认常量
+        // --- 默认常量（书卷 / CLAUDE 的旧基线，`DEFAULT` 与老数据回退都依赖它们）
         val DEFAULT_TIME_COLUMN_WIDTH = 40f
         val DEFAULT_DAY_HEADER_HEIGHT = 45f
         val DEFAULT_SECTION_HEIGHT = 70f
@@ -123,7 +123,9 @@ data class ScheduleGridStyle(
         val DEFAULT_BLOCK_ALPHA = 1f
         val DEFAULT_FONT_SCALE = 1.2f
 
-        // 柔和协调的马卡龙配色（浅色背景 + 深色模式深色背景）
+        // 柔和协调的马卡龙配色（浅色背景 + 深色模式深色背景）。
+        // ⚠️ 保持原样：它是 `DEFAULT`、`toCompose()` 老数据回退、情侣课表默认色索引的共同基准，
+        //    任何改动都会波及既有用户的观感。通透（iOS）用的 Apple 系统色池见下方 APPLE_COLOR_MAPS。
         val DEFAULT_COLOR_MAPS = listOf(
             DualColor(light = Color(0xFFFFCDD2), dark = Color(0xFFD32F2F)), // 红
             DualColor(light = Color(0xFFF8BBD0), dark = Color(0xFFC2185B)), // 粉
@@ -168,11 +170,15 @@ data class ScheduleGridStyle(
             backgroundImagePath = null
         )
 
-        // --- iOS 主题专属课表样式 ---
-        // 设计原则：与画布设计稿完全一致——左侧色条 + Apple 系统色系 + 隐藏网格线 + 文字左对齐
-        // 颜色对齐画布上的课程色条：systemBlue / systemGreen / systemOrange / systemPurple / systemRed / systemPink / systemTeal / systemIndigo / systemYellow
-        private val IOS_COLOR_MAPS = listOf(
-            DualColor(light = Color(0x1F007AFF), dark = Color(0xFF007AFF)), // systemBlue（色条色）
+        // --- 通透（iOS 26）主题专属课表样式 ---
+        // 设计原则：Apple HIG 系统色 + 左侧 4dp 色条 + 隐藏网格线 + 文字左对齐。
+        // 颜色严格对应 iOS 系统色：Blue / Green / Orange / Purple / Red / Pink /
+        // Teal / Indigo / Yellow / Brown / Cyan / MintGray。
+        //
+        // 浅色档仅 0x1F（12%）alpha：这是「左侧色条 + 极淡同色底」的 iOS 卡片语言所需
+        // （实底会把卡片压成色块、盖掉层级）；深色档为实底系统色（深色下系统色本身就是亮色）。
+        private val APPLE_COLOR_MAPS = listOf(
+            DualColor(light = Color(0x1F007AFF), dark = Color(0xFF007AFF)), // systemBlue
             DualColor(light = Color(0x1F34C759), dark = Color(0xFF34C759)), // systemGreen
             DualColor(light = Color(0x1FFF9500), dark = Color(0xFFFF9500)), // systemOrange
             DualColor(light = Color(0x1FAF52DE), dark = Color(0xFFAF52DE)), // systemPurple
@@ -181,44 +187,43 @@ data class ScheduleGridStyle(
             DualColor(light = Color(0x1F5AC8FA), dark = Color(0xFF5AC8FA)), // systemTeal
             DualColor(light = Color(0x1F5856D6), dark = Color(0xFF5856D6)), // systemIndigo
             DualColor(light = Color(0x1FFFCC00), dark = Color(0xFFFFCC00)), // systemYellow
-            DualColor(light = Color(0x1FF08C00), dark = Color(0xFFE08E0B)), // systemBrown/深橙
-            DualColor(light = Color(0x1FF5A623), dark = Color(0xFFF5A623)), // systemAmber
+            DualColor(light = Color(0x1FE08E0B), dark = Color(0xFFE08E0B)), // systemBrown
             DualColor(light = Color(0x1F30B0C7), dark = Color(0xFF30B0C7)), // systemCyan
+            DualColor(light = Color(0x1FA2848E), dark = Color(0xFFA2848E)), // systemMintGray
         )
 
-        private const val IOS_BLOCK_CORNER_RADIUS = 12f      // 课程块圆角（画布卡片 19dp，但网格块更小，取 12dp）
-        private const val IOS_SECTION_HEIGHT = 70f          // 适中节高
-        private const val IOS_BLOCK_OUTER_PADDING = 1.5f    // 适度块间距
-        private const val IOS_BLOCK_INNER_PADDING = 3f      // 块内边距
-        private const val IOS_FONT_SCALE = 1.1f              // 字号适中
+        private const val IOS_BLOCK_CORNER_RADIUS = 12f      // 课程块连续圆角（iOS 26 小半径形态）
+        private const val IOS_SECTION_HEIGHT = 70f           // 节高
+        private const val IOS_BLOCK_OUTER_PADDING = 1.5f     // 块间距
+        private const val IOS_BLOCK_INNER_PADDING = 3f       // 块内边距
+        private const val IOS_FONT_SCALE = 1.1f              // 字号缩放
 
         /**
-         * iOS 主题专属课表样式：与画布设计稿完全一致
-         * - 左侧色条风格（色条宽 4dp，贯穿块高度）
-         * - 12dp 标准圆角课程块
-         * - 12 色 Apple 系统色系（色条色 + 极淡背景）
-         * - 隐藏网格线（iOS 风格简洁，靠留白分层）
-         * - 70dp 适中节高
-         * - 文字左对齐（画布卡片文字左对齐风格）
+         * 通透（iOS 26）主题专属课表样式：
+         * - 左侧 4dp 色条 + 极淡同色底
+         * - 12dp 连续圆角课程块
+         * - 12 色 Apple 系统色系
+         * - 隐藏网格线（iOS 靠留白与卡片分层，不用线框）
+         * - 70dp 节高、文字左对齐
          */
         val IOS = ScheduleGridStyle(
-            timeColumnWidthDp = DEFAULT_TIME_COLUMN_WIDTH,
-            dayHeaderHeightDp = DEFAULT_DAY_HEADER_HEIGHT,
+            timeColumnWidthDp = 44f,
+            dayHeaderHeightDp = 48f,
             sectionHeightDp = IOS_SECTION_HEIGHT,
             courseBlockCornerRadiusDp = IOS_BLOCK_CORNER_RADIUS,
             courseBlockOuterPaddingDp = IOS_BLOCK_OUTER_PADDING,
             courseBlockInnerPaddingDp = IOS_BLOCK_INNER_PADDING,
             courseBlockAlphaFloat = DEFAULT_BLOCK_ALPHA,
-            courseColorMaps = IOS_COLOR_MAPS,
+            courseColorMaps = APPLE_COLOR_MAPS,
             courseBlockFontScale = IOS_FONT_SCALE,
-            hideGridLines = true,             // iOS 风格：隐藏网格线
+            hideGridLines = true,
             hideSectionTime = false,
             hideDateUnderDay = false,
             showStartTime = false,
             hideLocation = false,
             hideTeacher = false,
             removeLocationAt = false,
-            textAlignCenterHorizontal = false, // 左对齐，与画布卡片一致
+            textAlignCenterHorizontal = false,
             textAlignCenterVertical = false,
             borderType = BorderTypeProto.BORDER_TYPE_NONE,
             scheduleMode = ScheduleModeProto.SECTION_MODE,

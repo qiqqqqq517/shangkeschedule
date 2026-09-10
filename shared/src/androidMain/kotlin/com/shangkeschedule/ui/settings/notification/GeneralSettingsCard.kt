@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.notification
+﻿package com.shangkeschedule.ui.settings.notification
 
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.AppType
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.desc_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.item_auto_mode
@@ -84,7 +83,7 @@ fun GeneralSettingsCard(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(Res.string.text_permission_importance_detail),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = AppType.caption),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
