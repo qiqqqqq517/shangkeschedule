@@ -962,4 +962,17 @@
     <string name="import_edit_label_end_section">结束节次</string>
     <string name="import_edit_label_weeks">周次（如 1-16,19）</string>
     <string name="import_edit_error_invalid">输入有误：星期须为 1-7 的整数，节次须同时填写或同时留空，周次格式如 1-16,19</string>
+
+    <!-- 学期管理页（课表管理页新设计） -->
+    <string name="semester_archive_eyebrow">学期档案</string>
+    <string name="view_earlier_semesters">查看更早的学期</string>
+    <string name="total_tables_count_format">%1$d 个学期</string>
+    <string name="status_current_semester">当前学期</string>
+    <string name="courses_count_format">%1$d 门课程</string>
+    <string name="weeks_count_format">%1$d 周</string>
+    <string name="week_progress_format">第 %1$d 周 / 共 %2$d 周</string>
+    <string name="no_semester_configured">未设置开学日期</string>
+    <string name="action_view_timetable">查看课表</string>
+    <string name="action_semester_settings">学期设置</string>
+    <string name="section_bottom_actions">操作</string>
 </resources>
