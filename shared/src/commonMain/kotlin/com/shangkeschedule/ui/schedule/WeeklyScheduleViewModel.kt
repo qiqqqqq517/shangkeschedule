@@ -332,10 +332,14 @@ class WeeklyScheduleViewModel (
             }.collect { _uiState.value = it }
         }
 
-        // 2. 颜色去重 + 越界修复只在“课程列表变化”后执行，避免每次样式变更都重复扫描。
+        // 2. 颜色去重 + 越界修复：以「整张课表」为基准，而不是当前可视周的课程缓存。
+        //    可视缓存经 buildMergedBlocks / filterNonActiveCourseOverlaps 过滤，会漏掉「本周不上、
+        //    其它周才上」的课程，导致统计不完整、跨周滑动时配色不一致、撞色残留。
         viewModelScope.launch {
-            currentCoursesFlow
-                .map { cache -> cache.values.flatten().flatMap { it.courses } }
+            appSettingsFlow
+                .flatMapLatest { settings ->
+                    courseTableRepository.getCoursesWithWeeksByTableId(settings.currentCourseTableId)
+                }
                 .distinctUntilChanged()
                 .collect { courses ->
                     val style = styleFlow.firstOrNull() ?: return@collect
