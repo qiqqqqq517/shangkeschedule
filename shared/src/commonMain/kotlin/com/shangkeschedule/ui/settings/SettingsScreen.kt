@@ -198,7 +198,13 @@ fun SettingsScreen(
         onTabSelected = { dest -> onNavigate(dest) }
     ) { navPadding ->
         Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            // 书卷主题没有 TopAppBar 吸收滚动量：若仍挂 exitUntilCollapsed 的 nestedScroll 连接，
+            // 滚动会被整段吞掉（列表完全无法滑动），故仅在存在顶栏的主题下挂载。
+            modifier = if (isClaudePreset) {
+                Modifier
+            } else {
+                Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+            },
             topBar = {
                 if (isClaudePreset) {
                     // 书卷主题：无独立 TopAppBar，页面大标题由内容区 ClaudePageHeader 承担
