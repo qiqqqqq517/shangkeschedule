@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>悬浮窗 · 上课</title>
+    <style id="theme-vars">
+﻿/* Source: structured-spec */
+/* Brand fonts — Anthropic official: Newsreader (editorial display/slogan) +
+   Poppins (compact UI) + Lora (reading). Mono kept for code/token surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+/* ============================================================
+   Token model
+   1) Primitives — 7 key color cards as 10-step scales (50→900).
+      These are the single source of truth (mirrored in the linshi
+      preview tool). The flagged "standard" step per group:
+        brand-500 · text-800 · bg-100 · icon-700 · border-300 · success-500 · error-500
+   2) Semantic tokens — reference the primitives above (no raw hex
+      duplicates). These are the API consumed by preview / ui_kits /
+      components.
+   3) Non-color tokens — font, spacing, radius, shadow, type.
+   ============================================================ */
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --claude-background: var(--background, #ffffff);
+  --claude-foreground: var(--foreground, #0f172a);
+  --claude-card: var(--card, var(--background));
+  --claude-card-foreground: var(--card-foreground, var(--foreground));
+  --claude-popover: var(--popover, var(--card));
+  --claude-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --claude-primary: var(--primary, #111827);
+  --claude-primary-foreground: var(--primary-foreground, #ffffff);
+  --claude-secondary: var(--secondary, var(--muted, var(--card)));
+  --claude-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --claude-muted: var(--muted, var(--card));
+  --claude-muted-foreground: var(--muted-foreground, var(--foreground));
+  --claude-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --claude-accent-foreground: var(--accent-foreground, var(--foreground));
+  --claude-destructive: var(--destructive, #ef4444);
+  --claude-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --claude-border: var(--border, currentColor);
+  --claude-input: var(--input, var(--border));
+  --claude-ring: var(--ring, var(--primary));
+  --claude-chart-1: var(--chart-1, var(--primary));
+  --claude-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --claude-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --claude-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --claude-chart-5: var(--chart-5, var(--foreground));
+  --claude-sidebar: var(--sidebar, var(--background));
+  --claude-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --claude-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --claude-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --claude-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --claude-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #c96442 */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  /* text — standard: --text-800 #3d3929 */
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  /* background — standard: --bg-100 #faf9f5 */
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  /* icon — standard: --icon-700 #3d3929 */
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  /* border — standard: --border-300 #dad9d4 */
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  /* state · success — standard: --success-500 #788c5d */
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  /* state · error — standard: --error-500 #d64545 */
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-50);
+  --muted: var(--bg-300);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--icon-900);
+  --popover-foreground: var(--text-900);
+  --primary-foreground: #ffffff;
+  --secondary-foreground: var(--text-600);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: var(--text-900);
+  --destructive-foreground: #ffffff;
+  /* semantic */
+  --primary: var(--brand-500);
+  --secondary: #e9e6dc;
+  --accent: var(--secondary);
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — display (Newsreader) for slogans/headlines, sans (Poppins) for compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* spacing */
+  --spacing: 0.25rem;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+  /* type */
+  --tracking-normal: 0em;
+}
+
+.dark {
+  /* ===== 1) Primitive scales · key color cards (10 steps, 50→900) ===== */
+  /* brand — standard: --brand-500 #d97757 */
+  --brand-50: #3a2a22;
+  --brand-100: #4d3528;
+  --brand-200: #6b4533;
+  --brand-300: #8a5740;
+  --brand-400: #b0683f;
+  --brand-500: #d97757;
+  --brand-600: #e08d6f;
+  --brand-700: #e8a98f;
+  --brand-800: #f0c6b3;
+  --brand-900: #f8e3d8;
+  /* text — standard: --text-800 #f1f1ef */
+  --text-50: #1b1b19;
+  --text-100: #2c2c2b;
+  --text-200: #46443b;
+  --text-300: #6e6d68;
+  --text-400: #908e84;
+  --text-500: #b7b5a9;
+  --text-600: #c3c0b6;
+  --text-700: #d8d6cd;
+  --text-800: #f1f1ef;
+  --text-900: #faf9f5;
+  /* background — standard: --bg-100 #262624 */
+  --bg-50: #1b1b19;
+  --bg-100: #262624;
+  --bg-200: #2c2c2b;
+  --bg-300: #30302e;
+  --bg-400: #3e3e38;
+  --bg-500: #4a4a43;
+  --bg-600: #52514a;
+  --bg-700: #6e6d68;
+  --bg-800: #908e84;
+  --bg-900: #b7b5a9;
+  /* icon — standard: --icon-700 #f1f1ef */
+  --icon-50: #1b1b19;
+  --icon-100: #2c2c2b;
+  --icon-200: #46443b;
+  --icon-300: #6e6d68;
+  --icon-400: #908e84;
+  --icon-500: #b7b5a9;
+  --icon-600: #d8d6cd;
+  --icon-700: #f1f1ef;
+  --icon-800: #f8f8f6;
+  --icon-900: #ffffff;
+  /* border — standard: --border-300 #3e3e38 */
+  --border-50: #1f1e1d;
+  --border-100: #2c2c2b;
+  --border-200: #343430;
+  --border-300: #3e3e38;
+  --border-400: #4a4a43;
+  --border-500: #52514a;
+  --border-600: #6e6d68;
+  --border-700: #908e84;
+  --border-800: #b7b5a9;
+  --border-900: #d8d6cd;
+  /* state · success — standard: --success-500 #8ca06f */
+  --success-50: #232a1c;
+  --success-100: #2e3823;
+  --success-200: #3f4d30;
+  --success-300: #556640;
+  --success-400: #708353;
+  --success-500: #8ca06f;
+  --success-600: #a3b58a;
+  --success-700: #bccaa8;
+  --success-800: #d6dfc8;
+  --success-900: #edf2e4;
+  /* state · error — standard: --error-500 #ef4444 */
+  --error-50: #3a1f1f;
+  --error-100: #4d2424;
+  --error-200: #6e2c2c;
+  --error-300: #93302f;
+  --error-400: #c43a39;
+  --error-500: #ef4444;
+  --error-600: #f26b6b;
+  --error-700: #f59292;
+  --error-800: #f9b9b9;
+  --error-900: #fcdede;
+
+  /* ===== 2) Semantic tokens (reference the primitives above) ===== */
+  /* bg */
+  --background: var(--bg-100);
+  --card: var(--bg-200);
+  --popover: var(--bg-300);
+  --muted: var(--bg-50);
+  /* text */
+  --foreground: var(--text-800);
+  --card-foreground: var(--text-900);
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #141413;
+  --secondary-foreground: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent-foreground: #f5f4ee;
+  --destructive-foreground: #ffffff;
+  /* accent */
+  --primary: var(--brand-500);
+  --secondary: var(--text-900);
+  --accent: #1a1915;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  /* border */
+  --border: var(--border-300);
+  /* status */
+  --destructive: var(--error-500);
+  --success: var(--success-500);
+  --success-foreground: #141413;
+  --error: var(--error-500);
+  --error-foreground: #ffffff;
+  /* chart */
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  /* sidebar */
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+
+  /* ===== 3) Non-color tokens ===== */
+  /* font — sans (Poppins) for headings + compact UI, serif (Lora) for reading surfaces */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* shadow */
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: #000000;
+  --shadow-2xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-xs: 0 1px 3px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 1px 3px 0px rgba(0, 0, 0, 0.25);
+}
+/* Project-level bridge CSS for Claude Design Library.
+   Adds the missing --radius-lg semantic alias required by
+   apply-html-head-contract.mjs so the head contract script
+   can run successfully in prefixless mode.
+   All values alias the Library's own tokens — strict fidelity. */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,18..72,300;0,18..72,400;0,18..72,500;1,18..72,400&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ===== 1) Primitive scales (from Claude Library) ===== */
+  --brand-50: #fbf2ed;
+  --brand-100: #f4e0d5;
+  --brand-200: #ebc6b6;
+  --brand-300: #e0a892;
+  --brand-400: #d6866a;
+  --brand-500: #c96442;
+  --brand-600: #b0562f;
+  --brand-700: #934828;
+  --brand-800: #753a22;
+  --brand-900: #582e1d;
+  --text-50: #f6f5f0;
+  --text-100: #ece9de;
+  --text-200: #dad9d4;
+  --text-300: #c2c0b6;
+  --text-400: #9b988c;
+  --text-500: #6e6d68;
+  --text-600: #535146;
+  --text-700: #46443b;
+  --text-800: #3d3929;
+  --text-900: #28261b;
+  --bg-50: #ffffff;
+  --bg-100: #faf9f5;
+  --bg-200: #f5f4ef;
+  --bg-300: #ede9de;
+  --bg-400: #e3e0d4;
+  --bg-500: #dad9d4;
+  --bg-600: #cdcabf;
+  --bg-700: #b4b2a7;
+  --bg-800: #8a887e;
+  --bg-900: #535146;
+  --icon-50: #ffffff;
+  --icon-100: #dad9d4;
+  --icon-200: #c2c0b6;
+  --icon-300: #9b988c;
+  --icon-400: #6e6d68;
+  --icon-500: #535146;
+  --icon-600: #46443b;
+  --icon-700: #3d3929;
+  --icon-800: #28261b;
+  --icon-900: #141413;
+  --border-50: #f0efe9;
+  --border-100: #ebebeb;
+  --border-200: #e3e0d4;
+  --border-300: #dad9d4;
+  --border-400: #cdcabf;
+  --border-500: #b4b2a7;
+  --border-600: #9b988c;
+  --border-700: #6e6d68;
+  --border-800: #535146;
+  --border-900: #3d3929;
+  --success-50: #f0f3ea;
+  --success-100: #e7ecdd;
+  --success-200: #d3dcc1;
+  --success-300: #b8c69e;
+  --success-400: #9aac79;
+  --success-500: #788c5d;
+  --success-600: #647649;
+  --success-700: #4f5d3a;
+  --success-800: #3d482d;
+  --success-900: #2b331f;
+  --error-50: #fcecea;
+  --error-100: #f7dedb;
+  --error-200: #f3c4bf;
+  --error-300: #eb9d96;
+  --error-400: #e0716a;
+  --error-500: #d64545;
+  --error-600: #b83636;
+  --error-700: #962c2c;
+  --error-800: #732222;
+  --error-900: #531818;
+
+  /* ===== 2) Semantic tokens ===== */
+  --background: var(--bg-100);
+  --foreground: var(--text-800);
+  --card: var(--bg-200);
+  --card-foreground: var(--icon-900);
+  --popover: var(--bg-50);
+  --popover-foreground: var(--text-900);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --secondary: #e9e6dc;
+  --secondary-foreground: var(--text-600);
+  --muted: var(--bg-300);
+  --muted-foreground: var(--text-500);
+  --accent: var(--secondary);
+  --accent-foreground: var(--text-900);
+  --destructive: var(--error-500);
+  --destructive-foreground: #ffffff;
+  --input: var(--border-500);
+  --ring: var(--brand-500);
+  --border: var(--border-300);
+  --success: var(--success-500);
+  --success-foreground: #ffffff;
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: var(--border-100);
+
+  /* ===== 3) Non-color tokens ===== */
+  --font-display: Newsreader, Georgia, ui-serif, serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Lora, Georgia, ui-serif, serif;
+  --font-mono: Geist Mono, ui-monospace, monospace;
+  --spacing: 0.25rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px; /* BRIDGE: maps to Library --radius-xl */
+  --radius: 1rem;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --claude-radius-sm: 8px;
+  --claude-radius-md: 12px;
+  --claude-radius-lg: 20px;
+  --shadow-sm: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 1px 3px 0px rgba(0, 0, 0, 0.1), 0 8px 10px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --background: #262624;
+  --foreground: #f1f1ef;
+  --card: #2c2c2b;
+  --card-foreground: #faf9f5;
+  --popover: #30302e;
+  --primary: #d97757;
+  --primary-foreground: #141413;
+  --secondary: #1a1915;
+  --muted: #1b1b19;
+  --muted-foreground: #b7b5a9;
+  --accent: #1a1915;
+  --destructive: #ef4444;
+  --border: #3e3e38;
+  --input: #52514a;
+  --ring: #d97757;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--claude-background);
+    --color-foreground: var(--claude-foreground);
+    --color-card: var(--claude-card);
+    --color-card-foreground: var(--claude-card-foreground);
+    --color-popover: var(--claude-popover);
+    --color-popover-foreground: var(--claude-popover-foreground);
+    --color-primary: var(--claude-primary);
+    --color-primary-foreground: var(--claude-primary-foreground);
+    --color-secondary: var(--claude-secondary);
+    --color-secondary-foreground: var(--claude-secondary-foreground);
+    --color-muted: var(--claude-muted);
+    --color-muted-foreground: var(--claude-muted-foreground);
+    --color-accent: var(--claude-accent);
+    --color-accent-foreground: var(--claude-accent-foreground);
+    --color-destructive: var(--claude-destructive);
+    --color-destructive-foreground: var(--claude-destructive-foreground);
+    --color-border: var(--claude-border);
+    --color-input: var(--claude-input);
+    --color-ring: var(--claude-ring);
+    --color-chart-1: var(--claude-chart-1);
+    --color-chart-2: var(--claude-chart-2);
+    --color-chart-3: var(--claude-chart-3);
+    --color-chart-4: var(--claude-chart-4);
+    --color-chart-5: var(--claude-chart-5);
+    --color-sidebar: var(--claude-sidebar);
+    --color-sidebar-foreground: var(--claude-sidebar-foreground);
+    --color-sidebar-primary: var(--claude-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--claude-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--claude-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--claude-sidebar-accent-foreground);
+    --radius-sm: var(--claude-radius-sm);
+    --radius-md: var(--claude-radius-md);
+    --radius-lg: var(--claude-radius-lg);
+  }
+  @layer base {
+    body { background: var(--claude-background); color: var(--claude-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--claude-background); }
+      .text-background { color: var(--claude-background); }
+      .border-background { border-color: var(--claude-background); }
+      .ring-background { --tw-ring-color: var(--claude-background); }
+      .bg-foreground { background-color: var(--claude-foreground); }
+      .text-foreground { color: var(--claude-foreground); }
+      .border-foreground { border-color: var(--claude-foreground); }
+      .ring-foreground { --tw-ring-color: var(--claude-foreground); }
+      .bg-card { background-color: var(--claude-card); }
+      .text-card { color: var(--claude-card); }
+      .border-card { border-color: var(--claude-card); }
+      .ring-card { --tw-ring-color: var(--claude-card); }
+      .bg-card-foreground { background-color: var(--claude-card-foreground); }
+      .text-card-foreground { color: var(--claude-card-foreground); }
+      .border-card-foreground { border-color: var(--claude-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--claude-card-foreground); }
+      .bg-popover { background-color: var(--claude-popover); }
+      .text-popover { color: var(--claude-popover); }
+      .border-popover { border-color: var(--claude-popover); }
+      .ring-popover { --tw-ring-color: var(--claude-popover); }
+      .bg-popover-foreground { background-color: var(--claude-popover-foreground); }
+      .text-popover-foreground { color: var(--claude-popover-foreground); }
+      .border-popover-foreground { border-color: var(--claude-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--claude-popover-foreground); }
+      .bg-primary { background-color: var(--claude-primary); }
+      .text-primary { color: var(--claude-primary); }
+      .border-primary { border-color: var(--claude-primary); }
+      .ring-primary { --tw-ring-color: var(--claude-primary); }
+      .bg-primary-foreground { background-color: var(--claude-primary-foreground); }
+      .text-primary-foreground { color: var(--claude-primary-foreground); }
+      .border-primary-foreground { border-color: var(--claude-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--claude-primary-foreground); }
+      .bg-secondary { background-color: var(--claude-secondary); }
+      .text-secondary { color: var(--claude-secondary); }
+      .border-secondary { border-color: var(--claude-secondary); }
+      .ring-secondary { --tw-ring-color: var(--claude-secondary); }
+      .bg-secondary-foreground { background-color: var(--claude-secondary-foreground); }
+      .text-secondary-foreground { color: var(--claude-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--claude-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--claude-secondary-foreground); }
+      .bg-muted { background-color: var(--claude-muted); }
+      .text-muted { color: var(--claude-muted); }
+      .border-muted { border-color: var(--claude-muted); }
+      .ring-muted { --tw-ring-color: var(--claude-muted); }
+      .bg-muted-foreground { background-color: var(--claude-muted-foreground); }
+      .text-muted-foreground { color: var(--claude-muted-foreground); }
+      .border-muted-foreground { border-color: var(--claude-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--claude-muted-foreground); }
+      .bg-accent { background-color: var(--claude-accent); }
+      .text-accent { color: var(--claude-accent); }
+      .border-accent { border-color: var(--claude-accent); }
+      .ring-accent { --tw-ring-color: var(--claude-accent); }
+      .bg-accent-foreground { background-color: var(--claude-accent-foreground); }
+      .text-accent-foreground { color: var(--claude-accent-foreground); }
+      .border-accent-foreground { border-color: var(--claude-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--claude-accent-foreground); }
+      .bg-destructive { background-color: var(--claude-destructive); }
+      .text-destructive { color: var(--claude-destructive); }
+      .border-destructive { border-color: var(--claude-destructive); }
+      .ring-destructive { --tw-ring-color: var(--claude-destructive); }
+      .bg-destructive-foreground { background-color: var(--claude-destructive-foreground); }
+      .text-destructive-foreground { color: var(--claude-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--claude-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--claude-destructive-foreground); }
+      .bg-border { background-color: var(--claude-border); }
+      .text-border { color: var(--claude-border); }
+      .border-border { border-color: var(--claude-border); }
+      .ring-border { --tw-ring-color: var(--claude-border); }
+      .bg-input { background-color: var(--claude-input); }
+      .text-input { color: var(--claude-input); }
+      .border-input { border-color: var(--claude-input); }
+      .ring-input { --tw-ring-color: var(--claude-input); }
+      .bg-ring { background-color: var(--claude-ring); }
+      .text-ring { color: var(--claude-ring); }
+      .border-ring { border-color: var(--claude-ring); }
+      .ring-ring { --tw-ring-color: var(--claude-ring); }
+      .bg-chart-1 { background-color: var(--claude-chart-1); }
+      .text-chart-1 { color: var(--claude-chart-1); }
+      .border-chart-1 { border-color: var(--claude-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--claude-chart-1); }
+      .bg-chart-2 { background-color: var(--claude-chart-2); }
+      .text-chart-2 { color: var(--claude-chart-2); }
+      .border-chart-2 { border-color: var(--claude-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--claude-chart-2); }
+      .bg-chart-3 { background-color: var(--claude-chart-3); }
+      .text-chart-3 { color: var(--claude-chart-3); }
+      .border-chart-3 { border-color: var(--claude-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--claude-chart-3); }
+      .bg-chart-4 { background-color: var(--claude-chart-4); }
+      .text-chart-4 { color: var(--claude-chart-4); }
+      .border-chart-4 { border-color: var(--claude-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--claude-chart-4); }
+      .bg-chart-5 { background-color: var(--claude-chart-5); }
+      .text-chart-5 { color: var(--claude-chart-5); }
+      .border-chart-5 { border-color: var(--claude-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--claude-chart-5); }
+      .bg-sidebar { background-color: var(--claude-sidebar); }
+      .text-sidebar { color: var(--claude-sidebar); }
+      .border-sidebar { border-color: var(--claude-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--claude-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--claude-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--claude-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--claude-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--claude-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--claude-sidebar-primary); }
+      .text-sidebar-primary { color: var(--claude-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--claude-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--claude-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--claude-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--claude-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--claude-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--claude-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--claude-sidebar-accent); }
+      .text-sidebar-accent { color: var(--claude-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--claude-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--claude-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--claude-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--claude-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--claude-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--claude-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+    <div class="page-floating">
+
+      <!-- 顶部标题区 -->
+      <header class="page-header">
+        <h1 class="page-title">悬浮窗</h1>
+        <p class="page-subtitle">多种悬浮快捷方式</p>
+      </header>
+
+      <!-- 示例 1：迷你悬浮球 -->
+      <section class="demo-section">
+        <h2 class="demo-title">迷你悬浮球</h2>
+        <p class="demo-desc">始终显示下一节课倒计时</p>
+        <div class="phone-frame">
+          <div class="schedule-bg"></div>
+          <div class="floating-ball">
+            <span class="ball-text">还有<br>5 分钟</span>
+            <svg class="ball-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 示例 2：快捷操作面板 -->
+      <section class="demo-section">
+        <h2 class="demo-title">快捷操作面板</h2>
+        <p class="demo-desc">一键添加课程、导入、跳转</p>
+        <div class="phone-frame">
+          <div class="schedule-bg"></div>
+          <div class="fab-container">
+            <!-- 教务导入 -->
+            <div class="fab-item">
+              <span class="fab-label">教务导入</span>
+              <div class="fab-btn purple">
+                <!-- 学士帽图标 -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                </svg>
+              </div>
+            </div>
+            <!-- 添加课程 -->
+            <div class="fab-item">
+              <span class="fab-label">添加课程</span>
+              <div class="fab-btn green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </div>
+            </div>
+            <!-- 跳转到今天 -->
+            <div class="fab-item">
+              <span class="fab-label">跳转到今天</span>
+              <div class="fab-btn blue">
+                <!-- 日历图标 -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+            </div>
+            <!-- 主按钮（收起态用 + 号，展开态用 × 号，这里展示展开态） -->
+            <div class="fab-main">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 示例 3：课表小窗 -->
+      <section class="demo-section">
+        <h2 class="demo-title">课表小窗</h2>
+        <p class="demo-desc">桌面悬浮显示今日课程</p>
+        <div class="phone-frame">
+          <div class="schedule-bg"></div>
+          <div class="float-widget">
+            <div class="widget-header">
+              <span class="widget-header-label">下一节课</span>
+              <div class="widget-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="widget-body">
+              <div class="widget-course">药理学</div>
+            </div>
+            <div class="widget-footer">
+              <span class="widget-time">10:10 - 11:50</span>
+              <span class="widget-room">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                A305
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="page-bottom"></div>
+    </div>
+
+    <style id="page-styles">
+      /* ===== Page layout ===== */
+      .page-floating {
+        max-width: 375px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      /* ===== Header ===== */
+      .page-header {
+        padding: 48px 24px 32px;
+        text-align: center;
+      }
+      .page-title {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 500;
+        color: var(--foreground);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+      }
+      .page-subtitle {
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+
+      /* ===== Demo section ===== */
+      .demo-section {
+        padding: 0 20px 32px;
+      }
+      .demo-section + .demo-section {
+        padding-top: 0;
+      }
+      .demo-title {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--foreground);
+        margin-bottom: 4px;
+      }
+      .demo-desc {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--muted-foreground);
+        margin-bottom: 16px;
+      }
+
+      /* ===== Phone frame ===== */
+      .phone-frame {
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        border-radius: 32px;
+        border: 2px solid var(--border-300);
+        background: var(--bg-50);
+        overflow: hidden;
+        position: relative;
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* ===== Schedule grid background (faded) ===== */
+      .schedule-bg {
+        position: absolute;
+        inset: 0;
+        background: var(--bg-100);
+        opacity: 0.6;
+      }
+      .schedule-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(to right, var(--border-200) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--border-200) 1px, transparent 1px);
+        background-size: calc(100% / 7) calc(100% / 10);
+      }
+      .schedule-bg::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: calc(100% / 7);
+        background: var(--bg-200);
+        opacity: 0.5;
+      }
+
+      /* ===== Floating ball (Example 1) ===== */
+      .floating-ball {
+        position: absolute;
+        right: 16px;
+        bottom: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px -4px rgba(201, 100, 66, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+      }
+      .floating-ball .ball-text {
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.2;
+        text-align: center;
+      }
+      .floating-ball .ball-arrow {
+        width: 14px;
+        height: 14px;
+        color: #ffffff;
+        margin-top: 2px;
+      }
+
+      /* ===== Quick action panel (Example 2) ===== */
+      .fab-container {
+        position: absolute;
+        right: 16px;
+        bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .fab-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: fabSlideUp 0.3s ease-out forwards;
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      .fab-item:nth-child(1) { animation-delay: 0.05s; }
+      .fab-item:nth-child(2) { animation-delay: 0.1s; }
+      .fab-item:nth-child(3) { animation-delay: 0.15s; }
+      @keyframes fabSlideUp {
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .fab-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-700);
+        background: var(--bg-50);
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        box-shadow: var(--shadow-sm);
+        white-space: nowrap;
+      }
+      .fab-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-md);
+        flex-shrink: 0;
+      }
+      .fab-btn svg {
+        width: 22px;
+        height: 22px;
+        color: #ffffff;
+      }
+      .fab-btn.purple {
+        background: linear-gradient(135deg, #9c87f5 0%, #7c6ad6 100%);
+        box-shadow: 0 4px 12px -2px rgba(156, 135, 245, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+      .fab-btn.green {
+        background: linear-gradient(135deg, #8cae6b 0%, #6e8c4f 100%);
+        box-shadow: 0 4px 12px -2px rgba(120, 140, 93, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+      .fab-btn.blue {
+        background: linear-gradient(135deg, #5ba3d6 0%, #3d85b8 100%);
+        box-shadow: 0 4px 12px -2px rgba(91, 163, 214, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+      .fab-main {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px -4px rgba(201, 100, 66, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+      }
+      .fab-main svg {
+        width: 24px;
+        height: 24px;
+        color: #ffffff;
+      }
+
+      /* ===== Floating schedule widget (Example 3) ===== */
+      .float-widget {
+        position: absolute;
+        left: 16px;
+        top: 24px;
+        width: 180px;
+        background: var(--bg-50);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.15), 0 2px 8px -4px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        border: 1px solid var(--border-200);
+      }
+      .float-widget::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--brand-500);
+      }
+      .widget-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px 6px 18px;
+      }
+      .widget-header-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .widget-close {
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-400);
+        cursor: pointer;
+        border-radius: 50%;
+      }
+      .widget-close svg {
+        width: 14px;
+        height: 14px;
+      }
+      .widget-body {
+        padding: 2px 14px 4px 18px;
+      }
+      .widget-course {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-800);
+        line-height: 1.3;
+        margin-bottom: 6px;
+      }
+      .widget-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px 12px 18px;
+      }
+      .widget-time {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--brand-600);
+      }
+      .widget-room {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-500);
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .widget-room svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      /* ===== Bottom spacing ===== */
+      .page-bottom {
+        height: 48px;
+      }
+    </style>
+</body>
+</html>

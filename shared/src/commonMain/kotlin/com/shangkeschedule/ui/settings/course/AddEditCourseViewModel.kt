@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -78,7 +79,7 @@ class AddEditCourseViewModel(
     private fun loadData() {
         viewModelScope.launch {
             val initialPresetData: PresetCourseData? = if (courseId == null) {
-                try { AddEditCourseChannel.presetDataFlow.first() } catch (_: Exception) { null }
+                AddEditCourseChannel.presetDataFlow.firstOrNull()
             } else { null }
 
             // 新建课程时的默认配色：在当前课表已有颜色中挑「全局占用最少」的索引，

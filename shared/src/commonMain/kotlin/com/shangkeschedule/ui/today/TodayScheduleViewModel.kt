@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
+import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.repository.TodoRepository
@@ -38,7 +40,8 @@ class TodayScheduleViewModel(
     private val courseTableRepository: CourseTableRepository,
     private val styleSettingsRepository: StyleSettingsRepository,
     private val timeSlotRepository: TimeSlotRepository,
-    private val todoRepository: TodoRepository
+    private val todoRepository: TodoRepository,
+    private val scheduleEventRepository: ScheduleEventRepository
 ) : ViewModel() {
 
     companion object {
@@ -146,8 +149,9 @@ class TodayScheduleViewModel(
                             flowOf(emptyList())
                         }
                     // 今日待办与课程并行组合进同一状态；待办不受学期状态影响，跨天随 currentDateFlow 自动重算
-                    combine(coursesFlow, tomorrowCoursesFlow, todoRepository.getTodosByDate(todayStr)) { courses, tomorrowCourses, todos ->
-                        createSuccessState(courses, tomorrowCourses, snapshot, today, todos)
+                    // 今日日程事件与待办同源，按日期过滤
+                    combine(coursesFlow, tomorrowCoursesFlow, todoRepository.getTodosByDate(todayStr), scheduleEventRepository.getEventsByDate(todayStr)) { courses, tomorrowCourses, todos, events ->
+                        createSuccessState(courses, tomorrowCourses, snapshot, today, todos, events)
                     }
                 }
             }
@@ -203,7 +207,8 @@ class TodayScheduleViewModel(
         tomorrowCourses: List<CourseWithWeeks>,
         snapshot: DataSnapshot,
         today: LocalDate,
-        todos: List<TodoItem> = emptyList()
+        todos: List<TodoItem> = emptyList(),
+        events: List<ScheduleEvent> = emptyList()
     ): TodayUiState.Success {
         val slotMap = snapshot.timeSlots.associateBy { it.number }
 
@@ -237,6 +242,7 @@ class TodayScheduleViewModel(
             courses = displayModels,
             tomorrowCourses = tomorrowDisplayModels,
             todos = todos,
+            events = events,
             weekIndex = snapshot.weekIndex ?: 0,
             today = today,
             status = snapshot.status,
@@ -261,6 +267,7 @@ sealed class TodayUiState {
         val courses: List<CourseDisplayModel>,
         val tomorrowCourses: List<CourseDisplayModel>,
         val todos: List<TodoItem>,
+        val events: List<ScheduleEvent> = emptyList(),
         val weekIndex: Int,
         val today: LocalDate,
         val status: TodayStatus,

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
@@ -71,11 +70,6 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import com.shangkeschedule.ui.components.AppDialogActions
-import shangkeschedule.shared.generated.resources.action_go_to_settings
-import shangkeschedule.shared.generated.resources.webview_semester_prompt_later
-import shangkeschedule.shared.generated.resources.webview_semester_prompt_message
-import shangkeschedule.shared.generated.resources.webview_semester_prompt_title
 import shangkeschedule.shared.generated.resources.webview_load_error_generic
 import shangkeschedule.shared.generated.resources.webview_load_error_fmt
 import shangkeschedule.shared.generated.resources.webview_load_error_detail
@@ -164,8 +158,6 @@ fun WebViewScreen(
     var isEditingUrl by remember { mutableStateOf(startedEmpty) }
     var isDevToolsEnabled by remember { mutableStateOf(false) }
     var showCourseTablePicker by remember { mutableStateOf(false) }
-    var showSemesterStartPrompt by remember { mutableStateOf(false) }
-
     val webViewController = rememberWebViewController()
 
     val coroutineScope = rememberCoroutineScope()
@@ -184,7 +176,7 @@ fun WebViewScreen(
                     if (courseConversionRepository.isSemesterStartDateSet()) {
                         onNavigate(Destination.CourseSchedule)
                     } else {
-                        showSemesterStartPrompt = true
+                        onNavigate(Destination.SemesterSettings)
                     }
                 }
             },
@@ -384,11 +376,11 @@ fun WebViewScreen(
                     .imePadding(),
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 content = {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = appSpacing().pageHorizontal),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
                             onClick = {
@@ -399,7 +391,7 @@ fun WebViewScreen(
                                 }
                             },
                             enabled = assetJsPath != null,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(Res.string.action_execute_import))
                         }
@@ -414,7 +406,7 @@ fun WebViewScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(Res.string.action_navigate_to_timetable))
                         }
@@ -534,25 +526,7 @@ fun WebViewScreen(
             }
             WebDialogHost(uiEvents = uiEventsFlow)
 
-            if (showSemesterStartPrompt) {
-                AlertDialog(
-                    onDismissRequest = { showSemesterStartPrompt = false },
-                    title = { Text(stringResource(Res.string.webview_semester_prompt_title)) },
-                    text = { Text(stringResource(Res.string.webview_semester_prompt_message)) },
-                    confirmButton = {
-                        AppDialogActions(
-                            confirmText = stringResource(Res.string.action_go_to_settings),
-                            onConfirm = {
-                                showSemesterStartPrompt = false
-                                onNavigate(Destination.SemesterSettings)
-                            },
-                            dismissText = stringResource(Res.string.webview_semester_prompt_later),
-                            onDismiss = { showSemesterStartPrompt = false }
-                        )
-                    },
-                    dismissButton = {}
-                )
-            }
+
         }
     }
 }

@@ -77,6 +77,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.data.db.main.ScheduleCategory
+import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -106,7 +108,6 @@ import com.shangkeschedule.ui.theme.claudeUiSans
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.TimetableDefaults
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
@@ -161,9 +162,13 @@ import shangkeschedule.shared.generated.resources.todo_edit
 import shangkeschedule.shared.generated.resources.todo_note_label
 import shangkeschedule.shared.generated.resources.todo_time_label
 import shangkeschedule.shared.generated.resources.todo_title_label
-import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.arrow_forward_24px
-import shangkeschedule.shared.generated.resources.build_24px
+import shangkeschedule.shared.generated.resources.agenda_category_activity
+import shangkeschedule.shared.generated.resources.agenda_category_exam
+import shangkeschedule.shared.generated.resources.agenda_category_homework
+import shangkeschedule.shared.generated.resources.agenda_category_other
+import shangkeschedule.shared.generated.resources.agenda_category_todo
+import shangkeschedule.shared.generated.resources.agenda_count_format
+
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.today_claude_badge_lab
 import shangkeschedule.shared.generated.resources.today_claude_badge_required
@@ -187,9 +192,6 @@ import shangkeschedule.shared.generated.resources.today_claude_tomorrow_format
 import shangkeschedule.shared.generated.resources.today_claude_type_lab
 import shangkeschedule.shared.generated.resources.today_claude_type_theory
 import shangkeschedule.shared.generated.resources.today_claude_view_all
-import shangkeschedule.shared.generated.resources.today_claude_week_next
-import shangkeschedule.shared.generated.resources.today_claude_week_prev
-import shangkeschedule.shared.generated.resources.today_claude_week_range
 import shangkeschedule.shared.generated.resources.widget_title_today
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
@@ -742,6 +744,13 @@ private fun ClaudeTodayContent(
             }
         }
 
+        // 今日日程事件（来自「日程」页新建的日程）
+        if (state.events.isNotEmpty()) {
+            item {
+                ClaudeEventsSection(events = state.events)
+            }
+        }
+
         if (state.tomorrowCourses.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -805,45 +814,26 @@ private fun ClaudeTodayHeader(
         statusText
     }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        // 周次胶囊：方形块，无箭头，与日期平齐
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(colors.primarySoft)
+                .padding(horizontal = 8.dp, vertical = 3.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(colors.primarySoft)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ClaudeWeekStepButton(
-                    icon = Res.drawable.arrow_back_24px,
-                    contentDescription = stringResource(Res.string.today_claude_week_prev)
-                )
-                Text(
-                    text = weekLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.02.em,
-                        lineHeight = 14.sp
-                    ),
-                    color = colors.primary,
-                    maxLines = 1,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-                ClaudeWeekStepButton(
-                    icon = Res.drawable.arrow_forward_24px,
-                    contentDescription = stringResource(Res.string.today_claude_week_next)
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            ClaudeIconButton(
-                icon = Res.drawable.build_24px,
-                contentDescription = stringResource(Res.string.title_today_schedule),
-                onClick = onOpenSettings
+            Text(
+                text = weekLabel,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.02.em,
+                    lineHeight = 14.sp
+                ),
+                color = colors.primary,
+                maxLines = 1
             )
         }
+        // 日期：紧接周次下方，间距缩小（不触碰状态栏）
         Text(
             text = dateText,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -854,29 +844,7 @@ private fun ClaudeTodayHeader(
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
-        )
-    }
-}
-
-/** 周次胶囊内的翻页箭头（设计稿周次标签形态，当前为视觉指示）。 */
-@Composable
-private fun ClaudeWeekStepButton(
-    icon: DrawableResource,
-    contentDescription: String
-) {
-    val colors = appColors()
-    Box(
-        modifier = Modifier
-            .size(24.dp)
-            .clip(CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(14.dp),
-            tint = colors.primary.copy(alpha = 0.55f)
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
         )
     }
 }
@@ -1413,6 +1381,128 @@ private fun ClaudeTomorrowCard(
     }
 }
 
+/** 今日日程事件区段：来自「日程」页新建的日程，展示在课程时间轴之后。 */
+@Composable
+private fun ClaudeEventsSection(events: List<ScheduleEvent>) {
+    val colors = appColors()
+    Spacer(modifier = Modifier.height(8.dp))
+    ClaudeSectionLabelRow(
+        label = stringResource(Res.string.title_today_schedule),
+        trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
+        fillWidth = true
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    events.forEachIndexed { index, event ->
+        ClaudeEventRow(event = event, index = index, isLast = index == events.lastIndex)
+        if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun ClaudeEventRow(
+    event: ScheduleEvent,
+    index: Int,
+    isLast: Boolean
+) {
+    val colors = appColors()
+    val categoryColor = when (ScheduleCategory.fromKey(event.category)) {
+        ScheduleCategory.TODO -> Color(0xFF4CAF50)
+        ScheduleCategory.ACTIVITY -> Color(0xFFFF9800)
+        ScheduleCategory.EXAM -> Color(0xFFF44336)
+        ScheduleCategory.HOMEWORK -> Color(0xFF2196F3)
+        ScheduleCategory.OTHER -> colors.textSecondary
+    }
+    val metaLine = listOfNotNull(
+        stringResource(when (ScheduleCategory.fromKey(event.category)) {
+            ScheduleCategory.TODO -> Res.string.agenda_category_todo
+            ScheduleCategory.ACTIVITY -> Res.string.agenda_category_activity
+            ScheduleCategory.EXAM -> Res.string.agenda_category_exam
+            ScheduleCategory.HOMEWORK -> Res.string.agenda_category_homework
+            ScheduleCategory.OTHER -> Res.string.agenda_category_other
+        }),
+        event.location
+    ).joinToString(" · ")
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 左侧时间占位（与课程时间列对齐）
+        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = 18.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colors.divider)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 9.dp, y = 6.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(categoryColor)
+            )
+        }
+        // 右侧内容卡
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.cardBg)
+                .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Column {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 18.sp
+                    ),
+                    color = colors.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (metaLine.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = metaLine,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                event.note?.takeIf { it.isNotBlank() }?.let { note ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary.copy(alpha = 0.75f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
 @Composable
 private fun ClaudeIconButton(
@@ -1709,23 +1799,13 @@ private fun TodoRow(
     onClick: () -> Unit
 ) {
     val themePreset = LocalThemePreset.current
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
     // 待办采用固定青色系，与课程配色区分；渲染逻辑与课程条（CourseTimelineItem）保持一致
-    val colorPair = TimetableDefaults.todoCourseColor
-    val themeColor = if (isTimetablePreset) {
-        colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
-    } else {
-        if (isDark) colorPair.dark else colorPair.light
-    }
-    val stripColor = colorPair.dark
-    val textColor = if (isTimetablePreset) {
-        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
-    } else {
-        gridStyle.courseTextColorLong?.let { Color(it) }
-            ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
-    }
+    val colorPair = DualColor(light = Color(0xFFB2EBF2), dark = Color(0xFF0097A7))
+    val themeColor = if (isDark) colorPair.dark else colorPair.light
+    val textColor = gridStyle.courseTextColorLong?.let { Color(it) }
+        ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
 
     val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
     val shape = RoundedCornerShape(cornerRadius)
@@ -1755,20 +1835,7 @@ private fun TodoRow(
         else -> Modifier
     }
     // 已完成待办整体降透明（同课程已结束）
-    val blockAlpha = when {
-        todo.done && isTimetablePreset -> 0.7f
-        todo.done -> 0.5f
-        else -> gridStyle.courseBlockAlphaFloat
-    }
-    // 利落主题：左侧色条用 drawBehind 绘制（同课程条）
-    val itemStripDrawModifier = if (isTimetablePreset) {
-        Modifier.drawBehind {
-            drawRect(
-                color = stripColor,
-                size = Size(width = 3.dp.toPx(), height = size.height)
-            )
-        }
-    } else Modifier
+    val blockAlpha = if (todo.done) 0.5f else gridStyle.courseBlockAlphaFloat
 
     Row(
         modifier = Modifier
@@ -1795,6 +1862,7 @@ private fun TodoRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
+        val itemStripDrawModifier = Modifier
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -1806,12 +1874,11 @@ private fun TodoRow(
                 .then(itemStripDrawModifier)
         ) {
             val innerPadding = gridStyle.courseBlockInnerPaddingDp.dp
-            val timetableStartPad = if (isTimetablePreset) 3.dp else 0.dp
             val nameFontSize = (13f * gridStyle.courseBlockFontScale).sp
             val metaFontSize = (10f * gridStyle.courseBlockFontScale).sp
             Column(
                 modifier = Modifier.padding(
-                    start = innerPadding + timetableStartPad,
+                    start = innerPadding,
                     top = innerPadding,
                     end = innerPadding,
                     bottom = innerPadding
@@ -2104,22 +2171,10 @@ private fun NextCourseCard(
     }
 
     val themePreset = LocalThemePreset.current
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
-    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，
-    // 改用 dark 半透明作为背景，保证对比度。
-    val themeColor = if (isTimetablePreset) {
-        colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
-    } else {
-        if (isDark) colorPair.dark else colorPair.light
-    }
-    val stripColor = colorPair.dark
-    val textColor = if (isTimetablePreset) {
-        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
-    } else {
-        gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
-    }
+    val themeColor = if (isDark) colorPair.dark else colorPair.light
+    val textColor = gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
 
     val start = parseOrNull(target.startTime)
     val end = parseOrNull(target.endTime)
@@ -2130,28 +2185,14 @@ private fun NextCourseCard(
         Modifier.shadow(elevation = 3.dp, shape = shape, clip = false)
     } else Modifier
 
-    // 利落主题：左侧色条用 drawBehind 绘制，不参与测量。
-    // 若用子 Box + fillMaxHeight，在 Column 宽松 max 高度约束下会把整个卡片撑到剩余全部高度，
-    // 挤掉下方课程列表（今日课表只显示一个课程的根因）。
-    val stripDrawModifier = if (isTimetablePreset) {
-        Modifier.drawBehind {
-            drawRect(
-                color = stripColor,
-                size = Size(width = 3.dp.toPx(), height = size.height)
-            )
-        }
-    } else Modifier
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .then(shadowModifier)
             .clip(shape)
             .background(color = themeColor)
-            .then(stripDrawModifier)
     ) {
-        val startPadding = if (isTimetablePreset) 19.dp else 16.dp
-        Column(modifier = Modifier.padding(start = startPadding, end = 16.dp, top = 16.dp, bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = target.course.name,
@@ -2259,23 +2300,10 @@ fun CourseTimelineItem(
     }
 
     val themePreset = LocalThemePreset.current
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
-    // 利落主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，
-    // 改用 dark 半透明作为背景，保证对比度。
-    val themeColor = if (isTimetablePreset) {
-        colorPair.dark.copy(alpha = if (isDark) 0.25f else 0.18f)
-    } else {
-        if (isDark) colorPair.dark else colorPair.light
-    }
-    val stripColor = colorPair.dark
-    // 与主课表 CourseBlock 一致：利落主题用 dark，其他主题优先用自定义 courseTextColor
-    val textColor = if (isTimetablePreset) {
-        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
-    } else {
-        gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
-    }
+    val themeColor = if (isDark) colorPair.dark else colorPair.light
+    val textColor = gridStyle.courseTextColorLong?.let { Color(it) } ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
 
     val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
     val shape = RoundedCornerShape(cornerRadius)
@@ -2304,13 +2332,8 @@ fun CourseTimelineItem(
         }
         else -> Modifier
     }
-    // 已结束课程整体降透明；但利落主题背景本身 alpha=0.18，再乘 0.5 会近乎隐形，
-    // 故利落主题下抬升到 0.7 只做轻微淡化。
-    val blockAlpha = when {
-        isFinished && isTimetablePreset -> 0.7f
-        isFinished -> 0.5f
-        else -> gridStyle.courseBlockAlphaFloat
-    }
+    // 已结束课程整体降透明
+    val blockAlpha = if (isFinished) 0.5f else gridStyle.courseBlockAlphaFloat
 
     // v3.26.0 C+.15 今日页课程卡点按反馈：按压缩放（读全局令牌；
     // 关掉「课程格反馈」分组 ⇒ snap 到原样）。今日页课程卡此前纯展示无任何反馈。
@@ -2370,16 +2393,7 @@ fun CourseTimelineItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            // 利落主题：左侧色条用 drawBehind 绘制，不参与测量（同 NextCourseCard，
-            // 避免 fillMaxHeight 子 Box 在宽松高度约束下撑爆父容器）
-            val itemStripDrawModifier = if (isTimetablePreset) {
-                Modifier.drawBehind {
-                    drawRect(
-                        color = stripColor,
-                        size = Size(width = 3.dp.toPx(), height = size.height)
-                    )
-                }
-            } else Modifier
+            val itemStripDrawModifier = Modifier
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2411,14 +2425,13 @@ fun CourseTimelineItem(
             ) {
                 // 与主课表 CourseBlock 一致的内边距和字号
                 val innerPadding = gridStyle.courseBlockInnerPaddingDp.dp
-                val timetableStartPad = if (isTimetablePreset) 3.dp else 0.dp
                 val nameFontSize = (13f * gridStyle.courseBlockFontScale).sp
                 val metaFontSize = (10f * gridStyle.courseBlockFontScale).sp
                 val horizontalAlignment = if (gridStyle.textAlignCenterHorizontal) Alignment.CenterHorizontally else Alignment.Start
                 val textAlign = if (gridStyle.textAlignCenterHorizontal) TextAlign.Center else TextAlign.Start
                 Column(
                     modifier = Modifier.padding(
-                        start = innerPadding + timetableStartPad,
+                        start = innerPadding,
                         top = innerPadding,
                         end = innerPadding,
                         bottom = innerPadding

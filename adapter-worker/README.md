@@ -77,22 +77,42 @@ curl -i -H "X-App-Secret: <APP_SECRET>" $BASE/README.md
 ## 四、绑定自定义域（大陆可用性必需）
 
 `*.workers.dev` 在中国大陆遭 DNS 污染（实测被解析到 Dropbox / Facebook / Twitter 等无关 IP），
-**必须**改用自己的域名才能对大陆用户可用：
+**必须**改用自己的域名才能对大陆用户可用。
 
-1. 把域名接入 Cloudflare：在域名注册商处把 NS 改为 Cloudflare 分配的两个地址，等待域名状态变为 `Active`。
-2. 在 `wrangler.toml` 中声明自定义域：
+本项目使用的域名：**`shangke.asia`**（注册商：阿里云，当前 NS 为 `dns7/dns8.hichina.com`）。
+
+> ⚠️ Cloudflare Workers 的自定义域**要求域名托管在 Cloudflare**。用外部 DNS 加 CNAME 指向
+> `*.workers.dev` **无效**——网关按 Host 匹配路由，且 Cloudflare 不会为该 hostname 下发证书。
+> 因此必须先迁移 NS。
+
+### 步骤
+
+1. 先确认域名现状：**阿里云 → 域名控制台** → `shangke.asia`。
+   如有邮箱（MX）等既有解析记录，先记录下来，方便在 Cloudflare 侧核对。
+   > 迁移 NS 只是更换解析服务商，**不需要 ICP 备案**（服务托管在 Cloudflare 境外）。
+2. **Cloudflare Dashboard → Add a site** → 输入 `shangke.asia` → 选 **Free** 计划
+   → 拿到两个 NS（形如 `xxx.ns.cloudflare.com`）。
+3. **阿里云 → 域名控制台 → `shangke.asia` → DNS 修改** → 把 `dns7/dns8.hichina.com`
+   替换为 Cloudflare 给的两个 NS → 保存。
+4. 等待 Cloudflare 站点状态变为 **Active**（一般几分钟 ~ 24 小时）。
+5. 在本目录 `wrangler.toml` 中声明自定义域后重新部署：
 
    ```toml
    routes = [
-     { pattern = "adapter.你的域名", custom_domain = true }
+     { pattern = "adapter.shangke.asia", custom_domain = true }
    ]
    ```
 
+   ```bash
+   npx wrangler deploy
+   ```
+
    `custom_domain = true` 时 Cloudflare 会自动创建所需 DNS 记录，无需手动加 CNAME。
-3. 重新部署：`npx wrangler deploy`。
-4. 把新域名写入 APP 侧 `adapter_secrets.properties` 的 `adapter.workerUrl`，并重新构建 APP。
+6. 把新域名写入 APP 侧 `adapter_secrets.properties` 的 `adapter.workerUrl`，重新构建 APP。
 
 > 建议保留 `workers_dev` 作为备用入口；正式对外以自定义域为准。
+> 子域可换（`api.` / 直接用根域 `shangke.asia`），改 `routes` 的 `pattern` 与
+> APP 侧的 `adapter.workerUrl` 保持一致即可。
 
 ---
 

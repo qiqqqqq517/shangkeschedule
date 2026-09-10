@@ -181,8 +181,6 @@ fun claudeLightAppColorTokens(): AppColorTokens = AppColorTokens(
     // Snackbar —— 深底浅字（暖炭底 + 暖砂字）
     snackbarBg = ClaudeText800,               // text-800 #3d3929
     snackbarFg = ClaudeBg100,                 // bg-100 #faf9f5
-    // 深色课表文字（利落预设专用，此处按 CLAUDE 深色前景占位）
-    timetableTextOnDark = ClaudeDarkText800,  // #f1f1ef
     // 阴影 —— 对齐设计系统 shadow-sm/md 的 rgba(0,0,0,.1)
     shadow = Color(0x1A000000)
 )
@@ -230,8 +228,6 @@ fun claudeDarkAppColorTokens(): AppColorTokens = run {
         // Snackbar —— 深色下同样保持深底浅字
         snackbarBg = ClaudeDarkBg300,
         snackbarFg = ClaudeDarkText800,
-        // 深色课表文字
-        timetableTextOnDark = ClaudeDarkText800,
         // 阴影 —— 深色下更重，靠层级区分
         shadow = Color(0x66000000)
     )

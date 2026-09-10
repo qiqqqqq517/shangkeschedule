@@ -7,6 +7,29 @@
 
 ## 最新版本
 
+### v3.39.0（2026-09-10）· 今日课表 UI 调整 + 日程事件同步 + 教务导入入口
+
+**功能**
+- **今日课表页头重做**：左上角周次胶囊从圆角胶囊（含左右箭头）改为方形块，视觉更简洁；日期文字上移 6dp 与周次胶囊更紧凑；删除右上角设置按钮
+- **课表页三点菜单新增教务导入**：溢出菜单（⋮）顶部新增「教务系统导入」条目，使用学校图标，直接跳转学校选择列表
+- **日程页周条左右滑动**：在周日期条上支持水平拖拽手势，左滑切换下一天、右滑切换前一天，拖拽期间不响应格子点击
+- **教务导入页底部栏改为并排**：「执行导入」与「一键导航到课表」由上下堆叠改为左右并排等宽，减少底部占位
+
+**数据**
+- **今日课表同步日程事件**：今日课表页（Claude 主题）在课程时间轴之后展示来自「日程」页新建的自建日程，含分类彩色圆点（待办绿/活动橙/考试红/作业蓝）、地点、备注
+
+**其他**
+- 移除「利落」（TIMETABLE）主题预设，主题列表仅保留经典 / 云舒 / 书卷（Claude）等既有主题
+
+**修复**
+- 修复关闭「显示周末」时会静默把「每周起始日」重置为周一、覆盖用户已选起始日的问题
+- 修复教务导入成功后「学期起始日」提示弹窗重复（主界面与导入页各维护一份）的问题
+- 修复新建课程页在未收到预设数据时可能卡死的问题（CONFLATED 通道 `first()` 改为 `firstOrNull()`）
+
+**涉及文件**：`TodayScheduleScreen.kt`、`TodayScheduleViewModel.kt`、`WeeklyScheduleScreen.kt`、`AgendaScreen.kt`、`WebViewScreen.kt`、`AppThemePreset.kt`、`AppStyle.kt`、`ClaudeStyle.kt`、`CourseBlock.kt`、`ScheduleGridComponents.kt`、`AppearanceSettingsScreen.kt`、`AppSettingsViewModel.kt`、`AddEditCourseViewModel.kt` · versionCode 167
+
+---
+
 ### v3.38.0（2026-09-10）· 教务适配私有化 + 导入页一键导航到课表
 
 **功能**
