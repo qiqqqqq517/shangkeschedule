@@ -58,7 +58,14 @@
     <string name="today_claude_meta_room">上课地点</string>
     <string name="today_claude_meta_teacher">授课教师</string>
     <string name="today_claude_meta_weeks">上课周次</string>
-    <string name="today_claude_meta_credit">学分</string>
+    <string name="today_claude_meta_credit">学分</string>
+    <string name="today_claude_next_label">下一节课</string>
+    <string name="today_claude_note_type">课程类型</string>
+    <string name="today_claude_note_hours">学时</string>
+    <string name="today_claude_type_theory">理论教学</string>
+    <string name="today_claude_type_lab">实验教学</string>
+    <string name="today_claude_sections_format">%1$s 节</string>
+    <string name="today_claude_countdown_label">分钟后开始</string>
     <string name="today_claude_sheet_close">关闭</string>
     <string name="today_claude_sheet_edit">编辑课程</string>
     <string name="settings_group_course">课程设置</string>
