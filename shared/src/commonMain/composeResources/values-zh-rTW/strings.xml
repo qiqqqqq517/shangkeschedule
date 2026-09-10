@@ -955,4 +955,41 @@
     <string name="import_edit_label_end_section">結束節次</string>
     <string name="import_edit_label_weeks">週次（如 1-16,19）</string>
     <string name="import_edit_error_invalid">輸入有誤：星期須為 1-7 的整數，節次須同時填寫或同時留空，週次格式如 1-16,19</string>
+
+    <!-- 學期管理頁（課表管理頁新設計） -->
+    <string name="semester_archive_eyebrow">學期檔案</string>
+    <string name="title_semester_management">學期管理</string>
+    <string name="view_earlier_semesters">查看更早的學期</string>
+    <string name="total_tables_count_format">共 %1$d 個學期</string>
+    <string name="semester_count_short_format">%1$d 個學期</string>
+    <string name="status_current_semester">當前學期</string>
+    <string name="courses_count_format">%1$d 門課程</string>
+    <string name="weeks_count_format">%1$d 週</string>
+    <string name="week_progress_format">第 %1$d 週 / 共 %2$d 週</string>
+    <string name="no_semester_configured">未設定開學日期</string>
+    <string name="action_view_timetable">查看課表</string>
+    <string name="action_semester_settings">學期設定</string>
+    <string name="section_bottom_actions">操作</string>
+    <string name="semester_progress_label">學期進度</string>
+    <string name="progress_percent_format">已過 %1$d%%</string>
+    <string name="school_year_format">%1$d-%2$d 學年</string>
+    <string name="status_semester_completed">已完成</string>
+    <string name="action_view">查看</string>
+    <string name="stat_courses_unit">門課程</string>
+    <string name="stat_teaching_weeks_unit">教學週</string>
+    <string name="eyebrow_new_semester">新建學期</string>
+    <string name="title_add_semester_ways">新增學期的方式</string>
+    <string name="option_import_semester">匯入新學期</string>
+    <string name="option_import_semester_desc">從教務系統一鍵匯入課表資料</string>
+    <string name="option_create_semester">手動建立學期</string>
+    <string name="option_create_semester_desc">從零開始手動新增課程資訊</string>
+    <string name="option_restore_backup">從備份還原</string>
+    <string name="option_restore_backup_desc">從本機備份檔案還原學期資料</string>
+    <string name="a11y_new_semester">新建學期</string>
+    <string name="text_no_semesters_hint">暫無學期，使用下方方式新增第一個學期</string>
+    <!-- 時間段管理頁（新設計） -->
+    <string name="auto_switch_item_title">自動切換</string>
+    <string name="hint_scheme_in_use">當前使用</string>
+    <string name="action_restore_default">恢復預設</string>
+    <string name="toast_restored_default">已恢復預設，儲存後生效</string>
 </resources>
