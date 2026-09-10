@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.okio.OkioSerializer
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
@@ -27,6 +28,30 @@ import org.koin.core.annotation.Single
 
 /** DataStore 文件名常量 */
 const val SCHEDULE_STYLE_DATASTORE_FILE_NAME = "schedule_style_settings.pb"
+
+/**
+ * 已知的「历史预设调色板」→ 所属主题预设。
+ *
+ * 用途见 [StyleSettingsRepository.upgradeLegacyPresetPalette]：把老用户 DataStore 里快照的旧配色
+ * 升级为当前预设配色。以后若再次重做某个主题的调色板，把被替换掉的那一版登记到这里即可。
+ */
+private val LEGACY_PRESET_PALETTES: List<Pair<List<DualColor>, AppThemePreset>> = listOf(
+    // 「书卷」旧 12 色（v3.35.4 及以前）：赤陶/珊瑚/红/玫瑰/棕 等暖色色差过小难以区分，已被 20 色取代
+    listOf(
+        DualColor(Color(0x40C96442), Color(0xFFC96442)),
+        DualColor(Color(0x409C87F5), Color(0xFF9C87F5)),
+        DualColor(Color(0x40788C5D), Color(0xFF788C5D)),
+        DualColor(Color(0x40E88672), Color(0xFFE88672)),
+        DualColor(Color(0x40A8863C), Color(0xFFA8863C)),
+        DualColor(Color(0x405A8FB0), Color(0xFF5A8FB0)),
+        DualColor(Color(0x40D65450), Color(0xFFD65450)),
+        DualColor(Color(0x407A8A4F), Color(0xFF7A8A4F)),
+        DualColor(Color(0x405F9A5A), Color(0xFF5F9A5A)),
+        DualColor(Color(0x40D86485), Color(0xFFD86485)),
+        DualColor(Color(0x409A6B4E), Color(0xFF9A6B4E)),
+        DualColor(Color(0x404E8F8A), Color(0xFF4E8F8A)),
+    ) to AppThemePreset.CLAUDE,
+)
 
 /**
  * 样式配置的 DataStore 序列化器，基于 Wire 协议与 Okio 跨平台流实现。
@@ -99,12 +124,38 @@ class StyleSettingsRepository(
         // 异步预热缓存
         preloadScope.launch {
             try {
+                upgradeLegacyPresetPalette()
                 val current = dataStore.data.map { it.toCompose() }.first()
                 styleCache.value = current
             } catch (_: Exception) {
                 // 预热失败，后续仍可从 dataStore 读取
             }
         }
+    }
+
+    /**
+     * 一次性把「历史预设调色板」升级为当前预设调色板。
+     *
+     * 背景：用户选择主题时 [applyStylePreset] 会把整套样式（含 `course_color_maps`）快照进 DataStore，
+     * 而读取时 `toCompose()` 优先采用持久化值。于是**之后修改预设调色板对老用户完全无效**——
+     * 他们读到的始终是当初快照的旧配色（v3.35.5 重做书卷 20 色后仍显示旧色的根因即在此）。
+     *
+     * 策略：仅当持久化配色与某个「历史预设调色板」逐色完全一致时才替换为新配色；
+     * 用户手动改过颜色（与任何历史预设都不完全一致）时原样保留，不覆盖用户的选择。
+     */
+    suspend fun upgradeLegacyPresetPalette() {
+        val proto = dataStore.data.first()
+        if (proto.course_color_maps.isEmpty()) return
+
+        val persisted = proto.course_color_maps.map { it.toCompose() }
+        val matchedPreset = LEGACY_PRESET_PALETTES
+            .firstOrNull { (legacyPalette, _) -> legacyPalette == persisted }
+            ?.second
+            ?: return
+
+        val upgraded = matchedPreset.gridStyle.courseColorMaps.map { it.toProto() }
+        if (upgraded == proto.course_color_maps) return
+        updateStyle { it.copy(course_color_maps = upgraded) }
     }
 
     // --- 备份与恢复扩展 API ---
