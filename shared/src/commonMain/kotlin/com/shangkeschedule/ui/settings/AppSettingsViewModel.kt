@@ -118,7 +118,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             uiState.value.courseConfig?.let { currentConfig ->
                 val update = if (!show) {
-                    currentConfig.copy(showWeekends = false, firstDayOfWeek = DayOfWeek.MONDAY.isoDayNumber)
+                    currentConfig.copy(showWeekends = false)
                 } else {
                     currentConfig.copy(showWeekends = true)
                 }

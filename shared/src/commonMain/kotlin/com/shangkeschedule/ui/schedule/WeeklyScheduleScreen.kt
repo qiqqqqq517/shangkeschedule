@@ -93,6 +93,7 @@ import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
@@ -121,7 +122,7 @@ import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.TimetableDefaults
+
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
@@ -154,7 +155,9 @@ import shangkeschedule.shared.generated.resources.more_vert_24px
 import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.item_more_options
 import shangkeschedule.shared.generated.resources.class_24px
+import shangkeschedule.shared.generated.resources.item_school_system_import
 import shangkeschedule.shared.generated.resources.palette_24px
+import shangkeschedule.shared.generated.resources.school_24px
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.title_manage_course_tables
 import shangkeschedule.shared.generated.resources.title_add_course
@@ -445,6 +448,15 @@ fun WeeklyScheduleScreen(
                                     expanded = showOverflowMenu,
                                     onDismissRequest = { showOverflowMenu = false }
                                 ) {
+                                    TelegramMenuItem(
+                                        icon = vectorResource(Res.drawable.school_24px),
+                                        text = stringResource(Res.string.item_school_system_import),
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onNavigate(Destination.SchoolSelectionListScreen())
+                                        }
+                                    )
+                                    TelegramMenuDivider()
                                     TelegramMenuItem(
                                         icon = vectorResource(Res.drawable.add_24px),
                                         text = stringResource(Res.string.title_add_course),
@@ -1070,48 +1082,32 @@ private fun ScheduleListViewBlock(
 ) {
     val isDark = LocalIsDarkTheme.current
     val themePreset = LocalThemePreset.current
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
 
     val firstCourse = block.courses.firstOrNull()?.course
     val colorIndex = firstCourse?.colorInt ?: 0
     val colorPair = composedStyle.courseColorMaps.getOrElse(colorIndex) {
-        composedStyle.courseColorMaps.firstOrNull() ?: TimetableDefaults.fallbackCourseColor
+        composedStyle.courseColorMaps.firstOrNull() ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
     }
 
-    // 利落主题：浅色背景 + 深色色条 + 深色文字；其他主题：常规彩色背景
     // 背景按「课程块不透明度」乘算：颜色池自带 alpha（淡底令牌）必须保留，只在其上缩放，
     // 与网格视图 CourseBlock 的取色方式保持一致。
-    val bg = (if (isTimetablePreset) {
-        if (isDark) colorPair.dark.copy(alpha = 0.15f) else colorPair.light
-    } else {
-        if (isDark) colorPair.dark else colorPair.light
-    }).scaleAlpha(composedStyle.courseBlockAlpha)
+    val bg = (if (isDark) colorPair.dark else colorPair.light).scaleAlpha(composedStyle.courseBlockAlpha)
     val stripColor = colorPair.dark
-    val textColor = if (isTimetablePreset) {
-        if (isDark) appColorTokens(isDark).timetableTextOnDark else colorPair.dark
-    } else {
-        adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
-    }
+    val textColor = adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
     val demotedAlpha = if (block.isVisualDemoted) AppAlpha.dimmed else 1f
     val cornerRadius = composedStyle.courseBlockCornerRadius
     val shape = RoundedCornerShape(cornerRadius)
 
-    // 云舒主题加阴影；利落/经典不加
+    // 云舒主题加阴影；经典不加
     val shadowModifier = if (isSleepyPreset && !block.isVisualDemoted) {
         Modifier.shadow(elevation = 2.dp, shape = shape, clip = false)
     } else Modifier
 
-    // 利落主题：左侧色条用 drawBehind 绘制，不参与测量
+    // 左侧色条用 drawBehind 绘制，不参与测量
     // （fillMaxHeight 子 Box 在宽松/无限高度约束下会失效或撑爆父容器）
-    val stripDrawModifier = if (isTimetablePreset) {
-        Modifier.drawBehind {
-            drawRect(
-                color = stripColor,
-                size = Size(width = 3.dp.toPx(), height = size.height)
-            )
-        }
-    } else Modifier
+    // 已删除利落主题色条支持，iOS 主题由 CourseBlock 统一处理
+    val stripDrawModifier = Modifier
 
     // v3.26.0 C+.17 页面入场错峰淡入：rememberSaveable 记住结果——LazyColumn 会回收
     // 滚出视口的 item，普通 remember 会导致每次滚回来都重播淡入；存入 saveable 后
@@ -1150,7 +1146,7 @@ private fun ScheduleListViewBlock(
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
 
-        val startPadding = if (isTimetablePreset) 15.dp else 12.dp
+        val startPadding = 12.dp
         Column(
             modifier = Modifier.padding(
                 start = startPadding,

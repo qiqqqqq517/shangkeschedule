@@ -66,8 +66,6 @@ data class AppColorTokens(
     // Snackbar 深色提示条（Telegram 形态：深底浅字，深浅两套观感一致）
     val snackbarBg: Color,
     val snackbarFg: Color,
-    // 利落（TIMETABLE）预设深色模式下的课表文字
-    val timetableTextOnDark: Color,
     // 阴影基色
     val shadow: Color
 ) {
@@ -125,7 +123,6 @@ private fun lightAppColorTokens() = AppColorTokens(
     badgeFg = Color(0xFFFFFFFF),
     snackbarBg = Color(0xFF23262E),
     snackbarFg = Color(0xFFFFFFFF),
-    timetableTextOnDark = Color(0xFFE0E0E0),
     shadow = Color(0x14101828)
 )
 
@@ -173,7 +170,6 @@ private fun darkAppColorTokens() = run {
         badgeFg = Color(0xFFE9EAF0),
         snackbarBg = cardBgElevated,
         snackbarFg = textPrimary,
-        timetableTextOnDark = Color(0xFFE0E0E0),
         shadow = Color(0x66000000)
     )
 }
@@ -245,8 +241,6 @@ private fun iosLightAppColorTokens() = AppColorTokens(
     // Snackbar —— iOS 风格深色毛玻璃提示
     snackbarBg = Color(0xE61C1C1E),
     snackbarFg = Color(0xFFFFFFFF),
-    // 利落预设深色课表文字（iOS 主题不使用，占位）
-    timetableTextOnDark = Color(0xFFFFFFFF),
     // 阴影 —— iOS 风格极淡阴影，几乎不可见
     shadow = Color(0x0A000000)
 )
@@ -306,8 +300,6 @@ private fun iosDarkAppColorTokens() = run {
         // Snackbar —— 深色毛玻璃提示
         snackbarBg = Color(0xE62C2C2E),
         snackbarFg = Color(0xFFFFFFFF),
-        // 利落预设深色课表文字（占位）
-        timetableTextOnDark = Color(0xFFFFFFFF),
         // 阴影 —— 深色下几乎无阴影，靠层级区分
         shadow = Color(0x05000000)
     )
@@ -464,14 +456,14 @@ fun ColorScheme.withAppSurfaces(tokens: AppColorTokens): ColorScheme = copy(
 // 主题化形状 / 间距 / 字阶 tokens（v3.30.0 通透主题全站 HIG 重构新增）
 //
 // 设计原则：
-// - 默认值 = 现有 v2 基线（经典/云舒/利落主题完全不变）
+// - 默认值 = 现有 v2 基线（经典/云舒主题完全不变）
 // - Apple HIG 值 = 通透主题专属（更大圆角、更多留白、SF 风格字阶）
 // - 通过 CompositionLocal 注入，组件层用 appShapes()/appSpacing()/appType() 访问
 // ============================================================================
 
 /**
  * 形状 tokens：统一管理所有圆角形状。
- * 默认值与原 AppShape 对象完全一致，保证经典/云舒/利落主题零回归。
+ * 默认值与原 AppShape 对象完全一致，保证经典/云舒主题零回归。
  *
  * 使用 RoundedCornerShape 而非 Shape 接口，保证可用于 MaterialTheme Shapes
  * （M3 Shapes 要求 CornerBasedShape 类型）。

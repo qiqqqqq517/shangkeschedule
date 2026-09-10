@@ -4,6 +4,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,8 +82,11 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -436,9 +441,26 @@ private fun AgendaWeekStrip(
 ) {
     val tokens = appColors()
     val shapes = appShapes()
+    var isSwiping by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragEnd = { isSwiping = false }
+                ) { _, dragAmount ->
+                    if (dragAmount.x < -50f && !isSwiping) {
+                        isSwiping = true
+                        val current = weekDays.firstOrNull { it.isSelected }?.date
+                        if (current != null) onSelectDate(current.plus(1, DateTimeUnit.DAY))
+                    } else if (dragAmount.x > 50f && !isSwiping) {
+                        isSwiping = true
+                        val current = weekDays.firstOrNull { it.isSelected }?.date
+                        if (current != null) onSelectDate(current.minus(1, DateTimeUnit.DAY))
+                    }
+                }
+            },
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         weekDays.forEach { cell ->
@@ -454,7 +476,7 @@ private fun AgendaWeekStrip(
                     .weight(1f)
                     .clip(shapes.chipSmall)
                     .background(if (selected) tokens.primary else Color.Transparent)
-                    .clickable { onSelectDate(cell.date) }
+                    .clickable(enabled = !isSwiping) { onSelectDate(cell.date) }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

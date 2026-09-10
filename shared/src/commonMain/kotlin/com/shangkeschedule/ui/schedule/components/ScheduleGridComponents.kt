@@ -178,7 +178,6 @@ fun DayHeader(
         val shouldShowDate = !style.hideDateUnderDay && maxHeight >= 42.dp
         val themePreset = LocalThemePreset.current
         val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
-        val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
 
         Row(Modifier.fillMaxSize()) {
             Box(
@@ -242,7 +241,7 @@ fun DayHeader(
                             .weight(1f)
                             .fillMaxHeight()
                             .background(
-                                if (isToday && !isSleepyPreset && !isTimetablePreset) {
+                                if (isToday && !isSleepyPreset) {
                                     appColors().primarySoft.copy(0.4f)
                                 } else {
                                     Color.Transparent
@@ -283,10 +282,9 @@ fun DayHeader(
                                     fontSize = AppTypeGrid.timeSmall,
                                     color = when {
                                         isSleepyPreset && isToday -> Color.White
-                                        isTimetablePreset && isToday -> MaterialTheme.colorScheme.primary
                                         else -> subTextColor
                                     },
-                                    fontWeight = if (isTimetablePreset && isToday) FontWeight.ExtraBold else FontWeight.Normal,
+                                    fontWeight = FontWeight.Normal,
                                     maxLines = 1,
                                     modifier = Modifier,
                                     style = TextStyle(
@@ -334,10 +332,8 @@ fun TimeColumn(
 
     val themePreset = LocalThemePreset.current
     val isSleepyPreset = themePreset == AppThemePreset.SLEEPY
-    val isTimetablePreset = themePreset == AppThemePreset.TIMETABLE
     val activeSectionBackground = when {
         isSleepyPreset -> appColors().primarySoft.copy(alpha = 0.25f)
-        isTimetablePreset -> appColors().primarySoft.copy(alpha = 0.6f)
         else -> appColors().primarySoft.copy(alpha = 0.4f)
     }
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
@@ -363,14 +359,7 @@ fun TimeColumn(
                                 drawLine(lineColor, Offset(0f, size.height), Offset(size.width, size.height), strokeWidthPx)
                             }
                         }
-                        if (isTimetablePreset && isCurrentHourActive) {
-                            drawLine(
-                                color = activeLeftBorderColor,
-                                start = Offset(0f, 0f),
-                                end = Offset(0f, size.height),
-                                strokeWidth = 2.dp.toPx()
-                            )
-                        }
+
                     },
                 contentAlignment = if (is24HourMode) Alignment.TopCenter else Alignment.Center
             ) {

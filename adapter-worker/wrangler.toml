@@ -14,5 +14,8 @@ workers_dev = true
 # 关闭预览 URL，只保留唯一的正式域名（收窄暴露面）
 preview_urls = false
 
+# 绑定自定义子域（待 shangke.asia 根 NS 切到 Cloudflare 后生效）
+routes = [{ pattern = "adapter.shangke.asia", custom_domain = true }]
+
 [observability]
 enabled = true

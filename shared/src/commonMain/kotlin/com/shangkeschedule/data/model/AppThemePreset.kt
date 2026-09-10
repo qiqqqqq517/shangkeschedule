@@ -7,14 +7,13 @@ import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.theme_preset_classic
 import shangkeschedule.shared.generated.resources.theme_preset_claude
-import shangkeschedule.shared.generated.resources.theme_preset_clean
 import shangkeschedule.shared.generated.resources.theme_preset_cloud
 import shangkeschedule.shared.generated.resources.theme_preset_ios
 
 /**
  * App 主题预设：把全局配色种子色与课表视觉样式统一为一套主题。
  *
- * IOS = 「通透」iOS 风格严格 Apple 系统色；ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；TIMETABLE = 「利落」白底左侧色条紧凑；CLAUDE = 「Claude」Anthropic 设计系统暖砂纸底 + 赤陶主色。
+ * IOS = 「通透」iOS 风格严格 Apple 系统色；ORIGINAL = 「经典」默认蓝紫；SLEEPY = 「云舒」大圆角柔和阴影；CLAUDE = 「Claude」Anthropic 设计系统暖砂纸底 + 赤陶主色。
  */
 enum class AppThemePreset(
     val value: String,
@@ -46,12 +45,7 @@ enum class AppThemePreset(
         seedColor = Color(0xFF6750A4),
         gridStyle = CloudGridStyle
     ),
-    TIMETABLE(
-        value = "TIMETABLE",
-        labelRes = Res.string.theme_preset_clean,
-        seedColor = Color(0xFF4A6CF7),
-        gridStyle = CleanGridStyle
-    );
+    ;
 
     companion object {
         fun fromString(value: String?): AppThemePreset = when (value) {
@@ -93,45 +87,6 @@ private val CloudGridStyle = ScheduleGridStyle(
     hideTeacher = false,
     removeLocationAt = false,
     textAlignCenterHorizontal = true,
-    textAlignCenterVertical = false,
-    borderType = BorderTypeProto.BORDER_TYPE_NONE,
-    scheduleMode = ScheduleModeProto.SECTION_MODE,
-    pageTextColorLong = null,
-    courseTextColorLong = null,
-    backgroundImagePath = null
-)
-
-private val CleanGridStyle = ScheduleGridStyle(
-    timeColumnWidthDp = 44f,
-    dayHeaderHeightDp = 44f,
-    sectionHeightDp = 58f,
-    courseBlockCornerRadiusDp = 8f,
-    courseBlockOuterPaddingDp = 1f,
-    courseBlockInnerPaddingDp = 2f,
-    courseBlockAlphaFloat = 1f,
-    courseColorMaps = listOf(
-        DualColor(light = Color(0xFFE0F7FA), dark = Color(0xFF006064)),
-        DualColor(light = Color(0xFFE8F5E9), dark = Color(0xFF2E7D32)),
-        DualColor(light = Color(0xFFFFF8E1), dark = Color(0xFFF9A825)),
-        DualColor(light = Color(0xFFF3E5F5), dark = Color(0xFF7B1FA2)),
-        DualColor(light = Color(0xFFE3F2FD), dark = Color(0xFF1565C0)),
-        DualColor(light = Color(0xFFFCE4EC), dark = Color(0xFFC62828)),
-        DualColor(light = Color(0xFFFFF3E0), dark = Color(0xFFEF6C00)),
-        DualColor(light = Color(0xFFE0F2F1), dark = Color(0xFF00695C)),
-        DualColor(light = Color(0xFFF1F8E9), dark = Color(0xFF558B2F)),
-        DualColor(light = Color(0xFFEDE7F6), dark = Color(0xFF4527A0)),
-        DualColor(light = Color(0xFFE1F5FE), dark = Color(0xFF0277BD)),
-        DualColor(light = Color(0xFFFBE9E7), dark = Color(0xFFBF360C)),
-    ),
-    courseBlockFontScale = 1.2f,
-    hideGridLines = false,
-    hideSectionTime = false,
-    hideDateUnderDay = false,
-    showStartTime = false,
-    hideLocation = false,
-    hideTeacher = false,
-    removeLocationAt = true,
-    textAlignCenterHorizontal = false,
     textAlignCenterVertical = false,
     borderType = BorderTypeProto.BORDER_TYPE_NONE,
     scheduleMode = ScheduleModeProto.SECTION_MODE,
