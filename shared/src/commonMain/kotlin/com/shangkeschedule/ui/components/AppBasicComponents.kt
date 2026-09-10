@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +38,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -44,6 +47,10 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.claudeGroupBg
+import com.shangkeschedule.ui.theme.claudeGroupBorder
+import com.shangkeschedule.data.model.AppThemePreset
 
 /**
  * 基线补充组件（UI 一致性收敛件，v2 风格规范 §3/§4）：
@@ -61,9 +68,18 @@ fun AppSectionHeader(
     text: String,
     modifier: Modifier = Modifier
 ) {
+    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
+        style = if (isClaude) {
+            MaterialTheme.typography.labelLarge.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.01).em
+            )
+        } else {
+            MaterialTheme.typography.labelLarge
+        },
         fontWeight = FontWeight.SemiBold,
         color = appColors().primary,
         modifier = modifier.padding(start = 4.dp, bottom = 8.dp)
@@ -231,21 +247,24 @@ fun AppSelectableCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
+    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    val finalShape = if (isClaude) RoundedCornerShape(14.dp) else shape
     val bg = when {
         containerColor != null -> containerColor
         selected -> tokens.primarySoft
+        isClaude -> claudeGroupBg()
         else -> tokens.cardBg
     }
     Column(
         modifier = modifier
             .shadow(
-                elevation = 2.dp,
-                shape = shape,
+                elevation = (if (isClaude) 1 else 2).dp,
+                shape = finalShape,
                 clip = false,
                 ambientColor = tokens.shadow,
                 spotColor = tokens.shadow
             )
-            .clip(shape)
+            .clip(finalShape)
             .background(bg)
             .then(
                 if (onLongClick != null) {
@@ -254,7 +273,13 @@ fun AppSelectableCard(
                     Modifier.clickable(onClick = onClick)
                 }
             )
-            .then(if (selected) Modifier.border(2.dp, tokens.primary, shape) else Modifier)
+            .then(
+                when {
+                    selected -> Modifier.border(2.dp, tokens.primary, finalShape)
+                    isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
+                    else -> Modifier
+                }
+            )
     ) { content() }
 }
 

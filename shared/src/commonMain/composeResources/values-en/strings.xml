@@ -364,7 +364,8 @@
     <string name="toast_break_duration_non_negative">Break duration cannot be negative</string>
     <string name="text_no_time_slots_hint">No time periods yet. Tap the \'+\' icon to add one.</string>
     <string name="toast_slot_removed_unsaved">Time period removed from list, tap save to update database</string>
-    <string name="time_slot_section_number">Period %1$s</string>
+    <string name="time_slot_section_number">Period %1$s</string>
+    <string name="title_time_slot_list">Section List</string>
     <string name="a11y_delete_time_slot">Delete time period</string>
     <string name="dialog_title_edit_time_slot">Edit time period</string>
     <string name="dialog_title_add_time_slot">Add new time period</string>

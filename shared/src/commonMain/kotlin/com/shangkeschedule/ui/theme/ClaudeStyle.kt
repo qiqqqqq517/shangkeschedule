@@ -6,6 +6,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -295,6 +296,18 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
 )
 
 /**
+ * 书卷主题分组卡底色：浅色暖米 #f3efe4、深色 #2f2e2c，对齐设计包 .group-card。
+ */
+@Composable
+fun claudeGroupBg(): Color = if (LocalIsDarkTheme.current) Color(0xFF2F2E2C) else Color(0xFFF3EFE4)
+
+/**
+ * 书卷主题分组卡描边：0.5dp 浅边框，对齐设计包 border-200。
+ */
+@Composable
+fun claudeGroupBorder(): Color = if (LocalIsDarkTheme.current) Color(0x14FFFFFF) else Color(0xFFE3E0D4)
+
+/**
  * CLAUDE 专属 Material3 Typography。
  *
  * - 标题（displayLarge / displayMedium / displaySmall / headlineLarge）= Newsreader 衬线，
@@ -337,9 +350,10 @@ fun claudeTypography(): Typography {
     val displaySerif = claudeDisplaySerif()
     val readingSerif = claudeReadingSerif()
 
-    return Typography(
+    return remember(uiSans, displaySerif, readingSerif) {
+    Typography(
         displayLarge = TextStyle(
-            fontFamily = claudeDisplaySerif(),
+            fontFamily = displaySerif,
             fontWeight = FontWeight.SemiBold,
             fontSize = 34.sp,
             lineHeight = 42.sp,
@@ -445,4 +459,5 @@ fun claudeTypography(): Typography {
             letterSpacing = 0.1.sp
         )
     )
+    }
 }

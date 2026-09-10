@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -40,7 +41,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
@@ -137,7 +137,7 @@ fun AppearanceSettingsScreen(
     // 原主题配置与课表样式内容分别下沉到 ThemeSettingsScreen / ScheduleStyleSettingsScreen。
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(text = stringResource(Res.string.item_appearance_settings), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -206,7 +206,7 @@ fun ThemeSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(text = stringResource(Res.string.item_theme_settings), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -395,7 +395,7 @@ fun ScheduleStyleSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(text = stringResource(Res.string.item_schedule_style_settings), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

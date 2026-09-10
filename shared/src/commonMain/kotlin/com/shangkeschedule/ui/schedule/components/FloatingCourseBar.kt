@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,15 +24,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.claudeGroupBg
+import com.shangkeschedule.ui.theme.claudeGroupBorder
 import com.shangkeschedule.ui.theme.liquidGlass
 import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
@@ -78,23 +85,39 @@ fun FloatingCourseBar(
         modifier = modifier.zIndex(10f)
     ) {
         floatingCourse?.let { cw ->
-            Row(
-                modifier = Modifier
-                    // 液态玻璃胶囊：与底栏同源修饰符（shadow → clip → haze → 高光 → 亮边）
-                    .liquidGlass(
-                        hazeState = hazeState,
+            val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+            val surfaceModifier = if (isClaude) {
+                Modifier
+                    .shadow(
+                        elevation = 8.dp,
                         shape = CircleShape,
-                        containerColor = appColors().inputBg,
-                        isTransparent = isTransparent,
-                        shadowElevation = 10.dp
+                        clip = false,
+                        ambientColor = appColors().shadow,
+                        spotColor = appColors().shadow
                     )
+                    .clip(CircleShape)
+                    .background(claudeGroupBg())
+                    .border(0.5.dp, claudeGroupBorder(), CircleShape)
+            } else {
+                Modifier.liquidGlass(
+                    hazeState = hazeState,
+                    shape = CircleShape,
+                    containerColor = appColors().inputBg,
+                    isTransparent = isTransparent,
+                    shadowElevation = 10.dp
+                )
+            }
+            val titleColor = if (isClaude) appColors().textPrimary else contentColor
+            val accentColor = if (isClaude) appColors().primary else contentColor
+            Row(
+                modifier = surfaceModifier
                     .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = vectorResource(Res.drawable.archive_24px),
                     contentDescription = null,
-                    tint = contentColor,
+                    tint = accentColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -102,14 +125,14 @@ fun FloatingCourseBar(
                     Text(
                         text = cw.course.name,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = contentColor,
+                        color = titleColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = stringResource(Res.string.floating_course_hint),
                         style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.8f)
+                        color = titleColor.copy(alpha = 0.8f)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -118,14 +141,14 @@ fun FloatingCourseBar(
                     modifier = Modifier
                         .size(36.dp)
                         .background(
-                            color = contentColor.copy(alpha = 0.12f),
+                            color = titleColor.copy(alpha = 0.12f),
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.close_24px),
                         contentDescription = stringResource(Res.string.action_cancel),
-                        tint = contentColor,
+                        tint = titleColor,
                         modifier = Modifier.size(16.dp)
                     )
                 }

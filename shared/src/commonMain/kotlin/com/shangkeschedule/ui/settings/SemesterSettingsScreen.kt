@@ -1,12 +1,14 @@
-﻿package com.shangkeschedule.ui.settings
+package com.shangkeschedule.ui.settings
 
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -15,7 +17,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,7 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.DatePickerModal
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -73,7 +76,7 @@ fun SemesterSettingsScreen(
     if (!uiState.isReady) {
         Scaffold(
             topBar = {
-                TopAppBar(
+                AppTopAppBar(
                     title = { Text(stringResource(Res.string.title_semester_settings)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -115,7 +118,7 @@ fun SemesterSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(stringResource(Res.string.title_semester_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -128,10 +131,16 @@ fun SemesterSettingsScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 640.dp)
                 .verticalScroll(scrollState)
                 .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -190,6 +199,7 @@ fun SemesterSettingsScreen(
                     Text(text = dayText, style = MaterialTheme.typography.bodyMedium)
                 }
             }
+        }
         }
     }
 

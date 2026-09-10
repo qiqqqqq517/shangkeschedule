@@ -1,5 +1,6 @@
-﻿package com.shangkeschedule.ui.settings.additional
+package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,7 +82,7 @@ fun LanguageSettingScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(stringResource(Res.string.item_language_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -26,7 +27,6 @@ import com.shangkeschedule.ui.components.AppRadioIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -110,7 +110,7 @@ fun AnimationSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = {
                     Text(
                         text = stringResource(Res.string.item_animation_settings),

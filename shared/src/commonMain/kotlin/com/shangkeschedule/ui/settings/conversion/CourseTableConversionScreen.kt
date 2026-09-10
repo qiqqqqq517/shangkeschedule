@@ -1,5 +1,6 @@
-﻿package com.shangkeschedule.ui.settings.conversion
+package com.shangkeschedule.ui.settings.conversion
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.clickable
@@ -21,7 +22,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -160,7 +160,7 @@ fun CourseTableConversionScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(
+                AppTopAppBar(
                     title = { Text(stringResource(Res.string.title_conversion)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {

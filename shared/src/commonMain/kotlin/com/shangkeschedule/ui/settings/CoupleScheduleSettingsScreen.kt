@@ -1,5 +1,6 @@
-﻿package com.shangkeschedule.ui.settings
+package com.shangkeschedule.ui.settings
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +20,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.AppSwitch
@@ -131,7 +131,7 @@ fun CoupleScheduleSettingsScreen(
     if (!uiState.isReady) {
         Scaffold(
             topBar = {
-                TopAppBar(
+                AppTopAppBar(
                     title = { Text(stringResource(Res.string.section_title_couple_schedule)) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -155,7 +155,7 @@ fun CoupleScheduleSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(stringResource(Res.string.section_title_couple_schedule)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

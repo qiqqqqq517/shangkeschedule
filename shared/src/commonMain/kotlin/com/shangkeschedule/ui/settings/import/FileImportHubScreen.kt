@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.import
+package com.shangkeschedule.ui.settings.import
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
@@ -20,11 +20,14 @@ import shangkeschedule.shared.generated.resources.import_file_hub_ics_desc
 import shangkeschedule.shared.generated.resources.import_file_hub_json_desc
 import shangkeschedule.shared.generated.resources.import_file_hub_excel_desc
 import shangkeschedule.shared.generated.resources.import_file_hub_title
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,11 +36,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -54,7 +58,7 @@ fun FileImportHubScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(stringResource(Res.string.import_file_hub_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -64,9 +68,16 @@ fun FileImportHubScreen(
             )
         }
     ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter
+        ) {
         Column(
             modifier = Modifier
-                .padding(padding)
+                .fillMaxWidth()
+                .widthIn(max = 640.dp)
                 .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -110,6 +121,7 @@ fun FileImportHubScreen(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
             Spacer(Modifier.height(24.dp))
+        }
         }
     }
 }

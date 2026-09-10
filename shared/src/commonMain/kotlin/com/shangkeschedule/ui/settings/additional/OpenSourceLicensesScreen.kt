@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appColors
 
 import androidx.compose.foundation.layout.Box
@@ -12,7 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,7 +56,7 @@ fun OpenSourceLicensesScreen(onBack: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = {
                     Text(text = stringResource(Res.string.title_open_source_licenses))
                 },

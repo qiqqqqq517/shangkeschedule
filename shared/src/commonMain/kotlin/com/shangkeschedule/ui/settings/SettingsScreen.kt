@@ -1141,15 +1141,16 @@ internal fun SettingItem(
         )
     }
 ) {
+    val isClaudePreset = LocalThemePreset.current == AppThemePreset.CLAUDE
     val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
-        fontSize = appType().rowTitle,
-        fontWeight = FontWeight.SemiBold,
+        fontSize = if (isClaudePreset) 15.sp else appType().rowTitle,
+        fontWeight = if (isClaudePreset) FontWeight.Medium else FontWeight.SemiBold,
         color = appColors().textPrimary
     )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = appSpacing().rowMinHeight)
+            .defaultMinSize(minHeight = if (isClaudePreset) 48.dp else appSpacing().rowMinHeight)
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,

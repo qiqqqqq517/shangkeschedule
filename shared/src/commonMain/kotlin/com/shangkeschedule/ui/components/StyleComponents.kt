@@ -88,6 +88,10 @@ import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.AppColorTokens
 import com.shangkeschedule.ui.theme.AppSemanticColors
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.claudeGroupBg
+import com.shangkeschedule.ui.theme.claudeGroupBorder
+import com.shangkeschedule.data.model.AppThemePreset
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.check_24px
@@ -330,18 +334,27 @@ fun AppCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
-    val container = containerColor ?: tokens.cardBg
+    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    val finalShape = if (isClaude) RoundedCornerShape(14.dp) else shape
+    val container = containerColor ?: if (isClaude) claudeGroupBg() else tokens.cardBg
     Box(
         modifier = modifier
             .shadow(
-                elevation = elevation.dp,
-                shape = shape,
+                elevation = (if (isClaude) 1 else elevation).dp,
+                shape = finalShape,
                 clip = false,
                 ambientColor = tokens.shadow,
                 spotColor = tokens.shadow
             )
-            .clip(shape)
+            .clip(finalShape)
             .background(container)
+            .then(
+                if (isClaude) {
+                    Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
+                } else {
+                    Modifier
+                }
+            )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Column(content = content)

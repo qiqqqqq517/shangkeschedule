@@ -33,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,11 +56,13 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
@@ -114,6 +115,7 @@ import shangkeschedule.shared.generated.resources.label_time_slot_alias
 import shangkeschedule.shared.generated.resources.save_24px
 import shangkeschedule.shared.generated.resources.text_no_time_slots_hint
 import shangkeschedule.shared.generated.resources.time_slot_section_number
+import shangkeschedule.shared.generated.resources.title_time_slot_list
 import shangkeschedule.shared.generated.resources.title_default_duration_settings
 import shangkeschedule.shared.generated.resources.title_scheme_selector
 import shangkeschedule.shared.generated.resources.title_time_slot_management
@@ -229,7 +231,7 @@ fun TimeSlotManagementScreen(
     Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(titleTimeSlotManagement) },
                 navigationIcon = {
                     IconButton(onClick = handleBackPress) {
@@ -273,7 +275,7 @@ fun TimeSlotManagementScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(8.dp))
                 SchemeSelector(
                     currentSchemeId = uiState.currentSchemeId,
                     schemeIds = uiState.schemeIds,
@@ -286,25 +288,24 @@ fun TimeSlotManagementScreen(
                         showSchemeDatesDialog = true
                     }
                 )
+                Spacer(modifier = Modifier.height(20.dp))
                 AutoSwitchToggle(
                     enabled = uiState.autoSwitchScheme,
                     onToggle = { timeSlotViewModel.onToggleAutoSwitch(it) }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = appColors().divider)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 DefaultDurationSettings(
                     defaultClassDuration = localDefaultClassDuration,
                     onClassDurationChange = { newValue -> localDefaultClassDuration = newValue },
                     defaultBreakDuration = localDefaultBreakDuration,
                     onBreakDurationChange = { newValue -> localDefaultBreakDuration = newValue }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = appColors().divider)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 if (localTimeSlots.isEmpty()) {
                     // 统一空状态
                     AppEmptyState(hint = textNoTimeSlotsHint)
+                } else {
+                    AppSectionHeader(stringResource(Res.string.title_time_slot_list))
                 }
             }
 
@@ -496,10 +497,10 @@ fun SchemeSelector(
     fun displayName(schemeId: String): String =
         if (schemeId == TimeSlot.DEFAULT_SCHEME_ID) defaultSchemeName else schemeId
 
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(titleSchemeSelector, style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Box {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AppSectionHeader(titleSchemeSelector)
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 12.dp)) {
             OutlinedButton(onClick = { expanded = true }) {
                 Text(displayName(currentSchemeId))
             }
@@ -572,6 +573,7 @@ fun SchemeSelector(
                     }
                 )
             }
+        }
         }
     }
 }
@@ -653,10 +655,13 @@ fun DefaultDurationSettings(
     val labelBreakDuration = stringResource(Res.string.label_break_duration_minutes)
     val toastBreakDurationNonNegative = stringResource(Res.string.toast_break_duration_non_negative)
 
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(titleDefaultDurationSettings, style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AppSectionHeader(titleDefaultDurationSettings)
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             AppTextField(
                 value = if (defaultClassDuration == 0) "" else defaultClassDuration.toString(),
                 onValueChange = { newValueStr ->
@@ -690,6 +695,7 @@ fun DefaultDurationSettings(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
+        }
         }
     }
 }
@@ -1052,25 +1058,28 @@ fun AutoSwitchToggle(
     val titleAutoSwitchScheme = stringResource(Res.string.title_auto_switch_scheme)
     val descAutoSwitchScheme = stringResource(Res.string.desc_auto_switch_scheme)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(titleAutoSwitchScheme, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = descAutoSwitchScheme,
-                style = MaterialTheme.typography.bodySmall,
-                color = appColors().textSecondary
-            )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AppSectionHeader(titleAutoSwitchScheme)
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = appSpacing().cardInner, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = descAutoSwitchScheme,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = appColors().textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                com.shangkeschedule.ui.components.AppSwitch(
+                    checked = enabled,
+                    onCheckedChange = onToggle
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        com.shangkeschedule.ui.components.AppSwitch(
-            checked = enabled,
-            onCheckedChange = onToggle
-        )
     }
 }
 
