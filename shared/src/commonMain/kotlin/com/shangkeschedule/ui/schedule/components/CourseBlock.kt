@@ -58,47 +58,8 @@ private data class CourseBlockPresetRender(
     val textColor: Color,
     val sleepyShadowModifier: Modifier,
     val timetableStartPadding: Dp,
-    val demotedSpec: DemotedRenderSpec
+    val demotedOverlayAlpha: Float
 )
-
-/**
- * 「非本周课程块」的降级渲染规格。两种机制，按主题分别取用：
- *
- * - `underContent = true`（垫底式）：遮罩垫在文字**下方**，只把课程底色/色条向主题中性底收敛，
- *   文字另按 [contentAlpha] 轻微虚化。因为遮罩不再覆盖前景，**前景/背景对比度可控**，
- *   可以同时做到「一眼看出是降级」与「满足 WCAG AA」。
- *   书卷浅色池每色仅 `0x40`（25%）alpha、底色本身已极淡，压字式遮罩会让前景与背景同时被拉向
- *   遮罩色，实测对比度塌到 1.7–1.9:1（非本周整表几乎不可读），故书卷必须用垫底式。
- * - `underContent = false`（压字式）：遮罩压在文字**上方**，文字一并被洗淡（旧行为，
- *   经典 / 通透 / 云舒沿用，不做视觉变更）。
- */
-private data class DemotedRenderSpec(
-    val scrimColor: Color,
-    val scrimAlpha: Float,
-    val underContent: Boolean,
-    val contentAlpha: Float,
-    val stripeColor: Color,
-    val stripeAlpha: Float
-)
-
-/**
- * 非本周降级遮罩层：一层纯色遮罩 + 45° 细斜纹。
- *
- * 层级由调用方决定（垫底式置于文字之前、压字式置于文字之后），本方法只负责画这一层。
- */
-private fun Modifier.demotionScrim(spec: DemotedRenderSpec): Modifier = this
-    .fillMaxSize()
-    .background(spec.scrimColor.copy(alpha = spec.scrimAlpha))
-    .drawBehind {
-        val stripeWidth = 5.dp.toPx()
-        val stripeColor = spec.stripeColor.copy(alpha = spec.stripeAlpha)
-        val brush = Brush.linearGradient(
-            0.0f to stripeColor, 0.45f to stripeColor,
-            0.55f to Color.Transparent, 1.0f to Color.Transparent,
-            start = Offset(0f, 0f), end = Offset(stripeWidth, stripeWidth), tileMode = TileMode.Repeated
-        )
-        drawRect(brush = brush)
-    }
 
 @Composable
 private fun buildPresetRenderSpec(
@@ -141,32 +102,8 @@ private fun buildPresetRenderSpec(
         Modifier
     }
     val timetableStartPadding = if (isStripStylePreset) 4.dp else 0.dp
-    // 非本周降级规格：按主题分支（历史上 0.618 全局共用，未考虑各主题底色自身的 alpha，
-    // 是书卷非本周块对比度塌到 1.7:1、几乎不可读的根因）。
-    // - 书卷（CLAUDE）：垫底式。遮罩取**主题自己的中性底**（浅 = 暖砂 bg-100 #FAF9F5 / 深 = 暖炭
-    //   bg-100 #262624），把课程底色向中性底收敛 40%，色相与暖砂调性保持统一，不引入冷灰/纯白；
-    //   文字保持 92% 不透明度。实测对比度：正常块 7.7+、非本周块名称 7.4 / 元信息 4.8，均 ≥ AA 4.5:1。
-    // - 云舒（SLEEPY）：沿用压字式 0.5（AppAlpha.dimmed）。
-    // - 经典 / 通透：沿用压字式 0.618（有意的黄金比例设计值，豁免）。
-    val demotedSpec = if (themePreset == AppThemePreset.CLAUDE) {
-        DemotedRenderSpec(
-            scrimColor = appColors().pageBg,
-            scrimAlpha = 0.40f,
-            underContent = true,
-            contentAlpha = 0.92f,
-            stripeColor = if (isDarkTheme) Color.White else Color.Black,
-            stripeAlpha = 0.04f
-        )
-    } else {
-        DemotedRenderSpec(
-            scrimColor = if (isDarkTheme) Color.Black else Color.White,
-            scrimAlpha = if (isSleepyPreset) AppAlpha.dimmed else 0.618f,
-            underContent = false,
-            contentAlpha = 1f,
-            stripeColor = if (isDarkTheme) Color.White else Color.Black,
-            stripeAlpha = 0.06f
-        )
-    }
+    // 非当前周降级遮罩：云舒 0.5（档位 dimmed）；经典 0.618 为有意的黄金比例设计值（豁免）
+    val demotedOverlayAlpha = if (isSleepyPreset) AppAlpha.dimmed else 0.618f
 
     return CourseBlockPresetRender(
         isSleepyPreset = isSleepyPreset,
@@ -175,7 +112,7 @@ private fun buildPresetRenderSpec(
         textColor = textColor,
         sleepyShadowModifier = sleepyShadowModifier,
         timetableStartPadding = timetableStartPadding,
-        demotedSpec = demotedSpec
+        demotedOverlayAlpha = demotedOverlayAlpha
     )
 }
 
@@ -308,14 +245,6 @@ fun CourseBlock(
             )
         }
 
-        // 非本周降级层（垫底式）：压在底色与色条之上、文字之下 —— 只降级底色，文字保持可读对比度
-        val showDemotion = isVisualDemoted && !isFloating
-        val demotedSpec = presetRender.demotedSpec
-        val demotionUnderContent = showDemotion && demotedSpec.underContent
-        if (demotionUnderContent) {
-            Box(modifier = Modifier.demotionScrim(demotedSpec))
-        }
-
         // 可用文字区域尺寸（扣除内边距）
         val innerPadding = style.courseBlockInnerPadding
         val timetableStartPadding = presetRender.timetableStartPadding
@@ -335,14 +264,10 @@ fun CourseBlock(
         // 紧凑块判定：双排（宽度减半）或极矮块视为紧凑，隐藏教师、优先保证名称
         val isCompact = contentWidth < 32.dp || contentHeight < 30.dp
 
-        // 垫底式降级：文字不被遮罩覆盖，仅整体轻微虚化，保证对比度仍 ≥ AA 4.5:1
-        val demotedContentAlpha = if (demotionUnderContent) demotedSpec.contentAlpha else 1f
-
         // 课程文字内容容器
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { alpha = demotedContentAlpha }
                 .padding(
                     start = innerPadding + timetableStartPadding,
                     top = innerPadding,

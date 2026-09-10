@@ -96,10 +96,23 @@ private val CloudGridStyle = ScheduleGridStyle(
 )
 
 // --- CLAUDE 主题专属课表样式 ---
-// 课程配色：20 个色相按 18° 等距环绕，相邻色相之间再交替明度（0.54 / 0.38），
-// 使「相邻索引」既差色相又差明度。经离屏距离度量校准，全池最近色对距离 ≈ 88（旧 12 色池仅 23，
-// 赤陶/珊瑚/红/玫瑰等暖色几乎无法区分，是课表撞色的根因）；前 12 色最近距离 ≈ 89。
-// 浅色沿用同色 0x40 淡底、深色实底的约定（色条/色块/色卡共用）。
+// 课程配色：20 个色相按 18° 等距环绕。浅色 / 深色**同色相配对**（浅色 0x40 淡底、深色实底）。
+//
+// ⚠️ 色差口径（重要）：设计注释里「全池最近色差 ≈ 88」是**原始 RGB、忽略 alpha** 的口径，
+//    只有深色池（实底 alpha=1.0）成立；浅色池每色仅 0x40（25%）alpha，渲染色 = 0.25×色池色 +
+//    0.75×暖砂底 #FAF9F5，所有色相被同向拉向页面底，色差按比例压缩约 4 倍。
+//    因此 88 这个数字**不能**当作浅色模式的实际区分度（v3.35.5 的注释即因此误导）。
+//
+// 本轮修正在「0x40 淡底 + 深浅同色相配对 + 颜色池 20 项」三个约定都不动的前提下，只重排浅色池的
+// 明度与饱和度：把原始色明度跨度从 0.38–0.54 拉大到约 0.20–0.95，靠「色相 + 明度」双维度拉开距离。
+// 同时把**渲染后亮度带**约束在 0.60–0.88（修正前 0.58–0.83），因此块的深浅观感基本不变、不会出现
+// 过白看不出的块。实测（redmean，渲染色口径）：
+//   · 旧 12 色池（v3.35.5 之前）        5.3
+//   · v3.35.5 的 20 色池（修正前）      21.7
+//   · 本方案（仅改浅色池）              42.5   ← 已接近 0x40 淡底约定的理论上限（47.6）
+//   · 深色池（实色，未改动）            88.5
+// 浅色池 20 色对正文 #3D3929 的最低对比度 7.2:1，满足 WCAG AA。
+// 若要继续提高，只能放弃 0x40 淡底：alpha ≥ 0xB0(0.69) 才能让浅色池也达到 88.5（颜色池会明显变实）。
 private val ClaudeGridStyle = ScheduleGridStyle(
     timeColumnWidthDp = 44f,
     dayHeaderHeightDp = 48f,
@@ -109,26 +122,26 @@ private val ClaudeGridStyle = ScheduleGridStyle(
     courseBlockInnerPaddingDp = 3f,
     courseBlockAlphaFloat = 1f,
     courseColorMaps = listOf(
-        DualColor(light = Color(0x40D04343), dark = Color(0xFFD04343)), // 赤红
-        DualColor(light = Color(0x409B4A27), dark = Color(0xFF9B4A27)), // 赭石
-        DualColor(light = Color(0x40D09843), dark = Color(0xFFD09843)), // 琥珀
-        DualColor(light = Color(0x409B8F27), dark = Color(0xFF9B8F27)), // 橄榄金
-        DualColor(light = Color(0x40B4D043), dark = Color(0xFFB4D043)), // 芽黄
-        DualColor(light = Color(0x40619B27), dark = Color(0xFF619B27)), // 苔绿
-        DualColor(light = Color(0x405FD043), dark = Color(0xFF5FD043)), // 翠绿
-        DualColor(light = Color(0x40279B32), dark = Color(0xFF279B32)), // 松绿
-        DualColor(light = Color(0x4043D07C), dark = Color(0xFF43D07C)), // 青瓷
-        DualColor(light = Color(0x40279B78), dark = Color(0xFF279B78)), // 湖水
-        DualColor(light = Color(0x4043D0D0), dark = Color(0xFF43D0D0)), // 天青
-        DualColor(light = Color(0x4027789B), dark = Color(0xFF27789B)), // 靛青
-        DualColor(light = Color(0x40437CD0), dark = Color(0xFF437CD0)), // 宝蓝
-        DualColor(light = Color(0x4027329B), dark = Color(0xFF27329B)), // 藏蓝
-        DualColor(light = Color(0x405F43D0), dark = Color(0xFF5F43D0)), // 紫罗兰
-        DualColor(light = Color(0x4061279B), dark = Color(0xFF61279B)), // 紫
-        DualColor(light = Color(0x40B443D0), dark = Color(0xFFB443D0)), // 品红
-        DualColor(light = Color(0x409B278F), dark = Color(0xFF9B278F)), // 紫红
-        DualColor(light = Color(0x40D04398), dark = Color(0xFFD04398)), // 玫红
-        DualColor(light = Color(0x409B274A), dark = Color(0xFF9B274A)), // 酒红
+        DualColor(light = Color(0x40913030), dark = Color(0xFFD04343)), // 赤红（0°）
+        DualColor(light = Color(0x40EE4B04), dark = Color(0xFF9B4A27)), // 赭石（18°）
+        DualColor(light = Color(0x40FFA51D), dark = Color(0xFFD09843)), // 琥珀（36°）
+        DualColor(light = Color(0x40E5DA76), dark = Color(0xFF9B8F27)), // 橄榄金（54°）
+        DualColor(light = Color(0x405E7502), dark = Color(0xFFB4D043)), // 芽黄（72°）
+        DualColor(light = Color(0x4088F31E), dark = Color(0xFF619B27)), // 苔绿（90°）
+        DualColor(light = Color(0x406BAF5B), dark = Color(0xFF5FD043)), // 翠绿（108°）
+        DualColor(light = Color(0x4026FF3B), dark = Color(0xFF279B32)), // 松绿（126°）
+        DualColor(light = Color(0x4002B048), dark = Color(0xFF43D07C)), // 青瓷（144°）
+        DualColor(light = Color(0x4001593F), dark = Color(0xFF279B78)), // 湖水（162°）
+        DualColor(light = Color(0x401EC0C0), dark = Color(0xFF43D0D0)), // 天青（180°）
+        DualColor(light = Color(0x406FD4FF), dark = Color(0xFF27789B)), // 靛青（198°）
+        DualColor(light = Color(0x400062F1), dark = Color(0xFF437CD0)), // 宝蓝（216°）
+        DualColor(light = Color(0x404A5191), dark = Color(0xFF27329B)), // 藏蓝（234°）
+        DualColor(light = Color(0x40968CBC), dark = Color(0xFF5F43D0)), // 紫罗兰（252°）
+        DualColor(light = Color(0x408F39E6), dark = Color(0xFF61279B)), // 紫（270°）
+        DualColor(light = Color(0x40E478FF), dark = Color(0xFFB443D0)), // 品红（288°）
+        DualColor(light = Color(0x40F5CEF1), dark = Color(0xFF9B278F)), // 紫红（306°）
+        DualColor(light = Color(0x40D50D85), dark = Color(0xFFD04398)), // 玫红（324°）
+        DualColor(light = Color(0x40EF628D), dark = Color(0xFF9B274A)), // 酒红（342°）
     ),
     courseBlockFontScale = 1.15f,
     hideGridLines = false,
