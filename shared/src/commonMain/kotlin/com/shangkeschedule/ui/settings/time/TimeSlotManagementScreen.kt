@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.settings.time
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,12 +30,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -47,15 +48,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.repository.DEFAULT_TIME_SLOTS
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
@@ -63,11 +72,15 @@ import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
@@ -79,6 +92,9 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_add_time_slot
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_delete_scheme
+import shangkeschedule.shared.generated.resources.action_restore_default
+import shangkeschedule.shared.generated.resources.auto_switch_item_title
+import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.confirm_delete
 import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete_scheme
 import shangkeschedule.shared.generated.resources.dialog_title_confirm_delete_course
@@ -103,6 +119,7 @@ import shangkeschedule.shared.generated.resources.dialog_title_add_time_slot
 import shangkeschedule.shared.generated.resources.dialog_title_edit_time_slot
 import shangkeschedule.shared.generated.resources.dialog_title_new_scheme
 import shangkeschedule.shared.generated.resources.hint_scheme_dates_cross_year
+import shangkeschedule.shared.generated.resources.hint_scheme_in_use
 import shangkeschedule.shared.generated.resources.hint_scheme_name
 import shangkeschedule.shared.generated.resources.label_break_duration_minutes
 import shangkeschedule.shared.generated.resources.label_class_duration_minutes
@@ -120,6 +137,7 @@ import shangkeschedule.shared.generated.resources.title_default_duration_setting
 import shangkeschedule.shared.generated.resources.title_scheme_selector
 import shangkeschedule.shared.generated.resources.title_time_slot_management
 import shangkeschedule.shared.generated.resources.toast_break_duration_non_negative
+import shangkeschedule.shared.generated.resources.toast_restored_default
 import shangkeschedule.shared.generated.resources.toast_class_duration_positive
 import shangkeschedule.shared.generated.resources.toast_end_time_must_be_later
 import shangkeschedule.shared.generated.resources.toast_scheme_name_duplicate
@@ -267,11 +285,18 @@ fun TimeSlotManagementScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        // 宽屏限宽：内容列最大 640dp 居中（对齐设置页多端适配约定）
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 640.dp),
+            contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = 0.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
@@ -288,19 +313,19 @@ fun TimeSlotManagementScreen(
                         showSchemeDatesDialog = true
                     }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 AutoSwitchToggle(
                     enabled = uiState.autoSwitchScheme,
                     onToggle = { timeSlotViewModel.onToggleAutoSwitch(it) }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 DefaultDurationSettings(
                     defaultClassDuration = localDefaultClassDuration,
                     onClassDurationChange = { newValue -> localDefaultClassDuration = newValue },
                     defaultBreakDuration = localDefaultBreakDuration,
                     onBreakDurationChange = { newValue -> localDefaultBreakDuration = newValue }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 if (localTimeSlots.isEmpty()) {
                     // 统一空状态
                     AppEmptyState(hint = textNoTimeSlotsHint)
@@ -327,6 +352,30 @@ fun TimeSlotManagementScreen(
                     }
                 )
             }
+
+            // 底部「恢复默认」按钮：将本地节次列表替换为默认 13 节模板（保存后生效）
+            item {
+                val toastRestoredDefault = stringResource(Res.string.toast_restored_default)
+                Spacer(modifier = Modifier.height(12.dp))
+                RestoreDefaultButton(
+                    onClick = {
+                        localTimeSlots.clear()
+                        localTimeSlots.addAll(
+                            DEFAULT_TIME_SLOTS.map {
+                                TimeSlot(
+                                    number = it.number,
+                                    startTime = it.startTime,
+                                    endTime = it.endTime,
+                                    courseTableId = ""
+                                )
+                            }
+                        )
+                        ToastManager.show(toastRestoredDefault)
+                    }
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
         }
 
         if (showEditBottomSheet) {
@@ -500,9 +549,48 @@ fun SchemeSelector(
     Column(modifier = Modifier.fillMaxWidth()) {
         AppSectionHeader(titleSchemeSelector)
         AppCard(modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 12.dp)) {
-            OutlinedButton(onClick = { expanded = true }) {
-                Text(displayName(currentSchemeId))
+        // 设计稿 .list-item + .scheme-content：方案名描边胶囊 + 「当前使用」提示 + 右箭头
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 方案名胶囊（描边）
+                Box(
+                    modifier = Modifier
+                        .clip(appShapes().capsule)
+                        .border(1.dp, appColors().divider, appShapes().capsule)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = displayName(currentSchemeId),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = appColors().textPrimary
+                    )
+                }
+                // 「当前使用」提示
+                Text(
+                    text = stringResource(Res.string.hint_scheme_in_use),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = appColors().textSecondary
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                    contentDescription = null,
+                    tint = appColors().textSecondary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .alpha(0.7f)
+                )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 sortedSchemes.forEach { scheme ->
@@ -642,6 +730,10 @@ private fun calculateInitialTimes(
     }
 }
 
+/**
+ * 默认时长设置：设计稿 .duration-card —— 左右两个无框数字输入（22sp 展示衬线数值），
+ * 中间 0.5dp 竖分隔线；校验逻辑保持原实现（空串回退哨兵值 + Toast 提示）。
+ */
 @Composable
 fun DefaultDurationSettings(
     defaultClassDuration: Int,
@@ -659,10 +751,13 @@ fun DefaultDurationSettings(
         AppSectionHeader(titleDefaultDurationSettings)
         AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AppTextField(
+            DurationNumberField(
+                label = labelClassDuration,
                 value = if (defaultClassDuration == 0) "" else defaultClassDuration.toString(),
                 onValueChange = { newValueStr ->
                     val newIntValue = newValueStr.toIntOrNull()
@@ -670,16 +765,21 @@ fun DefaultDurationSettings(
                         onClassDurationChange(0)
                     } else if (newIntValue != null && newIntValue > 0) {
                         onClassDurationChange(newIntValue)
-                    } else if (newIntValue != null){
+                    } else if (newIntValue != null) {
                         ToastManager.show(toastClassDurationPositive)
                     }
                 },
-                label = labelClassDuration,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            AppTextField(
+            // 竖分隔线（0.5dp，上下留 14dp）
+            Box(
+                modifier = Modifier
+                    .width(0.5.dp)
+                    .height(44.dp)
+                    .background(appColors().divider)
+            )
+            DurationNumberField(
+                label = labelBreakDuration,
                 value = if (defaultBreakDuration == -1) "" else defaultBreakDuration.toString(),
                 onValueChange = { newValueStr ->
                     val newIntValue = newValueStr.toIntOrNull()
@@ -691,8 +791,6 @@ fun DefaultDurationSettings(
                         ToastManager.show(toastBreakDurationNonNegative)
                     }
                 },
-                label = labelBreakDuration,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -700,8 +798,50 @@ fun DefaultDurationSettings(
     }
 }
 
+/** 无框数字输入域：13sp 标签在上 + 22sp Newsreader 数值在下（聚焦变主色）。 */
+@Composable
+private fun DurationNumberField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = appColors()
+    var isFocused by remember { mutableStateOf(false) }
+    Column(
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = TextStyle(
+                fontFamily = claudeDisplaySerif(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 26.sp,
+                color = if (isFocused) colors.primary else colors.textPrimary
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused }
+        )
+    }
+}
+
 /**
- * 单个时间段列表项的 UI 组件
+ * 单个时间段列表项：设计稿 .slot-card —— 左侧「第 N 节 + 别名」标题与时间两行，
+ * 右侧 36dp 圆角删除钮（bg-100 底，按压 danger 态由 Toast/对话框承担）。
  */
 @Composable
 fun TimeSlotItem(
@@ -710,6 +850,7 @@ fun TimeSlotItem(
     onDeleteClick: () -> Unit
 ) {
     val a11yDeleteTimeSlot = stringResource(Res.string.a11y_delete_time_slot)
+    val colors = appColors()
 
     AppCard(
         modifier = Modifier.fillMaxWidth(),
@@ -718,36 +859,100 @@ fun TimeSlotItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = appSpacing().cardInner, vertical = 12.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(Res.string.time_slot_section_number, timeSlot.number.toString()),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.width(72.dp),
-                maxLines = 1
-            )
-            Text(
-                text = timeSlot.alias ?: "",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.time_slot_section_number, timeSlot.number.toString()),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textPrimary,
+                        maxLines = 1
+                    )
+                    if (!timeSlot.alias.isNullOrBlank()) {
+                        Text(
+                            text = timeSlot.alias ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                // 时间（等宽数字风格：tabular nums 由字体默认保证）
+                Text(
+                    text = "${timeSlot.startTime} – ${timeSlot.endTime}",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        letterSpacing = 0.02.sp
+                    ),
+                    color = colors.textSecondary,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            // 36dp 圆角删除钮
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "${timeSlot.startTime} - ${timeSlot.endTime}",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                softWrap = false
-            )
-            IconButton(onClick = onDeleteClick) {
-                Icon(vectorResource(Res.drawable.delete_24px), contentDescription = a11yDeleteTimeSlot)
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(colors.inputBg)
+                    .clickable(onClick = onDeleteClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.delete_24px),
+                    contentDescription = a11yDeleteTimeSlot,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
+    }
+}
+
+/**
+ * 「恢复默认」按钮：设计稿 .reset-btn —— 整宽卡片钮，主色文字；圆角随主题卡 token。
+ */
+@Composable
+private fun RestoreDefaultButton(
+    onClick: () -> Unit
+) {
+    val colors = appColors()
+    val shape = if (LocalThemePreset.current == AppThemePreset.CLAUDE) {
+        RoundedCornerShape(14.dp)
+    } else {
+        appShapes().card
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.cardBgElevated)
+            .border(0.5.dp, colors.divider, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(Res.string.action_restore_default),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.primary
+        )
     }
 }
 
@@ -1048,7 +1253,7 @@ private fun LocalTime.addMinutes(minutes: Int): LocalTime {
 }
 
 /**
- * 自动切换作息方案开关。
+ * 自动切换作息方案开关：设计稿 .list-item-static —— 标题 + 副标题 + iOS 开关。
  */
 @Composable
 fun AutoSwitchToggle(
@@ -1056,7 +1261,9 @@ fun AutoSwitchToggle(
     onToggle: (Boolean) -> Unit
 ) {
     val titleAutoSwitchScheme = stringResource(Res.string.title_auto_switch_scheme)
+    val itemTitle = stringResource(Res.string.auto_switch_item_title)
     val descAutoSwitchScheme = stringResource(Res.string.desc_auto_switch_scheme)
+    val colors = appColors()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AppSectionHeader(titleAutoSwitchScheme)
@@ -1067,14 +1274,26 @@ fun AutoSwitchToggle(
                     .padding(horizontal = appSpacing().cardInner, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = descAutoSwitchScheme,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = appColors().textPrimary,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = itemTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = descAutoSwitchScheme,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textSecondary
+                    )
+                }
                 Spacer(modifier = Modifier.width(16.dp))
-                com.shangkeschedule.ui.components.AppSwitch(
+                AppSwitch(
                     checked = enabled,
                     onCheckedChange = onToggle
                 )

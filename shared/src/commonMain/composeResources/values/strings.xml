@@ -965,8 +965,10 @@
 
     <!-- 学期管理页（课表管理页新设计） -->
     <string name="semester_archive_eyebrow">学期档案</string>
+    <string name="title_semester_management">学期管理</string>
     <string name="view_earlier_semesters">查看更早的学期</string>
-    <string name="total_tables_count_format">%1$d 个学期</string>
+    <string name="total_tables_count_format">共 %1$d 个学期</string>
+    <string name="semester_count_short_format">%1$d 个学期</string>
     <string name="status_current_semester">当前学期</string>
     <string name="courses_count_format">%1$d 门课程</string>
     <string name="weeks_count_format">%1$d 周</string>
@@ -975,4 +977,26 @@
     <string name="action_view_timetable">查看课表</string>
     <string name="action_semester_settings">学期设置</string>
     <string name="section_bottom_actions">操作</string>
+    <string name="semester_progress_label">学期进度</string>
+    <string name="progress_percent_format">已过 %1$d%%</string>
+    <string name="school_year_format">%1$d-%2$d 学年</string>
+    <string name="status_semester_completed">已完成</string>
+    <string name="action_view">查看</string>
+    <string name="stat_courses_unit">门课程</string>
+    <string name="stat_teaching_weeks_unit">教学周</string>
+    <string name="eyebrow_new_semester">新建学期</string>
+    <string name="title_add_semester_ways">添加新学期的方式</string>
+    <string name="option_import_semester">导入新学期</string>
+    <string name="option_import_semester_desc">从教务系统一键导入课表数据</string>
+    <string name="option_create_semester">手动创建学期</string>
+    <string name="option_create_semester_desc">从零开始手动添加课程信息</string>
+    <string name="option_restore_backup">从备份恢复</string>
+    <string name="option_restore_backup_desc">从本地备份文件恢复学期数据</string>
+    <string name="a11y_new_semester">新建学期</string>
+    <string name="text_no_semesters_hint">暂无学期，使用下方方式新建第一个学期</string>
+    <!-- 时间段管理页（新设计） -->
+    <string name="auto_switch_item_title">自动切换</string>
+    <string name="hint_scheme_in_use">当前使用</string>
+    <string name="action_restore_default">恢复默认</string>
+    <string name="toast_restored_default">已恢复默认，保存后生效</string>
 </resources>

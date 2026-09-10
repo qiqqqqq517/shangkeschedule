@@ -71,7 +71,7 @@ class CourseTableRepository(
             firstDayOfWeek = 1
         )
 
-        val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
+        val defaultTimeSlotsForNewTable = DEFAULT_TIME_SLOTS.map {
             it.copy(courseTableId = tableId)
         }
 
@@ -112,7 +112,7 @@ class CourseTableRepository(
             createdAt = Clock.System.now().toEpochMilliseconds()
         )
 
-        val defaultTimeSlotsForNewTable = defaultTimeSlots.map {
+        val defaultTimeSlotsForNewTable = DEFAULT_TIME_SLOTS.map {
             it.copy(courseTableId = newTable.id)
         }
         val newConfig = CourseTableConfig(courseTableId = newTable.id)
@@ -475,7 +475,11 @@ class CourseTableRepository(
     }
 }
 
-private val defaultTimeSlots = listOf(
+/**
+ * 新课表的默认时间段模板（13 节）。
+ * 同时供「时间段管理 → 恢复默认」读取，保证恢复结果与新建课表种子一致。
+ */
+val DEFAULT_TIME_SLOTS: List<TimeSlot> = listOf(
     TimeSlot(number = 1, startTime = "08:00", endTime = "08:45", courseTableId = "placeholder"),
     TimeSlot(number = 2, startTime = "08:50", endTime = "09:35", courseTableId = "placeholder"),
     TimeSlot(number = 3, startTime = "09:50", endTime = "10:35", courseTableId = "placeholder"),
