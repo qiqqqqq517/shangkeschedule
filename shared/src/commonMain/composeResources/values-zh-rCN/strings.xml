@@ -365,7 +365,8 @@
     <string name="toast_break_duration_non_negative">休息时长不能为负</string>
     <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 \'+\' 添加。</string>
     <string name="toast_slot_removed_unsaved">时间段已从列表移除，请点击保存以更新数据库</string>
-    <string name="time_slot_section_number">第 %1$s 节</string>
+    <string name="time_slot_section_number">第 %1$s 节</string>
+    <string name="title_time_slot_list">节次列表</string>
     <string name="a11y_delete_time_slot">删除时间段</string>
     <string name="dialog_title_edit_time_slot">编辑时间段</string>
     <string name="dialog_title_add_time_slot">添加新时间段</string>

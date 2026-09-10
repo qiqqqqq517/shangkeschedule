@@ -1,5 +1,6 @@
-﻿package com.shangkeschedule.ui.settings.quickactions.delete
+package com.shangkeschedule.ui.settings.quickactions.delete
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +38,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -154,7 +154,7 @@ fun QuickDeleteScreen(
     Scaffold(
         snackbarHost = { com.shangkeschedule.ui.components.AppSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(stringResource(Res.string.item_quick_delete)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

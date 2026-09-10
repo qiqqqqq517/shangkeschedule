@@ -35,6 +35,7 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appType
+import com.shangkeschedule.ui.theme.claudeGroupBg
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -88,7 +89,7 @@ private fun claudeToneColors(tone: ClaudeCellTone): ClaudeToneColors {
 
 /** 书卷主题分组卡底色：浅米色 #f3efe4（深色下略加深）。 */
 @Composable
-fun claudeInsetGroupBg(): Color = if (LocalIsDarkTheme.current) Color(0xFF2F2E2C) else Color(0xFFF3EFE4)
+fun claudeInsetGroupBg(): Color = claudeGroupBg()
 
 /**
  * 书卷主题页面头部：大标题 28sp + 副标题 13sp。

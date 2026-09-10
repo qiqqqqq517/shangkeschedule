@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.quickactions.tweaks
 
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +24,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -143,7 +143,7 @@ fun TweakScheduleScreen(
     Scaffold(
         snackbarHost = { com.shangkeschedule.ui.components.AppSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(titleTweakSchedule) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

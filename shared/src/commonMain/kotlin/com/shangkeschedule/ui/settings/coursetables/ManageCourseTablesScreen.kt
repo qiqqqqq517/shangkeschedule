@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.coursetables
+package com.shangkeschedule.ui.settings.coursetables
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppSelectableCard
@@ -126,7 +126,7 @@ fun ManageCourseTablesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = { Text(titleManageTables) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
