@@ -58,7 +58,14 @@
     <string name="today_claude_meta_room">Location</string>
     <string name="today_claude_meta_teacher">Teacher</string>
     <string name="today_claude_meta_weeks">Weeks</string>
-    <string name="today_claude_meta_credit">Credits</string>
+    <string name="today_claude_meta_credit">Credits</string>
+    <string name="today_claude_next_label">Next class</string>
+    <string name="today_claude_note_type">Type</string>
+    <string name="today_claude_note_hours">Hours</string>
+    <string name="today_claude_type_theory">Theory</string>
+    <string name="today_claude_type_lab">Lab</string>
+    <string name="today_claude_sections_format">%1$s sections</string>
+    <string name="today_claude_countdown_label">min to start</string>
     <string name="today_claude_sheet_close">Close</string>
     <string name="today_claude_sheet_edit">Edit course</string>
     <string name="settings_group_course">Courses</string>
