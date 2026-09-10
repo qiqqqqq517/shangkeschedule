@@ -554,8 +554,10 @@
     <string name="item_devtools_debug">DevTools web debugging</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools web debugging %1$s.</string>
-    <string name="text_import_guide">Please log in to the academic system and navigate to a page showing the schedule before importing. Tap \"More\" for additional options</string>
     <string name="action_execute_import">Execute import</string>
+    <string name="action_navigate_to_timetable">Go to schedule</string>
+    <string name="toast_navigating_to_timetable">Opening the schedule page…</string>
+    <string name="toast_timetable_entry_not_found">Schedule entry not found. Please open the schedule page manually.</string>
     <string name="toast_no_script_manual_import">This adapter has no script, please import manually.</string>
     <string name="dialog_title_select_table_for_import">Select a schedule to import courses</string>
     <string name="toast_executing_import_script">Executing import script...</string>
@@ -880,6 +882,7 @@
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
     <string name="wb_crush_import_failed_fmt">Crush timetable import failed: %1$s</string>
     <string name="wb_config_import_no_table">Config import failed: no target timetable selected.</string>
+    <string name="adapter_remote_update_failed">Adapter update failed: checksum mismatch, update discarded.</string>
     <string name="wb_config_import_success">Timetable config imported!</string>
     <string name="wb_config_import_failed_fmt">Timetable config import failed: %1$s</string>
     <string name="wb_preset_import_success">Preset time slots imported!</string>

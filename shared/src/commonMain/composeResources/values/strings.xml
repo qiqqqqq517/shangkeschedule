@@ -552,8 +552,10 @@
     <string name="item_devtools_debug">DevTools 网页调试</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools 网页调试 %1$s。</string>
-    <string name="text_import_guide">请登录教务系统后切换到有课表显示的页面再点击导入课程，点击右上角的更多查看其他选项</string>
     <string name="action_execute_import">执行导入</string>
+    <string name="action_navigate_to_timetable">一键导航到课表</string>
+    <string name="toast_navigating_to_timetable">正在跳转到课表页面…</string>
+    <string name="toast_timetable_entry_not_found">未找到课表入口，请在页面中手动打开课表页</string>
     <string name="toast_no_script_manual_import">该适配器没有脚本，请手动导入。</string>
     <string name="dialog_title_select_table_for_import">选择一个课表以导入课程</string>
     <string name="toast_executing_import_script">正在执行导入脚本...</string>
@@ -896,6 +898,7 @@
     <string name="wb_import_failed_fmt">课程导入失败: %1$s</string>
     <string name="wb_crush_import_failed_fmt">crush 课表导入失败: %1$s</string>
     <string name="wb_config_import_no_table">配置导入失败：未选择目标课表。</string>
+    <string name="adapter_remote_update_failed">适配更新失败：文件校验未通过，本次更新已丢弃。</string>
     <string name="wb_config_import_success">课表配置导入成功！</string>
     <string name="wb_config_import_failed_fmt">课表配置导入失败: %1$s</string>
     <string name="wb_preset_import_success">预设时间段导入成功！</string>

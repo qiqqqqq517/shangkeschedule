@@ -73,3 +73,12 @@ build_qa/
 # AI 会话工作目录 / 设计稿解压临时目录（不提交）
 .workbuddy/
 .design_upload_extract/
+
+# 私有适配仓库暂存区（本地维护产物，不入库）
+.adapter_private/
+
+# 远程适配更新密钥（构建期注入，严禁入库）
+adapter_secrets.properties
+
+# Cloudflare Wrangler 本地缓存（部署产物，不入库）
+.wrangler/

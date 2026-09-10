@@ -550,8 +550,10 @@
     <string name="item_devtools_debug">DevTools 網頁除錯</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools 網頁除錯 %1$s。</string>
-    <string name="text_import_guide">請登入教務系統後切換到有課表顯示的頁面再點選匯入課程，點選右上角的更多檢視其他選項</string>
     <string name="action_execute_import">執行匯入</string>
+    <string name="action_navigate_to_timetable">一鍵導覽到課表</string>
+    <string name="toast_navigating_to_timetable">正在跳轉到課表頁面…</string>
+    <string name="toast_timetable_entry_not_found">未找到課表入口，請在頁面中手動開啟課表頁</string>
     <string name="toast_no_script_manual_import">該適配器沒有指令碼，請手動匯入。</string>
     <string name="dialog_title_select_table_for_import">選擇一個課表以匯入課程</string>
     <string name="toast_executing_import_script">正在執行匯入指令碼...</string>
@@ -879,6 +881,7 @@
     <string name="wb_import_failed_fmt">課程匯入失敗: %1$s</string>
     <string name="wb_crush_import_failed_fmt">crush 課表匯入失敗: %1$s</string>
     <string name="wb_config_import_no_table">設定匯入失敗：未選擇目標課表。</string>
+    <string name="adapter_remote_update_failed">適配更新失敗：檔案校驗未通過，本次更新已丟棄。</string>
     <string name="wb_config_import_success">課表設定匯入成功！</string>
     <string name="wb_config_import_failed_fmt">課表設定匯入失敗: %1$s</string>
     <string name="wb_preset_import_success">預設時間段匯入成功！</string>

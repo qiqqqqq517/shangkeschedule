@@ -364,6 +364,82 @@ val JS_IMPORT_AUTOSTART = """
 """.trimIndent()
 
 /**
+ * 「一键导航到课表」注入脚本。
+ *
+ * 在教务系统网页内寻找课表入口并跳转，供底部栏按钮调用。
+ * 优先级：适配脚本显式声明的 `window.shangkeNavigateToTimetable()` → DOM 文本探测。
+ * 探测时优先匹配更长、更精确的菜单文案（课表查询 / 学生课表 / 课表…），
+ * 命中后点击其最近的 `a` / `button` / `[onclick]` 祖先节点。
+ *
+ * 返回值（供 evaluateJavascript 回调解析）：`found` 命中并已触发跳转，`notfound` 未找到入口。
+ */
+val JS_NAVIGATE_TO_TIMETABLE = """
+(function() {
+    try {
+        // 1. 适配脚本显式声明的跳转入口（最可靠）
+        if (typeof window.shangkeNavigateToTimetable === 'function') {
+            try {
+                window.shangkeNavigateToTimetable();
+                return 'found';
+            } catch (e) {
+                // 入口抛错时回落到 DOM 探测
+            }
+        }
+
+        // 2. DOM 文本探测：长关键词优先级更高
+        var keywords = ['课表查询', '学生课表', '我的课表', '理论课表', '班级课表', '课表信息', '课程表', '课表', 'timetable', 'schedule'];
+
+        function isVisible(el) {
+            if (!el || typeof el.getBoundingClientRect !== 'function') return false;
+            var rect = el.getBoundingClientRect();
+            if (rect.width < 2 || rect.height < 2) return false;
+            if (typeof window.getComputedStyle === 'function') {
+                var style = window.getComputedStyle(el);
+                if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
+            }
+            return true;
+        }
+
+        var candidates = document.querySelectorAll('a, button, [onclick], li, td');
+        var best = null;
+        var bestScore = -1;
+
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            if (!isVisible(el)) continue;
+            var text = (el.textContent || '').replace(/\s+/g, '').trim();
+            if (!text || text.length > 24) continue;
+            var hay = text.toLowerCase();
+            for (var k = 0; k < keywords.length; k++) {
+                var needle = keywords[k].toLowerCase();
+                if (hay.indexOf(needle) === -1) continue;
+                // 关键词越长越精确；同分时元素文本越短越像一个独立入口
+                var score = needle.length * 100 - text.length;
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = el;
+                }
+            }
+        }
+
+        if (!best) return 'notfound';
+
+        var trigger = best;
+        if (typeof best.closest === 'function') {
+            trigger = best.closest('a, button, [onclick]') || best;
+        }
+        if (trigger.tagName === 'A' && trigger.href) {
+            trigger.target = '_self';
+        }
+        trigger.click();
+        return 'found';
+    } catch (e) {
+        return 'notfound';
+    }
+})();
+""".trimIndent()
+
+/**
  * 组装最终注入 WebView 的导入脚本。
  *
  * @param tableId 导入的目标课表 ID

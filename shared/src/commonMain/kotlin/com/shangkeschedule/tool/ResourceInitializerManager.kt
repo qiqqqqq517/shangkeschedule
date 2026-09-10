@@ -26,7 +26,8 @@ import shangkeschedule.shared.generated.resources.Res
 class ResourceInitializerManager(
     private val fileSystem: FileSystem,
     @Named("FilesDir") private val filesDir: Path,
-    @Named("CacheDir") private val cacheDir: Path
+    @Named("CacheDir") private val cacheDir: Path,
+    private val adapterRemoteUpdater: AdapterRemoteUpdater
 ) {
     private val targetRepoDir: Path = filesDir / "repo"
     private val shareTempDir: Path = cacheDir / "share_temp"
@@ -35,6 +36,8 @@ class ResourceInitializerManager(
         CoroutineScope(Dispatchers.IO).launch {
             initializeOfflineRepo()
             clearTempCaches()
+            // 追加：内置适配就绪后叠加远程安全更新；失败静默回退，不影响既有功能
+            adapterRemoteUpdater.sync()
         }
     }
 
