@@ -141,9 +141,9 @@ private val CleanGridStyle = ScheduleGridStyle(
 )
 
 // --- CLAUDE 主题专属课表样式 ---
-// 设计原则：Claude 设计系统课程配色只有 5 个 chart 色（chart-1 ~ chart-5），
-// 12 个课程槽位按 1→5 循环取色；浅色用 chart 色 0x40 淡底（与 iOS 色条主题同款约定），
-// 深色用 chart 色实底，保证暖炭底上的可读性。
+// 12 个课程槽位各取一个可区分的色相（赤陶 / 丁香紫 / 橄榄 / 珊瑚 / 金 / 钢蓝 / 红 / 苔绿 /
+// 青绿 / 玫瑰 / 棕 / 松石），避免早期「5 个 chart 色循环」导致的相邻课程同色难区分；
+// 浅色用同色 0x40 淡底（与 iOS 色条主题同款约定），深色用实底，保证暖炭底上的可读性。
 private val ClaudeGridStyle = ScheduleGridStyle(
     timeColumnWidthDp = 44f,
     dayHeaderHeightDp = 48f,
@@ -153,18 +153,18 @@ private val ClaudeGridStyle = ScheduleGridStyle(
     courseBlockInnerPaddingDp = 3f,
     courseBlockAlphaFloat = 1f,
     courseColorMaps = listOf(
-        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
-        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
-        DualColor(light = Color(0x40DED8C4), dark = Color(0xFFDED8C4)), // chart-3
-        DualColor(light = Color(0x40DBD3F0), dark = Color(0xFFDBD3F0)), // chart-4
-        DualColor(light = Color(0x40B4552D), dark = Color(0xFFB4552D)), // chart-5
-        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
-        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
-        DualColor(light = Color(0x40DED8C4), dark = Color(0xFFDED8C4)), // chart-3
-        DualColor(light = Color(0x40DBD3F0), dark = Color(0xFFDBD3F0)), // chart-4
-        DualColor(light = Color(0x40B4552D), dark = Color(0xFFB4552D)), // chart-5
-        DualColor(light = Color(0x40B05730), dark = Color(0xFFB05730)), // chart-1
-        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // chart-2
+        DualColor(light = Color(0x40C96442), dark = Color(0xFFC96442)), // 赤陶
+        DualColor(light = Color(0x409C87F5), dark = Color(0xFF9C87F5)), // 丁香紫
+        DualColor(light = Color(0x40788C5D), dark = Color(0xFF788C5D)), // 橄榄
+        DualColor(light = Color(0x40E88672), dark = Color(0xFFE88672)), // 珊瑚
+        DualColor(light = Color(0x40A8863C), dark = Color(0xFFA8863C)), // 金
+        DualColor(light = Color(0x405A8FB0), dark = Color(0xFF5A8FB0)), // 钢蓝
+        DualColor(light = Color(0x40D65450), dark = Color(0xFFD65450)), // 红
+        DualColor(light = Color(0x407A8A4F), dark = Color(0xFF7A8A4F)), // 苔绿
+        DualColor(light = Color(0x405F9A5A), dark = Color(0xFF5F9A5A)), // 青绿
+        DualColor(light = Color(0x40D86485), dark = Color(0xFFD86485)), // 玫瑰
+        DualColor(light = Color(0x409A6B4E), dark = Color(0xFF9A6B4E)), // 棕
+        DualColor(light = Color(0x404E8F8A), dark = Color(0xFF4E8F8A)), // 松石
     ),
     courseBlockFontScale = 1.15f,
     hideGridLines = false,
