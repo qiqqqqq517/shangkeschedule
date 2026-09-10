@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -89,6 +88,7 @@ import shangkeschedule.shared.generated.resources.a11y_load
 import shangkeschedule.shared.generated.resources.a11y_more_options
 import shangkeschedule.shared.generated.resources.a11y_refresh
 import shangkeschedule.shared.generated.resources.action_execute_import
+import shangkeschedule.shared.generated.resources.action_navigate_to_timetable
 import shangkeschedule.shared.generated.resources.action_refresh
 import shangkeschedule.shared.generated.resources.action_switch_to_desktop_mode
 import shangkeschedule.shared.generated.resources.action_switch_to_phone_mode
@@ -105,16 +105,17 @@ import shangkeschedule.shared.generated.resources.placeholder_enter_url_full
 import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.status_disabled
 import shangkeschedule.shared.generated.resources.status_enabled
-import shangkeschedule.shared.generated.resources.text_import_guide
 import shangkeschedule.shared.generated.resources.title_enter_url
 import shangkeschedule.shared.generated.resources.title_loading
 import shangkeschedule.shared.generated.resources.toast_devtools_enabled_format
 import shangkeschedule.shared.generated.resources.toast_executing_import_script
 import shangkeschedule.shared.generated.resources.toast_import_script_not_found
 import shangkeschedule.shared.generated.resources.toast_load_import_script_failed
+import shangkeschedule.shared.generated.resources.toast_navigating_to_timetable
 import shangkeschedule.shared.generated.resources.toast_no_script_manual_import
 import shangkeschedule.shared.generated.resources.toast_switched_to_desktop
 import shangkeschedule.shared.generated.resources.toast_switched_to_phone
+import shangkeschedule.shared.generated.resources.toast_timetable_entry_not_found
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,6 +142,8 @@ fun WebViewScreen(
     val toastExecutingImport = stringResource(Res.string.toast_executing_import_script)
     val toastImportNotFoundFmt = stringResource(Res.string.toast_import_script_not_found, "%s")
     val toastLoadImportFailedFmt = stringResource(Res.string.toast_load_import_script_failed, "%s")
+    val toastNavigatingToTimetable = stringResource(Res.string.toast_navigating_to_timetable)
+    val toastTimetableEntryNotFound = stringResource(Res.string.toast_timetable_entry_not_found)
     val statusEnabled = stringResource(Res.string.status_enabled)
     val statusDisabled = stringResource(Res.string.status_disabled)
     val toastDevToolsEnabled = stringResource(Res.string.toast_devtools_enabled_format, statusEnabled)
@@ -381,19 +384,12 @@ fun WebViewScreen(
                     .imePadding(),
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 content = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = appSpacing().pageHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = stringResource(Res.string.text_import_guide),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = appColors().textSecondary
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
                         Button(
                             onClick = {
                                 if (assetJsPath != null) {
@@ -402,9 +398,25 @@ fun WebViewScreen(
                                     ToastManager.show(toastNoManualImport)
                                 }
                             },
-                            enabled = assetJsPath != null
+                            enabled = assetJsPath != null,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(stringResource(Res.string.action_execute_import))
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                webViewController.evaluateJavascript(JS_NAVIGATE_TO_TIMETABLE) { result ->
+                                    when (result?.trim('"')) {
+                                        "found" -> ToastManager.show(toastNavigatingToTimetable)
+                                        "notfound" -> ToastManager.show(toastTimetableEntryNotFound)
+                                        else -> Unit
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(Res.string.action_navigate_to_timetable))
                         }
                     }
                 }

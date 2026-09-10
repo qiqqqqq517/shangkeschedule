@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -186,4 +187,81 @@ tasks.matching {
 }.configureEach {
     dependsOn(packSchoolsZip)
     dependsOn(exportLibraryDefinitions)
+}
+
+// =====================================================================
+// 远程适配更新：构建期从 git 忽略的配置文件注入密钥（不写入公开源码）
+// 配置文件：仓库根目录 adapter_secrets.properties（已 .gitignore）
+//   adapter.workerUrl=<Worker 域名>
+//   adapter.appSecret=<APP_SECRET>
+// 文件缺失时生成空值，远程更新功能自动关闭，不影响编译与其它功能。
+// =====================================================================
+val adapterSecretsFile = rootProject.file("adapter_secrets.properties")
+val adapterSecrets = Properties().apply {
+    if (adapterSecretsFile.exists()) {
+        adapterSecretsFile.inputStream().use { load(it) }
+    }
+}
+val adapterWorkerUrlValue = adapterSecrets.getProperty("adapter.workerUrl").orEmpty().trim()
+val adapterAppSecretValue = adapterSecrets.getProperty("adapter.appSecret").orEmpty().trim()
+val adapterSecretsOutputDir = layout.buildDirectory.dir("generated/adapterRemoteSecrets/kotlin")
+
+val generateAdapterRemoteSecrets = tasks.register("generateAdapterRemoteSecrets") {
+    group = "build"
+    description = "生成远程适配更新所需常量（密钥取自 git 忽略的 adapter_secrets.properties）。"
+
+    inputs.property("workerBaseUrl", adapterWorkerUrlValue)
+    inputs.property("appSecret", adapterAppSecretValue)
+    outputs.dir(adapterSecretsOutputDir)
+
+    doLast {
+        // 任务动作只读取自身的 inputs / outputs，不引用构建脚本对象（配置缓存要求）
+        val workerBaseUrl = inputs.properties.getValue("workerBaseUrl").toString()
+        val appSecret = inputs.properties.getValue("appSecret").toString()
+        val packageDir = outputs.files.singleFile.resolve("com/shangkeschedule/tool")
+        packageDir.mkdirs()
+
+        fun literal(value: String): String {
+            val sb = StringBuilder("\"")
+            for (ch in value) {
+                when (ch) {
+                    '\\' -> {
+                        sb.append('\\')
+                        sb.append('\\')
+                    }
+                    '"' -> {
+                        sb.append('\\')
+                        sb.append('"')
+                    }
+                    '$' -> {
+                        sb.append('\\')
+                        sb.append('$')
+                    }
+                    else -> sb.append(ch)
+                }
+            }
+            return sb.append('"').toString()
+        }
+
+        packageDir.resolve("AdapterRemoteSecrets.kt").writeText(
+            buildString {
+                appendLine("package com.shangkeschedule.tool")
+                appendLine()
+                appendLine("// 由 Gradle 任务 generateAdapterRemoteSecrets 自动生成，请勿手动修改。")
+                appendLine("internal object AdapterRemoteSecrets {")
+                appendLine("    const val WORKER_BASE_URL: String = " + literal(workerBaseUrl))
+                appendLine("    const val APP_SECRET: String = " + literal(appSecret))
+                appendLine("}")
+            },
+            Charsets.UTF_8
+        )
+    }
+}
+
+kotlin.sourceSets.named("commonMain") {
+    kotlin.srcDir(adapterSecretsOutputDir)
+}
+
+tasks.matching { it.name.startsWith("compileKotlin") || it.name.startsWith("ksp") }.configureEach {
+    dependsOn(generateAdapterRemoteSecrets)
 }

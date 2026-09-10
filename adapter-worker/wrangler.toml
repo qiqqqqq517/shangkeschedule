@@ -1,0 +1,18 @@
+# 上课 · 教务适配私有中转网关
+#
+# 说明：本文件只放「非敏感」配置。
+# 所有敏感值（GH_PAT / GH_OWNER / GH_REPO / GH_BRANCH / APP_SECRET）
+# 一律通过 `wrangler secret put <NAME>` 注入，禁止写进本文件或提交到仓库。
+
+name = "schedule-adapter-gateway"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# 使用 *.workers.dev 域名对外提供服务
+workers_dev = true
+
+# 关闭预览 URL，只保留唯一的正式域名（收窄暴露面）
+preview_urls = false
+
+[observability]
+enabled = true

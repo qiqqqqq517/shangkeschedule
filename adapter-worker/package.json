@@ -1,0 +1,13 @@
+{
+  "name": "schedule-adapter-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Authenticated gateway that serves the private ShangKeSchedule adapter repository to the app.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.130.0"
+  }
+}
