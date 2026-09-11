@@ -150,6 +150,14 @@
     <string name="agenda_back_to_today">Today</string>
     <string name="agenda_teacher_prefix">Teacher: %1$s</string>
     <string name="a11y_agenda_add">New event</string>
+    <string name="agenda_select_month">Select month</string>
+    <string name="agenda_year_format">%1$d</string>
+    <string name="a11y_agenda_prev_month">Previous month</string>
+    <string name="a11y_agenda_next_month">Next month</string>
+    <string name="a11y_agenda_prev_year">Previous year</string>
+    <string name="a11y_agenda_next_year">Next year</string>
+    <string name="a11y_agenda_expand_month">Expand month calendar</string>
+    <string name="a11y_agenda_collapse_month">Collapse month calendar</string>
     <string-array name="month_names">
         <item>January</item>
         <item>February</item>
@@ -769,9 +777,6 @@
     <string name="anim_reduce_motion">Reduce motion</string>
     <string name="anim_reduce_motion_desc">Use cross-fades instead of movement and scaling</string>
     <string name="anim_settings_more_placeholder">More motion groups (coming soon)</string>
-    <string name="anim_preview_transition">Transitions &amp; scroll</string>
-    <string name="anim_preview_replay">Replay</string>
-    <string name="anim_preview_press_hint">Press me</string>
     <string name="desc_appearance_settings">Theme style, dark mode and schedule appearance tuning</string>
     <string name="theme_preset_classic">Classic</string>
     <string name="theme_preset_cloud">Cloud</string>
