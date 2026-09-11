@@ -12,6 +12,7 @@ import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
+import com.shangkeschedule.ui.glass.GlassRefractionSettings
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
@@ -217,6 +218,26 @@ class SettingsViewModel(
     fun onGlassBlurRadiusChanged(radiusDp: Float) {
         viewModelScope.launch {
             appSettingsRepository.updateGlassBlurRadius(radiusDp)
+        }
+    }
+
+    /**
+     * 液态玻璃**边缘折射**（v3.47.0「外观与样式 → 玻璃模糊」新增）。
+     *
+     * 与 [onGlassBlurRadiusChanged] 是两个独立维度：模糊强度照旧由上面那个方法控制，
+     * 这里只负责"边缘透镜"层（开关 / 折射高度 / 折射强度 / 色散 / 厚度感）。
+     * 整组参数一次写入，避免滑杆拖动时产生多条 DataStore 事务。
+     */
+    fun onGlassRefractionChanged(settings: GlassRefractionSettings) {
+        viewModelScope.launch {
+            val sanitized = settings.sanitized()
+            appSettingsRepository.updateGlassRefractionAll(
+                enabled = sanitized.enabled,
+                heightDp = sanitized.heightDp,
+                amountDp = sanitized.amountDp,
+                dispersion = sanitized.dispersion,
+                depthEffect = sanitized.depthEffect
+            )
         }
     }
 

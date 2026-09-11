@@ -154,6 +154,28 @@ data class AppSettingsModel(
     val glassBlurRadiusDp: Float = 4f,
 
     /**
+     * 液态玻璃**边缘折射**总开关（v3.47.0）。
+     *
+     * true ⇒ 底栏玻璃切到自带引擎：录一份背景快照 → 按 [glassBlurRadiusDp] 模糊 →
+     * 在形状边缘做 SDF 折射（透镜）位移；false（默认）⇒ 沿用原有 Haze 模糊路径，
+     * 观感与旧版逐像素一致。**模糊强度始终由 [glassBlurRadiusDp] 决定**，
+     * 本开关只增加/移除折射这一光学层。
+     */
+    val glassRefractionEnabled: Boolean = false,
+
+    /** 折射带宽度（dp）：从形状边缘向内多少距离内发生位移，默认 16。 */
+    val glassRefractionHeightDp: Float = 16f,
+
+    /** 折射位移量（dp）：边缘像素被拉向中心的距离，默认 24。 */
+    val glassRefractionAmountDp: Float = 24f,
+
+    /** 彩虹色散：在四个圆角处产生棱镜彩边（每像素 7 次采样），默认关闭。 */
+    val glassRefractionDispersion: Boolean = false,
+
+    /** 厚度感：把 SDF 梯度与径向梯度混合，使形状内部也有轻微汇聚，默认开启。 */
+    val glassRefractionDepthEffect: Boolean = true,
+
+    /**
      * 全局动画风格（v3.26.0「个性化显示 → 动画效果」）。
      * 三档：琉璃轻弹(GLASS，默认) / 舒缓轻移(GENTLE) / 灵动跟手(SNAPPY)。
      * 经 LocalAppMotion 注入，全 App 一处生效。
@@ -211,6 +233,11 @@ data class AppSettingsModel(
         val KEY_CRUSH_COURSE_COLOR_INDEX = intPreferencesKey("crush_course_color_index")
         val KEY_SCHEDULE_VIEW_MODE = stringPreferencesKey("schedule_view_mode")
         val KEY_GLASS_BLUR_RADIUS_DP = floatPreferencesKey("glass_blur_radius_dp")
+        val KEY_GLASS_REFRACTION_ENABLED = booleanPreferencesKey("glass_refraction_enabled")
+        val KEY_GLASS_REFRACTION_HEIGHT_DP = floatPreferencesKey("glass_refraction_height_dp")
+        val KEY_GLASS_REFRACTION_AMOUNT_DP = floatPreferencesKey("glass_refraction_amount_dp")
+        val KEY_GLASS_REFRACTION_DISPERSION = booleanPreferencesKey("glass_refraction_dispersion")
+        val KEY_GLASS_REFRACTION_DEPTH_EFFECT = booleanPreferencesKey("glass_refraction_depth_effect")
         val KEY_ANIMATION_STYLE = stringPreferencesKey("animation_style")
         val KEY_DISABLED_ANIMATION_GROUPS = stringSetPreferencesKey("disabled_animation_groups")
         val KEY_REDUCE_MOTION_ENABLED = booleanPreferencesKey("reduce_motion_enabled")
@@ -243,6 +270,11 @@ data class AppSettingsModel(
                 crushCourseColorIndex = prefs[KEY_CRUSH_COURSE_COLOR_INDEX] ?: d.crushCourseColorIndex,
                 scheduleViewMode = ScheduleViewMode.fromString(prefs[KEY_SCHEDULE_VIEW_MODE]),
                 glassBlurRadiusDp = prefs[KEY_GLASS_BLUR_RADIUS_DP] ?: d.glassBlurRadiusDp,
+                glassRefractionEnabled = prefs[KEY_GLASS_REFRACTION_ENABLED] ?: d.glassRefractionEnabled,
+                glassRefractionHeightDp = prefs[KEY_GLASS_REFRACTION_HEIGHT_DP] ?: d.glassRefractionHeightDp,
+                glassRefractionAmountDp = prefs[KEY_GLASS_REFRACTION_AMOUNT_DP] ?: d.glassRefractionAmountDp,
+                glassRefractionDispersion = prefs[KEY_GLASS_REFRACTION_DISPERSION] ?: d.glassRefractionDispersion,
+                glassRefractionDepthEffect = prefs[KEY_GLASS_REFRACTION_DEPTH_EFFECT] ?: d.glassRefractionDepthEffect,
                 animationStyle = AnimationStyle.fromString(prefs[KEY_ANIMATION_STYLE]),
                 disabledAnimationGroups = prefs[KEY_DISABLED_ANIMATION_GROUPS]
                     ?.mapNotNull { AnimationGroup.fromString(it) }

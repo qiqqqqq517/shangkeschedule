@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +39,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.components.AppSwitch
+import com.shangkeschedule.ui.glass.GlassRefractionSettings
+import com.shangkeschedule.ui.glass.LocalGlassRefraction
+import com.shangkeschedule.ui.glass.glassBackdropSource
+import com.shangkeschedule.ui.glass.isGlassRefractionAvailable
+import com.shangkeschedule.ui.glass.rememberGlassBackdrop
 import com.shangkeschedule.ui.settings.style.StyleSliderItem
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appShapes
@@ -60,6 +67,16 @@ import shangkeschedule.shared.generated.resources.glass_preset_heavy
 import shangkeschedule.shared.generated.resources.glass_preset_light
 import shangkeschedule.shared.generated.resources.glass_preset_off
 import shangkeschedule.shared.generated.resources.glass_preset_standard
+import shangkeschedule.shared.generated.resources.glass_refraction_amount
+import shangkeschedule.shared.generated.resources.glass_refraction_depth
+import shangkeschedule.shared.generated.resources.glass_refraction_depth_desc
+import shangkeschedule.shared.generated.resources.glass_refraction_desc
+import shangkeschedule.shared.generated.resources.glass_refraction_dispersion
+import shangkeschedule.shared.generated.resources.glass_refraction_dispersion_desc
+import shangkeschedule.shared.generated.resources.glass_refraction_height
+import shangkeschedule.shared.generated.resources.glass_refraction_switch
+import shangkeschedule.shared.generated.resources.glass_refraction_title
+import shangkeschedule.shared.generated.resources.glass_refraction_unsupported
 import shangkeschedule.shared.generated.resources.glass_section_desc
 import shangkeschedule.shared.generated.resources.glass_section_title
 import shangkeschedule.shared.generated.resources.label_glass_blur
@@ -91,6 +108,13 @@ fun GlassBlurScreen(
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
     val blurDp = uiState.appSettings.glassBlurRadiusDp
+    // v3.47.0：折射配置直接读全局注入值 —— 与真机玻璃件同源，预览即真机观感，
+    // 不再是"第二套近似值"（沿用 v3.24.7 定下的规矩）。
+    val refraction = LocalGlassRefraction.current
+    val refractionAvailable = isGlassRefractionAvailable()
+    val onRefractionChange: (GlassRefractionSettings) -> Unit = remember(settingsViewModel) {
+        { settingsViewModel.onGlassRefractionChanged(it) }
+    }
 
     Scaffold(
         topBar = {
@@ -151,6 +175,173 @@ fun GlassBlurScreen(
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+
+            // ============ v3.47.0 液态折射（复刻 Kyant/backdrop 的边缘折射光学）============
+            // 与上面的「模糊强度」是两个独立维度：模糊决定雾度，这里决定边缘透镜层。
+            Text(
+                text = stringResource(Res.string.glass_refraction_title),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            Text(
+                text = stringResource(Res.string.glass_refraction_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = appColors().textSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
+            if (!refractionAvailable) {
+                // 能力提示：Android 13 以下没有 RuntimeShader，折射无法生效（不静默欺骗用户）
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Text(
+                        text = stringResource(Res.string.glass_refraction_unsupported),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = appColors().textSecondary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    )
+                }
+            }
+
+            GlassRefractionToggleRow(
+                label = stringResource(Res.string.glass_refraction_switch),
+                desc = null,
+                checked = refraction.enabled && refractionAvailable,
+                enabled = refractionAvailable,
+                onToggle = { onRefractionChange(refraction.copy(enabled = it)) }
+            )
+
+            // 参数只在开启后展开：避免关着的时候还摆一堆无效滑杆
+            if (refraction.enabled && refractionAvailable) {
+                StyleSliderItem(
+                    label = stringResource(Res.string.glass_refraction_height),
+                    value = refraction.heightDp,
+                    range = GlassRefractionSettings.MIN_HEIGHT_DP..GlassRefractionSettings.MAX_HEIGHT_DP,
+                    stepValue = 1f
+                ) { onRefractionChange(refraction.copy(heightDp = it)) }
+
+                StyleSliderItem(
+                    label = stringResource(Res.string.glass_refraction_amount),
+                    value = refraction.amountDp,
+                    range = GlassRefractionSettings.MIN_AMOUNT_DP..GlassRefractionSettings.MAX_AMOUNT_DP,
+                    stepValue = 1f
+                ) { onRefractionChange(refraction.copy(amountDp = it)) }
+
+                GlassRefractionPresetRow(
+                    current = refraction,
+                    onSelect = onRefractionChange
+                )
+
+                GlassRefractionToggleRow(
+                    label = stringResource(Res.string.glass_refraction_dispersion),
+                    desc = stringResource(Res.string.glass_refraction_dispersion_desc),
+                    checked = refraction.dispersion,
+                    enabled = true,
+                    onToggle = { onRefractionChange(refraction.copy(dispersion = it)) }
+                )
+
+                GlassRefractionToggleRow(
+                    label = stringResource(Res.string.glass_refraction_depth),
+                    desc = stringResource(Res.string.glass_refraction_depth_desc),
+                    checked = refraction.depthEffect,
+                    enabled = true,
+                    onToggle = { onRefractionChange(refraction.copy(depthEffect = it)) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 折射开关行：标题 +（可选）描述 + [AppSwitch]，形态与动画设置页的开关行一致。
+ */
+@Composable
+private fun GlassRefractionToggleRow(
+    label: String,
+    desc: String?,
+    checked: Boolean,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Surface(
+        onClick = { if (enabled) onToggle(!checked) },
+        enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (desc != null) {
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = appColors().textSecondary
+                    )
+                }
+            }
+            AppSwitch(
+                checked = checked,
+                onCheckedChange = if (enabled) onToggle else null,
+                enabled = enabled
+            )
+        }
+    }
+}
+
+/**
+ * 折射档位：关 / 轻 / 标准 / 强。标签复用「玻璃模糊」页既有的档位文案，避免重复键。
+ *
+ * 注意「关」以外的档位同时写入高度与强度（两参数联动），只调单个滑杆时不经过这里，
+ * 因此不会互相覆盖。
+ */
+@Composable
+private fun GlassRefractionPresetRow(
+    current: GlassRefractionSettings,
+    onSelect: (GlassRefractionSettings) -> Unit
+) {
+    val presets = listOf(
+        GlassRefractionSettings.Off to stringResource(Res.string.glass_preset_off),
+        GlassRefractionSettings.Light to stringResource(Res.string.glass_preset_light),
+        GlassRefractionSettings.Standard to stringResource(Res.string.glass_preset_standard),
+        GlassRefractionSettings.Strong to stringResource(Res.string.glass_preset_heavy)
+    )
+    val selectedColor = MaterialTheme.colorScheme.primary
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        presets.forEach { (preset, label) ->
+            val selected = current.enabled == preset.enabled &&
+                kotlin.math.abs(current.heightDp - preset.heightDp) < 0.01f &&
+                kotlin.math.abs(current.amountDp - preset.amountDp) < 0.01f
+            Surface(
+                onClick = { onSelect(preset) },
+                shape = appShapes().capsule,
+                color = if (selected) selectedColor.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = if (selected) BorderStroke(1.dp, selectedColor.copy(alpha = 0.35f)) else null
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (selected) selectedColor else appColors().textSecondary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                )
+            }
         }
     }
 }
@@ -169,6 +360,10 @@ fun GlassBlurScreen(
 private fun GlassBlurPreview() {
     val tokens = appColors()
     val hazeState = rememberHazeState()
+    // v3.47.0：预览同样接折射引擎，开关一按即可看到边缘透镜效果（与真机同一套实现）
+    val refraction = LocalGlassRefraction.current
+    val refractionActive = refraction.enabled && isGlassRefractionAvailable()
+    val glassBackdrop = rememberGlassBackdrop()
 
     Surface(
         shape = appShapes().card,
@@ -181,7 +376,19 @@ private fun GlassBlurPreview() {
                 .height(168.dp)
         ) {
             // 1) 背板内容层：玻璃要糊的就是它
-            Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    // 折射开启时额外录一份快照给玻璃引擎（关闭时不挂载，零额外开销）
+                    .then(
+                        if (refractionActive) {
+                            Modifier.glassBackdropSource(glassBackdrop)
+                        } else {
+                            Modifier
+                        }
+                    )
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -220,7 +427,8 @@ private fun GlassBlurPreview() {
                         hazeState = hazeState,
                         shape = appShapes().capsule,
                         containerColor = tokens.inputBg,
-                        shadowElevation = 10.dp
+                        shadowElevation = 10.dp,
+                        glassBackdrop = glassBackdrop
                     )
                     .padding(horizontal = 12.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -253,7 +461,8 @@ private fun GlassBlurPreview() {
                         hazeState = hazeState,
                         shape = CircleShape,
                         containerColor = tokens.inputBg,
-                        shadowElevation = 6.dp
+                        shadowElevation = 6.dp,
+                        glassBackdrop = glassBackdrop
                     ),
                 contentAlignment = Alignment.Center
             ) {
