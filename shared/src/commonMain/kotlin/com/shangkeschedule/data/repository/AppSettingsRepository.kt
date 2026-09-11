@@ -9,6 +9,7 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
+import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -112,6 +113,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] =
                 newSettings.disabledAnimationGroups.map { it.value }.toSet()
             prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = newSettings.reduceMotionEnabled
+            prefs[AppSettingsModel.KEY_MOTION_SPEED] = newSettings.motionSpeed.value
         }
     }
 
@@ -166,6 +168,15 @@ class AppSettingsRepository(
     suspend fun updateReduceMotionEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * 单独持久化「动效速度」倍率（v3.44.0）。只写这一个键，避免整份 copy 覆盖并发修改。
+     */
+    suspend fun updateMotionSpeed(speed: MotionSpeed) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_MOTION_SPEED] = speed.value
         }
     }
 

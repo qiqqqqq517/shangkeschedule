@@ -177,6 +177,11 @@ fun AppNavigation(startDestination: Destination) {
         tween<Float>(navDurationMs, easing = navEasing)
     }
 
+    // 退场（淡出）单独一套：慢进快出——旧页不再陪新页一起走 600ms。
+    val navExitAnimSpec = remember(motion) {
+        tween<Float>(motion.tokens.navExitDurationMs, easing = motion.tokens.navExitEasing)
+    }
+
     NavDisplay(
         backStack = backStack,
         onBack = onBack,
@@ -195,7 +200,7 @@ fun AppNavigation(startDestination: Destination) {
                             slideOutHorizontally(
                                 targetOffsetX = { -(it * navTrail).toInt() },
                                 animationSpec = slideAnimSpec
-                            ) + fadeOut(animationSpec = fadeAnimSpec)
+                            ) + fadeOut(animationSpec = navExitAnimSpec)
 
                     // 柔绘：新页淡入 + 上浮，旧页慢速降透明度后淡出（零横移）
                     NavMotionMode.FADE_UP ->
@@ -203,7 +208,7 @@ fun AppNavigation(startDestination: Destination) {
                             initialOffsetY = { navOffsetPx },
                             animationSpec = slideAnimSpec
                         ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            fadeOut(animationSpec = fadeAnimSpec, targetAlpha = 0.85f)
+                            fadeOut(animationSpec = navExitAnimSpec, targetAlpha = 0.85f)
 
                     // 书卷：纸页层叠——新页自右缘 14dp 淡入，旧页原地仅降 6% 不透明度
                     NavMotionMode.LAYER_PUSH ->
@@ -211,7 +216,7 @@ fun AppNavigation(startDestination: Destination) {
                             initialOffsetX = { navOffsetPx },
                             animationSpec = slideAnimSpec
                         ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            fadeOut(animationSpec = fadeAnimSpec, targetAlpha = 0.94f)
+                            fadeOut(animationSpec = navExitAnimSpec, targetAlpha = 0.94f)
                 }
             }
         },
@@ -229,21 +234,21 @@ fun AppNavigation(startDestination: Destination) {
                             animationSpec = slideAnimSpec
                         ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
                             slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
-                            fadeOut(animationSpec = fadeAnimSpec)
+                            fadeOut(animationSpec = navExitAnimSpec)
 
                     NavMotionMode.FADE_UP ->
                         slideInVertically(
                             initialOffsetY = { -navOffsetPx },
                             animationSpec = slideAnimSpec
                         ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            fadeOut(animationSpec = fadeAnimSpec)
+                            fadeOut(animationSpec = navExitAnimSpec)
 
                     NavMotionMode.LAYER_PUSH ->
                         fadeIn(animationSpec = fadeAnimSpec) togetherWith
                             slideOutHorizontally(
                                 targetOffsetX = { navOffsetPx },
                                 animationSpec = slideAnimSpec
-                            ) + fadeOut(animationSpec = fadeAnimSpec)
+                            ) + fadeOut(animationSpec = navExitAnimSpec)
                 }
             }
         },
@@ -260,11 +265,11 @@ fun AppNavigation(startDestination: Destination) {
                             animationSpec = slideAnimSpec
                         ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
                             slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
-                            fadeOut(animationSpec = fadeAnimSpec)
+                            fadeOut(animationSpec = navExitAnimSpec)
 
                     NavMotionMode.FADE_UP, NavMotionMode.LAYER_PUSH ->
                         fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            fadeOut(animationSpec = fadeAnimSpec)
+                            fadeOut(animationSpec = navExitAnimSpec)
                 }
             }
         },

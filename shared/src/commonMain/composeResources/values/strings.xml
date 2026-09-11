@@ -766,6 +766,11 @@
     <string name="anim_group_dialog_desc">确认弹窗出现与收起的过渡</string>
     <string name="anim_group_tab_switch">切换标签</string>
     <string name="anim_group_tab_switch_desc">底栏选中胶囊迁移与图标切换</string>
+    <string name="anim_section_speed">动效速度</string>
+    <string name="anim_section_speed_desc">影响页面转场、列表与卡片入场、面板与弹窗、触摸反馈等全部动画的时长</string>
+    <string name="anim_speed_relaxed">舒缓</string>
+    <string name="anim_speed_standard">标准</string>
+    <string name="anim_speed_fast">快</string>
     <string name="anim_reduce_motion">减弱动态效果</string>
     <string name="anim_reduce_motion_desc">以淡入淡出替代位移与缩放，减少眩晕感</string>
     <string name="anim_settings_more_placeholder">更多动效分组（后续版本推出）</string>

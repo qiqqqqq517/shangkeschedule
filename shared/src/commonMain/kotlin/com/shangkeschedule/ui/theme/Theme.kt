@@ -75,6 +75,7 @@ fun ShangKeScheduleTheme(
             disabledGroups = settings.disabledAnimationGroups,
             preset = settings.themePreset,
             reduceMotion = settings.reduceMotionEnabled,
+            speed = settings.motionSpeed,
         )
     ) {
         ShangKeScheduleTheme(
