@@ -74,6 +74,10 @@ import shangkeschedule.shared.generated.resources.glass_refraction_desc
 import shangkeschedule.shared.generated.resources.glass_refraction_dispersion
 import shangkeschedule.shared.generated.resources.glass_refraction_dispersion_desc
 import shangkeschedule.shared.generated.resources.glass_refraction_height
+import shangkeschedule.shared.generated.resources.glass_refraction_preset_none
+import shangkeschedule.shared.generated.resources.glass_refraction_preset_obvious
+import shangkeschedule.shared.generated.resources.glass_refraction_preset_strong
+import shangkeschedule.shared.generated.resources.glass_refraction_preset_subtle
 import shangkeschedule.shared.generated.resources.glass_refraction_switch
 import shangkeschedule.shared.generated.resources.glass_refraction_title
 import shangkeschedule.shared.generated.resources.glass_refraction_unsupported
@@ -305,10 +309,12 @@ private fun GlassRefractionToggleRow(
 }
 
 /**
- * 折射档位：关 / 轻 / 标准 / 强。标签复用「玻璃模糊」页既有的档位文案，避免重复键。
+ * 折射档位：不折射 / 轻微 / 明显 / 强烈。
  *
- * 注意「关」以外的档位同时写入高度与强度（两参数联动），只调单个滑杆时不经过这里，
- * 因此不会互相覆盖。
+ * ⚠️ v3.47.0 修订：初版直接复用了「模糊强度」的档位文案（关闭/清澈/标准/磨砂），
+ * 导致同一页出现两排同名按钮 —— 真机上极易把「模糊强度」那一排的「关闭」当成折射档位点掉，
+ * 结果模糊被清零、玻璃彻底没雾化（用户实测反馈"玻璃模糊完全无法使用"）。
+ * 现改用完全不同的一组措辞，从源头消除歧义。
  */
 @Composable
 private fun GlassRefractionPresetRow(
@@ -316,10 +322,10 @@ private fun GlassRefractionPresetRow(
     onSelect: (GlassRefractionSettings) -> Unit
 ) {
     val presets = listOf(
-        GlassRefractionSettings.Off to stringResource(Res.string.glass_preset_off),
-        GlassRefractionSettings.Light to stringResource(Res.string.glass_preset_light),
-        GlassRefractionSettings.Standard to stringResource(Res.string.glass_preset_standard),
-        GlassRefractionSettings.Strong to stringResource(Res.string.glass_preset_heavy)
+        GlassRefractionSettings.Off to stringResource(Res.string.glass_refraction_preset_none),
+        GlassRefractionSettings.Light to stringResource(Res.string.glass_refraction_preset_subtle),
+        GlassRefractionSettings.Standard to stringResource(Res.string.glass_refraction_preset_obvious),
+        GlassRefractionSettings.Strong to stringResource(Res.string.glass_refraction_preset_strong)
     )
     val selectedColor = MaterialTheme.colorScheme.primary
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -35,22 +35,29 @@ data class GlassRefractionSettings(
         const val MIN_AMOUNT_DP = 0f
         const val MAX_AMOUNT_DP = 48f
 
-        const val DEFAULT_HEIGHT_DP = 16f
+        const val DEFAULT_HEIGHT_DP = 24f
         const val DEFAULT_AMOUNT_DP = 24f
 
         /** 关闭（默认）：走原有 Haze 玻璃路径。 */
         val Off = GlassRefractionSettings()
 
         /** 轻：只在边缘给一点点厚度暗示。 */
-        val Light = GlassRefractionSettings(enabled = true, heightDp = 8f, amountDp = 12f)
+        val Light = GlassRefractionSettings(enabled = true, heightDp = 14f, amountDp = 18f)
 
-        /** 标准：backdrop 底栏的等效档（`lens(24dp, 24dp)` 量级再收敛一档）。 */
-        val Standard = GlassRefractionSettings(enabled = true, heightDp = 16f, amountDp = 24f)
+        /**
+         * 标准：**对齐参考实现（Kyant/backdrop 的 LiquidBottomTabs）的 `lens(24dp, 24dp)`**。
+         * v3.47.0 修订：初版标准档只给 16/24 且默认更弱，实测"几乎看不出折射"，
+         * 与用户要的参考观感差距过大 —— 现取 24/24（折射带宽约占底栏高度 1/3，肉眼可见）。
+         */
+        val Standard = GlassRefractionSettings(enabled = true, heightDp = 24f, amountDp = 24f)
 
-        /** 强：明显透镜感 + 色散，接近参考实现的"液体"观感。 */
+        /**
+         * 强：明显透镜感 + 色散，接近参考实现开启色散后的"液体"观感。
+         * 参考实现另有 `blur(8dp)` 与 `vibrancy()`，本项目分别由「模糊强度」与表面 tint 承担。
+         */
         val Strong = GlassRefractionSettings(
             enabled = true,
-            heightDp = 24f,
+            heightDp = 32f,
             amountDp = 40f,
             dispersion = true
         )

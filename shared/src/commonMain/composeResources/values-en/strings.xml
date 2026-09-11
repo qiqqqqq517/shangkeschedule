@@ -743,6 +743,11 @@
     <string name="glass_refraction_depth">Glass thickness</string>
     <string name="glass_refraction_depth_desc">Adds a slight inward convergence inside the pane so it reads as a solid piece of glass</string>
     <string name="glass_refraction_unsupported">Edge refraction is not supported on this system (requires Android 13 or newer); regular blurred glass is used instead</string>
+    <!-- Refraction presets: deliberately worded differently from the blur presets, so two rows of same-named buttons on one page cannot be mis-tapped -->
+    <string name="glass_refraction_preset_none">No refraction</string>
+    <string name="glass_refraction_preset_subtle">Subtle</string>
+    <string name="glass_refraction_preset_obvious">Obvious</string>
+    <string name="glass_refraction_preset_strong">Strong</string>
     <string name="glass_preset_off">Off</string>
     <string name="glass_preset_light">Clear</string>
     <string name="glass_preset_standard">Standard</string>
