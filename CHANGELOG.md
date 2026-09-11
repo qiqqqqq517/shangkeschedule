@@ -7,6 +7,32 @@
 
 ## 最新版本
 
+### v3.42.0（2026-09-11）· 新增第三主题「柔绘」：柔和晕染 · 薄涂通透 · 漫射柔光
+
+**功能**
+- **新增「柔绘」主题**：功能面完全参照书卷/通透——同一批页面、同一批分组与条目、同一批字段与位置，只替换 UI 材质
+  - 设计语言：柔和晕染渐变、虚化圆角（卡片 24dp / 课程块 16dp）、**无锐利硬边缘**（全站 1dp 实色描边 → 羽化渐变描边环）、低对比雾紫配色（主色 `#7C86C9`）、薄涂通透卡 + 漫射柔光 + 轻量手绘纹理 + 双层软模糊投影
+  - 今日页：双色晕染时间轴卡（雾紫 / 暖杏交替）、便签胶囊、下节课卡、明日预览、日程行、课程详情薄涂面板
+  - 我的页：4 组 inset 分组列表（课表 / 课程 / 偏好 / 关于），条目与开关位置与书卷一一对应；30dp 晕染图标容器 + 同色图标；所有行等宽等高（970×144px，与通透一致）
+  - 课表页：12 对低饱和马卡龙色池、隐藏网格线、课程块无描边 + 软投影（静置 6dp / 浮起 12dp）、当前节次圆角薄涂高亮块 + 内侧渐变竖条
+  - 悬浮件：底栏 / 悬浮课程条 / FAB / 底部弹层（模糊 14dp、噪点 0.06、遮罩 26%）统一薄涂质感
+  - 深色模式完整适配：雾紫提亮档 `#9AA3DC` + 暖灰深底 `#1F1E24` / `#2A2830`
+- **周切换扫光按主题分流**：柔绘档移除方向性玻璃扫光（镜面语言与雾面薄涂材质冲突），改为 600ms 无方向「整屏换气」明度起伏；书卷/通透行为不变
+- **书卷与通透零改动**：Material `outline` / `outlineVariant` 角色新增主题 token，默认值即 Material 基线原值，两套既有主题视觉不变（`git diff '*Claude*'` 为空）
+
+**修复**
+- 柔绘日程事件分类色不再使用 Material 500 档高饱和色，改走主题语义色（低饱和马卡龙档）
+- 柔绘暖调时间轴描边残留的 iOS 系统橙 `#FF9500` → 柔绘警示色 `#D9A97E`
+- 柔绘今日页移除多余的「今日课表」顶栏与「添加待办」FAB（书卷/通透均无此结构）
+
+**构建信息**：versionCode 175 · 本地构建 · 支持 arm64-v8a / armeabi-v7a / x86_64
+
+**验证**：编译三端通过；真机三主题互斥像素核验通过（各主题签名色命中、互串≈0）；我的页 15 界面 IA 走查标签集合一致；柔绘深色模式像素核验通过；硬边线检出 0 段、柔绘高饱和像素占比 0.05%
+
+**涉及文件**：新增 `SoftStyle.kt`、`SoftSettingsComponents.kt`；修改 `AppThemePreset.kt`、`ScheduleGridStyle.kt`、`AppStyle.kt`、`Theme.kt`、`TodayScheduleScreen.kt`、`SettingsScreen.kt`、`StyleComponents.kt`、`AppBasicComponents.kt`、`AppTopAppBar.kt`、`CourseBlock.kt`、`WeeklyScheduleScreen.kt`、`ScheduleGridComponents.kt`、`FloatingCourseBar.kt`、`ManageCourseTablesScreen.kt`、`TimeSlotManagementScreen.kt`、strings.xml（×4 语言）
+
+---
+
 ### v3.41.1（2026-09-11）· 修复通透「我的」页开关行与其它设置行高度不一致
 
 **修复**

@@ -763,6 +763,7 @@
     <string name="theme_preset_cloud">Cloud</string>
     <string name="theme_preset_clean">Clean</string>
     <string name="theme_preset_ios">Airy</string>
+    <string name="theme_preset_soft">Soft Draw</string>
     <string name="theme_preset_claude">Shujuan</string>
     <string name="theme_style_section">Theme Style</string>
     <string name="theme_style_desc">Applies both color scheme and schedule style</string>

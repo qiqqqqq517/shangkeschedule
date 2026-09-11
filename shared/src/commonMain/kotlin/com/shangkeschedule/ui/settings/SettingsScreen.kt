@@ -187,6 +187,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val themePreset = LocalThemePreset.current
     val isIosPreset = themePreset == AppThemePreset.IOS
+    val isSoftPreset = themePreset == AppThemePreset.SOFT
     val isClaudePreset = themePreset == AppThemePreset.CLAUDE
     // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
     val hazeState = rememberHazeState()
@@ -200,14 +201,15 @@ fun SettingsScreen(
         Scaffold(
             // 书卷主题没有 TopAppBar 吸收滚动量：若仍挂 exitUntilCollapsed 的 nestedScroll 连接，
             // 滚动会被整段吞掉（列表完全无法滑动），故仅在存在顶栏的主题下挂载。
-            modifier = if (isClaudePreset) {
+            modifier = if (isClaudePreset || isSoftPreset) {
                 Modifier
             } else {
                 Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
             },
             topBar = {
-                if (isClaudePreset) {
-                    // 书卷主题：无独立 TopAppBar，页面大标题由内容区 ClaudePageHeader 承担
+                if (isClaudePreset || isSoftPreset) {
+                    // 书卷：大标题由内容区 ClaudePageHeader 承担
+                    // 柔绘：大标题由内容区 SoftPageHeader 承担（同为 4 组分组列表结构）
                 } else if (isIosPreset) {
                     // iOS 风格：左对齐大标题（对齐设计稿 .nav-bar__title）
                     TopAppBar(
@@ -260,7 +262,7 @@ fun SettingsScreen(
                     .padding(horizontal = appSpacing().pageHorizontal),
                 verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
                 // iOS 主题：宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
-                horizontalAlignment = if (isIosPreset) Alignment.CenterHorizontally else Alignment.Start,
+                horizontalAlignment = if (isIosPreset || isSoftPreset) Alignment.CenterHorizontally else Alignment.Start,
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
@@ -420,12 +422,167 @@ fun SettingsScreen(
                             }
                         }
                     }
+                } else if (isSoftPreset) {
+                    // ===== 柔绘主题：inset grouped 分组列表 =====
+                    // 结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）与上面的书卷、
+                    // 下面的通透**完全一致**——同一份结构换组件，不是重新排布。
+                    // 材质换成柔绘：24dp 虚化圆角 + 薄涂底 + 漫射柔光 + 手绘纹理 + 软模糊投影。
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            SoftPageHeader(
+                                title = stringResource(Res.string.nav_settings),
+                                subtitle = stringResource(Res.string.hero_subtitle)
+                            )
+                            SoftUserRow(
+                                name = stringResource(Res.string.app_name),
+                                school = stringResource(Res.string.hero_subtitle),
+                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                            )
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            SoftGroupLabel(stringResource(Res.string.settings_group_timetable))
+                            SoftSettingsGroup {
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_course_conversion),
+                                    icon = vectorResource(Res.drawable.school_24px),
+                                    tone = SoftCellTone.LILAC,
+                                    onClick = { onNavigate(Destination.CourseTableConversion) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.section_title_semester_settings),
+                                    icon = vectorResource(Res.drawable.calendar_today_24px),
+                                    tone = SoftCellTone.APRICOT,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.SemesterSettings) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_time_slot_customization),
+                                    icon = vectorResource(Res.drawable.schedule_24px),
+                                    tone = SoftCellTone.CLAY,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.title_manage_course_tables),
+                                    icon = vectorResource(Res.drawable.class_24px),
+                                    tone = SoftCellTone.SAGE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.ManageCourseTables) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            SoftGroupLabel(stringResource(Res.string.settings_group_courses))
+                            SoftSettingsGroup {
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_course_management),
+                                    icon = vectorResource(Res.drawable.edit_24px),
+                                    tone = SoftCellTone.FERN,
+                                    onClick = { onNavigate(Destination.CourseManagementList) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_couple_schedule),
+                                    icon = vectorResource(Res.drawable.favorite_24px),
+                                    tone = SoftCellTone.ROSE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            SoftGroupLabel(stringResource(Res.string.settings_group_preference))
+                            SoftSettingsGroup {
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_appearance_settings),
+                                    icon = vectorResource(Res.drawable.palette_24px),
+                                    tone = SoftCellTone.APRICOT,
+                                    onClick = { onNavigate(Destination.AppearanceSettings) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.title_course_notification_settings),
+                                    icon = vectorResource(Res.drawable.notifications_24px),
+                                    tone = SoftCellTone.LILAC,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.NotificationSettings) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_backup_restore),
+                                    icon = vectorResource(Res.drawable.cloud_24px),
+                                    tone = SoftCellTone.SAGE,
+                                    showDivider = true,
+                                    onClick = { onNavigate(Destination.BackupAndRestore) }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_show_non_current_week),
+                                    icon = vectorResource(Res.drawable.filter_list_24px),
+                                    tone = SoftCellTone.STEEL,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
+                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
+                                        )
+                                    }
+                                )
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_show_weekends),
+                                    icon = vectorResource(Res.drawable.view_week_24px),
+                                    tone = SoftCellTone.SAND,
+                                    showDivider = true,
+                                    trailing = {
+                                        AppSwitch(
+                                            checked = uiState.courseConfig?.showWeekends ?: false,
+                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp)
+                        ) {
+                            SoftGroupLabel(stringResource(Res.string.settings_group_about))
+                            SoftSettingsGroup {
+                                SoftSettingCell(
+                                    title = stringResource(Res.string.item_more_options),
+                                    icon = vectorResource(Res.drawable.more_horiz_24px),
+                                    tone = SoftCellTone.COCOA,
+                                    onClick = { onNavigate(Destination.MoreOptions) }
+                                )
+                            }
+                        }
+                    }
                 } else if (isIosPreset) {
                     // ===== 通透主题（iOS 26）：inset grouped 分组列表 =====
-                    // 信息架构（分组数量、分组顺序、每组成员、开关位置）与上面的「书卷」分支
-                    // 逐项一致：同样是 4 组【课表 / 课程 / 偏好 / 关于】，条目与跳转目标一一对应。
-                    // 差别只在材质与字形——书卷是暖米色分组卡 + 0.5dp 实色描边 + 衬线字体，
-                    // 通透是白卡（深色 #1C1C1E）+ 玻璃高光内描边 + SF 系统字体。
+                    // 结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）与上面的书卷、
+                    // 柔绘**完全一致**——同一份结构换组件。
+                    // 材质换成通透：白卡 + 玻璃高光内描边 + SF 系统字体。
                     item {
                         Column(
                             modifier = Modifier
@@ -454,7 +611,7 @@ fun SettingsScreen(
                                 IosSettingCell(
                                     title = stringResource(Res.string.item_course_conversion),
                                     icon = vectorResource(Res.drawable.school_24px),
-                                    tone = IosCellTone.BLUE,
+                                    tone = IosCellTone.PURPLE,
                                     onClick = { onNavigate(Destination.CourseTableConversion) }
                                 )
                                 IosSettingCell(
@@ -539,7 +696,7 @@ fun SettingsScreen(
                                     tone = IosCellTone.GRAY,
                                     showDivider = true,
                                     trailing = {
-                                        IosSwitchTrailing(
+                                        AppSwitch(
                                             checked = uiState.appSettings.showNonCurrentWeekCourses,
                                             onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
                                         )
@@ -551,7 +708,7 @@ fun SettingsScreen(
                                     tone = IosCellTone.YELLOW,
                                     showDivider = true,
                                     trailing = {
-                                        IosSwitchTrailing(
+                                        AppSwitch(
                                             checked = uiState.courseConfig?.showWeekends ?: false,
                                             onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
                                         )
@@ -577,201 +734,6 @@ fun SettingsScreen(
                             }
                         }
                     }
-                } else {
-                // 头部渐变卡（v2 基线「我的」页样式：紫渐变 + 半透明白图标锚点 + 白字）
-                item {
-                    GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.padding(appSpacing().cardInner),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(appShapes().chipSmall)
-                                    .background(appColors().textOnPrimary.copy(alpha = 0.18f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    vectorResource(Res.drawable.calendar_today_24px),
-                                    contentDescription = null,
-                                    tint = appColors().textOnPrimary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                            // 文字列 weight(1f)：窄屏防挤压，与右侧课程格纸插画保持间隙
-                            Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-                                Text(
-                                    text = stringResource(Res.string.app_name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().hero),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = appColors().textOnPrimary
-                                )
-                                Text(
-                                    text = stringResource(Res.string.hero_subtitle),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().hint),
-                                    color = appColors().textOnPrimary.copy(alpha = 0.75f),
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                // 核心功能（高频前置，逐项独立卡片，chip 图标 + 行标题 + 副标题 + chevron）
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_course_conversion),
-                        subtitle = stringResource(Res.string.desc_course_conversion),
-                        leadingIcon = vectorResource(Res.drawable.school_24px),
-                        accent = AccentTone.INFO,
-                        onClick = { onNavigate(Destination.CourseTableConversion) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.section_title_semester_settings),
-                        subtitle = stringResource(Res.string.desc_semester_settings),
-                        leadingIcon = vectorResource(Res.drawable.calendar_today_24px),
-                        accent = AccentTone.PRIMARY,
-                        onClick = { onNavigate(Destination.SemesterSettings) }
-                    )
-                }
-                // 非本周课程 + 显示周末（两个开关共用一行，紧跟学期设置）
-                item {
-                    SectionCard {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 左：显示非本周课程
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.item_show_non_current_week),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = appType().body,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-                                AppSwitch(
-                                    checked = uiState.appSettings.showNonCurrentWeekCourses,
-                                    onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
-                                )
-                            }
-                            VerticalDivider(
-                                modifier = Modifier.height(28.dp),
-                                color = appColors().divider
-                            )
-                            // 右：是否显示周末
-                            Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.item_show_weekends),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = appType().body,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-                                AppSwitch(
-                                    checked = uiState.courseConfig?.showWeekends ?: false,
-                                    onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
-                                )
-                            }
-                        }
-                    }
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_time_slot_customization),
-                        subtitle = stringResource(Res.string.desc_time_slot_customization),
-                        leadingIcon = vectorResource(Res.drawable.schedule_24px),
-                        accent = AccentTone.WARNING,
-                        onClick = { onNavigate(Destination.TimeSlotSettings) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.title_manage_course_tables),
-                        subtitle = stringResource(Res.string.desc_manage_course_tables),
-                        leadingIcon = vectorResource(Res.drawable.class_24px),
-                        accent = AccentTone.AMBER,
-                        onClick = { onNavigate(Destination.ManageCourseTables) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_course_management),
-                        subtitle = stringResource(Res.string.desc_course_management),
-                        leadingIcon = vectorResource(Res.drawable.edit_24px),
-                        accent = AccentTone.SUCCESS,
-                        onClick = { onNavigate(Destination.CourseManagementList) }
-                    )
-                }
-                // 低频入口（逐项独立卡片）
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_couple_schedule),
-                        subtitle = stringResource(Res.string.desc_couple_schedule),
-                        leadingIcon = vectorResource(Res.drawable.favorite_24px),
-                        accent = AccentTone.FAVORITE,
-                        onClick = { onNavigate(Destination.CoupleScheduleSettings) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_appearance_settings),
-                        subtitle = stringResource(Res.string.desc_appearance_settings),
-                        leadingIcon = vectorResource(Res.drawable.palette_24px),
-                        accent = AccentTone.PRIMARY,
-                        onClick = { onNavigate(Destination.AppearanceSettings) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.title_course_notification_settings),
-                        subtitle = stringResource(Res.string.desc_notification_settings),
-                        // 图标语义修正：通知类用 notifications（原 info 与语义不符）
-                        leadingIcon = vectorResource(Res.drawable.notifications_24px),
-                        accent = AccentTone.INFO,
-                        onClick = { onNavigate(Destination.NotificationSettings) }
-                    )
-                }
-                // P1-2 备份入口上提一级：数据安全功能原藏在 设置→课表导入/导出→同步→备份 第 3 级
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_backup_restore),
-                        subtitle = stringResource(Res.string.desc_backup_restore),
-                        leadingIcon = vectorResource(Res.drawable.cloud_24px),
-                        accent = AccentTone.SUCCESS,
-                        onClick = { onNavigate(Destination.BackupAndRestore) }
-                    )
-                }
-                item {
-                    SettingCard(
-                        title = stringResource(Res.string.item_more_options),
-                        subtitle = stringResource(Res.string.desc_more_options),
-                        leadingIcon = vectorResource(Res.drawable.more_horiz_24px),
-                        accent = AccentTone.PRIMARY,
-                        onClick = { onNavigate(Destination.MoreOptions) }
-                    )
-                }
                 } // 非 iOS 主题布局结束
             }
         }

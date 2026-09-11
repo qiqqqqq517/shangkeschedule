@@ -765,6 +765,8 @@
     <string name="theme_preset_cloud">云舒</string>
     <string name="theme_preset_clean">利落</string>
     <string name="theme_preset_claude">书卷</string>
+    <string name="theme_preset_ios">通透</string>
+    <string name="theme_preset_soft">柔绘</string>
     <string name="theme_style_section">主题风格</string>
     <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>

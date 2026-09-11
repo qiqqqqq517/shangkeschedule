@@ -72,6 +72,9 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeReadingSerif
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softSurface
+import com.shangkeschedule.ui.theme.softTexture
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -629,11 +632,22 @@ private fun SemesterCard(
 ) {
     val tokens = appColors()
     val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 书卷 14dp / 通透 iOS 26 16dp / 柔绘 24dp 虚化圆角，均来自 [appShapes] 分发
+    // （柔绘的 appShapes().card 已是 24dp「虚化圆角」，无需像书卷那样覆盖）
     val shape = if (isClaude) RoundedCornerShape(14.dp) else appShapes().card
-    val bg = containerColor ?: if (isClaude) claudeGroupBg() else tokens.cardBg
-
-    Column(
-        modifier = modifier
+    val bg = containerColor ?: when {
+        isClaude -> claudeGroupBg()
+        else -> tokens.cardBg
+    }
+    // 柔绘：薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边）+ 手绘柔绘纹理（学期卡是大卡面）；
+    // 底色沿用上面已算好的 bg（含「当前学期卡」的 cardBgElevated 覆盖）
+    val surfaceModifier = if (isSoft) {
+        Modifier
+            .softSurface(shape = shape, containerColor = bg, elevation = 10.dp)
+            .softTexture(shape)
+    } else {
+        Modifier
             .shadow(
                 elevation = (if (isClaude) 1 else 2).dp,
                 shape = shape,
@@ -643,6 +657,11 @@ private fun SemesterCard(
             )
             .clip(shape)
             .background(bg)
+    }
+
+    Column(
+        modifier = modifier
+            .then(surfaceModifier)
             .then(
                 when {
                     onLongClick != null ->
@@ -656,6 +675,8 @@ private fun SemesterCard(
             )
             .then(
                 when {
+                    // 柔绘：无实色描边（含当前学期高亮）——高亮改用主色薄涂底 + 羽化描边表达
+                    isSoft -> Modifier.softFeatherRim(shape)
                     highlightBorder -> Modifier.border(1.dp, tokens.primary, shape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
                     // 通透（iOS 26）：白卡 + 玻璃高光内描边

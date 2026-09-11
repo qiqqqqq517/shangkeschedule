@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.components
+﻿package com.shangkeschedule.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.softFeatherRim
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -75,7 +77,11 @@ fun AppTopAppBar(
 }
 
 /**
- * iOS 26 导航栏本体：48dp 高 + 居中标题 + 玻璃底衬 + 底部发丝线。
+ * 导航栏本体：48dp 高 + 居中标题 + 主题化底衬。
+ *
+ * - 通透（iOS 26）：玻璃底衬（blur 20dp）+ 底部发丝线。
+ * - 柔绘：更厚的薄雾模糊（blur 22dp）+ 更淡着色，且**没有发丝线**——
+ *   柔绘要求「无锐利硬边缘」，下缘改为一条羽化渐变带，导航栏像薄雾一样化进内容。
  */
 @Composable
 private fun AppNavigationBar(
@@ -86,13 +92,14 @@ private fun AppNavigationBar(
     hazeState: HazeState
 ) {
     val tokens = appColors()
+    val isSoft = LocalIsSoftTheme.current
     Box(
         modifier = modifier
             .fillMaxWidth()
             .hazeEffect(hazeState) {
-                blurRadius = 20.dp
+                blurRadius = if (isSoft) 22.dp else 20.dp
                 noiseFactor = 0f
-                tints = listOf(HazeTint(tokens.navBarBg.copy(alpha = 0.62f)))
+                tints = listOf(HazeTint(tokens.navBarBg.copy(alpha = if (isSoft) 0.58f else 0.62f)))
                 fallbackTint = HazeTint(tokens.navBarBg)
                 backgroundColor = Color.Transparent
             }
@@ -115,21 +122,34 @@ private fun AppNavigationBar(
                 ProvideTextStyle(
                     MaterialTheme.typography.titleMedium.copy(
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.41).sp
+                        // 柔绘字重降一档（Medium），配合低对比配色更柔
+                        fontWeight = if (isSoft) FontWeight.Medium else FontWeight.SemiBold,
+                        letterSpacing = if (isSoft) (-0.1).sp else (-0.41).sp
                     )
                 ) { title() }
             }
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
-        // 底部发丝分隔线：iOS 导航栏的 `.hairline`（滚动时才显形，这里常显以在纯色页面上
-        // 也能明确导航栏边界；1px 高度 + separator 半透明色，深浅两套均按 Apple 取值）
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(0.5.dp)
-                .background(tokens.divider)
-        )
+        if (isSoft) {
+            // 柔绘下缘：羽化渐变（由极淡到透明），无硬线
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .softFeatherRim(
+                        androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        } else {
+            // iOS 导航栏的 `.hairline`（1px 高度 + separator 半透明色）
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(tokens.divider)
+            )
+        }
     }
 }

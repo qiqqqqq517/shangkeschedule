@@ -102,6 +102,10 @@ import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.softGlow
+import com.shangkeschedule.ui.theme.softTexture
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.iosUiSans
 import com.shangkeschedule.ui.theme.appType
@@ -237,7 +241,10 @@ fun TodayScheduleScreen(
     val themePreset = LocalThemePreset.current
     val isClaudePreset = themePreset == AppThemePreset.CLAUDE
     val isIosPreset = themePreset == AppThemePreset.IOS
-    val hasCustomHeader = isClaudePreset || isIosPreset
+    val isSoftPreset = themePreset == AppThemePreset.SOFT
+    // 柔绘同样自带页头（周次胶囊 + 日期大字），必须与书卷/通透一样屏蔽 M3 顶栏与待办 FAB，
+    // 否则柔绘今日页会多出一条「今日课表」标题栏 + FAB，信息架构与另两套主题不一致。
+    val hasCustomHeader = isClaudePreset || isIosPreset || isSoftPreset
 
     // 待办弹窗状态提升到页面层，供右下角悬浮「+」号触发
     var showTodoDialog by remember { mutableStateOf(false) }
@@ -394,6 +401,7 @@ fun TodayContent(
     val scrollState = rememberLazyListState()
     val themePreset = presetOverride ?: LocalThemePreset.current
     val isIosPreset = themePreset == AppThemePreset.IOS
+    val isSoftPreset = themePreset == AppThemePreset.SOFT
     val isClaudePreset = themePreset == AppThemePreset.CLAUDE
 
     Column(
@@ -441,6 +449,26 @@ fun TodayContent(
             }
 
             TodayStatus.Normal -> stringResource(Res.string.title_current_week, state.weekIndex.toString())
+        }
+
+        if (isSoftPreset) {
+            // ===== 柔绘主题：页头 + 下节课卡 + 课程时间轴 + 日程事件 + 明日预览 =====
+            // 与「书卷」「通透」共用同一份信息架构（同字段、同顺序、同位置），
+            // 只把材质换成柔绘：晕染渐变 + 虚化圆角 + 薄涂底 + 漫射柔光 + 软模糊投影。
+            SoftTodayContent(
+                state = state,
+                gridStyle = gridStyle,
+                isDark = isDark,
+                now = currentTime,
+                bottomInset = bottomInset,
+                statusText = subTitle,
+                dateText = dateStr,
+                scrollState = scrollState,
+                onOpenWeeklySchedule = onNavigateWeekly,
+                onOpenSettings = onOpenSettings,
+                onEditCourse = onEditCourse
+            )
+            return@Column
         }
 
         if (isIosPreset) {
@@ -2819,6 +2847,1221 @@ private fun EmptyStateView() {
             )
         }
     }
+}
+
+// ===== 通透主题（iOS 26）· 今日页专用组件 =====
+
+// ===== 柔绘主题 · 今日页专用组件 =====
+// ============================================================================
+// 柔绘主题 · 今日课表页
+//
+// 信息架构与「书卷」主题逐项一致（页头日期/周次 → 下节课卡 → 今日课程时间轴
+//   → 日程事件 → 明日预览 → 课程详情玻璃面板），位置、间距节奏、字段集合完全不变。
+//
+// 视觉按 iOS 26「Liquid Glass」重做：
+//   · 卡片 = 白卡（深色 #1C1C1E）+ 16~20dp 连续圆角 + 玻璃高光内描边，代替书卷的
+//     暖色渐变 + 1dp 暖色描边
+//   · 强调色 = systemBlue / systemIndigo / systemOrange / systemGreen / systemRed，
+//     代替书卷的赤陶 + 紫罗兰双色交替
+//   · 圆点与连线 = 更细的 1.5dp 环 + 系统蓝，进行中圆点带呼吸动画
+//   · 时间轴左侧时间列、节点圆点、连线几何位置与书卷完全一致
+//
+// 状态栏 / 底部导航由系统与 App 底栏承担，不在页面内重复绘制。
+// ============================================================================
+
+/** 时间轴时间列宽 56dp；明日预览色条 4dp。 */
+private val SoftTomorrowAccentWidth = 4.dp
+
+// iOS 26 卡片渐变底（Apple 系统色的极淡档）：偶数行用系统蓝系，奇数行用系统靛系。
+private val SoftAccentAlt50 = Color(0xFFF7F6FC)
+private val SoftAccentAlt100 = Color(0xFFEDEBF7)
+private val SoftAccentAlt500 = Color(0xFF9A93B8)
+private val SoftAccentAlt700 = Color(0xFF5F5A80)
+private val SoftAccentAlt800 = Color(0xFF4A4760)
+private val SoftAccentWarm50 = Color(0xFFFBF7F2)
+private val SoftAccentWarm500 = Color(0xFFD9A97E)
+private val SoftAccentWarm700 = Color(0xFF9A7550)
+private val SoftAccentWarm400 = Color(0xFFE0BB96)
+
+private data class SoftTimelinePalette(
+    val gradient: List<Color>,
+    val border: Color,
+    val title: Color,
+    val meta: Color,
+    val badgeBg: Color,
+    val badgeFg: Color,
+    val dot: Color
+)
+
+/**
+ * 时间轴卡片配色（偶数行 = 系统蓝系，奇数行 = 系统橙系）。
+ *
+ * 与书卷同结构（两个交替色系 + 深浅两套），色相换成 Apple 系统色：
+ * 书卷是「紫罗兰 / 赤陶」暖冷交替，通透换成「系统蓝 / 系统橙」——
+ * 这是 iOS 图标与图表的标准双色搭配，保证在浅色白卡与深色炭卡上都清晰。
+ */
+@Composable
+private fun softTimelinePalette(peach: Boolean): SoftTimelinePalette {
+    val colors = appColors()
+    val isDark = LocalIsDarkTheme.current
+    return when {
+        peach && isDark -> SoftTimelinePalette(
+            gradient = listOf(Color(0xFF2E2820), Color(0xFF272219)),
+            border = Color(0x33E0BB96),
+            title = Color(0xFFE6C9A8),
+            meta = Color(0xFFBFAE96),
+            badgeBg = Color(0x3DE0BB96),
+            badgeFg = Color(0xFFE6C9A8),
+            dot = Color(0xFFD9A97E)
+        )
+
+        peach -> SoftTimelinePalette(
+            gradient = listOf(Color(0xFFFFFBF5), SoftAccentWarm50),
+            // 柔绘暖调描边：用柔绘警示色 #D9A97E（此处曾误用 iOS 系统橙 #FF9500）
+            border = Color(0x1FD9A97E),
+            title = colors.textPrimary,
+            meta = colors.textSecondary,
+            badgeBg = Color(0x1FD9A97E),
+            badgeFg = SoftAccentWarm700,
+            dot = SoftAccentWarm500
+        )
+
+        isDark -> SoftTimelinePalette(
+            gradient = listOf(Color(0xFF262431), Color(0xFF201E28)),
+            border = Color(0x339AA3DC),
+            title = Color(0xFFC3C8EC),
+            meta = Color(0xFFA29FB4),
+            badgeBg = Color(0x3D9AA3DC),
+            badgeFg = Color(0xFFC3C8EC),
+            dot = Color(0xFF9AA3DC)
+        )
+
+        else -> SoftTimelinePalette(
+            gradient = listOf(Color(0xFFFBFDFF), SoftAccentAlt50),
+            border = Color(0x1F7C86C9),
+            title = colors.textPrimary,
+            meta = colors.textSecondary,
+            badgeBg = Color(0x1F7C86C9),
+            badgeFg = SoftAccentAlt700,
+            dot = Color(0xFF7C86C9)
+        )
+    }
+}
+
+@Composable
+private fun SoftTodayContent(
+    state: TodayUiState.Success,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    bottomInset: Dp,
+    statusText: String,
+    dateText: String,
+    scrollState: androidx.compose.foundation.lazy.LazyListState,
+    onOpenWeeklySchedule: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onEditCourse: (String) -> Unit
+) {
+    val colors = appColors()
+    var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
+
+    val nextCourse = remember(state.courses, now) {
+        val upcoming = state.courses.firstOrNull { model ->
+            val start = model.startTime?.takeIf { it.isNotBlank() }?.let {
+                runCatching { LocalTime.parse(it) }.getOrNull()
+            }
+            start != null && start > now
+        }
+        upcoming ?: state.courses.firstOrNull { !isSoftCourseFinished(it, now) }
+    }
+    val tomorrowDate = stringResource(
+        Res.string.today_ios_tomorrow_format,
+        state.today.month.number,
+        state.today.day
+    )
+
+    LazyColumn(
+        state = scrollState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = bottomInset + 100.dp)
+    ) {
+        item {
+            SoftTodayHeader(
+                weekIndex = state.weekIndex,
+                status = state.status,
+                statusText = statusText,
+                dateText = dateText,
+            )
+        }
+
+        if (nextCourse != null) {
+            item {
+                SoftNextClassCard(
+                    model = nextCourse,
+                    gridStyle = gridStyle,
+                    isDark = isDark,
+                    now = now,
+                    onClick = { detailCourse = nextCourse }
+                )
+            }
+        }
+
+        item {
+            SoftTimelineHeader(
+                title = stringResource(Res.string.title_today_courses),
+                count = stringResource(Res.string.text_courses_count, state.courses.size.toString())
+            )
+        }
+
+        if (state.courses.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(Res.string.text_no_courses_today),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            itemsIndexed(
+                state.courses,
+                key = { _, model -> model.course.id }
+            ) { index, model ->
+                SoftTimelineItem(
+                    model = model,
+                    index = index,
+                    isLast = index == state.courses.lastIndex,
+                    gridStyle = gridStyle,
+                    isDark = isDark,
+                    now = now,
+                    onClick = { detailCourse = model }
+                )
+            }
+        }
+
+        // 今日日程事件（来自「日程」页新建的日程）
+        if (state.events.isNotEmpty()) {
+            item {
+                SoftEventsSection(events = state.events)
+            }
+        }
+
+        if (state.tomorrowCourses.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        SoftSectionLabelRow(
+                            label = tomorrowDate,
+                            trailing = stringResource(
+                                Res.string.text_courses_count,
+                                state.tomorrowCourses.size.toString()
+                            ),
+                            fillWidth = false
+                        )
+                    }
+                    SoftGhostButton(
+                        text = stringResource(Res.string.today_ios_view_all),
+                        onClick = onOpenWeeklySchedule
+                    )
+                }
+            }
+            itemsIndexed(
+                state.tomorrowCourses,
+                key = { _, model -> "tomorrow-${model.course.id}" }
+            ) { _, model ->
+                SoftTomorrowCard(model = model, gridStyle = gridStyle, isDark = isDark)
+            }
+        }
+    }
+
+    detailCourse?.let { model ->
+        SoftCourseDetailSheet(
+            model = model,
+            gridStyle = gridStyle,
+            isDark = isDark,
+            now = now,
+            onDismiss = { detailCourse = null },
+            onEdit = {
+                detailCourse = null
+                onEditCourse(model.course.id)
+            }
+        )
+    }
+}
+
+/** 页头：周次胶囊（原位置，略下移） + 居中日期大字。 */
+@Composable
+private fun SoftTodayHeader(
+    weekIndex: Int,
+    status: TodayStatus,
+    statusText: String,
+    dateText: String,
+) {
+    val colors = appColors()
+    val weekLabel = if (status == TodayStatus.Normal) {
+        stringResource(Res.string.title_current_week, weekIndex.toString())
+    } else {
+        statusText
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 4.dp, vertical = 12.dp)
+    ) {
+        // 周次胶囊：方形块，居中，置于日期上方
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(colors.primarySoft)
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            ) {
+                Text(
+                    text = weekLabel,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.02.em,
+                        lineHeight = 16.sp
+                    ),
+                    color = colors.primary,
+                    maxLines = 1
+                )
+            }
+        }
+        // 日期：居中大字，与周次间距 6dp
+        Text(
+            text = dateText,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 24.sp,
+                letterSpacing = (-0.01).em
+            ),
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+        )
+    }
+}
+
+/** 分区标题行：Lora 12sp 大写字距标签 + 右侧辅助文案。 */
+@Composable
+private fun SoftSectionLabelRow(
+    label: String,
+    trailing: String?,
+    fillWidth: Boolean = true
+) {
+    val colors = appColors()
+    Row(
+        modifier = (if (fillWidth) Modifier.fillMaxWidth() else Modifier),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label.uppercase(),
+            style = TextStyle(
+                fontFamily = iosUiSans(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.14.em,
+                lineHeight = 16.sp
+            ),
+            color = colors.textSecondary
+        )
+        if (trailing != null) {
+            if (fillWidth) Spacer(modifier = Modifier.weight(1f))
+            else Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = trailing,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 16.sp
+                ),
+                color = colors.textSecondary
+            )
+        }
+    }
+}
+
+/** 时间轴标题：设计稿 .timeline-header（左「今日课程」13sp 600 + 右「共 N 节」12sp）。 */
+@Composable
+private fun SoftTimelineHeader(title: String, count: String) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.02.em,
+                lineHeight = 17.sp
+            ),
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = count,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 16.sp
+            ),
+            color = colors.textSecondary.copy(alpha = 0.72f)
+        )
+    }
+}
+
+/** 时间轴条目：设计稿 .timeline-item（左时间列 56dp + 圆点连线 + 右侧课程卡）。 */
+@Composable
+private fun SoftTimelineItem(
+    model: CourseDisplayModel,
+    index: Int,
+    isLast: Boolean,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    onClick: () -> Unit
+) {
+    val colors = appColors()
+    val palette = softTimelinePalette(peach = index % 2 == 1)
+    val isFinished = isSoftCourseFinished(model, now)
+    val isCurrent = !isFinished && isSoftCourseOngoing(model, now)
+    val startTime = model.startTime?.takeIf { it.isNotBlank() }
+        ?: softTimeRange(model).substringBefore(" - ")
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+            Text(
+                text = startTime,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 17.sp
+                ),
+                color = colors.textPrimary,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 2.dp)
+            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = 30.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colors.divider)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 9.dp, y = 18.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isCurrent) palette.dot else colors.pageBg)
+                    .border(2.5.dp, palette.dot, CircleShape)
+            )
+        }
+
+        SoftTimelineCard(
+            model = model,
+            palette = palette,
+            gridStyle = gridStyle,
+            isFinished = isFinished,
+            onClick = onClick,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/** 时间轴课程卡：设计稿 .timeline-card（20dp 圆角 + 渐变底 + 名称 + N 节徽标 + 元信息 + 信息胶囊）。 */
+@Composable
+private fun SoftTimelineCard(
+    model: CourseDisplayModel,
+    palette: SoftTimelinePalette,
+    gridStyle: ScheduleGridStyle,
+    isFinished: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = appColors()
+    val shape = appShapes().heroCard
+    val sectionCount = softSectionCount(model)
+    Box(
+        modifier = modifier
+            .graphicsLayer(alpha = if (isFinished) 0.6f else 1f)
+            .softShadow(shape = shape, elevation = 8.dp)
+            .clip(shape)
+            .background(Brush.linearGradient(palette.gradient))
+            // iOS 26：卡片底色本身已是极淡系统色，描边改为玻璃高光内描边
+            // （书卷是 1dp 暖色实边框；玻璃描边与 Liquid Glass 语言一致）
+            .softFeatherRim(shape)
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    text = model.course.name,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 20.sp,
+                        textDecoration = if (isFinished) TextDecoration.LineThrough else null
+                    ),
+                    color = palette.title,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(palette.badgeBg)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = stringResource(
+                            Res.string.today_ios_sections_format,
+                            sectionCount.toString()
+                        ),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 13.sp
+                        ),
+                        color = palette.badgeFg
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    SoftMetaRow(
+                        icon = Res.drawable.location_on_24px,
+                        text = model.course.position,
+                        tint = palette.meta
+                    )
+                }
+                if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                    SoftMetaRow(
+                        icon = Res.drawable.person_24px,
+                        text = model.course.teacher,
+                        tint = palette.meta
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                SoftNotePill(
+                    label = stringResource(Res.string.today_ios_note_type),
+                    value = stringResource(
+                        if (model.course.isLab) {
+                            Res.string.today_ios_type_lab
+                        } else {
+                            Res.string.today_ios_type_theory
+                        }
+                    )
+                )
+                SoftNotePill(
+                    label = stringResource(Res.string.today_ios_note_hours),
+                    value = sectionCount.toString()
+                )
+            }
+        }
+    }
+}
+
+/** 信息胶囊：设计稿 .note-pill（bg-100 底 + border-200 描边 + 标签加粗 + 值常规）。 */
+@Composable
+private fun SoftNotePill(label: String, value: String) {
+    val colors = appColors()
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.textSecondary)) {
+                append(label)
+            }
+            append("：")
+            append(value)
+        },
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 13.sp
+        ),
+        color = colors.textSecondary.copy(alpha = 0.85f),
+        maxLines = 1,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(colors.pageBg)
+            .softFeatherRim(CircleShape)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    )
+}
+
+/** 元信息行：13dp 图标 + 12sp 文字（设计稿 .course-meta-item）。 */
+@Composable
+private fun SoftMetaRow(
+    icon: DrawableResource,
+    text: String,
+    tint: Color
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+            tint = tint.copy(alpha = 0.85f)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 16.sp
+            ),
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** 下一节课 hero 卡：设计稿 .next-class-card（丁香紫渐变 + 时间徽标 + 倒计时）。 */
+@Composable
+private fun SoftNextClassCard(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    onClick: () -> Unit
+) {
+    val isDarkTheme = LocalIsDarkTheme.current
+    val labelColor = if (isDarkTheme) Color(0xFFC4B8E8) else SoftAccentAlt700
+    val nameColor = if (isDarkTheme) Color(0xFFEBE5FF) else SoftAccentAlt800
+    val badgeBg = if (isDarkTheme) Color(0x1FFFFFFF) else Color(0x99FFFFFF)
+    val gradient = if (isDarkTheme) {
+        listOf(Color(0xFF3A2F5C), Color(0xFF2E2749))
+    } else {
+        listOf(SoftAccentAlt100, SoftAccentAlt50)
+    }
+    val shape = RoundedCornerShape(28.dp)
+    val minutesUntil = remember(model, now) { softMinutesUntil(model, now) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .softShadow(shape = shape, elevation = 8.dp)
+            .clip(shape)
+            .background(Brush.linearGradient(gradient))
+            .softFeatherRim(shape)
+            .clickable(onClick = onClick)
+            .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(SoftAccentAlt500)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = stringResource(Res.string.today_ios_next_label),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.08.em,
+                            lineHeight = 12.sp
+                        ),
+                        color = labelColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = model.course.name,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 27.sp,
+                        letterSpacing = (-0.01).em
+                    ),
+                    color = nameColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                        SoftMetaRow(
+                            icon = Res.drawable.location_on_24px,
+                            text = model.course.position,
+                            tint = labelColor
+                        )
+                    }
+                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                        SoftMetaRow(
+                            icon = Res.drawable.person_24px,
+                            text = model.course.teacher,
+                            tint = labelColor
+                        )
+                    }
+                }
+            }
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(badgeBg)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.schedule_24px),
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                        tint = nameColor
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = softTimeRange(model),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 18.sp
+                        ),
+                        color = nameColor,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                if (minutesUntil != null && minutesUntil > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = minutesUntil.toString(),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 26.sp,
+                                letterSpacing = (-0.02).em
+                            ),
+                            color = nameColor
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(Res.string.today_ios_countdown_label),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 13.sp
+                            ),
+                            color = labelColor,
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun softSectionCount(model: CourseDisplayModel): Int {
+    val start = model.course.startSection
+    val end = model.course.endSection
+    return if (start != null && end != null) (end - start + 1).coerceAtLeast(1) else 1
+}
+
+private fun softMinutesUntil(model: CourseDisplayModel, now: LocalTime): Int? {
+    val startText = model.startTime?.takeIf { it.isNotBlank() } ?: return null
+    return try {
+        val start = LocalTime.parse(startText)
+        (start.toSecondOfDay() - now.toSecondOfDay()) / 60
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/** 明日预览卡片：设计稿 .tomorrow-card（凹陷卡 + 4dp 色条 + 名称 + 时间·地点）。 */
+@Composable
+private fun SoftTomorrowCard(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean
+) {
+    val colors = appColors()
+    val accent = softAccentColor(model, gridStyle, isDark)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(appShapes().card)
+            .background(colors.cardBg)
+            .softFeatherRim(appShapes().card)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(SoftTomorrowAccentWidth)
+                .fillMaxHeight()
+                .background(accent)
+        )
+        Column(modifier = Modifier.weight(1f).padding(14.dp)) {
+            Text(
+                text = model.course.name,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 19.sp
+                ),
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = softTimeRange(model),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = colors.textSecondary
+                )
+                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    Text(
+                        text = " · ",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                        color = colors.divider
+                    )
+                    Text(
+                        text = model.course.position,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 今日日程事件区段：来自「日程」页新建的日程，展示在课程时间轴之后。 */
+@Composable
+private fun SoftEventsSection(events: List<ScheduleEvent>) {
+    val colors = appColors()
+    Spacer(modifier = Modifier.height(8.dp))
+    SoftSectionLabelRow(
+        label = stringResource(Res.string.title_today_schedule),
+        trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
+        fillWidth = true
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    events.forEachIndexed { index, event ->
+        SoftEventRow(event = event, index = index, isLast = index == events.lastIndex)
+        if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun SoftEventRow(
+    event: ScheduleEvent,
+    index: Int,
+    isLast: Boolean
+) {
+    val colors = appColors()
+    // 柔绘事件分类色：不再用 Material 500 档高饱和色（书卷/通透沿用各自历史值），
+    // 统一走柔绘语义色 —— success/warning/danger/info 均为低饱和马卡龙档
+    val categoryColor = when (ScheduleCategory.fromKey(event.category)) {
+        ScheduleCategory.TODO -> colors.success
+        ScheduleCategory.ACTIVITY -> colors.warning
+        ScheduleCategory.EXAM -> colors.danger
+        ScheduleCategory.HOMEWORK -> colors.info
+        ScheduleCategory.OTHER -> colors.textSecondary
+    }
+    val metaLine = listOfNotNull(
+        stringResource(when (ScheduleCategory.fromKey(event.category)) {
+            ScheduleCategory.TODO -> Res.string.agenda_category_todo
+            ScheduleCategory.ACTIVITY -> Res.string.agenda_category_activity
+            ScheduleCategory.EXAM -> Res.string.agenda_category_exam
+            ScheduleCategory.HOMEWORK -> Res.string.agenda_category_homework
+            ScheduleCategory.OTHER -> Res.string.agenda_category_other
+        }),
+        event.location
+    ).joinToString(" · ")
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 左侧时间占位（与课程时间列对齐）
+        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = 18.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colors.divider)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 9.dp, y = 6.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(categoryColor)
+            )
+        }
+        // 右侧内容卡
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.cardBg)
+                .softFeatherRim(RoundedCornerShape(12.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Column {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 18.sp
+                    ),
+                    color = colors.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (metaLine.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = metaLine,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                event.note?.takeIf { it.isNotBlank() }?.let { note ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary.copy(alpha = 0.75f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
+@Composable
+private fun SoftIconButton(
+    icon: DrawableResource,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(appShapes().chip)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = appColors().textPrimary
+        )
+    }
+}
+
+/** 幽灵小按钮：设计稿 .btn.ghost.view-all-btn（32dp 高 + 12sp + chevron）。 */
+@Composable
+private fun SoftGhostButton(text: String, onClick: () -> Unit) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .clip(appShapes().chip)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = colors.textPrimary
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = colors.textPrimary
+        )
+    }
+}
+
+/** 课程详情弹层：字段与设计包 pages/今日日程.html 的详情弹层一致。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SoftCourseDetailSheet(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean,
+    now: LocalTime,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit
+) {
+    val colors = appColors()
+    val isFinished = isSoftCourseFinished(model, now)
+    val isCurrent = !isFinished && isSoftCourseOngoing(model, now)
+    val statusText = stringResource(
+        when {
+            isCurrent -> Res.string.today_ios_status_live
+            isFinished -> Res.string.today_ios_status_done
+            else -> Res.string.today_ios_status_upcoming
+        }
+    )
+
+    AppGlassBottomSheet(
+        hazeState = null,
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
+        ) {
+            Text(
+                text = statusText,
+                style = TextStyle(
+                    fontFamily = iosUiSans(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.1.em
+                ),
+                color = colors.textSecondary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = model.course.name,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = colors.textPrimary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(appShapes().chip)
+                    .softFeatherRim(appShapes().chip)
+            ) {
+                SoftDetailRow(
+                    label = stringResource(Res.string.today_ios_meta_time),
+                    value = softTimeRange(model)
+                )
+                HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                if (model.course.position.isNotBlank()) {
+                    SoftDetailRow(
+                        label = stringResource(Res.string.today_ios_meta_room),
+                        value = model.course.position
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                }
+                if (model.course.teacher.isNotBlank()) {
+                    SoftDetailRow(
+                        label = stringResource(Res.string.today_ios_meta_teacher),
+                        value = model.course.teacher
+                    )
+                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                }
+                model.course.credit?.takeIf { it.isNotBlank() }?.let { credit ->
+                    SoftDetailRow(
+                        label = stringResource(Res.string.today_ios_meta_credit),
+                        value = credit
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.inputBg)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.today_ios_sheet_close),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textPrimary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.primary)
+                        .clickable(onClick = onEdit),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.today_ios_sheet_edit),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textOnPrimary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoftDetailRow(label: String, value: String) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.cardBgElevated)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = colors.textPrimary,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+/** 时间区间文本：优先自定义时间，否则用节次时间。 */
+private fun softTimeRange(model: CourseDisplayModel): String {
+    val start = model.startTime?.takeIf { it.isNotBlank() }
+    val end = model.endTime?.takeIf { it.isNotBlank() }
+    return when {
+        start != null && end != null -> "$start - $end"
+        start != null -> start
+        end != null -> end
+        else -> EMPTY_TIME_PLACEHOLDER
+    }
+}
+
+private fun isSoftCourseFinished(model: CourseDisplayModel, now: LocalTime): Boolean {
+    val endText = model.endTime?.takeIf { it.isNotBlank() } ?: return false
+    return try {
+        LocalTime.parse(endText) < now
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private fun isSoftCourseOngoing(model: CourseDisplayModel, now: LocalTime): Boolean {
+    val startText = model.startTime?.takeIf { it.isNotBlank() } ?: return false
+    val endText = model.endTime?.takeIf { it.isNotBlank() } ?: return false
+    return try {
+        val start = LocalTime.parse(startText)
+        val end = LocalTime.parse(endText)
+        now >= start && now < end
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/**
+ * 课程色条颜色：设计稿用 `--chart-1…5` 实色作色条。
+ * CLAUDE 课表样式的 light 档是 12% 透明度的 chart 色（等价于设计稿实色叠在卡片白底上的观感），
+ * dark 档是 chart 实色，正好对应设计稿浅色 / 深色两套写法。
+ */
+private fun softAccentColor(
+    model: CourseDisplayModel,
+    gridStyle: ScheduleGridStyle,
+    isDark: Boolean
+): Color {
+    val pair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
+        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
+    }
+    return if (isDark) pair.dark else pair.light
 }
 
 // ===== 通透主题（iOS 26）· 今日页专用组件 =====

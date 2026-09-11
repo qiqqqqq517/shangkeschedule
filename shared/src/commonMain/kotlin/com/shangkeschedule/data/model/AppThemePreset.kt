@@ -7,16 +7,20 @@ import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.theme_preset_claude
 import shangkeschedule.shared.generated.resources.theme_preset_ios
+import shangkeschedule.shared.generated.resources.theme_preset_soft
 
 /**
  * App 主题预设：把全局配色种子色与课表视觉样式统一为一套主题。
  *
- * 当前保留两套主题：
- * - [IOS]「通透」—— iOS 26 / Liquid Glass 风格：Apple 系统色 + 玻璃材质 + 连续圆角。
- *   功能面（页头 / 周次条 / 课程卡片流 / 明日预览 / inset grouped 设置列表 / 弹窗 /
- *   悬浮件）与「书卷」**逐项对齐、位置一致**，只替换 UI 与动画组件。
+ * 当前保留三套主题（功能面**完全一致**，只换 UI 与动效）：
+ * - [IOS]「通透」—— iOS 26 / Liquid Glass：Apple 系统色 + 玻璃材质 + 连续圆角。
+ * - [SOFT]「柔绘」—— 柔绘风格：柔和晕染渐变 + 虚化圆角 + 薄涂质感 + 漫射柔光 +
+ *   软模糊投影 + 低对比柔和配色。见 `ui/theme/SoftStyle.kt`。
  * - [CLAUDE]「书卷」—— Anthropic / Claude 设计系统：暖砂纸底 + 赤陶主色 + 衬线字体。
- *   **保持原样，不受通透主题改动影响。**
+ *   **保持原样，不受其它主题改动影响。**
+ *
+ * 三套主题都参照「书卷」的功能位（页头 / 周次条 / 课程卡片流 / 明日预览 /
+ * inset grouped 设置列表 / 弹窗 / 悬浮件）逐项对齐，位置与信息层级一致。
  *
  * 「经典」(ORIGINAL)、「云舒」(SLEEPY)、「利落」(TIMETABLE) 三套旧主题已删除；
  * 旧用户持久化的这些取值（含早期「通透」AIRY）在 [fromString] 里统一迁移，不会丢配置。
@@ -32,6 +36,12 @@ enum class AppThemePreset(
         labelRes = Res.string.theme_preset_ios,
         seedColor = Color(0xFF007AFF),
         gridStyle = ScheduleGridStyle.IOS
+    ),
+    SOFT(
+        value = "SOFT",
+        labelRes = Res.string.theme_preset_soft,
+        seedColor = Color(0xFF7C86C9),
+        gridStyle = ScheduleGridStyle.SOFT
     ),
     CLAUDE(
         value = "CLAUDE",

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.theme
+package com.shangkeschedule.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +23,7 @@ import com.shangkeschedule.data.model.AppThemePreset
 val LocalIsDarkTheme = staticCompositionLocalOf { false }
 
 /**
- * 当前 App 主题预设（通透 / 书卷）。
+ * 当前 App 主题预设（通透 / 柔绘 / 书卷）。
  * 供课表课程块、设置页、今日页等 UI 层直接读取，避免通过样式参数反推预设。
  */
 val LocalThemePreset = staticCompositionLocalOf { AppThemePreset.default }
@@ -46,12 +46,13 @@ fun ShangKeScheduleTheme(
     // 配色优先级：动态取色 > 当前模式的自定义主色 > 主题预设种子色
     // 浅色和深色主色独立保存，必须按当前模式检查对应字段；否则深色模式修改
     // customDarkPrimary 时仍会因 customLightPrimary 未变化而回退到预设色。
-    // 例外：通透（IOS）主色锁定 systemBlue、书卷（CLAUDE）主色锁定赤陶 brand-500，
-    // 两者都不跟随动态取色 / 自定义主色。
+    // 例外：通透锁定 systemBlue、柔绘锁定雾蓝紫、书卷锁定赤陶 brand-500，
+    // 三者都不跟随动态取色 / 自定义主色（这是各自主题的身份色）。
     val defaultPrimaryArgb = DefaultThemeColor.toArgb().toLong()
     val currentCustomPrimary = if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary
     val seedColor: Color? = when {
         settings.themePreset == AppThemePreset.IOS -> settings.themePreset.seedColor
+        settings.themePreset == AppThemePreset.SOFT -> settings.themePreset.seedColor
         settings.themePreset == AppThemePreset.CLAUDE -> settings.themePreset.seedColor
         settings.useDynamicColor && supportsDynamicColor -> null
         currentCustomPrimary != defaultPrimaryArgb -> Color(currentCustomPrimary)
@@ -61,6 +62,7 @@ fun ShangKeScheduleTheme(
     CompositionLocalProvider(
         LocalIsDarkTheme provides darkTheme,
         LocalThemePreset provides settings.themePreset,
+        LocalIsSoftTheme provides (settings.themePreset == AppThemePreset.SOFT),
         // 玻璃雾度全局注入：用户在「个性化显示」里设定的一个值，喂给所有悬浮玻璃件
         LocalGlassBlurRadius provides settings.glassBlurRadiusDp.dp,
         // 动效全局注入：用户在「个性化显示 → 动画效果」里选的风格 + 分组开关，
@@ -83,13 +85,14 @@ fun ShangKeScheduleTheme(
  * 核心主题实现函数（跨平台通用）。
  *
  * 主题分流：
- * - 通透（IOS）：ColorScheme 直接取 [iosLightColorScheme] / [iosDarkColorScheme]，
- *   **不经过 MaterialKolor 派生**（Expressive 风格会对种子色做色相旋转，systemBlue 会被
- *   派生成绿色系 primary）；色板 / 圆角 / 间距 / 字阶全部走 `IosStyle.kt`，
- *   排版用 SF 字阶（[iosTypography]）。
+ * - 通透（IOS）：ColorScheme 取 [iosLightColorScheme] / [iosDarkColorScheme]，**不经过
+ *   MaterialKolor 派生**（Expressive 会对种子色做色相旋转，systemBlue 会被派生成绿系）；
+ *   token 走 `IosStyle.kt`，排版 SF 字阶（[iosTypography]）。
+ * - 柔绘（SOFT）：ColorScheme 取 [softLightColorScheme] / [softDarkColorScheme]；token 走
+ *   `SoftStyle.kt`（虚化大圆角 / 干净留白 / 轻字重），材质走 softWash / softSurface 系列。
  * - 书卷（CLAUDE）：ColorScheme 取 [claudeLightColorScheme] / [claudeDarkColorScheme]，
  *   色板 / token 走 `ClaudeStyle.kt`，排版用 Poppins / Newsreader / Lora（[claudeTypography]）。
- * - 兜底分支：仅当未来新增预设时落到 MaterialKolor 派生 + v2 基线 token。
+ * - 兜底分支：仅当未来新增预设时落到 MaterialKolor 派生 + iOS tokens。
  */
 @Composable
 fun ShangKeScheduleTheme(
@@ -102,8 +105,10 @@ fun ShangKeScheduleTheme(
     content: @Composable () -> Unit
 ) {
     val isClaude = themePreset == AppThemePreset.CLAUDE
+    val isSoft = themePreset == AppThemePreset.SOFT
     val colorScheme = when {
         themePreset == AppThemePreset.IOS -> if (darkTheme) iosDarkColorScheme() else iosLightColorScheme()
+        isSoft -> if (darkTheme) softDarkColorScheme() else softLightColorScheme()
         isClaude -> if (darkTheme) claudeDarkColorScheme() else claudeLightColorScheme()
         else -> rememberColorScheme(
             darkTheme = darkTheme,
@@ -118,7 +123,11 @@ fun ShangKeScheduleTheme(
     //
     // primary / primarySoft / 渐变按 ColorScheme 实际主色同步，避免组件层
     // appColors().primary 与 M3 colorScheme.primary 同屏分裂。
-    val styledTokens = if (isClaude) appColorTokens(darkTheme, themePreset) else iosAppColorTokens(darkTheme)
+    val styledTokens = when {
+        isClaude -> appColorTokens(darkTheme, themePreset)
+        isSoft -> softAppColorTokens(darkTheme)
+        else -> iosAppColorTokens(darkTheme)
+    }
     val syncedTokens = styledTokens.copy(
         primary = colorScheme.primary,
         primarySoft = colorScheme.primaryContainer,
@@ -128,13 +137,17 @@ fun ShangKeScheduleTheme(
     )
     val styledScheme = colorScheme.withAppSurfaces(syncedTokens)
 
-    // 主题化形状 / 间距 / 字阶 tokens（通透走 iOS 26，书卷走设计系统，其余走兜底基线）
+    // 主题化形状 / 间距 / 字阶 tokens（三套主题各一套，兜底走 iOS 26）
     val shapeTokens = appShapeTokens(themePreset)
     val spacingTokens = appSpacingTokens(themePreset)
     val typeTokens = appTypeTokens(themePreset)
 
-    // 字阶：书卷走 Poppins / Newsreader / Lora 专属字体族，通透走 SF 字阶系统无衬线
-    val typography = if (isClaude) claudeTypography() else iosTypography()
+    // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
+    val typography = when {
+        isClaude -> claudeTypography()
+        isSoft -> softTypography()
+        else -> iosTypography()
+    }
 
     // 按主题预设构建 MaterialTheme Shapes（让 M3 内置组件同步圆角）
     val materialShapes = Shapes(
@@ -150,7 +163,8 @@ fun ShangKeScheduleTheme(
         LocalAppColorTokens provides syncedTokens,
         LocalAppShapeTokens provides shapeTokens,
         LocalAppSpacingTokens provides spacingTokens,
-        LocalAppTypeTokens provides typeTokens
+        LocalAppTypeTokens provides typeTokens,
+        LocalIsSoftTheme provides isSoft
     ) {
         // 应用平台特定的窗口与系统栏外观控制
         SetupPlatformThemeEffects(

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.schedule
+package com.shangkeschedule.ui.schedule
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -56,6 +56,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -121,9 +122,13 @@ import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softShadow
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -171,6 +176,7 @@ import shangkeschedule.shared.generated.resources.title_vacation_until_start
 import shangkeschedule.shared.generated.resources.view_agenda_24px
 import shangkeschedule.shared.generated.resources.view_week_24px
 import shangkeschedule.shared.generated.resources.week_days_full_names
+import kotlin.math.sin
 import kotlin.time.Clock
 
 /**
@@ -944,6 +950,12 @@ private fun WeekPagerGlassSheen(
         motion.tokens.entranceDurationMs > 0
     if (!enabled) return
 
+    // 柔绘（SOFT）：斜向扫光是镜面/玻璃语言（明确方向 + 明确边界 + 瞬时高亮），
+    // 落在雾面薄涂底上会切出一条可见"锋面"，与柔绘「化开」的材质定义直接对立
+    // （详见《交互动效审查_三主题》P0）。柔绘改为**无方向的整屏换气**：
+    // 落定后整体亮度做一次 600ms 正弦式起伏，幅度 3%，没有任何边界与方向。
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+
     // 首次组合（App 启动落在本周页）不算「切周」，不扫光
     var hasSettledOnce by rememberSaveable { mutableStateOf(false) }
     val sheenFraction = remember { Animatable(0f) }
@@ -958,7 +970,10 @@ private fun WeekPagerGlassSheen(
         sheenFraction.snapTo(0f)
         sheenFraction.animateTo(
             1f,
-            tween(durationMillis = motion.tokens.entranceDurationMs, easing = motion.tokens.entranceEasing)
+            tween(
+                durationMillis = if (isSoft) 600 else motion.tokens.entranceDurationMs,
+                easing = if (isSoft) CubicBezierEasing(0.45f, 0f, 0.55f, 1f) else motion.tokens.entranceEasing
+            )
         )
         sheenVisible = false
     }
@@ -969,22 +984,28 @@ private fun WeekPagerGlassSheen(
             modifier = modifier
                 // 纯绘制层：不消费任何指针事件，手势完全穿透到 Pager / 课程格
                 .drawBehind {
-                    // Apple HIG 风格：收窄光带（屏幕宽 28%）、降低峰值透明度（0.07），
-                    // 效果克制如镜面反光，而非扫光特效
-                    val bandWidth = size.width * 0.28f
-                    val travel = size.width + bandWidth * 2f
-                    val x = -bandWidth + travel * fraction
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colorStops = arrayOf(
-                                0f to Color.Transparent,
-                                0.5f to Color.White.copy(alpha = 0.07f),
-                                1f to Color.Transparent
-                            ),
-                            start = Offset(x, 0f),
-                            end = Offset(x + bandWidth, size.height)
+                    if (isSoft) {
+                        // 柔绘档：整屏换气 —— sin 曲线一次明度起伏，无方向、无边界
+                        val breathe = sin(fraction * Math.PI).toFloat()
+                        drawRect(color = Color.White.copy(alpha = 0.03f * breathe))
+                    } else {
+                        // Apple HIG 风格：收窄光带（屏幕宽 28%）、降低峰值透明度（0.07），
+                        // 效果克制如镜面反光，而非扫光特效
+                        val bandWidth = size.width * 0.28f
+                        val travel = size.width + bandWidth * 2f
+                        val x = -bandWidth + travel * fraction
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    0.5f to Color.White.copy(alpha = 0.07f),
+                                    1f to Color.Transparent
+                                ),
+                                start = Offset(x, 0f),
+                                end = Offset(x + bandWidth, size.height)
+                            )
                         )
-                    )
+                    }
                 }
         )
     }
@@ -1079,6 +1100,7 @@ private fun ScheduleListViewBlock(
     onLongClick: () -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
     val firstCourse = block.courses.firstOrNull()?.course
     val colorIndex = firstCourse?.colorInt ?: 0
     val colorPair = composedStyle.courseColorMaps.getOrElse(colorIndex) {
@@ -1094,8 +1116,13 @@ private fun ScheduleListViewBlock(
     val cornerRadius = composedStyle.courseBlockCornerRadius
     val shape = RoundedCornerShape(cornerRadius)
 
-    // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层
-    val shadowModifier = Modifier
+    // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层；
+    // 柔绘：列表行改用软模糊投影（elevation 8dp）替代 elevation 硬边投影，并加羽化描边环。
+    val shadowModifier = if (isSoft) {
+        Modifier.softShadow(shape = shape, elevation = 8.dp)
+    } else {
+        Modifier
+    }
 
     // 左侧色条用 drawBehind 绘制，不参与测量
     // （fillMaxHeight 子 Box 在宽松/无限高度约束下会失效或撑爆父容器）
@@ -1136,6 +1163,8 @@ private fun ScheduleListViewBlock(
             .clip(shape)
             .background(color = bg)
             .then(stripDrawModifier)
+            // 柔绘：羽化描边环替代任何实色描边（无锐利硬边缘）
+            .then(if (isSoft) Modifier.softFeatherRim(shape) else Modifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
 
@@ -1152,7 +1181,9 @@ private fun ScheduleListViewBlock(
                 if (index > 0) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 6.dp),
-                        color = textColor.copy(alpha = 0.15f)
+                        // 柔绘：块内分隔线降到 0.5dp 且更淡（低对比），避免在晕染底上出现硬线
+                        thickness = if (isSoft) 0.5.dp else 1.dp,
+                        color = textColor.copy(alpha = if (isSoft) 0.10f else 0.15f)
                     )
                 }
 
