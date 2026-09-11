@@ -51,6 +51,12 @@ class AgendaViewModel(
     companion object {
         private const val DEFAULT_SEMESTER_TOTAL_WEEKS = 20
         private const val TIME_SORT_FALLBACK = "99:99"
+
+        /** 整月日历固定 6 行 × 7 列 = 42 格，保证上下月切换时高度不跳动。 */
+        private const val MONTH_GRID_CELLS = 42
+
+        /** 事件查询在月份前后各多取的天数：周条与整月网格都会显示相邻月份的日期。 */
+        private const val EVENT_QUERY_PADDING_DAYS = 7
     }
 
     private val todayDate: LocalDate
@@ -75,9 +81,11 @@ class AgendaViewModel(
             val tableId = settings.currentCourseTableId
             val monthStart = LocalDate(month.year, month.month, 1)
             val monthEnd = monthStart.plus(1, DateTimeUnit.MONTH).minus(1, DateTimeUnit.DAY)
+            // 周条 / 整月日历都会显示相邻月份的日期（补白格），事件范围前后各多取一周，
+            // 这些格子上的「有日程」圆点才不会是漏的。
             val monthEventsFlow = scheduleEventRepository.getEventsBetweenDates(
-                monthStart.toString(),
-                monthEnd.toString()
+                monthStart.minus(EVENT_QUERY_PADDING_DAYS, DateTimeUnit.DAY).toString(),
+                monthEnd.plus(EVENT_QUERY_PADDING_DAYS, DateTimeUnit.DAY).toString()
             )
 
             appSettingsRepository.getCourseTableConfigFlow(tableId).flatMapLatest { config ->
@@ -129,15 +137,48 @@ class AgendaViewModel(
         if (visibleMonth.value != month) visibleMonth.value = month
     }
 
-    /** 上一月。 */
+    /** 上一月（同时把选中日期与周条带进上一个月，见 [applyMonth]）。 */
     fun previousMonth() {
-        visibleMonth.value = visibleMonth.value.shift(-1)
+        applyMonth(visibleMonth.value.shift(-1))
     }
 
-    /** 下一月。 */
+    /** 下一月（同时把选中日期与周条带进下一个月，见 [applyMonth]）。 */
     fun nextMonth() {
-        visibleMonth.value = visibleMonth.value.shift(1)
+        applyMonth(visibleMonth.value.shift(1))
     }
+
+    /**
+     * 直接跳到指定年月（月份选择器 / 「点击月份」入口）。
+     *
+     * 与 [previousMonth] / [nextMonth] 共用 [applyMonth]，保证「切月份 ⇒ 下面的日期一起对应过去」。
+     */
+    fun selectMonth(year: Int, month: Int) {
+        val target = MonthKey(year, month)
+        val current = visibleMonth.value
+        val selected = selectedDate.value
+        val alreadyThere = current == target &&
+            selected.year == year && selected.month.number == month
+        if (!alreadyThere) applyMonth(target)
+    }
+
+    /**
+     * 切换可见月份，并把**选中的日期一起带过去**。
+     *
+     * 修复「月份变了、下面的日期还停在上个月」：日期按「同月同日」平移，
+     * 目标月没有该日（如 10/31 → 9 月）则收敛到月末（修改为 9/30）。
+     */
+    private fun applyMonth(target: MonthKey) {
+        val day = selectedDate.value.day.coerceAtMost(daysInMonth(target))
+        selectedDate.value = LocalDate(target.year, target.month, day)
+        visibleMonth.value = target
+    }
+
+    /** 目标月份的天数。 */
+    private fun daysInMonth(month: MonthKey): Int =
+        LocalDate(month.year, month.month, 1)
+            .plus(1, DateTimeUnit.MONTH)
+            .minus(1, DateTimeUnit.DAY)
+            .day
 
     /** 回到今天（同时把可见月份与选中日期拉回今天）。 */
     fun goToToday() {
@@ -200,7 +241,25 @@ class AgendaViewModel(
                 lunarLabel = LunarCalendar.dayLabel(date),
                 isSelected = date == selected,
                 isToday = date == today,
-                hasEvents = eventDates.contains(date.toString())
+                hasEvents = eventDates.contains(date.toString()),
+                isInMonth = isSameMonth(date, month)
+            )
+        }
+
+        // 整月日历（下拉展开）：固定 6×7 = 42 格，首格对齐 firstDayOfWeek，
+        // 月外的补白格（上月末 / 下月初）同样渲染，但标记 isInMonth = false 供 UI 淡化。
+        val monthStart = LocalDate(month.year, month.month, 1)
+        val offsetFromMonthStart = (monthStart.dayOfWeek.isoDayNumber - firstDayOfWeek + 7) % 7
+        val gridStart = monthStart.minus(offsetFromMonthStart, DateTimeUnit.DAY)
+        val monthCells = (0 until MONTH_GRID_CELLS).map { index ->
+            val date = gridStart.plus(index, DateTimeUnit.DAY)
+            AgendaDayCell(
+                date = date,
+                lunarLabel = LunarCalendar.dayLabel(date),
+                isSelected = date == selected,
+                isToday = date == today,
+                hasEvents = eventDates.contains(date.toString()),
+                isInMonth = isSameMonth(date, month)
             )
         }
 
@@ -257,10 +316,15 @@ class AgendaViewModel(
             month = month,
             firstDayOfWeek = firstDayOfWeek,
             weekDays = weekDays,
+            monthCells = monthCells,
             entries = entries,
             lunarText = LunarCalendar.lunarText(selected)
         )
     }
+
+    /** 判断某天是否落在可见月份内（用于淡化月外补白格）。 */
+    private fun isSameMonth(date: LocalDate, month: MonthKey): Boolean =
+        date.year == month.year && date.month.number == month.month
 }
 
 /** 月份键（年 + 月）。 */
@@ -271,13 +335,15 @@ data class MonthKey(val year: Int, val month: Int) {
     }
 }
 
-/** 周条单元格。 */
+/** 周条单元格。整月日历复用同一模型（[isInMonth] 区分月内 / 月外补白格）。 */
 data class AgendaDayCell(
     val date: LocalDate,
     val lunarLabel: String,
     val isSelected: Boolean,
     val isToday: Boolean,
-    val hasEvents: Boolean
+    val hasEvents: Boolean,
+    /** 是否属于当前可见月份。月外补白格（上月末 / 下月初）为 false，UI 淡化显示。 */
+    val isInMonth: Boolean = true
 )
 
 /** 日程条目（课程与自建日程统一展示模型）。 */
@@ -303,6 +369,8 @@ data class AgendaUiState(
     val month: MonthKey = MonthKey(2000, 1),
     val firstDayOfWeek: Int = DayOfWeek.MONDAY.isoDayNumber,
     val weekDays: List<AgendaDayCell> = emptyList(),
+    /** 整月日历单元格（下拉展开时显示，固定 6×7 = 42 格，含月外补白格）。 */
+    val monthCells: List<AgendaDayCell> = emptyList(),
     val entries: List<AgendaEntry> = emptyList(),
     val lunarText: String = ""
 )

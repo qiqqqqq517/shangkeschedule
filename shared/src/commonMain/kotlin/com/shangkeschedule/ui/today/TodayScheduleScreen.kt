@@ -41,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -262,6 +263,8 @@ fun TodayScheduleScreen(
     // 下拉刷新状态（v3.43.0 ·《交互动效审查》P2）：列表已是 DB Flow 驱动，刷新 = 立刻重读一次
     var refreshing by remember { mutableStateOf(false) }
     val refreshScope = rememberCoroutineScope()
+    // 下拉进度状态：自定义指示器需据此判断显隐（M3 不再托管自定义 indicator 的定位）
+    val pullToRefreshState = rememberPullToRefreshState()
 
     // 悬浮面板玻璃：主内容 hazeSource，底部弹窗背板模糊
     val hazeState = rememberHazeState()
@@ -329,21 +332,27 @@ fun TodayScheduleScreen(
                                     refreshing = false
                                 }
                             },
+                            state = pullToRefreshState,
                             modifier = Modifier.fillMaxSize(),
                             indicator = {
                                 // 主题化下拉指示：复用与 AppLoading 同一枚主题指示器
                                 // （柔绘三点呼吸 / 书卷墨点晕开 / 通透八段旋转），
                                 // 取代 M3 默认的 Material 箭头（与三套主题语言都不符）。
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .padding(top = 14.dp)
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(appColors().cardBg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    ThemedLoadingIndicator()
+                                // 注意：自定义 indicator 不再受 M3 的定位逻辑托管，
+                                // 必须自行按下拉进度显隐，否则会在页头常驻一枚圆形指示器。
+                                val pullProgress = pullToRefreshState.distanceFraction
+                                if (refreshing || pullProgress > 0.01f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .padding(top = 14.dp)
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(appColors().cardBg),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        ThemedLoadingIndicator()
+                                    }
                                 }
                             }
                         ) {
@@ -911,7 +920,7 @@ private fun ClaudeTodayContent(
     }
 }
 
-/** 页头：周次胶囊（原位置，略下移） + 居中日期大字。 */
+/** 页头：周次胶囊置于左侧 + 日期居中大字，同一行。 */
 @Composable
 private fun ClaudeTodayHeader(
     weekIndex: Int,
@@ -925,39 +934,33 @@ private fun ClaudeTodayHeader(
     } else {
         statusText
     }
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 4.dp, vertical = 12.dp)
     ) {
-        // 周次胶囊：方形块，居中，置于日期上方
+        // 周次胶囊：方形块，靠左
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.CenterStart)
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.primarySoft)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(colors.primarySoft)
-                    .padding(horizontal = 12.dp, vertical = 5.dp)
-            ) {
-                Text(
-                    text = weekLabel,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.02.em,
-                        lineHeight = 16.sp
-                    ),
-                    color = colors.primary,
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = weekLabel,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.02.em,
+                    lineHeight = 16.sp
+                ),
+                color = colors.primary,
+                maxLines = 1
+            )
         }
-        // 日期：居中大字，与周次间距 6dp
+        // 日期：行内居中大字
         Text(
             text = dateText,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -968,7 +971,11 @@ private fun ClaudeTodayHeader(
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+            maxLines = 1,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 84.dp)
         )
     }
 }
@@ -1720,29 +1727,6 @@ private fun ClaudeEventRow(
                 }
             }
         }
-    }
-}
-
-/** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
-@Composable
-private fun ClaudeIconButton(
-    icon: DrawableResource,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(appShapes().chip)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(20.dp),
-            tint = appColors().textPrimary
-        )
     }
 }
 
@@ -3236,7 +3220,7 @@ private fun SoftTodayContent(
     }
 }
 
-/** 页头：周次胶囊（原位置，略下移） + 居中日期大字。 */
+/** 页头：周次胶囊置于左侧 + 日期居中大字，同一行。 */
 @Composable
 private fun SoftTodayHeader(
     weekIndex: Int,
@@ -3250,39 +3234,33 @@ private fun SoftTodayHeader(
     } else {
         statusText
     }
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 4.dp, vertical = 12.dp)
     ) {
-        // 周次胶囊：方形块，居中，置于日期上方
+        // 周次胶囊：方形块，靠左
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.CenterStart)
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.primarySoft)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(colors.primarySoft)
-                    .padding(horizontal = 12.dp, vertical = 5.dp)
-            ) {
-                Text(
-                    text = weekLabel,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.02.em,
-                        lineHeight = 16.sp
-                    ),
-                    color = colors.primary,
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = weekLabel,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.02.em,
+                    lineHeight = 16.sp
+                ),
+                color = colors.primary,
+                maxLines = 1
+            )
         }
-        // 日期：居中大字，与周次间距 6dp
+        // 日期：行内居中大字
         Text(
             text = dateText,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -3293,7 +3271,11 @@ private fun SoftTodayHeader(
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+            maxLines = 1,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 84.dp)
         )
     }
 }
@@ -3955,29 +3937,6 @@ private fun SoftEventRow(
     }
 }
 
-/** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
-@Composable
-private fun SoftIconButton(
-    icon: DrawableResource,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(appShapes().chip)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(20.dp),
-            tint = appColors().textPrimary
-        )
-    }
-}
-
 /** 幽灵小按钮：设计稿 .btn.ghost.view-all-btn（32dp 高 + 12sp + chevron）。 */
 @Composable
 private fun SoftGhostButton(text: String, onClick: () -> Unit) {
@@ -4460,7 +4419,7 @@ private fun Ios26TodayContent(
     }
 }
 
-/** 页头：周次胶囊（原位置，略下移） + 居中日期大字。 */
+/** 页头：周次胶囊置于左侧 + 日期居中大字，同一行。 */
 @Composable
 private fun Ios26TodayHeader(
     weekIndex: Int,
@@ -4474,39 +4433,33 @@ private fun Ios26TodayHeader(
     } else {
         statusText
     }
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 4.dp, vertical = 12.dp)
     ) {
-        // 周次胶囊：方形块，居中，置于日期上方
+        // 周次胶囊：方形块，靠左
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.CenterStart)
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.primarySoft)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(colors.primarySoft)
-                    .padding(horizontal = 12.dp, vertical = 5.dp)
-            ) {
-                Text(
-                    text = weekLabel,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.02.em,
-                        lineHeight = 16.sp
-                    ),
-                    color = colors.primary,
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = weekLabel,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.02.em,
+                    lineHeight = 16.sp
+                ),
+                color = colors.primary,
+                maxLines = 1
+            )
         }
-        // 日期：居中大字，与周次间距 6dp
+        // 日期：行内居中大字
         Text(
             text = dateText,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -4517,7 +4470,11 @@ private fun Ios26TodayHeader(
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+            maxLines = 1,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 84.dp)
         )
     }
 }
@@ -5187,29 +5144,6 @@ private fun Ios26EventRow(
                 }
             }
         }
-    }
-}
-
-/** 圆形图标钮：设计稿 .icon-btn（44dp 触控目标 + 16dp 圆角）。 */
-@Composable
-private fun Ios26IconButton(
-    icon: DrawableResource,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(appShapes().chip)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(20.dp),
-            tint = appColors().textPrimary
-        )
     }
 }
 

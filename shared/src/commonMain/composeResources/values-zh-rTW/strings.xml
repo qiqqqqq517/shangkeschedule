@@ -150,6 +150,14 @@
     <string name="agenda_back_to_today">回到今天</string>
     <string name="agenda_teacher_prefix">教師：%1$s</string>
     <string name="a11y_agenda_add">新增行程</string>
+    <string name="agenda_select_month">選擇月份</string>
+    <string name="agenda_year_format">%1$d年</string>
+    <string name="a11y_agenda_prev_month">上個月</string>
+    <string name="a11y_agenda_next_month">下個月</string>
+    <string name="a11y_agenda_prev_year">上一年</string>
+    <string name="a11y_agenda_next_year">下一年</string>
+    <string name="a11y_agenda_expand_month">展開整月日曆</string>
+    <string name="a11y_agenda_collapse_month">收合整月日曆</string>
     <string-array name="month_names">
         <item>1月</item>
         <item>2月</item>
@@ -765,9 +773,6 @@
     <string name="anim_reduce_motion">減弱動態效果</string>
     <string name="anim_reduce_motion_desc">以淡入淡出替代位移與縮放，減少眩暈感</string>
     <string name="anim_settings_more_placeholder">更多動效分組（後續版本推出）</string>
-    <string name="anim_preview_transition">轉場與捲動預覽</string>
-    <string name="anim_preview_replay">重播</string>
-    <string name="anim_preview_press_hint">按住試試</string>
     <string name="desc_appearance_settings">主題風格、深色模式與課表外觀微調</string>
     <string name="theme_preset_classic">經典</string>
     <string name="theme_preset_cloud">雲舒</string>

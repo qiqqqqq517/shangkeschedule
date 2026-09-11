@@ -1,5 +1,15 @@
 package com.shangkeschedule.ui.agenda
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -46,6 +57,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,9 +68,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.ui.components.AppAlertDialog
@@ -74,6 +91,8 @@ import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.DatePickerModal
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -82,6 +101,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -97,6 +117,12 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_agenda_add
+import shangkeschedule.shared.generated.resources.a11y_agenda_collapse_month
+import shangkeschedule.shared.generated.resources.a11y_agenda_expand_month
+import shangkeschedule.shared.generated.resources.a11y_agenda_next_month
+import shangkeschedule.shared.generated.resources.a11y_agenda_next_year
+import shangkeschedule.shared.generated.resources.a11y_agenda_prev_month
+import shangkeschedule.shared.generated.resources.a11y_agenda_prev_year
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.add_24px
@@ -127,6 +153,7 @@ import shangkeschedule.shared.generated.resources.agenda_group_evening
 import shangkeschedule.shared.generated.resources.agenda_group_morning
 import shangkeschedule.shared.generated.resources.agenda_lunar_format
 import shangkeschedule.shared.generated.resources.agenda_new_title
+import shangkeschedule.shared.generated.resources.agenda_select_month
 import shangkeschedule.shared.generated.resources.agenda_start_label
 import shangkeschedule.shared.generated.resources.agenda_status_finished
 import shangkeschedule.shared.generated.resources.agenda_status_ongoing
@@ -134,6 +161,7 @@ import shangkeschedule.shared.generated.resources.agenda_status_upcoming
 import shangkeschedule.shared.generated.resources.agenda_teacher_prefix
 import shangkeschedule.shared.generated.resources.agenda_title_hint
 import shangkeschedule.shared.generated.resources.agenda_today_badge
+import shangkeschedule.shared.generated.resources.agenda_year_format
 import shangkeschedule.shared.generated.resources.arrow_drop_down_24px
 import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.close_24px
@@ -146,6 +174,7 @@ import shangkeschedule.shared.generated.resources.more_vert_24px
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.week_days_short_names
+import kotlin.math.abs
 import kotlin.time.Clock
 
 private val TIME_COLUMN_WIDTH = 56.dp
@@ -179,6 +208,7 @@ fun AgendaScreen(
     val selectedDate by viewModel.currentSelectedDate.collectAsState()
 
     var showCreateSheet by remember { mutableStateOf(false) }
+    var showMonthPicker by remember { mutableStateOf(false) }
     var deletingEntry by remember { mutableStateOf<AgendaEntry?>(null) }
 
     val hazeState = rememberHazeState()
@@ -208,6 +238,7 @@ fun AgendaScreen(
                             onPreviousMonth = viewModel::previousMonth,
                             onNextMonth = viewModel::nextMonth,
                             onGoToToday = viewModel::goToToday,
+                            onOpenMonthPicker = { showMonthPicker = true },
                             onDeleteEntry = { deletingEntry = it }
                         )
                     }
@@ -240,6 +271,20 @@ fun AgendaScreen(
             }
         )
     }
+
+    if (showMonthPicker) {
+        AgendaMonthPickerSheet(
+            currentYear = uiState.month.year,
+            currentMonth = uiState.month.month,
+            today = uiState.today,
+            hazeState = hazeState,
+            onDismiss = { showMonthPicker = false },
+            onSelectMonth = { year, month ->
+                viewModel.selectMonth(year, month)
+                showMonthPicker = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -251,14 +296,16 @@ private fun AgendaContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGoToToday: () -> Unit,
+    onOpenMonthPicker: () -> Unit,
     onDeleteEntry: (AgendaEntry) -> Unit
 ) {
     val tokens = appColors()
     val spacing = appSpacing()
 
-    val monthNames = stringArrayResource(Res.array.month_names)
-    val weekShortNames = stringArrayResource(Res.array.week_days_short_names)
     val weekFullNames = stringArrayResource(Res.array.week_days_full_names)
+
+    // 整月日历是否展开（下拉展开 / 上收收起 / 点击把手切换）
+    var monthExpanded by rememberSaveable { mutableStateOf(false) }
 
     // 每 30 秒刷新当前分钟，用于「已结束 / 进行中」状态实时翻转
     var nowMinutes by remember { mutableIntStateOf(currentMinutesOfDay()) }
@@ -274,18 +321,26 @@ private fun AgendaContent(
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        AgendaMonthHeader(
-            monthLabel = monthNames.getOrNull(state.month.month - 1).orEmpty(),
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
-            onGoToToday = onGoToToday
-        )
-
-        AgendaWeekStrip(
-            weekDays = state.weekDays,
-            weekShortNames = weekShortNames,
-            onSelectDate = onSelectDate,
-            modifier = Modifier.padding(horizontal = 8.dp)
+        AgendaDatePanel(
+            state = state,
+            expanded = monthExpanded,
+            onToggleExpanded = { monthExpanded = !monthExpanded },
+            onSelectDate = { date ->
+                onSelectDate(date)
+                // 在整月日历里点选日期后自动收起，把空间还给下方日程时间轴
+                monthExpanded = false
+            },
+            onShiftDays = { days ->
+                onSelectDate(state.selectedDate.plus(days, DateTimeUnit.DAY))
+            },
+            onShiftMonth = { delta ->
+                if (delta > 0) onNextMonth() else onPreviousMonth()
+            },
+            onOpenMonthPicker = onOpenMonthPicker,
+            onGoToToday = {
+                onGoToToday()
+                monthExpanded = false
+            }
         )
 
         AgendaDayHeader(
@@ -351,83 +406,262 @@ private fun AgendaContent(
     }
 }
 
+/**
+ * 顶部日期面板：月份行 + 周条 / 整月日历 + 展开把手。
+ *
+ * 交互：
+ * - **左右滑动**：折叠态前后翻一周；展开态前后翻一月（左滑 = 前进），带滑动转场；
+ * - **切换月份**（左右滑动 / 月份左右箭头 / 月份选择器）后，下面的日期一起对应过去
+ *   （由 `AgendaViewModel.applyMonth` 把选中日期「同月同日」平移，目标月无该日则收敛到月末）；
+ * - **下拉展开 / 上收收起**：周条与整月日历（31 天等，固定 6×7 = 42 格，含月外补白格）互换；
+ * - **点击月份标题**：打开月份选择器，直接跳到某年某月。
+ */
 @Composable
-private fun AgendaMonthHeader(
-    monthLabel: String,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+private fun AgendaDatePanel(
+    state: AgendaUiState,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+    onShiftDays: (Int) -> Unit,
+    onShiftMonth: (Int) -> Unit,
+    onOpenMonthPicker: () -> Unit,
     onGoToToday: () -> Unit
 ) {
     val tokens = appColors()
     val shapes = appShapes()
+    val motion = LocalAppMotion.current
+    val monthNames = stringArrayResource(Res.array.month_names)
+    val weekShortNames = stringArrayResource(Res.array.week_days_short_names)
     var menuExpanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = monthLabel,
-            fontSize = appType().hero,
-            fontWeight = FontWeight.Bold,
-            color = tokens.textPrimary
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Row(
-            modifier = Modifier
-                .clip(shapes.capsule)
-                .background(tokens.inputBg)
-                .padding(horizontal = 2.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onPreviousMonth, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                    contentDescription = null,
-                    tint = tokens.textSecondary,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .graphicsLayer { rotationZ = 180f }
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(16.dp)
-                    .background(tokens.divider)
-            )
-            IconButton(onClick = onNextMonth, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                    contentDescription = null,
-                    tint = tokens.textSecondary,
-                    modifier = Modifier.size(18.dp)
+    // 滑动转场：位移自 ±1 收敛到 0（新日期 / 新月份从滑动方向滑入）。
+    // 时长与曲线复用「周翻页」既有令牌，并随「周翻页」分组开关与「减弱动态效果」一起降级为瞬切。
+    val slideOffset = remember { Animatable(0f) }
+    val slideEnabled = motion.isEnabled(AnimationGroup.WEEK_PAGER)
+    val slideMs = if (slideEnabled) motion.tokens.entranceDurationMs else 0
+    val slide: (Int) -> Unit = { direction ->
+        scope.launch {
+            if (slideMs <= 0) {
+                slideOffset.snapTo(0f)
+            } else {
+                slideOffset.snapTo(direction.toFloat())
+                slideOffset.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(
+                        durationMillis = slideMs,
+                        easing = motion.tokens.entranceEasing
+                    )
                 )
             }
         }
-        Spacer(modifier = Modifier.weight(1f))
-        Box {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = vectorResource(Res.drawable.more_vert_24px),
-                    contentDescription = null,
-                    tint = tokens.textSecondary
-                )
+    }
+
+    // 展开 / 收起整月日历的纵向转场（随「减弱动态效果」瞬切）
+    val expandMs = if (motion.reduceMotion) 0 else motion.tokens.expandDurationMs
+
+    // 手势：先定向（水平 / 垂直），再按阈值触发；一次手势只触发一次
+    val threshold = with(LocalDensity.current) { 44.dp.toPx() }
+    val currentExpanded by rememberUpdatedState(expanded)
+    val shiftDays by rememberUpdatedState(onShiftDays)
+    val shiftMonth by rememberUpdatedState(onShiftMonth)
+    val slideBy by rememberUpdatedState(slide)
+    val toggleExpanded by rememberUpdatedState(onToggleExpanded)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationX = slideOffset.value * size.width * 0.45f
+                alpha = 1f - 0.35f * abs(slideOffset.value)
             }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.agenda_back_to_today)) },
-                    onClick = {
-                        menuExpanded = false
-                        onGoToToday()
+            .pointerInput(Unit) {
+                var dx = 0f
+                var dy = 0f
+                var axis = 0 // 0 未定向 / 1 水平 / 2 垂直
+                var fired = false
+                detectDragGestures(
+                    onDragStart = { dx = 0f; dy = 0f; axis = 0; fired = false },
+                    onDragCancel = { dx = 0f; dy = 0f; axis = 0; fired = false },
+                    onDragEnd = { dx = 0f; dy = 0f; axis = 0; fired = false }
+                ) { _, drag ->
+                    if (fired) return@detectDragGestures
+                    dx += drag.x
+                    dy += drag.y
+                    if (axis == 0) {
+                        val slop = viewConfiguration.touchSlop
+                        if (abs(dx) > slop && abs(dx) >= abs(dy)) {
+                            axis = 1
+                        } else if (abs(dy) > slop) {
+                            axis = 2
+                        }
                     }
+                    when (axis) {
+                        // 水平：折叠态翻一周，展开态翻一月
+                        1 -> if (abs(dx) > threshold) {
+                            fired = true
+                            val step = if (dx < 0f) 1 else -1
+                            if (currentExpanded) shiftMonth(step) else shiftDays(step * 7)
+                            slideBy(step)
+                        }
+                        // 垂直：下拉展开整月，上收收起
+                        2 -> if (abs(dy) > threshold) {
+                            fired = true
+                            if ((dy > 0f) != currentExpanded) toggleExpanded()
+                        }
+                    }
+                }
+            }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 月份标题：点击直接选月份
+            Row(
+                modifier = Modifier
+                    .clip(shapes.chipSmall)
+                    .clickable { onOpenMonthPicker() }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = monthNames.getOrNull(state.month.month - 1).orEmpty(),
+                    fontSize = appType().hero,
+                    fontWeight = FontWeight.Bold,
+                    color = tokens.textPrimary
+                )
+                Icon(
+                    imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
+                    contentDescription = stringResource(Res.string.agenda_select_month),
+                    tint = tokens.textSecondary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
+            Row(
+                modifier = Modifier
+                    .clip(shapes.capsule)
+                    .background(tokens.inputBg)
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { onShiftMonth(-1) }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                        contentDescription = stringResource(Res.string.a11y_agenda_prev_month),
+                        tint = tokens.textSecondary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .graphicsLayer { rotationZ = 180f }
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(16.dp)
+                        .background(tokens.divider)
+                )
+                IconButton(onClick = { onShiftMonth(1) }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                        contentDescription = stringResource(Res.string.a11y_agenda_next_month),
+                        tint = tokens.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.more_vert_24px),
+                        contentDescription = null,
+                        tint = tokens.textSecondary
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.agenda_back_to_today)) },
+                        onClick = {
+                            menuExpanded = false
+                            onGoToToday()
+                        }
+                    )
+                }
+            }
+        }
+
+        // 周条 ⇄ 整月日历
+        AnimatedContent(
+            targetState = expanded,
+            transitionSpec = {
+                val sizeSpec = tween<IntSize>(
+                    durationMillis = expandMs,
+                    easing = motion.tokens.expandEasing
+                )
+                val fadeSpec = tween<Float>(
+                    durationMillis = expandMs.coerceAtMost(220)
+                )
+                val enterFade: EnterTransition = fadeIn(animationSpec = fadeSpec)
+                val exitFade: ExitTransition = fadeOut(animationSpec = fadeSpec)
+                // 展开方向：新内容自上而下展开；收起方向：交叉淡入淡出，高度由 SizeTransform 收拢
+                val transform = if (targetState) {
+                    expandVertically(
+                        animationSpec = sizeSpec,
+                        expandFrom = Alignment.Top
+                    ) + enterFade togetherWith exitFade
+                } else {
+                    enterFade togetherWith exitFade
+                }
+                // 注意：SizeTransform 必须显式加在 if 之外
+                //（直接写成 `else {...} + SizeTransform(...)` 会被解析成只作用于 else 分支）
+                transform using SizeTransform(clip = false)
+            },
+            label = "agenda-date-panel",
+            modifier = Modifier.padding(horizontal = 8.dp)
+        ) { showMonthGrid ->
+            if (showMonthGrid) {
+                AgendaMonthGrid(
+                    cells = state.monthCells,
+                    firstDayOfWeek = state.firstDayOfWeek,
+                    weekShortNames = weekShortNames,
+                    onSelectDate = onSelectDate
+                )
+            } else {
+                AgendaWeekStrip(
+                    weekDays = state.weekDays,
+                    weekShortNames = weekShortNames,
+                    onSelectDate = onSelectDate
+                )
+            }
+        }
+
+        // 展开把手：下拉 / 上收提示，也可直接点击切换
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .clickable { onToggleExpanded() },
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
+                contentDescription = stringResource(
+                    if (expanded) Res.string.a11y_agenda_collapse_month
+                    else Res.string.a11y_agenda_expand_month
+                ),
+                tint = tokens.textSecondary,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer { rotationZ = if (expanded) 180f else 0f }
+            )
         }
     }
 }
@@ -441,26 +675,11 @@ private fun AgendaWeekStrip(
 ) {
     val tokens = appColors()
     val shapes = appShapes()
-    var isSwiping by remember { mutableStateOf(false) }
 
+    // 左右滑动不再挂在这里：由外层 AgendaDatePanel 统一处理（折叠态翻周 / 展开态翻月），
+    // 这里只保留点选，避免两套手势互相抢事件。
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragEnd = { isSwiping = false }
-                ) { _, dragAmount ->
-                    if (dragAmount.x < -50f && !isSwiping) {
-                        isSwiping = true
-                        val current = weekDays.firstOrNull { it.isSelected }?.date
-                        if (current != null) onSelectDate(current.plus(1, DateTimeUnit.DAY))
-                    } else if (dragAmount.x > 50f && !isSwiping) {
-                        isSwiping = true
-                        val current = weekDays.firstOrNull { it.isSelected }?.date
-                        if (current != null) onSelectDate(current.minus(1, DateTimeUnit.DAY))
-                    }
-                }
-            },
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         weekDays.forEach { cell ->
@@ -468,15 +687,20 @@ private fun AgendaWeekStrip(
             val numberColor = when {
                 selected -> tokens.textOnPrimary
                 cell.isToday -> tokens.primary
+                !cell.isInMonth -> tokens.textSecondary.copy(alpha = 0.55f)
                 else -> tokens.textPrimary
             }
-            val labelColor = if (selected) tokens.textOnPrimary.copy(alpha = 0.85f) else tokens.textSecondary
+            val labelColor = when {
+                selected -> tokens.textOnPrimary.copy(alpha = 0.85f)
+                cell.isInMonth -> tokens.textSecondary
+                else -> tokens.textSecondary.copy(alpha = 0.5f)
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .clip(shapes.chipSmall)
                     .background(if (selected) tokens.primary else Color.Transparent)
-                    .clickable(enabled = !isSwiping) { onSelectDate(cell.date) }
+                    .clickable { onSelectDate(cell.date) }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -515,6 +739,269 @@ private fun AgendaWeekStrip(
                 )
             }
         }
+    }
+}
+
+/**
+ * 整月日历（周条下拉展开）：星期表头 + 固定 6 行 × 7 列日期格。
+ *
+ * 单元格来自 `AgendaUiState.monthCells`（42 格，含上月末尾 / 下月初的补白格），
+ * 补白格淡化显示但仍可点击（点选后选中日期与可见月份一起过去）。
+ */
+@Composable
+private fun AgendaMonthGrid(
+    cells: List<AgendaDayCell>,
+    firstDayOfWeek: Int,
+    weekShortNames: List<String>,
+    onSelectDate: (LocalDate) -> Unit
+) {
+    val tokens = appColors()
+
+    // 表头按「每周第一天」轮转，与单元格列顺序严格一致
+    val orderedWeekNames = (0 until 7).map { index ->
+        weekShortNames.getOrNull((firstDayOfWeek - 1 + index) % 7).orEmpty()
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            orderedWeekNames.forEach { name ->
+                Text(
+                    text = name,
+                    fontSize = appType().hint,
+                    color = tokens.textSecondary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 4.dp)
+                )
+            }
+        }
+        // cells 固定 42 个 ⇒ 恒为 6 行，切月份时面板高度不跳动
+        cells.chunked(7).forEach { rowCells ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                rowCells.forEach { cell ->
+                    AgendaMonthDayCell(cell = cell, onSelectDate = onSelectDate)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.AgendaMonthDayCell(
+    cell: AgendaDayCell,
+    onSelectDate: (LocalDate) -> Unit
+) {
+    val tokens = appColors()
+    val shapes = appShapes()
+    val selected = cell.isSelected
+    val numberColor = when {
+        selected -> tokens.textOnPrimary
+        cell.isToday -> tokens.primary
+        !cell.isInMonth -> tokens.textSecondary.copy(alpha = 0.55f)
+        else -> tokens.textPrimary
+    }
+    val labelColor = when {
+        selected -> tokens.textOnPrimary.copy(alpha = 0.85f)
+        cell.isInMonth -> tokens.textSecondary
+        else -> tokens.textSecondary.copy(alpha = 0.5f)
+    }
+
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clip(shapes.chipSmall)
+            .background(if (selected) tokens.primary else Color.Transparent)
+            .clickable { onSelectDate(cell.date) }
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = cell.date.day.toString(),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = numberColor
+        )
+        Spacer(modifier = Modifier.height(1.dp))
+        Text(
+            text = cell.lunarLabel,
+            fontSize = 9.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = labelColor
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Box(
+            modifier = Modifier
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        !cell.hasEvents -> Color.Transparent
+                        selected -> tokens.textOnPrimary
+                        else -> tokens.primary
+                    }
+                )
+        )
+    }
+}
+
+/**
+ * 月份选择器：年份可前后切换，点选 1–12 月直接跳转（「点击月份可直接选择对应的月份」）。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AgendaMonthPickerSheet(
+    currentYear: Int,
+    currentMonth: Int,
+    today: LocalDate,
+    hazeState: HazeState?,
+    onDismiss: () -> Unit,
+    onSelectMonth: (Int, Int) -> Unit
+) {
+    val tokens = appColors()
+    val type = appType()
+    val spacing = appSpacing()
+    val monthNames = stringArrayResource(Res.array.month_names)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var year by remember { mutableIntStateOf(currentYear) }
+
+    AppGlassBottomSheet(
+        hazeState = hazeState,
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.pageHorizontal)
+                .padding(bottom = 24.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.agenda_select_month),
+                    fontSize = type.sectionTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = tokens.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.close_24px),
+                        contentDescription = stringResource(Res.string.action_cancel),
+                        tint = tokens.textSecondary
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { year -= 1 },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                        contentDescription = stringResource(Res.string.a11y_agenda_prev_year),
+                        tint = tokens.textSecondary,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .graphicsLayer { rotationZ = 180f }
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.agenda_year_format, year),
+                    fontSize = type.pageTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = tokens.textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { year += 1 },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                        contentDescription = stringResource(Res.string.a11y_agenda_next_year),
+                        tint = tokens.textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            (0 until 4).forEach { rowIndex ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    (0 until 3).forEach { columnIndex ->
+                        val month = rowIndex * 3 + columnIndex + 1
+                        AgendaMonthOption(
+                            label = monthNames.getOrNull(month - 1).orEmpty(),
+                            selected = year == currentYear && month == currentMonth,
+                            isCurrentMonth = year == today.year && month == today.month.number,
+                            onClick = { onSelectMonth(year, month) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgendaMonthOption(
+    label: String,
+    selected: Boolean,
+    isCurrentMonth: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = appColors()
+    val shapes = appShapes()
+    val container = when {
+        selected -> tokens.primary
+        isCurrentMonth -> tokens.primarySoft
+        else -> tokens.inputBg
+    }
+    val content = when {
+        selected -> tokens.textOnPrimary
+        isCurrentMonth -> tokens.primary
+        else -> tokens.textPrimary
+    }
+
+    Box(
+        modifier = modifier
+            .height(46.dp)
+            .clip(shapes.chip)
+            .background(container)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = appType().body,
+            fontWeight = if (selected || isCurrentMonth) FontWeight.SemiBold else FontWeight.Normal,
+            color = content,
+            maxLines = 1
+        )
     }
 }
 
