@@ -18,6 +18,8 @@ import com.materialkolor.rememberDynamicColorScheme
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.ui.glass.GlassRefractionSettings
+import com.shangkeschedule.ui.glass.LocalGlassRefraction
 
 /**
  * 定义一个用于全局同步深色模式状态的 Local 变量
@@ -67,6 +69,15 @@ fun ShangKeScheduleTheme(
         LocalIsSoftTheme provides (settings.themePreset == AppThemePreset.SOFT),
         // 玻璃雾度全局注入：用户在「个性化显示」里设定的一个值，喂给所有悬浮玻璃件
         LocalGlassBlurRadius provides settings.glassBlurRadiusDp.dp,
+        // v3.47.0：液态折射配置全局注入。默认 Off ⇒ 玻璃仍走原 Haze 路径（观感零变化）；
+        // 打开后底栏胶囊切到自带引擎，模糊半径依旧读上面的 LocalGlassBlurRadius。
+        LocalGlassRefraction provides GlassRefractionSettings(
+            enabled = settings.glassRefractionEnabled,
+            heightDp = settings.glassRefractionHeightDp,
+            amountDp = settings.glassRefractionAmountDp,
+            dispersion = settings.glassRefractionDispersion,
+            depthEffect = settings.glassRefractionDepthEffect
+        ),
         // 动效全局注入：用户在「个性化显示 → 动画效果」里选的风格 + 分组开关 + 主题预设
         // （主题决定动效语言：阻尼 / 时长 / 曲线 / 按压形态按主题分档，v3.43.0），
         // 解析成一套令牌喂给全 App 动画；改一次全端同步，不再各处写死时长

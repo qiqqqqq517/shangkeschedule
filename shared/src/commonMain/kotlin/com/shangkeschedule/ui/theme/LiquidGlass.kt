@@ -18,6 +18,13 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import com.shangkeschedule.ui.glass.GlassBackdrop
+import com.shangkeschedule.ui.glass.GlassRefractionSettings
+import com.shangkeschedule.ui.glass.LocalGlassRefraction
+import com.shangkeschedule.ui.glass.glassBlur
+import com.shangkeschedule.ui.glass.glassLens
+import com.shangkeschedule.ui.glass.glassSurface
+import com.shangkeschedule.ui.glass.isGlassRefractionAvailable
 
 /**
  * 玻璃本体的冷灰基色：只做极淡混入，让玻璃在纯白内容上比背景略沉一档，
@@ -74,9 +81,22 @@ fun Modifier.liquidGlass(
     isTransparent: Boolean = false,
     shadowElevation: Dp = 14.dp,
     blurRadius: Dp = Dp.Unspecified,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    /**
+     * v3.47.0 新增：背景快照。传入且 [refraction] 打开、平台支持时，本修饰符切换到
+     * 自带玻璃引擎（同样的模糊 + **边缘折射**）；否则完全走原 Haze 路径（默认路径）。
+     */
+    glassBackdrop: GlassBackdrop? = null,
+    /** v3.47.0 新增：折射配置，由 [LocalGlassRefraction] 全局注入。 */
+    refraction: GlassRefractionSettings = LocalGlassRefraction.current
 ): Modifier {
     if (!enabled) return this
+
+    // v3.47.0：是否切到自带引擎。注意**模糊半径两条路径共用同一个 effectiveBlurRadius**，
+    // 即用户的「最下侧模糊强度」设置不会被旁路——折射只是叠加在原雾度之上的光学层。
+    val refractionBackdrop = glassBackdrop?.takeIf {
+        refraction.enabled && isGlassRefractionAvailable()
+    }
 
     // 未显式传值 ⇒ 跟随用户在「个性化显示」里设定的全局模糊半径
     val effectiveBlurRadius = blurRadius.takeOrElse { LocalGlassBlurRadius.current }
@@ -118,23 +138,50 @@ fun Modifier.liquidGlass(
         // 外轮廓线：排在 clip 之前，保留形状外的半环
         .border(width = 1.dp, color = Color.Black.copy(alpha = outlineAlpha), shape = shape)
         .clip(shape)
-        .hazeEffect(hazeState) {
-            this.blurRadius = effectiveBlurRadius
-            // v3.24.2：noiseFactor 归零——用户要求删除导航栏颗粒感；noise 是铺满
-            // 整面的颗粒噪声（v3.23.8 已减半仍可感知），直接移除后玻璃只保留
-            // 模糊 + 三层 tint + 边缘光学，观感更清澈。全局生效（底栏/圆钮/悬浮条/FAB）。
-            noiseFactor = 0f
-            tints = listOf(
-                HazeTint(containerColorOrBlack(containerColor, isTransparent).copy(alpha = baseAlpha)),
-                HazeTint(LiquidGlassBodyScrim.copy(alpha = bodyScrim)),
-                HazeTint(Color.White.copy(alpha = veilAlpha))
-            )
-            fallbackTint = HazeTint(
-                containerColorOrBlack(containerColor, isTransparent)
-                    .copy(alpha = (baseAlpha + 0.24f).coerceAtMost(0.92f))
-            )
-            backgroundColor = Color.Transparent
-        }
+        .then(
+            if (refractionBackdrop != null) {
+                // v3.47.0：自带引擎路径。模糊半径取与 Haze 路径同一个 effectiveBlurRadius
+                //（= 用户「最下侧模糊强度」），再叠加边缘折射 / 色散 / 厚度感。
+                Modifier.glassSurface(
+                    backdrop = refractionBackdrop,
+                    shape = shape,
+                    effects = {
+                        glassBlur(effectiveBlurRadius.toPx())
+                        glassLens(
+                            refractionHeight = refraction.heightDp.dp.toPx(),
+                            refractionAmount = refraction.amountDp.dp.toPx(),
+                            depthEffect = refraction.depthEffect,
+                            chromaticAberration = refraction.dispersion
+                        )
+                    },
+                    // 表面三层遮盖与 Haze 路径的 tints 逐值对应：两条路径观感同源，
+                    // 切换开关时不会出现"底栏突然换了一块玻璃"的跳变。
+                    onDrawSurface = {
+                        drawRect(containerColorOrBlack(containerColor, isTransparent).copy(alpha = baseAlpha))
+                        drawRect(LiquidGlassBodyScrim.copy(alpha = bodyScrim))
+                        drawRect(Color.White.copy(alpha = veilAlpha))
+                    }
+                )
+            } else {
+                Modifier.hazeEffect(hazeState) {
+                    this.blurRadius = effectiveBlurRadius
+                    // v3.24.2：noiseFactor 归零——用户要求删除导航栏颗粒感；noise 是铺满
+                    // 整面的颗粒噪声（v3.23.8 已减半仍可感知），直接移除后玻璃只保留
+                    // 模糊 + 三层 tint + 边缘光学，观感更清澈。全局生效（底栏/圆钮/悬浮条/FAB）。
+                    noiseFactor = 0f
+                    tints = listOf(
+                        HazeTint(containerColorOrBlack(containerColor, isTransparent).copy(alpha = baseAlpha)),
+                        HazeTint(LiquidGlassBodyScrim.copy(alpha = bodyScrim)),
+                        HazeTint(Color.White.copy(alpha = veilAlpha))
+                    )
+                    fallbackTint = HazeTint(
+                        containerColorOrBlack(containerColor, isTransparent)
+                            .copy(alpha = (baseAlpha + 0.24f).coerceAtMost(0.92f))
+                    )
+                    backgroundColor = Color.Transparent
+                }
+            }
+        )
         // 边缘光学：全部用 Screen 加亮、且只覆盖边缘窄带 / 左上角小椭圆，
         // 中心区域一律留空，保证底层内容清晰透出（透明感的第一优先级）。
         .drawBehind {

@@ -76,6 +76,10 @@ import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.glass.LocalGlassRefraction
+import com.shangkeschedule.ui.glass.glassBackdropSource
+import com.shangkeschedule.ui.glass.isGlassRefractionAvailable
+import com.shangkeschedule.ui.glass.rememberGlassBackdrop
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -253,6 +257,12 @@ fun AdaptiveNavigationScaffold(
                 // innerPadding 语义与原 Scaffold 一致（bottom = 底栏占用高度），
                 // 壁纸模式或未来内容滚动到底栏之下时，玻璃后方即为真实内容。
                 val hazeState = rememberHazeState()
+                // v3.47.0「液态折射」：开启且平台支持（Android 13+ / 桌面 / iOS）时，
+                // 底栏胶囊改走自带玻璃引擎 —— 背景快照 → 按「模糊强度」模糊 → 边缘折射。
+                // 默认关闭 ⇒ 完全走原 Haze 路径，观感与旧版一致。
+                val refraction = LocalGlassRefraction.current
+                val refractionActive = refraction.enabled && isGlassRefractionAvailable()
+                val glassBackdrop = rememberGlassBackdrop()
                 val density = LocalDensity.current
                 val navInsetPx = WindowInsets.navigationBars.getBottom(density)
                 // 底栏占用 = 胶囊高（touchMin 48 + 上下 7dp）+ 上下外距（navBarBottom × 2）
@@ -331,6 +341,15 @@ fun AdaptiveNavigationScaffold(
                         modifier = Modifier
                             .fillMaxSize()
                             .hazeSource(hazeState)
+                            // v3.47.0：折射开启时才额外录一份背景快照给玻璃引擎；
+                            // 关闭时（默认）不挂载 ⇒ 零额外开销、行为与旧版完全一致。
+                            .then(
+                                if (refractionActive) {
+                                    Modifier.glassBackdropSource(glassBackdrop)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     ) {
                         // P2-3 隐藏后留白回收：底栏隐藏动画进行中，内容底部 padding 同步收缩，
                         // 让列表内容顺势延伸至底栏空位，不残留一块空白。
@@ -399,7 +418,11 @@ fun AdaptiveNavigationScaffold(
                                     hazeState = hazeState,
                                     shape = appShapes().capsule,
                                     containerColor = bottomBarContainerColor ?: tokens.inputBg,
-                                    isTransparent = isTransparent
+                                    isTransparent = isTransparent,
+                                    // v3.47.0：注入背景快照。是否真的切到折射引擎由
+                                    // liquidGlass 内部按「折射开关 + 平台能力」判定；
+                                    // 模糊半径两条路径共用 LocalGlassBlurRadius（不改动）。
+                                    glassBackdrop = glassBackdrop
                                 )
                                 .padding(horizontal = 10.dp, vertical = 7.dp)
                         ) {

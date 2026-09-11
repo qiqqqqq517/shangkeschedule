@@ -732,6 +732,17 @@
     <string name="glass_section_desc">Adjust how blurred the content behind the navigation bar and floating buttons looks. Applies app-wide instantly</string>
     <string name="label_glass_blur">Blur strength</string>
     <string name="desc_glass_blur">0 turns blur off; Standard is the default. More blur makes covered text harder to read but less see-through</string>
+    <!-- v3.47.0 Liquid refraction (edge lens optics ported from Kyant/backdrop, user-tunable) -->
+    <string name="glass_refraction_title">Liquid refraction</string>
+    <string name="glass_refraction_desc">Bends the backdrop inward along the glass edge, giving the pane a lens-like thickness. Blur strength stays on the slider above; this group only adds or removes the refraction layer</string>
+    <string name="glass_refraction_switch">Enable edge refraction</string>
+    <string name="glass_refraction_height">Refraction height</string>
+    <string name="glass_refraction_amount">Refraction strength</string>
+    <string name="glass_refraction_dispersion">Chromatic dispersion</string>
+    <string name="glass_refraction_dispersion_desc">Adds prismatic colour fringes at the four corners (7 samples per pixel, slightly more battery use)</string>
+    <string name="glass_refraction_depth">Glass thickness</string>
+    <string name="glass_refraction_depth_desc">Adds a slight inward convergence inside the pane so it reads as a solid piece of glass</string>
+    <string name="glass_refraction_unsupported">Edge refraction is not supported on this system (requires Android 13 or newer); regular blurred glass is used instead</string>
     <string name="glass_preset_off">Off</string>
     <string name="glass_preset_light">Clear</string>
     <string name="glass_preset_standard">Standard</string>

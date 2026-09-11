@@ -734,6 +734,17 @@
     <string name="glass_section_desc">调节底栏、悬浮圆钮等玻璃件背后内容的雾化程度，改动即时生效于全应用</string>
     <string name="label_glass_blur">模糊强度</string>
     <string name="desc_glass_blur">0 为关闭模糊，「标准」为默认值。模糊越重越能压住被盖住的文字，但穿透感也随之下降</string>
+    <!-- v3.47.0 液态折射（按 Kyant/backdrop 复刻的边缘折射光学，可在设置里自定义） -->
+    <string name="glass_refraction_title">液态折射</string>
+    <string name="glass_refraction_desc">在玻璃边缘做透镜式折射：把背后的画面沿形状边缘向内挤压放大，产生液体玻璃的厚度感。模糊强度仍由上方滑杆决定，本组只增减折射这一层</string>
+    <string name="glass_refraction_switch">开启边缘折射</string>
+    <string name="glass_refraction_height">折射高度</string>
+    <string name="glass_refraction_amount">折射强度</string>
+    <string name="glass_refraction_dispersion">彩虹色散</string>
+    <string name="glass_refraction_dispersion_desc">在四个圆角处产生棱镜彩边（每像素 7 次采样，略微增加耗电）</string>
+    <string name="glass_refraction_depth">玻璃厚度感</string>
+    <string name="glass_refraction_depth_desc">让玻璃内部也有轻微汇聚，观感更像一块有厚度的实心玻璃</string>
+    <string name="glass_refraction_unsupported">当前系统不支持边缘折射（需 Android 13 及以上），已自动使用普通模糊玻璃</string>
     <string name="glass_preset_off">关闭</string>
     <string name="glass_preset_light">清澈</string>
     <string name="glass_preset_standard">标准</string>
