@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.theme
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -7,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -65,9 +67,15 @@ fun ShangKeScheduleTheme(
         LocalIsSoftTheme provides (settings.themePreset == AppThemePreset.SOFT),
         // 玻璃雾度全局注入：用户在「个性化显示」里设定的一个值，喂给所有悬浮玻璃件
         LocalGlassBlurRadius provides settings.glassBlurRadiusDp.dp,
-        // 动效全局注入：用户在「个性化显示 → 动画效果」里选的风格 + 分组开关，
+        // 动效全局注入：用户在「个性化显示 → 动画效果」里选的风格 + 分组开关 + 主题预设
+        // （主题决定动效语言：阻尼 / 时长 / 曲线 / 按压形态按主题分档，v3.43.0），
         // 解析成一套令牌喂给全 App 动画；改一次全端同步，不再各处写死时长
-        LocalAppMotion provides resolveMotion(settings.animationStyle, settings.disabledAnimationGroups)
+        LocalAppMotion provides resolveMotion(
+            style = settings.animationStyle,
+            disabledGroups = settings.disabledAnimationGroups,
+            preset = settings.themePreset,
+            reduceMotion = settings.reduceMotionEnabled,
+        )
     ) {
         ShangKeScheduleTheme(
             darkTheme = darkTheme,
@@ -159,12 +167,42 @@ fun ShangKeScheduleTheme(
     )
 
     // 组件层 appColors() / appShapes() / appSpacing() / appType() 读同一份同步 token
+    //
+    // 全局触摸指示（v3.43.0）：按主题 provide LocalIndication，覆盖全站 Modifier.clickable /
+    // combinedClickable / selectable 的默认 Material 涟漪——三套主题从「共用一套涟漪」
+    // 变为各用各的语言（柔绘软边渗开 / 书卷底色加深 / 通透 HIG highlight）。
+    val appMotion = LocalAppMotion.current
+    val indicationColor = when (appMotion.profile.indicationStyle) {
+        IndicationStyle.SOFT_RADIAL -> syncedTokens.primary.copy(alpha = appMotion.profile.indicationAlpha)
+        IndicationStyle.COLOR_DARKEN, IndicationStyle.HIG_HIGHLIGHT -> if (darkTheme) {
+            Color.White.copy(alpha = appMotion.profile.indicationAlpha)
+        } else {
+            Color.Black.copy(alpha = appMotion.profile.indicationAlpha)
+        }
+    }
+    val indication = remember(
+        appMotion.profile.indicationStyle,
+        appMotion.profile.indicationAlpha,
+        indicationColor,
+        appMotion.tokens.touchExpandMs,
+        appMotion.tokens.touchFadeMs,
+        appMotion.tokens.touchEasing,
+    ) {
+        ThemeIndication(
+            style = appMotion.profile.indicationStyle,
+            color = indicationColor,
+            expandMs = appMotion.tokens.touchExpandMs,
+            fadeMs = appMotion.tokens.touchFadeMs,
+            easing = appMotion.tokens.touchEasing,
+        )
+    }
     CompositionLocalProvider(
         LocalAppColorTokens provides syncedTokens,
         LocalAppShapeTokens provides shapeTokens,
         LocalAppSpacingTokens provides spacingTokens,
         LocalAppTypeTokens provides typeTokens,
-        LocalIsSoftTheme provides isSoft
+        LocalIsSoftTheme provides isSoft,
+        LocalIndication provides indication
     ) {
         // 应用平台特定的窗口与系统栏外观控制
         SetupPlatformThemeEffects(

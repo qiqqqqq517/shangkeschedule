@@ -11,18 +11,25 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.shangkeschedule.data.model.AppThemePreset
 import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.anim_group_bar_hide
 import shangkeschedule.shared.generated.resources.anim_group_bar_hide_desc
+import shangkeschedule.shared.generated.resources.anim_group_bottom_sheet
+import shangkeschedule.shared.generated.resources.anim_group_bottom_sheet_desc
 import shangkeschedule.shared.generated.resources.anim_group_course_cell
 import shangkeschedule.shared.generated.resources.anim_group_course_cell_desc
+import shangkeschedule.shared.generated.resources.anim_group_dialog
+import shangkeschedule.shared.generated.resources.anim_group_dialog_desc
 import shangkeschedule.shared.generated.resources.anim_group_glass_floating
 import shangkeschedule.shared.generated.resources.anim_group_glass_floating_desc
 import shangkeschedule.shared.generated.resources.anim_group_nav_transition
 import shangkeschedule.shared.generated.resources.anim_group_nav_transition_desc
 import shangkeschedule.shared.generated.resources.anim_group_page_entrance
 import shangkeschedule.shared.generated.resources.anim_group_page_entrance_desc
+import shangkeschedule.shared.generated.resources.anim_group_tab_switch
+import shangkeschedule.shared.generated.resources.anim_group_tab_switch_desc
 import shangkeschedule.shared.generated.resources.anim_group_week_pager
 import shangkeschedule.shared.generated.resources.anim_group_week_pager_desc
 import shangkeschedule.shared.generated.resources.anim_style_gentle
@@ -31,30 +38,27 @@ import shangkeschedule.shared.generated.resources.anim_style_glass
 import shangkeschedule.shared.generated.resources.anim_style_glass_desc
 import shangkeschedule.shared.generated.resources.anim_style_snappy
 import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
-import shangkeschedule.shared.generated.resources.touch_feedback_ripple
-import shangkeschedule.shared.generated.resources.touch_feedback_ripple_desc
-import shangkeschedule.shared.generated.resources.touch_feedback_halo
-import shangkeschedule.shared.generated.resources.touch_feedback_halo_desc
-import shangkeschedule.shared.generated.resources.touch_feedback_none
-import shangkeschedule.shared.generated.resources.touch_feedback_none_desc
 
 /**
- * 全局动效系统（v3.26.0 · v3.27 Apple HIG 重构）。
+ * 全局动效系统（v3.26.0 · v3.27 Apple HIG 重构 · v3.43.0 主题分档）。
  *
- * 设计目标：把此前散落在各调用点、各自写死的时长/缓动收口成一套「风格 × 分组」的
- * 统一令牌，经 [LocalAppMotion] 注入全 App。与 [LocalGlassBlurRadius] 同源思路：
- * 一处设定，全端同步，不再各件各值。
+ * 设计目标：把散落在各调用点、各自写死的时长/缓动收口成一套「风格 × 主题 × 分组」的
+ * 统一令牌，经 [LocalAppMotion] 注入全 App。一处设定，全端同步。
  *
- * v3.27 重构：默认 GLASS 风格对齐 Apple HIG 动效规范——
- * 无过冲 ease-out 曲线（cubic-bezier(0.32, 0.72, 0, 1)）、平滑 tween 替代弹簧、
- * 时带对齐 150/250/350ms，幅度克制，强调「润而不跳」的精致感。
+ * v3.43.0（《交互动效审查_三主题》P0/P1 修复）新增**主题覆盖层**：
+ * 此前三套主题的动效级分支全库只有 1 处，交互一旦发生（点击 / 切 Tab / 开弹窗 / 拖拽），
+ * 三套主题立刻收敛到同一套 iOS 26 + Material 混合语言上。现在：
+ * - [MotionPressMode]：按主题决定按压反馈语言（缩放 / 浓度 / 底色加深）；
+ * - [NavMotionMode]：按主题决定导航转场形态（整屏横推 / 淡入上浮 / 纸页层叠）；
+ * - [ThemeMotionProfile] + `MotionTokens.withThemePreset`：时长 / 曲线 / 幅度 / 弹簧阻尼
+ *   按主题分档（柔绘最慢且零缩放、书卷零过冲、通透保留 iOS 弹簧）；
+ * - 新增触摸指示、Tab 切换、面板/对话框、卡片按压、状态渐变等角色令牌。
  *
- * 两个维度：
- * - [AnimationStyle]：三档全局风格（琉璃流畅 / 舒缓轻移 / 灵动跟手），决定所有动画的
- *   时长、缓动、手感。枚举可扩展——加一档只需新增枚举项 + 一套 [MotionTokens]。
- * - [AnimationGroup]：六个可独立开关的动画分组。关掉某组 ⇒ [resolveMotion] 把该组对应
- *   的令牌降级为「瞬切」（duration=0 / snap / 缩放归 1），该项无动画；周翻页这类无法靠
- *   时长归零关闭的，用 [AppMotion.isEnabled] 在调用点显式分支。分组同样可扩展。
+ * 三个维度：
+ * - [AnimationStyle]：三档全局风格，决定整体快慢与弹簧手感；
+ * - [AppThemePreset]（外部注入）：主题覆盖层，决定"用什么语言表达"（见上）；
+ * - [AnimationGroup]：九个可独立开关的动画分组。关掉某组 ⇒ [resolveMotion] 把该组令牌
+ *   降级为「瞬切」；周翻页这类无法靠时长归零关闭的，用 [AppMotion.isEnabled] 显式分支。
  */
 
 /** 全局动画风格。三档对应三种性格，均可被用户选用，结构上预留后续新增。 */
@@ -72,7 +76,7 @@ enum class AnimationStyle(
     /** 灵动跟手：短促 snappy——反馈强、跟手，年轻有活力。 */
     SNAPPY("SNAPPY", Res.string.anim_style_snappy, Res.string.anim_style_snappy_desc);
 
-    /** 该风格对应的动效令牌（未叠加任何分组开关）。 */
+    /** 该风格对应的动效令牌（未叠加主题覆盖与分组开关）。 */
     val tokens: MotionTokens
         get() = when (this) {
             GLASS -> GlassTokens
@@ -87,27 +91,30 @@ enum class AnimationStyle(
 }
 
 /**
- * 触摸反馈风格（v3.27.2 新增）。
- * 手指按下时从触点扩散的视觉反馈，两种苹果风格可选。
+ * 按压反馈语言（按主题分档，v3.43.0）。
+ * 决定课程卡 / 列表行 / 卡片被按下时"用什么方式回应"。
  */
-enum class TouchFeedbackStyle(
-    val value: String,
-    val labelRes: StringResource,
-    val descRes: StringResource
-) {
-    /** 涟漪式：从触点向外扩散的柔和圆形涟漪，克制低透明度，类似 iOS 列表 cell 按压。 */
-    RIPPLE("RIPPLE", Res.string.touch_feedback_ripple, Res.string.touch_feedback_ripple_desc),
+enum class MotionPressMode {
+    /** 缩放 + 微抬起——通透（iOS 26）保留 HIG 允许的轻微形变。 */
+    SCALE,
 
-    /** 光晕式：触点周围柔和的光韵扩散，模糊边缘，更梦幻更「玻璃」。 */
-    HALO("HALO", Res.string.touch_feedback_halo, Res.string.touch_feedback_halo_desc),
+    /** 浓度 / 不透明度响应，零缩放、零位移——柔绘：保证软投影与羽化环全程零形变。 */
+    CONCENTRATION,
 
-    /** 关闭：无触摸视觉反馈（仅保留按压缩放）。 */
-    NONE("NONE", Res.string.touch_feedback_none, Res.string.touch_feedback_none_desc);
+    /** 底色 + 描边加深，零缩放——书卷：不透明纸卡不移动，避免"会动的色斑"。 */
+    COLOR_DARKEN,
+}
 
-    companion object {
-        fun fromString(value: String?): TouchFeedbackStyle =
-            entries.find { it.value == value } ?: RIPPLE
-    }
+/** 导航转场形态（按主题分档，v3.43.0）。 */
+enum class NavMotionMode {
+    /** 整屏横推 + 尾随视差——通透（iOS push/pop 原生方向感）。 */
+    SLIDE,
+
+    /** 淡入 + 轻微上浮，禁止横向位移——柔绘：横移会打断晕染画面的连续性。 */
+    FADE_UP,
+
+    /** 新页自右缘短距淡入、旧页原地仅降不透明度——书卷：留白边距必须稳定。 */
+    LAYER_PUSH,
 }
 
 /** 可独立开关的动画分组。关掉即该项瞬切无动画。可扩展。 */
@@ -132,7 +139,16 @@ enum class AnimationGroup(
     NAV_TRANSITION("NAV_TRANSITION", Res.string.anim_group_nav_transition, Res.string.anim_group_nav_transition_desc),
 
     /** 底栏隐藏（滚动时底栏 / 圆钮的下滑淡出）。 */
-    BAR_HIDE("BAR_HIDE", Res.string.anim_group_bar_hide, Res.string.anim_group_bar_hide_desc);
+    BAR_HIDE("BAR_HIDE", Res.string.anim_group_bar_hide, Res.string.anim_group_bar_hide_desc),
+
+    /** 底部面板（悬浮面板的升起 / 收起 + 遮罩渐入）。v3.43.0 新增——此前不受任何开关控制。 */
+    BOTTOM_SHEET("BOTTOM_SHEET", Res.string.anim_group_bottom_sheet, Res.string.anim_group_bottom_sheet_desc),
+
+    /** 对话框（确认弹窗的淡入 / 收起的缩放回弹）。v3.43.0 新增——此前不受任何开关控制。 */
+    DIALOG("DIALOG", Res.string.anim_group_dialog, Res.string.anim_group_dialog_desc),
+
+    /** Tab 切换（底栏选中胶囊迁移 + 图标变体切换 + 页面内容淡入）。v3.43.0 新增。 */
+    TAB_SWITCH("TAB_SWITCH", Res.string.anim_group_tab_switch, Res.string.anim_group_tab_switch_desc);
 
     companion object {
         fun fromString(value: String?): AnimationGroup? =
@@ -144,14 +160,16 @@ enum class AnimationGroup(
  * 一套动效令牌：按语义角色给出时长 / 缓动 / 弹簧 / 幅度。
  *
  * 「弹簧类」角色（悬浮件缩放、按压、课程格按压）直接存已构建的 [FiniteAnimationSpec]，
- * 因为其种类随风格而变（琉璃流畅=tween ease-out / 舒缓轻移=tween / 灵动跟手=硬 spring），
- * 存原始 duration+easing 无法表达。其余角色（导航、底栏隐藏、入场、展开、变色、呼吸）
- * 恒为 tween，存 duration+easing 由调用点 `tween<T>(...)` 就地构建（避免泛型擦除麻烦）。
+ * 因为其种类随风格与主题而变；其余角色恒为 tween，存 duration+easing 由调用点就地构建。
  */
 data class MotionTokens(
-    // --- NAV_TRANSITION：二级页 push/pop 滑动（IntOffset，调用点 tween<IntOffset>） ---
+    // --- NAV_TRANSITION：二级页 push/pop（IntOffset，调用点 tween<IntOffset>） ---
     val navDurationMs: Int,
     val navEasing: Easing,
+    /** 旧页尾随位移比例（SLIDE 用 1/3；其余形态为 0）。 */
+    val navTrailFraction: Float,
+    /** FADE_UP / LAYER_PUSH 的位移量（新页从该偏移处淡入）。 */
+    val navOffsetDp: Dp,
 
     // --- BAR_HIDE：底栏 / 圆钮下滑淡出（Float translationY + alpha） ---
     val hideDurationMs: Int,
@@ -175,8 +193,36 @@ data class MotionTokens(
     val entranceEasing: Easing,
     val entranceStaggerMs: Int,
     val entranceSlideDp: Dp,
+    /** 错峰总延迟上限：stagger × 序号 被钳到这个值，避免满周 30 块时后排 2s 才出现。 */
+    val entranceStaggerCapMs: Int,
+    /** 入场起始不透明度：0 = 完全不可见（旧行为），0.35 = 一开始就有轮廓。 */
+    val entranceInitialAlpha: Float,
 
-    // --- 次要（不随分组开关，仅随风格）：设置页展开 / 变色 / 预览尺寸 / hero 呼吸 ---
+    // --- 新增角色（v3.43.0）：触摸指示 / Tab / 面板 / 对话框 / 卡片按压 / 状态渐变 ---
+    /** 触摸指示扩散时长（局部按压反馈，非全局 LocalIndication）。 */
+    val touchExpandMs: Int,
+    /** 触摸指示淡出时长。 */
+    val touchFadeMs: Int,
+    val touchEasing: Easing,
+    /** Tab 选中胶囊迁移时长。 */
+    val tabIndicatorMs: Int,
+    /** Tab 图标变体切换时长。 */
+    val tabIconMs: Int,
+    /** 底部面板升起 / 收起 / 遮罩时长与升起位移。 */
+    val sheetEnterMs: Int,
+    val sheetExitMs: Int,
+    val sheetScrimMs: Int,
+    val sheetSlideDp: Dp,
+    /** 对话框进入 / 退出时长。 */
+    val dialogEnterMs: Int,
+    val dialogExitMs: Int,
+    /** 课程卡按下 / 抬起（浓度或底色响应）时长。 */
+    val cardPressMs: Int,
+    val cardReleaseMs: Int,
+    /** 「已结束课程降透明」等状态渐变时长（取代二值跳变）。 */
+    val statusFadeMs: Int,
+
+    // --- 次要（不随分组开关，仅随风格 / 主题）：设置页展开 / 变色 / 预览尺寸 / hero 呼吸 ---
     val expandDurationMs: Int,
     val expandEasing: Easing,
     val colorDurationMs: Int,
@@ -186,24 +232,17 @@ data class MotionTokens(
 )
 
 /** 缓动曲线（自定义 CubicBezier，避免依赖较新的 Ease* 顶层常量）。 */
-// iOS 26 过渡基准曲线：cubic-bezier(0.25, 0.1, 0.25, 1)（CSS ease 的精确值），
-// 用于「物理弹簧不适合、必须给时长」的过渡（导航转场 / 底栏隐藏 / 入场）。
 private val IosEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
-// iOS 26 sheet / 面板过渡：cubic-bezier(0.32, 0.72, 0, 1)，快速启动、长尾收束
 private val IosSheetEase = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
-private val GentleEase = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)        // Material 标准，平滑
-private val SnappyEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)          // 快出，跟手
+private val GentleEase = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
+private val SnappyEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+/** 对称 ease-in-out：柔绘专用——两端等速、中段最缓，没有任何"折点"。 */
+private val SymmetricEase = CubicBezierEasing(0.45f, 0f, 0.55f, 1f)
 
 /**
- * iOS 26 物理弹簧（SwiftUI 的 `.smooth` / `.snappy` / `.bouncy` 预设）。
- *
- * iOS 26 的动效语言是**物理弹簧**：位移、缩放、转场都带轻微过冲并自然收束，
- * 而不是纯粹的 ease-out tween。三个预设的公开语义（Apple 文档）：
- * - `.smooth`  ：无过冲、丝滑收束 —— 用于大多数状态变化与入场
- * - `.snappy`  ：轻微过冲、短促跟手 —— 用于按压反馈、开关、分段控件
- * - `.bouncy`  ：明显过冲、弹性回弹 —— 用于拖拽落位、FAB 出现、强调元素
- *
- * 这里的 dampingRatio / stiffness 按上述语义取值（dampingRatio ≥1 = 无过冲）。
+ * iOS 26 物理弹簧（SwiftUI `.smooth` / `.snappy` / `.bouncy`）。
+ * dampingRatio / stiffness 按上述语义取值（dampingRatio ≥1 = 无过冲）。
  */
 private val IosSmoothSpring = spring<Float>(
     dampingRatio = 1.0f,
@@ -218,10 +257,19 @@ private val IosBouncySpring = spring<Float>(
     stiffness = Spring.StiffnessMediumLow
 )
 
-/** 柔和顺滑（iOS 26 默认）：物理弹簧驱动，无过冲、丝滑收束。
- *  时长型过渡对齐 iOS 26 时带：导航 350ms / 隐藏 240ms / 入场 320ms / 展开 280ms。 */
+/** 临界阻尼弹簧（零过冲）——书卷 / 柔绘专用，替换一切会过冲的弹簧。 */
+private val CriticallyDampedSpring = spring<Float>(
+    dampingRatio = 1.0f,
+    stiffness = Spring.StiffnessMedium
+)
+private val CriticallyDampedLowSpring = spring<Float>(
+    dampingRatio = 1.0f,
+    stiffness = Spring.StiffnessMediumLow
+)
+
+/** 柔和顺滑（iOS 26 默认）：物理弹簧驱动，无过冲、丝滑收束。 */
 private val GlassTokens = MotionTokens(
-    navDurationMs = 350, navEasing = IosSheetEase,
+    navDurationMs = 350, navEasing = IosSheetEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
     hideDurationMs = 240, hideEasing = IosEase,
     emphasisScaleSpec = IosBouncySpring,
     emphasisFadeSpec = tween(220, easing = IosEase),
@@ -231,6 +279,12 @@ private val GlassTokens = MotionTokens(
     cellPressSpec = IosSnappySpring,
     cellPressScale = 0.97f, cellLiftDp = 1.dp,
     entranceDurationMs = 320, entranceEasing = IosEase, entranceStaggerMs = 40, entranceSlideDp = 10.dp,
+    entranceStaggerCapMs = 240, entranceInitialAlpha = 0.35f,
+    touchExpandMs = 400, touchFadeMs = 220, touchEasing = IosSheetEase,
+    tabIndicatorMs = 220, tabIconMs = 200,
+    sheetEnterMs = 320, sheetExitMs = 220, sheetScrimMs = 320, sheetSlideDp = 0.dp,
+    dialogEnterMs = 260, dialogExitMs = 180,
+    cardPressMs = 140, cardReleaseMs = 240, statusFadeMs = 400,
     expandDurationMs = 280, expandEasing = IosSheetEase,
     colorDurationMs = 320,
     resizeDurationMs = 300, resizeEasing = IosSheetEase,
@@ -239,7 +293,7 @@ private val GlassTokens = MotionTokens(
 
 /** 轻盈舒缓：更慢更柔的弹簧，淡入 + 微位移，安静无弹跳。 */
 private val GentleTokens = MotionTokens(
-    navDurationMs = 420, navEasing = GentleEase,
+    navDurationMs = 420, navEasing = GentleEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
     hideDurationMs = 320, hideEasing = GentleEase,
     emphasisScaleSpec = IosSmoothSpring,
     emphasisFadeSpec = tween(320, easing = GentleEase),
@@ -249,6 +303,12 @@ private val GentleTokens = MotionTokens(
     cellPressSpec = IosSmoothSpring,
     cellPressScale = 0.985f, cellLiftDp = 2.dp,
     entranceDurationMs = 460, entranceEasing = GentleEase, entranceStaggerMs = 70, entranceSlideDp = 8.dp,
+    entranceStaggerCapMs = 240, entranceInitialAlpha = 0.35f,
+    touchExpandMs = 400, touchFadeMs = 220, touchEasing = IosSheetEase,
+    tabIndicatorMs = 260, tabIconMs = 220,
+    sheetEnterMs = 380, sheetExitMs = 260, sheetScrimMs = 360, sheetSlideDp = 8.dp,
+    dialogEnterMs = 320, dialogExitMs = 220,
+    cardPressMs = 180, cardReleaseMs = 300, statusFadeMs = 520,
     expandDurationMs = 420, expandEasing = GentleEase,
     colorDurationMs = 520,
     resizeDurationMs = 420, resizeEasing = GentleEase,
@@ -257,7 +317,7 @@ private val GentleTokens = MotionTokens(
 
 /** 灵动跟手（iOS 26 `.snappy` / `.bouncy`）：短促弹回，反馈强、跟手。 */
 private val SnappyTokens = MotionTokens(
-    navDurationMs = 240, navEasing = SnappyEase,
+    navDurationMs = 240, navEasing = SnappyEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
     hideDurationMs = 160, hideEasing = SnappyEase,
     emphasisScaleSpec = IosSnappySpring,
     emphasisFadeSpec = tween(140, easing = LinearOutSlowInEasing),
@@ -267,6 +327,12 @@ private val SnappyTokens = MotionTokens(
     cellPressSpec = IosSnappySpring,
     cellPressScale = 0.94f, cellLiftDp = 3.dp,
     entranceDurationMs = 240, entranceEasing = SnappyEase, entranceStaggerMs = 25, entranceSlideDp = 16.dp,
+    entranceStaggerCapMs = 200, entranceInitialAlpha = 0.35f,
+    touchExpandMs = 260, touchFadeMs = 160, touchEasing = SnappyEase,
+    tabIndicatorMs = 160, tabIconMs = 140,
+    sheetEnterMs = 240, sheetExitMs = 160, sheetScrimMs = 240, sheetSlideDp = 0.dp,
+    dialogEnterMs = 200, dialogExitMs = 140,
+    cardPressMs = 110, cardReleaseMs = 180, statusFadeMs = 260,
     expandDurationMs = 220, expandEasing = SnappyEase,
     colorDurationMs = 260,
     resizeDurationMs = 240, resizeEasing = SnappyEase,
@@ -274,50 +340,224 @@ private val SnappyTokens = MotionTokens(
 )
 
 /**
- * 已解析的全局动效配置：风格 + 叠加了分组开关后的令牌 + 关闭分组集合。
- * 调用点读 [LocalAppMotion].current 得到本对象，用 [tokens] 取参数、用 [isEnabled]
- * 判断某组是否需要动画（周翻页这类无法靠时长归零关闭的走显式分支）。
+ * 主题动效档位：由 [AppThemePreset] 决定"用什么语言表达"。
+ *
+ * 这是 v3.43.0 的**总纲性修复**——此前全库动效级主题分支只有 1 处，
+ * 三套主题的动效语言实际共用一套 iOS 26 + Material 混合值。
+ */
+data class ThemeMotionProfile(
+    /** 按压反馈语言。 */
+    val pressMode: MotionPressMode,
+    /** 导航转场形态。 */
+    val navMode: NavMotionMode,
+    /** 全局触摸指示形态（喂给 LocalIndication）。 */
+    val indicationStyle: IndicationStyle,
+    /** 触摸指示的峰值色强度（alpha 部分在 [resolveMotion] 里乘到主题色上）。 */
+    val indicationAlpha: Float,
+)
+
+private val IosProfile = ThemeMotionProfile(
+    pressMode = MotionPressMode.SCALE,
+    navMode = NavMotionMode.SLIDE,
+    indicationStyle = IndicationStyle.HIG_HIGHLIGHT,
+    indicationAlpha = 0.06f,
+)
+
+/** 柔绘：慢、无声、零缩放零位移；触摸反馈是"软边渗开"；导航不横移。 */
+private val SoftProfile = ThemeMotionProfile(
+    pressMode = MotionPressMode.CONCENTRATION,
+    navMode = NavMotionMode.FADE_UP,
+    indicationStyle = IndicationStyle.SOFT_RADIAL,
+    indicationAlpha = 0.12f,
+)
+
+/** 书卷：克制、端庄、零过冲；触摸反馈是"底色加深"；导航是"纸页层叠"。 */
+private val ClaudeProfile = ThemeMotionProfile(
+    pressMode = MotionPressMode.COLOR_DARKEN,
+    navMode = NavMotionMode.LAYER_PUSH,
+    indicationStyle = IndicationStyle.COLOR_DARKEN,
+    indicationAlpha = 0.055f,
+)
+
+/** 按主题预设取动效档位（未知预设回退通透）。 */
+fun themeMotionProfile(preset: AppThemePreset): ThemeMotionProfile = when (preset) {
+    AppThemePreset.SOFT -> SoftProfile
+    AppThemePreset.CLAUDE -> ClaudeProfile
+    else -> IosProfile
+}
+
+/**
+ * 主题覆盖层：在风格令牌之上按主题改写时长 / 曲线 / 弹簧 / 幅度。
+ *
+ * 设计原则（对齐《交互动效审查_三主题》）：
+ * - 弹簧阻尼：柔绘 / 书卷一律临界阻尼（零过冲），通透保留 iOS 三档弹簧语义；
+ * - 课程卡按压：柔绘 / 书卷禁用缩放与位移（`cellPressScale=1`、`cellLiftDp=0`），
+ *   反馈改由 [MotionPressMode] 在调用点以浓度 / 底色表达；
+ * - 悬浮件：柔绘取消居中缩放（纯位移淡入），书卷压到 0.94 且零过冲；
+ * - 时长：面板 / 对话框 / Tab / 触摸 / 卡片按压 / 状态渐变按主题整体错开一档。
+ */
+private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens = when (preset) {
+    AppThemePreset.SOFT -> copy(
+        navDurationMs = 600, navEasing = SymmetricEase, navTrailFraction = 0f, navOffsetDp = 6.dp,
+        emphasisScaleSpec = CriticallyDampedLowSpring,
+        emphasisFadeSpec = tween(360, easing = SymmetricEase),
+        // 柔绘悬浮件：纯位移淡入，取消居中缩放（缩放会强调硬轮廓，与虚化边缘冲突）
+        emphasisInitialScale = 1f,
+        pressSpec = CriticallyDampedSpring,
+        pressScale = 1f,
+        cellPressSpec = CriticallyDampedSpring,
+        cellPressScale = 1f, cellLiftDp = 0.dp,
+        entranceEasing = SymmetricEase, entranceSlideDp = 0.dp,
+        entranceStaggerCapMs = 300,
+        touchExpandMs = 500, touchFadeMs = 320, touchEasing = SymmetricEase,
+        tabIndicatorMs = 420, tabIconMs = 220,
+        sheetEnterMs = 620, sheetExitMs = 380, sheetScrimMs = 500, sheetSlideDp = 0.dp,
+        dialogEnterMs = 620, dialogExitMs = 380,
+        cardPressMs = 180, cardReleaseMs = 500, statusFadeMs = 360,
+        resizeEasing = SymmetricEase,
+    )
+
+    AppThemePreset.CLAUDE -> copy(
+        navDurationMs = 380, navEasing = IosEase, navTrailFraction = 0f, navOffsetDp = 14.dp,
+        emphasisScaleSpec = CriticallyDampedLowSpring,
+        emphasisFadeSpec = tween(300, easing = IosEase),
+        emphasisInitialScale = 0.94f,
+        pressSpec = CriticallyDampedSpring,
+        pressScale = 1f,
+        cellPressSpec = CriticallyDampedSpring,
+        cellPressScale = 1f, cellLiftDp = 0.dp,
+        entranceStaggerCapMs = 240,
+        touchExpandMs = 180, touchFadeMs = 240, touchEasing = IosEase,
+        tabIndicatorMs = 280, tabIconMs = 160,
+        sheetEnterMs = 380, sheetExitMs = 280, sheetScrimMs = 320, sheetSlideDp = 24.dp,
+        dialogEnterMs = 280, dialogExitMs = 220,
+        cardPressMs = 160, cardReleaseMs = 240, statusFadeMs = 400,
+    )
+
+    // 通透（及其它未来预设）：iOS 26 原生语言，风格令牌原样保留
+    else -> this
+}
+
+/**
+ * 「减弱动态效果」降级：位移 / 缩放 / 错峰全部归零，只保留短促的不透明度溶解。
+ *
+ * 对齐《交互动效审查》P3 无障碍缺口——系统级 Reduce Motion 在 KMP 无统一 API，
+ * 因此由应用内开关（「动画效果 → 减弱动态效果」）驱动同一条降级路径。
+ */
+private fun MotionTokens.reduced(): MotionTokens = copy(
+    // 导航：只保留淡入淡出，取消一切位移与视差
+    navDurationMs = 180, navTrailFraction = 0f, navOffsetDp = 0.dp,
+    // 悬浮件：不缩放，仅淡入
+    emphasisScaleSpec = snap(),
+    emphasisInitialScale = 1f,
+    pressSpec = snap(), pressScale = 1f,
+    // 课程格：不缩放不抬起
+    cellPressSpec = snap(), cellPressScale = 1f, cellLiftDp = 0.dp,
+    // 入场：无错峰、无位移、直接可见（仅保留整体淡入）
+    entranceStaggerMs = 0, entranceSlideDp = 0.dp,
+    entranceStaggerCapMs = 0, entranceInitialAlpha = 1f,
+    // 触摸指示：只保留极短的颜色变化
+    touchExpandMs = 90, touchFadeMs = 120,
+    // 面板 / 对话框 / Tab：短促溶解
+    tabIndicatorMs = 120, tabIconMs = 120,
+    sheetEnterMs = 160, sheetExitMs = 120, sheetScrimMs = 160, sheetSlideDp = 0.dp,
+    dialogEnterMs = 140, dialogExitMs = 110,
+    resizeDurationMs = 0,
+    // 颜色 / 状态渐变属于"无位移"的溶解，保留（无障碍规范亦允许）
+    statusFadeMs = 260,
+    pulseDurationMs = 0,
+)
+
+private fun ThemeMotionProfile.reduced(): ThemeMotionProfile = copy(
+    // 通透的 SCALE 按压含形变 ⇒ 降级为 pure highlight；柔绘 / 书卷本就是无位移反馈，保留
+    pressMode = if (pressMode == MotionPressMode.SCALE) MotionPressMode.COLOR_DARKEN else pressMode,
+    navMode = NavMotionMode.FADE_UP,
+)
+
+/**
+ * 已解析的全局动效配置：风格 + 叠加了主题覆盖与分组开关后的令牌 + 关闭分组集合。
+ * 调用点读 [LocalAppMotion].current 得到本对象，用 [tokens] 取参数、用 [profile] 取
+ * 主题档位、用 [isEnabled] 判断某组是否需要动画。
  */
 data class AppMotion(
     val style: AnimationStyle,
     val tokens: MotionTokens,
     val disabledGroups: Set<AnimationGroup>,
+    val profile: ThemeMotionProfile,
+    /** 是否开启「减弱动态效果」（无障碍降级）。 */
+    val reduceMotion: Boolean = false,
 ) {
-    fun isEnabled(group: AnimationGroup): Boolean = group !in disabledGroups
+    fun isEnabled(group: AnimationGroup): Boolean = group !in disabledGroups && !reduceMotion
 }
 
 /**
- * 把风格的令牌按「关闭的分组」降级为瞬切：
- * duration→0、弹簧→snap()、缩放→1、位移→0，使该项无可见动画。
+ * 把令牌按「关闭的分组」降级为瞬切：duration→0、弹簧→snap()、缩放→1、位移→0。
  */
-fun resolveMotion(style: AnimationStyle, disabledGroups: Set<AnimationGroup>): AppMotion {
-    val base = style.tokens
-    val tokens = base.copy(
-        // NAV_TRANSITION
-        navDurationMs = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0 else base.navDurationMs,
-        // BAR_HIDE
-        hideDurationMs = if (AnimationGroup.BAR_HIDE in disabledGroups) 0 else base.hideDurationMs,
-        // GLASS_FLOATING
-        emphasisScaleSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else base.emphasisScaleSpec,
-        emphasisFadeSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else base.emphasisFadeSpec,
-        emphasisInitialScale = if (AnimationGroup.GLASS_FLOATING in disabledGroups) 1f else base.emphasisInitialScale,
-        pressSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else base.pressSpec,
-        pressScale = if (AnimationGroup.GLASS_FLOATING in disabledGroups) 1f else base.pressScale,
-        // COURSE_CELL
-        cellPressSpec = if (AnimationGroup.COURSE_CELL in disabledGroups) snap() else base.cellPressSpec,
-        cellPressScale = if (AnimationGroup.COURSE_CELL in disabledGroups) 1f else base.cellPressScale,
-        cellLiftDp = if (AnimationGroup.COURSE_CELL in disabledGroups) 0.dp else base.cellLiftDp,
-        // PAGE_ENTRANCE 不在此归零：入场时长/错峰/位移同时被「周翻页扫光」复用，
-        // 归零会误杀扫光。入场调用点已用 motion.isEnabled(PAGE_ENTRANCE) 自行门控，
-        // 扫光则只看 WEEK_PAGER——两组互不牵连。
+private fun MotionTokens.gatedBy(disabledGroups: Set<AnimationGroup>): MotionTokens = copy(
+    // NAV_TRANSITION
+    navDurationMs = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0 else navDurationMs,
+    navOffsetDp = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0.dp else navOffsetDp,
+    navTrailFraction = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0f else navTrailFraction,
+    // BAR_HIDE
+    hideDurationMs = if (AnimationGroup.BAR_HIDE in disabledGroups) 0 else hideDurationMs,
+    // GLASS_FLOATING
+    emphasisScaleSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else emphasisScaleSpec,
+    emphasisFadeSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else emphasisFadeSpec,
+    emphasisInitialScale = if (AnimationGroup.GLASS_FLOATING in disabledGroups) 1f else emphasisInitialScale,
+    pressSpec = if (AnimationGroup.GLASS_FLOATING in disabledGroups) snap() else pressSpec,
+    pressScale = if (AnimationGroup.GLASS_FLOATING in disabledGroups) 1f else pressScale,
+    // COURSE_CELL
+    cellPressSpec = if (AnimationGroup.COURSE_CELL in disabledGroups) snap() else cellPressSpec,
+    cellPressScale = if (AnimationGroup.COURSE_CELL in disabledGroups) 1f else cellPressScale,
+    cellLiftDp = if (AnimationGroup.COURSE_CELL in disabledGroups) 0.dp else cellLiftDp,
+    cardPressMs = if (AnimationGroup.COURSE_CELL in disabledGroups) 0 else cardPressMs,
+    cardReleaseMs = if (AnimationGroup.COURSE_CELL in disabledGroups) 0 else cardReleaseMs,
+    // BOTTOM_SHEET
+    sheetEnterMs = if (AnimationGroup.BOTTOM_SHEET in disabledGroups) 0 else sheetEnterMs,
+    sheetExitMs = if (AnimationGroup.BOTTOM_SHEET in disabledGroups) 0 else sheetExitMs,
+    sheetScrimMs = if (AnimationGroup.BOTTOM_SHEET in disabledGroups) 0 else sheetScrimMs,
+    sheetSlideDp = if (AnimationGroup.BOTTOM_SHEET in disabledGroups) 0.dp else sheetSlideDp,
+    // DIALOG
+    dialogEnterMs = if (AnimationGroup.DIALOG in disabledGroups) 0 else dialogEnterMs,
+    dialogExitMs = if (AnimationGroup.DIALOG in disabledGroups) 0 else dialogExitMs,
+    // TAB_SWITCH
+    tabIndicatorMs = if (AnimationGroup.TAB_SWITCH in disabledGroups) 0 else tabIndicatorMs,
+    tabIconMs = if (AnimationGroup.TAB_SWITCH in disabledGroups) 0 else tabIconMs,
+    // PAGE_ENTRANCE 不在此归零：入场时长/错峰/位移同时被「周翻页扫光」复用，
+    // 归零会误杀扫光。入场调用点已用 motion.isEnabled(PAGE_ENTRANCE) 自行门控，
+    // 扫光则只看 WEEK_PAGER——两组互不牵连。错峰上限同理由调用点读取。
+)
+
+/**
+ * 解析最终动效配置：风格令牌 → 主题覆盖 → 减弱动效 → 分组开关。
+ *
+ * @param preset 当前主题预设，决定动效语言（[themeMotionProfile] + 时长分档）。
+ * @param reduceMotion 「减弱动态效果」开关，true 时位移/缩放/错峰全部归零。
+ */
+fun resolveMotion(
+    style: AnimationStyle,
+    disabledGroups: Set<AnimationGroup>,
+    preset: AppThemePreset = AppThemePreset.default,
+    reduceMotion: Boolean = false,
+): AppMotion {
+    val profile = themeMotionProfile(preset)
+    var tokens = style.tokens.withThemePreset(preset)
+    if (reduceMotion) {
+        tokens = tokens.reduced()
+    }
+    tokens = tokens.gatedBy(disabledGroups)
+    return AppMotion(
+        style = style,
+        tokens = tokens,
+        disabledGroups = disabledGroups,
+        profile = if (reduceMotion) profile.reduced() else profile,
+        reduceMotion = reduceMotion,
     )
-    return AppMotion(style, tokens, disabledGroups)
 }
 
 /**
  * 当前生效的全局动效配置。由 `ShangKeScheduleTheme` 从
- * `AppSettingsModel.animationStyle` + `disabledAnimationGroups` 注入；
- * 调节入口在「外观与样式 → 个性化显示 → 动画效果」。所有动画共读这一个 Local，
- * 用户改一次，全端同步。
+ * `AppSettingsModel.animationStyle` + `disabledAnimationGroups` + `themePreset` +
+ * `reduceMotionEnabled` 注入；调节入口在「外观与样式 → 个性化显示 → 动画效果」。
  */
 val LocalAppMotion = compositionLocalOf { resolveMotion(AnimationStyle.GLASS, emptySet()) }

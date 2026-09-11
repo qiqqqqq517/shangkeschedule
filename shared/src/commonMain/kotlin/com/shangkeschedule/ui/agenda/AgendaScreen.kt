@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -60,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.ScheduleCategory
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
@@ -1172,7 +1172,7 @@ private fun AgendaTimePickerDialog(
     val hours = remember { (0..23).map { it.toString().padStart(2, '0') } }
     val minutes = remember { (0..59).map { it.toString().padStart(2, '0') } }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(

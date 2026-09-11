@@ -111,6 +111,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_ANIMATION_STYLE] = newSettings.animationStyle.value
             prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] =
                 newSettings.disabledAnimationGroups.map { it.value }.toSet()
+            prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = newSettings.reduceMotionEnabled
         }
     }
 
@@ -156,6 +157,15 @@ class AppSettingsRepository(
             val current = prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] ?: emptySet()
             val updated = if (enabled) current - group.value else current + group.value
             prefs[AppSettingsModel.KEY_DISABLED_ANIMATION_GROUPS] = updated
+        }
+    }
+
+    /**
+     * 单独持久化「减弱动态效果」开关（v3.43.0）。只写这一个键。
+     */
+    suspend fun updateReduceMotionEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = enabled
         }
     }
 

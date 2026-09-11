@@ -14,6 +14,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.Role
@@ -30,6 +33,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,12 +46,16 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +69,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -140,6 +150,8 @@ fun AdaptiveNavigationScaffold(
     )
 
     val tokens = appColors()
+    // v3.43.0：Tab 切换动效读全局令牌 + 主题档位
+    val navMotion = LocalAppMotion.current
 
     val finalContentColor = contentColor ?: MaterialTheme.colorScheme.onSurface
     val finalSubTextColor = finalContentColor.copy(alpha = 0.7f)
@@ -186,13 +198,29 @@ fun AdaptiveNavigationScaffold(
                     ) {
                         navItems.forEach { item ->
                             val isSelected = currentDestination::class == item.destination::class
-                            val itemColor = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor
+                            // v3.43.0：宽屏侧边栏同样补上选中过渡（颜色补间），节奏与底栏一致
+                            val itemColor by animateColorAsState(
+                                targetValue = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor,
+                                animationSpec = tween(
+                                    navMotion.tokens.tabIndicatorMs,
+                                    easing = navMotion.tokens.navEasing
+                                ),
+                                label = "railItemColor"
+                            )
+                            val railItemBg by animateColorAsState(
+                                targetValue = if (isSelected) resolvedIndicatorColor else Color.Transparent,
+                                animationSpec = tween(
+                                    navMotion.tokens.tabIndicatorMs,
+                                    easing = navMotion.tokens.navEasing
+                                ),
+                                label = "railItemBg"
+                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 8.dp)
                                     .clip(appShapes().capsule)
-                                    .background(if (isSelected) resolvedIndicatorColor else Color.Transparent)
+                                    .background(railItemBg)
                                     .clickable { if (!isSelected) onTabSelected(item.destination) }
                                     .padding(vertical = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -327,7 +355,41 @@ fun AdaptiveNavigationScaffold(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(
+                        // 选中胶囊 = 一个共享胶囊，按各 Tab 的实测位置在项之间平滑迁移
+                        // （v3.43.0：此前每个 Tab 各自瞬切底色，在柔绘薄涂底 / 书卷实色底上
+                        //   会被读成一次"闪"，且完全没有位移语义）。
+                        val tabBounds = remember { mutableStateMapOf<Int, Rect>() }
+                        val selectedTabIndex = navItems.indexOfFirst {
+                            currentDestination::class == it.destination::class
+                        }
+                        val indicatorLeft by animateDpAsState(
+                            targetValue = tabBounds[selectedTabIndex]
+                                ?.let { with(density) { it.left.toDp() } } ?: 0.dp,
+                            animationSpec = tween(
+                                navMotion.tokens.tabIndicatorMs,
+                                easing = navMotion.tokens.navEasing
+                            ),
+                            label = "tabIndicatorLeft"
+                        )
+                        val indicatorWidth by animateDpAsState(
+                            targetValue = tabBounds[selectedTabIndex]
+                                ?.let { with(density) { it.width.toDp() } } ?: 0.dp,
+                            animationSpec = tween(
+                                navMotion.tokens.tabIndicatorMs,
+                                easing = navMotion.tokens.navEasing
+                            ),
+                            label = "tabIndicatorWidth"
+                        )
+                        val animatedIndicatorColor by animateColorAsState(
+                            targetValue = resolvedIndicatorColor,
+                            animationSpec = tween(
+                                navMotion.tokens.tabIndicatorMs,
+                                easing = navMotion.tokens.navEasing
+                            ),
+                            label = "tabIndicatorColor"
+                        )
+
+                        Box(
                             modifier = navigationModifier
                                 // 液态玻璃：毛玻璃 + 白纱 + 顶部高光 + 折射亮边（与「回到本周」圆钮同源），
                                 // 内部已按「shadow → clip → hazeEffect → 高光 → 亮边」顺序封装。
@@ -339,48 +401,96 @@ fun AdaptiveNavigationScaffold(
                                     containerColor = bottomBarContainerColor ?: tokens.inputBg,
                                     isTransparent = isTransparent
                                 )
-                                .padding(horizontal = 10.dp, vertical = 7.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(horizontal = 10.dp, vertical = 7.dp)
                         ) {
-                            navItems.forEach { item ->
-                                val isSelected = currentDestination::class == item.destination::class
-                                Row(
+                            // 高亮胶囊：位于内容之下，位置 / 宽度 / 颜色三者同时补间
+                            if (selectedTabIndex >= 0 && indicatorWidth > 0.dp) {
+                                Box(
                                     modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .offset(x = indicatorLeft)
+                                        .width(indicatorWidth)
+                                        .height(appSpacing().touchMin)
                                         .clip(appShapes().capsule)
-                                        .background(
-                                            if (isSelected) resolvedIndicatorColor else Color.Transparent
-                                        )
-                                        // 触控标准 ≥48dp（appSpacing().touchMin）+ 无障碍：selectable 提供
-                                        // selected 语义与 Tab 角色（TalkBack 播报「已选中」且无重复朗读）
-                                        .heightIn(min = appSpacing().touchMin)
-                                        .selectable(
-                                            selected = isSelected,
-                                            role = Role.Tab,
-                                            onClick = { if (!isSelected) onTabSelected(item.destination) }
-                                        )
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                        // 图标语义由下方 Text 承担，置 null 避免 TalkBack 双读
-                                        contentDescription = null,
-                                        tint = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor,
-                                        modifier = Modifier.size(22.dp)
+                                        .background(animatedIndicatorColor)
+                                )
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                navItems.forEachIndexed { index, item ->
+                                    val isSelected = currentDestination::class == item.destination::class
+                                    // 图标与文字颜色补间；字号**不参与**动画（避免文本重排），
+                                    // 选中层级由字重 + 颜色 + 胶囊共同承载
+                                    val animatedItemColor by animateColorAsState(
+                                        targetValue = if (isSelected) resolvedSelectedColor else resolvedUnselectedColor,
+                                        animationSpec = tween(
+                                            navMotion.tokens.tabIndicatorMs,
+                                            easing = navMotion.tokens.navEasing
+                                        ),
+                                        label = "tabItemColor"
                                     )
-                                    Text(
-                                        text = item.label,
-                                        // v3.23.10 对比增强：选中项字号 11sp(badge)→12sp(hint)（保持 Bold），
-                                        // 未选中 11sp Medium，字号+字重双通道拉开层级
-                                        fontSize = if (isSelected) appType().hint else appType().badge,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) resolvedSelectedTextColor else resolvedUnselectedColor,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(appShapes().capsule)
+                                            // 触控标准 ≥48dp（appSpacing().touchMin）+ 无障碍：selectable 提供
+                                            // selected 语义与 Tab 角色（TalkBack 播报「已选中」且无重复朗读）
+                                            .heightIn(min = appSpacing().touchMin)
+                                            .onGloballyPositioned { coords ->
+                                                val rect = coords.boundsInParent()
+                                                if (tabBounds[index] != rect) tabBounds[index] = rect
+                                            }
+                                            .selectable(
+                                                selected = isSelected,
+                                                role = Role.Tab,
+                                                onClick = { if (!isSelected) onTabSelected(item.destination) }
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // 图标：SF Symbol 式变体切换（填充 ↔ 线性）用 Crossfade；
+                                        // 关掉「切换标签」分组（tabIconMs=0）⇒ 直接替换
+                                        if (navMotion.isEnabled(AnimationGroup.TAB_SWITCH) &&
+                                            navMotion.tokens.tabIconMs > 0
+                                        ) {
+                                            Crossfade(
+                                                targetState = isSelected,
+                                                animationSpec = tween(
+                                                    navMotion.tokens.tabIconMs,
+                                                    easing = navMotion.tokens.navEasing
+                                                ),
+                                                label = "tabIconCrossfade"
+                                            ) { selected ->
+                                                Icon(
+                                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                                    // 图标语义由下方 Text 承担，置 null 避免 TalkBack 双读
+                                                    contentDescription = null,
+                                                    tint = animatedItemColor,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                            }
+                                        } else {
+                                            Icon(
+                                                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                                contentDescription = null,
+                                                tint = animatedItemColor,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = item.label,
+                                            // v3.23.10 对比增强：选中项字号 11sp(badge)→12sp(hint)（保持 Bold），
+                                            // 未选中 11sp Medium，字号+字重双通道拉开层级
+                                            fontSize = if (isSelected) appType().hint else appType().badge,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = animatedItemColor,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.padding(start = 4.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

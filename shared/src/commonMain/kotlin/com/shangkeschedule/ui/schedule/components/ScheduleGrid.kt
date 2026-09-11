@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,7 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
@@ -37,12 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.theme.AnimationGroup
-import com.shangkeschedule.ui.theme.TouchFeedbackStyle
+import com.shangkeschedule.ui.theme.MotionPressMode
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LocalAppMotion
-import com.shangkeschedule.ui.components.TouchFeedbackState
-import com.shangkeschedule.ui.components.rememberTouchFeedbackState
-import com.shangkeschedule.ui.components.touchFeedback
+import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -74,6 +78,8 @@ fun ScheduleGrid(
 ) {
     Box(modifier.fillMaxSize()) {
         val density = LocalDensity.current
+        // 拖拽落位吸附的协程宿主（v3.43.0）
+        val snapScope = rememberCoroutineScope()
 
         LaunchedEffect(viewState.mergedCourses) {
             state.resetAllStates()
@@ -234,10 +240,23 @@ fun ScheduleGrid(
                             label = "courseCellPress"
                         )
 
-                        // v3.27.2 手指跟随动效：涟漪式 / 光晕式触摸反馈
-                        val touchFeedbackState = rememberTouchFeedbackState()
-                        val touchScope = rememberCoroutineScope()
-                        val touchFeedbackStyle = remember { TouchFeedbackStyle.RIPPLE }
+                        // v3.43.0 主题化按压反馈：按 MotionPressMode 决定"用什么语言回应"——
+                        // 通透（SCALE）= 缩放 + 微抬起；柔绘（CONCENTRATION）= 软边径向浓度，零形变；
+                        // 书卷（COLOR_DARKEN）= 整块底色均匀加深，零形变。
+                        // 这样柔绘的 softShadow 双层软投影 / 羽化环、书卷的不透明纸卡描边
+                        // 在按压全程保持静止，不会随缩放抖出厚度不均的边缘。
+                        val pressMode = cellMotion.profile.pressMode
+                        val pressFeedbackEnabled = cellMotion.isEnabled(AnimationGroup.COURSE_CELL)
+                        var cellPressPosition by remember(item) { mutableStateOf(Offset.Zero) }
+                        val cellPressTint = if (pressMode == MotionPressMode.CONCENTRATION) {
+                            appColors().primary.copy(alpha = 0.14f)
+                        } else if (LocalIsDarkTheme.current) {
+                            Color.White.copy(alpha = 0.05f)
+                        } else {
+                            Color.Black.copy(alpha = 0.05f)
+                        }
+                        // 入场起始不透明度：0.35 起（旧行为 0 会让满周后排课程在 1~2s 内完全不可见）
+                        val entranceInitialAlpha = cellMotion.tokens.entranceInitialAlpha
 
                         // v3.26.0 C+.17 页面入场错峰淡入：仅首次组合触发（remember 记住，
                         // 课程数据刷新不重播）；关掉「页面入场」分组 ⇒ 直接显示
@@ -246,7 +265,11 @@ fun ScheduleGrid(
                         var entranceEntered by remember { mutableStateOf(!entranceEnabled) }
                         LaunchedEffect(item) {
                             if (!entranceEntered) {
-                                delay((blockIndex * cellMotion.tokens.entranceStaggerMs).toLong())
+                                // v3.43.0：错峰总延迟设上限——满周约 30 块时不再让最后一块等到
+                                // 1.2s(GLASS)/2.1s(GENTLE) 才出现，全部收敛到 cap 内
+                                val stagger = (blockIndex * cellMotion.tokens.entranceStaggerMs)
+                                    .coerceAtMost(cellMotion.tokens.entranceStaggerCapMs)
+                                delay(stagger.toLong())
                                 entranceEntered = true
                             }
                         }
@@ -291,17 +314,31 @@ fun ScheduleGrid(
                                 modifier = Modifier
                                     .padding(style.courseBlockOuterPadding)
                                     .graphicsLayer {
-                                        val pressScale =
-                                            1f + (cellMotion.tokens.cellPressScale - 1f) * cellPressFraction
-                                        scaleX = pressScale
-                                        scaleY = pressScale
-                                        translationY =
-                                            -cellMotion.tokens.cellLiftDp.toPx() * cellPressFraction +
+                                        // 只有 SCALE 档（通透）允许形变；柔绘 / 书卷走零缩放零位移，
+                                        // 反馈改由下方 courseCellPressFeedback 以浓度 / 底色表达
+                                        if (pressMode == MotionPressMode.SCALE) {
+                                            val pressScale =
+                                                1f + (cellMotion.tokens.cellPressScale - 1f) * cellPressFraction
+                                            scaleX = pressScale
+                                            scaleY = pressScale
+                                            translationY =
+                                                -cellMotion.tokens.cellLiftDp.toPx() * cellPressFraction +
+                                                    cellMotion.tokens.entranceSlideDp.toPx() * (1f - entranceFraction)
+                                        } else {
+                                            translationY =
                                                 cellMotion.tokens.entranceSlideDp.toPx() * (1f - entranceFraction)
-                                        alpha = entranceFraction.coerceIn(0f, 1f)
+                                        }
+                                        // 入场从 entranceInitialAlpha 起，而不是从完全不可见起（P1 修复）
+                                        alpha = entranceInitialAlpha +
+                                            (1f - entranceInitialAlpha) * entranceFraction
                                     }
-                                    // v3.27.2 手指跟随动效：涟漪/光晕触摸反馈（绘制在课程块内容之上）
-                                    .touchFeedback(touchFeedbackState, touchFeedbackStyle)
+                                    // v3.43.0 主题化按压反馈：绘制在课程块内容之上
+                                    .courseCellPressFeedback(
+                                        pressMode = pressMode,
+                                        pressFraction = if (pressFeedbackEnabled) cellPressFraction else 0f,
+                                        pressPosition = cellPressPosition,
+                                        tint = cellPressTint
+                                    )
                                     .zIndex(
                                         when {
                                             isExpanded -> 2f
@@ -337,15 +374,13 @@ fun ScheduleGrid(
                                             Modifier.pointerInput(item) {
                                                 detectTapGestures(
                                                     onPress = { offset ->
-                                                        // C+.15 按压反馈的按下/抬起信号源
+                                                        // 按压反馈的按下/抬起信号源（带触点位置，供软边渗开定位）
+                                                        cellPressPosition = offset
                                                         cellPressed = true
-                                                        // v3.27.2 手指跟随动效：从触点扩散涟漪/光晕
-                                                        touchFeedbackState.show(offset, touchScope)
                                                         try {
                                                             awaitRelease()
                                                         } finally {
                                                             cellPressed = false
-                                                            touchFeedbackState.hide(touchScope)
                                                         }
                                                     },
                                                     onTap = { actions.onCourseBlockClicked(item.parentBlock) },
@@ -490,16 +525,36 @@ fun ScheduleGrid(
                                                     var proposedStart = currentItem.startSection + deltaSection
                                                     proposedStart = if (is24HourMode) (proposedStart / 0.25f).roundToInt() * 0.25f else proposedStart.roundToInt().toFloat()
                                                     finalStart = proposedStart.coerceIn(0f, finalEnd - minGap)
-                                                    state.topHandleDragOffsetY = (finalStart - currentItem.startSection) * sectionHeightPx
                                                 } else if (state.isBottomHandleDragging) {
                                                     val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
                                                     var proposedEnd = currentItem.endSection + deltaSection
                                                     proposedEnd = if (is24HourMode) (proposedEnd / 0.25f).roundToInt() * 0.25f else proposedEnd.roundToInt().toFloat()
                                                     finalEnd = proposedEnd.coerceIn(finalStart + minGap, maxGridSections.toFloat())
-                                                    state.bottomHandleDragOffsetY = (finalEnd - currentItem.endSection) * sectionHeightPx
                                                 }
-                                                if (finalStart != currentItem.startSection || finalEnd != currentItem.endSection) {
-                                                    actions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
+                                                // v3.43.0 尺寸把手吸附：先把拖出的偏移弹簧吸回整格，再提交时间变更
+                                                val isTopHandle = state.isTopHandleDragging
+                                                val targetOffsetY = if (isTopHandle) {
+                                                    (finalStart - currentItem.startSection) * sectionHeightPx
+                                                } else {
+                                                    (finalEnd - currentItem.endSection) * sectionHeightPx
+                                                }
+                                                val fromOffsetY = if (isTopHandle) {
+                                                    state.topHandleDragOffsetY
+                                                } else {
+                                                    state.bottomHandleDragOffsetY
+                                                }
+                                                snapScope.launch {
+                                                    animateSpringSettle { t ->
+                                                        val y = fromOffsetY + (targetOffsetY - fromOffsetY) * t
+                                                        if (isTopHandle) {
+                                                            state.topHandleDragOffsetY = y
+                                                        } else {
+                                                            state.bottomHandleDragOffsetY = y
+                                                        }
+                                                    }
+                                                    if (finalStart != currentItem.startSection || finalEnd != currentItem.endSection) {
+                                                        actions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
+                                                    }
                                                 }
                                             }
                                         }
@@ -603,4 +658,81 @@ fun ScheduleGrid(
             }
         }
     }
+}
+
+// ============================================================================
+// v3.43.0 新增：主题化按压反馈 + 拖拽落位吸附
+// ============================================================================
+
+/**
+ * 课程格按压反馈（按主题分档）。
+ *
+ * - [MotionPressMode.SCALE]（通透）：反馈由 `graphicsLayer` 的缩放 / 抬起承担，此处不绘制；
+ * - [MotionPressMode.CONCENTRATION]（柔绘）：从触点向外做**软边径向浓度**——
+ *   没有环状外缘、没有中心高光点，边缘缓慢衰减到透明，与"化开"一致；
+ * - [MotionPressMode.COLOR_DARKEN]（书卷）：整块底色**均匀加深**，无方向、无扩散，
+ *   静态纸面上不会出现"水波"。
+ *
+ * 两种非缩放档都只影响颜色通道，元素几何完全不动——这是柔绘软投影 / 羽化环与
+ * 书卷不透明纸卡描边在按压时保持静止的前提。
+ */
+private fun Modifier.courseCellPressFeedback(
+    pressMode: MotionPressMode,
+    pressFraction: Float,
+    pressPosition: Offset,
+    tint: Color
+): Modifier {
+    if (pressMode == MotionPressMode.SCALE || pressFraction <= 0.001f) return this
+    return this.drawWithContent {
+        drawContent()
+        when (pressMode) {
+            MotionPressMode.CONCENTRATION -> {
+                val center = if (pressPosition == Offset.Zero) {
+                    Offset(size.width / 2f, size.height / 2f)
+                } else {
+                    pressPosition
+                }
+                val radius = maxOf(size.width, size.height) * 1.05f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colorStops = arrayOf(
+                            0f to tint.copy(alpha = tint.alpha * pressFraction),
+                            0.5f to tint.copy(alpha = tint.alpha * 0.58f * pressFraction),
+                            1f to Color.Transparent
+                        ),
+                        center = center,
+                        radius = radius
+                    ),
+                    radius = radius,
+                    center = center
+                )
+            }
+
+            MotionPressMode.COLOR_DARKEN -> drawRect(
+                color = tint.copy(alpha = tint.alpha * pressFraction)
+            )
+
+            MotionPressMode.SCALE -> Unit
+        }
+    }
+}
+
+/**
+ * 临界阻尼弹簧补间一个 0→1 进度，逐帧回调。
+ *
+ * 用于拖拽落位 / 尺寸调整的「吸附」：位移曲线是零过冲的临界阻尼收束，
+ * 相比此前的直接赋值（硬跳）有明确的方向感与落定感。
+ */
+private suspend fun animateSpringSettle(onFrame: (Float) -> Unit) {
+    val anim = Animatable(0f)
+    anim.animateTo(
+        targetValue = 1f,
+        animationSpec = spring(
+            dampingRatio = 1f,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    ) {
+        onFrame(value)
+    }
+    onFrame(1f)
 }

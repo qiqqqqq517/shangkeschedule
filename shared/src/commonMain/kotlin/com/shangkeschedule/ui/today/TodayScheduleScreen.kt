@@ -1,9 +1,12 @@
 package com.shangkeschedule.ui.today
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
@@ -25,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -38,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +62,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
@@ -115,9 +121,11 @@ import com.shangkeschedule.ui.theme.claudeUiSans
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.MotionPressMode
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -251,6 +259,10 @@ fun TodayScheduleScreen(
     var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
     var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
 
+    // 下拉刷新状态（v3.43.0 ·《交互动效审查》P2）：列表已是 DB Flow 驱动，刷新 = 立刻重读一次
+    var refreshing by remember { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
+
     // 悬浮面板玻璃：主内容 hazeSource，底部弹窗背板模糊
     val hazeState = rememberHazeState()
 
@@ -306,22 +318,52 @@ fun TodayScheduleScreen(
                 when (val state = uiState) {
                     is TodayUiState.Loading -> AppLoading()
                     is TodayUiState.Success -> {
-                        TodayContent(
-                            state = state,
-                            bottomInset = outerPadding.calculateBottomPadding(),
-                            gridStyle = gridStyle,
-                            isDark = isDark,
-                            onToggleTodo = viewModel::toggleTodo,
-                            onEditTodo = { todo ->
-                                editingTodo = todo
-                                showTodoDialog = true
+                        PullToRefreshBox(
+                            isRefreshing = refreshing,
+                            onRefresh = {
+                                refreshScope.launch {
+                                    refreshing = true
+                                    viewModel.refresh()
+                                    // 本地 DB 重读极快，留一拍可见反馈再收起（避免指示器一闪而过）
+                                    delay(520)
+                                    refreshing = false
+                                }
                             },
-                            onNavigateWeekly = { onNavigate(Destination.CourseSchedule) },
-                            onOpenSettings = { onNavigate(Destination.Settings) },
-                            onEditCourse = { courseId ->
-                                onNavigate(Destination.AddEditCourse(courseId))
+                            modifier = Modifier.fillMaxSize(),
+                            indicator = {
+                                // 主题化下拉指示：复用与 AppLoading 同一枚主题指示器
+                                // （柔绘三点呼吸 / 书卷墨点晕开 / 通透八段旋转），
+                                // 取代 M3 默认的 Material 箭头（与三套主题语言都不符）。
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 14.dp)
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(appColors().cardBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ThemedLoadingIndicator()
+                                }
                             }
-                        )
+                        ) {
+                            TodayContent(
+                                state = state,
+                                bottomInset = outerPadding.calculateBottomPadding(),
+                                gridStyle = gridStyle,
+                                isDark = isDark,
+                                onToggleTodo = viewModel::toggleTodo,
+                                onEditTodo = { todo ->
+                                    editingTodo = todo
+                                    showTodoDialog = true
+                                },
+                                onNavigateWeekly = { onNavigate(Destination.CourseSchedule) },
+                                onOpenSettings = { onNavigate(Destination.Settings) },
+                                onEditCourse = { courseId ->
+                                    onNavigate(Destination.AddEditCourse(courseId))
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1001,6 +1043,90 @@ private fun ClaudeTimelineHeader(title: String, count: String) {
     }
 }
 
+/**
+ * 今日页三套主题时间轴课程卡的统一动效（v3.43.0 ·《交互动效审查_三主题》P0-3）。
+ *
+ * 修复两条动效断链：
+ * - **入场**：三套 `*TimelineCard` 此前完全没有入场动画（`TodayContent` 三个主题分支提前
+ *   `return@Column`，带入场 / 按压的 `CourseTimelineItem` 落进了不可达的兜底分支）。现改为
+ *   错峰淡入 + 轻微上移；错峰量被 [MotionTokens.entranceStaggerCapMs] 钳制，满周 10 节课
+ *   不再排队 1.2s+ 才出现。
+ * - **「已结束」状态**：此前是 `graphicsLayer(alpha = if (isFinished) 0.6f else 1f)` 的二值硬跳，
+ *   课程刚结束的一帧由 1f 直接跳到 0.6f；现按 [MotionTokens.statusFadeMs] 渐变。
+ *
+ * 按压反馈：通透（[MotionPressMode.SCALE]）在本函数里返回一个缩放值；柔绘 / 书卷不做任何
+ * 形变（缩放会破坏软投影 / 羽化环与纸卡描边的静止感），反馈统一交给全局 `LocalIndication`
+ * 以「浓度渗开 / 底色加深」表达。
+ *
+ * 返回的 [TodayCardMotion.interactionSource] 必须同时交给 `Modifier.clickable`，
+ * 否则按压状态恒为 false（通透的缩放读不到按下）。
+ */
+private data class TodayCardMotion(
+    val interactionSource: MutableInteractionSource,
+    val alpha: Float,
+    val scale: Float,
+    val translationYPx: Float
+)
+
+@Composable
+private fun rememberTodayCardMotion(index: Int, isFinished: Boolean): TodayCardMotion {
+    val motion = LocalAppMotion.current
+    val tokens = motion.tokens
+
+    // 入场：rememberSaveable 记住 —— LazyColumn 会回收滚出视口的 item，普通 remember 会导致重播
+    val entranceEnabled = motion.isEnabled(AnimationGroup.PAGE_ENTRANCE) && tokens.entranceDurationMs > 0
+    var entered by rememberSaveable { mutableStateOf(!entranceEnabled) }
+    val staggerMs = if (entranceEnabled) {
+        (index * tokens.entranceStaggerMs).coerceAtMost(tokens.entranceStaggerCapMs)
+    } else {
+        0
+    }
+    LaunchedEffect(entranceEnabled) {
+        if (!entered) {
+            delay(staggerMs.toLong())
+            entered = true
+        }
+    }
+    val entrance by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(tokens.entranceDurationMs, easing = tokens.entranceEasing),
+        label = "todayCardEntrance"
+    )
+    val entranceFactor = if (entranceEnabled) entrance else 1f
+
+    // 「已结束」状态渐变（取代二值硬跳）
+    val finishedAlpha by animateFloatAsState(
+        targetValue = if (isFinished) 0.6f else 1f,
+        animationSpec = tween(tokens.statusFadeMs, easing = tokens.entranceEasing),
+        label = "todayCardStatusFade"
+    )
+
+    // 通透：轻微缩放按压；柔绘 / 书卷零形变（交由全局 LocalIndication）
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressTarget = if (pressed && motion.profile.pressMode == MotionPressMode.SCALE) {
+        tokens.cellPressScale
+    } else {
+        1f
+    }
+    val pressScale by animateFloatAsState(
+        targetValue = pressTarget,
+        animationSpec = tokens.cellPressSpec,
+        label = "todayCardPressScale"
+    )
+
+    val initialAlpha = tokens.entranceInitialAlpha
+    val translationPx = with(LocalDensity.current) {
+        (tokens.entranceSlideDp * (1f - entranceFactor)).toPx()
+    }
+    return TodayCardMotion(
+        interactionSource = interactionSource,
+        alpha = finishedAlpha * (initialAlpha + (1f - initialAlpha) * entranceFactor),
+        scale = pressScale,
+        translationYPx = translationPx
+    )
+}
+
 /** 时间轴条目：设计稿 .timeline-item（左时间列 56dp + 圆点连线 + 右侧课程卡）。 */
 @Composable
 private fun ClaudeTimelineItem(
@@ -1058,6 +1184,7 @@ private fun ClaudeTimelineItem(
 
         ClaudeTimelineCard(
             model = model,
+            index = index,
             palette = palette,
             gridStyle = gridStyle,
             isFinished = isFinished,
@@ -1071,6 +1198,7 @@ private fun ClaudeTimelineItem(
 @Composable
 private fun ClaudeTimelineCard(
     model: CourseDisplayModel,
+    index: Int,
     palette: ClaudeTimelinePalette,
     gridStyle: ScheduleGridStyle,
     isFinished: Boolean,
@@ -1080,9 +1208,15 @@ private fun ClaudeTimelineCard(
     val colors = appColors()
     val shape = RoundedCornerShape(20.dp)
     val sectionCount = claudeSectionCount(model)
+    val cardMotion = rememberTodayCardMotion(index, isFinished)
     Box(
         modifier = modifier
-            .graphicsLayer(alpha = if (isFinished) 0.6f else 1f)
+            .graphicsLayer(
+                alpha = cardMotion.alpha,
+                scaleX = cardMotion.scale,
+                scaleY = cardMotion.scale,
+                translationY = cardMotion.translationYPx
+            )
             .shadow(
                 elevation = 1.dp,
                 shape = shape,
@@ -1093,7 +1227,11 @@ private fun ClaudeTimelineCard(
             .clip(shape)
             .background(Brush.linearGradient(palette.gradient))
             .border(1.dp, palette.border, shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = cardMotion.interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -2010,7 +2148,7 @@ private fun TodoEditDialog(
     var note by remember(existing) { mutableStateOf(existing?.note ?: "") }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2824,11 +2962,14 @@ private fun IosCourseCard(
 
 @Composable
 private fun EmptyStateView() {
-    // 空态：淡灰胶囊底 + 课程格纸母题插画 + 居中辅助文案（v2 规范 §3「空态插画底统一」）
+    // 空态：淡灰胶囊底 + 课程格纸母题插画 + 居中辅助文案（v2 规范 §3「空态插画底统一」）。
+    // v3.43.0：补主题化入场——此前空态整页瞬现，与课程列表的错峰淡入不同步。
+    val appear = rememberTodayCardMotion(index = 0, isFinished = false)
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
+                .graphicsLayer(alpha = appear.alpha, translationY = appear.translationYPx)
                 .clip(appShapes().card)
                 .background(appColors().inputBg.copy(alpha = 0.55f))
                 .padding(horizontal = 28.dp, vertical = 22.dp)
@@ -3284,6 +3425,7 @@ private fun SoftTimelineItem(
 
         SoftTimelineCard(
             model = model,
+            index = index,
             palette = palette,
             gridStyle = gridStyle,
             isFinished = isFinished,
@@ -3297,6 +3439,7 @@ private fun SoftTimelineItem(
 @Composable
 private fun SoftTimelineCard(
     model: CourseDisplayModel,
+    index: Int,
     palette: SoftTimelinePalette,
     gridStyle: ScheduleGridStyle,
     isFinished: Boolean,
@@ -3306,16 +3449,26 @@ private fun SoftTimelineCard(
     val colors = appColors()
     val shape = appShapes().heroCard
     val sectionCount = softSectionCount(model)
+    val cardMotion = rememberTodayCardMotion(index, isFinished)
     Box(
         modifier = modifier
-            .graphicsLayer(alpha = if (isFinished) 0.6f else 1f)
+            .graphicsLayer(
+                alpha = cardMotion.alpha,
+                scaleX = cardMotion.scale,
+                scaleY = cardMotion.scale,
+                translationY = cardMotion.translationYPx
+            )
             .softShadow(shape = shape, elevation = 8.dp)
             .clip(shape)
             .background(Brush.linearGradient(palette.gradient))
             // iOS 26：卡片底色本身已是极淡系统色，描边改为玻璃高光内描边
             // （书卷是 1dp 暖色实边框；玻璃描边与 Liquid Glass 语言一致）
             .softFeatherRim(shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = cardMotion.interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -4496,6 +4649,7 @@ private fun Ios26TimelineItem(
 
         Ios26TimelineCard(
             model = model,
+            index = index,
             palette = palette,
             gridStyle = gridStyle,
             isFinished = isFinished,
@@ -4509,6 +4663,7 @@ private fun Ios26TimelineItem(
 @Composable
 private fun Ios26TimelineCard(
     model: CourseDisplayModel,
+    index: Int,
     palette: Ios26TimelinePalette,
     gridStyle: ScheduleGridStyle,
     isFinished: Boolean,
@@ -4518,9 +4673,15 @@ private fun Ios26TimelineCard(
     val colors = appColors()
     val shape = appShapes().heroCard
     val sectionCount = ios26SectionCount(model)
+    val cardMotion = rememberTodayCardMotion(index, isFinished)
     Box(
         modifier = modifier
-            .graphicsLayer(alpha = if (isFinished) 0.6f else 1f)
+            .graphicsLayer(
+                alpha = cardMotion.alpha,
+                scaleX = cardMotion.scale,
+                scaleY = cardMotion.scale,
+                translationY = cardMotion.translationYPx
+            )
             .shadow(
                 elevation = 1.dp,
                 shape = shape,
@@ -4533,7 +4694,11 @@ private fun Ios26TimelineCard(
             // iOS 26：卡片底色本身已是极淡系统色，描边改为玻璃高光内描边
             // （书卷是 1dp 暖色实边框；玻璃描边与 Liquid Glass 语言一致）
             .iosGlassRim(shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = cardMotion.interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

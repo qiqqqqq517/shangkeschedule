@@ -1,5 +1,6 @@
-﻿package com.shangkeschedule.ui.settings.coursetables
+package com.shangkeschedule.ui.settings.coursetables
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -28,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,7 +72,6 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeReadingSerif
-import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
 import kotlinx.datetime.LocalDate
@@ -238,7 +237,7 @@ fun ManageCourseTablesScreen(
         // --- Add Dialog ---
         if (showAddTableDialog) {
             val addSuccessMsg = stringResource(Res.string.toast_add_table_success, newTableName)
-            AlertDialog(
+            AppAlertDialog(
                 onDismissRequest = {
                     showAddTableDialog = false
                     newTableName = ""
@@ -279,7 +278,7 @@ fun ManageCourseTablesScreen(
 
         // --- Edit（重命名）Dialog ---
         if (showEditTableDialog && editingTableInfo != null) {
-            AlertDialog(
+            AppAlertDialog(
                 onDismissRequest = {
                     showEditTableDialog = false
                     editingTableInfo = null
@@ -675,8 +674,9 @@ private fun SemesterCard(
             )
             .then(
                 when {
-                    // 柔绘：无实色描边（含当前学期高亮）——高亮改用主色薄涂底 + 羽化描边表达
-                    isSoft -> Modifier.softFeatherRim(shape)
+                    // 柔绘：无实色描边（含当前学期高亮）——高亮由主色薄涂底表达；
+                    // 羽化描边环已由 softSurface 内含，此处不再重复叠加（与 AppCard 收口一致）
+                    isSoft -> Modifier
                     highlightBorder -> Modifier.border(1.dp, tokens.primary, shape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
                     // 通透（iOS 26）：白卡 + 玻璃高光内描边

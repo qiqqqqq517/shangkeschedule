@@ -59,6 +59,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -955,6 +956,8 @@ private fun WeekPagerGlassSheen(
     // （详见《交互动效审查_三主题》P0）。柔绘改为**无方向的整屏换气**：
     // 落定后整体亮度做一次 600ms 正弦式起伏，幅度 3%，没有任何边界与方向。
     val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 深色档换气不叠白（见下方绘制分支）
+    val isDark = LocalIsDarkTheme.current
 
     // 首次组合（App 启动落在本周页）不算「切周」，不扫光
     var hasSettledOnce by rememberSaveable { mutableStateOf(false) }
@@ -972,7 +975,10 @@ private fun WeekPagerGlassSheen(
             1f,
             tween(
                 durationMillis = if (isSoft) 600 else motion.tokens.entranceDurationMs,
-                easing = if (isSoft) CubicBezierEasing(0.45f, 0f, 0.55f, 1f) else motion.tokens.entranceEasing
+                // 柔绘：fraction 必须走**线性**——sin(π·f) 本身已是单峰曲线，外面再套一条
+                // ease-in-out 会把亮度峰值压进中段极窄区间，观感变成"停顿—突亮—停顿"
+                // 三段（正是柔绘规格明令禁止的"折点"）。
+                easing = if (isSoft) LinearEasing else motion.tokens.entranceEasing
             )
         )
         sheenVisible = false
@@ -985,9 +991,17 @@ private fun WeekPagerGlassSheen(
                 // 纯绘制层：不消费任何指针事件，手势完全穿透到 Pager / 课程格
                 .drawBehind {
                     if (isSoft) {
-                        // 柔绘档：整屏换气 —— sin 曲线一次明度起伏，无方向、无边界
+                        // 柔绘档：整屏换气 —— sin 曲线一次明度起伏，无方向、无边界。
+                        // 深色档**不叠白**：暖炭薄涂底上一层白蒙版会被读成"打闪"，
+                        // 改为极淡的压暗；浅色档提亮幅度也从 0.03 降到 0.018
+                        // （柔绘底色本身已接近白，白上加白的容忍度更低）。
                         val breathe = sin(fraction * Math.PI).toFloat()
-                        drawRect(color = Color.White.copy(alpha = 0.03f * breathe))
+                        val breatheColor = if (isDark) {
+                            Color.Black.copy(alpha = 0.020f * breathe)
+                        } else {
+                            Color.White.copy(alpha = 0.018f * breathe)
+                        }
+                        drawRect(color = breatheColor)
                     } else {
                         // Apple HIG 风格：收窄光带（屏幕宽 28%）、降低峰值透明度（0.07），
                         // 效果克制如镜面反光，而非扫光特效
@@ -1080,7 +1094,9 @@ private fun ScheduleListView(
                     block = block,
                     timeSlots = timeSlots,
                     composedStyle = composedStyle,
-                    entranceDelayMs = listEntranceMotion.tokens.entranceStaggerMs * (dayOffset * 3 + blockIdx),
+                    // v3.43.0：错峰总延迟设上限，避免长列表后排条目等待过久
+                    entranceDelayMs = (listEntranceMotion.tokens.entranceStaggerMs * (dayOffset * 3 + blockIdx))
+                        .coerceAtMost(listEntranceMotion.tokens.entranceStaggerCapMs),
                     onClick = { onClickedBlock(block) },
                     onLongClick = { onLongClickedBlock(block) }
                 )
@@ -1157,7 +1173,9 @@ private fun ScheduleListViewBlock(
             .fillMaxWidth()
             .then(shadowModifier)
             .graphicsLayer {
-                alpha = (demotedAlpha * entranceFraction).coerceIn(0f, 1f)
+                val entranceAlpha = entranceMotion.tokens.entranceInitialAlpha +
+                    (1f - entranceMotion.tokens.entranceInitialAlpha) * entranceFraction
+                alpha = (demotedAlpha * entranceAlpha).coerceIn(0f, 1f)
                 translationY = entranceSlidePx * (1f - entranceFraction)
             }
             .clip(shape)

@@ -1,6 +1,5 @@
 package com.shangkeschedule.ui.components
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,7 +33,7 @@ fun ShareDialog(
 ) {
     if (!isShareDialogSupported) return
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_file_saved)) },
         text = { Text(stringResource(Res.string.dialog_text_file_saved_share_prompt)) },

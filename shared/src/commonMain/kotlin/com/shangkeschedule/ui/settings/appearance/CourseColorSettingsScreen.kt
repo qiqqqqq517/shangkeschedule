@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -173,7 +173,7 @@ fun CourseColorSettingsScreen(
 
     // 一键重置配色确认：覆盖的是用户可能手动调过的颜色，先确认再执行
     if (showResetDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text(stringResource(Res.string.dialog_reset_colors_title)) },
             text = { Text(stringResource(Res.string.dialog_reset_colors_message)) },

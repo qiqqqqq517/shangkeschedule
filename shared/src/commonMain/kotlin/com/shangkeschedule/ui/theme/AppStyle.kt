@@ -1,13 +1,19 @@
 package com.shangkeschedule.ui.theme
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -413,3 +419,70 @@ fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
 
 /** CompositionLocal：当前是否柔绘主题（供材质层做形态判定）。 */
 val LocalIsSoftTheme = staticCompositionLocalOf { false }
+
+// ============================================================================
+// 统一表面渲染模式（三主题共用一套调度）
+//
+// 全站所有「卡片 / 面板 / 列表块」类表面统一从这里生成材质与边缘，由
+// [LocalThemePreset] 在**唯一一处**分派到对应主题的渲染实现：
+//   · 柔绘 SOFT   → softSurface（软模糊投影 + 漫射柔光 + 羽化描边；必要时叠手绘肌理）
+//   · 书卷 CLAUDE → 极轻投影 + 收口 14dp 圆角 + 暖米分组底 + 0.5dp 实色描边
+//   · 通透 IOS    → 极轻投影 + 白卡 + iosGlassRim 玻璃高光内描边
+//
+// 之所以集中到一处：此前每个调用点各自 if/else 拼材质，三套主题的渲染路径散落各处、
+// 边界互相渗漏（典型：柔绘卡片在 softSurface 之外又被重复叠一遍羽化描边）。
+// 统一后：① 三主题走同一种「投影 → 裁切 → 底色 → 边缘」调度，层数与顺序一致；
+// ② 各主题材质自带 LocalIsSoftTheme 门禁，跨主题调用直接 no-op，互不干扰。
+// ============================================================================
+
+/**
+ * 统一表面渲染入口。调用点不再各自判断主题，交给本函数按 [LocalThemePreset] 分派。
+ *
+ * @param shape 主题无关的基准形状（通透直接采用；书卷收口 14dp、柔绘取 appShapes().card）
+ * @param containerColor 显式底色；为 null 时按主题取默认容器色（书卷暖米分组底 / 其余卡底）
+ * @param elevation 柔绘软投影强度；书卷 / 通透恒为极轻投影
+ * @param texture 柔绘是否叠手绘肌理（仅默认分组卡，避免干扰其上文字）
+ * @param selected 选中态：书卷 / 通透改用主色描边表达，柔绘由底色承担
+ */
+@Composable
+fun Modifier.appSurface(
+    shape: Shape,
+    containerColor: Color? = null,
+    elevation: Dp = 10.dp,
+    texture: Boolean = false,
+    selected: Boolean = false
+): Modifier {
+    val preset = LocalThemePreset.current
+
+    if (preset == AppThemePreset.SOFT) {
+        val softShape = appShapes().card
+        return this
+            .softSurface(shape = softShape, containerColor = containerColor, elevation = elevation)
+            .then(if (texture && containerColor == null) Modifier.softTexture(softShape) else Modifier)
+    }
+
+    // 书卷 / 通透：同一种「极轻投影 + 裁切 + 底色 + 边缘」调度，只差形状与边缘语言
+    val tokens = appColors()
+    val isClaude = preset == AppThemePreset.CLAUDE
+    val resolvedShape: Shape = if (isClaude) RoundedCornerShape(14.dp) else shape
+    val bg = containerColor ?: if (isClaude) claudeGroupBg() else tokens.cardBg
+    val surface = this
+        .shadow(
+            elevation = 1.dp,
+            shape = resolvedShape,
+            clip = false,
+            ambientColor = tokens.shadow,
+            spotColor = tokens.shadow
+        )
+        .clip(resolvedShape)
+        .background(bg)
+    return when {
+        isClaude -> surface.border(
+            width = if (selected) 2.dp else 0.5.dp,
+            color = if (selected) tokens.primary else claudeGroupBorder(),
+            shape = resolvedShape
+        )
+        selected -> surface.border(2.dp, tokens.primary, resolvedShape)
+        else -> surface.iosGlassRim(resolvedShape)
+    }
+}

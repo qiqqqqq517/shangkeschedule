@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import shangkeschedule.shared.generated.resources.Res
@@ -84,7 +85,7 @@ fun IcsExportDialog(
     var showTablePicker by remember { mutableStateOf(false) }
 
     if (!showTablePicker) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = onDismissRequest,
             title = { Text(stringResource(Res.string.dialog_title_ics_export_settings)) },
             text = {
@@ -133,7 +134,7 @@ fun CrushImportDialog(
     onImportViaSchool: () -> Unit,
     onImportViaJson: () -> Unit
 ) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(Res.string.conversion_crush_title)) },
         text = {

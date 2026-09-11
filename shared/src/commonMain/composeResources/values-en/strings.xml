@@ -755,7 +755,16 @@
     <string name="anim_group_nav_transition_desc">Slide transitions for secondary pages</string>
     <string name="anim_group_bar_hide">Bar hide on scroll</string>
     <string name="anim_group_bar_hide_desc">Navbar and round button slide away while scrolling</string>
+    <string name="anim_group_bottom_sheet">Bottom sheet</string>
+    <string name="anim_group_bottom_sheet_desc">Panel rise and scrim fade-in</string>
+    <string name="anim_group_dialog">Dialog</string>
+    <string name="anim_group_dialog_desc">Dialog enter and exit transition</string>
+    <string name="anim_group_tab_switch">Tab switch</string>
+    <string name="anim_group_tab_switch_desc">Tab indicator migration and icon crossfade</string>
+    <string name="anim_reduce_motion">Reduce motion</string>
+    <string name="anim_reduce_motion_desc">Use cross-fades instead of movement and scaling</string>
     <string name="anim_settings_more_placeholder">More motion groups (coming soon)</string>
+    <string name="anim_preview_transition">Transitions &amp; scroll</string>
     <string name="anim_preview_replay">Replay</string>
     <string name="anim_preview_press_hint">Press me</string>
     <string name="desc_appearance_settings">Theme style, dark mode and schedule appearance tuning</string>

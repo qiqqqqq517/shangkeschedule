@@ -18,6 +18,7 @@ import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.time.currentDateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -52,12 +53,28 @@ class TodayScheduleViewModel(
     val gridStyle: StateFlow<ScheduleGridStyle> = styleSettingsRepository.styleFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScheduleGridStyle())
 
+    /**
+     * 手动刷新触发器（v3.43.0 ·《交互动效审查》P2「下拉刷新」）。
+     *
+     * 每次 +1 都会让 [uiState] 的整条查询链重新装配，从而强制从数据库重读一遍。
+     * 本页数据本是 DB Flow 驱动（自动推送），因此刷新的语义是「立刻重读一次」，
+     * 而不是「首次加载」——用来消解用户「数据是不是没更新」的疑虑。
+     */
+    private val refreshTrigger = MutableStateFlow(0)
+
+    /** 下拉刷新入口：重读今日课程 / 日程 / 待办。 */
+    fun refresh() {
+        refreshTrigger.value += 1
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TodayUiState> = combine(
         appSettingsRepository.getAppSettings(),
         // 跨天自动重算：today 不再是流装配期的一次性快照，午夜后状态机与课程查询全部刷新
-        currentDateFlow()
-    ) { settings, today ->
+        currentDateFlow(),
+        // 下拉刷新：作为第三个源，值一变即触发下方 flatMapLatest 重新装配整条查询
+        refreshTrigger
+    ) { settings, today, _ ->
         settings to today
     }.flatMapLatest { (settings, today) ->
             val tableId = settings.currentCourseTableId

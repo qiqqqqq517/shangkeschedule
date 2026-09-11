@@ -751,7 +751,16 @@
     <string name="anim_group_nav_transition_desc">二級頁前進返回的滑動過渡</string>
     <string name="anim_group_bar_hide">底欄隱藏</string>
     <string name="anim_group_bar_hide_desc">滾動時底欄與圓鈕隨之下滑淡出</string>
+    <string name="anim_group_bottom_sheet">底部面板</string>
+    <string name="anim_group_bottom_sheet_desc">面板升起與遮罩漸入的過渡</string>
+    <string name="anim_group_dialog">對話框</string>
+    <string name="anim_group_dialog_desc">確認彈窗出現與收起的過渡</string>
+    <string name="anim_group_tab_switch">切換標籤</string>
+    <string name="anim_group_tab_switch_desc">底欄選中膠囊遷移與圖示切換</string>
+    <string name="anim_reduce_motion">減弱動態效果</string>
+    <string name="anim_reduce_motion_desc">以淡入淡出替代位移與縮放，減少眩暈感</string>
     <string name="anim_settings_more_placeholder">更多動效分組（後續版本推出）</string>
+    <string name="anim_preview_transition">轉場與捲動預覽</string>
     <string name="anim_preview_replay">重播</string>
     <string name="anim_preview_press_hint">按住試試</string>
     <string name="desc_appearance_settings">主題風格、深色模式與課表外觀微調</string>

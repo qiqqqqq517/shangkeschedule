@@ -164,6 +164,13 @@ data class AppSettingsModel(
      * 关掉某组 ⇒ 该类动画瞬切无动效。分组见 [AnimationGroup]。
      */
     val disabledAnimationGroups: Set<AnimationGroup> = emptySet(),
+
+    /**
+     * 「减弱动态效果」开关（v3.43.0 无障碍降级）。
+     * true ⇒ 位移 / 缩放 / 错峰入场全部归零，只保留短促的不透明度溶解，
+     * 对齐系统 Reduce Motion 语义（KMP 无统一系统 API，故由应用内开关驱动）。
+     */
+    val reduceMotionEnabled: Boolean = false,
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -198,6 +205,7 @@ data class AppSettingsModel(
         val KEY_GLASS_BLUR_RADIUS_DP = floatPreferencesKey("glass_blur_radius_dp")
         val KEY_ANIMATION_STYLE = stringPreferencesKey("animation_style")
         val KEY_DISABLED_ANIMATION_GROUPS = stringSetPreferencesKey("disabled_animation_groups")
+        val KEY_REDUCE_MOTION_ENABLED = booleanPreferencesKey("reduce_motion_enabled")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -231,6 +239,7 @@ data class AppSettingsModel(
                     ?.mapNotNull { AnimationGroup.fromString(it) }
                     ?.toSet()
                     ?: d.disabledAnimationGroups,
+                reduceMotionEnabled = prefs[KEY_REDUCE_MOTION_ENABLED] ?: d.reduceMotionEnabled,
             )
         }
     }

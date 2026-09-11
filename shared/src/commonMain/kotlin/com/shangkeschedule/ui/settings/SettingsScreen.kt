@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
@@ -58,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
@@ -848,7 +848,7 @@ internal fun ColorPickerDialog(
     onSelect: (Int) -> Unit
 ) {
     val colors = colorMaps
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -1002,7 +1002,7 @@ fun ManualWeekPickerDialog(
 
     var dialogSelectedValue by remember { mutableStateOf(initialSelectedValue) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_manual_set_week)) },
         text = {
@@ -1058,7 +1058,7 @@ fun DayOfWeekPickerDialog(
 
     var dialogSelectedText by remember { mutableStateOf(initialSelectedDayText) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_set_first_day_of_week)) },
         text = {
@@ -1100,7 +1100,7 @@ internal fun NumberPickerDialog(
 ) {
     var dialogSelectedValue by remember { mutableIntStateOf(initialValue.coerceIn(range)) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

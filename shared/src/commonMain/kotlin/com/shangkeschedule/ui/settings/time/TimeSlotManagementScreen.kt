@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
 import com.shangkeschedule.data.model.AppThemePreset
@@ -441,7 +441,7 @@ fun TimeSlotManagementScreen(
 
         if (showExitConfirmDialog) {
             // 退出确认（统一操作区语言：危险色「不保存」+ 灰字「继续编辑」）
-            AlertDialog(
+            AppAlertDialog(
                 onDismissRequest = { showExitConfirmDialog = false },
                 title = { Text(text = stringResource(Res.string.common_dialog_title_abandon_changes)) },
                 text = { Text(text = stringResource(Res.string.common_dialog_msg_unsaved_changes)) },
@@ -684,7 +684,7 @@ fun CreateSchemeDialog(
 
     var name by remember { mutableStateOf("") }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(dialogTitleNewScheme) },
         text = {
@@ -1363,7 +1363,7 @@ fun SchemeDateRangeDialog(
     val startDays = remember(startMonth) { (1..daysInMonth(startMonth)).map { formatTwoDigits(it) } }
     val endDays = remember(endMonth) { (1..daysInMonth(endMonth)).map { formatTwoDigits(it) } }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(dialogTitleSchemeDates) },
         text = {
