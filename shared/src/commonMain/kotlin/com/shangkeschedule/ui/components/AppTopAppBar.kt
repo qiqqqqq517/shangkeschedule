@@ -60,7 +60,8 @@ fun AppTopAppBar(
             modifier = modifier,
             navigationIcon = navigationIcon,
             actions = actions,
-            hazeState = hazeState
+            hazeState = hazeState,
+            scrollBehavior = scrollBehavior
         )
     } else {
         // 无 haze 场景（静态页 / Dialog 内）：保留 M3 TopAppBar，但底色与分隔线按 iOS 26 收敛
@@ -83,16 +84,25 @@ fun AppTopAppBar(
  * - 柔绘：更厚的薄雾模糊（blur 22dp）+ 更淡着色，且**没有发丝线**——
  *   柔绘要求「无锐利硬边缘」，下缘改为一条羽化渐变带，导航栏像薄雾一样化进内容。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppNavigationBar(
     title: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    hazeState: HazeState
+    hazeState: HazeState,
+    scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     val tokens = appColors()
     val isSoft = LocalIsSoftTheme.current
+    // v3.43.0（《交互动效审查》P2「顶栏滚动折叠」）：玻璃导航栏此前**直接丢弃**
+    // scrollBehavior（该参数只在 M3 分支生效），因此「通透」这套自带玻璃顶栏的形态
+    // 永远不折叠。现在按 collapsedFraction 插值：栏高 48→36dp、标题 17→15sp、
+    // 底部发丝线同步淡出，与 M3 顶栏的折叠行为对齐。
+    val collapsedFraction = scrollBehavior?.state?.collapsedFraction ?: 0f
+    val barHeight = (48f - 12f * collapsedFraction).dp
+    val barTitleSize = (17f - 2f * collapsedFraction).sp
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -108,7 +118,7 @@ private fun AppNavigationBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .height(48.dp)
+                .height(barHeight)
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -121,7 +131,7 @@ private fun AppNavigationBar(
             ) {
                 ProvideTextStyle(
                     MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 17.sp,
+                        fontSize = barTitleSize,
                         // 柔绘字重降一档（Medium），配合低对比配色更柔
                         fontWeight = if (isSoft) FontWeight.Medium else FontWeight.SemiBold,
                         letterSpacing = if (isSoft) (-0.1).sp else (-0.41).sp
@@ -148,7 +158,7 @@ private fun AppNavigationBar(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(0.5.dp)
-                    .background(tokens.divider)
+                    .background(tokens.divider.copy(alpha = 1f - 0.55f * collapsedFraction))
             )
         }
     }

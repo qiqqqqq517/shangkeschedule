@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.additional
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.theme.appColors
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,7 +59,7 @@ fun StartScreenSelectionDialog(
 ) {
     if (!showDialog) return
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_select_start_screen)) },
         text = {
@@ -96,7 +96,7 @@ fun ChannelSelectionDialog(
 
     var selectedPlatform by remember(currentSelected) { mutableStateOf(currentSelected) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_select_update_channel)) },
         text = {
@@ -136,7 +136,7 @@ fun UpdateResultDialog(
     if (!showDialog || updateStatus is UpdateStatus.Idle || updateStatus is UpdateStatus.NotSupported) return
 
     if (updateStatus is UpdateStatus.Checking) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { },
             title = { Text(stringResource(Res.string.dialog_checking_update)) },
             text = {
@@ -181,7 +181,7 @@ fun UpdateResultDialog(
         )
     }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

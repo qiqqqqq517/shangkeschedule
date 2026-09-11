@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -313,7 +313,7 @@ fun ThemeSettingsScreen(
     // 切换主题确认对话框：防止误操作覆盖个性化配置
     if (pendingThemePreset != null) {
         val targetPreset = pendingThemePreset!!
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { pendingThemePreset = null },
             title = { Text(stringResource(Res.string.appearance_switch_title)) },
             text = {

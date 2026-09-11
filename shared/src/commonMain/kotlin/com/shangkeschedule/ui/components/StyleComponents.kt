@@ -1,8 +1,11 @@
-﻿package com.shangkeschedule.ui.components
+package com.shangkeschedule.ui.components
 
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.runtime.remember
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloat
@@ -17,10 +20,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,12 +51,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,25 +73,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import com.shangkeschedule.ui.theme.TouchFeedbackStyle
-import kotlinx.coroutines.launch
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appSurface
 import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
@@ -89,13 +87,8 @@ import com.shangkeschedule.ui.theme.AppColorTokens
 import com.shangkeschedule.ui.theme.AppSemanticColors
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.claudeGroupBg
-import com.shangkeschedule.ui.theme.claudeGroupBorder
-import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
-import com.shangkeschedule.ui.theme.softSurface
-import com.shangkeschedule.ui.theme.softTexture
 import com.shangkeschedule.data.model.AppThemePreset
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -107,224 +100,6 @@ import shangkeschedule.shared.generated.resources.check_24px
  * 全部为纯视觉皮肤：白卡、图标 chip、渐变头卡、Telegram 形态的
  * 溢出菜单 / 徽标 / 开关 / Snackbar / 分段控件。行为一律由调用方既有逻辑提供。
  */
-
-// ============================================================
-// 触摸反馈（v3.27.2 Apple HIG 风格）
-// ============================================================
-
-/**
- * 触摸反馈状态：跟踪触点位置与扩散进度，由调用方在 pointerInput 的 onPress 中驱动。
- *
- * 使用方式：
- * ```
- * val state = rememberTouchFeedbackState()
- * Box(Modifier.touchFeedback(state, style).pointerInput(Unit) {
- *     detectTapGestures(onPress = { offset ->
- *         state.show(offset)
- *         try { awaitRelease() } finally { state.hide() }
- *     })
- * })
- * ```
- */
-class TouchFeedbackState {
-    /** 当前触点位置（组件内坐标），null 表示未激活 */
-    var touchPosition by mutableStateOf<Offset?>(null)
-        private set
-
-    /** 扩散进度 0f~1f：0=刚按下，1=最大扩散 */
-    val progress: Float get() = _progress.value
-
-    private val _progress = Animatable(0f)
-    private val _fade = Animatable(0f)
-
-    /** 淡出透明度 0f~1f：1=完全显示，0=消失 */
-    val alpha: Float get() = _fade.value
-
-    /** 按下时启动扩散动画 */
-    fun show(position: Offset, scope: kotlinx.coroutines.CoroutineScope) {
-        touchPosition = position
-        scope.launch {
-            _fade.snapTo(1f)
-            _progress.snapTo(0f)
-            _progress.animateTo(
-                1f,
-                animationSpec = tween(
-                    durationMillis = 400,
-                    easing = TouchEaseOut
-                )
-            )
-        }
-    }
-
-    /** 抬起时淡出 */
-    fun hide(scope: kotlinx.coroutines.CoroutineScope) {
-        scope.launch {
-            _fade.animateTo(
-                0f,
-                animationSpec = tween(
-                    durationMillis = 220,
-                    easing = TouchEaseOut
-                )
-            )
-            // 淡出结束后重置触点，避免下一帧在旧位置闪烁
-            if (_fade.value == 0f) {
-                touchPosition = null
-                _progress.snapTo(0f)
-            }
-        }
-    }
-}
-
-/** Apple HIG 触摸反馈缓动：快出慢收，柔和克制 */
-private val TouchEaseOut = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
-
-/** 创建并记住一个触摸反馈状态 */
-@Composable
-fun rememberTouchFeedbackState(): TouchFeedbackState {
-    return remember { TouchFeedbackState() }
-}
-
-/**
- * 苹果风格触摸反馈 Modifier：手指到哪，动效跟到哪。
- *
- * 两种风格：
- * - [TouchFeedbackStyle.RIPPLE] 涟漪式：从触点向外扩散的柔和圆形，低透明度边缘渐隐
- * - [TouchFeedbackStyle.HALO] 光晕式：触点周围柔和光晕，模糊边缘，更梦幻
- * - [TouchFeedbackStyle.NONE] 关闭：不绘制任何效果
- *
- * 需配合 [TouchFeedbackState] 使用，在 pointerInput 的 onPress 中调用
- * state.show() / state.hide() 驱动动画。
- */
-fun Modifier.touchFeedback(
-    state: TouchFeedbackState,
-    style: TouchFeedbackStyle,
-    color: Color = Color.White
-): Modifier {
-    if (style == TouchFeedbackStyle.NONE) return this
-    return this.drawWithContent {
-        // 先绘制原始内容
-        drawContent()
-        // 再在内容之上绘制触摸反馈
-        val position = state.touchPosition ?: return@drawWithContent
-        val progress = state.progress.coerceIn(0f, 1f)
-        val alpha = state.alpha.coerceIn(0f, 1f)
-        if (alpha <= 0f) return@drawWithContent
-
-        when (style) {
-            TouchFeedbackStyle.RIPPLE -> drawRipple(
-                center = position,
-                progress = progress,
-                alpha = alpha,
-                color = color,
-                size = size
-            )
-            TouchFeedbackStyle.HALO -> drawHalo(
-                center = position,
-                progress = progress,
-                alpha = alpha,
-                color = color,
-                size = size
-            )
-            TouchFeedbackStyle.NONE -> Unit
-        }
-    }
-}
-
-/**
- * 涟漪式：从触点向外扩散的圆环，内实外虚，类似 iOS 列表 cell 按压。
- * 涟漪环厚度随进度逐渐变薄，透明度随进度渐隐。
- */
-private fun DrawScope.drawRipple(
-    center: Offset,
-    progress: Float,
-    alpha: Float,
-    color: Color,
-    size: Size
-) {
-    // 最大半径：到最远角落距离的 ~75%，不会充满整个元素
-    val maxRadius = kotlin.math.sqrt(
-        size.width * size.width + size.height * size.height
-    ) * 0.5f * 0.75f
-    // 起始半径很小（8dp），逐渐扩散到最大
-    val minRadius = 8.dp.toPx()
-    val radius = minRadius + (maxRadius - minRadius) * progress
-
-    // 涟漪环：外边缘透明、中间最亮、内边缘稍淡
-    // 环厚度：起始 12dp，随扩散逐渐变薄
-    val ringThickness = (12.dp.toPx()) * (1f - progress * 0.6f)
-
-    // 用径向渐变模拟涟漪环
-    val innerRadius = (radius - ringThickness).coerceAtLeast(0f)
-    drawCircle(
-        brush = Brush.radialGradient(
-            colorStops = arrayOf(
-                0f to Color.Transparent,
-                (innerRadius / radius).coerceIn(0f, 1f) to Color.Transparent,
-                (innerRadius / radius + 0.15f).coerceIn(0f, 1f) to color.copy(alpha = 0.18f * alpha),
-                0.85f to color.copy(alpha = 0.12f * alpha),
-                1f to Color.Transparent
-            ),
-            center = center,
-            radius = radius
-        ),
-        radius = radius,
-        center = center
-    )
-}
-
-/**
- * 光晕式：触点周围一团柔和的光韵扩散，模糊边缘，更梦幻更「玻璃」。
- * 中心亮、向外渐隐，像一盏灯从手指下晕开。
- */
-private fun DrawScope.drawHalo(
-    center: Offset,
-    progress: Float,
-    alpha: Float,
-    color: Color,
-    size: Size
-) {
-    // 光晕扩散范围比涟漪小，更聚焦于触点周围
-    val maxRadius = kotlin.math.sqrt(
-        size.width * size.width + size.height * size.height
-    ) * 0.5f * 0.55f
-    val minRadius = 6.dp.toPx()
-    val radius = minRadius + (maxRadius - minRadius) * progress
-
-    // 光晕：中心最亮（柔和白光），向外逐渐消散为透明
-    // 用多层径向渐变模拟柔和发光感
-    drawCircle(
-        brush = Brush.radialGradient(
-            colorStops = arrayOf(
-                0f to color.copy(alpha = 0.22f * alpha),
-                0.3f to color.copy(alpha = 0.14f * alpha),
-                0.6f to color.copy(alpha = 0.06f * alpha),
-                1f to Color.Transparent
-            ),
-            center = center,
-            radius = radius
-        ),
-        radius = radius,
-        center = center
-    )
-
-    // 中心加一个更小更亮的光点，模拟「光源」
-    val coreRadius = radius * 0.25f
-    if (coreRadius > 0f) {
-        drawCircle(
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(
-                    0f to color.copy(alpha = 0.35f * alpha),
-                    0.5f to color.copy(alpha = 0.18f * alpha),
-                    1f to Color.Transparent
-                ),
-                center = center,
-                radius = coreRadius
-            ),
-            radius = coreRadius,
-            center = center
-        )
-    }
-}
 
 /**
  * 基线白卡：白底、20dp 圆角、无边框、极轻投影（y≈2 blur≈8 6–8% 黑）。
@@ -338,50 +113,17 @@ fun AppCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val tokens = appColors()
-    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
-    // 书卷：14dp 圆角 + 暖米色分组底 + 0.5dp 实色描边；
-    // 通透（iOS 26）：16dp 连续圆角 + 白卡 + 玻璃高光内描边；
-    // 柔绘：24dp 虚化圆角（appShapes().card）+ 薄涂卡材质（软模糊投影 + 漫射柔光 + 手绘纹理 + 羽化描边）
-    val finalShape = when {
-        isClaude -> RoundedCornerShape(14.dp)
-        isSoft -> appShapes().card
-        else -> shape
-    }
-    val container = containerColor ?: when {
-        isClaude -> claudeGroupBg()
-        else -> tokens.cardBg
-    }
-    val surfaceModifier = if (isSoft) {
-        // 显式传入底色时视为「局部卡」（如高亮卡），不叠手绘纹理，避免纹理干扰其上文字；
-        // 默认分组卡才叠 softTexture（大卡面专用，装饰性，alpha ≤ 0.05 不影响可读性）
-        Modifier
-            .softSurface(shape = finalShape, containerColor = containerColor, elevation = 10.dp)
-            .then(if (containerColor == null) Modifier.softTexture(finalShape) else Modifier)
-    } else {
-        Modifier
-            .shadow(
-                elevation = (if (isClaude) 1 else 1).dp,
-                shape = finalShape,
-                clip = false,
-                ambientColor = tokens.shadow,
-                spotColor = tokens.shadow
-            )
-            .clip(finalShape)
-            .background(container)
-    }
+    // 材质 / 边缘全部交给统一表面渲染入口（appSurface），按主题在唯一一处分派：
+    // 书卷 = 极轻投影 + 暖米分组底 + 0.5dp 实色描边；通透 = 白卡 + 玻璃高光内描边；
+    // 柔绘 = 软模糊投影 + 漫射柔光 + 羽化描边（默认分组卡再叠手绘肌理）。
+    // 此前柔绘分支在本组件内又叠了一遍 softFeatherRim，与 softSurface 内含的重复 → 已收口。
     Box(
         modifier = modifier
-            .then(surfaceModifier)
-            .then(
-                when {
-                    isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
-                    // 柔绘：无实色描边，改用羽化描边环（softSurface 已内含，此处对显式底色卡补齐）
-                    isSoft -> Modifier.softFeatherRim(finalShape)
-                    // 通透（iOS 26）：白卡 + 玻璃高光内描边（靠材质分层，不用实色描边）
-                    else -> Modifier.iosGlassRim(finalShape)
-                }
+            .appSurface(
+                shape = shape,
+                containerColor = containerColor,
+                elevation = 10.dp,
+                texture = true
             )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
@@ -500,23 +242,50 @@ fun AppHeroMotif(
     modifier: Modifier = Modifier,
     tint: Color,
     pulse: Boolean = true,
-    blockWidth: Dp = 64.dp
+    blockWidth: Dp = 64.dp,
+    /**
+     * true = 只呼吸**一次**后静止（空状态 / 详情面板用）。
+     * v3.43.0：HIG 明确反对常驻装饰动效，空态这类"停留很久"的场景不应循环呼吸。
+     */
+    singlePulse: Boolean = false
 ) {
-    val pulseAlpha: Float = if (pulse) {
-        // v3.26.0 动效收口：呼吸节奏读全局令牌（pulseDurationMs），随动画风格变化
-        val motion = LocalAppMotion.current
-        val infinite = rememberInfiniteTransition(label = "appHeroMotif")
-        infinite.animateFloat(
-            initialValue = 0.55f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                tween(durationMillis = motion.tokens.pulseDurationMs),
-                RepeatMode.Reverse
-            ),
-            label = "motifPulse"
-        ).value
-    } else {
-        1f
+    // v3.26.0 动效收口：呼吸节奏读全局令牌（pulseDurationMs），随动画风格变化
+    val motion = LocalAppMotion.current
+    val pulseAlpha: Float = when {
+        singlePulse -> {
+            val duration = motion.tokens.pulseDurationMs
+            if (duration <= 0) {
+                1f
+            } else {
+                val oneShot = remember { Animatable(0.55f) }
+                LaunchedEffect(Unit) {
+                    oneShot.snapTo(0.55f)
+                    oneShot.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = (duration * 1.2f).toInt(),
+                            easing = LinearOutSlowInEasing
+                        )
+                    )
+                }
+                oneShot.value
+            }
+        }
+
+        pulse -> {
+            val infinite = rememberInfiniteTransition(label = "appHeroMotif")
+            infinite.animateFloat(
+                initialValue = 0.55f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    tween(durationMillis = motion.tokens.pulseDurationMs.coerceAtLeast(1)),
+                    RepeatMode.Reverse
+                ),
+                label = "motifPulse"
+            ).value
+        }
+
+        else -> 1f
     }
 
     Column(
@@ -835,7 +604,10 @@ fun AppSnackbarHost(
             shape = appShapes().menu,
             containerColor = tokens.snackbarBg,
             contentColor = tokens.snackbarFg,
-            actionColor = tokens.primary
+            actionColor = tokens.primary,
+            // v3.43.0：M3 SnackbarHost 自带的只有淡入淡出 + 缩放，这里补一层主题化
+            // 「上浮入位」——以 data 为 key，保证连续多条提示各自重播。
+            modifier = rememberContentEnterMotion(key = data)
         )
     }
 }
@@ -852,55 +624,98 @@ fun AppSegmentedControl(
 ) {
     val tokens = appColors()
     val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
-    // 柔绘：容器底压淡一档（低对比），选中胶囊改用软模糊投影 + 羽化描边，不用硬边 elevation 投影
+    val motion = LocalAppMotion.current
+    // 柔绘：容器底压淡一档（低对比）
     val softContainer = tokens.inputBg.copy(alpha = 0.78f)
-    Row(
+    val density = LocalDensity.current
+
+    // v3.43.0：选中胶囊由「各选项瞬切底色」改为**共享胶囊滑动**——
+    // 位置 / 宽度 / 颜色三者同时补间，关掉「切换标签」分组（tabIndicatorMs=0）⇒ 瞬移。
+    val optionBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val pillLeft by animateDpAsState(
+        targetValue = optionBounds[selectedIndex]?.let { with(density) { it.left.toDp() } } ?: 0.dp,
+        animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
+        label = "segmentedPillLeft"
+    )
+    val pillWidth by animateDpAsState(
+        targetValue = optionBounds[selectedIndex]?.let { with(density) { it.width.toDp() } } ?: 0.dp,
+        animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
+        label = "segmentedPillWidth"
+    )
+    val pillMeasured = pillWidth > 0.dp
+
+    // 胶囊材质：柔绘用软模糊投影 + 羽化环（无硬边 elevation 投影），其余主题用轻投影
+    val pillSurface = if (isSoft) {
+        Modifier
+            .softShadow(shape = CircleShape, elevation = 4.dp)
+            .clip(CircleShape)
+            .background(tokens.cardBg)
+            .softFeatherRim(CircleShape)
+    } else {
+        Modifier
+            .shadow(
+                elevation = 2.dp,
+                shape = CircleShape,
+                clip = false,
+                ambientColor = tokens.shadow,
+                spotColor = tokens.shadow
+            )
+            .background(tokens.cardBg)
+    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(CircleShape)
             .background(if (isSoft) softContainer else tokens.inputBg)
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        options.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
+        if (pillMeasured) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(CircleShape)
-                    .then(
-                        when {
-                            // 柔绘：软模糊投影（双层扩散影）替代 elevation 硬边投影
-                            selected && isSoft -> Modifier
-                                .softShadow(shape = CircleShape, elevation = 4.dp)
-                                .clip(CircleShape)
-                                .background(tokens.cardBg)
-                                .softFeatherRim(CircleShape)
-                            isSoft -> Modifier.background(Color.Transparent)
-                            selected -> Modifier
-                                .shadow(
-                                    elevation = 2.dp,
-                                    shape = CircleShape,
-                                    clip = false,
-                                    ambientColor = tokens.shadow,
-                                    spotColor = tokens.shadow
-                                )
-                                .background(tokens.cardBg)
-                            else -> Modifier.background(Color.Transparent)
-                        }
-                    )
-                    .clickable { onSelect(index) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) tokens.textPrimary else tokens.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    .align(Alignment.CenterStart)
+                    .offset(x = pillLeft)
+                    .width(pillWidth)
+                    .fillMaxHeight()
+                    .padding(4.dp)
+                    .then(pillSurface)
+            )
+        }
+        Row(
+            modifier = Modifier.padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            options.forEachIndexed { index, label ->
+                val selected = index == selectedIndex
+                val animatedTextColor by animateColorAsState(
+                    targetValue = if (selected) tokens.textPrimary else tokens.textSecondary,
+                    animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
+                    label = "segmentedTextColor"
                 )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(CircleShape)
+                        // 测量失败（首帧）时保留旧式瞬切底色，避免出现"无选中态"的一帧
+                        .background(
+                            if (selected && !pillMeasured) tokens.cardBg else Color.Transparent
+                        )
+                        .onGloballyPositioned { coords ->
+                            val rect = coords.boundsInParent()
+                            if (optionBounds[index] != rect) optionBounds[index] = rect
+                        }
+                        .clickable { onSelect(index) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = animatedTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

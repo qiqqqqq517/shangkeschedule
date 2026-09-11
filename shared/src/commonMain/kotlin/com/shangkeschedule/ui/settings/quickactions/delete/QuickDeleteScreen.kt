@@ -59,6 +59,7 @@ import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.hazeSource
@@ -186,6 +187,9 @@ fun QuickDeleteScreen(
             }
         }
     ) { padding ->
+        // v3.43.0（《交互动效审查》P2）：列表增删补位需要读全局动效；LazyColumn 的
+        // content 是 LazyListScope（非 composable 作用域），所以必须在这里读。
+        val deleteMotion = LocalAppMotion.current
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -284,8 +288,15 @@ fun QuickDeleteScreen(
             }
 
             // 平铺显示所有待删除的课程实例预览
-            items(uiState.affectedCourses) { previewItem ->
-                DeletePreviewCard(previewItem.courseWithWeeks, previewItem.targetWeek)
+            // v3.43.0（《交互动效审查》P2）：列表增删补位——取消勾选后条目不再"瞬间消失"，
+            // 而是淡出并把下方条目平滑顶上来；「减弱动态效果」下退化为瞬切。
+            items(
+                items = uiState.affectedCourses,
+                key = { it.courseWithWeeks.course.id + "#" + it.targetWeek }
+            ) { previewItem ->
+                Box(modifier = if (deleteMotion.reduceMotion) Modifier else Modifier.animateItem()) {
+                    DeletePreviewCard(previewItem.courseWithWeeks, previewItem.targetWeek)
+                }
             }
 
             item { Spacer(Modifier.height(100.dp)) }

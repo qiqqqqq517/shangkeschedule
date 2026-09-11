@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AppCard
@@ -416,7 +416,7 @@ fun TargetSelectionDialog(
 ) {
     var selectedTarget by remember { mutableStateOf(BackupTarget.entries.first()) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = {
@@ -459,7 +459,7 @@ fun WebDavConfigDialog(
     var inputPassword by remember { mutableStateOf("") }
     var inputRootPath by remember { mutableStateOf(state.rootPath) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.dialog_title_config_webdav)) },
         text = {

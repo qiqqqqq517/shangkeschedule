@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.course
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -415,7 +415,7 @@ fun AddEditCourseScreen(
 
     // 退出确认弹窗（统一操作区语言：危险色「不保存」+ 灰字「继续编辑」）
     if (showExitConfirmDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showExitConfirmDialog = false },
             title = {
                 Text(text = stringResource(Res.string.common_dialog_title_abandon_changes))

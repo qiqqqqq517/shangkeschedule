@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.theme.appColors
 
 import com.shangkeschedule.ui.components.AppRadioRow
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -82,7 +82,7 @@ fun WebDialogHost(
 /** 显示 Alert/Confirm 弹窗。 */
 @Composable
 private fun AlertHost(data: AlertDialogData, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(data.title) },
         text = { Text(data.content) },
@@ -112,7 +112,7 @@ private fun PromptHost(
         }
     }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onCancel,
         title = { Text(data.title) },
         text = {
@@ -149,7 +149,7 @@ private fun PromptHost(
 private fun SingleSelectionHost(data: SingleSelectionDialogData, onResult: (Int?) -> Unit) {
     var selectedIndex by rememberSaveable { mutableIntStateOf(data.defaultSelectedIndex) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = { onResult(null) },
         title = { Text(data.title) },
         text = {

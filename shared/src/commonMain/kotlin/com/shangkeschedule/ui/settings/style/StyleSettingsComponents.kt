@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +62,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.components.AdvancedColorPicker
@@ -412,7 +412,7 @@ fun StyleSliderItem(
     if (showDialog) {
         var textFieldValue by remember { mutableStateOf(formatValue(value)) }
 
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(label) },
             text = {

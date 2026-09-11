@@ -12,9 +12,11 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -398,39 +400,29 @@ fun Modifier.softSurface(
 }
 
 /**
- * 软模糊投影：真正把投影模糊掉（双层：近距离紧影 + 远距离散影）。
+ * 软模糊投影：一层低 alpha 的扩散影，边缘完全化开（软模糊投影 / 柔和阴影）。
  *
- * 与 Material elevation 的区别：elevation 是"实边阴影 + 系统模糊"，
- * 在浅色低对比界面上会显出一圈可辨认的硬边；这里改成两层极低 alpha 的
- * 扩散影，边缘完全化开，符合"软模糊投影 / 柔和阴影"。
+ * 性能修正：原实现叠**两层** [Modifier.shadow]（近距紧影 + 远距散影），
+ * 卡片每帧要为两层各建一个模糊渲染层，是柔绘卡顿的次要来源之一。
+ * 现合并为单层（alpha 略提以补偿），模糊渲染层减半，观感仍是漫射落影。
+ * 另加主题门禁：非柔绘主题直接 no-op，避免跨主题误叠。
  */
 @Composable
 fun Modifier.softShadow(
     shape: Shape,
     elevation: Dp = 10.dp
 ): Modifier {
+    if (!LocalIsSoftTheme.current) return this
     val tokens = appColors()
     val isDark = LocalIsDarkTheme.current
-    val e = elevation
-    val nearAlpha = if (isDark) 0.10f else 0.055f
-    val farAlpha = if (isDark) 0.07f else 0.035f
-    return this
-        // 近距离紧影：把卡片从底面上"抬"起来一点点
-        .shadow(
-            elevation = (e * 0.22f).coerceAtLeast(1.dp),
-            shape = shape,
-            clip = false,
-            ambientColor = tokens.shadow.copy(alpha = nearAlpha),
-            spotColor = tokens.shadow.copy(alpha = nearAlpha)
-        )
-        // 远距离散影：营造漫射柔光下的柔和落影
-        .shadow(
-            elevation = e,
-            shape = shape,
-            clip = false,
-            ambientColor = tokens.shadow.copy(alpha = farAlpha),
-            spotColor = tokens.shadow.copy(alpha = farAlpha)
-        )
+    val alpha = if (isDark) 0.12f else 0.07f
+    return this.shadow(
+        elevation = elevation,
+        shape = shape,
+        clip = false,
+        ambientColor = tokens.shadow.copy(alpha = alpha),
+        spotColor = tokens.shadow.copy(alpha = alpha)
+    )
 }
 
 /**
@@ -537,38 +529,47 @@ fun Modifier.softTexture(shape: Shape): Modifier {
     if (!LocalIsSoftTheme.current) return this
     val isDark = LocalIsDarkTheme.current
     val strokeAlpha = if (isDark) 0.045f else 0.055f
+    val dotAlpha = if (isDark) 0.020f else 0.030f
     val stroke = appColors().primary
-    return this.drawBehind {
-        // ① 右下角两道手绘感弧线
-        drawArc(
-            color = stroke.copy(alpha = strokeAlpha),
-            startAngle = 200f,
-            sweepAngle = 130f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.42f, size.height * 0.30f),
-            size = androidx.compose.ui.geometry.Size(size.width * 0.78f, size.height * 1.05f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.height * 0.06f)
-        )
-        drawArc(
-            color = stroke.copy(alpha = strokeAlpha * 0.7f),
-            startAngle = 200f,
-            sweepAngle = 120f,
-            useCenter = false,
-            topLeft = Offset(size.width * 0.56f, size.height * 0.48f),
-            size = androidx.compose.ui.geometry.Size(size.width * 0.66f, size.height * 0.92f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.height * 0.045f)
-        )
-        // ② 极淡颗粒：模拟手绘纸面（1px 点阵，步长 7px，alpha 3%）
-        val step = 7f
-        val dot = Color.White.copy(alpha = if (isDark) 0.020f else 0.030f)
+    return this.drawWithCache {
+        // 颗粒点阵预编译：把整片点阵一次性写进一条 Path，绘制时只需一次 drawPath。
+        // 此前是逐像素 drawCircle（步长 7px：一张大卡每帧上千次绘制调用，多卡同屏即掉帧），
+        // 这是柔绘卡顿的**主因**。改为单条 Path 后绘制调用降为 1 次；
+        // drawWithCache 保证点阵只在尺寸变化时重建，滚动/重绘不再重复生成。
+        // 步长 7 → 10px 进一步压低顶点量，3% alpha 下肉眼观感不变。
+        val step = 10f
+        val dots = Path()
         var y = 0f
-        while (y < size.height) {
+        while (y <= size.height) {
             var x = ((y / step).toInt() % 2) * (step / 2f)
-            while (x < size.width) {
-                drawCircle(color = dot, radius = 0.9f, center = Offset(x, y))
+            while (x <= size.width) {
+                dots.addOval(Rect(x - 0.9f, y - 0.9f, x + 0.9f, y + 0.9f))
                 x += step
             }
             y += step
+        }
+        onDrawBehind {
+            // ① 右下角两道手绘感弧线
+            drawArc(
+                color = stroke.copy(alpha = strokeAlpha),
+                startAngle = 200f,
+                sweepAngle = 130f,
+                useCenter = false,
+                topLeft = Offset(size.width * 0.42f, size.height * 0.30f),
+                size = androidx.compose.ui.geometry.Size(size.width * 0.78f, size.height * 1.05f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.height * 0.06f)
+            )
+            drawArc(
+                color = stroke.copy(alpha = strokeAlpha * 0.7f),
+                startAngle = 200f,
+                sweepAngle = 120f,
+                useCenter = false,
+                topLeft = Offset(size.width * 0.56f, size.height * 0.48f),
+                size = androidx.compose.ui.geometry.Size(size.width * 0.66f, size.height * 0.92f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.height * 0.045f)
+            )
+            // ② 极淡颗粒：一次填充整片点阵 Path
+            drawPath(path = dots, color = Color.White.copy(alpha = dotAlpha))
         }
     }
 }

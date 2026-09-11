@@ -239,6 +239,16 @@ class SettingsViewModel(
     }
 
     /**
+     * 「减弱动态效果」开关（v3.43.0 无障碍降级）。
+     * 开启后位移 / 缩放 / 错峰入场全部归零，只保留短促的不透明度溶解。
+     */
+    fun onReduceMotionChanged(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.updateReduceMotionEnabled(enabled)
+        }
+    }
+
+    /**
      * 动态取色开关 (Material You)
      */
     fun onUseDynamicColorChanged(enabled: Boolean) {

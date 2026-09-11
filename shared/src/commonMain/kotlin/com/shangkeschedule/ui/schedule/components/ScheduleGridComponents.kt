@@ -1,5 +1,8 @@
 ﻿package com.shangkeschedule.ui.schedule.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,10 +56,12 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.AppTypeGrid
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.softFeatherRim
+import kotlin.math.roundToInt
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -333,6 +338,7 @@ fun TimeColumn(
     val isSoft = LocalIsSoftTheme.current
     val activeSectionBackground = appColors().primarySoft.copy(alpha = if (isSoft) 0.26f else 0.4f)
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
+    val motion = LocalAppMotion.current
 
     Column(modifier.width(style.timeColumnWidth)) {
         for (index in 0 until maxGridSections) {
@@ -341,6 +347,25 @@ fun TimeColumn(
             } else {
                 index + 1 == currentSectionIndex
             }
+
+            // v3.43.0（《交互动效审查》P2）：当前节次高亮由「整块瞬切」改为令牌化渐变——
+            // 淡底、节次数字颜色、字重、柔绘内侧竖条浓度四者同步补间，时长取
+            // [MotionTokens.colorDurationMs]。跨节次的那一分钟不再是一帧硬跳。
+            val highlightFraction by animateFloatAsState(
+                targetValue = if (isCurrentHourActive) 1f else 0f,
+                animationSpec = tween(motion.tokens.colorDurationMs, easing = motion.tokens.expandEasing),
+                label = "currentSlotHighlight"
+            )
+            val slotBackground by animateColorAsState(
+                targetValue = if (isCurrentHourActive) activeSectionBackground else Color.Transparent,
+                animationSpec = tween(motion.tokens.colorDurationMs, easing = motion.tokens.expandEasing),
+                label = "currentSlotBackground"
+            )
+            val slotTextColor by animateColorAsState(
+                targetValue = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor,
+                animationSpec = tween(motion.tokens.colorDurationMs, easing = motion.tokens.expandEasing),
+                label = "currentSlotTextColor"
+            )
 
             BoxWithConstraints(
                 modifier = Modifier
@@ -356,7 +381,7 @@ fun TimeColumn(
                             Modifier
                         }
                     )
-                    .background(if (isCurrentHourActive) activeSectionBackground else Color.Transparent)
+                    .background(slotBackground)
                     .then(
                         // 当前节次左缘主色指示条：原有区块样式里没有这条竖条（节次高亮只靠主色淡底），
                         // 这里只在柔绘下新增一根「内侧渐变竖条」——因为柔绘把淡底换成了圆角薄涂块，
@@ -366,7 +391,7 @@ fun TimeColumn(
                                 val barWidth = 3.dp.toPx()
                                 drawRect(
                                     brush = Brush.horizontalGradient(
-                                        colors = listOf(activeLeftBorderColor, Color.Transparent),
+                                        colors = listOf(activeLeftBorderColor.copy(alpha = highlightFraction), Color.Transparent),
                                         startX = 0f,
                                         endX = barWidth
                                     ),
@@ -418,7 +443,7 @@ fun TimeColumn(
                             text = formatHourStr,
                             fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.timeLabel,
                             fontWeight = FontWeight.Medium,
-                            color = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor
+                            color = slotTextColor
                         )
                     } else {
                         val slot = timeSlots.getOrNull(index)
@@ -426,8 +451,9 @@ fun TimeColumn(
                             Text(
                                 text = slot.alias ?: slot.number.toString(),
                                 fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.dayHeader,
-                                fontWeight = if (isCurrentHourActive) FontWeight.ExtraBold else FontWeight.Bold,
-                                color = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor,
+                                // 字重也随高亮补间（Bold 700 → ExtraBold 800），避免颜色渐变时字重突兀跳档
+                                fontWeight = FontWeight((700f + 100f * highlightFraction).roundToInt().coerceIn(1, 1000)),
+                                color = slotTextColor,
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (!style.hideSectionTime) {

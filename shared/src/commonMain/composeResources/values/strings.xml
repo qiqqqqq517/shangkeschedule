@@ -760,7 +760,16 @@
     <string name="anim_group_nav_transition_desc">二级页前进返回的滑动过渡</string>
     <string name="anim_group_bar_hide">底栏隐藏</string>
     <string name="anim_group_bar_hide_desc">滚动时底栏与圆钮随之下滑淡出</string>
+    <string name="anim_group_bottom_sheet">底部面板</string>
+    <string name="anim_group_bottom_sheet_desc">面板升起与遮罩渐入的过渡</string>
+    <string name="anim_group_dialog">对话框</string>
+    <string name="anim_group_dialog_desc">确认弹窗出现与收起的过渡</string>
+    <string name="anim_group_tab_switch">切换标签</string>
+    <string name="anim_group_tab_switch_desc">底栏选中胶囊迁移与图标切换</string>
+    <string name="anim_reduce_motion">减弱动态效果</string>
+    <string name="anim_reduce_motion_desc">以淡入淡出替代位移与缩放，减少眩晕感</string>
     <string name="anim_settings_more_placeholder">更多动效分组（后续版本推出）</string>
+    <string name="anim_preview_transition">转场与滚动预览</string>
     <string name="anim_preview_replay">重播</string>
     <string name="anim_preview_press_hint">按住试试</string>
     <string name="desc_appearance_settings">主题风格、深色模式与课表外观微调</string>
