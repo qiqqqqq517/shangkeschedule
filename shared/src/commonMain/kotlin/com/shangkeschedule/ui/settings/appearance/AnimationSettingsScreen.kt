@@ -30,6 +30,7 @@ import com.shangkeschedule.ui.components.AppRadioIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
+import com.shangkeschedule.ui.components.AppSegmentedControl
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.rememberFabPressedScale
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.AnimationGroup
@@ -81,6 +83,8 @@ import shangkeschedule.shared.generated.resources.anim_reduce_motion
 import shangkeschedule.shared.generated.resources.anim_reduce_motion_desc
 import shangkeschedule.shared.generated.resources.anim_section_groups
 import shangkeschedule.shared.generated.resources.anim_section_groups_desc
+import shangkeschedule.shared.generated.resources.anim_section_speed
+import shangkeschedule.shared.generated.resources.anim_section_speed_desc
 import shangkeschedule.shared.generated.resources.anim_section_style
 import shangkeschedule.shared.generated.resources.anim_section_style_desc
 import shangkeschedule.shared.generated.resources.anim_settings_more_placeholder
@@ -103,7 +107,8 @@ import shangkeschedule.shared.generated.resources.style_demo_regular_course
  * 1. 实时预览——演示课程块（入场错峰）+ 演示胶囊（按压缩放），随当前风格/分组即时变化，
  *    「重播」可反复触发入场；
  * 2. 动效风格——三档四字效果名（琉璃轻弹 / 舒缓轻移 / 灵动跟手）单选；
- * 3. 动画分组——九个可独立开关的分组（关掉 ⇒ 该类动画瞬切无动效）+ 减弱动态效果 + 预留占位。
+ * 3. 动效速度——三档倍率统一缩放全部毫秒级时长（倍率越高越快）；
+ * 4. 动画分组——九个可独立开关的分组（关掉 ⇒ 该类动画瞬切无动效）+ 减弱动态效果 + 预留占位。
  *
  * 值经 `AppSettingsModel.animationStyle` + `disabledAnimationGroups` + `reduceMotionEnabled`
  * → `LocalAppMotion`
@@ -182,7 +187,30 @@ fun AnimationSettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
-            // 3) 动画分组
+            // 3) 动效速度（v3.44.0）：统一缩放全部毫秒级时长——倍率越高越快
+            Text(
+                text = stringResource(Res.string.anim_section_speed),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            Text(
+                text = stringResource(Res.string.anim_section_speed_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = appColors().textSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+            AppSegmentedControl(
+                options = MotionSpeed.entries.map { stringResource(it.labelRes) },
+                selectedIndex = MotionSpeed.entries.indexOf(settings.motionSpeed),
+                onSelect = { settingsViewModel.onMotionSpeedChanged(MotionSpeed.entries[it]) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+
+            // 4) 动画分组
             Text(
                 text = stringResource(Res.string.anim_section_groups),
                 style = MaterialTheme.typography.labelLarge,

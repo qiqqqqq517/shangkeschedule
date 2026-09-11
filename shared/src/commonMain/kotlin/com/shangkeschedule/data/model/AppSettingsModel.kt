@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import org.jetbrains.compose.resources.StringResource
 import shangkeschedule.shared.generated.resources.*
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
+import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
 import com.shangkeschedule.ui.theme.DefaultThemeColor
@@ -171,6 +172,13 @@ data class AppSettingsModel(
      * 对齐系统 Reduce Motion 语义（KMP 无统一系统 API，故由应用内开关驱动）。
      */
     val reduceMotionEnabled: Boolean = false,
+
+    /**
+     * 「动效速度」倍率（v3.44.0「动画效果」新增）。
+     * **数值越大越快**：实际时长 = 基线时长 ÷ 倍率；1.0 = 基线原速，默认 STANDARD = 1.55。
+     * 经 LocalAppMotion 注入，全 App 一处生效。
+     */
+    val motionSpeed: MotionSpeed = MotionSpeed.STANDARD,
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -206,6 +214,7 @@ data class AppSettingsModel(
         val KEY_ANIMATION_STYLE = stringPreferencesKey("animation_style")
         val KEY_DISABLED_ANIMATION_GROUPS = stringSetPreferencesKey("disabled_animation_groups")
         val KEY_REDUCE_MOTION_ENABLED = booleanPreferencesKey("reduce_motion_enabled")
+        val KEY_MOTION_SPEED = stringPreferencesKey("motion_speed")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -240,6 +249,7 @@ data class AppSettingsModel(
                     ?.toSet()
                     ?: d.disabledAnimationGroups,
                 reduceMotionEnabled = prefs[KEY_REDUCE_MOTION_ENABLED] ?: d.reduceMotionEnabled,
+                motionSpeed = MotionSpeed.fromString(prefs[KEY_MOTION_SPEED]),
             )
         }
     }

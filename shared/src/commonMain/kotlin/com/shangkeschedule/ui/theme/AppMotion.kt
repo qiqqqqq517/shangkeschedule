@@ -9,6 +9,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.compositionLocalOf
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.model.AppThemePreset
@@ -32,6 +33,9 @@ import shangkeschedule.shared.generated.resources.anim_group_tab_switch
 import shangkeschedule.shared.generated.resources.anim_group_tab_switch_desc
 import shangkeschedule.shared.generated.resources.anim_group_week_pager
 import shangkeschedule.shared.generated.resources.anim_group_week_pager_desc
+import shangkeschedule.shared.generated.resources.anim_speed_fast
+import shangkeschedule.shared.generated.resources.anim_speed_relaxed
+import shangkeschedule.shared.generated.resources.anim_speed_standard
 import shangkeschedule.shared.generated.resources.anim_style_gentle
 import shangkeschedule.shared.generated.resources.anim_style_gentle_desc
 import shangkeschedule.shared.generated.resources.anim_style_glass
@@ -60,6 +64,36 @@ import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
  * - [AnimationGroup]：九个可独立开关的动画分组。关掉某组 ⇒ [resolveMotion] 把该组令牌
  *   降级为「瞬切」；周翻页这类无法靠时长归零关闭的，用 [AppMotion.isEnabled] 显式分支。
  */
+
+/**
+ * 「动效速度」——全局时长缩放倍率（v3.44.0「动画效果」新增）。
+ *
+ * **倍率是「速度」不是「时长」**：数值越大越快，实际时长 = 基线时长 ÷ 倍率。
+ * `1.0` = 基线原速。用户入口在「个性化显示 → 动画效果 → 动效速度」。
+ *
+ * 三档落在 1.4–1.7：默认 [STANDARD] 1.55 对齐「在基线时长上统一设 1.5~1.6」的校准，
+ * 也就是比基线**快约 35%**——这正是把「淡入淡出磨蹭」压下去的主手段。
+ */
+enum class MotionSpeed(
+    val value: String,
+    /** 速度倍率：实际时长 = 基线时长 ÷ factor。 */
+    val factor: Float,
+    val labelRes: StringResource
+) {
+    /** 舒缓：比基线快约 23%（1.3×）。 */
+    RELAXED("RELAXED", 1.30f, Res.string.anim_speed_relaxed),
+
+    /** 标准（默认）：比基线快约 38%（1.6×）——对齐「在基线时长上统一设 1.5~1.6」。 */
+    STANDARD("STANDARD", 1.60f, Res.string.anim_speed_standard),
+
+    /** 快：比基线快约 50%（2.0×）。 */
+    FAST("FAST", 2.00f, Res.string.anim_speed_fast);
+
+    companion object {
+        fun fromString(value: String?): MotionSpeed =
+            entries.find { it.value == value } ?: STANDARD
+    }
+}
 
 /** 全局动画风格。三档对应三种性格，均可被用户选用，结构上预留后续新增。 */
 enum class AnimationStyle(
@@ -171,6 +205,17 @@ data class MotionTokens(
     /** FADE_UP / LAYER_PUSH 的位移量（新页从该偏移处淡入）。 */
     val navOffsetDp: Dp,
 
+    /**
+     * 退场（淡出）时长与曲线——**独立于入场**，遵循「慢进快出」。
+     *
+     * 入场可以慢（柔绘 600ms 是主题身份），但**旧页淡出必须快**：退场期间整屏处于
+     * 半透明态，拖得越久越像「卡住 / 磨蹭」。此前退场直接复用 [navDurationMs] 与
+     * 入场曲线，柔绘档还要再乘一条两端都慢的 `SymmetricEase`，于是 600ms 里旧页几乎
+     * 不动地糊在屏幕上——v3.43.1 修掉的手感缺陷。
+     */
+    val navExitDurationMs: Int,
+    val navExitEasing: Easing,
+
     // --- BAR_HIDE：底栏 / 圆钮下滑淡出（Float translationY + alpha） ---
     val hideDurationMs: Int,
     val hideEasing: Easing,
@@ -270,6 +315,7 @@ private val CriticallyDampedLowSpring = spring<Float>(
 /** 柔和顺滑（iOS 26 默认）：物理弹簧驱动，无过冲、丝滑收束。 */
 private val GlassTokens = MotionTokens(
     navDurationMs = 350, navEasing = IosSheetEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
+    navExitDurationMs = 240, navExitEasing = IosEase,
     hideDurationMs = 240, hideEasing = IosEase,
     emphasisScaleSpec = IosBouncySpring,
     emphasisFadeSpec = tween(220, easing = IosEase),
@@ -294,6 +340,7 @@ private val GlassTokens = MotionTokens(
 /** 轻盈舒缓：更慢更柔的弹簧，淡入 + 微位移，安静无弹跳。 */
 private val GentleTokens = MotionTokens(
     navDurationMs = 420, navEasing = GentleEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
+    navExitDurationMs = 300, navExitEasing = GentleEase,
     hideDurationMs = 320, hideEasing = GentleEase,
     emphasisScaleSpec = IosSmoothSpring,
     emphasisFadeSpec = tween(320, easing = GentleEase),
@@ -318,6 +365,7 @@ private val GentleTokens = MotionTokens(
 /** 灵动跟手（iOS 26 `.snappy` / `.bouncy`）：短促弹回，反馈强、跟手。 */
 private val SnappyTokens = MotionTokens(
     navDurationMs = 240, navEasing = SnappyEase, navTrailFraction = 1f / 3f, navOffsetDp = 0.dp,
+    navExitDurationMs = 160, navExitEasing = SnappyEase,
     hideDurationMs = 160, hideEasing = SnappyEase,
     emphasisScaleSpec = IosSnappySpring,
     emphasisFadeSpec = tween(140, easing = LinearOutSlowInEasing),
@@ -394,11 +442,15 @@ fun themeMotionProfile(preset: AppThemePreset): ThemeMotionProfile = when (prese
  * - 课程卡按压：柔绘 / 书卷禁用缩放与位移（`cellPressScale=1`、`cellLiftDp=0`），
  *   反馈改由 [MotionPressMode] 在调用点以浓度 / 底色表达；
  * - 悬浮件：柔绘取消居中缩放（纯位移淡入），书卷压到 0.94 且零过冲；
- * - 时长：面板 / 对话框 / Tab / 触摸 / 卡片按压 / 状态渐变按主题整体错开一档。
+ * - 时长：面板 / 对话框 / Tab / 触摸 / 卡片按压 / 状态渐变按主题整体错开一档；
+ * **但入场的「慢」不传染给退场**——退场一律走 [MotionTokens.navExitDurationMs] 等独立令牌（慢进快出）。
  */
 private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens = when (preset) {
     AppThemePreset.SOFT -> copy(
         navDurationMs = 600, navEasing = SymmetricEase, navTrailFraction = 0f, navOffsetDp = 6.dp,
+        // 慢进快出：入场 600ms 是柔绘身份；退场单独给更短的 380ms + 减速曲线
+        // （不退场复用入场时长——那是「淡出磨蹭」的根因）。两者再一起被「动效速度」统一缩放。
+        navExitDurationMs = 380, navExitEasing = IosEase,
         emphasisScaleSpec = CriticallyDampedLowSpring,
         emphasisFadeSpec = tween(360, easing = SymmetricEase),
         // 柔绘悬浮件：纯位移淡入，取消居中缩放（缩放会强调硬轮廓，与虚化边缘冲突）
@@ -419,6 +471,7 @@ private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens =
 
     AppThemePreset.CLAUDE -> copy(
         navDurationMs = 380, navEasing = IosEase, navTrailFraction = 0f, navOffsetDp = 14.dp,
+        navExitDurationMs = 240, navExitEasing = IosEase,
         emphasisScaleSpec = CriticallyDampedLowSpring,
         emphasisFadeSpec = tween(300, easing = IosEase),
         emphasisInitialScale = 0.94f,
@@ -439,6 +492,46 @@ private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens =
 }
 
 /**
+ * 「动效速度」统一缩放：把所有**以毫秒计的时长**除以速度倍率（1.0 = 基线原速）。
+ *
+ * 与 [reduced] / [gatedBy] 的分工 —— 调用顺序是
+ * `withThemePreset → reduced → speedScaled → gatedBy`：
+ * 本函数是**用户可调的整体快慢旋钮**，作用在主题分档之后、分组归零之前，
+ * 所以被关掉的分组仍然是 0（0 不参与除法，不会变成 1ms）。
+ *
+ * 刻意不缩放两类：
+ * ① 弹簧类（`*Spring` / `*Spec`）——物理参数不是时长，改时长无从谈起；
+ * ② [pulseDurationMs]（hero 呼吸等**环境循环动画**，不是过渡，缩放会改掉主题气质）。
+ */
+private fun MotionTokens.speedScaled(factor: Float): MotionTokens {
+    if (factor <= 0f || factor == 1f) return this
+    fun Int.s(): Int = if (this <= 0) this else (this / factor).roundToInt().coerceAtLeast(1)
+    return copy(
+        navDurationMs = navDurationMs.s(),
+        navExitDurationMs = navExitDurationMs.s(),
+        hideDurationMs = hideDurationMs.s(),
+        entranceDurationMs = entranceDurationMs.s(),
+        entranceStaggerMs = entranceStaggerMs.s(),
+        entranceStaggerCapMs = entranceStaggerCapMs.s(),
+        touchExpandMs = touchExpandMs.s(),
+        touchFadeMs = touchFadeMs.s(),
+        tabIndicatorMs = tabIndicatorMs.s(),
+        tabIconMs = tabIconMs.s(),
+        sheetEnterMs = sheetEnterMs.s(),
+        sheetExitMs = sheetExitMs.s(),
+        sheetScrimMs = sheetScrimMs.s(),
+        dialogEnterMs = dialogEnterMs.s(),
+        dialogExitMs = dialogExitMs.s(),
+        cardPressMs = cardPressMs.s(),
+        cardReleaseMs = cardReleaseMs.s(),
+        statusFadeMs = statusFadeMs.s(),
+        expandDurationMs = expandDurationMs.s(),
+        colorDurationMs = colorDurationMs.s(),
+        resizeDurationMs = resizeDurationMs.s(),
+    )
+}
+
+/**
  * 「减弱动态效果」降级：位移 / 缩放 / 错峰全部归零，只保留短促的不透明度溶解。
  *
  * 对齐《交互动效审查》P3 无障碍缺口——系统级 Reduce Motion 在 KMP 无统一 API，
@@ -447,6 +540,7 @@ private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens =
 private fun MotionTokens.reduced(): MotionTokens = copy(
     // 导航：只保留淡入淡出，取消一切位移与视差
     navDurationMs = 180, navTrailFraction = 0f, navOffsetDp = 0.dp,
+    navExitDurationMs = 140,
     // 悬浮件：不缩放，仅淡入
     emphasisScaleSpec = snap(),
     emphasisInitialScale = 1f,
@@ -497,6 +591,7 @@ private fun MotionTokens.gatedBy(disabledGroups: Set<AnimationGroup>): MotionTok
     // NAV_TRANSITION
     navDurationMs = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0 else navDurationMs,
     navOffsetDp = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0.dp else navOffsetDp,
+    navExitDurationMs = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0 else navExitDurationMs,
     navTrailFraction = if (AnimationGroup.NAV_TRANSITION in disabledGroups) 0f else navTrailFraction,
     // BAR_HIDE
     hideDurationMs = if (AnimationGroup.BAR_HIDE in disabledGroups) 0 else hideDurationMs,
@@ -533,18 +628,21 @@ private fun MotionTokens.gatedBy(disabledGroups: Set<AnimationGroup>): MotionTok
  *
  * @param preset 当前主题预设，决定动效语言（[themeMotionProfile] + 时长分档）。
  * @param reduceMotion 「减弱动态效果」开关，true 时位移/缩放/错峰全部归零。
+ * @param speed 「动效速度」倍率（越高越快），统一缩放全部毫秒级时长。
  */
 fun resolveMotion(
     style: AnimationStyle,
     disabledGroups: Set<AnimationGroup>,
     preset: AppThemePreset = AppThemePreset.default,
     reduceMotion: Boolean = false,
+    speed: MotionSpeed = MotionSpeed.STANDARD,
 ): AppMotion {
     val profile = themeMotionProfile(preset)
     var tokens = style.tokens.withThemePreset(preset)
     if (reduceMotion) {
         tokens = tokens.reduced()
     }
+    tokens = tokens.speedScaled(speed.factor)
     tokens = tokens.gatedBy(disabledGroups)
     return AppMotion(
         style = style,
@@ -558,6 +656,6 @@ fun resolveMotion(
 /**
  * 当前生效的全局动效配置。由 `ShangKeScheduleTheme` 从
  * `AppSettingsModel.animationStyle` + `disabledAnimationGroups` + `themePreset` +
- * `reduceMotionEnabled` 注入；调节入口在「外观与样式 → 个性化显示 → 动画效果」。
+ * `reduceMotionEnabled` + `motionSpeed` 注入；调节入口在「外观与样式 → 个性化显示 → 动画效果」。
  */
 val LocalAppMotion = compositionLocalOf { resolveMotion(AnimationStyle.GLASS, emptySet()) }

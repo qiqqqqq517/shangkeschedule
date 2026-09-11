@@ -12,6 +12,7 @@ import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
+import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -245,6 +246,15 @@ class SettingsViewModel(
     fun onReduceMotionChanged(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.updateReduceMotionEnabled(enabled)
+        }
+    }
+
+    /**
+     * 「动效速度」倍率（v3.44.0）：数值越大越快，统一缩放全部毫秒级时长。
+     */
+    fun onMotionSpeedChanged(speed: MotionSpeed) {
+        viewModelScope.launch {
+            appSettingsRepository.updateMotionSpeed(speed)
         }
     }
 

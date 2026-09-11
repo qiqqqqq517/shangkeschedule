@@ -761,6 +761,11 @@
     <string name="anim_group_dialog_desc">Dialog enter and exit transition</string>
     <string name="anim_group_tab_switch">Tab switch</string>
     <string name="anim_group_tab_switch_desc">Tab indicator migration and icon crossfade</string>
+    <string name="anim_section_speed">Motion speed</string>
+    <string name="anim_section_speed_desc">Sets the duration of all animations: page transitions, list and card entrances, sheets and dialogs, touch feedback.</string>
+    <string name="anim_speed_relaxed">Relaxed</string>
+    <string name="anim_speed_standard">Standard</string>
+    <string name="anim_speed_fast">Fast</string>
     <string name="anim_reduce_motion">Reduce motion</string>
     <string name="anim_reduce_motion_desc">Use cross-fades instead of movement and scaling</string>
     <string name="anim_settings_more_placeholder">More motion groups (coming soon)</string>
