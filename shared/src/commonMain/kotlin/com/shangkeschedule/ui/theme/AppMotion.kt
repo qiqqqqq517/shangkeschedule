@@ -66,13 +66,15 @@ import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
  */
 
 /**
- * 「动效速度」——全局时长缩放倍率（v3.44.0「动画效果」新增）。
+ * 「动效速度」——全局时长缩放倍率（v3.44.0「动画效果」新增 · v3.45.1 重新标定）。
  *
  * **倍率是「速度」不是「时长」**：数值越大越快，实际时长 = 基线时长 ÷ 倍率。
  * `1.0` = 基线原速。用户入口在「个性化显示 → 动画效果 → 动效速度」。
  *
- * 三档落在 1.4–1.7：默认 [STANDARD] 1.55 对齐「在基线时长上统一设 1.5~1.6」的校准，
- * 也就是比基线**快约 35%**——这正是把「淡入淡出磨蹭」压下去的主手段。
+ * v3.45.1 按用户反馈（「动效速度感知不强，整体调低一点」）重新标定：
+ * - **整体调低**：默认档 1.6× → **2.0×**，全站时长再压约 20%（等价于"默认更快"）；
+ * - **档位差距拉开**：旧 1.3 / 1.6 / 2.0 相邻只差 1.19~1.25 倍，切换几乎看不出快慢；
+ *   新 1.45 / 2.0 / 2.8 相邻差 1.38~1.4 倍（时长 −28% / −29%），一档一档按下去手感差别明确。
  */
 enum class MotionSpeed(
     val value: String,
@@ -80,14 +82,14 @@ enum class MotionSpeed(
     val factor: Float,
     val labelRes: StringResource
 ) {
-    /** 舒缓：比基线快约 23%（1.3×）。 */
-    RELAXED("RELAXED", 1.30f, Res.string.anim_speed_relaxed),
+    /** 舒缓：比基线快约 31%（1.45×）——比默认档慢约 38%，慢得能看出来。 */
+    RELAXED("RELAXED", 1.45f, Res.string.anim_speed_relaxed),
 
-    /** 标准（默认）：比基线快约 38%（1.6×）——对齐「在基线时长上统一设 1.5~1.6」。 */
-    STANDARD("STANDARD", 1.60f, Res.string.anim_speed_standard),
+    /** 标准（默认）：**快一倍**（2.0×）——全站时长减半，日常手感基准。 */
+    STANDARD("STANDARD", 2.00f, Res.string.anim_speed_standard),
 
-    /** 快：比基线快约 50%（2.0×）。 */
-    FAST("FAST", 2.00f, Res.string.anim_speed_fast);
+    /** 快：比基线快约 1.8 倍（2.8×）——干脆利落，几乎没有等待感。 */
+    FAST("FAST", 2.80f, Res.string.anim_speed_fast);
 
     companion object {
         fun fromString(value: String?): MotionSpeed =
@@ -208,10 +210,10 @@ data class MotionTokens(
     /**
      * 退场（淡出）时长与曲线——**独立于入场**，遵循「慢进快出」。
      *
-     * 入场可以慢（柔绘 600ms 是主题身份），但**旧页淡出必须快**：退场期间整屏处于
-     * 半透明态，拖得越久越像「卡住 / 磨蹭」。此前退场直接复用 [navDurationMs] 与
-     * 入场曲线，柔绘档还要再乘一条两端都慢的 `SymmetricEase`，于是 600ms 里旧页几乎
-     * 不动地糊在屏幕上——v3.43.1 修掉的手感缺陷。
+     * 入场可以慢（柔绘的"化开"感来自入场），但**旧页淡出必须快**：退场期间整屏处于
+     * 半透明态，拖得越久越像「卡住 / 磨蹭」。
+     * v3.43.1 修掉「退场复用入场时长」的根因；v3.45.1 再按用户反馈把柔绘档的
+     * 入场 600→420、退场 380→220（叠加默认倍率后实际 210 / 110ms）。
      */
     val navExitDurationMs: Int,
     val navExitEasing: Easing,
@@ -284,6 +286,15 @@ private val SnappyEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 /** 对称 ease-in-out：柔绘专用——两端等速、中段最缓，没有任何"折点"。 */
 private val SymmetricEase = CubicBezierEasing(0.45f, 0f, 0.55f, 1f)
+
+/**
+ * 柔绘**入场**曲线（v3.45.1）：起步快、收尾柔。
+ *
+ * [SymmetricEase] 两端等速，前 30% 几乎不动 —— 观感像「先愣一下再化开」，
+ * 这正是用户反馈的「进入 / 退出磨蹭」的来源之一。改为陡起步 + 长收尾：
+ * 触发即响应、落定仍柔软，且依旧单调、零过冲（不产生折点）。
+ */
+private val SoftEnterEase = CubicBezierEasing(0.22f, 0.55f, 0.24f, 1f)
 
 /**
  * iOS 26 物理弹簧（SwiftUI `.smooth` / `.snappy` / `.bouncy`）。
@@ -447,25 +458,29 @@ fun themeMotionProfile(preset: AppThemePreset): ThemeMotionProfile = when (prese
  */
 private fun MotionTokens.withThemePreset(preset: AppThemePreset): MotionTokens = when (preset) {
     AppThemePreset.SOFT -> copy(
-        navDurationMs = 600, navEasing = SymmetricEase, navTrailFraction = 0f, navOffsetDp = 6.dp,
-        // 慢进快出：入场 600ms 是柔绘身份；退场单独给更短的 380ms + 减速曲线
-        // （不退场复用入场时长——那是「淡出磨蹭」的根因）。两者再一起被「动效速度」统一缩放。
-        navExitDurationMs = 380, navExitEasing = IosEase,
+        // 柔绘身份：仍是三套里最慢的一档 —— 但 v3.45.1 按用户反馈（「进入和退出动画还是有点磨蹭」）
+        // 把「进入 / 退出」两类时长整体收紧，并把入场曲线由两端等速改为陡起步：
+        // 导航入场 600 → 420、退场 380 → 220；面板 620/380 → 420/220；弹窗 620/380 → 400/220。
+        // 叠加默认倍率（1.6 → 2.0）后，柔绘导航入场实际 375 → 210ms、退场 238 → 110ms。
+        navDurationMs = 420, navEasing = SoftEnterEase, navTrailFraction = 0f, navOffsetDp = 6.dp,
+        // 慢进快出：入场仍比退场长（柔绘的"化开"感来自入场），退场只留一次快速收束
+        navExitDurationMs = 220, navExitEasing = IosEase,
         emphasisScaleSpec = CriticallyDampedLowSpring,
-        emphasisFadeSpec = tween(360, easing = SymmetricEase),
+        emphasisFadeSpec = tween(260, easing = SoftEnterEase),
         // 柔绘悬浮件：纯位移淡入，取消居中缩放（缩放会强调硬轮廓，与虚化边缘冲突）
         emphasisInitialScale = 1f,
         pressSpec = CriticallyDampedSpring,
         pressScale = 1f,
         cellPressSpec = CriticallyDampedSpring,
         cellPressScale = 1f, cellLiftDp = 0.dp,
-        entranceEasing = SymmetricEase, entranceSlideDp = 0.dp,
-        entranceStaggerCapMs = 300,
-        touchExpandMs = 500, touchFadeMs = 320, touchEasing = SymmetricEase,
-        tabIndicatorMs = 420, tabIconMs = 220,
-        sheetEnterMs = 620, sheetExitMs = 380, sheetScrimMs = 500, sheetSlideDp = 0.dp,
-        dialogEnterMs = 620, dialogExitMs = 380,
-        cardPressMs = 180, cardReleaseMs = 500, statusFadeMs = 360,
+        entranceEasing = SoftEnterEase, entranceSlideDp = 0.dp,
+        entranceStaggerCapMs = 220,
+        touchExpandMs = 380, touchFadeMs = 240, touchEasing = SoftEnterEase,
+        tabIndicatorMs = 320, tabIconMs = 200,
+        sheetEnterMs = 420, sheetExitMs = 220, sheetScrimMs = 320, sheetSlideDp = 0.dp,
+        dialogEnterMs = 400, dialogExitMs = 220,
+        cardPressMs = 160, cardReleaseMs = 320, statusFadeMs = 300,
+        // 尺寸变化（展开 / 收起这类"体积"过渡）保留对称曲线：它不是"进入"，两端等速才不像被推
         resizeEasing = SymmetricEase,
     )
 
