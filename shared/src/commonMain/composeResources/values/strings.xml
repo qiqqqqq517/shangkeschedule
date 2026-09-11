@@ -742,6 +742,11 @@
     <string name="glass_refraction_depth">玻璃厚度感</string>
     <string name="glass_refraction_depth_desc">让玻璃内部也有轻微汇聚，观感更像一块有厚度的实心玻璃</string>
     <string name="glass_refraction_unsupported">当前系统不支持边缘折射（需 Android 13 及以上），已自动使用普通模糊玻璃</string>
+    <!-- 折射档位：刻意与「模糊强度」档位（关闭/清澈/标准/磨砂）用不同措辞，避免同页两排同名按钮造成误点 -->
+    <string name="glass_refraction_preset_none">不折射</string>
+    <string name="glass_refraction_preset_subtle">轻微</string>
+    <string name="glass_refraction_preset_obvious">明显</string>
+    <string name="glass_refraction_preset_strong">强烈</string>
     <string name="glass_preset_off">关闭</string>
     <string name="glass_preset_light">清澈</string>
     <string name="glass_preset_standard">标准</string>

@@ -104,6 +104,17 @@ fun Modifier.liquidGlass(
     val tokens = appColors()
     val isDark = LocalIsDarkTheme.current
 
+    // v3.47.0 修订：折射开启时切到「参考实现（backdrop）」光学。
+    // 参考实现的玻璃**几乎没有描边环与暗边** —— 存在感来自边缘折射 + 柔和镜面高光；
+    // 而本项目原有的「1dp 暗轮廓 + 三层亮/暗环」是为"无透镜的克制玻璃"调的，
+    // 一旦叠加折射，就会读成"描了边的实心胶囊"，把液态感压死（用户实测反馈：
+    // "和原仓库的感觉完全没有"）。故开启折射时：描边大幅削弱、镜面高光略增。
+    // 关闭折射时三个系数恒为 1 ⇒ 基线路径逐像素不变。
+    val referenceOptics = refractionBackdrop != null
+    val rimScale = if (referenceOptics) 0.18f else 1f
+    val outlineScale = if (referenceOptics) 0.12f else 1f
+    val specularBoost = if (referenceOptics) 1.35f else 1f
+
     // 表面不透明度：对齐 backdrop 的 LiquidButton（其 surface 默认为 Unspecified，
     // 即一块色都不画）。这里做不到完全不画（否则在纯白底色上形状会彻底消失、
     // 也不利于图标可读性），故只保留刚够压住噪点的一档，形态辨识交给边缘光学。
@@ -115,17 +126,17 @@ fun Modifier.liquidGlass(
     // 边缘光学力度：混合模式必须是 Screen 而非 Plus——Plus 直接把 RGB 相加，
     // 浅色内容上会瞬间顶到 255 纯白，把底下内容洗掉（实测 2217-2230 全为 255 的教训）。
     // Screen 是饱和式加亮（1-(1-a)(1-b)），越亮加得越少，既立体又保留内容层次。
-    val sheenAlpha = if (isDark) 0.08f else 0.12f
-    val topInnerAlpha = if (isDark) 0.12f else 0.26f
+    val sheenAlpha = (if (isDark) 0.08f else 0.12f) * specularBoost
+    val topInnerAlpha = (if (isDark) 0.12f else 0.26f) * specularBoost
     val bottomInnerAlpha = if (isDark) 0.08f else 0.15f
-    val specularAlpha = if (isDark) 0.08f else 0.16f
+    val specularAlpha = (if (isDark) 0.08f else 0.16f) * specularBoost
     // 表面几乎不再遮盖，玻璃的存在感改由边缘光学承担：亮环与暗环力度都要上调
-    val rimBright = if (isDark) 0.34f else 0.88f
-    val rimDim = if (isDark) 0.07f else 0.18f
-    val rimMid = if (isDark) 0.18f else 0.52f
+    val rimBright = (if (isDark) 0.34f else 0.88f) * rimScale
+    val rimDim = (if (isDark) 0.07f else 0.18f) * rimScale
+    val rimMid = (if (isDark) 0.18f else 0.52f) * rimScale
     // 贴边暗环：玻璃与外界折射的最外一圈，浅色背景上给玻璃"边界感"
-    val edgeShade = if (isDark) 0.34f else 0.16f
-    val outlineAlpha = if (isTransparent) 0.26f else if (isDark) 0.34f else 0.14f
+    val edgeShade = (if (isDark) 0.34f else 0.16f) * rimScale
+    val outlineAlpha = (if (isTransparent) 0.26f else if (isDark) 0.34f else 0.14f) * outlineScale
     val rimWidth = 1.1.dp
 
     return this
