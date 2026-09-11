@@ -231,6 +231,63 @@ data class ScheduleGridStyle(
             courseTextColorLong = null,
             backgroundImagePath = null
         )
+
+        // --- 柔绘（SOFT）主题专属课表样式 ---
+        // 柔绘的课表不靠色条硬切，而是靠「低饱和同色晕染底 + 虚化圆角 + 软模糊投影」分层。
+        // 颜色取低饱和马卡龙档（与 SoftStyle.kt 的语义色同饱和度），浅色档给足 alpha（0x33）
+        // 让块本身成为一块「薄涂色」，深色档提亮一档保证暗底可读。
+        private val SOFT_COLOR_MAPS = listOf(
+            DualColor(light = Color(0x337C86C9), dark = Color(0xFF9AA3DC)), // 雾蓝紫（主色）
+            DualColor(light = Color(0x337BAE8C), dark = Color(0xFF97C4A6)), // 苔绿
+            DualColor(light = Color(0x33D9A97E), dark = Color(0xFFE0BB96)), // 暖杏
+            DualColor(light = Color(0x33C98FA8), dark = Color(0xFFDBAAC0)), // 藕粉
+            DualColor(light = Color(0x337FA8C4), dark = Color(0xFF9CC0D8)), // 雾青
+            DualColor(light = Color(0x339A93B8), dark = Color(0xFFB3ACCF)), // 灰紫
+            DualColor(light = Color(0x33D8C089), dark = Color(0xFFE0CD9E)), // 淡金
+            DualColor(light = Color(0x33CC8A8A), dark = Color(0xFFDDA0A0)), // 陶土粉
+            DualColor(light = Color(0x338FA8A0), dark = Color(0xFFA8C0B8)), // 灰绿
+            DualColor(light = Color(0x33A89AC4), dark = Color(0xFFBDB2D6)), // 淡紫
+            DualColor(light = Color(0x33C4A88F), dark = Color(0xFFD6BFA8)), // 椰棕
+            DualColor(light = Color(0x338FA0C4), dark = Color(0xFFA8B8D6)), // 灰蓝
+        )
+
+        private const val SOFT_BLOCK_CORNER_RADIUS = 16f    // 虚化圆角：比通透的 12 更圆
+        private const val SOFT_SECTION_HEIGHT = 72f         // 节高略高，留白更干净
+        private const val SOFT_BLOCK_OUTER_PADDING = 2f     // 块间距加大，避免晕染互相干扰
+        private const val SOFT_BLOCK_INNER_PADDING = 3f
+        private const val SOFT_FONT_SCALE = 1.08f
+
+        /**
+         * 柔绘（SOFT）主题专属课表样式：
+         * - 低饱和同色晕染底（无左侧色条硬切，靠薄涂底色区分课程）
+         * - 16dp 虚化圆角、隐藏网格线、文字左对齐
+         * - 72dp 节高、块间距 2dp（晕染块之间留呼吸）
+         */
+        val SOFT = ScheduleGridStyle(
+            timeColumnWidthDp = 44f,
+            dayHeaderHeightDp = 48f,
+            sectionHeightDp = SOFT_SECTION_HEIGHT,
+            courseBlockCornerRadiusDp = SOFT_BLOCK_CORNER_RADIUS,
+            courseBlockOuterPaddingDp = SOFT_BLOCK_OUTER_PADDING,
+            courseBlockInnerPaddingDp = SOFT_BLOCK_INNER_PADDING,
+            courseBlockAlphaFloat = DEFAULT_BLOCK_ALPHA,
+            courseColorMaps = SOFT_COLOR_MAPS,
+            courseBlockFontScale = SOFT_FONT_SCALE,
+            hideGridLines = true,
+            hideSectionTime = false,
+            hideDateUnderDay = false,
+            showStartTime = false,
+            hideLocation = false,
+            hideTeacher = false,
+            removeLocationAt = false,
+            textAlignCenterHorizontal = false,
+            textAlignCenterVertical = false,
+            borderType = BorderTypeProto.BORDER_TYPE_NONE,
+            scheduleMode = ScheduleModeProto.SECTION_MODE,
+            pageTextColorLong = null,
+            courseTextColorLong = null,
+            backgroundImagePath = null
+        )
     }
 }
 

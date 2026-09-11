@@ -46,6 +46,8 @@ import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softShadow
 
 /**
  * 主题预设相关渲染参数：在 CourseBlock 入口统一计算一次，
@@ -74,6 +76,9 @@ private fun buildPresetRenderSpec(
 ): CourseBlockPresetRender {
     // 云舒（SLEEPY）主题已删除，其专属投影分支不再存在；isStripStylePreset = 通透（iOS 26）
     val isStripStylePreset = themePreset == AppThemePreset.IOS
+    // 柔绘（SOFT）：色条、文字色与通透同口径（不参与下面 blockBackgroundColor 的粒度拆分）；
+    // 材质差异走「软模糊投影 + 羽化描边 + 细柔和色条」，在材质层单独处理。
+    val isSoftPreset = themePreset == AppThemePreset.SOFT
 
     // iOS 左侧色条主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light半透明/strip=dark，深色模式 bg=dark半透明/strip=dark
     // 这样用户在个性化配置中修改课程颜色后，色条主题的背景和色条都会同步变化。
@@ -88,17 +93,26 @@ private fun buildPresetRenderSpec(
     val timetableStrip = timetableDual.dark
     val timetableText = timetableDual.dark
 
-    val blockBackgroundColor = if (isStripStylePreset) timetableBg else blockColor
-    val stripColor = if (isStripStylePreset) timetableStrip
+    // 色条主题与柔绘共用「淡底 + 深色条」取色口径（透通为 isStripStylePreset，
+    // 柔绘为 isSoftPreset），两者都从 courseColorMaps 取 light/dark 对。
+    val usesStripPalette = isStripStylePreset || isSoftPreset
+    val blockBackgroundColor = if (usesStripPalette) timetableBg else blockColor
+    val stripColor = if (usesStripPalette) timetableStrip
         else (courseColorAdapted ?: fallbackColorAdapted).scaleAlpha(currentAlpha)
-    val textColor = if (isStripStylePreset) timetableText
+    val textColor = if (usesStripPalette) timetableText
         else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
 
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
     // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层；
+    // 柔绘改为常驻一层极淡软模糊投影（elevation 6dp）——低对比界面上课程块需要一点"离地感"
+    // 才能与晕染底分开，但投影 alpha 极低，不会形成硬边落影。
     // 悬浮态由 floatingShadowModifier 单独抬升。
-    val sleepyShadowModifier = Modifier
-    val timetableStartPadding = if (isStripStylePreset) 4.dp else 0.dp
+    val sleepyShadowModifier = if (isSoftPreset) {
+        Modifier.softShadow(shape = shape, elevation = 6.dp)
+    } else {
+        Modifier
+    }
+    val timetableStartPadding = if (usesStripPalette) 4.dp else 0.dp
     // 非当前周降级遮罩：0.618 为书卷主题有意的黄金比例设计值（豁免），通透沿用同一档位。
     val demotedOverlayAlpha = 0.618f
 
@@ -186,8 +200,13 @@ fun CourseBlock(
     val borderWidth = if (isFloating) 2.dp else 1.dp
     val borderAlpha = if (isFloating) 1.0f else style.courseBlockAlpha
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
+    val isSoftTheme = themePreset == AppThemePreset.SOFT
 
-    val borderModifier = when (style.borderType) {
+    // 柔绘：课程块**没有任何 1dp/2dp 实色描边**（含用户在课表样式里选的实线/虚线描边）——
+    // 「无锐利硬边缘」是柔绘的硬约束；层级改由软模糊投影 + 羽化描边表达。
+    val borderModifier = if (isSoftTheme) {
+        Modifier
+    } else when (style.borderType) {
         BorderTypeProto.BORDER_TYPE_SOLID -> {
             Modifier.border(borderWidth, borderColor.copy(alpha = borderAlpha), shape)
         }
@@ -211,11 +230,11 @@ fun CourseBlock(
     val verticalArrangement = if (style.textAlignCenterVertical) Arrangement.Center else Arrangement.Top
     val textAlign = if (style.textAlignCenterHorizontal) TextAlign.Center else TextAlign.Start
 
-    // 选中捏起时，增加三维物理阴影
-    val floatingShadowModifier = if (isFloating) {
-        Modifier.shadow(elevation = 8.dp, shape = shape, clip = false)
-    } else {
-        Modifier
+    // 选中捏起时，增加三维物理阴影（柔绘改用软模糊投影，投影边缘完全化开）
+    val floatingShadowModifier = when {
+        !isFloating -> Modifier
+        isSoftTheme -> Modifier.softShadow(shape = shape, elevation = 12.dp)
+        else -> Modifier.shadow(elevation = 8.dp, shape = shape, clip = false)
     }
 
     val sleepyShadowModifier = presetRender.sleepyShadowModifier
@@ -228,6 +247,7 @@ fun CourseBlock(
             .then(borderModifier)
             .clip(shape)
             .background(color = presetRender.blockBackgroundColor)
+            .then(if (isSoftTheme) Modifier.softFeatherRim(shape) else Modifier)
     ) {
         // 左侧色条：宽 4dp，贯穿整个块高度
         if (presetRender.timetableStartPadding > 0.dp) {

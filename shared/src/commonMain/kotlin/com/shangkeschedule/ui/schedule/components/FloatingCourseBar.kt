@@ -40,6 +40,9 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softGlow
+import com.shangkeschedule.ui.theme.softShadow
 import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -86,9 +89,11 @@ fun FloatingCourseBar(
     ) {
         floatingCourse?.let { cw ->
             val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-            // 书卷：不透明分组底 + 实色描边；通透（iOS 26）：与底栏胶囊同源的 Liquid Glass
-            val surfaceModifier = if (isClaude) {
-                Modifier
+            val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+            // 书卷：不透明分组底 + 实色描边；通透（iOS 26）：与底栏胶囊同源的 Liquid Glass；
+            // 柔绘：薄涂主色淡底 + 软模糊投影 + 漫射柔光 + 羽化描边（无实色描边、无锐利硬边缘）
+            val surfaceModifier = when {
+                isClaude -> Modifier
                     .shadow(
                         elevation = 8.dp,
                         shape = CircleShape,
@@ -99,8 +104,13 @@ fun FloatingCourseBar(
                     .clip(CircleShape)
                     .background(claudeGroupBg())
                     .border(0.5.dp, claudeGroupBorder(), CircleShape)
-            } else {
-                Modifier.liquidGlass(
+                isSoft -> Modifier
+                    .softShadow(shape = CircleShape, elevation = 10.dp)
+                    .clip(CircleShape)
+                    .background(appColors().cardBg)
+                    .softGlow(CircleShape)
+                    .softFeatherRim(CircleShape)
+                else -> Modifier.liquidGlass(
                     hazeState = hazeState,
                     shape = CircleShape,
                     containerColor = appColors().inputBg,
@@ -108,8 +118,10 @@ fun FloatingCourseBar(
                     shadowElevation = 10.dp
                 )
             }
-            val titleColor = if (isClaude) appColors().textPrimary else contentColor
-            val accentColor = if (isClaude) appColors().primary else contentColor
+            // 柔绘：悬浮条是页面内的卡片件，文字色回落到语义色（与书卷同口径）；
+            // 柔绘低对比配色下，自定义 contentColor（壁纸模式）不保证在薄涂底上的可读性。
+            val titleColor = if (isClaude || isSoft) appColors().textPrimary else contentColor
+            val accentColor = if (isClaude || isSoft) appColors().primary else contentColor
             Row(
                 modifier = surfaceModifier
                     .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),

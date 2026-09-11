@@ -81,6 +81,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.iosGlassRim
+import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -925,31 +926,41 @@ fun TimeSlotItem(
 
 /**
  * 「恢复默认」按钮：整宽卡片钮，主色文字；圆角随主题卡 token
- * （书卷 14dp / 通透 iOS 26 16dp 连续圆角，均来自 [appShapes] 分发）。
+ * （书卷 14dp / 通透 iOS 26 16dp 连续圆角 / 柔绘 24dp 虚化圆角，均来自 [appShapes] 分发）。
  */
 @Composable
 private fun RestoreDefaultButton(
     onClick: () -> Unit
 ) {
     val colors = appColors()
-    val shape = if (LocalThemePreset.current == AppThemePreset.CLAUDE) {
+    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    val shape = if (isClaude) {
         RoundedCornerShape(14.dp)
     } else {
         appShapes().card
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
+    // 柔绘：整钮换成薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边），
+    // 取代「clip + background + 0.5dp 实色描边」——无锐利硬边缘。
+    val containerModifier = if (isSoft) {
+        Modifier.softSurface(shape = shape, containerColor = colors.cardBgElevated, elevation = 6.dp)
+    } else {
+        Modifier
             .clip(shape)
             .background(colors.cardBgElevated)
             .then(
-                if (LocalThemePreset.current == AppThemePreset.CLAUDE) {
+                if (isClaude) {
                     Modifier.border(0.5.dp, colors.divider, shape)
                 } else {
                     // 通透（iOS 26）：玻璃高光内描边 + 发丝分隔线
                     Modifier.iosGlassRim(shape).border(0.5.dp, colors.divider, shape)
                 }
             )
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(containerModifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center

@@ -92,6 +92,10 @@ import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 import com.shangkeschedule.ui.theme.iosGlassRim
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softShadow
+import com.shangkeschedule.ui.theme.softSurface
+import com.shangkeschedule.ui.theme.softTexture
 import com.shangkeschedule.data.model.AppThemePreset
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -336,10 +340,27 @@ fun AppCard(
 ) {
     val tokens = appColors()
     val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    val finalShape = if (isClaude) RoundedCornerShape(14.dp) else shape
-    val container = containerColor ?: if (isClaude) claudeGroupBg() else tokens.cardBg
-    Box(
-        modifier = modifier
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 书卷：14dp 圆角 + 暖米色分组底 + 0.5dp 实色描边；
+    // 通透（iOS 26）：16dp 连续圆角 + 白卡 + 玻璃高光内描边；
+    // 柔绘：24dp 虚化圆角（appShapes().card）+ 薄涂卡材质（软模糊投影 + 漫射柔光 + 手绘纹理 + 羽化描边）
+    val finalShape = when {
+        isClaude -> RoundedCornerShape(14.dp)
+        isSoft -> appShapes().card
+        else -> shape
+    }
+    val container = containerColor ?: when {
+        isClaude -> claudeGroupBg()
+        else -> tokens.cardBg
+    }
+    val surfaceModifier = if (isSoft) {
+        // 显式传入底色时视为「局部卡」（如高亮卡），不叠手绘纹理，避免纹理干扰其上文字；
+        // 默认分组卡才叠 softTexture（大卡面专用，装饰性，alpha ≤ 0.05 不影响可读性）
+        Modifier
+            .softSurface(shape = finalShape, containerColor = containerColor, elevation = 10.dp)
+            .then(if (containerColor == null) Modifier.softTexture(finalShape) else Modifier)
+    } else {
+        Modifier
             .shadow(
                 elevation = (if (isClaude) 1 else 1).dp,
                 shape = finalShape,
@@ -349,12 +370,17 @@ fun AppCard(
             )
             .clip(finalShape)
             .background(container)
+    }
+    Box(
+        modifier = modifier
+            .then(surfaceModifier)
             .then(
-                if (isClaude) {
-                    Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
-                } else {
+                when {
+                    isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
+                    // 柔绘：无实色描边，改用羽化描边环（softSurface 已内含，此处对显式底色卡补齐）
+                    isSoft -> Modifier.softFeatherRim(finalShape)
                     // 通透（iOS 26）：白卡 + 玻璃高光内描边（靠材质分层，不用实色描边）
-                    Modifier.iosGlassRim(finalShape)
+                    else -> Modifier.iosGlassRim(finalShape)
                 }
             )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -627,20 +653,30 @@ fun AppSwitch(
     enabled: Boolean = true
 ) {
     val tokens = appColors()
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 柔绘：轨道色降饱和（success 0x7BAE8C 再压一档 → 72%，避免低对比界面上开关"跳"出来），
+    // 未选中轨道同样压淡一档；并加羽化描边环替代任何实色描边。
+    // 柔绘圆角：M3 开关轨道本身是全高胶囊，这里只把外层按 appShapes().capsule 收敛，
+    // 使左右端与柔绘整体圆角阶梯一致。
+    val softTrackAlpha = 0.72f
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
-        modifier = modifier,
+        modifier = if (isSoft) {
+            modifier.softFeatherRim(appShapes().capsule)
+        } else {
+            modifier
+        },
         enabled = enabled,
         colors = SwitchDefaults.colors(
             checkedThumbColor = Color.White,
-            checkedTrackColor = tokens.success,
+            checkedTrackColor = if (isSoft) tokens.success.copy(alpha = softTrackAlpha) else tokens.success,
             checkedBorderColor = Color.Transparent,
-            checkedIconColor = tokens.success,
+            checkedIconColor = if (isSoft) tokens.success.copy(alpha = softTrackAlpha) else tokens.success,
             uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = tokens.inputBg,
+            uncheckedTrackColor = if (isSoft) tokens.inputBg.copy(alpha = 0.78f) else tokens.inputBg,
             uncheckedBorderColor = Color.Transparent,
-            uncheckedIconColor = tokens.inputBg
+            uncheckedIconColor = if (isSoft) tokens.inputBg.copy(alpha = 0.78f) else tokens.inputBg
         )
     )
 }
@@ -815,11 +851,14 @@ fun AppSegmentedControl(
     modifier: Modifier = Modifier
 ) {
     val tokens = appColors()
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 柔绘：容器底压淡一档（低对比），选中胶囊改用软模糊投影 + 羽化描边，不用硬边 elevation 投影
+    val softContainer = tokens.inputBg.copy(alpha = 0.78f)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(CircleShape)
-            .background(tokens.inputBg)
+            .background(if (isSoft) softContainer else tokens.inputBg)
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -830,17 +869,26 @@ fun AppSegmentedControl(
                     .weight(1f)
                     .clip(CircleShape)
                     .then(
-                        if (selected) {
-                            Modifier.shadow(
-                                elevation = 2.dp,
-                                shape = CircleShape,
-                                clip = false,
-                                ambientColor = tokens.shadow,
-                                spotColor = tokens.shadow
-                            )
-                        } else Modifier
+                        when {
+                            // 柔绘：软模糊投影（双层扩散影）替代 elevation 硬边投影
+                            selected && isSoft -> Modifier
+                                .softShadow(shape = CircleShape, elevation = 4.dp)
+                                .clip(CircleShape)
+                                .background(tokens.cardBg)
+                                .softFeatherRim(CircleShape)
+                            isSoft -> Modifier.background(Color.Transparent)
+                            selected -> Modifier
+                                .shadow(
+                                    elevation = 2.dp,
+                                    shape = CircleShape,
+                                    clip = false,
+                                    ambientColor = tokens.shadow,
+                                    spotColor = tokens.shadow
+                                )
+                                .background(tokens.cardBg)
+                            else -> Modifier.background(Color.Transparent)
+                        }
                     )
-                    .background(if (selected) tokens.cardBg else Color.Transparent)
                     .clickable { onSelect(index) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.theme
+package com.shangkeschedule.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +67,24 @@ data class AppColorTokens(
     val snackbarBg: Color,
     val snackbarFg: Color,
     // 阴影基色
-    val shadow: Color
+    val shadow: Color,
+    /**
+     * Material `outline` 角色：只被 M3 自带描边组件读取
+     * （OutlinedButton / OutlinedTextField / Switch 未选中边框 / 默认 Divider）。
+     *
+     * 默认值刻意保持 Material 3 基线 `#79747E` —— 书卷、通透两套既有主题
+     * **不传该字段即等于原行为，视觉零变化**；柔绘显式传低对比淡边，
+     * 以消除全站唯一残留的 1dp 硬灰描边（柔绘「无锐利硬边缘」）。
+     */
+    val outline: Color = Color(0xFF79747E),
+    /**
+     * Material `outlineVariant` 角色：默认 Divider / 未聚焦 Outlined 组件的浅色描边。
+     *
+     * 默认值刻意保持 Material 3 基线 `#CAC4D0` —— 书卷、通透不传该字段即等于
+     * 原行为，视觉零变化（此前用 `outline × 50% alpha` 推导会得到 `#8079747E`，
+     * 与基线不一致，会让两套既有主题的默认分隔线变深，已修正）。
+     */
+    val outlineVariant: Color = Color(0xFFCAC4D0)
 ) {
     val headerGradient: Brush
         get() = Brush.linearGradient(
@@ -180,14 +197,17 @@ fun appColorTokens(isDark: Boolean): AppColorTokens =
 /**
  * 按主题预设取颜色 tokens：通透（iOS）深浅模式均走独立 Apple HIG 色板，
  * Claude（CLAUDE）深浅模式均走 Anthropic/Claude 设计系统色板，
- * 两者严格锁定各自系统色系（不跟随动态取色/自定义主色），
- * 其余预设沿用 v2 基线 token；深色模式下非 iOS / 非 CLAUDE 预设走统一深色 tokens。
+ * 柔绘（SOFT）深浅模式均走低饱和柔绘色板，
+ * 三者严格锁定各自色系（不跟随动态取色/自定义主色），
+ * 其余预设沿用 v2 基线 token；深色模式下非 iOS / 非 CLAUDE / 非 SOFT 预设走统一深色 tokens。
  */
 fun appColorTokens(isDark: Boolean, preset: AppThemePreset): AppColorTokens = when {
     preset == AppThemePreset.IOS && isDark -> iosDarkAppColorTokens()
     preset == AppThemePreset.IOS -> iosLightAppColorTokens()
     preset == AppThemePreset.CLAUDE && isDark -> claudeDarkAppColorTokens()
     preset == AppThemePreset.CLAUDE -> claudeLightAppColorTokens()
+    preset == AppThemePreset.SOFT && isDark -> softDarkAppColorTokens()
+    preset == AppThemePreset.SOFT -> softLightAppColorTokens()
     isDark -> darkAppColorTokens()
     else -> lightAppColorTokens()
 }
@@ -270,7 +290,12 @@ fun ColorScheme.withAppSurfaces(tokens: AppColorTokens): ColorScheme = copy(
     surfaceDim = tokens.pageBg,
     surfaceBright = tokens.cardBg,
     onSurface = tokens.textPrimary,
-    onSurfaceVariant = tokens.textSecondary
+    onSurfaceVariant = tokens.textSecondary,
+    // M3 自带描边组件（OutlinedButton / OutlinedTextField / Switch 边框 / 默认 Divider）
+    // 统一走主题 outline / outlineVariant 角色：书卷/通透不传字段 = Material 基线原值，
+    // 视觉零变化；柔绘传低对比淡边，去掉全站残留的 1dp 硬灰描边。
+    outline = tokens.outline,
+    outlineVariant = tokens.outlineVariant
 )
 
 // ============================================================================
@@ -365,20 +390,26 @@ fun appSpacing(): AppSpacingTokens = LocalAppSpacingTokens.current
 @Composable
 fun appType(): AppTypeTokens = LocalAppTypeTokens.current
 
-/** 按主题预设取形状 tokens：通透走 iOS 26 连续圆角，书卷走设计系统圆角阶梯。 */
+/** 按主题预设取形状 tokens：通透走 iOS 26 连续圆角，柔绘走虚化大圆角，书卷走设计系统圆角阶梯。 */
 fun appShapeTokens(preset: AppThemePreset): AppShapeTokens = when (preset) {
     AppThemePreset.CLAUDE -> claudeShapeTokens
+    AppThemePreset.SOFT -> softShapeTokens
     else -> iosShapeTokens
 }
 
-/** 按主题预设取间距 tokens：通透走 iOS 26 8pt 网格，书卷走设计系统留白。 */
+/** 按主题预设取间距 tokens：通透走 iOS 26 8pt 网格，柔绘走干净留白，书卷走设计系统留白。 */
 fun appSpacingTokens(preset: AppThemePreset): AppSpacingTokens = when (preset) {
     AppThemePreset.CLAUDE -> claudeSpacingTokens
+    AppThemePreset.SOFT -> softSpacingTokens
     else -> iosSpacingTokens
 }
 
-/** 按主题预设取字阶 tokens：通透走 iOS 26 SF 字阶，书卷走设计系统字阶。 */
+/** 按主题预设取字阶 tokens：通透走 iOS 26 SF 字阶，柔绘走轻字重柔绘字阶，书卷走设计系统字阶。 */
 fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
     AppThemePreset.CLAUDE -> claudeTypeTokens
+    AppThemePreset.SOFT -> softTypeTokens
     else -> iosTypeTokens
 }
+
+/** CompositionLocal：当前是否柔绘主题（供材质层做形态判定）。 */
+val LocalIsSoftTheme = staticCompositionLocalOf { false }

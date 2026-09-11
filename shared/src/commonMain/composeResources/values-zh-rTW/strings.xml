@@ -759,6 +759,8 @@
     <string name="theme_preset_cloud">雲舒</string>
     <string name="theme_preset_clean">利落</string>
     <string name="theme_preset_claude">書卷</string>
+    <string name="theme_preset_ios">通透</string>
+    <string name="theme_preset_soft">柔繪</string>
     <string name="theme_style_section">主題風格</string>
     <string name="theme_style_desc">每個主題同時套用配色與課表樣式</string>
     <string name="desc_theme_settings">自訂應用程式主題與配色</string>

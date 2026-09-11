@@ -34,8 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
@@ -50,7 +53,10 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.AppTypeGrid
+import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.softFeatherRim
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -172,6 +178,7 @@ fun DayHeader(
     subTextColor: Color,
     strokeWidthPx: Float
 ) {
+    val isSoft = LocalIsSoftTheme.current
     BoxWithConstraints(Modifier.fillMaxWidth().height(style.dayHeaderHeight)) {
         val shouldShowDate = !style.hideDateUnderDay && maxHeight >= 42.dp
 
@@ -237,8 +244,15 @@ fun DayHeader(
                             .weight(1f)
                             .fillMaxHeight()
                             .background(
-                                // 今天列：8% 主色淡底标记（通透 / iOS 26 与书卷共用同一语义）
-                                if (isToday) appColors().primarySoft.copy(0.4f) else Color.Transparent
+                                // 今天列：8% 主色淡底标记（通透 / iOS 26 与书卷共用同一语义）；
+                                // 柔绘：主色本身已低饱和，淡底再压一档（0.4 → 0.28），
+                                // 「今天」靠更薄的涂色表达，不额外加描边（表头列是通栏色块，
+                                // 羽化环会在列缝处留下一条竖向亮带）。
+                                if (isToday) {
+                                    appColors().primarySoft.copy(alpha = if (isSoft) 0.28f else 0.4f)
+                                } else {
+                                    Color.Transparent
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -314,7 +328,10 @@ fun TimeColumn(
     }
 
     // 当前节次高亮：主色淡底（通透 / iOS 26 与书卷共用同一语义）
-    val activeSectionBackground = appColors().primarySoft.copy(alpha = 0.4f)
+    // 柔绘：主色淡底再压一档（0.4 → 0.26）+ 16dp 虚化圆角 + 羽化描边环，
+    // 并把原来 2dp 的主色左侧竖条换成「内侧竖条（无外描边）」——柔绘不允许实色硬边描边。
+    val isSoft = LocalIsSoftTheme.current
+    val activeSectionBackground = appColors().primarySoft.copy(alpha = if (isSoft) 0.26f else 0.4f)
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
 
     Column(modifier.width(style.timeColumnWidth)) {
@@ -330,7 +347,38 @@ fun TimeColumn(
                     .fillMaxWidth()
                     .height(style.sectionHeight)
                     .clickable { onTimeSlotClicked() }
+                    // 柔绘：当前节次淡底块换成 10dp（appShapes().chipSmall）虚化圆角薄涂块；
+                    // 其它主题保持直角通栏淡底（未选中时不加任何图层装饰）
+                    .then(
+                        if (isSoft && isCurrentHourActive) {
+                            Modifier.clip(appShapes().chipSmall)
+                        } else {
+                            Modifier
+                        }
+                    )
                     .background(if (isCurrentHourActive) activeSectionBackground else Color.Transparent)
+                    .then(
+                        // 当前节次左缘主色指示条：原有区块样式里没有这条竖条（节次高亮只靠主色淡底），
+                        // 这里只在柔绘下新增一根「内侧渐变竖条」——因为柔绘把淡底换成了圆角薄涂块，
+                        // 需要一个不依赖描边的定位锚点。
+                        if (isSoft && isCurrentHourActive) {
+                            Modifier.drawBehind {
+                                val barWidth = 3.dp.toPx()
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(activeLeftBorderColor, Color.Transparent),
+                                        startX = 0f,
+                                        endX = barWidth
+                                    ),
+                                    topLeft = Offset.Zero,
+                                    size = Size(barWidth, size.height)
+                                )
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .then(if (isSoft) Modifier.softFeatherRim(appShapes().chipSmall) else Modifier)
                     .drawBehind {
                         if (!style.hideGridLines) {
                             drawLine(lineColor, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidthPx)

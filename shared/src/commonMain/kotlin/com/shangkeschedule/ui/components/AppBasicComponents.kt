@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.components
+package com.shangkeschedule.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,8 +49,11 @@ import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.liquidGlass
 import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
+import com.shangkeschedule.ui.theme.softFeatherRim
+import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.data.model.AppThemePreset
 
 /**
@@ -70,6 +73,7 @@ fun AppSectionHeader(
     modifier: Modifier = Modifier
 ) {
     val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
     Text(
         text = text,
         style = if (isClaude) {
@@ -77,6 +81,14 @@ fun AppSectionHeader(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.01).em
+            )
+        } else if (isSoft) {
+            // 柔绘：13sp Medium + 松字距——柔绘字号阶梯比通透略轻（字重降一档），
+            // 低对比配色下用字重而非色差来建立分区层级。
+            MaterialTheme.typography.labelLarge.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.05.sp
             )
         } else {
             // 通透（iOS 26）：13sp SemiBold + SF 字阶绝对字距
@@ -86,7 +98,7 @@ fun AppSectionHeader(
                 letterSpacing = (-0.08).sp
             )
         },
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = if (isSoft) FontWeight.Medium else FontWeight.SemiBold,
         color = appColors().primary,
         modifier = modifier.padding(start = 4.dp, bottom = 8.dp)
     )
@@ -254,16 +266,30 @@ fun AppSelectableCard(
 ) {
     val tokens = appColors()
     val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    // 书卷：14dp 圆角 + 暖米色分组底；通透（iOS 26）：16dp 连续圆角 + 白卡 + 玻璃高光内描边
-    val finalShape = if (isClaude) RoundedCornerShape(14.dp) else shape
+    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // 书卷：14dp 圆角 + 暖米色分组底；通透（iOS 26）：16dp 连续圆角 + 白卡 + 玻璃高光内描边；
+    // 柔绘：24dp 虚化圆角（appShapes().card）+ 薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边）
+    val finalShape = when {
+        isClaude -> RoundedCornerShape(14.dp)
+        isSoft -> appShapes().card
+        else -> shape
+    }
     val bg = when {
         containerColor != null -> containerColor
         selected -> tokens.primarySoft
         isClaude -> claudeGroupBg()
         else -> tokens.cardBg
     }
-    Column(
-        modifier = modifier
+    // 柔绘：选中态不用 2dp 主色描边（违「无锐利硬边缘」），改用主色薄涂底 + 羽化描边表达选中
+    val softContainerColor = when {
+        containerColor != null -> containerColor
+        selected -> tokens.primarySoft
+        else -> null
+    }
+    val surfaceModifier = if (isSoft) {
+        Modifier.softSurface(shape = finalShape, containerColor = softContainerColor, elevation = 8.dp)
+    } else {
+        Modifier
             .shadow(
                 elevation = (if (isClaude) 1 else 1).dp,
                 shape = finalShape,
@@ -273,6 +299,10 @@ fun AppSelectableCard(
             )
             .clip(finalShape)
             .background(bg)
+    }
+    Column(
+        modifier = modifier
+            .then(surfaceModifier)
             .then(
                 if (onLongClick != null) {
                     Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -282,6 +312,8 @@ fun AppSelectableCard(
             )
             .then(
                 when {
+                    // 柔绘：无实色描边，选中/未选中一律羽化描边环
+                    isSoft -> Modifier.softFeatherRim(finalShape)
                     selected -> Modifier.border(2.dp, tokens.primary, finalShape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), finalShape)
                     else -> Modifier.iosGlassRim(finalShape)
@@ -308,12 +340,17 @@ fun AppGlassBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
+    val isSoft = LocalIsSoftTheme.current
+    // 柔绘：薄涂面板 —— 遮罩更浅（26% vs M3 默认 32%）、背板模糊更弱、涂色更实（0.90 vs 0.86），
+    // 拖拽把手颜色由 outlineVariant 角色自动变为柔绘淡边，无需单独改写
+    val scrim = if (isSoft) Color.Black.copy(alpha = 0.26f) else BottomSheetDefaults.ScrimColor
     if (hazeState == null) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
             sheetState = sheetState,
             containerColor = tokens.cardBg,
             shape = appShapes().sheetTop,
+            scrimColor = scrim,
             modifier = modifier,
             content = content
         )
@@ -324,15 +361,16 @@ fun AppGlassBottomSheet(
             containerColor = Color.Transparent,
             tonalElevation = 0.dp,
             shape = appShapes().sheetTop,
+            scrimColor = scrim,
             modifier = modifier
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .hazeEffect(hazeState) {
-                        blurRadius = 20.dp
-                        noiseFactor = 0.12f
-                        tints = listOf(HazeTint(tokens.cardBg.copy(alpha = 0.86f)))
+                        blurRadius = if (isSoft) 14.dp else 20.dp
+                        noiseFactor = if (isSoft) 0.06f else 0.12f
+                        tints = listOf(HazeTint(tokens.cardBg.copy(alpha = if (isSoft) 0.90f else 0.86f)))
                         fallbackTint = HazeTint(tokens.cardBg)
                         backgroundColor = Color.Transparent
                     },
