@@ -954,7 +954,7 @@ private fun WeekPagerGlassSheen(
     // 柔绘（SOFT）：斜向扫光是镜面/玻璃语言（明确方向 + 明确边界 + 瞬时高亮），
     // 落在雾面薄涂底上会切出一条可见"锋面"，与柔绘「化开」的材质定义直接对立
     // （详见《交互动效审查_三主题》P0）。柔绘改为**无方向的整屏换气**：
-    // 落定后整体亮度做一次 600ms 正弦式起伏，幅度 3%，没有任何边界与方向。
+    // 落定后整体亮度做一次正弦式起伏（v3.45.1 起时长跟随「动效速度」，默认约 320ms），幅度 3%，没有任何边界与方向。
     val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
     // 深色档换气不叠白（见下方绘制分支）
     val isDark = LocalIsDarkTheme.current
@@ -974,7 +974,11 @@ private fun WeekPagerGlassSheen(
         sheenFraction.animateTo(
             1f,
             tween(
-                durationMillis = if (isSoft) 600 else motion.tokens.entranceDurationMs,
+                // v3.45.1：柔绘档的换气时长改为**跟随「动效速度」**（此前写死 600ms，
+                // 动效速度旋钮对它完全无效 —— 正是"速度感知不强"的来源之一）。
+                // 取 2× entranceDurationMs：柔绘的换气仍比其它主题的扫光长一档，但不再与用户设置脱钩。
+                durationMillis = if (isSoft) motion.tokens.entranceDurationMs * 2
+                else motion.tokens.entranceDurationMs,
                 // 柔绘：fraction 必须走**线性**——sin(π·f) 本身已是单峰曲线，外面再套一条
                 // ease-in-out 会把亮度峰值压进中段极窄区间，观感变成"停顿—突亮—停顿"
                 // 三段（正是柔绘规格明令禁止的"折点"）。
