@@ -31,27 +31,23 @@ internal expect fun isLiquidRefractionSupported(): Boolean
 internal expect fun isLiquidRenderEffectSupported(): Boolean
 
 /**
- * 色彩滤镜环节（vibrancy / colorControls）在当前系统渲染路径上是否可靠。
+ * 色彩滤镜环节（vibrancy / colorControls）在当前设备上是否可靠。
  *
- * 背景：Android 15（API 35）起，targetSdk ≥ 35 的应用 HWUI 默认切到 Vulkan
- * 硬件渲染；部分机型的 GPU 驱动（如 OPPO Find X8 的 Mali）对
- * `createChainEffect(createColorFilterEffect, blur)` 这类**链式 RenderEffect**
- * 存在原生崩溃，且发生在 RenderThread——Java 层 try/catch 拦不住。
- * 这类平台上返回 false ⇒ [glassVibrancy] / [glassColorControls] 整环节跳过，
- * 启动关键路径只剩「单一模糊」——与旧版 Haze 路径同类（已被全部机型验证安全）。
- * 桌面 / iOS（Skiko GL）恒为 true。
+ * ⚠️ v3.50.11 修正：**不再按系统版本判断**。v3.50.9 / v3.50.10 曾以 `SDK_INT < 35`
+ * 为门槛，把所有 Android 15 机型的鲜艳度 / 折射 / 高光一并关掉；而实测中大量
+ * Android 15 机型（如 vivo X200）跑完整玻璃完全正常、长期不闪退 —— 属**误伤**。
+ * 现在能力由**本机是否真的崩溃过**决定（[isGlassFallbackActive]，见
+ * `GlassPlatform.android.kt` 的崩溃检测），故各平台恒为 true；保留该开关只是为了
+ * 将来若有确凿的机型级规则时能在此单点接入。
  */
 internal expect fun isColorFilterEffectReliable(): Boolean
 
 /**
- * 运行时着色器（AGSL / SkSL）在当前系统渲染路径上是否可靠。
+ * 运行时着色器（AGSL / SkSL）在当前设备上是否可靠。
  *
- * 与 [isColorFilterEffectReliable] 同因：Android 15（API 35）起 HWUI 默认 Vulkan
- * 渲染，部分机型 GPU 驱动对 AGSL `RuntimeShader` 表现出不稳定。返回 false 时：
- * - 折射（[glassLens]）整环节跳过 —— 设置页会同步显示「不支持」而非静默无效；
- * - 高光描边退化为**实线**（[GlassHighlight] 本就有无色器兜底），观感差异极小。
- *
- * 桌面 / iOS（Skiko）恒为 true。
+ * 与 [isColorFilterEffectReliable] 同因、同策略：**不按系统版本一刀切**（v3.50.11 修正），
+ * 由本机崩溃记录决定。返回 false 时：折射（[glassLens]）整环节跳过，
+ * 高光描边退化为**实线**（[GlassHighlight] 本就自带无色器兜底）。
  */
 internal expect fun isLiquidShaderReliable(): Boolean
 
