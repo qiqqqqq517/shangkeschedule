@@ -981,8 +981,7 @@ private fun WeekPagerGlassSheen(
     // 深色档换气不叠白（见下方绘制分支）
     val isDark = LocalIsDarkTheme.current
 
-    // 首次组合（App 启动落在本周页）不算「切周」，不扫光
-    var hasSettledOnce by rememberSaveable { mutableStateOf(false) }
+    // 首次组合（App 启动落在本周页）不算「切周」，不扫光（协程内 settled 标记承担）
     val sheenFraction = remember { Animatable(0f) }
     var sheenVisible by remember { mutableStateOf(false) }
 

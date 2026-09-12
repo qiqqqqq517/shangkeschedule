@@ -142,11 +142,10 @@ class ManageCourseTablesViewModel(
 
     /**
      * 为指定本人课表创建配对情侣课表（幂等：已存在时返回既有表）。
+     * 旧 fire-and-forget 版本保留给无需结果反馈的调用方；带提示的场景用 [createCoupleTableForNow]。
      */
     fun createCoupleTableFor(selfTableId: String) {
-        viewModelScope.launch {
-            courseTableRepository.createCoupleTable(selfTableId)
-        }
+        viewModelScope.launch { createCoupleTableForNow(selfTableId) }
     }
 
     /**
@@ -164,10 +163,28 @@ class ManageCourseTablesViewModel(
      * @param tableId 要切换到的课表ID。
      */
     fun switchCourseTable(tableId: String) {
-        viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            val newSettings = currentSettings.copy(currentCourseTableId = tableId)
-            appSettingsRepository.insertOrUpdateAppSettings(newSettings)
+        viewModelScope.launch { switchCourseTableNow(tableId) }
+    }
+
+    /**
+     * 挂起式切表：写库完成才返回。
+     * 「查看 / 设为当前」等先切表后导航的场景必须用本方法——页面弹出后
+     * viewModelScope 会被取消，fire-and-forget 版本可能永远不落库，导致落在旧课表。
+     */
+    suspend fun switchCourseTableNow(tableId: String) {
+        val currentSettings = appSettingsRepository.getAppSettingsOnce()
+        appSettingsRepository.insertOrUpdateAppSettings(
+            currentSettings.copy(currentCourseTableId = tableId)
+        )
+    }
+
+    /** 为指定本人课表创建配对情侣课表（挂起式，供 UI 结果化提示）。 */
+    suspend fun createCoupleTableForNow(selfTableId: String): Boolean {
+        return try {
+            courseTableRepository.createCoupleTable(selfTableId)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

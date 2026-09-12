@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.components
 import com.shangkeschedule.ui.theme.appSpacing
 
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
@@ -23,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -147,7 +149,7 @@ fun CourseTablePickerDialog(
                         contentPadding = PaddingValues(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(courseTables) { courseTable ->
+                        items(courseTables, key = { it.id }) { courseTable ->
                             val isCurrentActive = courseTable.id == appSettings?.currentCourseTableId
                             val isSelectedForDialog = courseTable.id == selectedTable?.id
 
@@ -283,23 +285,24 @@ fun CourseTablePickerCard(
                 ) {
                     Text(text = courseTable.name, style = MaterialTheme.typography.titleMedium)
                     if (courseTable.isCouple) {
+                        // 与学期管理页 CoupleBadge 同构：capsule + 10dp 横距 + 12dp 图标 + SemiBold
                         Row(
                             modifier = Modifier
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(999.dp))
+                                .clip(appShapes().capsule)
                                 .background(appColors().dangerSoft)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                                .padding(horizontal = 10.dp, vertical = 2.dp),
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp)
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 imageVector = vectorResource(Res.drawable.favorite_24px),
                                 contentDescription = null,
                                 tint = appColors().danger,
-                                modifier = Modifier.size(11.dp)
+                                modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = stringResource(Res.string.couple_badge),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = appColors().danger
                             )
                         }

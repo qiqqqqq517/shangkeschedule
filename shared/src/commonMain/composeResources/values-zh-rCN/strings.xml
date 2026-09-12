@@ -1126,4 +1126,6 @@
     <string name="semester_status_upcoming">未开始</string>
     <string name="semester_status_ongoing">进行中</string>
     <string name="toast_set_current_semester">已设为当前学期: %1$s</string>
+    <string name="couple_need_create_first">请先创建情侣课表</string>
+    <string name="toast_couple_create_failed">创建失败，请重试</string>
 </resources>
