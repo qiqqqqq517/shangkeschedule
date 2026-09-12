@@ -14,11 +14,14 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +49,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +58,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +69,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -74,6 +81,11 @@ import com.shangkeschedule.ui.glass.LiquidGlassTab
 import com.shangkeschedule.ui.glass.LiquidGlassTabs
 import com.shangkeschedule.ui.glass.glassBackdropSource
 import com.shangkeschedule.ui.glass.rememberGlassBackdrop
+import com.shangkeschedule.ui.glass.isGlassFallbackActive
+import com.shangkeschedule.ui.theme.legacyHazeGlass
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -264,16 +276,23 @@ fun AdaptiveNavigationScaffold(
                 }
             }
             NavigationSuiteType.NavigationBar -> {
-                // v3.48.0：底栏 = 原版 LiquidBottomTabs 三层结构（唯一路径）。
-                // 旧 Haze 胶囊底栏（共享指示器 + tabBounds 补间）已整体删除；
-                // 光学与交互逐层对齐 Kyant0/AndroidLiquidGlass 参考实现：
-                // 64dp 玻璃条 + 隐形 Tab 录制层 + 56dp 可拖拽玻璃指示器 + 按压形变。
-                // innerPadding 语义与原 Scaffold 一致（bottom = 底栏占用高度），
-                // 内容滚动到底栏之下时，玻璃后方即为真实内容。
+                // 底栏有两套方案（v3.50.10）：
+                // - **方案 A（默认）**：自研玻璃引擎 LiquidGlassTabs（v3.48.0 起的原版三层结构）；
+                // - **方案 B（兜底）**：v3.44.0 的 Haze 胶囊底栏（共享指示器 + tabBounds 补间），
+                //   当 isGlassFallbackActive 为真（上次进程崩溃退出）时**自动启用**。
+                // 方案 B 只用 Haze 模糊 + 纯 Compose 绘制，不含引擎的 RenderEffect 链 / AGSL /
+                // BlendMode.Plus 离屏层 —— 这些正是部分 Android 15 机型闪退的嫌疑操作；
+                // v3.44.0 已被用户实测可在 OPPO Find X8 上正常运行，故作为回滚方案。
+                val useLegacyBar = isGlassFallbackActive
+                val hazeState = rememberHazeState()
                 val density = LocalDensity.current
                 val navInsetPx = WindowInsets.navigationBars.getBottom(density)
-                // 底栏占用 = 胶囊高 64dp + 上下外距（navBarBottom × 2）
-                val barOccupied = 64.dp + appSpacing().navBarBottom * 2
+                // 底栏占用 = 胶囊高（方案 A 64dp / 方案 B touchMin + 上下 7dp）+ 上下外距
+                val barOccupied = if (useLegacyBar) {
+                    appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2
+                } else {
+                    64.dp + appSpacing().navBarBottom * 2
+                }
                 val barInsetBottom = barOccupied + (navInsetPx / density.density).dp
 
                 // 滚动隐藏（Telegram 手势）：下滑累积超过阈值隐藏，上滑立即显示；
@@ -347,8 +366,15 @@ fun AdaptiveNavigationScaffold(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            // 页面内容录为玻璃背景快照（新引擎唯一数据源）
-                            .glassBackdropSource(glassBackdrop)
+                            .then(
+                                if (useLegacyBar) {
+                                    // 方案 B：Haze 背景源（与 v3.44.0 同机制）
+                                    Modifier.hazeSource(hazeState)
+                                } else {
+                                    // 方案 A：页面内容录为玻璃背景快照（新引擎唯一数据源）
+                                    Modifier.glassBackdropSource(glassBackdrop)
+                                }
+                            )
                     ) {
                         // P2-3 隐藏后留白回收：底栏隐藏动画进行中，内容底部 padding 同步收缩，
                         // 让列表内容顺势延伸至底栏空位，不残留一块空白。
@@ -390,6 +416,22 @@ fun AdaptiveNavigationScaffold(
                                     currentDestination::class == it.destination::class
                                 }.coerceAtLeast(0)
                             }
+                            if (useLegacyBar) {
+                                // ── 方案 B（v3.44.0 兜底栏）──
+                                LegacyGlassBottomBar(
+                                    hazeState = hazeState,
+                                    navItems = navItems,
+                                    selectedTabIndex = selectedTabIndex,
+                                    onTabSelected = onTabSelected,
+                                    containerColor = resolvedContainerColor,
+                                    indicatorColor = resolvedIndicatorColor,
+                                    selectedColor = resolvedSelectedTextColor,
+                                    unselectedColor = resolvedUnselectedColor,
+                                    isTransparent = isTransparent,
+                                    navigationModifier = navigationModifier
+                                )
+                            } else {
+                            // ── 方案 A（默认：自研玻璃引擎）──
                             // 稳定的取值闭包：避免每次重组重置 LiquidGlassTabs 内部的拖拽状态
                             val selectedTabIndexGetter = remember { { selectedTabIndex } }
                             LiquidGlassTabs(
@@ -442,6 +484,7 @@ fun AdaptiveNavigationScaffold(
                                     )
                                 }
                             }
+                            }
                     }
                 }
             }
@@ -454,6 +497,162 @@ fun AdaptiveNavigationScaffold(
                     CompositionLocalProvider(LocalNavigationGlassBackdrop provides glassBackdrop) {
                         content(PaddingValues(0.dp))
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 方案 B · v3.44.0 兜底底栏（**仅在 `isGlassFallbackActive` 时启用**）。
+ *
+ * 移植自 v3.44.0（提交 c261e96）的 `NavigationSuiteType.NavigationBar` 分支，
+ * 逐行还原「选中胶囊 = 一个共享胶囊按各 Tab 实测位置平滑迁移」+「Haze 毛玻璃胶囊」结构。
+ *
+ * 安全性：只用 Haze（`hazeEffect`，v3.44.0 实测可用）与纯 Compose 绘制
+ * （`drawBehind` 的 Screen 混合 + 多条 `border`），**不含**自研引擎的
+ * `RenderEffect` 链 / AGSL `RuntimeShader` / `BlendMode.Plus` 离屏层。
+ */
+@Composable
+private fun LegacyGlassBottomBar(
+    hazeState: HazeState,
+    navItems: List<NavItemData>,
+    selectedTabIndex: Int,
+    onTabSelected: (Destination) -> Unit,
+    containerColor: Color,
+    indicatorColor: Color,
+    selectedColor: Color,
+    unselectedColor: Color,
+    isTransparent: Boolean,
+    navigationModifier: Modifier
+) {
+    val density = LocalDensity.current
+    val navMotion = LocalAppMotion.current
+
+    // 选中胶囊按各 Tab 的实测位置在项之间平滑迁移
+    // （v3.43.0：此前每个 Tab 各自瞬切底色，在柔绘薄涂底 / 书卷实色底上会被读成一次"闪"，
+    //   且完全没有位移语义）。
+    val tabBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val indicatorLeft by animateDpAsState(
+        targetValue = tabBounds[selectedTabIndex]
+            ?.let { with(density) { it.left.toDp() } } ?: 0.dp,
+        animationSpec = tween(
+            navMotion.tokens.tabIndicatorMs,
+            easing = navMotion.tokens.navEasing
+        ),
+        label = "tabIndicatorLeft"
+    )
+    val indicatorWidth by animateDpAsState(
+        targetValue = tabBounds[selectedTabIndex]
+            ?.let { with(density) { it.width.toDp() } } ?: 0.dp,
+        animationSpec = tween(
+            navMotion.tokens.tabIndicatorMs,
+            easing = navMotion.tokens.navEasing
+        ),
+        label = "tabIndicatorWidth"
+    )
+    val animatedIndicatorColor by animateColorAsState(
+        targetValue = indicatorColor,
+        animationSpec = tween(
+            navMotion.tokens.tabIndicatorMs,
+            easing = navMotion.tokens.navEasing
+        ),
+        label = "tabIndicatorColor"
+    )
+
+    Box(
+        modifier = navigationModifier
+            // Haze 毛玻璃 + 白纱 + 顶部高光 + 边缘光学（v3.44.0 版实现）
+            .legacyHazeGlass(
+                hazeState = hazeState,
+                shape = appShapes().capsule,
+                containerColor = containerColor,
+                isTransparent = isTransparent
+            )
+            .padding(horizontal = 10.dp, vertical = 7.dp)
+    ) {
+        // 高亮胶囊：位于内容之下，位置 / 宽度 / 颜色三者同时补间
+        if (selectedTabIndex >= 0 && indicatorWidth > 0.dp) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = indicatorLeft)
+                    .width(indicatorWidth)
+                    .height(appSpacing().touchMin)
+                    .clip(appShapes().capsule)
+                    .background(animatedIndicatorColor)
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            navItems.forEachIndexed { index, item ->
+                val isSelected = index == selectedTabIndex
+                // 图标与文字颜色补间；字号**不参与**动画（避免文本重排），
+                // 选中层级由字重 + 颜色 + 胶囊共同承载
+                val animatedItemColor by animateColorAsState(
+                    targetValue = if (isSelected) selectedColor else unselectedColor,
+                    animationSpec = tween(
+                        navMotion.tokens.tabIndicatorMs,
+                        easing = navMotion.tokens.navEasing
+                    ),
+                    label = "tabItemColor"
+                )
+                Row(
+                    modifier = Modifier
+                        .clip(appShapes().capsule)
+                        // 触控标准 ≥48dp + 无障碍：selectable 提供 selected 语义与 Tab 角色
+                        .heightIn(min = appSpacing().touchMin)
+                        .onGloballyPositioned { coords ->
+                            val rect = coords.boundsInParent()
+                            if (tabBounds[index] != rect) tabBounds[index] = rect
+                        }
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { if (!isSelected) onTabSelected(item.destination) }
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 图标：SF Symbol 式变体切换（填充 ↔ 线性）用 Crossfade
+                    if (navMotion.isEnabled(AnimationGroup.TAB_SWITCH) &&
+                        navMotion.tokens.tabIconMs > 0
+                    ) {
+                        Crossfade(
+                            targetState = isSelected,
+                            animationSpec = tween(
+                                navMotion.tokens.tabIconMs,
+                                easing = navMotion.tokens.navEasing
+                            ),
+                            label = "tabIconCrossfade"
+                        ) { selected ->
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = null,
+                                tint = animatedItemColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = null,
+                            tint = animatedItemColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text(
+                        text = item.label,
+                        fontSize = if (isSelected) appType().hint else appType().badge,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = animatedItemColor,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
                 }
             }
         }

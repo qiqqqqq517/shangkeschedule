@@ -82,4 +82,4 @@ val LocalGlassRefraction = compositionLocalOf { GlassRefractionSettings.Off }
  * Android 需 API 33+；桌面与 iOS（Skiko）恒为 true。
  * 不支持时玻璃自动退化为「只有模糊的玻璃」，设置页会给出说明。
  */
-fun isGlassRefractionAvailable(): Boolean = isLiquidRefractionSupported()
+fun isGlassRefractionAvailable(): Boolean = isLiquidRefractionSupported() && isLiquidShaderReliable()

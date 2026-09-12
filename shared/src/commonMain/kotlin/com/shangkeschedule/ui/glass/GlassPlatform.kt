@@ -44,6 +44,18 @@ internal expect fun isLiquidRenderEffectSupported(): Boolean
 internal expect fun isColorFilterEffectReliable(): Boolean
 
 /**
+ * 运行时着色器（AGSL / SkSL）在当前系统渲染路径上是否可靠。
+ *
+ * 与 [isColorFilterEffectReliable] 同因：Android 15（API 35）起 HWUI 默认 Vulkan
+ * 渲染，部分机型 GPU 驱动对 AGSL `RuntimeShader` 表现出不稳定。返回 false 时：
+ * - 折射（[glassLens]）整环节跳过 —— 设置页会同步显示「不支持」而非静默无效；
+ * - 高光描边退化为**实线**（[GlassHighlight] 本就有无色器兜底），观感差异极小。
+ *
+ * 桌面 / iOS（Skiko）恒为 true。
+ */
+internal expect fun isLiquidShaderReliable(): Boolean
+
+/**
  * 玻璃渲染**自愈兜底**开关：进程上次因崩溃（原生 / Java）退出时置 true，
  * 本进程内所有 [GlassSurface] 退化为纯色调面板（无背板采样、无效果链），
  * 保证 App 在驱动级崩溃面前**一定打得开**。由 Android 侧

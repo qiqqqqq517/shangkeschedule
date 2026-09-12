@@ -197,7 +197,7 @@ private class GlassHighlightNode(
         paint.color = highlight.color
         paint.strokeWidth = ceil(highlight.width.toPx().fastCoerceAtMost(size.minDimension / 2f)) * 2f
         paint.liquidBlur(highlight.blurRadius.toPx())
-        if (isLiquidRefractionSupported()) {
+        if (isLiquidRefractionSupported() && isLiquidShaderReliable()) {
             if (!shaderCreated) {
                 shaderCreated = true
                 highlightShader = runCatching { createLiquidShader(HIGHLIGHT_AGSL) }.getOrNull()

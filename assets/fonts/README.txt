@@ -1,0 +1,1 @@
+SF Pro 字体未提供。请将 SF Pro Display Regular 与 Bold OTF 文件放入此目录（assets/fonts/），并在 pubspec.yaml 中取消注释并填写路径。若无法提供，系统将回退使用默认无衬线字体。

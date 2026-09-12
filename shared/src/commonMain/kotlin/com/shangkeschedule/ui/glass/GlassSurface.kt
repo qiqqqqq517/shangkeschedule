@@ -69,9 +69,21 @@ fun GlassSurface(
     Box(
         modifier
             .then(if (layerBlock != null) Modifier.graphicsLayer(layerBlock) else Modifier)
-            .then(if (innerShadow != null) Modifier.glassInnerShadow(shape, innerShadow) else Modifier)
-            .then(if (shadow != null) Modifier.glassShadow(shape, shadow) else Modifier)
-            .then(if (highlight != null) Modifier.glassHighlight(shape, highlight) else Modifier)
+            // 兜底模式（isGlassFallbackActive）：装饰件同样跳过 —— 高光 / 投影 / 内阴影
+            // 内部含 AGSL 运行时着色器与 BlurMaskFilter，属"未经该机型验证"的 GPU 操作，
+            // 必须一并摘除，否则兜底挡不住崩溃（v3.50.10 修正）。
+            .then(
+                if (!isGlassFallbackActive && innerShadow != null)
+                    Modifier.glassInnerShadow(shape, innerShadow) else Modifier
+            )
+            .then(
+                if (!isGlassFallbackActive && shadow != null)
+                    Modifier.glassShadow(shape, shadow) else Modifier
+            )
+            .then(
+                if (!isGlassFallbackActive && highlight != null)
+                    Modifier.glassHighlight(shape, highlight) else Modifier
+            )
             // 容器级裁剪：约束背板子节点效果输出（blur/着色器边界外溢）的范围
             .clip(shape)
     ) {

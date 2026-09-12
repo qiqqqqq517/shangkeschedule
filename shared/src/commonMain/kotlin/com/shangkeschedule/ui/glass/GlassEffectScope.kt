@@ -312,6 +312,10 @@ fun GlassEffectScope.glassLens(
     chromaticAberration: Boolean = false
 ) {
     if (!isLiquidRefractionSupported()) return
+    if (!isLiquidShaderReliable()) {
+        reportOnce("lens-unsafe") { "折射跳过（本系统渲染路径上运行时着色器不可靠）" }
+        return
+    }
     if (refractionHeight <= 0f || refractionAmount <= 0f) return
 
     val radii = cornerRadii ?: return
