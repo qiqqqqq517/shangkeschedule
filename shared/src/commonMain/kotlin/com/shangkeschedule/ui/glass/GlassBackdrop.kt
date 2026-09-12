@@ -81,12 +81,34 @@ class LayerGlassBackdrop internal constructor(
 
     internal var layerCoordinates: LayoutCoordinates? by mutableStateOf(null)
 
+    /**
+     * 「本层正在被录制」标志（v3.51.1 修复）。
+     *
+     * 背景：`GlassBackdropSourceNode.draw()` 会在 `record()` 块内手工交换
+     * `drawContext.canvas` 后执行 `backdrop.onDraw`（默认 `drawContent()`）把**整页内容**
+     * 画进录制层。当页面内容里恰好包含玻璃件（悬浮 FAB / 圆钮 / 挂起条 / `LiquidGlassTabs`），
+     * 这些玻璃件的 `GlassSurface` 背板在 `drawGlassBackdrop` 中会 `drawLayer(本层)`——
+     * 即**在本层录制期间又把本层画进来**，形成渲染树自引用环。
+     *
+     * 该环在 HWUI 的 `SkiaDisplayList::prepareListAndChildren` 上表现为**无限递归直至
+     * RenderThread 栈溢出**（真机 Redmi/vivo X200 实测：`Fatal signal 11 (SIGSEGV)`、
+     * `Cause: stack overflow`。课表横向切周时大范围重组触发，故"切周闪退、普通滑动不崩"）。
+     *
+     * 修复：录制入口置位、退出复位；`drawGlassBackdrop` 发现自己正在被录制时**跳过本次
+     * `drawLayer`**（该帧玻璃取不到自身背景，视觉上只是遮罩退一帧，不影响稳定态效果），
+     * 从而切断自引用环。此标志由 `GlassBackdropSourceNode` 维护，在 Draw 阶段读写、无并发风险。
+     */
+    internal var isRecording: Boolean = false
+
     private var inverseLayerScope: InverseLayerScope? = null
 
     override fun DrawScope.drawGlassBackdrop(
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?
     ) {
+        // 自引用环防御（v3.51.1）：本层正在被录制（即 · 我是当前 record 的目标层）时，
+        // drawLayer(自己) 会构成渲染树环导致 RenderThread 栈溢出 ⇒ 本帧跳过背景采样。
+        if (isRecording) return
         val coordinates = coordinates ?: return
         val layerCoordinates = layerCoordinates ?: return
         withTransform({
@@ -225,9 +247,13 @@ private class GlassBackdropSourceNode(
             val nodeContext = this@draw.drawContext
             val screenCanvas = nodeContext.canvas
             nodeContext.canvas = this.drawContext.canvas
+            // v3.51.1：置位「本层录制中」，使本层内嵌玻璃件在 drawGlassBackdrop 时
+            // 跳过 drawLayer(本层)，切断渲染树自引用环（避免 RenderThread 栈溢出）。
+            backdrop.isRecording = true
             try {
                 backdrop.onDraw(this@draw)
             } finally {
+                backdrop.isRecording = false
                 nodeContext.canvas = screenCanvas
             }
         }
