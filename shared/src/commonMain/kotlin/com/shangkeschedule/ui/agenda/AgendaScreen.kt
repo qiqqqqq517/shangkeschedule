@@ -14,11 +14,14 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,7 +38,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -61,6 +66,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -330,9 +336,6 @@ private fun AgendaContent(
                 // 在整月日历里点选日期后自动收起，把空间还给下方日程时间轴
                 monthExpanded = false
             },
-            onShiftDays = { days ->
-                onSelectDate(state.selectedDate.plus(days, DateTimeUnit.DAY))
-            },
             onShiftMonth = { delta ->
                 if (delta > 0) onNextMonth() else onPreviousMonth()
             },
@@ -407,13 +410,14 @@ private fun AgendaContent(
 }
 
 /**
- * 顶部日期面板：月份行 + 周条 / 整月日历 + 展开把手。
+ * 顶部日期面板：月份行 + 日期滚轴 / 整月日历 + 展开把手。
  *
- * 交互：
- * - **左右滑动**：折叠态前后翻一周；展开态前后翻一月（左滑 = 前进），带滑动转场；
- * - **切换月份**（左右滑动 / 月份左右箭头 / 月份选择器）后，下面的日期一起对应过去
- *   （由 `AgendaViewModel.applyMonth` 把选中日期「同月同日」平移，目标月无该日则收敛到月末）；
- * - **下拉展开 / 上收收起**：周条与整月日历（31 天等，固定 6×7 = 42 格，含月外补白格）互换；
+ * 交互（v3.47.0：日期轴**滑动不改日期**；整月日历保持原样）：
+ * - **日期滚轴**：一屏 7 天的可点选日期轴，可左右滑动**浏览**；滑动不改变选中日
+ *   （松手只做对齐吸附），蓝色高亮始终在选中日上；只有**点击某一天**才更换选中日；
+ * - **切换月份**（月份左右箭头 / 月份选择器 / 整月日历内左右滑动）经
+ *   `AgendaViewModel.applyMonth` 把选中日期「同月同日」平移，目标月无该日则收敛到月末；
+ * - **下拉展开 / 上收收起**：日期滚轴与整月日历（31 天等，固定 6×7 = 42 格，含月外补白格）互换；
  * - **点击月份标题**：打开月份选择器，直接跳到某年某月。
  */
 @Composable
@@ -422,7 +426,6 @@ private fun AgendaDatePanel(
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
-    onShiftDays: (Int) -> Unit,
     onShiftMonth: (Int) -> Unit,
     onOpenMonthPicker: () -> Unit,
     onGoToToday: () -> Unit
@@ -460,10 +463,10 @@ private fun AgendaDatePanel(
     // 展开 / 收起整月日历的纵向转场（随「减弱动态效果」瞬切）
     val expandMs = if (motion.reduceMotion) 0 else motion.tokens.expandDurationMs
 
-    // 手势：先定向（水平 / 垂直），再按阈值触发；一次手势只触发一次
+    // 纵向手势：下拉展开整月 / 上收收起。
+    // 水平方向**不拦截** —— 收起态日期轴不响应滑动，展开态整月日历自行处理左右滑动翻月。
     val threshold = with(LocalDensity.current) { 44.dp.toPx() }
     val currentExpanded by rememberUpdatedState(expanded)
-    val shiftDays by rememberUpdatedState(onShiftDays)
     val shiftMonth by rememberUpdatedState(onShiftMonth)
     val slideBy by rememberUpdatedState(slide)
     val toggleExpanded by rememberUpdatedState(onToggleExpanded)
@@ -476,39 +479,18 @@ private fun AgendaDatePanel(
                 alpha = 1f - 0.35f * abs(slideOffset.value)
             }
             .pointerInput(Unit) {
-                var dx = 0f
                 var dy = 0f
-                var axis = 0 // 0 未定向 / 1 水平 / 2 垂直
                 var fired = false
-                detectDragGestures(
-                    onDragStart = { dx = 0f; dy = 0f; axis = 0; fired = false },
-                    onDragCancel = { dx = 0f; dy = 0f; axis = 0; fired = false },
-                    onDragEnd = { dx = 0f; dy = 0f; axis = 0; fired = false }
+                detectVerticalDragGestures(
+                    onDragStart = { dy = 0f; fired = false },
+                    onDragCancel = { dy = 0f; fired = false },
+                    onDragEnd = { dy = 0f; fired = false }
                 ) { _, drag ->
-                    if (fired) return@detectDragGestures
-                    dx += drag.x
-                    dy += drag.y
-                    if (axis == 0) {
-                        val slop = viewConfiguration.touchSlop
-                        if (abs(dx) > slop && abs(dx) >= abs(dy)) {
-                            axis = 1
-                        } else if (abs(dy) > slop) {
-                            axis = 2
-                        }
-                    }
-                    when (axis) {
-                        // 水平：折叠态翻一周，展开态翻一月
-                        1 -> if (abs(dx) > threshold) {
-                            fired = true
-                            val step = if (dx < 0f) 1 else -1
-                            if (currentExpanded) shiftMonth(step) else shiftDays(step * 7)
-                            slideBy(step)
-                        }
-                        // 垂直：下拉展开整月，上收收起
-                        2 -> if (abs(dy) > threshold) {
-                            fired = true
-                            if ((dy > 0f) != currentExpanded) toggleExpanded()
-                        }
+                    if (fired) return@detectVerticalDragGestures
+                    dy += drag
+                    if (abs(dy) > threshold) {
+                        fired = true
+                        if ((dy > 0f) != currentExpanded) toggleExpanded()
                     }
                 }
             }
@@ -597,7 +579,7 @@ private fun AgendaDatePanel(
             }
         }
 
-        // 周条 ⇄ 整月日历
+        // 日期滚轴 ⇄ 整月日历
         AnimatedContent(
             targetState = expanded,
             transitionSpec = {
@@ -631,11 +613,17 @@ private fun AgendaDatePanel(
                     cells = state.monthCells,
                     firstDayOfWeek = state.firstDayOfWeek,
                     weekShortNames = weekShortNames,
-                    onSelectDate = onSelectDate
+                    onSelectDate = onSelectDate,
+                    onShiftMonth = { delta ->
+                        // 展开态：整月日历内左右滑动翻月（滚轴态已改为连续滚动，不再有翻月手势）
+                        shiftMonth(delta)
+                        slideBy(delta)
+                    }
                 )
             } else {
-                AgendaWeekStrip(
-                    weekDays = state.weekDays,
+                AgendaDateRail(
+                    days = state.stripDays,
+                    selectedDate = state.selectedDate,
                     weekShortNames = weekShortNames,
                     onSelectDate = onSelectDate
                 )
@@ -666,103 +654,200 @@ private fun AgendaDatePanel(
     }
 }
 
+/** 日期滚轴一屏可见的天数（取奇数，保证中线唯一）。 */
+private const val VISIBLE_DAYS = 7
+
+/**
+ * 可滑动浏览 + 点选更换的日期轴（v3.47.0：「滑动不改日期」）。
+ *
+ * 与上一版（v3.46.0「连续滚动 + 松手吸附提交」）的关键区别：**滑动不再改变选中日期**。
+ * 现在可以左右滑动**浏览**，但松手**只做对齐吸附、不提交选中日**；蓝色高亮（选中态）
+ * 始终留在选中日那一格上 —— 即「蓝色跟选中日期在一起，不随滚动而变」。
+ * 选中日只由**点击某一天**更换（以及月份箭头 / 月份选择器 / 回到今天 / 整月日历点选）。
+ *
+ * 数据来自 `AgendaUiState.stripDays`（以选中日为中线的前后各 120 天）；
+ * 选中日变化 ⇒ ViewModel 以新的选中日重新居中输出 ⇒ 日期轴重新居中到该天。
+ */
 @Composable
-private fun AgendaWeekStrip(
-    weekDays: List<AgendaDayCell>,
+private fun AgendaDateRail(
+    days: List<AgendaDayCell>,
+    selectedDate: LocalDate,
     weekShortNames: List<String>,
     onSelectDate: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tokens = appColors()
-    val shapes = appShapes()
+    val listState = rememberLazyListState()
 
-    // 左右滑动不再挂在这里：由外层 AgendaDatePanel 统一处理（折叠态翻周 / 展开态翻月），
-    // 这里只保留点选，避免两套手势互相抢事件。
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        weekDays.forEach { cell ->
-            val selected = cell.isSelected
-            val numberColor = when {
-                selected -> tokens.textOnPrimary
-                cell.isToday -> tokens.primary
-                !cell.isInMonth -> tokens.textSecondary.copy(alpha = 0.55f)
-                else -> tokens.textPrimary
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val cellWidth = maxWidth / VISIBLE_DAYS
+        // 左右各留半格内边距：这样「滚到第 i 项」就等于把第 i 项摆在正中
+        val edgePadding = (maxWidth - cellWidth) / 2
+
+        val currentDays by rememberUpdatedState(days)
+        var firstLayout by remember { mutableStateOf(true) }
+
+        // 选中日变化（点选某天 / 月份箭头 / 月份选择器 / 回到今天 / 整月日历点选）
+        // → 把该天挪到中线。首帧直接就位（不做可见的长距离滚动），之后动画居中。
+        LaunchedEffect(selectedDate) {
+            val target = currentDays.indexOfFirst { it.date == selectedDate }
+            if (target < 0) return@LaunchedEffect
+            if (firstLayout) {
+                listState.scrollToItem(target)
+                firstLayout = false
+            } else {
+                listState.animateScrollToItem(target)
             }
-            val labelColor = when {
-                selected -> tokens.textOnPrimary.copy(alpha = 0.85f)
-                cell.isInMonth -> tokens.textSecondary
-                else -> tokens.textSecondary.copy(alpha = 0.5f)
+        }
+
+        // 手动滑动结束 → 只把最近的格子吸附到中线（对齐用），**绝不提交选中日**：
+        // 滑动仅用于浏览，蓝色高亮始终留在选中日上 ——「蓝色跟选中日期在一起，不随滚动而变」。
+        LaunchedEffect(listState) {
+            snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                if (scrolling) return@collect
+                val info = listState.layoutInfo
+                val center = (info.viewportStartOffset + info.viewportEndOffset) / 2f
+                val nearest = info.visibleItemsInfo
+                    .minByOrNull { abs(it.offset + it.size / 2f - center) }
+                    ?: return@collect
+                val delta = (nearest.offset + nearest.size / 2f) - center
+                if (abs(delta) > 1f) listState.animateScrollBy(delta)
             }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(shapes.chipSmall)
-                    .background(if (selected) tokens.primary else Color.Transparent)
-                    .clickable { onSelectDate(cell.date) }
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = weekShortNames.getOrNull(cell.date.dayOfWeek.isoDayNumber - 1).orEmpty(),
-                    fontSize = appType().hint,
-                    color = labelColor
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = cell.date.day.toString(),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = numberColor
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = cell.lunarLabel,
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = labelColor
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                !cell.hasEvents -> Color.Transparent
-                                selected -> tokens.textOnPrimary
-                                else -> tokens.primary
-                            }
-                        )
+        }
+
+        LazyRow(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = edgePadding)
+        ) {
+            items(items = days, key = { it.date.toString() }) { cell ->
+                AgendaDateRailCell(
+                    cell = cell,
+                    weekdayLabel = weekShortNames
+                        .getOrNull(cell.date.dayOfWeek.isoDayNumber - 1).orEmpty(),
+                    width = cellWidth,
+                    // 点选：只改选中日；居中交给上面的"选中日变化"分支按重建后的窗口重新计算
+                    onClick = { onSelectDate(cell.date) }
                 )
             }
         }
     }
 }
 
+/** 日期滚轴单元格：星期短名 + 日号 + 农历 + 有日程圆点；选中项走主题主色。 */
+@Composable
+private fun AgendaDateRailCell(
+    cell: AgendaDayCell,
+    weekdayLabel: String,
+    width: Dp,
+    onClick: () -> Unit
+) {
+    val tokens = appColors()
+    val shapes = appShapes()
+    // 蓝色高亮**严格由「选中日」标志驱动**（cell.isSelected），与滚动位置无关 ——
+    // 即「蓝色跟选中日期在一起，不随滚动而变」。
+    val highlight = cell.isSelected
+    val numberColor = when {
+        highlight -> tokens.textOnPrimary
+        cell.isToday -> tokens.primary
+        !cell.isInMonth -> tokens.textSecondary.copy(alpha = 0.55f)
+        else -> tokens.textPrimary
+    }
+    val labelColor = when {
+        highlight -> tokens.textOnPrimary.copy(alpha = 0.85f)
+        cell.isInMonth -> tokens.textSecondary
+        else -> tokens.textSecondary.copy(alpha = 0.5f)
+    }
+
+    Column(
+        modifier = Modifier
+            .width(width)
+            .clip(shapes.chipSmall)
+            .background(if (highlight) tokens.primary else Color.Transparent)
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = weekdayLabel,
+            fontSize = appType().hint,
+            color = labelColor
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = cell.date.day.toString(),
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = numberColor
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = cell.lunarLabel,
+            fontSize = 10.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = labelColor
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        !cell.hasEvents -> Color.Transparent
+                        highlight -> tokens.textOnPrimary
+                        else -> tokens.primary
+                    }
+                )
+        )
+    }
+}
+
 /**
- * 整月日历（周条下拉展开）：星期表头 + 固定 6 行 × 7 列日期格。
+ * 整月日历（日期滚轴下拉展开）：星期表头 + 固定 6 行 × 7 列日期格。
  *
  * 单元格来自 `AgendaUiState.monthCells`（42 格，含上月末尾 / 下月初的补白格），
  * 补白格淡化显示但仍可点击（点选后选中日期与可见月份一起过去）。
+ *
+ * v3.47.0：折叠态日期滚轴**不响应滑动**（改为纯点选，滑动不改日期）；
+ * 展开态整月日历保持原样（仍保留「左右滑动翻月」，整月日历是"页面"语义）。
  */
 @Composable
 private fun AgendaMonthGrid(
     cells: List<AgendaDayCell>,
     firstDayOfWeek: Int,
     weekShortNames: List<String>,
-    onSelectDate: (LocalDate) -> Unit
+    onSelectDate: (LocalDate) -> Unit,
+    onShiftMonth: (Int) -> Unit
 ) {
     val tokens = appColors()
+    val swipeThreshold = with(LocalDensity.current) { 48.dp.toPx() }
 
     // 表头按「每周第一天」轮转，与单元格列顺序严格一致
     val orderedWeekNames = (0 until 7).map { index ->
         weekShortNames.getOrNull((firstDayOfWeek - 1 + index) % 7).orEmpty()
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                var dx = 0f
+                var fired = false
+                detectHorizontalDragGestures(
+                    onDragStart = { dx = 0f; fired = false },
+                    onDragCancel = { dx = 0f; fired = false },
+                    onDragEnd = { dx = 0f; fired = false }
+                ) { _, drag ->
+                    if (fired) return@detectHorizontalDragGestures
+                    dx += drag
+                    if (abs(dx) > swipeThreshold) {
+                        fired = true
+                        onShiftMonth(if (dx < 0f) 1 else -1)
+                    }
+                }
+            }
+    ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             orderedWeekNames.forEach { name ->
                 Text(

@@ -1,5 +1,8 @@
 package com.shangkeschedule.ui.glass
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -7,166 +10,107 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.node.DrawModifierNode
-import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.invalidateDraw
-import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalLayoutDirection
 
 /**
- * 液态玻璃**表面**修饰符：把 [backdrop] 的一份拷贝经 `effects { }` 处理后
- * 铺在本节点下方，然后依次绘制 [onDrawSurface]（表面色 / 白纱）与节点自身内容。
+ * 液态玻璃**表面**容器：把 [backdrop] 的一份拷贝经 `effects { }` 处理后铺在内容下方，
+ * 再依次绘制表面色（[onDrawSurface]）与 [content]。
  *
- * 绘制顺序（与 backdrop 的 `drawBackdrop` 对齐）：
- * `背景拷贝（模糊→折射）` → `onDrawSurface` → `drawContent()`。
+ * 层级（自下而上）：
+ * ① 背板拷贝 + 效果（效果在父节点、`drawLayer` 在子节点）
+ * ② 表面色子节点（[onDrawSurface]，画在背板之上、内容之下）
+ * ③ [content]
  *
- * 两个刻意的取舍：
- * 1. **effect 链为空时完全不建离屏层**（模糊半径 0 且未开折射）——
- *    此时只画表面色与内容，等价于本项目"关模糊只留 tint 与边缘光学"的既有语义，
- *    不为一层空玻璃付出一次离屏录制的代价；
- * 2. **不抛异常**：形状无法解析 SDF、平台不支持运行时着色器时，
- *    只退化为「模糊玻璃」，底栏在 Android 12 及以下照常可用。
+ * ## v3.50.2 两条结构性修正（离屏探针机制对照 + 上游源码交叉取证）
  *
- * 调用方通常应先在链上 `clip(shape)`，使离屏层被裁进形状内。
+ * 1. **背板必须真的被录进层**（见 `GlassBackdropSourceNode.draw`）：Compose 1.11.1 的
+ *    `record(density, layoutDirection, size, block)` 不会像 1.12 的 `record(size){}`
+ *    那样临时把调用方 `drawContext.canvas` 指向录制画布 ⇒ 直接用外层作用域调
+ *    `drawContent()` 时内容画到屏幕、层恒为空。这是「模糊 / 折射 / 色散同时不生效、
+ *    桌面与 Android 一致失效、日志却全绿」的根因。
+ * 2. 效果必须挂在**父节点**、`drawLayer` 放**子节点**。对照实验（`desktopApp/GlassProbe.kt`
+ *    的 mech 场景，格子编号见实现）：
+ *    - `self+direct`（节点自带效果 + 直接内容）= 生效
+ *    - `self+drawLayer`（节点自带效果 + **同节点** `drawLayer`）= **静默失效**（mean=0.000）
+ *    - `parent+childLayer`（**父**节点效果 + 子节点 `drawLayer`）= 生效（mean=115.4）
+ *    即 Skiko 合成路径不消费「自己画的层」的层画笔（Android 的 `RenderNode.setRenderEffect`
+ *    是全绘制路径生效的另一套实现，不受此限制）。
+ *
+ * 复现命令：`.\gradlew.bat :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.GlassProbeKt"`
  */
 @Composable
-fun Modifier.glassSurface(
+fun GlassSurface(
+    modifier: Modifier = Modifier,
     backdrop: GlassBackdrop,
     shape: Shape,
     effects: GlassEffectScope.() -> Unit,
-    onDrawSurface: (DrawScope.() -> Unit)? = null
-): Modifier {
-    val effectLayer = rememberGraphicsLayer()
+    layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
+    highlight: (() -> GlassHighlight?)? = null,
+    shadow: (() -> GlassShadow?)? = null,
+    innerShadow: (() -> GlassInnerShadow?)? = null,
+    onDrawSurface: (DrawScope.() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
     val scope = remember { GlassEffectScopeImpl() }
     DisposableEffect(scope) {
         onDispose { scope.reset() }
     }
-    return this then GlassSurfaceElement(
-        backdrop = backdrop,
-        shape = shape,
-        effects = effects,
-        onDrawSurface = onDrawSurface,
-        layer = effectLayer,
-        scope = scope
-    )
-}
+    val layoutDirection = LocalLayoutDirection.current
+    var backdropCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-private class GlassSurfaceElement(
-    val backdrop: GlassBackdrop,
-    val shape: Shape,
-    val effects: GlassEffectScope.() -> Unit,
-    val onDrawSurface: (DrawScope.() -> Unit)?,
-    val layer: GraphicsLayer,
-    val scope: GlassEffectScopeImpl
-) : ModifierNodeElement<GlassSurfaceNode>() {
-
-    override fun create(): GlassSurfaceNode =
-        GlassSurfaceNode(backdrop, shape, effects, onDrawSurface, layer, scope)
-
-    override fun update(node: GlassSurfaceNode) {
-        node.backdrop = backdrop
-        node.shape = shape
-        node.effects = effects
-        node.onDrawSurface = onDrawSurface
-        node.layer = layer
-        node.scope = scope
-        // effects 是新 lambda ⇒ 需要重算效果链；同时重绘
-        node.invalidateDraw()
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "glassSurface"
-        properties["backdrop"] = backdrop
-        properties["shape"] = shape
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is GlassSurfaceElement) return false
-        return backdrop === other.backdrop &&
-            shape == other.shape &&
-            effects === other.effects &&
-            onDrawSurface === other.onDrawSurface &&
-            layer === other.layer &&
-            scope === other.scope
-    }
-
-    override fun hashCode(): Int {
-        var result = backdrop.hashCode()
-        result = 31 * result + shape.hashCode()
-        result = 31 * result + effects.hashCode()
-        result = 31 * result + (onDrawSurface?.hashCode() ?: 0)
-        result = 31 * result + layer.hashCode()
-        result = 31 * result + scope.hashCode()
-        return result
-    }
-}
-
-private class GlassSurfaceNode(
-    var backdrop: GlassBackdrop,
-    var shape: Shape,
-    var effects: GlassEffectScope.() -> Unit,
-    var onDrawSurface: (DrawScope.() -> Unit)?,
-    var layer: GraphicsLayer,
-    var scope: GlassEffectScopeImpl
-) : DrawModifierNode, GlobalPositionAwareModifierNode, Modifier.Node() {
-
-    private var layoutCoordinates: LayoutCoordinates? by mutableStateOf(null)
-
-    override fun ContentDrawScope.draw() {
-        // 同步绘制环境并重算效果链：effects 块里读取的快照状态（如按压缩放进度）
-        // 在 draw 阶段被观察 ⇒ 其变化会自动触发本节点重绘，无需额外的手动失效。
-        scope.update(this)
-        scope.apply(shape, effects)
-
-        val padding = scope.padding
-        val renderEffect = scope.renderEffect
-
-        if (renderEffect != null) {
-            layer.renderEffect = renderEffect
-            val width = (size.width + padding * 2f).toInt().coerceAtLeast(1)
-            val height = (size.height + padding * 2f).toInt().coerceAtLeast(1)
-            // record 需要 Density 对象：此处 `this` 即 ContentDrawScope（自身实现 Density），
-            // 注意不能写 `density`——那是 Float 属性
-            layer.record(this, layoutDirection, IntSize(width, height)) {
-                if (padding != 0f) {
-                    translate(padding, padding) {
-                        with(backdrop) { drawGlassBackdrop(layoutCoordinates) }
-                    }
-                } else {
-                    with(backdrop) { drawGlassBackdrop(layoutCoordinates) }
+    Box(
+        modifier
+            .then(if (layerBlock != null) Modifier.graphicsLayer(layerBlock) else Modifier)
+            .then(if (innerShadow != null) Modifier.glassInnerShadow(shape, innerShadow) else Modifier)
+            .then(if (shadow != null) Modifier.glassShadow(shape, shadow) else Modifier)
+            .then(if (highlight != null) Modifier.glassHighlight(shape, highlight) else Modifier)
+            // 容器级裁剪：约束背板子节点效果输出（blur/着色器边界外溢）的范围
+            .clip(shape)
+    ) {
+        // ① 背板拷贝 + 效果：效果在父、drawLayer 在子（见类文档对照实验）
+        Box(
+            Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { if (it.isAttached) backdropCoords = it }
+                .graphicsLayer {
+                    scope.applyForLayer(
+                        shape = shape,
+                        density = density,
+                        fontScale = fontScale,
+                        size = size,
+                        layoutDirection = layoutDirection,
+                        effects = effects
+                    )
+                    renderEffect = scope.renderEffect
                 }
-            }
-            if (padding != 0f) {
-                translate(-padding, -padding) { drawLayer(layer) }
-            } else {
-                drawLayer(layer)
-            }
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        with(backdrop) { drawGlassBackdrop(backdropCoords, layerBlock) }
+                    }
+            )
         }
-
-        onDrawSurface?.invoke(this)
-        drawContent()
-    }
-
-    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        if (!coordinates.isAttached) return
-        if (backdrop.isCoordinatesDependent) {
-            layoutCoordinates = coordinates
-        } else if (layoutCoordinates != null) {
-            layoutCoordinates = null
+        // ② 表面色 / tint（背板之上、内容之下）
+        if (onDrawSurface != null) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawBehind { onDrawSurface(this) }
+            )
         }
-    }
-
-    override fun onDetach() {
-        layoutCoordinates = null
+        // ③ 内容
+        Box(Modifier.fillMaxSize()) {
+            content()
+        }
     }
 }

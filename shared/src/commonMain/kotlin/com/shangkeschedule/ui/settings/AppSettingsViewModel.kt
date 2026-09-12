@@ -9,6 +9,7 @@ import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
@@ -17,6 +18,8 @@ import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -29,9 +32,15 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
+import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
 import org.koin.core.annotation.KoinViewModel
+import org.koin.core.annotation.Named
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * 界面原子状态类：包含设置页渲染所需的全部数据包
@@ -43,10 +52,13 @@ data class SettingsUiState(
     val isReady: Boolean = false
 )
 
+@OptIn(ExperimentalUuidApi::class)
 @KoinViewModel
 class SettingsViewModel(
     private val appSettingsRepository: AppSettingsRepository,
-    private val styleSettingsRepository: StyleSettingsRepository
+    private val styleSettingsRepository: StyleSettingsRepository,
+    private val fileSystem: FileSystem,
+    @Named("FilesDir") private val filesDir: Path
 ) : ViewModel() {
 
     // 1. 基础配置流 (DataStore)
@@ -276,6 +288,85 @@ class SettingsViewModel(
     fun onMotionSpeedChanged(speed: MotionSpeed) {
         viewModelScope.launch {
             appSettingsRepository.updateMotionSpeed(speed)
+        }
+    }
+
+    /**
+     * 下节课卡「今日课程结束后」行为（v3.47.0「个性化显示 → 下节课卡」）。
+     */
+    fun onNextCardModeChanged(mode: NextCardMode) {
+        viewModelScope.launch {
+            appSettingsRepository.updateNextCardMode(mode)
+        }
+    }
+
+    // ========================================================================
+    // 「我的信息」页（v3.49.0）
+    // 「我的」页顶部身份卡点击进入，可设置头像 / 昵称 / 学校 / 学院 / 专业 / 年级 / 个性签名。
+    // ========================================================================
+
+    /**
+     * 保存个人资料（昵称 / 学校 / 学院 / 专业 / 年级 / 个性签名）。
+     * 逐键写入 DataStore，不改动其它设置项。
+     */
+    fun onProfileInfoChanged(
+        nickname: String,
+        school: String,
+        college: String,
+        major: String,
+        grade: String,
+        signature: String
+    ) {
+        viewModelScope.launch {
+            appSettingsRepository.updateProfileInfo(
+                nickname = nickname.trim(),
+                school = school.trim(),
+                college = college.trim(),
+                major = major.trim(),
+                grade = grade.trim(),
+                signature = signature.trim()
+            )
+        }
+    }
+
+    /**
+     * 保存裁切后的头像：写入私有目录新文件 → 删除旧文件 → 更新路径。
+     * 与壁纸同一套"先写新、再删旧"的垃圾回收顺序，避免中途失败丢失头像。
+     */
+    fun saveProfileAvatar(imageBytes: ByteArray) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val oldPathStr = uiState.value.appSettings.profileAvatarPath
+                val newFile = filesDir / "avatar_${Uuid.random()}.jpg"
+                fileSystem.write(newFile) { write(imageBytes) }
+
+                appSettingsRepository.updateProfileAvatarPath(newFile.toString())
+
+                if (oldPathStr.isNotEmpty()) {
+                    val oldPath = oldPathStr.toPath()
+                    if (fileSystem.exists(oldPath)) fileSystem.delete(oldPath)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * 移除头像：删除物理文件并清空路径（「我的」页回落为首字母圆形头像）。
+     */
+    fun removeProfileAvatar() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val pathStr = uiState.value.appSettings.profileAvatarPath
+                if (pathStr.isNotEmpty()) {
+                    val path = pathStr.toPath()
+                    if (fileSystem.exists(path)) fileSystem.delete(path)
+                }
+                appSettingsRepository.updateProfileAvatarPath("")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

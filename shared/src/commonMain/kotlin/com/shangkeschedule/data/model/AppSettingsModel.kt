@@ -151,7 +151,7 @@ data class AppSettingsModel(
      * v3.25.0 起由「外观与样式 → 个性化显示」调节；0f = 关闭模糊（只保留表面 tint 与边缘光学）。
      * 默认 4dp 对应原编译期常量 LiquidGlassBlurRadius；全局一处生效，不存在各件分叉。
      */
-    val glassBlurRadiusDp: Float = 4f,
+    val glassBlurRadiusDp: Float = 8f,
 
     /**
      * 液态玻璃**边缘折射**总开关（v3.47.0）。
@@ -201,6 +201,30 @@ data class AppSettingsModel(
      * 经 LocalAppMotion 注入，全 App 一处生效。
      */
     val motionSpeed: MotionSpeed = MotionSpeed.STANDARD,
+
+    /**
+     * 下节课卡在「今日课程结束后」的行为（v3.47.0「个性化显示 → 下节课卡」）。
+     * - [NextCardMode.AUTO_NEXT]：自动显示下一次课程或日程（默认，卡片不再消失）
+     * - [NextCardMode.TODAY_ENDED]：显示「今日课程已结束，自由探索吧」提示（变淡）
+     * - [NextCardMode.HIDE]：课程结束后整卡消失（旧行为）
+     */
+    val nextCardMode: NextCardMode = NextCardMode.AUTO_NEXT,
+
+    // --- 「我的」页个人信息（v3.49.0「我的信息」页）---
+    /** 昵称；为空时界面回落到应用名（`app_name`）。 */
+    val profileNickname: String = "",
+    /** 学校名称；为空时「我的」页副标题回落到品牌语（`hero_subtitle`）。 */
+    val profileSchool: String = "",
+    /** 学院。 */
+    val profileCollege: String = "",
+    /** 专业。 */
+    val profileMajor: String = "",
+    /** 年级（如「2024 级」）。 */
+    val profileGrade: String = "",
+    /** 个性签名。 */
+    val profileSignature: String = "",
+    /** 头像图片在私有目录下的绝对路径；空串表示未设置（回落到首字母圆形头像）。 */
+    val profileAvatarPath: String = "",
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -242,6 +266,16 @@ data class AppSettingsModel(
         val KEY_DISABLED_ANIMATION_GROUPS = stringSetPreferencesKey("disabled_animation_groups")
         val KEY_REDUCE_MOTION_ENABLED = booleanPreferencesKey("reduce_motion_enabled")
         val KEY_MOTION_SPEED = stringPreferencesKey("motion_speed")
+        val KEY_NEXT_CARD_MODE = stringPreferencesKey("next_card_mode")
+
+        // 「我的」页个人信息（v3.49.0）
+        val KEY_PROFILE_NICKNAME = stringPreferencesKey("profile_nickname")
+        val KEY_PROFILE_SCHOOL = stringPreferencesKey("profile_school")
+        val KEY_PROFILE_COLLEGE = stringPreferencesKey("profile_college")
+        val KEY_PROFILE_MAJOR = stringPreferencesKey("profile_major")
+        val KEY_PROFILE_GRADE = stringPreferencesKey("profile_grade")
+        val KEY_PROFILE_SIGNATURE = stringPreferencesKey("profile_signature")
+        val KEY_PROFILE_AVATAR_PATH = stringPreferencesKey("profile_avatar_path")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -282,7 +316,36 @@ data class AppSettingsModel(
                     ?: d.disabledAnimationGroups,
                 reduceMotionEnabled = prefs[KEY_REDUCE_MOTION_ENABLED] ?: d.reduceMotionEnabled,
                 motionSpeed = MotionSpeed.fromString(prefs[KEY_MOTION_SPEED]),
+                nextCardMode = NextCardMode.fromString(prefs[KEY_NEXT_CARD_MODE]),
+                profileNickname = prefs[KEY_PROFILE_NICKNAME] ?: d.profileNickname,
+                profileSchool = prefs[KEY_PROFILE_SCHOOL] ?: d.profileSchool,
+                profileCollege = prefs[KEY_PROFILE_COLLEGE] ?: d.profileCollege,
+                profileMajor = prefs[KEY_PROFILE_MAJOR] ?: d.profileMajor,
+                profileGrade = prefs[KEY_PROFILE_GRADE] ?: d.profileGrade,
+                profileSignature = prefs[KEY_PROFILE_SIGNATURE] ?: d.profileSignature,
+                profileAvatarPath = prefs[KEY_PROFILE_AVATAR_PATH] ?: d.profileAvatarPath,
             )
         }
+    }
+}
+
+/**
+ * 下节课卡在「今日课程结束后」的行为（v3.47.0）。
+ *
+ * 卡片内容：下节课/下一次标识 · 倒计时（分钟）· 标题 · 时间区间 → 点击开详情。
+ */
+enum class NextCardMode(val value: String) {
+    /** 自动显示下一次课程或日程（默认）——卡片不再随今日课程结束而消失。 */
+    AUTO_NEXT("AUTO_NEXT"),
+
+    /** 显示「今日课程已结束，自由探索吧」提示（变淡）。 */
+    TODAY_ENDED("TODAY_ENDED"),
+
+    /** 课程结束后整卡消失（旧行为）。 */
+    HIDE("HIDE");
+
+    companion object {
+        fun fromString(value: String?): NextCardMode =
+            entries.find { it.value == value } ?: AUTO_NEXT
     }
 }

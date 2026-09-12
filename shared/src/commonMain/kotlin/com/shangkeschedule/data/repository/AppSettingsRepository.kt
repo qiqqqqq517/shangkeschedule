@@ -8,6 +8,7 @@ import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
@@ -119,6 +120,7 @@ class AppSettingsRepository(
                 newSettings.disabledAnimationGroups.map { it.value }.toSet()
             prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = newSettings.reduceMotionEnabled
             prefs[AppSettingsModel.KEY_MOTION_SPEED] = newSettings.motionSpeed.value
+            prefs[AppSettingsModel.KEY_NEXT_CARD_MODE] = newSettings.nextCardMode.value
         }
     }
 
@@ -236,6 +238,47 @@ class AppSettingsRepository(
     suspend fun updateMotionSpeed(speed: MotionSpeed) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_MOTION_SPEED] = speed.value
+        }
+    }
+
+    /**
+     * 单独持久化「下节课卡」结束后行为（v3.47.0）。只写这一个键，避免整份 copy 覆盖并发修改。
+     */
+    suspend fun updateNextCardMode(mode: NextCardMode) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_NEXT_CARD_MODE] = mode.value
+        }
+    }
+
+    /**
+     * 保存「我的信息」页的个人资料（v3.49.0）。
+     *
+     * 逐键写入（不整份 copy），避免与其它设置项的并发修改互相覆盖。
+     */
+    suspend fun updateProfileInfo(
+        nickname: String,
+        school: String,
+        college: String,
+        major: String,
+        grade: String,
+        signature: String
+    ) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_PROFILE_NICKNAME] = nickname
+            prefs[AppSettingsModel.KEY_PROFILE_SCHOOL] = school
+            prefs[AppSettingsModel.KEY_PROFILE_COLLEGE] = college
+            prefs[AppSettingsModel.KEY_PROFILE_MAJOR] = major
+            prefs[AppSettingsModel.KEY_PROFILE_GRADE] = grade
+            prefs[AppSettingsModel.KEY_PROFILE_SIGNATURE] = signature
+        }
+    }
+
+    /**
+     * 单独持久化头像文件路径（v3.49.0）。空串表示未设置头像。
+     */
+    suspend fun updateProfileAvatarPath(path: String) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_PROFILE_AVATAR_PATH] = path
         }
     }
 

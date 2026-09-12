@@ -194,6 +194,17 @@ fun SettingsScreen(
     val glassTint = appColors().pageBg.copy(alpha = 0.72f)
     val glassFallback = appColors().pageBg
 
+    // v3.49.0：「我的」页顶部身份卡的展示文案（三套主题共用一份推导）
+    // - 昵称：未设置在「我的信息」页填写时回落为应用名（观感与旧版「上课」卡一致）
+    // - 副标题：学校 · 专业；两者都为空时回落为品牌语
+    val appName = stringResource(Res.string.app_name)
+    val brandSubtitle = stringResource(Res.string.hero_subtitle)
+    val profileName = uiState.appSettings.profileNickname.ifBlank { appName }
+    val profileSubtitle = listOf(
+        uiState.appSettings.profileSchool,
+        uiState.appSettings.profileMajor
+    ).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { brandSubtitle }
+
     AdaptiveNavigationScaffold(
         currentDestination = Destination.Settings,
         onTabSelected = { dest -> onNavigate(dest) }
@@ -272,19 +283,19 @@ fun SettingsScreen(
                 if (isClaudePreset) {
                     // ===== 书卷主题：inset grouped 分组列表（对齐设计稿 profile.html）=====
                     item {
+                        // v3.49.0：删除页头「我的」大标题与其下描述（通透主题下与顶栏标题重复），
+                        // 顶部只留一张增高后的个人身份卡，点击进入「我的信息」页。
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .widthIn(max = 640.dp)
+                                .padding(top = 12.dp)
                         ) {
-                            ClaudePageHeader(
-                                title = stringResource(Res.string.nav_settings),
-                                subtitle = stringResource(Res.string.hero_subtitle)
-                            )
                             ClaudeUserRow(
-                                name = stringResource(Res.string.app_name),
-                                school = stringResource(Res.string.hero_subtitle),
-                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                                name = profileName,
+                                school = profileSubtitle,
+                                avatarPath = uiState.appSettings.profileAvatarPath,
+                                onClick = { onNavigate(Destination.ProfileInfo) }
                             )
                         }
                     }
@@ -432,15 +443,13 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .widthIn(max = 640.dp)
+                                .padding(top = 12.dp)
                         ) {
-                            SoftPageHeader(
-                                title = stringResource(Res.string.nav_settings),
-                                subtitle = stringResource(Res.string.hero_subtitle)
-                            )
                             SoftUserRow(
-                                name = stringResource(Res.string.app_name),
-                                school = stringResource(Res.string.hero_subtitle),
-                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                                name = profileName,
+                                school = profileSubtitle,
+                                avatarPath = uiState.appSettings.profileAvatarPath,
+                                onClick = { onNavigate(Destination.ProfileInfo) }
                             )
                         }
                     }
@@ -588,15 +597,13 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .widthIn(max = 640.dp)
+                                .padding(top = 12.dp)
                         ) {
-                            IosPageHeader(
-                                title = stringResource(Res.string.nav_settings),
-                                subtitle = stringResource(Res.string.hero_subtitle)
-                            )
                             IosUserRow(
-                                name = stringResource(Res.string.app_name),
-                                school = stringResource(Res.string.hero_subtitle),
-                                onClick = { onNavigate(Destination.AppearanceSettings) }
+                                name = profileName,
+                                school = profileSubtitle,
+                                avatarPath = uiState.appSettings.profileAvatarPath,
+                                onClick = { onNavigate(Destination.ProfileInfo) }
                             )
                         }
                     }

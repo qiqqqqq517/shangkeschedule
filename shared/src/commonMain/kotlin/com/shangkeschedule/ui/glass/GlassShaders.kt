@@ -98,11 +98,11 @@ half4 main(float2 coord) {
 }"""
 
 /**
- * 边缘折射 + 彩虹色散（chromatic aberration）。
+ * 边缘折射 + 彩虹色散（chromatic aberration）—— 上游 Shaders.kt 逐行移植。
  *
- * 色散强度沿"角部"最大、直边中点为零（用 `x*y/(halfW*halfH)` 调制），
- * 于是彩边只出现在四个圆角处 —— 与真实玻璃边缘的棱镜色散位置一致。
- * 七个采样点分别贡献 R/G/B 通道，模拟白光被分解后的偏折差。
+ * 保留的两处无观察偏离：
+ * ① 圆角半径查表用居中坐标（padding=0 时与上游等价）；
+ * ② 径向梯度零长度保护（上游 `normalize(centeredCoord)` 在形状中心会产生 NaN）。
  */
 internal const val REFRACTION_DISPERSION_AGSL = """
 uniform shader content;
@@ -175,4 +175,31 @@ half4 main(float2 coord) {
     color.a += purple.a / 7.0;
 
     return color;
+}"""
+
+/**
+ * 镜面高光（Default 风格）：按指定角度对 SDF 梯度做点积，
+ * 只有「迎着光」的边缘亮 —— 玻璃边缘的方向性反光。
+ * 移植自 backdrop 的 DefaultHighlightShaderString（Apache-2.0, Kyant）。
+ */
+internal const val HIGHLIGHT_AGSL = """
+uniform float2 size;
+uniform float4 cornerRadii;
+layout(color) uniform half4 color;
+uniform float angle;
+uniform float falloff;
+
+$ROUNDED_RECT_SDF
+
+half4 main(float2 coord) {
+    float2 halfSize = size * 0.5;
+    float2 centeredCoord = coord - halfSize;
+    float radius = radiusAt(coord, cornerRadii);
+
+    float gradRadius = min(radius * 1.5, min(halfSize.x, halfSize.y));
+    float2 grad = gradSdRoundedRect(centeredCoord, halfSize, gradRadius);
+    float2 normal = float2(cos(angle), sin(angle));
+    float d = dot(grad, normal);
+    float intensity = pow(abs(d), falloff);
+    return color * intensity;
 }"""

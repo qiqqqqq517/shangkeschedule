@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
@@ -118,15 +121,19 @@ fun ClaudePageHeader(title: String, subtitle: String, modifier: Modifier = Modif
 }
 
 /**
- * 书卷主题用户行：浅米色圆角条 + 40dp 圆形头像 + 用户名/学校 + chevron。
+ * 书卷主题用户行：浅米色圆角条 + 56dp 圆形头像 + 用户名/学校 + chevron。
  * 对齐设计稿 .user-row。
+ *
+ * v3.49.0：卡片增高（头像 40→56dp、上下内边距 12→18dp），并支持真实头像图
+ * （[avatarPath] 非空时渲染图片，否则回落为首字圆弧）；点击进入「我的信息」页。
  */
 @Composable
 fun ClaudeUserRow(
     name: String,
     school: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    avatarPath: String? = null
 ) {
     Row(
         modifier = modifier
@@ -134,34 +141,45 @@ fun ClaudeUserRow(
             .clip(RoundedCornerShape(14.dp))
             .background(claudeInsetGroupBg())
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(56.dp)
                 .clip(CircleShape)
                 .background(if (LocalIsDarkTheme.current) Color(0xFF3A2A22) else Color(0xFFF4E0D5)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = name.take(1),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = appColors().primary
-            )
+            if (!avatarPath.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarPath,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = name.take(1),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = appColors().primary
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = name,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = appColors().textPrimary
+                color = appColors().textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = school,

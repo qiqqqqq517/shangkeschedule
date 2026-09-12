@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.schedule.components
+package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -10,6 +10,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -39,11 +40,11 @@ import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
-import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softGlow
 import com.shangkeschedule.ui.theme.softShadow
-import dev.chrisbanes.haze.HazeState
+import com.shangkeschedule.ui.glass.GlassBackdrop
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -63,7 +64,7 @@ import shangkeschedule.shared.generated.resources.floating_course_hint
 fun FloatingCourseBar(
     floatingCourse: CourseWithWeeks?,
     onCancelClick: () -> Unit,
-    hazeState: HazeState,
+    glassBackdrop: GlassBackdrop?,
     contentColor: Color,
     isTransparent: Boolean = false,
     modifier: Modifier = Modifier
@@ -110,23 +111,30 @@ fun FloatingCourseBar(
                     .background(appColors().cardBg)
                     .softGlow(CircleShape)
                     .softFeatherRim(CircleShape)
-                else -> Modifier.liquidGlass(
-                    hazeState = hazeState,
-                    shape = CircleShape,
-                    containerColor = appColors().inputBg,
-                    isTransparent = isTransparent,
-                    shadowElevation = 10.dp
-                )
+                else -> Modifier
+                    // 通透（iOS 26）：玻璃底由下方 LiquidGlass 下垫层承担，Row 本体保持透明
             }
             // 柔绘：悬浮条是页面内的卡片件，文字色回落到语义色（与书卷同口径）；
             // 柔绘低对比配色下，自定义 contentColor（壁纸模式）不保证在薄涂底上的可读性。
             val titleColor = if (isClaude || isSoft) appColors().textPrimary else contentColor
             val accentColor = if (isClaude || isSoft) appColors().primary else contentColor
-            Row(
-                modifier = surfaceModifier
-                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Box {
+                // 通透（iOS 26）：Liquid Glass 下垫层（效果经背板子节点的 UI 树 graphicsLayer 应用）
+                if (!isClaude && !isSoft) {
+                    LiquidGlass(
+                        modifier = Modifier.matchParentSize(),
+                        glassBackdrop = glassBackdrop,
+                        shape = CircleShape,
+                        containerColor = appColors().inputBg,
+                        isTransparent = isTransparent,
+                        shadowElevation = 10.dp
+                    )
+                }
+                Row(
+                    modifier = surfaceModifier
+                        .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Icon(
                     imageVector = vectorResource(Res.drawable.archive_24px),
                     contentDescription = null,
@@ -164,6 +172,7 @@ fun FloatingCourseBar(
                         tint = titleColor,
                         modifier = Modifier.size(16.dp)
                     )
+                }
                 }
             }
         }

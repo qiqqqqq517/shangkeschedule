@@ -34,6 +34,9 @@ import shangkeschedule.shared.generated.resources.item_course_color_settings
 import shangkeschedule.shared.generated.resources.item_glass_blur_settings
 import shangkeschedule.shared.generated.resources.item_personalized_display
 import shangkeschedule.shared.generated.resources.palette_24px
+import shangkeschedule.shared.generated.resources.item_next_card_settings
+import shangkeschedule.shared.generated.resources.desc_next_card_settings
+import shangkeschedule.shared.generated.resources.view_agenda_24px
 
 /**
  * 「外观与样式 → 个性化显示」二级页（v3.26.0 起为 hub）。
@@ -101,6 +104,14 @@ fun PersonalizedDisplayScreen(
                 leadingIcon = vectorResource(Res.drawable.palette_24px),
                 accent = AccentTone.PRIMARY,
                 onClick = { onNavigate(Destination.CourseColorSettings) }
+            )
+            // 下节课卡：今日课程结束后卡片如何显示（自动下一次 / 已结束变淡 / 消失），v3.47.0 新增
+            SettingCard(
+                title = stringResource(Res.string.item_next_card_settings),
+                subtitle = stringResource(Res.string.desc_next_card_settings),
+                leadingIcon = vectorResource(Res.drawable.view_agenda_24px),
+                accent = AccentTone.INFO,
+                onClick = { onNavigate(Destination.NextCardSettings) }
             )
         }
     }

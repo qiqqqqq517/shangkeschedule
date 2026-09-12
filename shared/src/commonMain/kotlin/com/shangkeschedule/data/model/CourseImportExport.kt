@@ -166,6 +166,16 @@ object CourseImportExport {
         val scheduleViewMode: String = "WEEK",
         /** 液态玻璃模糊半径（dp），0 = 关闭模糊；v3.25.0 新增 */
         val glassBlurRadiusDp: Float = 4f,
+        /**
+         * 液态玻璃边缘折射（v3.49.3 起随备份迁移）。
+         * 必须可空：旧版本备份缺这些字段时 CBOR 解码为 null ⇒ 恢复时保留设备现值；
+         * 若用非空默认值（false/16f…），旧备份会把用户已调好的折射静默重置。
+         */
+        val glassRefractionEnabled: Boolean? = null,
+        val glassRefractionHeightDp: Float? = null,
+        val glassRefractionAmountDp: Float? = null,
+        val glassRefractionDispersion: Boolean? = null,
+        val glassRefractionDepthEffect: Boolean? = null,
         /** 全局动画风格名（GLASS/GENTLE/SNAPPY）；v3.26.0 新增 */
         val animationStyle: String = "GLASS",
         /** 已关闭的动画分组名集合；v3.26.0 新增 */

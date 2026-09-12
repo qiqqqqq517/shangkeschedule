@@ -127,9 +127,11 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
+import com.shangkeschedule.ui.glass.GlassBackdrop
+import com.shangkeschedule.ui.components.LocalNavigationGlassBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -344,7 +346,14 @@ fun WeeklyScheduleScreen(
         // 统一由 Scaffold 的 NestedScrollConnection 接管，避免底栏位移叠加异常。
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
+        // v3.49.1：不再自建背景快照，直接复用脚手架录制的那一份（LocalNavigationGlassBackdrop），
+        // 避免「页面 + 脚手架」各录一份（全页重复录制 / 玻璃取样玻璃）。
+        val pageGlassBackdrop = LocalNavigationGlassBackdrop.current
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+        ) {
             if (composedStyle.backgroundImagePath.isNotEmpty()) {
                 AsyncImage(
                     model = composedStyle.backgroundImagePath,
@@ -773,7 +782,7 @@ fun WeeklyScheduleScreen(
             FloatingCourseBar(
                 floatingCourse = floatingCourse,
                 onCancelClick = { viewModel.exitFloatingMode() },
-                hazeState = hazeState,
+                glassBackdrop = pageGlassBackdrop,
                 // 玻璃上的文字/图标跟随页面自定义文字色（壁纸模式下保证可读）
                 contentColor = customTextColor,
                 isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
@@ -785,7 +794,7 @@ fun WeeklyScheduleScreen(
                 visible = showBackToCurrentWeek,
                 hideFraction = backToWeekHideFraction,
                 hideRange = navBarReserve + appSpacing().cardGap + appSpacing().touchMin,
-                hazeState = hazeState,
+                glassBackdrop = pageGlassBackdrop,
                 hasWallpaper = composedStyle.backgroundImagePath.isNotEmpty(),
                 onClick = {
                     coroutineScope.launch {
@@ -863,7 +872,7 @@ private fun BackToCurrentWeekFab(
     visible: Boolean,
     hideFraction: Float,
     hideRange: Dp,
-    hazeState: HazeState,
+    glassBackdrop: GlassBackdrop?,
     hasWallpaper: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -903,16 +912,6 @@ private fun BackToCurrentWeekFab(
                         scaleX = pressedScale
                         scaleY = pressedScale
                     }
-                    // 液态玻璃：与玻璃底栏胶囊同源（连续统一的玻璃语言）。
-                    // v3.24.7：blur 统一取 LiquidGlassBlurRadius，此处不再单独写死。
-                    .liquidGlass(
-                        hazeState = hazeState,
-                        shape = CircleShape,
-                        containerColor = appColors().inputBg,
-                        // 壁纸模式下玻璃透出壁纸并补一层暗 scrim，保证图标可读
-                        isTransparent = hasWallpaper,
-                        shadowElevation = 8.dp
-                    )
                     .clickable(
                         interactionSource = interaction,
                         indication = ripple(bounded = true),
@@ -920,6 +919,15 @@ private fun BackToCurrentWeekFab(
                     ),
                 contentAlignment = Alignment.Center
             ) {
+                LiquidGlass(
+                    modifier = Modifier.fillMaxSize(),
+                    glassBackdrop = glassBackdrop,
+                    shape = CircleShape,
+                    containerColor = appColors().inputBg,
+                    // 壁纸模式下玻璃透出壁纸并补一层暗 scrim，保证图标可读
+                    isTransparent = hasWallpaper,
+                    shadowElevation = 8.dp
+                )
                 Icon(
                     imageVector = vectorResource(Res.drawable.calendar_today_24px),
                     contentDescription = stringResource(Res.string.a11y_back_to_current_week),

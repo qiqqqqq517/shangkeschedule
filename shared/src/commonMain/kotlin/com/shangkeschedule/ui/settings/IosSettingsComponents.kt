@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,10 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
@@ -130,16 +133,20 @@ fun IosPageHeader(title: String, subtitle: String, modifier: Modifier = Modifier
 }
 
 /**
- * 通透主题用户行 / 身份行：白卡 + 44dp 系统蓝→紫渐变圆头像 + 主副标题 + chevron。
+ * 通透主题用户行 / 身份行：白卡 + 56dp 圆形头像 + 主副标题 + chevron。
  *
- * 位置与职责对齐书卷的 `ClaudeUserRow`（书卷用暖米色条 + 40dp 实色头像）。
+ * 位置与职责对齐书卷的 `ClaudeUserRow`（书卷用暖米色条 + 实色头像）。
+ *
+ * v3.49.0：卡片增高（头像 44→56dp、上下内边距 14→18dp），并支持真实头像图
+ * （[avatarPath] 非空时渲染图片，否则回落为「蓝→紫」渐变首字）；点击进入「我的信息」页。
  */
 @Composable
 fun IosUserRow(
     name: String,
     school: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    avatarPath: String? = null
 ) {
     Row(
         modifier = modifier
@@ -147,12 +154,12 @@ fun IosUserRow(
             .clip(appShapes().card)
             .background(appColors().cardBg)
             .clickable(onClick = onClick)
-            .padding(horizontal = appSpacing().cardInner, vertical = 14.dp),
+            .padding(horizontal = appSpacing().cardInner, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(56.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
@@ -164,24 +171,35 @@ fun IosUserRow(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = name.take(1),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Color.White
-            )
+            if (!avatarPath.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarPath,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = name.take(1),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = name,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 17.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = appColors().textPrimary
+                color = appColors().textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = school,

@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.settings.appearance
+﻿package com.shangkeschedule.ui.settings.appearance
 
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.BorderStroke
@@ -51,9 +51,7 @@ import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.LiquidGlassBlurRadius
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.liquidGlass
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
+import com.shangkeschedule.ui.theme.LiquidGlass
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -65,6 +63,7 @@ import shangkeschedule.shared.generated.resources.class_24px
 import shangkeschedule.shared.generated.resources.desc_glass_blur
 import shangkeschedule.shared.generated.resources.glass_preset_heavy
 import shangkeschedule.shared.generated.resources.glass_preset_light
+import shangkeschedule.shared.generated.resources.glass_preset_misty
 import shangkeschedule.shared.generated.resources.glass_preset_off
 import shangkeschedule.shared.generated.resources.glass_preset_standard
 import shangkeschedule.shared.generated.resources.glass_refraction_amount
@@ -161,7 +160,10 @@ fun GlassBlurScreen(
             StyleSliderItem(
                 label = stringResource(Res.string.label_glass_blur),
                 value = blurDp,
-                range = 0f..12f,
+                // 量程必须覆盖全部预设档（0/4/8/16/24）：v3.48.1 档位重标定到 24 后
+                // 滑杆仍停在 0..12，选中「朦胧/磨砂」后滑杆顶死、往回拖再也回不去
+                //（用户实测"无法调模糊"的根因之一）。
+                range = 0f..24f,
                 stepValue = 0.5f
             ) { settingsViewModel.onGlassBlurRadiusChanged(it) }
 
@@ -365,10 +367,7 @@ private fun GlassRefractionPresetRow(
 @Composable
 private fun GlassBlurPreview() {
     val tokens = appColors()
-    val hazeState = rememberHazeState()
-    // v3.47.0：预览同样接折射引擎，开关一按即可看到边缘透镜效果（与真机同一套实现）
-    val refraction = LocalGlassRefraction.current
-    val refractionActive = refraction.enabled && isGlassRefractionAvailable()
+    // v3.48.0：预览接自带玻璃引擎（与真机同一套实现），不再走 Haze
     val glassBackdrop = rememberGlassBackdrop()
 
     Surface(
@@ -385,15 +384,7 @@ private fun GlassBlurPreview() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
-                    // 折射开启时额外录一份快照给玻璃引擎（关闭时不挂载，零额外开销）
-                    .then(
-                        if (refractionActive) {
-                            Modifier.glassBackdropSource(glassBackdrop)
-                        } else {
-                            Modifier
-                        }
-                    )
+                    .glassBackdropSource(glassBackdrop)
             ) {
                 Column(
                     modifier = Modifier
@@ -425,36 +416,39 @@ private fun GlassBlurPreview() {
             }
 
             // 2) 玻璃胶囊（模拟底栏）——与背板平级
-            Row(
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 14.dp, vertical = 12.dp)
-                    .liquidGlass(
-                        hazeState = hazeState,
-                        shape = appShapes().capsule,
-                        containerColor = tokens.inputBg,
-                        shadowElevation = 10.dp,
-                        glassBackdrop = glassBackdrop
-                    )
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
             ) {
-                DemoNavItem(
-                    icon = vectorResource(Res.drawable.view_agenda_24px),
-                    label = stringResource(Res.string.nav_today_schedule),
-                    selected = false
+                LiquidGlass(
+                    modifier = Modifier.matchParentSize(),
+                    glassBackdrop = glassBackdrop,
+                    shape = appShapes().capsule,
+                    containerColor = tokens.inputBg,
+                    shadowElevation = 10.dp
                 )
-                DemoNavItem(
-                    icon = vectorResource(Res.drawable.view_week_24px),
-                    label = stringResource(Res.string.nav_course_schedule),
-                    selected = true
-                )
-                DemoNavItem(
-                    icon = vectorResource(Res.drawable.account_circle_24px),
-                    label = stringResource(Res.string.nav_settings),
-                    selected = false
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    DemoNavItem(
+                        icon = vectorResource(Res.drawable.view_agenda_24px),
+                        label = stringResource(Res.string.nav_today_schedule),
+                        selected = false
+                    )
+                    DemoNavItem(
+                        icon = vectorResource(Res.drawable.view_week_24px),
+                        label = stringResource(Res.string.nav_course_schedule),
+                        selected = true
+                    )
+                    DemoNavItem(
+                        icon = vectorResource(Res.drawable.account_circle_24px),
+                        label = stringResource(Res.string.nav_settings),
+                        selected = false
+                    )
+                }
             }
 
             // 3) 玻璃圆钮（模拟回到本周）——同参数不同尺寸，用来核对大小件雾度是否一致
@@ -462,16 +456,16 @@ private fun GlassBlurPreview() {
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(14.dp)
-                    .size(44.dp)
-                    .liquidGlass(
-                        hazeState = hazeState,
-                        shape = CircleShape,
-                        containerColor = tokens.inputBg,
-                        shadowElevation = 6.dp,
-                        glassBackdrop = glassBackdrop
-                    ),
+                    .size(44.dp),
                 contentAlignment = Alignment.Center
             ) {
+                LiquidGlass(
+                    modifier = Modifier.fillMaxSize(),
+                    glassBackdrop = glassBackdrop,
+                    shape = CircleShape,
+                    containerColor = tokens.inputBg,
+                    shadowElevation = 6.dp
+                )
                 Icon(
                     vectorResource(Res.drawable.class_24px),
                     contentDescription = null,
@@ -548,9 +542,10 @@ private fun DemoNavItem(icon: ImageVector, label: String, selected: Boolean) {
 private fun GlassPresetRow(currentDp: Float, onSelect: (Float) -> Unit) {
     val presets = listOf(
         0f to stringResource(Res.string.glass_preset_off),
-        2f to stringResource(Res.string.glass_preset_light),
+        4f to stringResource(Res.string.glass_preset_light),
         LiquidGlassBlurRadius.value to stringResource(Res.string.glass_preset_standard),
-        8f to stringResource(Res.string.glass_preset_heavy)
+        16f to stringResource(Res.string.glass_preset_misty),
+        24f to stringResource(Res.string.glass_preset_heavy)
     )
     val selectedColor = MaterialTheme.colorScheme.primary
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

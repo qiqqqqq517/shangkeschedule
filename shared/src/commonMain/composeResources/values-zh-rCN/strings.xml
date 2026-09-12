@@ -750,10 +750,11 @@
     <string name="glass_refraction_preset_subtle">轻微</string>
     <string name="glass_refraction_preset_obvious">明显</string>
     <string name="glass_refraction_preset_strong">强烈</string>
-    <string name="glass_preset_off">关闭</string>
+    <string name="glass_preset_off">全透明</string>
     <string name="glass_preset_light">清澈</string>
     <string name="glass_preset_standard">标准</string>
     <string name="glass_preset_heavy">磨砂</string>
+    <string name="glass_preset_misty">朦胧</string>
     <!-- v3.26.0 个性化显示两卡 hub + 动画效果页 -->
     <string name="item_glass_blur_settings">玻璃模糊</string>
     <string name="desc_glass_blur_settings">底栏、悬浮圆钮等玻璃件的雾化强度</string>
@@ -794,6 +795,17 @@
     <string name="anim_speed_fast">快</string>
     <string name="anim_reduce_motion">减弱动态效果</string>
     <string name="anim_reduce_motion_desc">以淡入淡出替代位移与缩放，减少眩晕感</string>
+    <string name="item_next_card_settings">下节课卡</string>
+    <string name="desc_next_card_settings">今日课程结束后，卡片如何显示</string>
+    <string name="next_card_mode_auto">自动显示下一次课程或日程</string>
+    <string name="next_card_mode_auto_desc">今日课程结束后，自动显示下一节课或日程（可能是明日）</string>
+    <string name="next_card_mode_ended">显示今日课程已结束（变淡）</string>
+    <string name="next_card_mode_ended_desc">课程结束后保留一张变淡的「今日课程已结束」提示卡</string>
+    <string name="next_card_mode_hide">课程结束后消失</string>
+    <string name="next_card_mode_hide_desc">今日课程结束后，卡片直接隐藏</string>
+    <string name="next_card_label_agenda">下一日程</string>
+    <string name="next_card_minutes_until">%1$s 分钟后</string>
+    <string name="next_card_today_ended">今日课程已结束，自由探索吧</string>
     <string name="anim_settings_more_placeholder">更多动效分组（后续版本推出）</string>
     <string name="desc_appearance_settings">主题风格、深色模式与课表外观微调</string>
     <string name="theme_preset_classic">经典</string>
@@ -1059,4 +1071,24 @@
     <string name="hint_scheme_in_use">当前使用</string>
     <string name="action_restore_default">恢复默认</string>
     <string name="toast_restored_default">已恢复默认，保存后生效</string>
+
+    <!-- 我的信息页（v3.49.0：「我的」页顶部身份卡点击进入） -->
+    <string name="profile_info_title">我的信息</string>
+    <string name="profile_avatar_label">头像</string>
+    <string name="profile_change_avatar">点击更换头像</string>
+    <string name="profile_remove_avatar">移除头像</string>
+    <string name="profile_section_basic">基本资料</string>
+    <string name="profile_section_school">学校信息</string>
+    <string name="profile_nickname">昵称</string>
+    <string name="profile_nickname_hint">请输入昵称</string>
+    <string name="profile_signature">个性签名</string>
+    <string name="profile_signature_hint">写点什么介绍一下自己</string>
+    <string name="profile_school">学校</string>
+    <string name="profile_school_hint">请输入学校名称</string>
+    <string name="profile_college">学院</string>
+    <string name="profile_college_hint">请输入学院名称</string>
+    <string name="profile_major">专业</string>
+    <string name="profile_major_hint">请输入专业名称</string>
+    <string name="profile_grade">年级</string>
+    <string name="profile_grade_hint">如：2024 级</string>
 </resources>
