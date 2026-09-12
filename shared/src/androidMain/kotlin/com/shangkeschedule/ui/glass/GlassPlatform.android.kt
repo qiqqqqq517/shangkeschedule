@@ -29,13 +29,15 @@ internal actual fun isLiquidRenderEffectSupported(): Boolean =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 internal actual fun isColorFilterEffectReliable(): Boolean =
-    // Android 15（API 35）起 HWUI 对 targetSdk ≥ 35 的应用默认走 Vulkan 渲染，
-    // 部分机型驱动对链式色彩滤镜 RenderEffect 原生崩溃 ⇒ 整环节跳过（见 commonMain KDoc）。
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+    // v3.50.11 修正：**不再按系统版本一刀切**。v3.50.9 / v3.50.10 曾以 SDK_INT < 35 为门槛，
+    // 把所有 Android 15 机型的鲜艳度 / 折射 / 高光一并关掉；而实测中大量 Android 15 机型
+    //（如 vivo X200）跑完整玻璃完全正常、长期不闪退 —— 属**误伤可用机型**。
+    // 现在「能不能跑」由**本机是否真的崩过**决定（见下方 applyGlassNativeCrashFallback）。
+    true
 
 internal actual fun isLiquidShaderReliable(): Boolean =
-    // 同因：Android 15+ 上 AGSL RuntimeShader 在部分机型驱动上不可靠。
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+    // 同上：AGSL 是否可用由本机崩溃记录决定，而非 SDK 版本。
+    true
 
 /** 自愈兜底的锁存标记文件（filesDir 下，内容 = 降级时的 versionCode）。 */
 private const val GLASS_FALLBACK_MARKER = "glass_fallback.flag"
