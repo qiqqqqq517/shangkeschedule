@@ -79,6 +79,8 @@ import com.shangkeschedule.ui.settings.appearance.CourseColorSettingsScreen
 import com.shangkeschedule.ui.settings.appearance.PersonalizedDisplayScreen
 import com.shangkeschedule.ui.settings.appearance.GlassBlurScreen
 import com.shangkeschedule.ui.settings.appearance.AnimationSettingsScreen
+import com.shangkeschedule.ui.settings.appearance.NextCardSettingsScreen
+import com.shangkeschedule.ui.settings.profile.ProfileInfoScreen
 import com.shangkeschedule.ui.settings.time.TimeSlotManagementScreen
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
@@ -192,32 +194,36 @@ fun AppNavigation(startDestination: Destination) {
             if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                when (navMode) {
+                val (enter, exit) = when (navMode) {
                     // 通透：整屏横推 + 1/3 尾随视差
                     NavMotionMode.SLIDE ->
-                        slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) +
-                            fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            slideOutHorizontally(
+                        (slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) +
+                            fadeIn(animationSpec = fadeAnimSpec)) to
+                            (slideOutHorizontally(
                                 targetOffsetX = { -(it * navTrail).toInt() },
                                 animationSpec = slideAnimSpec
-                            ) + fadeOut(animationSpec = navExitAnimSpec)
+                            ) + fadeOut(animationSpec = navExitAnimSpec))
 
                     // 柔绘：新页淡入 + 上浮，旧页慢速降透明度后淡出（零横移）
                     NavMotionMode.FADE_UP ->
-                        slideInVertically(
+                        (slideInVertically(
                             initialOffsetY = { navOffsetPx },
                             animationSpec = slideAnimSpec
-                        ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                        ) + fadeIn(animationSpec = fadeAnimSpec)) to
                             fadeOut(animationSpec = navExitAnimSpec, targetAlpha = 0.85f)
 
                     // 书卷：纸页层叠——新页自右缘 14dp 淡入，旧页原地仅降 6% 不透明度
                     NavMotionMode.LAYER_PUSH ->
-                        slideInHorizontally(
+                        (slideInHorizontally(
                             initialOffsetX = { navOffsetPx },
                             animationSpec = slideAnimSpec
-                        ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                        ) + fadeIn(animationSpec = fadeAnimSpec)) to
                             fadeOut(animationSpec = navExitAnimSpec, targetAlpha = 0.94f)
                 }
+                // 主页面（承载玻璃底栏的那一屏）不参与转场动画：底栏「不动不淡」，
+                // 二级页从主页面之上滑入 / 向主页面之外滑出（对齐 iOS tab bar 的观感）。
+                (if (toMain) EnterTransition.None else enter) togetherWith
+                    (if (fromMain) ExitTransition.None else exit)
             }
         },
         popTransitionSpec = {
@@ -227,50 +233,58 @@ fun AppNavigation(startDestination: Destination) {
             if ((fromMain && toMain) || !navAnimEnabled) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                when (navMode) {
+                val (enter, exit) = when (navMode) {
                     NavMotionMode.SLIDE ->
-                        slideInHorizontally(
+                        (slideInHorizontally(
                             initialOffsetX = { -(it * navTrail).toInt() },
                             animationSpec = slideAnimSpec
-                        ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
-                            fadeOut(animationSpec = navExitAnimSpec)
+                        ) + fadeIn(animationSpec = fadeAnimSpec)) to
+                            (slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
+                                fadeOut(animationSpec = navExitAnimSpec))
 
                     NavMotionMode.FADE_UP ->
-                        slideInVertically(
+                        (slideInVertically(
                             initialOffsetY = { -navOffsetPx },
                             animationSpec = slideAnimSpec
-                        ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                        ) + fadeIn(animationSpec = fadeAnimSpec)) to
                             fadeOut(animationSpec = navExitAnimSpec)
 
                     NavMotionMode.LAYER_PUSH ->
-                        fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            slideOutHorizontally(
+                        fadeIn(animationSpec = fadeAnimSpec) to
+                            (slideOutHorizontally(
                                 targetOffsetX = { navOffsetPx },
                                 animationSpec = slideAnimSpec
-                            ) + fadeOut(animationSpec = navExitAnimSpec)
+                            ) + fadeOut(animationSpec = navExitAnimSpec))
                 }
+                // 同 push：主页面（底栏那一屏）不参与转场 ⇒ 底栏在返回时也不淡入 / 不位移。
+                (if (toMain) EnterTransition.None else enter) togetherWith
+                    (if (fromMain) ExitTransition.None else exit)
             }
         },
         predictivePopTransitionSpec = {
             // 与 popTransitionSpec 同口径：关掉「导航转场」分组 ⇒ 预测性返回也瞬切。
             // 通透档走物理弹簧，手势中途反向时弹簧会自然重定向并收束。
-            if (!navAnimEnabled) {
+            val fromMain = initialState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
+            val toMain = targetState.metadata[ShangKeNavMetadata.IsMainScreenKey] ?: false
+            if (!navAnimEnabled || (fromMain && toMain)) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                when (navMode) {
+                val (enter, exit) = when (navMode) {
                     NavMotionMode.SLIDE ->
-                        slideInHorizontally(
+                        (slideInHorizontally(
                             initialOffsetX = { -(it * navTrail).toInt() },
                             animationSpec = slideAnimSpec
-                        ) + fadeIn(animationSpec = fadeAnimSpec) togetherWith
-                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
-                            fadeOut(animationSpec = navExitAnimSpec)
+                        ) + fadeIn(animationSpec = fadeAnimSpec)) to
+                            (slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec) +
+                                fadeOut(animationSpec = navExitAnimSpec))
 
                     NavMotionMode.FADE_UP, NavMotionMode.LAYER_PUSH ->
-                        fadeIn(animationSpec = fadeAnimSpec) togetherWith
+                        fadeIn(animationSpec = fadeAnimSpec) to
                             fadeOut(animationSpec = navExitAnimSpec)
                 }
+                // 手势返回时主页面同样不动不淡（底栏保持原样，仅二级页滑走）。
+                (if (toMain) EnterTransition.None else enter) togetherWith
+                    (if (fromMain) ExitTransition.None else exit)
             }
         },
         entryDecorators = listOf(
@@ -336,11 +350,13 @@ fun ScreenContent(
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
         Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack, onNavigate)
         Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
+        Destination.ProfileInfo -> ProfileInfoScreen(onBack)
         Destination.ScheduleStyleSettings -> ScheduleStyleSettingsScreen(onBack)
         Destination.PersonalizedDisplay -> PersonalizedDisplayScreen(onBack, onNavigate)
         Destination.CourseColorSettings -> CourseColorSettingsScreen(onBack)
         Destination.GlassBlurSettings -> GlassBlurScreen(onBack)
         Destination.AnimationSettings -> AnimationSettingsScreen(onBack)
+        Destination.NextCardSettings -> NextCardSettingsScreen(onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)

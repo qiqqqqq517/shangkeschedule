@@ -4,6 +4,9 @@ import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ColorMatrixColorFilter
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
@@ -11,6 +14,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastCoerceAtMost
 
 /**
@@ -40,8 +44,21 @@ sealed interface GlassEffectScope : Density {
 
     var renderEffect: RenderEffect?
 
+    /**
+     * v3.50.2 UI 树路径（[GlassSurface] 容器组件）置 false：层即节点本身，
+     * 无「离屏层外扩采样」——[glassBlur] 不扩 padding、[glassLens] 不收缩/偏移。
+     */
+    val paddingEnabled: Boolean
+
     /** 按 [key] 复用运行时着色器（避免每帧重新编译 AGSL）。 */
     fun obtainShader(key: String, agsl: String): LiquidShader?
+
+    /**
+     * 临时诊断：同一 [key] 只打印一次。
+     * 玻璃效果链一旦某环节静默失败（着色器编译失败 / 无法包装成 RenderEffect），
+     * 表现就是「模糊、折射、色散全部没作用」，必须有日志可查。
+     */
+    fun reportOnce(key: String, message: () -> String)
 }
 
 internal class GlassEffectScopeImpl : GlassEffectScope {
@@ -53,6 +70,15 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
     override var padding: Float = 0f
     override var renderEffect: RenderEffect? = null
 
+    /**
+     * v3.50.2：效果改由 UI 树 `Modifier.graphicsLayer{renderEffect}` 子节点承载后，
+     * 不再存在「离屏层外扩采样」——padding 语义整体作废。置 false 时
+     * [glassBlur] 不扩 padding、[glassLens] 不收缩/偏移 padding（shader offset 恒 0）。
+     */
+    private var _paddingEnabled: Boolean = true
+
+    override val paddingEnabled: Boolean get() = _paddingEnabled
+
     private var currentShape: Shape = RectangleShape
 
     override val shape: Shape get() = currentShape
@@ -62,10 +88,23 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
 
     private val shaders = mutableMapOf<String, LiquidShader?>()
 
+    private val reported = mutableSetOf<String>()
+
+    override fun reportOnce(key: String, message: () -> String) {
+        if (reported.add(key)) {
+            println("GLASS: " + message())
+        }
+    }
+
     override fun obtainShader(key: String, agsl: String): LiquidShader? {
         if (!isLiquidRefractionSupported()) return null
         return shaders.getOrPut(key) {
-            runCatching { createLiquidShader(agsl) }.getOrNull()
+            val result = runCatching { createLiquidShader(agsl) }
+            // 编译失败必须留痕：此前静默返回 null 会让「折射/色散完全没作用」无从排查
+            result.exceptionOrNull()?.let { err ->
+                println("GLASS: 运行时着色器编译失败 key=$key, ${err.message}")
+            }
+            result.getOrNull()
         }
     }
 
@@ -93,12 +132,41 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         return changed
     }
 
-    /** 每帧重算：清空 padding / 效果链（着色器缓存保留），再执行用户的 effects 块。 */
+    /**
+     * 每帧重算：清空 padding / 效果链（着色器缓存保留），再执行用户的 effects 块。
+     */
     fun apply(shape: Shape, effects: GlassEffectScope.() -> Unit) {
         currentShape = shape
         padding = 0f
         renderEffect = null
         effects()
+    }
+
+    /**
+     * v3.50.2 UI 树路径专用：由 `Modifier.graphicsLayer{}` 块在每帧调用。
+     * 层参数（密度/尺寸）由 GraphicsLayerScope 提供；padding 强制关闭。
+     */
+    fun applyForLayer(
+        shape: Shape,
+        density: Float,
+        fontScale: Float,
+        size: Size,
+        layoutDirection: LayoutDirection,
+        effects: GlassEffectScope.() -> Unit
+    ) {
+        this.density = density
+        this.fontScale = fontScale
+        this.size = size
+        this.layoutDirection = layoutDirection
+        currentShape = shape
+        padding = 0f
+        renderEffect = null
+        _paddingEnabled = false
+        try {
+            effects()
+        } finally {
+            _paddingEnabled = true
+        }
     }
 
     fun reset() {
@@ -126,23 +194,108 @@ fun GlassEffectScope.glassBlur(
     edgeTreatment: TileMode = TileMode.Clamp
 ) {
     if (radius <= 0f) return
-    if (radius > padding) padding = radius
-    renderEffect = BlurEffect(renderEffect, radius, radius, edgeTreatment)
+    // 上游 Blur.kt 逐行：Clamp 且无前置效果时不需要外扩（边缘由 Clamp 补齐）。
+    // v3.50.2 UI 树路径 paddingEnabled=false：层即节点本身，无外扩可言。
+    if (paddingEnabled && (edgeTreatment != TileMode.Clamp || renderEffect != null)) {
+        if (radius > padding) {
+            padding = radius
+        }
+    }
+
+    renderEffect =
+        BlurEffect(
+            renderEffect,
+            radius,
+            radius,
+            edgeTreatment
+        )
+}
+
+/**
+ * 色彩控制滤镜（brightness / contrast / saturation）。
+ * 移植自 backdrop 的 `colorControls`（Apache-2.0, Kyant）。
+ *
+ * 放在效果链最前（最内层），与上游顺序一致：color filter ⇒ blur ⇒ lens。
+ */
+fun GlassEffectScope.glassColorControls(
+    brightness: Float = 0f,
+    contrast: Float = 1f,
+    saturation: Float = 1f
+) {
+    if (brightness == 0f && contrast == 1f && saturation == 1f) {
+        return
+    }
+    if (!isLiquidRenderEffectSupported()) return
+
+    val effect = liquidColorFilterEffect(colorControlsColorFilter(brightness, contrast, saturation))
+        ?: return
+    renderEffect = chainLiquidEffects(renderEffect, effect)
+}
+
+/**
+ * 鲜艳度：饱和度 1.5 的色彩滤镜，让玻璃后的内容更"水灵"。
+ * 与上游 backdrop 的 `vibrancy()` 完全同一参数。
+ */
+fun GlassEffectScope.glassVibrancy() {
+    if (!isLiquidRenderEffectSupported()) {
+        reportOnce("vibrancy") { "vibrancy 跳过（平台不支持 RenderEffect）" }
+        return
+    }
+
+    val effect = liquidColorFilterEffect(VibrantColorFilter) ?: run {
+        reportOnce("vibrancy") { "vibrancy 跳过（色彩滤镜无法包装成 RenderEffect）" }
+        return
+    }
+    renderEffect = chainLiquidEffects(renderEffect, effect)
+}
+
+private val VibrantColorFilter = colorControlsColorFilter(saturation = 1.5f)
+
+private fun colorControlsColorFilter(
+    brightness: Float = 0f,
+    contrast: Float = 1f,
+    saturation: Float = 1f
+): ColorFilter {
+    val invSat = 1f - saturation
+    val r = 0.213f * invSat
+    val g = 0.715f * invSat
+    val b = 0.072f * invSat
+
+    val c = contrast
+    val t = (0.5f - c * 0.5f + brightness) * 255f
+    val s = saturation
+
+    val cr = c * r
+    val cg = c * g
+    val cb = c * b
+    val cs = c * s
+
+    val colorMatrix = ColorMatrix(
+        floatArrayOf(
+            cr + cs, cg, cb, 0f, t,
+            cr, cg + cs, cb, 0f, t,
+            cr, cg, cb + cs, 0f, t,
+            0f, 0f, 0f, 1f, 0f
+        )
+    )
+    return ColorMatrixColorFilter(colorMatrix)
 }
 
 /**
  * 边缘折射（透镜）。
  *
- * @param refractionHeight 折射带宽度，单位 px。取值应 ≤ 形状最小圆角半径；
- *   超过后四角的折射会在直边处出现不连续（上游同样如此，属可接受范围）。
- * @param refractionAmount 折射位移量，单位 px。上限为形状短边的一半左右。
- * @param depthEffect 是否叠加"厚度"感：把 SDF 梯度与径向梯度混合，
- *   使折射在形状内部也有轻微汇聚，观感更像一块有厚度的玻璃。
- * @param chromaticAberration 是否开启彩虹色散（彩边集中在四个圆角）。
+ * @param refractionHeight 折射带宽度，单位 px。
+ * @param refractionAmount 折射位移量，单位 px。
+ * @param depthEffect 是否叠加"厚度"感：把 SDF 梯度与**径向**梯度混合。
+ *   ⚠️ 参考实现（Kyant/backdrop 的 LiquidBottomTabs）**从不开**这一项（默认 false）——
+ *   径向分量把采样拉向形状中心，在"短边很小"的胶囊上会读成"中间被挤压"。
+ * @param chromaticAberration 是否开启彩虹色散（沿形状四周整圈彩边）。
  *
- * 形状不是圆角矩形类时**静默跳过**（绝不抛异常）：底栏形状可能是任意 Shape，
- * 缺少 SDF 参数时退化为「只有模糊的玻璃」，这与上游抛
- * `UnsupportedOperationException` 的行为不同，是刻意的健壮性取舍。
+ * v3.48.1 起参数语义完全还原上游（v3.48.0 的"按形状短边收口"已删除）：
+ * 折射带 / 位移原样透传，不做任何钳制 —— 过大的折射带（如 32dp ≥ 64dp 胶囊的半高）
+ * 会覆盖整条玻璃，属用户自选观感，不再代做决定。
+ *
+ * 形状不是圆角矩形类时**静默跳过**（绝不抛异常）。
  */
 fun GlassEffectScope.glassLens(
     refractionHeight: Float,
@@ -154,6 +307,12 @@ fun GlassEffectScope.glassLens(
     if (refractionHeight <= 0f || refractionAmount <= 0f) return
 
     val radii = cornerRadii ?: return
+    // 上游 Lens.kt 逐行：lens 会收缩 blur 留下的 padding（折射位移向内拉，
+    // 不需要向外扩采样范围）。v3.50.2 UI 树路径 paddingEnabled=false：offset 恒 0。
+    if (paddingEnabled && padding > 0f) {
+        padding = (padding - refractionHeight).fastCoerceAtLeast(0f)
+    }
+
     val agsl = if (chromaticAberration) REFRACTION_DISPERSION_AGSL else REFRACTION_AGSL
     val key = if (chromaticAberration) "RefractionDispersion" else "Refraction"
     val shader = obtainShader(key, agsl) ?: return
@@ -169,7 +328,11 @@ fun GlassEffectScope.glassLens(
         shader.setFloatUniform("chromaticAberration", 1f)
     }
 
-    val effect = liquidShaderEffect(shader, "content") ?: return
+    val effect = liquidShaderEffect(shader, "content")
+    if (effect == null) {
+        reportOnce("lens-null-$key") { "liquidShaderEffect 返回 null，折射被跳过 key=$key" }
+        return
+    }
     renderEffect = chainLiquidEffects(renderEffect, effect)
 }
 

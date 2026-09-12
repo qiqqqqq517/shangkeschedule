@@ -1,7 +1,10 @@
 package com.shangkeschedule.ui.glass
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.ShaderBrush
 
 /**
  * 液态玻璃（Liquid Glass）**折射层**的平台能力抽象。
@@ -21,6 +24,13 @@ import androidx.compose.ui.graphics.RenderEffect
 internal expect fun isLiquidRefractionSupported(): Boolean
 
 /**
+ * 平台是否支持 RenderEffect（离屏效果链）。Android 需 API 31 (S)；
+ * 比 [isLiquidRefractionSupported] 门槛低一档——API 31/32 上模糊与色彩滤镜
+ * （vibrancy）仍可用，只是没有 AGSL 折射。
+ */
+internal expect fun isLiquidRenderEffectSupported(): Boolean
+
+/**
  * 创建一块运行时着色器（AGSL / SkSL 源码）。
  *
  * 传入的着色器统一以 `uniform shader content;` 作为输入纹理、
@@ -37,13 +47,38 @@ internal expect fun createLiquidShader(agsl: String): LiquidShader?
 internal expect fun liquidShaderEffect(shader: LiquidShader, uniformShaderName: String): RenderEffect?
 
 /**
+ * 把色彩滤镜包装成 [RenderEffect]（用于 vibrancy 等效果链环节）。
+ * Android 走 `RenderEffect.createColorFilterEffect`（API 31+）；Skia 走
+ * `ImageFilter.makeColorFilter`。平台不支持时返回 null（调用方静默跳过该环节）。
+ */
+internal expect fun liquidColorFilterEffect(colorFilter: ColorFilter): RenderEffect?
+
+/**
+ * 把运行时着色器包装成 [ShaderBrush]（用于 InteractiveHighlight 这类
+ * 直接画在 Paint/画布上的着色器，而非 RenderEffect 链）。
+ */
+internal expect fun liquidShaderBrush(shader: LiquidShader): ShaderBrush?
+
+/**
  * 效果链：先 [inner] 后 [outer]（即 `outer(inner(x))`）。
  *
- * 本库固定顺序为「模糊 → 折射」，与 backdrop 文档要求一致
+ * 本库固定顺序为「色彩滤镜 ⇒ 模糊 ⇒ 折射」，与 backdrop 文档要求一致
  * （color filter ⇒ blur ⇒ lens）：折射必须采样「已模糊」的图，
  * 反序会让折射采到清晰原图，边缘出现生硬的原图纹路。
  */
 internal expect fun chainLiquidEffects(inner: RenderEffect?, outer: RenderEffect): RenderEffect
+
+/**
+ * 给 [Paint] 设置模糊 MaskFilter（Highlight / Shadow / InnerShadow 用）。
+ * radius 单位 px；radius <= 0 时清除滤镜。
+ */
+internal expect fun Paint.liquidBlur(radius: Float)
+
+/**
+ * 给 [Paint] 设置运行时着色器（Highlight 的方向性反光用）。
+ * shader 为 null 时清除。
+ */
+internal expect fun Paint.liquidSetShader(shader: LiquidShader?)
 
 /**
  * 平台无关的运行时着色器句柄（只需支持本库用到的 uniform 类型）。

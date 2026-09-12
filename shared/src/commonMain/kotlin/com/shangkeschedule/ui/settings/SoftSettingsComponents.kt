@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,10 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
@@ -134,15 +137,19 @@ fun SoftPageHeader(title: String, subtitle: String, modifier: Modifier = Modifie
 }
 
 /**
- * 柔绘身份行：薄涂卡 + 46dp 晕染圆头像 + 主副标题 + 尾部箭头。
+ * 柔绘身份行：薄涂卡 + 56dp 晕染圆头像 + 主副标题 + 尾部箭头。
  * 位置与职责对齐书卷 `ClaudeUserRow` / 通透 `IosUserRow`。
+ *
+ * v3.49.0：卡片增高（头像 46→56dp、上下内边距 14→18dp），并支持真实头像图
+ * （[avatarPath] 非空时渲染图片，否则回落为双色晕染首字）；点击进入「我的信息」页。
  */
 @Composable
 fun SoftUserRow(
     name: String,
     school: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    avatarPath: String? = null
 ) {
     val shape = appShapes().card
     Row(
@@ -150,13 +157,13 @@ fun SoftUserRow(
             .fillMaxWidth()
             .softSurface(shape = shape, elevation = 8.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = appSpacing().cardInner, vertical = 14.dp),
+            .padding(horizontal = appSpacing().cardInner, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 柔绘头像：两色柔和晕染（不用实色渐变，保留薄涂感）
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(56.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
@@ -169,24 +176,35 @@ fun SoftUserRow(
                 .softGlow(CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = name.take(1),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = Color.White
-            )
+            if (!avatarPath.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarPath,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = name.take(1),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color.White
+                )
+            }
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = name,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                color = appColors().textPrimary
+                color = appColors().textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = school,

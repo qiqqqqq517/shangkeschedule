@@ -87,6 +87,9 @@ import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.ScheduleCategory
 import com.shangkeschedule.data.db.main.ScheduleEvent
+import com.shangkeschedule.data.model.NextCardMode
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -102,6 +105,7 @@ import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
+import com.shangkeschedule.ui.components.LocalNavigationGlassBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -213,6 +217,9 @@ import shangkeschedule.shared.generated.resources.today_claude_meta_room
 import shangkeschedule.shared.generated.resources.today_claude_meta_teacher
 import shangkeschedule.shared.generated.resources.today_claude_meta_time
 import shangkeschedule.shared.generated.resources.today_claude_next_label
+import shangkeschedule.shared.generated.resources.next_card_label_agenda
+import shangkeschedule.shared.generated.resources.next_card_minutes_until
+import shangkeschedule.shared.generated.resources.next_card_today_ended
 import shangkeschedule.shared.generated.resources.today_claude_note_hours
 import shangkeschedule.shared.generated.resources.today_claude_note_type
 import shangkeschedule.shared.generated.resources.today_claude_remaining
@@ -279,6 +286,8 @@ fun TodayScheduleScreen(
             currentDestination = Destination.TodaySchedule,
             onTabSelected = { dest -> onNavigate(dest) }
         ) { outerPadding ->
+        // v3.49.1：复用脚手架录制的背景快照，不再自建第二份（避免全页重复录制 / 玻璃取样玻璃）。
+        val pageGlassBackdrop = LocalNavigationGlassBackdrop.current
         Scaffold(
             // 应用外层底部导航预留的内边距，避免 FAB 被底栏遮挡
             modifier = Modifier,
@@ -310,14 +319,19 @@ fun TodayScheduleScreen(
                         },
                         icon = vectorResource(Res.drawable.add_24px),
                         contentDescription = stringResource(Res.string.a11y_todo_add),
-                        // 液态玻璃 FAB：复用页面既有 hazeState（内容已 hazeSource）
-                        hazeState = hazeState,
+                        // 液态玻璃 FAB：复用页面背景快照（内容已 glassBackdropSource）
+                        glassBackdrop = pageGlassBackdrop,
                         modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
                     )
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding).hazeSource(hazeState)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .hazeSource(hazeState)
+            ) {
                 when (val state = uiState) {
                     is TodayUiState.Loading -> AppLoading()
                     is TodayUiState.Success -> {
@@ -790,15 +804,7 @@ private fun ClaudeTodayContent(
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
 
-    val nextCourse = remember(state.courses, now) {
-        val upcoming = state.courses.firstOrNull { model ->
-            val start = model.startTime?.takeIf { it.isNotBlank() }?.let {
-                runCatching { LocalTime.parse(it) }.getOrNull()
-            }
-            start != null && start > now
-        }
-        upcoming ?: state.courses.firstOrNull { !isClaudeCourseFinished(it, now) }
-    }
+    val nextSlot = remember(state, now) { resolveNextCardSlot(state, now, state.nextCardMode) }
     val tomorrowDate = stringResource(
         Res.string.today_claude_tomorrow_format,
         state.today.month.number,
@@ -820,16 +826,34 @@ private fun ClaudeTodayContent(
             )
         }
 
-        if (nextCourse != null) {
-            item {
+        when (val slot = nextSlot) {
+            is NextCardSlot.Course -> item {
                 ClaudeNextClassCard(
-                    model = nextCourse,
-                    gridStyle = gridStyle,
+                    data = NextCardData(
+                        label = stringResource(Res.string.today_claude_next_label),
+                        title = slot.model.course.name,
+                        location = slot.model.course.position.takeIf { !gridStyle.hideLocation && it.isNotBlank() },
+                        teacher = slot.model.course.teacher.takeIf { !gridStyle.hideTeacher && it.isNotBlank() },
+                        timeRange = claudeTimeRange(slot.model),
+                        minutesUntil = claudeMinutesUntil(slot.model, now)
+                    ),
                     isDark = isDark,
-                    now = now,
-                    onClick = { detailCourse = nextCourse }
+                    onClick = { detailCourse = slot.model }
                 )
             }
+            is NextCardSlot.Event -> item {
+                ClaudeNextClassCard(
+                    data = eventCardData(slot.event, state.today, now, stringResource(Res.string.next_card_label_agenda)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.Ended -> item {
+                ClaudeNextClassCard(
+                    data = endedCardData(stringResource(Res.string.next_card_today_ended)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.None -> Unit
         }
 
         item {
@@ -1372,13 +1396,134 @@ private fun ClaudeMetaRow(
 }
 
 /** 下一节课 hero 卡：设计稿 .next-class-card（丁香紫渐变 + 时间徽标 + 倒计时）。 */
+/** 下节课卡要展示的内容（v3.47.0「个性化显示 → 下节课卡」）。 */
+private sealed interface NextCardSlot {
+    /** 展示某节课（今日进行中/即将开始，或明日首节）。 */
+    data class Course(val model: CourseDisplayModel, val isTomorrow: Boolean) : NextCardSlot
+    /** 今日课程已结束后，展示下一次日程。 */
+    data class Event(val event: ScheduleEvent) : NextCardSlot
+    /** 展示「今日课程已结束，自由探索吧」提示（变淡）。 */
+    data object Ended : NextCardSlot
+    /** 不展示。 */
+    data object None : NextCardSlot
+}
+
+/** 下节课卡渲染数据（三套主题同构卡共用）：标识 / 标题 / 地点 / 教师 / 时间区间 / 倒计时 / 变淡。 */
+private data class NextCardData(
+    val label: String,
+    val title: String,
+    val location: String?,
+    val teacher: String?,
+    val timeRange: String,
+    val minutesUntil: Int?,
+    val faded: Boolean = false
+)
+
+private fun parseTimeOrNull(text: String?): LocalTime? =
+    text?.takeIf { it.isNotBlank() }?.let { runCatching { LocalTime.parse(it) }.getOrNull() }
+
+/**
+ * 统一解析「下节课卡」应展示什么（三套主题共用，避免各写一套）。
+ *
+ * 优先级：今日进行中课程 → 今日即将开始课程 → （今日课程全部结束后按设置）：
+ * - [NextCardMode.AUTO_NEXT]：下一次日程 → 明日首节课 → 都不存在则隐藏；
+ * - [NextCardMode.TODAY_ENDED]：展示「今日课程已结束」提示；
+ * - [NextCardMode.HIDE]：隐藏（旧行为）。
+ */
+private fun resolveNextCardSlot(
+    state: TodayUiState.Success,
+    now: LocalTime,
+    mode: NextCardMode
+): NextCardSlot {
+    val ongoing = state.courses.firstOrNull { m ->
+        val s = parseTimeOrNull(m.startTime)
+        val e = parseTimeOrNull(m.endTime)
+        s != null && e != null && s <= now && now < e
+    }
+    val upcoming = state.courses.firstOrNull { m ->
+        val s = parseTimeOrNull(m.startTime)
+        s != null && s > now
+    }
+    (ongoing ?: upcoming)?.let { return NextCardSlot.Course(it, isTomorrow = false) }
+
+    when (mode) {
+        NextCardMode.HIDE -> return NextCardSlot.None
+        NextCardMode.TODAY_ENDED -> return NextCardSlot.Ended
+        NextCardMode.AUTO_NEXT -> Unit
+    }
+    // AUTO_NEXT：在「未来日程（含跨天）」与「明日首节课」之间取时间最近的一个
+    val todayStr = state.today.toString()
+    val tomorrowStr = state.today.plus(1, DateTimeUnit.DAY).toString()
+    fun keyOf(date: String, time: String?): Pair<String, Int> =
+        date to (parseTimeOrNull(time)?.toSecondOfDay() ?: Int.MAX_VALUE)
+
+    val nextEvent = state.upcomingEvents
+        .asSequence()
+        .filter { !it.isAllDay }
+        .filter { ev ->
+            val s = parseTimeOrNull(ev.startTime) ?: return@filter false
+            ev.date > todayStr || (ev.date == todayStr && s > now)
+        }
+        .minWithOrNull(
+            compareBy({ it.date }, { parseTimeOrNull(it.startTime)?.toSecondOfDay() ?: Int.MAX_VALUE })
+        )
+    val tomorrowFirst = state.tomorrowCourses.firstOrNull()
+
+    val eventKey = nextEvent?.let { keyOf(it.date, it.startTime) }
+    val courseKey = tomorrowFirst?.let { keyOf(tomorrowStr, it.startTime) }
+    val eventSooner = when {
+        eventKey == null -> false
+        courseKey == null -> true
+        else -> eventKey.first < courseKey.first ||
+            (eventKey.first == courseKey.first && eventKey.second <= courseKey.second)
+    }
+    if (eventSooner && nextEvent != null) return NextCardSlot.Event(nextEvent)
+    if (tomorrowFirst != null) return NextCardSlot.Course(tomorrowFirst, isTomorrow = true)
+    return NextCardSlot.None
+}
+
+/** 由日程构造下节课卡数据（跨天时时间徽标带日期；非当日不显示倒计时）。 */
+private fun eventCardData(event: ScheduleEvent, today: LocalDate, now: LocalTime, label: String): NextCardData {
+    val isToday = event.date == today.toString()
+    val start = event.startTime?.takeIf { it.isNotBlank() }
+    val end = event.endTime?.takeIf { it.isNotBlank() }
+    val range = if (isToday) {
+        listOfNotNull(start, end).joinToString(" - ")
+    } else {
+        listOfNotNull(event.date.takeIf { it.length >= 10 }?.substring(5)?.replace('-', '/'), start)
+            .joinToString(" ")
+    }
+    val minutes = if (isToday) {
+        start?.let { parseTimeOrNull(it) }?.let { (it.toSecondOfDay() - now.toSecondOfDay()) / 60 }
+    } else {
+        null
+    }
+    return NextCardData(
+        label = label,
+        title = event.title,
+        location = event.location?.takeIf { it.isNotBlank() },
+        teacher = null,
+        timeRange = range,
+        minutesUntil = minutes
+    )
+}
+
+/** 今日课程已结束提示卡数据（变淡）。 */
+private fun endedCardData(message: String): NextCardData = NextCardData(
+    label = "",
+    title = message,
+    location = null,
+    teacher = null,
+    timeRange = "",
+    minutesUntil = null,
+    faded = true
+)
+
 @Composable
 private fun ClaudeNextClassCard(
-    model: CourseDisplayModel,
-    gridStyle: ScheduleGridStyle,
+    data: NextCardData,
     isDark: Boolean,
-    now: LocalTime,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
     val labelColor = if (isDarkTheme) Color(0xFFC4B8E8) else ClaudeLilac700
@@ -1391,11 +1536,12 @@ private fun ClaudeNextClassCard(
     }
     val border = if (isDarkTheme) Color(0x339C87F5) else Color(0x269C87F5)
     val shape = RoundedCornerShape(28.dp)
-    val minutesUntil = remember(model, now) { claudeMinutesUntil(model, now) }
+    val minutesUntil = data.minutesUntil
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
             .shadow(
                 elevation = 8.dp,
                 shape = shape,
@@ -1406,7 +1552,7 @@ private fun ClaudeNextClassCard(
             .clip(shape)
             .background(Brush.linearGradient(gradient))
             .border(1.dp, border, shape)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
     ) {
         Row(
@@ -1423,7 +1569,7 @@ private fun ClaudeNextClassCard(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = stringResource(Res.string.today_claude_next_label),
+                        text = data.label,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1435,7 +1581,7 @@ private fun ClaudeNextClassCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = model.course.name,
+                    text = data.title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -1448,17 +1594,17 @@ private fun ClaudeNextClassCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    data.location?.let { loc ->
                         ClaudeMetaRow(
                             icon = Res.drawable.location_on_24px,
-                            text = model.course.position,
+                            text = loc,
                             tint = labelColor
                         )
                     }
-                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                    data.teacher?.let { who ->
                         ClaudeMetaRow(
                             icon = Res.drawable.person_24px,
-                            text = model.course.teacher,
+                            text = who,
                             tint = labelColor
                         )
                     }
@@ -1468,31 +1614,33 @@ private fun ClaudeNextClassCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(badgeBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.schedule_24px),
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp),
-                        tint = nameColor
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = claudeTimeRange(model),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 18.sp
-                        ),
-                        color = nameColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                if (data.timeRange.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(badgeBg)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.schedule_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = nameColor
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = data.timeRange,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 18.sp
+                            ),
+                            color = nameColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
                 if (minutesUntil != null && minutesUntil > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -3090,15 +3238,7 @@ private fun SoftTodayContent(
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
 
-    val nextCourse = remember(state.courses, now) {
-        val upcoming = state.courses.firstOrNull { model ->
-            val start = model.startTime?.takeIf { it.isNotBlank() }?.let {
-                runCatching { LocalTime.parse(it) }.getOrNull()
-            }
-            start != null && start > now
-        }
-        upcoming ?: state.courses.firstOrNull { !isSoftCourseFinished(it, now) }
-    }
+    val nextSlot = remember(state, now) { resolveNextCardSlot(state, now, state.nextCardMode) }
     val tomorrowDate = stringResource(
         Res.string.today_ios_tomorrow_format,
         state.today.month.number,
@@ -3120,16 +3260,34 @@ private fun SoftTodayContent(
             )
         }
 
-        if (nextCourse != null) {
-            item {
+        when (val slot = nextSlot) {
+            is NextCardSlot.Course -> item {
                 SoftNextClassCard(
-                    model = nextCourse,
-                    gridStyle = gridStyle,
+                    data = NextCardData(
+                        label = stringResource(Res.string.today_ios_next_label),
+                        title = slot.model.course.name,
+                        location = slot.model.course.position.takeIf { !gridStyle.hideLocation && it.isNotBlank() },
+                        teacher = slot.model.course.teacher.takeIf { !gridStyle.hideTeacher && it.isNotBlank() },
+                        timeRange = softTimeRange(slot.model),
+                        minutesUntil = softMinutesUntil(slot.model, now)
+                    ),
                     isDark = isDark,
-                    now = now,
-                    onClick = { detailCourse = nextCourse }
+                    onClick = { detailCourse = slot.model }
                 )
             }
+            is NextCardSlot.Event -> item {
+                SoftNextClassCard(
+                    data = eventCardData(slot.event, state.today, now, stringResource(Res.string.next_card_label_agenda)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.Ended -> item {
+                SoftNextClassCard(
+                    data = endedCardData(stringResource(Res.string.next_card_today_ended)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.None -> Unit
         }
 
         item {
@@ -3586,11 +3744,9 @@ private fun SoftMetaRow(
 /** 下一节课 hero 卡：设计稿 .next-class-card（丁香紫渐变 + 时间徽标 + 倒计时）。 */
 @Composable
 private fun SoftNextClassCard(
-    model: CourseDisplayModel,
-    gridStyle: ScheduleGridStyle,
+    data: NextCardData,
     isDark: Boolean,
-    now: LocalTime,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
     val labelColor = if (isDarkTheme) Color(0xFFC4B8E8) else SoftAccentAlt700
@@ -3602,16 +3758,17 @@ private fun SoftNextClassCard(
         listOf(SoftAccentAlt100, SoftAccentAlt50)
     }
     val shape = RoundedCornerShape(28.dp)
-    val minutesUntil = remember(model, now) { softMinutesUntil(model, now) }
+    val minutesUntil = data.minutesUntil
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
             .softShadow(shape = shape, elevation = 8.dp)
             .clip(shape)
             .background(Brush.linearGradient(gradient))
             .softFeatherRim(shape)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
     ) {
         Row(
@@ -3628,7 +3785,7 @@ private fun SoftNextClassCard(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = stringResource(Res.string.today_ios_next_label),
+                        text = data.label,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -3640,7 +3797,7 @@ private fun SoftNextClassCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = model.course.name,
+                    text = data.title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -3653,17 +3810,17 @@ private fun SoftNextClassCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    data.location?.let { loc ->
                         SoftMetaRow(
                             icon = Res.drawable.location_on_24px,
-                            text = model.course.position,
+                            text = loc,
                             tint = labelColor
                         )
                     }
-                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                    data.teacher?.let { who ->
                         SoftMetaRow(
                             icon = Res.drawable.person_24px,
-                            text = model.course.teacher,
+                            text = who,
                             tint = labelColor
                         )
                     }
@@ -3673,31 +3830,33 @@ private fun SoftNextClassCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(badgeBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.schedule_24px),
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp),
-                        tint = nameColor
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = softTimeRange(model),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 18.sp
-                        ),
-                        color = nameColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                if (data.timeRange.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(badgeBg)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.schedule_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = nameColor
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = data.timeRange,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 18.sp
+                            ),
+                            color = nameColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
                 if (minutesUntil != null && minutesUntil > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -4289,15 +4448,7 @@ private fun Ios26TodayContent(
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
 
-    val nextCourse = remember(state.courses, now) {
-        val upcoming = state.courses.firstOrNull { model ->
-            val start = model.startTime?.takeIf { it.isNotBlank() }?.let {
-                runCatching { LocalTime.parse(it) }.getOrNull()
-            }
-            start != null && start > now
-        }
-        upcoming ?: state.courses.firstOrNull { !isIos26CourseFinished(it, now) }
-    }
+    val nextSlot = remember(state, now) { resolveNextCardSlot(state, now, state.nextCardMode) }
     val tomorrowDate = stringResource(
         Res.string.today_ios_tomorrow_format,
         state.today.month.number,
@@ -4319,16 +4470,34 @@ private fun Ios26TodayContent(
             )
         }
 
-        if (nextCourse != null) {
-            item {
+        when (val slot = nextSlot) {
+            is NextCardSlot.Course -> item {
                 Ios26NextClassCard(
-                    model = nextCourse,
-                    gridStyle = gridStyle,
+                    data = NextCardData(
+                        label = stringResource(Res.string.today_ios_next_label),
+                        title = slot.model.course.name,
+                        location = slot.model.course.position.takeIf { !gridStyle.hideLocation && it.isNotBlank() },
+                        teacher = slot.model.course.teacher.takeIf { !gridStyle.hideTeacher && it.isNotBlank() },
+                        timeRange = ios26TimeRange(slot.model),
+                        minutesUntil = ios26MinutesUntil(slot.model, now)
+                    ),
                     isDark = isDark,
-                    now = now,
-                    onClick = { detailCourse = nextCourse }
+                    onClick = { detailCourse = slot.model }
                 )
             }
+            is NextCardSlot.Event -> item {
+                Ios26NextClassCard(
+                    data = eventCardData(slot.event, state.today, now, stringResource(Res.string.next_card_label_agenda)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.Ended -> item {
+                Ios26NextClassCard(
+                    data = endedCardData(stringResource(Res.string.next_card_today_ended)),
+                    isDark = isDark
+                )
+            }
+            NextCardSlot.None -> Unit
         }
 
         item {
@@ -4791,11 +4960,9 @@ private fun Ios26MetaRow(
 /** 下一节课 hero 卡：设计稿 .next-class-card（丁香紫渐变 + 时间徽标 + 倒计时）。 */
 @Composable
 private fun Ios26NextClassCard(
-    model: CourseDisplayModel,
-    gridStyle: ScheduleGridStyle,
+    data: NextCardData,
     isDark: Boolean,
-    now: LocalTime,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
     val labelColor = if (isDarkTheme) Color(0xFFC4B8E8) else Ios26AccentAlt700
@@ -4808,11 +4975,12 @@ private fun Ios26NextClassCard(
     }
     val border = if (isDarkTheme) Color(0x339C87F5) else Color(0x269C87F5)
     val shape = RoundedCornerShape(28.dp)
-    val minutesUntil = remember(model, now) { ios26MinutesUntil(model, now) }
+    val minutesUntil = data.minutesUntil
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
             .shadow(
                 elevation = 8.dp,
                 shape = shape,
@@ -4823,7 +4991,7 @@ private fun Ios26NextClassCard(
             .clip(shape)
             .background(Brush.linearGradient(gradient))
             .border(1.dp, border, shape)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
     ) {
         Row(
@@ -4840,7 +5008,7 @@ private fun Ios26NextClassCard(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = stringResource(Res.string.today_ios_next_label),
+                        text = data.label,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -4852,7 +5020,7 @@ private fun Ios26NextClassCard(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = model.course.name,
+                    text = data.title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -4865,17 +5033,17 @@ private fun Ios26NextClassCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
+                    data.location?.let { loc ->
                         Ios26MetaRow(
                             icon = Res.drawable.location_on_24px,
-                            text = model.course.position,
+                            text = loc,
                             tint = labelColor
                         )
                     }
-                    if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
+                    data.teacher?.let { who ->
                         Ios26MetaRow(
                             icon = Res.drawable.person_24px,
-                            text = model.course.teacher,
+                            text = who,
                             tint = labelColor
                         )
                     }
@@ -4885,31 +5053,33 @@ private fun Ios26NextClassCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(badgeBg)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.schedule_24px),
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp),
-                        tint = nameColor
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = ios26TimeRange(model),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 18.sp
-                        ),
-                        color = nameColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                if (data.timeRange.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(badgeBg)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.schedule_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = nameColor
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = data.timeRange,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 18.sp
+                            ),
+                            color = nameColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
                 if (minutesUntil != null && minutesUntil > 0) {
                     Spacer(modifier = Modifier.height(8.dp))

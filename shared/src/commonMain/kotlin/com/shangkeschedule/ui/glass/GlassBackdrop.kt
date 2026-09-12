@@ -7,8 +7,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.DefaultCameraDistance
+import androidx.compose.ui.graphics.DefaultShadowColor
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawTransform
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -20,7 +34,11 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.toIntSize
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * 「背景快照」（backdrop）：玻璃要糊的、要折射的那层画面。
@@ -37,7 +55,10 @@ interface GlassBackdrop {
      */
     val isCoordinatesDependent: Boolean
 
-    fun DrawScope.drawGlassBackdrop(coordinates: LayoutCoordinates?)
+    fun DrawScope.drawGlassBackdrop(
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)? = null
+    )
 }
 
 /**
@@ -46,6 +67,9 @@ interface GlassBackdrop {
  * 坐标对齐是这套机制的关键：玻璃件往往被外层 `graphicsLayer` 平移
  * （本项目的底栏就有"下滑隐藏"的 translationY），若不换算相对位置，
  * 玻璃里透出的画面会与实际背景错位。
+ *
+ * [layerBlock] 与上游 backdrop 同语义：玻璃件自身形变（如按压缩放）时，
+ * 背景取样要做**逆变换**，保证玻璃"贴着"形变后的位置取到正确的背景。
  */
 @Stable
 class LayerGlassBackdrop internal constructor(
@@ -57,12 +81,24 @@ class LayerGlassBackdrop internal constructor(
 
     internal var layerCoordinates: LayoutCoordinates? by mutableStateOf(null)
 
+    private var inverseLayerScope: InverseLayerScope? = null
+
     override fun DrawScope.drawGlassBackdrop(
-        coordinates: LayoutCoordinates?
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?
     ) {
         val coordinates = coordinates ?: return
         val layerCoordinates = layerCoordinates ?: return
         withTransform({
+            if (layerBlock != null) {
+                with(obtainInverseLayerScope()) {
+                    this@withTransform.inverseTransform(
+                        density = this@drawGlassBackdrop,
+                        scope = this@drawGlassBackdrop,
+                        layerBlock = layerBlock
+                    )
+                }
+            }
             val offset = try {
                 layerCoordinates.localPositionOf(coordinates)
             } catch (_: Exception) {
@@ -75,7 +111,40 @@ class LayerGlassBackdrop internal constructor(
             drawLayer(graphicsLayer)
         }
     }
+
+    private fun obtainInverseLayerScope(): InverseLayerScope {
+        return inverseLayerScope?.apply { reset() }
+            ?: InverseLayerScope().also { inverseLayerScope = it }
+    }
 }
+
+/**
+ * 把两块背景叠加取样（后画的盖在先画的上面）。
+ * 用于「选中指示器」玻璃：底下透**页面内容 + Tab 文字层**两层。
+ */
+@Stable
+class CombinedGlassBackdrop(
+    private val backdrop1: GlassBackdrop,
+    private val backdrop2: GlassBackdrop
+) : GlassBackdrop {
+
+    override val isCoordinatesDependent: Boolean =
+        backdrop1.isCoordinatesDependent || backdrop2.isCoordinatesDependent
+
+    override fun DrawScope.drawGlassBackdrop(
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?
+    ) {
+        with(backdrop1) { drawGlassBackdrop(coordinates, layerBlock) }
+        with(backdrop2) { drawGlassBackdrop(coordinates, layerBlock) }
+    }
+}
+
+@Composable
+fun rememberCombinedGlassBackdrop(
+    backdrop1: GlassBackdrop,
+    backdrop2: GlassBackdrop
+): GlassBackdrop = remember(backdrop1, backdrop2) { CombinedGlassBackdrop(backdrop1, backdrop2) }
 
 /**
  * 创建一块「层级背景」。默认 [onDraw] 即 `drawContent()` ——
@@ -129,17 +198,40 @@ private class GlassBackdropSourceNode(
 ) : DrawModifierNode, GlobalPositionAwareModifierNode, Modifier.Node() {
 
     override fun ContentDrawScope.draw() {
-        drawContent()
-        // 内容照常绘制后，再把它录进 backdrop 的图层；recording 的 DrawScope
-        // 直接复用本节点的 ContentDrawScope（`this@draw`），因此 `onDraw` 里
-        // 若调用 drawContent() 就会把内容画进图层而不是屏幕。
-        backdrop.graphicsLayer.record(
+        val layer = backdrop.graphicsLayer
+        layer.record(
             density = this,
             layoutDirection = layoutDirection,
             size = size.toIntSize()
         ) {
-            backdrop.onDraw(this@draw)
+            // ── v3.50.2 根因修复：把内容真正录进层 ──────────────────────────────
+            // 录制块里的 `this` 才是「录制画布」作用域；`backdrop.onDraw(this@draw)`
+            // （默认实现 `drawContent()`）走的是**外层**作用域，而外层作用域经
+            // `drawContext` 绘制 —— 若不做处理，内容会画到**屏幕画布**上，
+            // 录制层永远为空。
+            //
+            // 上游（Kyant0/backdrop 的 internal/LayerRecorder）依赖 Compose 1.12 的
+            // `record(size){}`：该重载会临时把**调用方**的 `drawContext.canvas`
+            // 指向录制画布（层内交换 density 也正是同一 `drawContext` 才讲得通）。
+            // 本项目 Compose 1.11.1 的 `record(density, layoutDirection, size, block)`
+            // **不给调用方换画布**，于是上游写法在这里静默失效：
+            // 玻璃件全部采样到空层 ⇒ 模糊 / 折射 / 色散同时零像素输出
+            //（离屏探针三配置差分全 0、真机 A/B 逐位相同、双平台一致失效的根因）。
+            //
+            // 这里手工补上这一次画布交换（与 Haze 的录制同款手法），使 1.11.1
+            // 具备与 1.12 `record(size){}` 相同的语义；try/finally 保证必然复原，
+            // 且因交换的是共享 `drawContext` 的 canvas，嵌套录制（B 层录 Tab 内容）
+            // 也能正确逐层重定向。
+            val nodeContext = this@draw.drawContext
+            val screenCanvas = nodeContext.canvas
+            nodeContext.canvas = this.drawContext.canvas
+            try {
+                backdrop.onDraw(this@draw)
+            } finally {
+                nodeContext.canvas = screenCanvas
+            }
         }
+        drawLayer(layer)
     }
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
@@ -150,5 +242,119 @@ private class GlassBackdropSourceNode(
 
     override fun onDetach() {
         backdrop.layerCoordinates = null
+    }
+}
+
+/**
+ * graphicsLayer 逆变换作用域：把玻璃件的 layerBlock 形变（缩放/旋转）
+ * 反向施加到背景取样上，移植自 backdrop 的 InverseLayerScope（Apache-2.0, Kyant）。
+ */
+internal class InverseLayerScope : GraphicsLayerScope {
+
+    override var size: Size = Size.Unspecified
+    override var density: Float = 1f
+    override var fontScale: Float = 1f
+
+    override var scaleX: Float = 1f
+    override var scaleY: Float = 1f
+    override var alpha: Float = 0f
+    override var translationX: Float = 0f
+    override var translationY: Float = 0f
+    override var shadowElevation: Float = 0f
+    override var ambientShadowColor: Color = DefaultShadowColor
+    override var spotShadowColor: Color = DefaultShadowColor
+    override var rotationX: Float = 0f
+    override var rotationY: Float = 0f
+    override var rotationZ: Float = 0f
+    override var cameraDistance: Float = DefaultCameraDistance
+    override var transformOrigin: TransformOrigin = TransformOrigin.Center
+    override var shape: Shape = RectangleShape
+    override var clip: Boolean = false
+    override var renderEffect: RenderEffect? = null
+    override var blendMode: BlendMode = BlendMode.SrcOver
+    override var colorFilter: androidx.compose.ui.graphics.ColorFilter? = null
+    override var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
+
+    private var matrix: Matrix? = null
+
+    fun DrawTransform.inverseTransform(
+        density: Density,
+        scope: DrawScope,
+        layerBlock: GraphicsLayerScope.() -> Unit
+    ) {
+        this@InverseLayerScope.size = scope.size
+        this@InverseLayerScope.density = density.density
+        fontScale = density.fontScale
+
+        layerBlock()
+
+        inverseTransformAtTopLeft(
+            rotationZ = rotationZ,
+            scaleX = scaleX,
+            scaleY = scaleY
+        )
+    }
+
+    fun reset() {
+        size = Size.Unspecified
+        density = 1f
+        fontScale = 1f
+
+        scaleX = 1f
+        scaleY = 1f
+        alpha = 1f
+        translationX = 0f
+        translationY = 0f
+        shadowElevation = 0f
+        ambientShadowColor = DefaultShadowColor
+        spotShadowColor = DefaultShadowColor
+        rotationX = 0f
+        rotationY = 0f
+        rotationZ = 0f
+        cameraDistance = DefaultCameraDistance
+        transformOrigin = TransformOrigin.Center
+        shape = RectangleShape
+        clip = false
+        renderEffect = null
+        blendMode = BlendMode.SrcOver
+        colorFilter = null
+        compositingStrategy = CompositingStrategy.Auto
+
+        matrix = null
+    }
+
+    private fun DrawTransform.inverseTransformAtTopLeft(
+        rotationZ: Float = 0f,
+        scaleX: Float = 1f,
+        scaleY: Float = 1f
+    ) {
+        if (rotationZ == 0f) {
+            if (scaleX != 0f && scaleY != 0f) {
+                scale(1f / scaleX, 1f / scaleY, Offset.Zero)
+            }
+            return
+        }
+
+        val matrix = matrix ?: Matrix().also { matrix = it }
+        if (matrix.values.size < 16) return
+
+        val rz = rotationZ * (PI / 180.0)
+        val rsz = sin(rz).toFloat()
+        val rcz = cos(rz).toFloat()
+
+        val a00 = rcz * scaleX
+        val a01 = rsz * scaleY
+        val a10 = -rsz * scaleX
+        val a11 = rcz * scaleY
+
+        val det = a00 * a11 - a01 * a10
+        if (det == 0f) return
+        val invDet = 1f / det
+        matrix[0, 0] = a11 * invDet
+        matrix[0, 1] = -a01 * invDet
+        matrix[1, 0] = -a10 * invDet
+        matrix[1, 1] = a00 * invDet
+
+        transform(matrix)
     }
 }

@@ -1,4 +1,4 @@
-package com.shangkeschedule.ui.components
+﻿package com.shangkeschedule.ui.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -67,7 +67,8 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appSurface
-import com.shangkeschedule.ui.theme.liquidGlass
+import com.shangkeschedule.ui.glass.GlassBackdrop
+import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.claudeGroupBg
@@ -307,7 +308,7 @@ fun AppLoading(modifier: Modifier = Modifier) {
  * 统一 FAB：56dp 圆形、大投影 + 按压缩放（Telegram 形态，v2 规范 §4.1）。
  * 替代各页面 M3 默认 FAB 与 Today 页内联实现。
  *
- * v3.23.5 起支持液态玻璃形态：传入 [hazeState]（页面内容需以 hazeSource 标记）时，
+ * v3.23.5 起支持液态玻璃形态：传入 [glassBackdrop]（页面内容需挂 glassBackdropSource）时，
  * FAB 渲染为玻璃圆钮（与「回到本周」圆钮同源玻璃语言，主色图标）；不传则保持原主色实心。
  */
 @Composable
@@ -316,12 +317,12 @@ fun AppFab(
     icon: ImageVector,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = null
+    glassBackdrop: GlassBackdrop? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
     val scale = rememberFabPressedScale(interaction)
-    if (hazeState == null) {
-        // 无 hazeState 的页面：保持原主色实心 FAB（向下兼容）
+    if (glassBackdrop == null) {
+        // 无背景快照的页面：保持原主色实心 FAB（向下兼容）
         FloatingActionButton(
             onClick = onClick,
             modifier = modifier
@@ -353,13 +354,6 @@ fun AppFab(
                     scaleX = scale
                     scaleY = scale
                 }
-                .liquidGlass(
-                    hazeState = hazeState,
-                    shape = CircleShape,
-                    containerColor = appColors().inputBg,
-                    shadowElevation = 8.dp
-                    // v3.24.7：blur 统一取 LiquidGlassBlurRadius（不再单独传 4.dp）
-                )
                 .clickable(
                     interactionSource = interaction,
                     indication = ripple(bounded = true),
@@ -367,6 +361,14 @@ fun AppFab(
                 ),
             contentAlignment = Alignment.Center
         ) {
+            LiquidGlass(
+                modifier = Modifier.fillMaxSize(),
+                glassBackdrop = glassBackdrop,
+                shape = CircleShape,
+                containerColor = appColors().inputBg,
+                shadowElevation = 8.dp
+                // 模糊强度统一取 LocalGlassBlurRadius（用户设置注入）
+            )
             androidx.compose.material3.Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,

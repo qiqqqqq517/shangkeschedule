@@ -9,6 +9,9 @@ import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.ScheduleGridStyle
+import com.shangkeschedule.data.model.NextCardMode
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
@@ -48,6 +51,9 @@ class TodayScheduleViewModel(
     companion object {
         private const val DEFAULT_SEMESTER_TOTAL_WEEKS = 20
         private const val MAX_TIME_SORT_KEY = "99:99"
+
+        /** 「下一次日程」跨天查询窗口：今天起的天数。 */
+        private const val EVENT_LOOKAHEAD_DAYS = 30
     }
 
     val gridStyle: StateFlow<ScheduleGridStyle> = styleSettingsRepository.styleFlow
@@ -167,8 +173,16 @@ class TodayScheduleViewModel(
                         }
                     // 今日待办与课程并行组合进同一状态；待办不受学期状态影响，跨天随 currentDateFlow 自动重算
                     // 今日日程事件与待办同源，按日期过滤
-                    combine(coursesFlow, tomorrowCoursesFlow, todoRepository.getTodosByDate(todayStr), scheduleEventRepository.getEventsByDate(todayStr)) { courses, tomorrowCourses, todos, events ->
-                        createSuccessState(courses, tomorrowCourses, snapshot, today, todos, events)
+                    // 下节课卡「下一次日程」需要跨天：额外取今天起 EVENT_LOOKAHEAD_DAYS 天内的日程
+                    val upcomingEndStr = today.plus(EVENT_LOOKAHEAD_DAYS, DateTimeUnit.DAY).toString()
+                    combine(
+                        coursesFlow,
+                        tomorrowCoursesFlow,
+                        todoRepository.getTodosByDate(todayStr),
+                        scheduleEventRepository.getEventsByDate(todayStr),
+                        scheduleEventRepository.getEventsBetweenDates(todayStr, upcomingEndStr)
+                    ) { courses, tomorrowCourses, todos, events, upcomingEvents ->
+                        createSuccessState(courses, tomorrowCourses, snapshot, today, todos, events, settings.nextCardMode, upcomingEvents)
                     }
                 }
             }
@@ -225,7 +239,9 @@ class TodayScheduleViewModel(
         snapshot: DataSnapshot,
         today: LocalDate,
         todos: List<TodoItem> = emptyList(),
-        events: List<ScheduleEvent> = emptyList()
+        events: List<ScheduleEvent> = emptyList(),
+        nextCardMode: NextCardMode = NextCardMode.AUTO_NEXT,
+        upcomingEvents: List<ScheduleEvent> = emptyList()
     ): TodayUiState.Success {
         val slotMap = snapshot.timeSlots.associateBy { it.number }
 
@@ -265,7 +281,9 @@ class TodayScheduleViewModel(
             status = snapshot.status,
             startDate = snapshot.startDate,
             totalWeeks = snapshot.totalWeeks,
-            firstDayOfWeek = snapshot.firstDayOfWeek
+            firstDayOfWeek = snapshot.firstDayOfWeek,
+            nextCardMode = nextCardMode,
+            upcomingEvents = upcomingEvents
         )
     }
 }
@@ -290,6 +308,10 @@ sealed class TodayUiState {
         val status: TodayStatus,
         val startDate: LocalDate?,
         val totalWeeks: Int,
-        val firstDayOfWeek: Int
+        val firstDayOfWeek: Int,
+        /** 下节课卡「今日课程结束后」行为（v3.47.0）。 */
+        val nextCardMode: NextCardMode = NextCardMode.AUTO_NEXT,
+        /** 今天起未来若干天的日程（供「下一次日程」跨天解析，按日期升序）。 */
+        val upcomingEvents: List<ScheduleEvent> = emptyList()
     ) : TodayUiState()
 }

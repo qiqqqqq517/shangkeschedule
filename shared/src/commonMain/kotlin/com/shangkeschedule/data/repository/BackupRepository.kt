@@ -410,6 +410,11 @@ class BackupRepository(
                 crushCourseColorIndex = settings.crushCourseColorIndex,
                 scheduleViewMode = settings.scheduleViewMode.name,
                 glassBlurRadiusDp = settings.glassBlurRadiusDp,
+                glassRefractionEnabled = settings.glassRefractionEnabled,
+                glassRefractionHeightDp = settings.glassRefractionHeightDp,
+                glassRefractionAmountDp = settings.glassRefractionAmountDp,
+                glassRefractionDispersion = settings.glassRefractionDispersion,
+                glassRefractionDepthEffect = settings.glassRefractionDepthEffect,
                 animationStyle = settings.animationStyle.name,
                 disabledAnimationGroups = settings.disabledAnimationGroups.map { it.name }.toSet()
             )
@@ -468,6 +473,12 @@ class BackupRepository(
                 scheduleViewMode = runCatching { com.shangkeschedule.ui.schedule.ScheduleViewMode.valueOf(bm.scheduleViewMode) }.getOrNull() ?: currentSettings.scheduleViewMode,
                 // 旧版备份缺字段时 kotlinx 用默认值 4f 兜底，与 App 默认一致
                 glassBlurRadiusDp = bm.glassBlurRadiusDp.coerceIn(0f, 24f),
+                // 折射可空字段：旧备份解码为 null ⇒ 保留设备现值，不被默认值静默重置
+                glassRefractionEnabled = bm.glassRefractionEnabled ?: currentSettings.glassRefractionEnabled,
+                glassRefractionHeightDp = bm.glassRefractionHeightDp ?: currentSettings.glassRefractionHeightDp,
+                glassRefractionAmountDp = bm.glassRefractionAmountDp ?: currentSettings.glassRefractionAmountDp,
+                glassRefractionDispersion = bm.glassRefractionDispersion ?: currentSettings.glassRefractionDispersion,
+                glassRefractionDepthEffect = bm.glassRefractionDepthEffect ?: currentSettings.glassRefractionDepthEffect,
                 animationStyle = runCatching { com.shangkeschedule.ui.theme.AnimationStyle.valueOf(bm.animationStyle) }.getOrNull() ?: currentSettings.animationStyle,
                 disabledAnimationGroups = bm.disabledAnimationGroups
                     .mapNotNull { runCatching { com.shangkeschedule.ui.theme.AnimationGroup.valueOf(it) }.getOrNull() }

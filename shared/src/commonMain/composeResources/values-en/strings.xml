@@ -748,10 +748,11 @@
     <string name="glass_refraction_preset_subtle">Subtle</string>
     <string name="glass_refraction_preset_obvious">Obvious</string>
     <string name="glass_refraction_preset_strong">Strong</string>
-    <string name="glass_preset_off">Off</string>
+    <string name="glass_preset_off">Fully clear</string>
     <string name="glass_preset_light">Clear</string>
     <string name="glass_preset_standard">Standard</string>
     <string name="glass_preset_heavy">Frosted</string>
+    <string name="glass_preset_misty">Misty</string>
     <!-- v3.26.0 Personalized display hub + animation settings -->
     <string name="item_glass_blur_settings">Glass blur</string>
     <string name="desc_glass_blur_settings">Frosting strength of the glass navbar, floating button and more</string>
@@ -792,6 +793,17 @@
     <string name="anim_speed_fast">Fast</string>
     <string name="anim_reduce_motion">Reduce motion</string>
     <string name="anim_reduce_motion_desc">Use cross-fades instead of movement and scaling</string>
+    <string name="item_next_card_settings">Next class card</string>
+    <string name="desc_next_card_settings">How the card behaves after today's classes end</string>
+    <string name="next_card_mode_auto">Auto-show next class or event</string>
+    <string name="next_card_mode_auto_desc">After today's classes end, show the next class or event (may be tomorrow)</string>
+    <string name="next_card_mode_ended">Show "today's classes ended" (faded)</string>
+    <string name="next_card_mode_ended_desc">Keep a faded "today's classes ended" card after classes end</string>
+    <string name="next_card_mode_hide">Disappear after classes end</string>
+    <string name="next_card_mode_hide_desc">Hide the card once today's classes end</string>
+    <string name="next_card_label_agenda">Next event</string>
+    <string name="next_card_minutes_until">%1$s min later</string>
+    <string name="next_card_today_ended">Today's classes are over — explore freely</string>
     <string name="anim_settings_more_placeholder">More motion groups (coming soon)</string>
     <string name="desc_appearance_settings">Theme style, dark mode and schedule appearance tuning</string>
     <string name="theme_preset_classic">Classic</string>
@@ -1058,4 +1070,24 @@
     <string name="hint_scheme_in_use">In use</string>
     <string name="action_restore_default">Restore defaults</string>
     <string name="toast_restored_default">Defaults restored, effective after saving</string>
+
+    <!-- My Info page (v3.49.0: opened from the identity card on the "Me" page) -->
+    <string name="profile_info_title">My Info</string>
+    <string name="profile_avatar_label">Avatar</string>
+    <string name="profile_change_avatar">Tap to change avatar</string>
+    <string name="profile_remove_avatar">Remove avatar</string>
+    <string name="profile_section_basic">Basic Info</string>
+    <string name="profile_section_school">School Info</string>
+    <string name="profile_nickname">Nickname</string>
+    <string name="profile_nickname_hint">Enter your nickname</string>
+    <string name="profile_signature">Bio</string>
+    <string name="profile_signature_hint">Say something about yourself</string>
+    <string name="profile_school">School</string>
+    <string name="profile_school_hint">Enter your school name</string>
+    <string name="profile_college">College</string>
+    <string name="profile_college_hint">Enter your college name</string>
+    <string name="profile_major">Major</string>
+    <string name="profile_major_hint">Enter your major</string>
+    <string name="profile_grade">Grade</string>
+    <string name="profile_grade_hint">e.g. Class of 2024</string>
 </resources>

@@ -74,7 +74,10 @@ import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
  * v3.45.1 按用户反馈（「动效速度感知不强，整体调低一点」）重新标定：
  * - **整体调低**：默认档 1.6× → **2.0×**，全站时长再压约 20%（等价于"默认更快"）；
  * - **档位差距拉开**：旧 1.3 / 1.6 / 2.0 相邻只差 1.19~1.25 倍，切换几乎看不出快慢；
- *   新 1.45 / 2.0 / 2.8 相邻差 1.38~1.4 倍（时长 −28% / −29%），一档一档按下去手感差别明确。
+ *   新 1.30 / 2.0 / 2.8 相邻差 1.54 / 1.4 倍（时长 −35% / −29%），一档一档按下去手感差别明确。
+ *
+ * v3.46.0 再按反馈把**舒缓档调慢一档**（1.45 → 1.30）：默认档提速后，舒缓档也需要
+ * 明显比默认慢，才有"想看清楚过渡"的价值 —— 现在舒缓 / 标准 的时长比约 1.54 : 1。
  */
 enum class MotionSpeed(
     val value: String,
@@ -82,8 +85,8 @@ enum class MotionSpeed(
     val factor: Float,
     val labelRes: StringResource
 ) {
-    /** 舒缓：比基线快约 31%（1.45×）——比默认档慢约 38%，慢得能看出来。 */
-    RELAXED("RELAXED", 1.45f, Res.string.anim_speed_relaxed),
+    /** 舒缓：比基线快约 23%（1.30×）——比默认档慢约 54%，想看仔细时的慢档。 */
+    RELAXED("RELAXED", 1.30f, Res.string.anim_speed_relaxed),
 
     /** 标准（默认）：**快一倍**（2.0×）——全站时长减半，日常手感基准。 */
     STANDARD("STANDARD", 2.00f, Res.string.anim_speed_standard),

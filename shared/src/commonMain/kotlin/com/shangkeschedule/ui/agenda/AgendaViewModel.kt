@@ -55,6 +55,15 @@ class AgendaViewModel(
         /** 整月日历固定 6 行 × 7 列 = 42 格，保证上下月切换时高度不跳动。 */
         private const val MONTH_GRID_CELLS = 42
 
+        /**
+         * 顶部日期滚轴：以选中日为中线、前后各取的天数（共 2×N+1 天）。
+         *
+         * v3.46.0 起顶部日期由「翻页式周条」改为**滚动式日期轴**（连续滚动 + 按天吸附），
+         * 因此需要一次给出足够长的日期序列；用户滚到窗口边缘也无妨 —— 吸附落定后
+         * 选中日会变化，状态随之以新的选中日为中线重建，等效于"无限滚动"。
+         */
+        private const val STRIP_HALF_SPAN_DAYS = 120
+
         /** 事件查询在月份前后各多取的天数：周条与整月网格都会显示相邻月份的日期。 */
         private const val EVENT_QUERY_PADDING_DAYS = 7
     }
@@ -79,13 +88,13 @@ class AgendaViewModel(
     ) { settings, date, month -> Triple(settings, date, month) }
         .flatMapLatest { (settings, date, month) ->
             val tableId = settings.currentCourseTableId
-            val monthStart = LocalDate(month.year, month.month, 1)
-            val monthEnd = monthStart.plus(1, DateTimeUnit.MONTH).minus(1, DateTimeUnit.DAY)
-            // 周条 / 整月日历都会显示相邻月份的日期（补白格），事件范围前后各多取一周，
-            // 这些格子上的「有日程」圆点才不会是漏的。
+            // 查询范围要同时覆盖：① 整月日历含月外补白格 → 前后各多取 7 天；
+            // ② 顶部日期滚轴以选中日为中心前后各 120 天 → 取两者并集（以选中日为基准放宽即可，
+            //    因为 month 与 date 始终同步，月份区间必然落在该范围内）。
+            val queryPadding = STRIP_HALF_SPAN_DAYS + EVENT_QUERY_PADDING_DAYS
             val monthEventsFlow = scheduleEventRepository.getEventsBetweenDates(
-                monthStart.minus(EVENT_QUERY_PADDING_DAYS, DateTimeUnit.DAY).toString(),
-                monthEnd.plus(EVENT_QUERY_PADDING_DAYS, DateTimeUnit.DAY).toString()
+                date.minus(queryPadding, DateTimeUnit.DAY).toString(),
+                date.plus(queryPadding, DateTimeUnit.DAY).toString()
             )
 
             appSettingsRepository.getCourseTableConfigFlow(tableId).flatMapLatest { config ->
@@ -231,15 +240,14 @@ class AgendaViewModel(
         val slotMap = slots.associateBy { it.number }
         val eventDates = monthEvents.map { it.date }.toSet()
 
-        // 周条：以 firstDayOfWeek 对齐的 7 天
-        val offsetFromWeekStart = (selected.dayOfWeek.isoDayNumber - firstDayOfWeek + 7) % 7
-        val weekStart = selected.minus(offsetFromWeekStart, DateTimeUnit.DAY)
-        val weekDays = (0 until 7).map { index ->
-            val date = weekStart.plus(index, DateTimeUnit.DAY)
+        // 顶部日期滚轴：以选中日为中线的前后各 STRIP_HALF_SPAN_DAYS 天。
+        // UI 侧是 LazyRow 连续滚动 + 按天吸附，中线那天即当前选中日。
+        val stripDays = (-STRIP_HALF_SPAN_DAYS..STRIP_HALF_SPAN_DAYS).map { offset ->
+            val date = selected.plus(offset, DateTimeUnit.DAY)
             AgendaDayCell(
                 date = date,
                 lunarLabel = LunarCalendar.dayLabel(date),
-                isSelected = date == selected,
+                isSelected = offset == 0,
                 isToday = date == today,
                 hasEvents = eventDates.contains(date.toString()),
                 isInMonth = isSameMonth(date, month)
@@ -315,7 +323,8 @@ class AgendaViewModel(
             selectedDate = selected,
             month = month,
             firstDayOfWeek = firstDayOfWeek,
-            weekDays = weekDays,
+            stripDays = stripDays,
+            stripCenterIndex = STRIP_HALF_SPAN_DAYS,
             monthCells = monthCells,
             entries = entries,
             lunarText = LunarCalendar.lunarText(selected)
@@ -335,7 +344,7 @@ data class MonthKey(val year: Int, val month: Int) {
     }
 }
 
-/** 周条单元格。整月日历复用同一模型（[isInMonth] 区分月内 / 月外补白格）。 */
+/** 周条 / 日期滚轴单元格。整月日历复用同一模型（[isInMonth] 区分月内 / 月外补白格）。 */
 data class AgendaDayCell(
     val date: LocalDate,
     val lunarLabel: String,
@@ -368,7 +377,12 @@ data class AgendaUiState(
     val selectedDate: LocalDate = LocalDate(2000, 1, 1),
     val month: MonthKey = MonthKey(2000, 1),
     val firstDayOfWeek: Int = DayOfWeek.MONDAY.isoDayNumber,
-    val weekDays: List<AgendaDayCell> = emptyList(),
+    /**
+     * 顶部日期滚轴（v3.46.0）：以选中日为中线、前后各 120 天，UI 侧连续滚动 + 按天吸附。
+     */
+    val stripDays: List<AgendaDayCell> = emptyList(),
+    /** [stripDays] 中「选中日」所在下标（中线）。 */
+    val stripCenterIndex: Int = 0,
     /** 整月日历单元格（下拉展开时显示，固定 6×7 = 42 格，含月外补白格）。 */
     val monthCells: List<AgendaDayCell> = emptyList(),
     val entries: List<AgendaEntry> = emptyList(),

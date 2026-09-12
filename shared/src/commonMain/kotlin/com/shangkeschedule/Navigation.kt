@@ -51,6 +51,11 @@ sealed interface Destination : NavKey {
     @Serializable data object AppearanceSettings : Destination
     /** 外观与样式二级页：主题（主题风格/深色模式/动态取色/自定义主色） */
     @Serializable data object ThemeSettings : Destination
+    /**
+     * 「我的」页二级页：我的信息（头像 / 昵称 / 学校 / 学院 / 专业 / 年级 / 个性签名）。
+     * v3.49.0：原「我的」页顶部身份卡直接跳「外观与样式」，改为跳本页。
+     */
+    @Serializable data object ProfileInfo : Destination
     /** 外观与样式二级页：自定义课表页（壁纸/样式预览/功能色） */
     @Serializable data object ScheduleStyleSettings : Destination
     /** 外观与样式二级页：个性化显示（v3.25.0 起为两卡 hub：玻璃模糊 / 动画效果） */
@@ -61,6 +66,8 @@ sealed interface Destination : NavKey {
     @Serializable data object AnimationSettings : Destination
     /** 个性化显示三级页：课程配色（颜色池 + 课程块/页面文字颜色 + 一键重置，自「自定义课表页」整块迁入） */
     @Serializable data object CourseColorSettings : Destination
+    /** 个性化显示三级页：下节课卡（今日课程结束后的行为，v3.47.0 新增） */
+    @Serializable data object NextCardSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
 
@@ -131,11 +138,13 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.CourseManagementList::class)
         subclass(Destination.AppearanceSettings::class)
         subclass(Destination.ThemeSettings::class)
+        subclass(Destination.ProfileInfo::class)
         subclass(Destination.ScheduleStyleSettings::class)
         subclass(Destination.PersonalizedDisplay::class)
         subclass(Destination.GlassBlurSettings::class)
         subclass(Destination.AnimationSettings::class)
         subclass(Destination.CourseColorSettings::class)
+        subclass(Destination.NextCardSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
 

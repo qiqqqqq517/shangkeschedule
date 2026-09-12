@@ -69,8 +69,10 @@ fun ShangKeScheduleTheme(
         LocalIsSoftTheme provides (settings.themePreset == AppThemePreset.SOFT),
         // 玻璃雾度全局注入：用户在「个性化显示」里设定的一个值，喂给所有悬浮玻璃件
         LocalGlassBlurRadius provides settings.glassBlurRadiusDp.dp,
-        // v3.47.0：液态折射配置全局注入。默认 Off ⇒ 玻璃仍走原 Haze 路径（观感零变化）；
-        // 打开后底栏胶囊切到自带引擎，模糊半径依旧读上面的 LocalGlassBlurRadius。
+        // 液态折射配置全局注入（v3.47.0）。**所有**液态玻璃件——底栏 LiquidGlassTabs 与
+        // FAB / 圆钮 / 挂起条（liquidGlass）——都读这一份配置：开启时统一按用户设定的
+        // 高度 / 强度 / 色散做边缘折射，关闭时底栏回落参考实现的默认折射；
+        // 模糊半径始终读上面的 LocalGlassBlurRadius。
         LocalGlassRefraction provides GlassRefractionSettings(
             enabled = settings.glassRefractionEnabled,
             heightDp = settings.glassRefractionHeightDp,
