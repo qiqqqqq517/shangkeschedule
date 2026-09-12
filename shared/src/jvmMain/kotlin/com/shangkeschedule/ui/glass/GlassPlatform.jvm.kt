@@ -34,6 +34,8 @@ internal actual fun isLiquidRenderEffectSupported(): Boolean = true
 /** 桌面为 Skiko GL 路径，无 Android 15 Vulkan 驱动问题，色彩滤镜链恒可用。 */
 internal actual fun isColorFilterEffectReliable(): Boolean = true
 
+internal actual fun isLiquidShaderReliable(): Boolean = true
+
 internal actual fun createLiquidShader(agsl: String): LiquidShader? =
     runCatching {
         SkikoLiquidShader(RuntimeShaderBuilder(RuntimeEffect.makeForShader(agsl)))

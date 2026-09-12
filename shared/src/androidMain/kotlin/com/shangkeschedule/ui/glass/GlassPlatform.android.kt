@@ -33,6 +33,10 @@ internal actual fun isColorFilterEffectReliable(): Boolean =
     // 部分机型驱动对链式色彩滤镜 RenderEffect 原生崩溃 ⇒ 整环节跳过（见 commonMain KDoc）。
     Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
 
+internal actual fun isLiquidShaderReliable(): Boolean =
+    // 同因：Android 15+ 上 AGSL RuntimeShader 在部分机型驱动上不可靠。
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+
 /** 自愈兜底的锁存标记文件（filesDir 下，内容 = 降级时的 versionCode）。 */
 private const val GLASS_FALLBACK_MARKER = "glass_fallback.flag"
 
