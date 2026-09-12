@@ -77,6 +77,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -87,6 +88,7 @@ import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.ScheduleCategory
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppEmptyState
@@ -245,7 +247,8 @@ fun AgendaScreen(
                             onNextMonth = viewModel::nextMonth,
                             onGoToToday = viewModel::goToToday,
                             onOpenMonthPicker = { showMonthPicker = true },
-                            onDeleteEntry = { deletingEntry = it }
+                            onDeleteEntry = { deletingEntry = it },
+                            onToggleEntry = viewModel::toggleEntryDone
                         )
                     }
                 }
@@ -272,7 +275,7 @@ fun AgendaScreen(
             text = stringResource(Res.string.agenda_delete_message, entry.title),
             confirmText = stringResource(Res.string.confirm_delete),
             onConfirm = {
-                viewModel.deleteEvent(entry.id)
+                viewModel.deleteEntry(entry)
                 deletingEntry = null
             }
         )
@@ -303,7 +306,8 @@ private fun AgendaContent(
     onNextMonth: () -> Unit,
     onGoToToday: () -> Unit,
     onOpenMonthPicker: () -> Unit,
-    onDeleteEntry: (AgendaEntry) -> Unit
+    onDeleteEntry: (AgendaEntry) -> Unit,
+    onToggleEntry: (AgendaEntry) -> Unit
 ) {
     val tokens = appColors()
     val spacing = appSpacing()
@@ -393,14 +397,21 @@ private fun AgendaContent(
                     }
                     items(
                         items = entries,
-                        key = { entry -> if (entry.isCourse) "course_${entry.id}" else "event_${entry.id}" }
+                        key = { entry ->
+                            when {
+                                entry.isCourse -> "course_${entry.id}"
+                                entry.source == AgendaEntrySource.TODO -> "todo_${entry.id}"
+                                else -> "event_${entry.id}"
+                            }
+                        }
                     ) { entry ->
                         AgendaEntryRow(
                             entry = entry,
                             selectedDate = state.selectedDate,
                             today = state.today,
                             nowMinutes = nowMinutes,
-                            onDelete = { onDeleteEntry(entry) }
+                            onDelete = { onDeleteEntry(entry) },
+                            onToggleDone = { onToggleEntry(entry) }
                         )
                     }
                 }
@@ -1192,7 +1203,8 @@ private fun AgendaEntryRow(
     selectedDate: LocalDate,
     today: LocalDate,
     nowMinutes: Int,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleDone: () -> Unit
 ) {
     val tokens = appColors()
     val status = entryStatus(entry, selectedDate, today, nowMinutes)
@@ -1212,6 +1224,9 @@ private fun AgendaEntryRow(
         categoryLabel(entry.categoryKey)
     }
     val metaLine = listOfNotNull(categoryLabel, entry.location).joinToString(" · ")
+    // 「待办」类条目可勾选完成：自建日程里分类为待办的事件，以及来自今日页待办列表的条目
+    val canToggleDone = !entry.isCourse &&
+        ScheduleCategory.fromKey(entry.categoryKey) == ScheduleCategory.TODO
 
     Row(
         modifier = Modifier
@@ -1261,24 +1276,36 @@ private fun AgendaEntryRow(
         ) {}
 
         AppCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .graphicsLayer { alpha = if (entry.done) 0.55f else 1f },
             elevation = 1
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
-                        onClick = {},
+                        onClick = { if (canToggleDone) onToggleDone() },
                         onLongClick = { if (!entry.isCourse) onDelete() }
                     )
                     .padding(appSpacing().cardInner)
             ) {
+                if (canToggleDone) {
+                    AppCheckboxIndicator(
+                        checked = entry.done,
+                        modifier = Modifier
+                            .align(Alignment.Top)
+                            .clickable { onToggleDone() }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = entry.title,
                         fontSize = appType().rowTitle,
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary,
+                        textDecoration = if (entry.done) TextDecoration.LineThrough else null,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1315,12 +1342,14 @@ private fun AgendaEntryRow(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = statusLabel,
-                    fontSize = appType().hint,
-                    color = statusColor
-                )
+                if (!entry.done) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = statusLabel,
+                        fontSize = appType().hint,
+                        color = statusColor
+                    )
+                }
             }
         }
     }
