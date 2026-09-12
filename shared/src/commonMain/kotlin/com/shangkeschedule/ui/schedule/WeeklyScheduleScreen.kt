@@ -469,7 +469,7 @@ fun WeeklyScheduleScreen(
                                         text = stringResource(Res.string.item_school_system_import),
                                         onClick = {
                                             showOverflowMenu = false
-                                            onNavigate(Destination.SchoolSelectionListScreen())
+                                            onNavigate(Destination.SchoolSelectionListScreen)
                                         }
                                     )
                                     TelegramMenuDivider()
@@ -503,7 +503,7 @@ fun WeeklyScheduleScreen(
                                         text = stringResource(Res.string.item_time_slot_customization),
                                         onClick = {
                                             showOverflowMenu = false
-                                            onNavigate(Destination.TimeSlotSettings)
+                                            onNavigate(Destination.TimeSlotSettings())
                                         }
                                     )
                                 }
@@ -692,7 +692,7 @@ fun WeeklyScheduleScreen(
                             }
 
                             override fun onTimeSlotClicked() {
-                                onNavigate(Destination.TimeSlotSettings)
+                                onNavigate(Destination.TimeSlotSettings())
                             }
 
                             override fun onHoldStateChanged(isHolding: Boolean) {

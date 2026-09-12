@@ -1,5 +1,6 @@
 package com.shangkeschedule.data.db.main
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
 
@@ -12,5 +13,11 @@ data class CourseTable(
     @PrimaryKey
     val id: String, // 使用 String 作为主键，与现有逻辑兼容
     val name: String, // 课表名称
-    val createdAt: Long // 创建时间戳，有助于排序
+    val createdAt: Long, // 创建时间戳，有助于排序
+
+    @ColumnInfo(defaultValue = "0")
+    val isCouple: Boolean = false, // 是否为情侣课表（与本人课表并排管理的独立课表）
+
+    @ColumnInfo(defaultValue = "NULL")
+    val pairedCourseTableId: String? = null // 情侣课表所配对的本人课表 ID；本人课表此字段为 null
 )

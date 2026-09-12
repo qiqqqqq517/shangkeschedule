@@ -1,132 +1,123 @@
 package com.shangkeschedule.ui.settings
 
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import com.shangkeschedule.ui.components.AppDangerDialog
+import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.AppSwitch
+import com.shangkeschedule.ui.components.AppTextField
+import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.ToastManager
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
-import com.shangkeschedule.tool.FileManagerCallbacks
-import com.shangkeschedule.tool.rememberFileManager
-import com.shangkeschedule.ui.settings.conversion.ConversionEvent
-import com.shangkeschedule.ui.settings.conversion.CourseTableConversionViewModel
-import com.shangkeschedule.ui.settings.conversion.CrushImportDialog
 import kotlinx.coroutines.launch
-import okio.Buffer
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.action_cancel
-import shangkeschedule.shared.generated.resources.confirm_delete
-import shangkeschedule.shared.generated.resources.couple_delete_message
 import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.action_confirm
+import shangkeschedule.shared.generated.resources.toast_couple_delete_failed
+import shangkeschedule.shared.generated.resources.couple_manage_import_file
+import shangkeschedule.shared.generated.resources.couple_manage_import_file_desc
+import shangkeschedule.shared.generated.resources.couple_manage_import_school_desc
+import shangkeschedule.shared.generated.resources.edit_24px
+import shangkeschedule.shared.generated.resources.favorite_24px
+import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.desc_couple_schedule
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.couple_count_format
+import shangkeschedule.shared.generated.resources.couple_delete_confirm_message
+import shangkeschedule.shared.generated.resources.couple_manage_create
+import shangkeschedule.shared.generated.resources.couple_manage_create_desc
+import shangkeschedule.shared.generated.resources.couple_manage_created_desc
+import shangkeschedule.shared.generated.resources.couple_manage_edit_timetable
+import shangkeschedule.shared.generated.resources.couple_manage_link_title
+import shangkeschedule.shared.generated.resources.couple_manage_not_created
+import shangkeschedule.shared.generated.resources.couple_manage_rename
+import shangkeschedule.shared.generated.resources.couple_manage_view
+import shangkeschedule.shared.generated.resources.couple_overlay_desc
+import shangkeschedule.shared.generated.resources.couple_overlay_disabled_solo
+import shangkeschedule.shared.generated.resources.couple_overlay_switch
+import shangkeschedule.shared.generated.resources.couple_rename_dialog_title
+import shangkeschedule.shared.generated.resources.couple_solo_back
+import shangkeschedule.shared.generated.resources.couple_solo_banner
 import shangkeschedule.shared.generated.resources.desc_crush_course_color
-import shangkeschedule.shared.generated.resources.desc_delete_crush_schedule
+import shangkeschedule.shared.generated.resources.desc_delete_couple_table
 import shangkeschedule.shared.generated.resources.desc_import_crush_schedule
 import shangkeschedule.shared.generated.resources.desc_self_course_color
-import shangkeschedule.shared.generated.resources.item_couple_schedule
+import shangkeschedule.shared.generated.resources.delete_couple_table
 import shangkeschedule.shared.generated.resources.item_crush_course_color
-import shangkeschedule.shared.generated.resources.item_delete_crush_schedule
 import shangkeschedule.shared.generated.resources.item_import_crush_schedule
 import shangkeschedule.shared.generated.resources.item_self_course_color
+import shangkeschedule.shared.generated.resources.label_table_name
 import shangkeschedule.shared.generated.resources.section_title_couple_schedule
-import shangkeschedule.shared.generated.resources.snackbar_file_selection_canceled
+import shangkeschedule.shared.generated.resources.toast_couple_created
+import shangkeschedule.shared.generated.resources.toast_couple_deleted
+import shangkeschedule.shared.generated.resources.toast_couple_renamed
+import shangkeschedule.shared.generated.resources.toast_name_empty
+import shangkeschedule.shared.generated.resources.toast_switch_to_couple
+import shangkeschedule.shared.generated.resources.toast_switch_to_self
+import shangkeschedule.shared.generated.resources.tune_24px
+import shangkeschedule.shared.generated.resources.upload_24px
+import shangkeschedule.shared.generated.resources.visibility_24px
+import shangkeschedule.shared.generated.resources.delete_24px
 
 /**
- * 情侣课表二级页。
+ * 情侣课表二级页（独立课表形态）。
  *
- * 承载情侣课表开关、本人 / TA 课程颜色设置，以及情侣课表的导入 / 删除管理。
+ * 情侣课表是一张与本人课表并排管理的独立课表（有自己的课程、作息与学期配置）：
+ * - 未创建时提供创建入口；
+ * - 已创建时支持查看（切换单独显示）/ 重命名 / 作息设置 / 删除；
+ * - 「双人同显」开关控制叠加显示（当前正在单独显示情侣课表时自动失效）；
+ * - 导入与编辑复用主课表能力（教务 / Excel / JSON / 文本，导入时选择目标课表）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoupleScheduleSettingsScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = koinViewModel(),
-    conversionViewModel: CourseTableConversionViewModel = koinViewModel()
+    viewModel: CoupleScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val courseColorMaps by viewModel.courseColorMaps.collectAsState()
-    val conversionUiState by conversionViewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showSelfColorDialog by remember { mutableStateOf(false) }
+    var showCrushColorDialog by remember { mutableStateOf(false) }
 
-    val snackbarFileSelectionCanceled = stringResource(Res.string.snackbar_file_selection_canceled)
-
-    var pendingCrushImport by remember { mutableStateOf(false) }
-    var showDeleteCrushConfirm by remember { mutableStateOf(false) }
-
-    val fileManager = rememberFileManager(
-        callbacks = FileManagerCallbacks(
-            onFileImported = { bytes, _ ->
-                if (bytes == null) {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(snackbarFileSelectionCanceled)
-                    }
-                    pendingCrushImport = false
-                    return@FileManagerCallbacks
-                }
-                val source = Buffer().write(bytes)
-                if (pendingCrushImport) {
-                    conversionViewModel.handleCrushFileImport(source)
-                }
-                pendingCrushImport = false
-            },
-            onFileExported = { }
-        )
-    )
-
-    LaunchedEffect(Unit) {
-        conversionViewModel.events.collect { event ->
-            when (event) {
-                is ConversionEvent.NavigateToCrushSchoolImport -> {
-                    onNavigate(Destination.SchoolSelectionListScreen(isCrushImport = true))
-                }
-                is ConversionEvent.LaunchCrushImportFilePicker -> {
-                    pendingCrushImport = true
-                    fileManager.importFile(listOf("json"))
-                }
-                is ConversionEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(event.message)
-                }
-                else -> { }
-            }
-        }
-    }
+    // 操作结果提示（预取字符串，回调里用 ToastManager 展示）
+    val toastCreated = stringResource(Res.string.toast_couple_created)
+    val toastRenamed = stringResource(Res.string.toast_couple_renamed)
+    val toastDeleted = stringResource(Res.string.toast_couple_deleted)
+    val toastDeleteFailed = stringResource(Res.string.toast_couple_delete_failed)
+    val toastToCouple = stringResource(Res.string.toast_switch_to_couple)
+    val toastToSelf = stringResource(Res.string.toast_switch_to_self)
+    val toastNameEmpty = stringResource(Res.string.toast_name_empty)
 
     if (!uiState.isReady) {
         Scaffold(
@@ -149,9 +140,8 @@ fun CoupleScheduleSettingsScreen(
         return
     }
 
-    val appSettings = uiState.appSettings
-    var showSelfColorDialog by remember { mutableStateOf(false) }
-    var showCrushColorDialog by remember { mutableStateOf(false) }
+    val coupleTable = uiState.coupleTable
+    val isViewingCoupleSolo = uiState.currentTable?.isCouple == true
 
     Scaffold(
         topBar = {
@@ -167,7 +157,7 @@ fun CoupleScheduleSettingsScreen(
                 }
             )
         },
-        snackbarHost = { AppSnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { AppSnackbarHost(hostState = remember { androidx.compose.material3.SnackbarHostState() }) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -177,66 +167,151 @@ fun CoupleScheduleSettingsScreen(
                 .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // --- 关联情侣课表 ---
             SectionCard {
-                // 情侣课表开关
                 SettingItem(
-                    title = stringResource(Res.string.item_couple_schedule),
-                    subtitle = stringResource(Res.string.desc_couple_schedule)
+                    title = stringResource(Res.string.couple_manage_link_title),
+                    leadingIcon = vectorResource(Res.drawable.favorite_24px),
+                    onClick = null
+                )
+
+                if (coupleTable == null) {
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.couple_manage_create),
+                        subtitle = stringResource(Res.string.couple_manage_create_desc),
+                        leadingIcon = vectorResource(Res.drawable.favorite_24px),
+                        onClick = {
+                            coroutineScope.launch {
+                                val created = viewModel.createCoupleTable()
+                                if (created) ToastManager.show(toastCreated)
+                            }
+                        }
+                    )
+                } else {
+                    SectionDivider()
+                    SettingItem(
+                        title = coupleTable.name,
+                        subtitle = stringResource(Res.string.couple_manage_created_desc)
+                    )
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.couple_manage_view),
+                        subtitle = stringResource(Res.string.couple_count_format, uiState.coupleCourseCount),
+                        leadingIcon = vectorResource(Res.drawable.visibility_24px),
+                        onClick = {
+                            coroutineScope.launch {
+                                if (viewModel.switchToCouple()) ToastManager.show(toastToCouple)
+                            }
+                        }
+                    )
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.couple_manage_rename),
+                        subtitle = coupleTable.name,
+                        leadingIcon = vectorResource(Res.drawable.edit_24px),
+                        onClick = { showRenameDialog = true }
+                    )
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.couple_manage_edit_timetable),
+                        subtitle = stringResource(Res.string.couple_manage_created_desc),
+                        leadingIcon = vectorResource(Res.drawable.tune_24px),
+                        onClick = {
+                            onNavigate(Destination.TimeSlotSettings(targetCourseTableId = coupleTable.id))
+                        }
+                    )
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.delete_couple_table),
+                        subtitle = stringResource(Res.string.desc_delete_couple_table),
+                        leadingIcon = vectorResource(Res.drawable.delete_24px),
+                        accent = AccentTone.DANGER,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
+            }
+
+            // --- 正在单独显示情侣课表：提供返回本人课表 ---
+            if (isViewingCoupleSolo) {
+                SectionCard {
+                    SettingItem(
+                        title = stringResource(Res.string.couple_solo_banner),
+                        subtitle = stringResource(Res.string.couple_solo_back),
+                        onClick = {
+                            coroutineScope.launch {
+                                if (viewModel.switchToSelf()) ToastManager.show(toastToSelf)
+                            }
+                        }
+                    )
+                }
+            }
+
+            // --- 显示设置 ---
+            SectionCard {
+                SettingItem(
+                    title = stringResource(Res.string.couple_overlay_switch),
+                    subtitle = if (isViewingCoupleSolo) {
+                        stringResource(Res.string.couple_overlay_disabled_solo)
+                    } else {
+                        stringResource(Res.string.couple_overlay_desc)
+                    }
                 ) {
                     AppSwitch(
-                        checked = appSettings.coupleScheduleEnabled,
+                        checked = uiState.coupleScheduleEnabled && !isViewingCoupleSolo,
+                        enabled = !isViewingCoupleSolo,
                         onCheckedChange = { viewModel.onCoupleScheduleEnabledChanged(it) }
                     )
                 }
-
-                // 情侣课表颜色（开关开启后显示）
-                if (appSettings.coupleScheduleEnabled) {
-                    SectionDivider()
-                    SettingItem(
-                        title = stringResource(Res.string.item_self_course_color),
-                        subtitle = stringResource(Res.string.desc_self_course_color),
-                        onClick = { showSelfColorDialog = true }
-                    ) {
-                        ColorPreviewDot(
-                            colorIndex = appSettings.selfCourseColorIndex,
-                            colorMaps = courseColorMaps
-                        )
-                    }
-                    SectionDivider()
-                    SettingItem(
-                        title = stringResource(Res.string.item_crush_course_color),
-                        subtitle = stringResource(Res.string.desc_crush_course_color),
-                        onClick = { showCrushColorDialog = true }
-                    ) {
-                        ColorPreviewDot(
-                            colorIndex = appSettings.crushCourseColorIndex,
-                            colorMaps = courseColorMaps
-                        )
-                    }
-                }
-
-                // 情侣课表导入 / 删除管理
                 SectionDivider()
                 SettingItem(
+                    title = stringResource(Res.string.item_self_course_color),
+                    subtitle = stringResource(Res.string.desc_self_course_color),
+                    onClick = { showSelfColorDialog = true }
+                ) {
+                    ColorPreviewDot(
+                        colorIndex = uiState.selfCourseColorIndex,
+                        colorMaps = uiState.courseColorMaps
+                    )
+                }
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_crush_course_color),
+                    subtitle = stringResource(Res.string.desc_crush_course_color),
+                    onClick = { showCrushColorDialog = true }
+                ) {
+                    ColorPreviewDot(
+                        colorIndex = uiState.crushCourseColorIndex,
+                        colorMaps = uiState.courseColorMaps
+                    )
+                }
+            }
+
+            // --- 导入（复用主课表多形式导入，目标课表在导入流程中选择） ---
+            SectionCard {
+                SettingItem(
                     title = stringResource(Res.string.item_import_crush_schedule),
-                    subtitle = stringResource(Res.string.desc_import_crush_schedule),
-                    onClick = { conversionViewModel.onImportCrushClick() }
+                    subtitle = stringResource(Res.string.couple_manage_import_school_desc),
+                    leadingIcon = vectorResource(Res.drawable.upload_24px),
+                    onClick = { onNavigate(Destination.SchoolSelectionListScreen) }
                 )
                 SectionDivider()
                 SettingItem(
-                    title = stringResource(Res.string.item_delete_crush_schedule),
-                    subtitle = stringResource(Res.string.desc_delete_crush_schedule),
-                    onClick = { showDeleteCrushConfirm = true }
+                    title = stringResource(Res.string.couple_manage_import_file),
+                    subtitle = stringResource(Res.string.couple_manage_import_file_desc),
+                    leadingIcon = vectorResource(Res.drawable.upload_24px),
+                    onClick = { onNavigate(Destination.FileImportHub) }
                 )
             }
         }
     }
 
+    // 颜色弹窗
     if (showSelfColorDialog) {
         ColorPickerDialog(
             title = stringResource(Res.string.item_self_course_color),
-            selectedIndex = appSettings.selfCourseColorIndex,
-            colorMaps = courseColorMaps,
+            selectedIndex = uiState.selfCourseColorIndex,
+            colorMaps = uiState.courseColorMaps,
             onDismiss = { showSelfColorDialog = false },
             onSelect = { index ->
                 viewModel.onSelfCourseColorIndexChanged(index)
@@ -247,8 +322,8 @@ fun CoupleScheduleSettingsScreen(
     if (showCrushColorDialog) {
         ColorPickerDialog(
             title = stringResource(Res.string.item_crush_course_color),
-            selectedIndex = appSettings.crushCourseColorIndex,
-            colorMaps = courseColorMaps,
+            selectedIndex = uiState.crushCourseColorIndex,
+            colorMaps = uiState.courseColorMaps,
             onDismiss = { showCrushColorDialog = false },
             onSelect = { index ->
                 viewModel.onCrushCourseColorIndexChanged(index)
@@ -257,27 +332,60 @@ fun CoupleScheduleSettingsScreen(
         )
     }
 
-    if (conversionUiState.showCrushImportDialog) {
-        CrushImportDialog(
-            onDismissRequest = { conversionViewModel.dismissDialog() },
-            onImportViaSchool = { conversionViewModel.onCrushImportViaSchool() },
-            onImportViaJson = { conversionViewModel.onCrushImportViaJson() }
+    // 重命名弹窗
+    if (showRenameDialog && coupleTable != null) {
+        var newName by remember(coupleTable.id, coupleTable.name) { mutableStateOf(coupleTable.name) }
+        AppAlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text(stringResource(Res.string.couple_rename_dialog_title)) },
+            text = {
+                AppTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = stringResource(Res.string.label_table_name),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_confirm),
+                    onConfirm = {
+                        val name = newName
+                        showRenameDialog = false
+                        if (name.isNotBlank()) {
+                            coroutineScope.launch {
+                                if (viewModel.renameCoupleTable(name)) {
+                                    ToastManager.show(toastRenamed)
+                                }
+                            }
+                        } else {
+                            ToastManager.show(toastNameEmpty)
+                        }
+                    },
+                    dismissText = stringResource(Res.string.action_cancel),
+                    onDismiss = { showRenameDialog = false }
+                )
+            },
+            dismissButton = {}
         )
     }
 
-    if (showDeleteCrushConfirm) {
-        // 危险操作统一走 AppDangerDialog（危险色胶囊确认钮）
+    // 删除确认
+    if (showDeleteConfirm && coupleTable != null) {
         AppDangerDialog(
-            onDismissRequest = { showDeleteCrushConfirm = false },
-            title = stringResource(Res.string.item_delete_crush_schedule),
-            text = stringResource(Res.string.couple_delete_message),
+            onDismissRequest = { showDeleteConfirm = false },
+            title = stringResource(Res.string.delete_couple_table),
+            text = stringResource(Res.string.couple_delete_confirm_message, coupleTable.name),
             confirmText = stringResource(Res.string.confirm_delete),
             onConfirm = {
-                showDeleteCrushConfirm = false
-                conversionViewModel.onDeleteCrushClick()
+                showDeleteConfirm = false
+                coroutineScope.launch {
+                    val deleted = viewModel.deleteCoupleTable()
+                    ToastManager.show(if (deleted) toastDeleted else toastDeleteFailed)
+                }
             },
             dismissText = stringResource(Res.string.action_cancel),
-            onDismiss = { showDeleteCrushConfirm = false }
+            onDismiss = { showDeleteConfirm = false }
         )
     }
 }

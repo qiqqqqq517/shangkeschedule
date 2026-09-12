@@ -325,7 +325,7 @@ fun SettingsScreen(
                                     icon = vectorResource(Res.drawable.schedule_24px),
                                     tone = ClaudeCellTone.RED,
                                     showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
                                 )
                                 ClaudeListItem(
                                     title = stringResource(Res.string.title_manage_course_tables),
@@ -479,7 +479,7 @@ fun SettingsScreen(
                                     icon = vectorResource(Res.drawable.schedule_24px),
                                     tone = SoftCellTone.CLAY,
                                     showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
                                 )
                                 SoftSettingCell(
                                     title = stringResource(Res.string.title_manage_course_tables),
@@ -633,7 +633,7 @@ fun SettingsScreen(
                                     icon = vectorResource(Res.drawable.schedule_24px),
                                     tone = IosCellTone.RED,
                                     showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings) }
+                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
                                 )
                                 IosSettingCell(
                                     title = stringResource(Res.string.title_manage_course_tables),

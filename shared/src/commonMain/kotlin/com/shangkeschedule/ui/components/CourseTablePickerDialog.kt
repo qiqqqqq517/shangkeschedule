@@ -4,6 +4,8 @@ import com.shangkeschedule.ui.theme.appSpacing
 
 import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,6 +53,8 @@ import shangkeschedule.shared.generated.resources.action_add
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.add_24px
+import shangkeschedule.shared.generated.resources.couple_badge
+import shangkeschedule.shared.generated.resources.favorite_24px
 import shangkeschedule.shared.generated.resources.course_table_created_at_prefix
 import shangkeschedule.shared.generated.resources.course_table_id_prefix
 import shangkeschedule.shared.generated.resources.dialog_title_add_table
@@ -273,7 +277,34 @@ fun CourseTablePickerCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = courseTable.name, style = MaterialTheme.typography.titleMedium)
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(text = courseTable.name, style = MaterialTheme.typography.titleMedium)
+                    if (courseTable.isCouple) {
+                        Row(
+                            modifier = Modifier
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(999.dp))
+                                .background(appColors().dangerSoft)
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.favorite_24px),
+                                contentDescription = null,
+                                tint = appColors().danger,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = stringResource(Res.string.couple_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = appColors().danger
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = stringResource(
                         Res.string.course_table_id_prefix,

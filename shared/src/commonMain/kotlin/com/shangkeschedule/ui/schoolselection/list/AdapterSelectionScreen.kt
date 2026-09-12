@@ -96,7 +96,6 @@ fun AdapterSelectionScreen(
     schoolName: String,
     categoryNumber: Int,
     resourceFolder: String,
-    isCrushImport: Boolean = false,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 异步加载状态
@@ -197,7 +196,6 @@ fun AdapterSelectionScreen(
                                         Destination.WebView(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
-                                            isCrushImport = isCrushImport,
                                             // 名单与判定理由见文件顶部 FORCE_DESKTOP_MODE_SCHOOL_IDS
                                             forceDesktopMode = schoolId in FORCE_DESKTOP_MODE_SCHOOL_IDS
                                         )

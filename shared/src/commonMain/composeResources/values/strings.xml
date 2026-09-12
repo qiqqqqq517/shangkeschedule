@@ -1094,4 +1094,36 @@
     <string name="profile_major_hint">请输入专业名称</string>
     <string name="profile_grade">年级</string>
     <string name="profile_grade_hint">如：2024 级</string>
+
+    <string name="couple_manage_link_title">情侣课表</string>
+    <string name="couple_manage_not_created">尚未创建情侣课表</string>
+    <string name="couple_manage_create">创建情侣课表</string>
+    <string name="couple_manage_create_desc">为当前学期创建独立的情侣课表，可单独编辑课程、多种方式导入、单独设置作息</string>
+    <string name="couple_manage_view">查看情侣课表</string>
+    <string name="couple_manage_rename">重命名</string>
+    <string name="couple_manage_edit_timetable">作息设置</string>
+    <string name="couple_overlay_switch">双人同显</string>
+    <string name="couple_overlay_desc">开启后同屏叠加显示双方课程，各自按自己的作息排列</string>
+    <string name="couple_overlay_disabled_solo">当前正在单独显示情侣课表，此开关自动失效</string>
+    <string name="couple_solo_banner">正在单独显示情侣课表</string>
+    <string name="couple_solo_back">返回本人课表</string>
+    <string name="couple_manage_import_school">教务导入</string>
+    <string name="couple_manage_import_school_desc">从教务系统导入 TA 的课表，导入时可选择目标课表</string>
+    <string name="couple_manage_import_file">文件导入</string>
+    <string name="couple_manage_import_file_desc">支持 Excel / JSON / 文本文件，导入时可选择目标课表</string>
+    <string name="couple_rename_dialog_title">重命名情侣课表</string>
+    <string name="toast_couple_created">情侣课表已创建</string>
+    <string name="toast_couple_deleted">情侣课表已删除</string>
+    <string name="toast_couple_renamed">已重命名</string>
+    <string name="toast_switch_to_couple">已切换到情侣课表</string>
+    <string name="toast_switch_to_self">已返回本人课表</string>
+    <string name="delete_couple_table">删除情侣课表</string>
+    <string name="desc_delete_couple_table">删除整张情侣课表及其课程与作息，不影响本人课表</string>
+    <string name="couple_delete_confirm_message">确定要删除「%1$s」吗？其下所有课程与作息设置都会被删除，且不可恢复。</string>
+    <string name="couple_badge">情侣</string>
+    <string name="manage_add_couple">添加情侣课表</string>
+    <string name="manage_add_couple_desc">并排管理 TA 的课表，左右滑动查看</string>
+    <string name="couple_manage_created_desc">独立课表：可单独编辑、导入课程，并单独设置作息</string>
+    <string name="couple_count_format">情侣课表 · %1$d 门课程</string>
+    <string name="toast_couple_delete_failed">删除失败：至少需要保留一张课表</string>
 </resources>

@@ -337,11 +337,11 @@ fun ScreenContent(
         Destination.Settings -> SettingsScreen(onNavigate, onBack)
         Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
         Destination.Schedule -> AgendaScreen(onNavigate, onBack)
-        Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack)
+        is Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack, targetDest.targetCourseTableId)
         Destination.SemesterSettings -> SemesterSettingsScreen(onBack)
         Destination.CoupleScheduleSettings -> CoupleScheduleSettingsScreen(onNavigate, onBack)
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack, onNavigate)
-        is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack, targetDest.isCrushImport)
+        is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
         Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
@@ -378,13 +378,13 @@ fun ScreenContent(
         )
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(
-            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder, targetDest.isCrushImport
+            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder
         )
         is Destination.WebView -> WebViewScreen(
-            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.isCrushImport, targetDest.forceDesktopMode
+            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.forceDesktopMode
         )
         is Destination.AddEditCourse -> AddEditCourseScreen(
-            onBack, targetDest.courseId
+            onBack, targetDest.courseId, targetDest.targetCourseTableId
         )
         is Destination.CourseManagementDetail -> CourseInstanceListScreen(
             targetDest.courseName, onBack, onNavigate

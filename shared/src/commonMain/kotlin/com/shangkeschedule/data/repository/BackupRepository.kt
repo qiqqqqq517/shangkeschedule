@@ -192,7 +192,14 @@ class BackupRepository(
 
             val tablePacks = allTablesFromDb.mapNotNull { table ->
                 val exportModel = courseConversionRepository.exportCourseTableToJson(table.id) ?: return@mapNotNull null
-                SingleTablePack(table.id, table.name, table.createdAt, exportModel)
+                SingleTablePack(
+                    tableId = table.id,
+                    tableName = table.name,
+                    createdAt = table.createdAt,
+                    tableData = exportModel,
+                    isCouple = table.isCouple,
+                    pairedCourseTableId = table.pairedCourseTableId
+                )
             }
 
             val envelope = TotalAppBackupEnvelope(
@@ -251,7 +258,12 @@ class BackupRepository(
 
                     // 导入备份中的课表
                     envelope.allTables.forEach { pack ->
-                        courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
+                        courseTableDao.insert(
+                            CourseTable(
+                                pack.tableId, pack.tableName, pack.createdAt,
+                                pack.isCouple, pack.pairedCourseTableId
+                            )
+                        )
                         val importModel = CourseTableImportModel(
                             courses = pack.tableData.courses.map {
                                 ImportCourseJsonModel(
@@ -290,7 +302,14 @@ class BackupRepository(
                 // 因此包一层 try/catch，避免回滚异常覆盖原始异常并把用户留在半恢复状态。
                 try {
                     backupSnapshot.forEach { (tableInfo, exportModel) ->
-                        courseTableDao.insert(CourseTable(tableInfo.first, tableInfo.second, tableInfo.third))
+                        // 回滚快照来自当前库，直接复用其情侣课表标记
+                        val original = currentTables.firstOrNull { it.id == tableInfo.first }
+                        courseTableDao.insert(
+                            CourseTable(
+                                tableInfo.first, tableInfo.second, tableInfo.third,
+                                original?.isCouple ?: false, original?.pairedCourseTableId
+                            )
+                        )
                         courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
                             courses = exportModel.courses.map {
                                 ImportCourseJsonModel(

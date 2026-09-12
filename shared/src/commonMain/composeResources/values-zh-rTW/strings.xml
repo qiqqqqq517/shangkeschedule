@@ -1090,4 +1090,36 @@
     <string name="profile_major_hint">請輸入專業名稱</string>
     <string name="profile_grade">年級</string>
     <string name="profile_grade_hint">如：2024 級</string>
+
+    <string name="couple_manage_link_title">情侶課表</string>
+    <string name="couple_manage_not_created">尚未建立情侶課表</string>
+    <string name="couple_manage_create">建立情侶課表</string>
+    <string name="couple_manage_create_desc">為當前學期建立獨立的情侶課表，可單獨編輯課程、多種方式匯入、單獨設定作息</string>
+    <string name="couple_manage_view">查看情侶課表</string>
+    <string name="couple_manage_rename">重新命名</string>
+    <string name="couple_manage_edit_timetable">作息設定</string>
+    <string name="couple_overlay_switch">雙人同顯</string>
+    <string name="couple_overlay_desc">開啟後同屏疊加顯示雙方課程，各自按自己的作息排列</string>
+    <string name="couple_overlay_disabled_solo">目前正在單獨顯示情侶課表，此開關自動失效</string>
+    <string name="couple_solo_banner">正在單獨顯示情侶課表</string>
+    <string name="couple_solo_back">返回本人課表</string>
+    <string name="couple_manage_import_school">教務匯入</string>
+    <string name="couple_manage_import_school_desc">從教務系統匯入 TA 的課表，匯入時可選擇目標課表</string>
+    <string name="couple_manage_import_file">檔案匯入</string>
+    <string name="couple_manage_import_file_desc">支援 Excel / JSON / 純文字檔，匯入時可選擇目標課表</string>
+    <string name="couple_rename_dialog_title">重新命名情侶課表</string>
+    <string name="toast_couple_created">情侶課表已建立</string>
+    <string name="toast_couple_deleted">情侶課表已刪除</string>
+    <string name="toast_couple_renamed">已重新命名</string>
+    <string name="toast_switch_to_couple">已切換到情侶課表</string>
+    <string name="toast_switch_to_self">已返回本人課表</string>
+    <string name="delete_couple_table">刪除情侶課表</string>
+    <string name="desc_delete_couple_table">刪除整張情侶課表及其課程與作息，不影響本人課表</string>
+    <string name="couple_delete_confirm_message">確定要刪除「%1$s」嗎？其下所有課程與作息設定都會被刪除，且無法復原。</string>
+    <string name="couple_badge">情侶</string>
+    <string name="manage_add_couple">新增情侶課表</string>
+    <string name="manage_add_couple_desc">並排管理 TA 的課表，左右滑動查看</string>
+    <string name="couple_manage_created_desc">獨立課表：可單獨編輯、匯入課程，並單獨設定作息</string>
+    <string name="couple_count_format">情侶課表 · %1$d 門課程</string>
+    <string name="toast_couple_delete_failed">刪除失敗：至少需要保留一張課表</string>
 </resources>

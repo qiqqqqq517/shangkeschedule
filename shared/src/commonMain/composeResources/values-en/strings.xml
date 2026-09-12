@@ -1090,4 +1090,36 @@
     <string name="profile_major_hint">Enter your major</string>
     <string name="profile_grade">Grade</string>
     <string name="profile_grade_hint">e.g. Class of 2024</string>
+
+    <string name="couple_manage_link_title">Couple Schedule</string>
+    <string name="couple_manage_not_created">No couple schedule yet</string>
+    <string name="couple_manage_create">Create couple schedule</string>
+    <string name="couple_manage_create_desc">Create an independent couple schedule for this semester: edit courses, import in multiple ways, and set its own class times</string>
+    <string name="couple_manage_view">View couple schedule</string>
+    <string name="couple_manage_rename">Rename</string>
+    <string name="couple_manage_edit_timetable">Class times</string>
+    <string name="couple_overlay_switch">Show both schedules</string>
+    <string name="couple_overlay_desc">Overlay both partners' courses on one grid, each arranged by their own class times</string>
+    <string name="couple_overlay_disabled_solo">Couple schedule is shown solo; this switch is disabled</string>
+    <string name="couple_solo_banner">Showing the couple schedule solo</string>
+    <string name="couple_solo_back">Back to my schedule</string>
+    <string name="couple_manage_import_school">Import from academic system</string>
+    <string name="couple_manage_import_school_desc">Import TA's schedule from the academic system; pick the target table when importing</string>
+    <string name="couple_manage_import_file">Import from file</string>
+    <string name="couple_manage_import_file_desc">Supports Excel / JSON / text files; pick the target table when importing</string>
+    <string name="couple_rename_dialog_title">Rename couple schedule</string>
+    <string name="toast_couple_created">Couple schedule created</string>
+    <string name="toast_couple_deleted">Couple schedule deleted</string>
+    <string name="toast_couple_renamed">Renamed</string>
+    <string name="toast_switch_to_couple">Switched to couple schedule</string>
+    <string name="toast_switch_to_self">Back to my schedule</string>
+    <string name="delete_couple_table">Delete couple schedule</string>
+    <string name="desc_delete_couple_table">Deletes the whole couple schedule with its courses and class times; your own schedule is untouched</string>
+    <string name="couple_delete_confirm_message">Delete "%1$s"? All its courses and class-time settings will be removed permanently.</string>
+    <string name="couple_badge">Couple</string>
+    <string name="manage_add_couple">Add couple schedule</string>
+    <string name="manage_add_couple_desc">Manage TA's schedule side by side; swipe to view</string>
+    <string name="couple_manage_created_desc">Independent schedule: edit and import courses, and set class times separately</string>
+    <string name="couple_count_format">Couple schedule · %1$d courses</string>
+    <string name="toast_couple_delete_failed">Delete failed: at least one schedule must remain</string>
 </resources>

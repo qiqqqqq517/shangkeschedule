@@ -11,6 +11,7 @@ import com.shangkeschedule.data.repository.TimeSlotRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -32,6 +33,13 @@ class TimeSlotViewModel(
     // 获取应用设置的流，包括当前课表ID
     private val appSettingsFlow = appSettingsRepository.getAppSettings()
 
+    /** 显式目标课表（情侣课表设置页跳转时传入）；null 时用当前选中课表。 */
+    private val targetTableId = MutableStateFlow<String?>(null)
+
+    fun initWithTargetTable(tableId: String?) {
+        targetTableId.value = tableId
+    }
+
     // 拦截逻辑相关变量（备份点）
     private var initialTimeSlots: List<TimeSlot> = emptyList()
     private var initialClassDuration: Int = 45
@@ -44,9 +52,10 @@ class TimeSlotViewModel(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val timeSlotsUiState: StateFlow<TimeSlotUiState> =
-        appSettingsFlow
-            .flatMapLatest { appSettings ->
-                val currentTableId = appSettings.currentCourseTableId
+        combine(appSettingsFlow, targetTableId) { appSettings, target ->
+            target ?: appSettings.currentCourseTableId
+        }
+            .flatMapLatest { currentTableId ->
                 val schemeIdsFlow = timeSlotRepository.getSchemeIdsByCourseTableId(currentTableId)
                 val schemeMetasFlow = timeSlotRepository.getSchemeMetasByCourseTableId(currentTableId)
 

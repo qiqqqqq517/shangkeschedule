@@ -174,10 +174,15 @@ import shangkeschedule.shared.generated.resources.toast_scheme_dates_incomplete
 @Composable
 fun TimeSlotManagementScreen(
     onBack: () -> Unit,
+    targetCourseTableId: String? = null,
     timeSlotViewModel: TimeSlotViewModel = koinViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
     val uiState by timeSlotViewModel.timeSlotsUiState.collectAsState()
+
+    LaunchedEffect(targetCourseTableId) {
+        timeSlotViewModel.initWithTargetTable(targetCourseTableId)
+    }
 
     val localTimeSlots = remember {
         mutableStateListOf<TimeSlot>().apply { addAll(uiState.timeSlots.sortedBy { it.number }) }

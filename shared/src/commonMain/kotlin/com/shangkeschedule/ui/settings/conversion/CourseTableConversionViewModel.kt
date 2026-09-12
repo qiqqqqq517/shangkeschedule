@@ -77,7 +77,6 @@ class CourseTableConversionViewModel(
         _uiState.value = _uiState.value.copy(
             showImportTableDialog = false,
             showExportTableDialog = false,
-            showCrushImportDialog = false
         )
     }
 
@@ -153,81 +152,6 @@ class CourseTableConversionViewModel(
     }
 
     /**
-     * 点击「一键导入 crush 课表」按钮：显示导入方式选择对话框
-     */
-    fun onImportCrushClick() {
-        _uiState.value = _uiState.value.copy(showCrushImportDialog = true)
-    }
-
-    /**
-     * 关闭 crush 导入对话框
-     */
-    fun dismissCrushImportDialog() {
-        _uiState.value = _uiState.value.copy(showCrushImportDialog = false)
-    }
-
-    /**
-     * 选择通过教务系统导入 crush 课表：跳转到学校选择页
-     */
-    fun onCrushImportViaSchool() {
-        viewModelScope.launch {
-            _events.send(ConversionEvent.NavigateToCrushSchoolImport)
-            dismissCrushImportDialog()
-        }
-    }
-
-    /**
-     * 选择通过 JSON 文件导入 crush 课表：拉起文件选择器
-     */
-    fun onCrushImportViaJson() {
-        viewModelScope.launch {
-            _events.send(ConversionEvent.LaunchCrushImportFilePicker)
-            dismissCrushImportDialog()
-        }
-    }
-
-    /**
-     * 处理 crush 课表 JSON 文件导入逻辑。
-     * 注意：crush 课表挂在当前选中的课表 ID 下，通过 isCrush 标记隔离。
-     */
-    fun handleCrushFileImport(source: BufferedSource) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val tableId = courseConversionRepository.getCurrentTableId()
-                val jsonString = source.readUtf8()
-                val importModel = CourseImportExport.json.decodeFromString<CourseImportExport.CourseTableImportModel>(jsonString)
-                courseConversionRepository.importCrushCourseTableFromJson(tableId, importModel)
-
-                val message = getString(Res.string.toast_import_success)
-                _events.send(ConversionEvent.ShowMessage(message))
-            } catch (_: Exception) {
-                val message = getString(Res.string.error_import_failed)
-                _events.send(ConversionEvent.ShowMessage(message))
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-        }
-    }
-
-    /**
-     * 删除 crush 课表：清空当前课表下的所有 crush 课程
-     */
-    fun onDeleteCrushClick() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                courseConversionRepository.deleteCrushCourses(currentTableId())
-                _events.send(ConversionEvent.ShowMessage(getString(Res.string.cvm_crush_deleted)))
-            } catch (e: Exception) {
-                _events.send(ConversionEvent.ShowMessage(getString(Res.string.cvm_crush_delete_failed_fmt, e.message ?: "")))
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
-        }
-    }
-
-    /**
      * 获取当前选中的课表 ID。
      */
     private suspend fun currentTableId(): String {
@@ -266,7 +190,6 @@ data class ConversionUiState(
     val isLoading: Boolean = false,
     val showImportTableDialog: Boolean = false,
     val showExportTableDialog: Boolean = false,
-    val showCrushImportDialog: Boolean = false,
     val exportType: ExportType = ExportType.NONE
 )
 
@@ -287,6 +210,4 @@ sealed class ConversionEvent {
     data class LaunchExportFileCreator(val jsonContent: String) : ConversionEvent()
     data class LaunchExportIcsFileCreator(val icsContent: String) : ConversionEvent()
     data class ShowMessage(val message: String) : ConversionEvent()
-    data object NavigateToCrushSchoolImport : ConversionEvent()
-    data object LaunchCrushImportFilePicker : ConversionEvent()
 }

@@ -118,10 +118,33 @@ class AgendaViewModel(
                             if (weekIndex != null && weekIndex in 1..totalWeeks) {
                                 val selfFlow = courseTableRepository.getCoursesForDay(tableId, weekIndex, dayOfWeek)
                                 if (settings.coupleScheduleEnabled) {
-                                    combine(
-                                        selfFlow,
-                                        courseTableRepository.getCrushCoursesForDay(tableId, weekIndex, dayOfWeek)
-                                    ) { selfCourses, crushCourses -> selfCourses + crushCourses }
+                                    // 情侣叠加：合并配对情侣课表课程，并按 TA 课表自己的作息
+                                    // 把节次时间烘焙进副本 customStart/EndTime（不落库），
+                                    // 保证 buildState 用当前表 slotMap 解析时 TA 课程时间正确。
+                                    courseTableRepository.getCoupleTableFor(tableId)
+                                        .flatMapLatest { coupleTable ->
+                                            if (coupleTable == null) return@flatMapLatest selfFlow
+                                            val coupleConfigFlow =
+                                                appSettingsRepository.getCourseTableConfigFlow(coupleTable.id)
+                                            combine(
+                                                selfFlow,
+                                                courseTableRepository.getCoursesForDay(coupleTable.id, weekIndex, dayOfWeek),
+                                                timeSlotRepository.getActiveTimeSlotsByConfigFlow(coupleTable.id, coupleConfigFlow)
+                                            ) { selfCourses, coupleCourses, coupleSlots ->
+                                                val slotByNumber = coupleSlots.associateBy { it.number }
+                                                selfCourses + coupleCourses.map { cw ->
+                                                    val course = cw.course
+                                                    cw.copy(
+                                                        course = course.copy(
+                                                            customStartTime = course.customStartTime
+                                                                ?: slotByNumber[course.startSection]?.startTime,
+                                                            customEndTime = course.customEndTime
+                                                                ?: slotByNumber[course.endSection]?.endTime
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
                                 } else {
                                     selfFlow
                                 }

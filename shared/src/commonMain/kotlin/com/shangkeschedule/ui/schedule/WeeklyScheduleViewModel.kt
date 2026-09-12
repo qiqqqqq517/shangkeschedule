@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
@@ -18,6 +19,7 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Comp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
@@ -58,7 +60,11 @@ data class MergedCourseBlock(
     val courses: List<CourseWithWeeks>,
     val needsProportionalRendering: Boolean = false,
     val isVisualDemoted: Boolean = false,
-    val nonActiveRanges: List<Pair<Float, Float>> = emptyList()
+    val nonActiveRanges: List<Pair<Float, Float>> = emptyList(),
+    /** 双人叠加视图中来自配对情侣课表的课程块：仅展示，禁止拖拽/跨周移动（节次语义不同）。 */
+    val isForeignTable: Boolean = false,
+    /** 叠加且双方作息不同时课程卡顶部显示的起止时间（如 "8:00-9:50"），按课程所属表的作息解析。 */
+    val displayTimeRange: String? = null
 )
 
 data class WeeklyScheduleUiState(
@@ -77,7 +83,13 @@ data class WeeklyScheduleUiState(
     val currentSectionIndex: Int = -1,
     val daysUntilStart: Long = 0,
     val floatingCourse: CourseWithWeeks? = null,
-    val floatingSourceWeek: Int? = null
+    val floatingSourceWeek: Int? = null,
+    /** 双人叠加视图是否生效（开关开 + 当前为本人课表 + 存在配对情侣课表）。 */
+    val coupleOverlayActive: Boolean = false,
+    /** 双方作息时间是否不一样（叠加视图下决定课程卡是否显示起止时间）。 */
+    val coupleTimesDiffer: Boolean = false,
+    /** 每张课表各自的生效作息（叠加模式下本人 / 情侣课程分别按自己的时间换算网格坐标）。 */
+    val timeSlotsByTable: Map<String, List<TimeSlot>> = emptyMap()
 )
 
 /**
@@ -108,6 +120,17 @@ private data class ScheduleSourceSnapshot(
     val mondayDate: LocalDate,
     val timeSlots: List<TimeSlot>,
     val today: LocalDate
+)
+
+/**
+ * 情侣课表叠加上下文：叠加是否生效 + 配对情侣课表 ID 与其生效作息。
+ */
+private data class CoupleOverlayContext(
+    val active: Boolean = false,
+    val coupleTableId: String? = null,
+    val coupleTimeSlots: List<TimeSlot> = emptyList(),
+    /** 双方作息时间是否不一样。 */
+    val timesDiffer: Boolean = false
 )
 
 /**
@@ -198,6 +221,52 @@ class WeeklyScheduleViewModel (
         )
     }
 
+    /** 当前选中的课表实体（判断当前表是否情侣课表 / 是否存在配对情侣课表）。 */
+    private val currentTableFlow: Flow<CourseTable?> = appSettingsFlow.flatMapLatest { settings ->
+        if (settings.currentCourseTableId.isEmpty()) {
+            flowOf(null)
+        } else {
+            courseTableRepository.getAllCourseTables().map { tables ->
+                tables.firstOrNull { it.id == settings.currentCourseTableId }
+            }
+        }
+    }.distinctUntilChanged()
+
+    /**
+     * 情侣课表叠加上下文：开关开启 + 当前为本人课表 + 存在配对情侣课表时生效。
+     * 全链路响应式：情侣课表的创建/删除、其作息配置与方案切换变化都会重新装配，
+     * 保证叠加网格的坐标映射始终跟随 TA 课表的最新作息。
+     */
+    private val coupleOverlayContextFlow: Flow<CoupleOverlayContext> = combine(
+        appSettingsFlow,
+        currentTableFlow,
+        courseTableConfigFlow,
+        timeSlotsFlow
+    ) { settings, currentTable, selfConfig, selfSlots ->
+        Triple(settings, currentTable?.takeIf { !it.isCouple }, selfSlots)
+    }.flatMapLatest { (settings, selfTable, selfSlots) ->
+        if (!settings.coupleScheduleEnabled || selfTable == null) {
+            flowOf(CoupleOverlayContext())
+        } else {
+            courseTableRepository.getCoupleTableFor(selfTable.id).flatMapLatest { coupleTable ->
+                if (coupleTable == null) {
+                    flowOf(CoupleOverlayContext())
+                } else {
+                    val coupleConfigFlow = appSettingsRepository.getCourseTableConfigFlow(coupleTable.id)
+                    timeSlotRepository.getActiveTimeSlotsByConfigFlow(coupleTable.id, coupleConfigFlow)
+                        .map { coupleSlots ->
+                            CoupleOverlayContext(
+                                active = true,
+                                coupleTableId = coupleTable.id,
+                                coupleTimeSlots = coupleSlots,
+                                timesDiffer = scheduleTimesDiffer(selfSlots, coupleSlots)
+                            )
+                        }
+                }
+            }
+        }
+    }.distinctUntilChanged()
+
     private val currentCoursesFlow = combine(
         _pagerMondayDate,
         appSettingsFlow,
@@ -205,67 +274,123 @@ class WeeklyScheduleViewModel (
         timeSlotsFlow,
         styleFlow
     ) { date, settings, config, slots, style ->
-        val tableId = settings.currentCourseTableId
-        val mode = style.scheduleMode
-
-        if (config != null) {
-            val window = listOf(
-                date.minus(1, DateTimeUnit.WEEK),
-                date,
-                date.plus(1, DateTimeUnit.WEEK)
-            )
-
-            combine(window.map { day ->
-                val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
-                    targetDate = day,
-                    startDateStr = config.semesterStartDate,
-                    firstDayOfWeekInt = config.firstDayOfWeek
+        ScheduleSourceSnapshot(
+            settings = settings,
+            config = config,
+            style = style,
+            mondayDate = date,
+            timeSlots = slots,
+            today = getTodayLocalDate()
+        )
+    }.flatMapLatest { source ->
+        coupleOverlayContextFlow.flatMapLatest { overlay ->
+            if (source.config != null) {
+                val window = listOf(
+                    source.mondayDate.minus(1, DateTimeUnit.WEEK),
+                    source.mondayDate,
+                    source.mondayDate.plus(1, DateTimeUnit.WEEK)
                 )
 
-                val isWithinSemester = pageWeekNum != null && pageWeekNum in 1..config.semesterTotalWeeks
-
-                val coursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
-                    courseTableRepository.getCoursesWithWeeksByTableId(tableId).map { allCourses ->
-                        allCourses.filter { cw ->
-                            cw.weeks.any { it.weekNumber >= pageWeekNum }
-                        }
-                    }
-                } else {
-                    courseTableRepository.getCoursesWithWeeksByDate(tableId, day, config)
+                combine(window.map { day -> dayCoursesFlow(day, source, overlay) }) { results ->
+                    results.toMap()
                 }
-
-                // 情侣课表模式：合并本人课程与 crush 课程，并统一着色
-                val combinedCoursesFlow = if (settings.coupleScheduleEnabled) {
-                    combine(
-                        coursesFlow,
-                        courseTableRepository.getCrushCoursesWithWeeksByDate(tableId, day, config)
-                    ) { selfCourses, crushCourses ->
-                        val selfColored = selfCourses.map { cw ->
-                            cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
-                        }
-                        val crushColored = crushCourses.map { cw ->
-                            cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
-                        }
-                        selfColored + crushColored
-                    }
-                } else {
-                    coursesFlow
-                }
-
-                combinedCoursesFlow.map { courses ->
-                    day.toString() to mergeCourses(courses, slots, pageWeekNum ?: -1, mode)
-                }
-            }) { results -> results.toMap() }
-        } else {
-            flowOf(emptyMap())
+            } else {
+                flowOf(emptyMap())
+            }
         }
-    }.flatMapLatest { it }
-        // v3.51.2 修复：切周时「上/本/下三周」课程缓存重建（数据库查询 + mergeCourses 合并
-        // 算法）是 CPU/IO 密集工作，此前在主线程同步执行，课表页横向切周会卡顿甚至 ANR
-        //（真机 Skipped 30-59 帧 / Slow UI thread 113 / 主线程 50-150ms 帧）。
-        // flowOn(Dispatchers.Default) 把上游查询/合并移到默认线程池；下游 collect 仍在
-        // Main（Compose 状态更新线程），只保留轻量状态拼装，UI 线程不再被阻塞。
+    }
+
+    /**
+     * 单个页面日期的课程流：本人课程 +（叠加模式）配对情侣课表课程，
+     * 合并后按各自课表的作息换算为网格坐标块。
+     */
+    private fun dayCoursesFlow(
+        day: LocalDate,
+        source: ScheduleSourceSnapshot,
+        overlay: CoupleOverlayContext
+    ): Flow<Pair<String, List<MergedCourseBlock>>> {
+        val settings = source.settings
+        val config = source.config
+            ?: return flowOf(day.toString() to emptyList())
+        val mode = source.style.scheduleMode
+        val tableId = settings.currentCourseTableId
+
+        val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
+            targetDate = day,
+            startDateStr = config.semesterStartDate,
+            firstDayOfWeekInt = config.firstDayOfWeek
+        )
+
+        val isWithinSemester = pageWeekNum != null && pageWeekNum in 1..config.semesterTotalWeeks
+
+        val coursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
+            courseTableRepository.getCoursesWithWeeksByTableId(tableId).map { allCourses ->
+                allCourses.filter { cw ->
+                    cw.weeks.any { it.weekNumber >= pageWeekNum!! }
+                }
+            }
+        } else {
+            courseTableRepository.getCoursesWithWeeksByDate(tableId, day, config)
+        }
+
+        // 情侣课表叠加：合并配对情侣课表课程并统一着色。
+        // 情侣课程按本人课表的周次过滤（叠加视图的学期进度以本人课表为准）。
+        val combinedCoursesFlow: Flow<List<CourseWithWeeks>> =
+            if (overlay.active && overlay.coupleTableId != null) {
+                val coupleCoursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
+                    courseTableRepository.getCoursesWithWeeksByTableId(overlay.coupleTableId).map { allCourses ->
+                        allCourses.filter { cw ->
+                            cw.weeks.any { it.weekNumber >= pageWeekNum!! }
+                        }
+                    }
+                } else {
+                    courseTableRepository.getCoursesWithWeeksByDate(overlay.coupleTableId, day, config)
+                }
+                combine(coursesFlow, coupleCoursesFlow) { selfCourses, coupleCourses ->
+                    val selfColored = selfCourses.map { cw ->
+                        cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
+                    }
+                    val coupleColored = coupleCourses.map { cw ->
+                        cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
+                    }
+                    selfColored + coupleColored
+                }
+            } else {
+                coursesFlow
+            }
+
+        val slotsByTable = buildMap {
+            put(tableId, source.timeSlots)
+            if (overlay.active && overlay.coupleTableId != null) {
+                put(overlay.coupleTableId, overlay.coupleTimeSlots)
+            }
+        }
+
+        return combinedCoursesFlow.map { courses ->
+            day.toString() to mergeCourses(
+                courses = courses,
+                timeSlots = source.timeSlots,
+                currentWeek = pageWeekNum ?: -1,
+                mode = mode,
+                timeSlotsByTable = slotsByTable,
+                gridTableId = tableId,
+                showTimeRanges = overlay.active && overlay.timesDiffer
+            )
+        }
+    }
+
+    /** 作息时间表签名：节次号 + 起止时间逐项比对。 */
+    private fun scheduleSignature(slots: List<TimeSlot>): List<String> =
+        slots.sortedBy { it.number }.map { "${it.number}:${it.startTime}-${it.endTime}" }
+
+    private fun scheduleTimesDiffer(selfSlots: List<TimeSlot>, coupleSlots: List<TimeSlot>): Boolean {
+        if (selfSlots.isEmpty() && coupleSlots.isEmpty()) return false
+        return scheduleSignature(selfSlots) != scheduleSignature(coupleSlots)
+    }
+        // v3.51.2 修复（保留）：切周三窗口课程重建（查询 + mergeCourses）为 CPU/IO 密集工作，
+        // flowOn(Default) 把上游移到默认线程池，下游 collect 仍留 Main 只做轻量状态拼装
         .flowOn(Dispatchers.Default)
+
 
     init {
         // 1. 扁平化组合：先合并 5 路基础流 + 当前日期流（跨天自动重算周次/倒计时），
@@ -288,7 +413,7 @@ class WeeklyScheduleViewModel (
                 snapshot.copy(today = today)
             }
 
-            combine(sourceFlow, currentCoursesFlow) { source, cache ->
+            combine(sourceFlow, currentCoursesFlow, coupleOverlayContextFlow) { source, cache, overlay ->
                 val config = source.config
                 val style = source.style
                 val mondayDate = source.mondayDate
@@ -319,6 +444,15 @@ class WeeklyScheduleViewModel (
 
                 val previousState = _uiState.value
 
+                val slotsByTable = if (overlay.active && overlay.coupleTableId != null) {
+                    mapOf(
+                        source.settings.currentCourseTableId to timeSlots,
+                        overlay.coupleTableId to overlay.coupleTimeSlots
+                    )
+                } else {
+                    mapOf(source.settings.currentCourseTableId to timeSlots)
+                }
+
                 WeeklyScheduleUiState(
                     style = composedStyle,
                     showWeekends = config?.showWeekends ?: false,
@@ -335,7 +469,10 @@ class WeeklyScheduleViewModel (
                     currentSectionIndex = currentSectionIndex,
                     daysUntilStart = daysUntil,
                     floatingCourse = previousState.floatingCourse,
-                    floatingSourceWeek = previousState.floatingSourceWeek
+                    floatingSourceWeek = previousState.floatingSourceWeek,
+                    coupleOverlayActive = overlay.active,
+                    coupleTimesDiffer = overlay.timesDiffer,
+                    timeSlotsByTable = slotsByTable
                 )
                 // 同 v3.51.2：块内含 getWeekIndexAtDate（数据库查询）×2 与 LocalDate.parse，
                 // flowOn(Default) 让合成在默认线程池执行，.collect 在下游 Main 仅做状态引用赋值。
@@ -743,30 +880,41 @@ class WeeklyScheduleViewModel (
 
     /**
      * 展平排版调度引擎：入口只负责统一预解析时间，具体排版拆给下面的私有函数。
+     *
+     * [timeSlotsByTable] 叠加模式下携带本人 / 情侣课表各自的作息：课程先按所属表的节次
+     * 解析出绝对起止时间，再统一换算到网格坐标（网格由 [timeSlots] 即本人课表作息决定）。
+     * 单表模式下留空，全部课程回落到网格作息，行为与旧版一致。
      */
     fun mergeCourses(
         courses: List<CourseWithWeeks>,
         timeSlots: List<TimeSlot>,
         currentWeek: Int,
-        mode: ScheduleModeProto = ScheduleModeProto.SECTION_MODE
+        mode: ScheduleModeProto = ScheduleModeProto.SECTION_MODE,
+        timeSlotsByTable: Map<String, List<TimeSlot>> = emptyMap(),
+        gridTableId: String? = null,
+        showTimeRanges: Boolean = false
     ): List<MergedCourseBlock> {
         if (timeSlots.isEmpty() && mode == ScheduleModeProto.SECTION_MODE) return emptyList()
 
         val parsedSlots = timeSlots.sortedParsedTimeSlots()
-        return buildMergedBlocks(courses, parsedSlots, currentWeek, mode)
+        val parsedSlotsByTable = timeSlotsByTable.mapValues { (_, slots) -> slots.sortedParsedTimeSlots() }
+        return buildMergedBlocks(courses, parsedSlots, parsedSlotsByTable, gridTableId, currentWeek, mode, showTimeRanges)
     }
 
     private fun buildMergedBlocks(
         courses: List<CourseWithWeeks>,
         parsedSlots: List<ParsedTimeSlot>,
+        parsedSlotsByTable: Map<String, List<ParsedTimeSlot>>,
+        gridTableId: String?,
         currentWeek: Int,
-        mode: ScheduleModeProto
+        mode: ScheduleModeProto,
+        showTimeRanges: Boolean
     ): List<MergedCourseBlock> {
         val maxSection = if (mode == ScheduleModeProto.TIME_24H_MODE) 24f else parsedSlots.size.toFloat()
         val limit = maxSection + 1.0f
         val minSafeHeight = if (mode == ScheduleModeProto.TIME_24H_MODE) 0.0f else 0.3f
 
-        val normalizedList = normalizeCourses(courses, parsedSlots, mode, limit, minSafeHeight)
+        val normalizedList = normalizeCourses(courses, parsedSlots, parsedSlotsByTable, mode, limit, minSafeHeight)
 
         val result = mutableListOf<MergedCourseBlock>()
         normalizedList.groupBy { it.raw.course.day }.forEach { (day, dailyCourses) ->
@@ -780,9 +928,9 @@ class WeeklyScheduleViewModel (
             // 作为该时段的占位预览展示。
             val filteredCourses = filterNonActiveCourseOverlaps(dailyCourses, currentWeek)
 
-            // 本人课程（isCrush = false）优先排序，确保时间重叠时本人占左列、crush 占右列
+            // 本人课程优先排序，确保时间重叠时本人占左列、情侣课程占右列
             val sorted = filteredCourses.sortedWith(
-                compareBy<NormalizedCourse> { it.raw.course.isCrush }
+                compareBy<NormalizedCourse> { it.raw.course.courseTableId != gridTableId }
                     .thenBy { it.start }
                     .thenByDescending { it.end - it.start }
             )
@@ -790,7 +938,7 @@ class WeeklyScheduleViewModel (
             val clusters = buildOverlappingClusters(sorted)
 
             for (cluster in clusters) {
-                result.addAll(buildClusterBlocks(day, cluster, mode, maxSection, currentWeek))
+                result.addAll(buildClusterBlocks(day, cluster, mode, maxSection, currentWeek, gridTableId, parsedSlots, parsedSlotsByTable, showTimeRanges))
             }
         }
         return result
@@ -799,13 +947,14 @@ class WeeklyScheduleViewModel (
     private fun normalizeCourses(
         courses: List<CourseWithWeeks>,
         parsedSlots: List<ParsedTimeSlot>,
+        parsedSlotsByTable: Map<String, List<ParsedTimeSlot>>,
         mode: ScheduleModeProto,
         limit: Float,
         minSafeHeight: Float
     ): List<NormalizedCourse> {
         val normalizedList = mutableListOf<NormalizedCourse>()
         for (cw in courses) {
-            val normalized = normalizeCourse(cw, parsedSlots, mode, limit, minSafeHeight)
+            val normalized = normalizeCourse(cw, parsedSlots, parsedSlotsByTable, mode, limit, minSafeHeight)
             if (normalized != null) {
                 normalizedList.add(normalized)
             }
@@ -816,6 +965,7 @@ class WeeklyScheduleViewModel (
     private fun normalizeCourse(
         cw: CourseWithWeeks,
         parsedSlots: List<ParsedTimeSlot>,
+        parsedSlotsByTable: Map<String, List<ParsedTimeSlot>>,
         mode: ScheduleModeProto,
         limit: Float,
         minSafeHeight: Float
@@ -823,12 +973,16 @@ class WeeklyScheduleViewModel (
         return try {
             val c = cw.course
 
+            // 课程所属表的作息优先（叠加模式下情侣课程按情侣课表自己的节次时间换算），
+            // 无对应记录（单表模式）时回落到网格作息，行为与旧版一致。
+            val ownSlots = parsedSlotsByTable[c.courseTableId] ?: parsedSlots
+
             val (sTime, eTime) = if (c.isCustomTime) {
                 LocalTime.parse(c.customStartTime ?: return null) to
                         LocalTime.parse(c.customEndTime ?: return null)
             } else {
-                val startSlot = parsedSlots.find { it.slot.number == c.startSection } ?: return null
-                val endSlot = parsedSlots.find { it.slot.number == c.endSection } ?: return null
+                val startSlot = ownSlots.find { it.slot.number == c.startSection } ?: return null
+                val endSlot = ownSlots.find { it.slot.number == c.endSection } ?: return null
                 startSlot.startTime to endSlot.endTime
             }
 
@@ -928,7 +1082,11 @@ class WeeklyScheduleViewModel (
         cluster: List<NormalizedCourse>,
         mode: ScheduleModeProto,
         maxSection: Float,
-        currentWeek: Int
+        currentWeek: Int,
+        gridTableId: String?,
+        parsedGridSlots: List<ParsedTimeSlot>,
+        parsedSlotsByTable: Map<String, List<ParsedTimeSlot>>,
+        showTimeRanges: Boolean
     ): List<MergedCourseBlock> {
         val columnEnds = mutableListOf<Float>()
         val itemToColumnIndex = mutableMapOf<NormalizedCourse, Int>()
@@ -965,11 +1123,49 @@ class WeeklyScheduleViewModel (
                     courses = listOf(cw),
                     needsProportionalRendering = (mode == ScheduleModeProto.TIME_24H_MODE) || cw.course.isCustomTime,
                     isVisualDemoted = !isCurrentWeekActive,
-                    nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat())
+                    nonActiveRanges = listOf(myColumnIndex.toFloat() to totalSubColumns.toFloat()),
+                    isForeignTable = gridTableId != null && cw.course.courseTableId != gridTableId,
+                    displayTimeRange = if (showTimeRanges) {
+                        formatCourseTimeRange(cw, parsedGridSlots, parsedSlotsByTable)
+                    } else null
                 )
             )
         }
         return blocks
+    }
+
+    /**
+     * 课程起止时间文本（如 "8:00-9:50"）：按课程所属表的作息解析节次时间，
+     * 自定义时间课程直接用其 HH:MM。仅在叠加视图且双方作息不一样时展示。
+     */
+    private fun formatCourseTimeRange(
+        cw: CourseWithWeeks,
+        parsedGridSlots: List<ParsedTimeSlot>,
+        parsedSlotsByTable: Map<String, List<ParsedTimeSlot>>
+    ): String? {
+        return try {
+            val c = cw.course
+            val ownSlots = parsedSlotsByTable[c.courseTableId] ?: parsedGridSlots
+            val (start, end) = if (c.isCustomTime) {
+                LocalTime.parse(c.customStartTime ?: return null) to
+                        LocalTime.parse(c.customEndTime ?: return null)
+            } else {
+                val startSlot = ownSlots.find { it.slot.number == c.startSection } ?: return null
+                val endSlot = ownSlots.find { it.slot.number == c.endSection } ?: return null
+                startSlot.startTime to endSlot.endTime
+            }
+            "${start.trimLeadingZero()}-${end.trimLeadingZero()}"
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** "08:00" -> "8:00"（对齐需求示例 8:00-9:50 的展示格式）。 */
+    private fun LocalTime.trimLeadingZero(): String = buildString {
+        if (hour > 0) append(hour) else append("0")
+        append(':')
+        if (minute < 10) append('0')
+        append(minute)
     }
 
     /**

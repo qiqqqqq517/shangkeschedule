@@ -28,6 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,12 +78,17 @@ import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeReadingSerif
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.couple_badge
+import shangkeschedule.shared.generated.resources.manage_add_couple
+import shangkeschedule.shared.generated.resources.manage_add_couple_desc
+import shangkeschedule.shared.generated.resources.favorite_24px
 import shangkeschedule.shared.generated.resources.a11y_new_semester
 import shangkeschedule.shared.generated.resources.a11y_save
 import shangkeschedule.shared.generated.resources.action_add
@@ -156,6 +165,7 @@ fun ManageCourseTablesScreen(
     viewModel: ManageCourseTablesViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     // 更早学年折叠：默认只展示最近 2 个学年组
     var showAllGroups by remember { mutableStateOf(false) }
@@ -208,13 +218,30 @@ fun ManageCourseTablesScreen(
                     .fillMaxWidth()
                     .widthIn(max = 640.dp)
             ) {
+                // 正在单独显示情侣课表时，当前学期卡展示的是本人表：
+                // 「查看课表 / 学期设置」先切回本人表，保证卡面与操作目标一致
+                val activeTableIsCouple = uiState.currentSemester?.let { semester ->
+                    uiState.currentActiveTableId != null && uiState.currentActiveTableId != semester.table.id
+                } ?: false
+                val goSelfTimetable: () -> Unit = {
+                    if (activeTableIsCouple) {
+                        uiState.currentSemester?.let { viewModel.switchCourseTable(it.table.id) }
+                    }
+                    onNavigate(Destination.CourseSchedule)
+                }
+                val goSelfSemesterSettings: () -> Unit = {
+                    if (activeTableIsCouple) {
+                        uiState.currentSemester?.let { viewModel.switchCourseTable(it.table.id) }
+                    }
+                    onNavigate(Destination.SemesterSettings)
+                }
                 SemesterArchiveList(
                     uiState = uiState,
                     showAllGroups = showAllGroups,
                     onToggleShowAll = { showAllGroups = !showAllGroups },
                     onNewSemester = { showAddTableDialog = true },
-                    onViewTimetable = { onNavigate(Destination.CourseSchedule) },
-                    onSemesterSettings = { onNavigate(Destination.SemesterSettings) },
+                    onViewTimetable = goSelfTimetable,
+                    onSemesterSettings = goSelfSemesterSettings,
                     onRenameSemester = { table ->
                         editingTableInfo = table
                         editedTableName = table.name
@@ -228,7 +255,18 @@ fun ManageCourseTablesScreen(
                         tableToDelete = table
                         showDeleteConfirmDialog = true
                     },
-                    onImportSemester = { onNavigate(Destination.SchoolSelectionListScreen()) },
+                    onViewCouple = { table ->
+                        viewModel.switchCourseTable(table.id)
+                        onNavigate(Destination.CourseSchedule)
+                    },
+                    onDeleteCouple = { table ->
+                        tableToDelete = table
+                        showDeleteConfirmDialog = true
+                    },
+                    onAddCouple = { selfTableId ->
+                        viewModel.createCoupleTableFor(selfTableId)
+                    },
+                    onImportSemester = { onNavigate(Destination.SchoolSelectionListScreen) },
                     onRestoreBackup = { onNavigate(Destination.BackupAndRestore) }
                 )
             }
@@ -337,17 +375,14 @@ fun ManageCourseTablesScreen(
                 text = confirmDeleteText,
                 confirmText = actionDelete,
                 onConfirm = {
-                    if (uiState.courseTables.size > 1) {
-                        tableToDelete?.let {
-                            viewModel.deleteCourseTable(it)
-                            ToastManager.show(deleteSuccessMsg)
+                    val target = tableToDelete
+                    showDeleteConfirmDialog = false
+                    tableToDelete = null
+                    if (target != null) {
+                        coroutineScope.launch {
+                            val deleted = viewModel.deleteCourseTable(target)
+                            ToastManager.show(if (deleted) deleteSuccessMsg else toastDeleteLastFailed)
                         }
-                        showDeleteConfirmDialog = false
-                        tableToDelete = null
-                    } else {
-                        ToastManager.show(toastDeleteLastFailed)
-                        showDeleteConfirmDialog = false
-                        tableToDelete = null
                     }
                 },
                 dismissText = actionCancel,
@@ -375,6 +410,9 @@ private fun SemesterArchiveList(
     onRenameSemester: (CourseTable) -> Unit,
     onSwitchSemester: (CourseTable) -> Unit,
     onDeleteSemester: (CourseTable) -> Unit,
+    onViewCouple: (CourseTable) -> Unit,
+    onDeleteCouple: (CourseTable) -> Unit,
+    onAddCouple: (String) -> Unit,
     onImportSemester: () -> Unit,
     onRestoreBackup: () -> Unit
 ) {
@@ -398,13 +436,26 @@ private fun SemesterArchiveList(
         val currentSemester = uiState.currentSemester
         if (currentSemester != null) {
             item(key = "current-semester") {
-                CurrentSemesterCard(
-                    semester = currentSemester,
-                    currentWeek = uiState.currentWeek,
-                    weekPercent = uiState.currentWeekPercent,
-                    onViewTimetable = onViewTimetable,
-                    onSemesterSettings = onSemesterSettings,
-                    onRename = { onRenameSemester(currentSemester.table) }
+                SemesterSwipeRow(
+                    selfCard = {
+                        CurrentSemesterCard(
+                            semester = currentSemester,
+                            currentWeek = uiState.currentWeek,
+                            weekPercent = uiState.currentWeekPercent,
+                            onViewTimetable = onViewTimetable,
+                            onSemesterSettings = onSemesterSettings,
+                            onRename = { onRenameSemester(currentSemester.table) }
+                        )
+                    },
+                    coupleCard = {
+                        CoupleSwipePage(
+                            couple = currentSemester.couple,
+                            selfTableId = currentSemester.table.id,
+                            onViewCouple = onViewCouple,
+                            onDeleteCouple = onDeleteCouple,
+                            onAddCouple = onAddCouple
+                        )
+                    }
                 )
             }
         } else {
@@ -434,7 +485,10 @@ private fun SemesterArchiveList(
                             group = group,
                             onSwitch = onSwitchSemester,
                             onRename = onRenameSemester,
-                            onDelete = onDeleteSemester
+                            onDelete = onDeleteSemester,
+                            onViewCouple = onViewCouple,
+                            onDeleteCouple = onDeleteCouple,
+                            onAddCouple = onAddCouple
                         )
                     }
 
@@ -941,7 +995,10 @@ private fun HistoryYearGroup(
     group: YearGroup,
     onSwitch: (CourseTable) -> Unit,
     onRename: (CourseTable) -> Unit,
-    onDelete: (CourseTable) -> Unit
+    onDelete: (CourseTable) -> Unit,
+    onViewCouple: (CourseTable) -> Unit,
+    onDeleteCouple: (CourseTable) -> Unit,
+    onAddCouple: (String) -> Unit
 ) {
     val colors = appColors()
     Column(
@@ -972,13 +1029,26 @@ private fun HistoryYearGroup(
             )
         }
 
-        // 学期卡列表
+        // 学期卡列表（本人卡 + 情侣卡并排，左右滑动查看）
         group.semesters.forEach { semesterInfo ->
-            HistorySemesterCard(
-                semesterInfo = semesterInfo,
-                onSwitch = { onSwitch(semesterInfo.table) },
-                onRename = { onRename(semesterInfo.table) },
-                onDelete = { onDelete(semesterInfo.table) }
+            SemesterSwipeRow(
+                selfCard = {
+                    HistorySemesterCard(
+                        semesterInfo = semesterInfo,
+                        onSwitch = { onSwitch(semesterInfo.table) },
+                        onRename = { onRename(semesterInfo.table) },
+                        onDelete = { onDelete(semesterInfo.table) }
+                    )
+                },
+                coupleCard = {
+                    CoupleSwipePage(
+                        couple = semesterInfo.couple,
+                        selfTableId = semesterInfo.table.id,
+                        onViewCouple = onViewCouple,
+                        onDeleteCouple = onDeleteCouple,
+                        onAddCouple = onAddCouple
+                    )
+                }
             )
         }
     }
@@ -1098,6 +1168,240 @@ private fun HistorySemesterCard(
                 )
             }
         }
+    }
+}
+
+// ============================================================================
+// 情侣课表并排卡（本人卡右侧，左右滑动查看）
+// ============================================================================
+
+/**
+ * 学期卡并排容器：第 0 页 = 本人学期卡，第 1 页 = 情侣课表卡（或「添加情侣课表」）。
+ * 左右滑动切换，下方圆点指示当前页。
+ */
+@Composable
+private fun SemesterSwipeRow(
+    selfCard: @Composable () -> Unit,
+    coupleCard: @Composable () -> Unit
+) {
+    val colors = appColors()
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (page == 0) selfCard() else coupleCard()
+            }
+        }
+        // 页点指示
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(2) { index ->
+                val active = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .size(if (active) 7.dp else 5.dp)
+                        .clip(CircleShape)
+                        .background(if (active) colors.primary else colors.divider)
+                )
+            }
+        }
+    }
+}
+
+/** 情侣页内容：已有情侣课表 → 情侣卡；未创建 → 「添加情侣课表」虚线卡。 */
+@Composable
+private fun CoupleSwipePage(
+    couple: SemesterInfo?,
+    selfTableId: String,
+    onViewCouple: (CourseTable) -> Unit,
+    onDeleteCouple: (CourseTable) -> Unit,
+    onAddCouple: (String) -> Unit
+) {
+    val coupleInfo = couple
+    if (coupleInfo == null) {
+        AddCoupleCard(onAdd = { onAddCouple(selfTableId) })
+    } else {
+        CoupleSemesterCard(
+            couple = coupleInfo,
+            onView = { onViewCouple(coupleInfo.table) },
+            onDelete = { onDeleteCouple(coupleInfo.table) }
+        )
+    }
+}
+
+/** 情侣徽标：爱心图标 + 「情侣」文字胶囊。 */
+@Composable
+private fun CoupleBadge() {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .height(26.dp)
+            .clip(appShapes().capsule)
+            .background(colors.dangerSoft)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = vectorResource(Res.drawable.favorite_24px),
+            contentDescription = null,
+            tint = colors.danger,
+            modifier = Modifier.size(12.dp)
+        )
+        Text(
+            text = stringResource(Res.string.couple_badge),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.danger
+        )
+    }
+}
+
+/** 情侣课表卡：徽标 + 名称 + 日期区间 + 统计 + 查看 / 删除。 */
+@Composable
+private fun CoupleSemesterCard(
+    couple: SemesterInfo,
+    onView: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = appColors()
+    val switchSuccessMsg = stringResource(Res.string.toast_switch_table_success, couple.table.name)
+
+    SemesterCard(modifier = Modifier.fillMaxWidth(), onClick = onView) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CoupleBadge()
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = couple.table.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = couple.dateRangeText(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.textSecondary
+                )
+            }
+
+            // 统计行：课程数 / 教学周（沿用情侣课表自己的配置）
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        drawLine(
+                            color = colors.divider,
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                        drawLine(
+                            color = colors.divider,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatMini(
+                    value = couple.courseCount.toString(),
+                    label = stringResource(Res.string.stat_courses_unit),
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(28.dp)
+                        .background(colors.divider)
+                )
+                StatMini(
+                    value = couple.totalWeeks.toString(),
+                    label = stringResource(Res.string.stat_teaching_weeks_unit),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                GhostActionButton(
+                    text = stringResource(Res.string.action_view),
+                    icon = vectorResource(Res.drawable.visibility_24px),
+                    danger = false,
+                    onClick = {
+                        ToastManager.show(switchSuccessMsg)
+                        onView()
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                GhostActionButton(
+                    text = stringResource(Res.string.action_delete),
+                    icon = vectorResource(Res.drawable.delete_24px),
+                    danger = true,
+                    onClick = onDelete,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+/** 未创建情侣课表时的占位卡：虚线描边 + 爱心 + 「添加情侣课表」。 */
+@Composable
+private fun AddCoupleCard(onAdd: () -> Unit) {
+    val colors = appColors()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .dashedBorder(colors.divider, cornerRadius = 14.dp)
+            .clickable(onClick = onAdd)
+            .padding(vertical = 24.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = vectorResource(Res.drawable.favorite_24px),
+            contentDescription = null,
+            tint = colors.danger,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = stringResource(Res.string.manage_add_couple),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.textPrimary
+        )
+        Text(
+            text = stringResource(Res.string.manage_add_couple_desc),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+            color = colors.textSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }
 
