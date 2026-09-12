@@ -324,6 +324,9 @@ class WeeklyScheduleViewModel (
                 flowOf(emptyMap())
             }
         }
+        // v3.51.2 修复（保留）：切周三窗口课程重建（查询 + mergeCourses）为 CPU/IO 密集工作，
+        // flowOn(Default) 把上游移到默认线程池，下游 collect 仍留 Main 只做轻量状态拼装
+        .flowOn(Dispatchers.Default)
     }
 
     /**
@@ -412,10 +415,6 @@ class WeeklyScheduleViewModel (
         if (selfSlots.isEmpty() && coupleSlots.isEmpty()) return false
         return scheduleSignature(selfSlots) != scheduleSignature(coupleSlots)
     }
-        // v3.51.2 修复（保留）：切周三窗口课程重建（查询 + mergeCourses）为 CPU/IO 密集工作，
-        // flowOn(Default) 把上游移到默认线程池，下游 collect 仍留 Main 只做轻量状态拼装
-        .flowOn(Dispatchers.Default)
-
 
     init {
         // 0. 切表即清空跨周悬浮课程：手势落库按课程原属表写入，残留状态会写到旧表
