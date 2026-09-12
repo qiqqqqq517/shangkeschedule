@@ -6,10 +6,12 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.ScheduleCategory
 import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
+import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.tool.LunarCalendar
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,17 +37,20 @@ import kotlin.time.Clock
 /**
  * 「日程」页视图模型。
  *
- * 数据来源两条：
+ * 数据来源三条：
  * 1. 课表课程：按选中日期换算周次后取当日课程（教师 / 地点来自课程实体）；
- * 2. 自建日程：schedule_events 表按选中日期过滤。
- * 两者合并为同一条时间轴，按开始时间排序，供日程列表展示。
+ * 2. 自建日程：schedule_events 表按选中日期过滤；
+ * 3. 今日待办：todo_items 表按选中日期过滤（与今日页「待办」列表同一数据源，
+ *    勾选完成状态双向同步）。
+ * 三者合并为同一条时间轴，按开始时间排序，供日程列表展示。
  */
 @KoinViewModel
 class AgendaViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository,
     private val timeSlotRepository: TimeSlotRepository,
-    private val scheduleEventRepository: ScheduleEventRepository
+    private val scheduleEventRepository: ScheduleEventRepository,
+    private val todoRepository: TodoRepository
 ) : ViewModel() {
 
     companion object {
@@ -124,14 +129,15 @@ class AgendaViewModel(
                                 flowOf(emptyList())
                             }
 
-                        combine(monthEventsFlow, coursesFlow) { monthEvents, courses ->
+                        combine(monthEventsFlow, coursesFlow, todoRepository.getTodosByDate(date.toString())) { monthEvents, courses, todos ->
                             buildState(
                                 selected = date,
                                 month = month,
                                 firstDayOfWeek = firstDayOfWeek,
                                 slots = slots,
                                 monthEvents = monthEvents,
-                                courses = courses
+                                courses = courses,
+                                todos = todos
                             )
                         }
                     }
@@ -221,10 +227,35 @@ class AgendaViewModel(
         }
     }
 
-    /** 删除日程。 */
-    fun deleteEvent(eventId: String) {
+    /** 删除条目：待办删 todo_items 表，自建日程删 schedule_events 表（课程不可删）。 */
+    fun deleteEntry(entry: AgendaEntry) {
         viewModelScope.launch {
-            scheduleEventRepository.deleteEvent(eventId)
+            when (entry.source) {
+                AgendaEntrySource.TODO -> todoRepository.deleteTodo(entry.id)
+                AgendaEntrySource.EVENT -> scheduleEventRepository.deleteEvent(entry.id)
+            }
+        }
+    }
+
+    /** 按条目来源切换完成状态（待办 → todo_items，自建日程 → schedule_events）。 */
+    fun toggleEntryDone(entry: AgendaEntry) {
+        when (entry.source) {
+            AgendaEntrySource.TODO -> setTodoDone(entry.id, !entry.done)
+            AgendaEntrySource.EVENT -> setEventDone(entry.id, !entry.done)
+        }
+    }
+
+    /** 设置自建日程的完成状态（仅「待办」分类的日程在 UI 上展示勾选）。 */
+    fun setEventDone(eventId: String, done: Boolean) {
+        viewModelScope.launch {
+            scheduleEventRepository.setDone(eventId, done)
+        }
+    }
+
+    /** 设置今日待办（todo_items）的完成状态，与今日页勾选同一数据源。 */
+    fun setTodoDone(todoId: String, done: Boolean) {
+        viewModelScope.launch {
+            todoRepository.setDone(todoId, done)
         }
     }
 
@@ -234,11 +265,15 @@ class AgendaViewModel(
         firstDayOfWeek: Int,
         slots: List<TimeSlot>,
         monthEvents: List<ScheduleEvent>,
-        courses: List<CourseWithWeeks>
+        courses: List<CourseWithWeeks>,
+        todos: List<TodoItem>
     ): AgendaUiState {
         val today = todayDate
         val slotMap = slots.associateBy { it.number }
-        val eventDates = monthEvents.map { it.date }.toSet()
+        // 日历上的「事件点」：自建日程覆盖整段查询范围；待办只按选中日查询，
+        // 因此仅选中日会因待办而标记事件点。
+        val eventDates = monthEvents.map { it.date }.toSet() +
+            todos.map { it.date }.toSet()
 
         // 顶部日期滚轴：以选中日为中线的前后各 STRIP_HALF_SPAN_DAYS 天。
         // UI 侧是 LazyRow 连续滚动 + 按天吸附，中线那天即当前选中日。
@@ -307,7 +342,28 @@ class AgendaViewModel(
                         startTime = event.startTime,
                         endTime = event.endTime,
                         isAllDay = event.isAllDay,
-                        isCrush = false
+                        isCrush = false,
+                        done = event.done,
+                        source = AgendaEntrySource.EVENT
+                    )
+                )
+            }
+            todos.forEach { todo ->
+                add(
+                    AgendaEntry(
+                        id = todo.id,
+                        title = todo.title,
+                        isCourse = false,
+                        categoryKey = ScheduleCategory.TODO.key,
+                        location = null,
+                        teacher = null,
+                        note = todo.note,
+                        startTime = todo.time?.takeIf { it.isNotBlank() },
+                        endTime = null,
+                        isAllDay = todo.time.isNullOrBlank(),
+                        isCrush = false,
+                        done = todo.done,
+                        source = AgendaEntrySource.TODO
                     )
                 )
             }
@@ -355,7 +411,16 @@ data class AgendaDayCell(
     val isInMonth: Boolean = true
 )
 
-/** 日程条目（课程与自建日程统一展示模型）。 */
+/** 日程条目的数据来源（决定勾选 / 删除落到哪张表）。 */
+enum class AgendaEntrySource {
+    /** 自建日程（schedule_events）。 */
+    EVENT,
+
+    /** 今日待办（todo_items，与今日页「待办」列表同源）。 */
+    TODO
+}
+
+/** 日程条目（课程、自建日程与今日待办统一展示模型）。 */
 data class AgendaEntry(
     val id: String,
     val title: String,
@@ -367,7 +432,11 @@ data class AgendaEntry(
     val startTime: String?,
     val endTime: String?,
     val isAllDay: Boolean,
-    val isCrush: Boolean
+    val isCrush: Boolean,
+    /** 完成状态（仅「待办」类条目使用，课程恒为 false）。 */
+    val done: Boolean = false,
+    /** 数据来源，默认自建日程。 */
+    val source: AgendaEntrySource = AgendaEntrySource.EVENT
 )
 
 /** 日程页 UI 状态。 */
