@@ -79,4 +79,30 @@ object WorkManagerHelper {
         WorkManager.getInstance(context).cancelUniqueWork(FULL_DATA_SYNC_WORK_NAME)
         WorkManager.getInstance(context).cancelUniqueWork(DAILY_ROLLOVER_WORK_NAME)
     }
+
+    /**
+     * 某类小组件的最后实例被移除（onDisabled）时调用：仅当**全部**小组件类型都归零
+     * 才取消组件专属任务（UI 更新 + 全量同步），避免删一种组件连累其它组件停更。
+     * [DAILY_ROLLOVER_WORK_NAME] 始终保留——它承担提醒/勿扰/灵动岛的跨天自愈，
+     * 与小组件是否还在无关（代价仅每天一次 00:05 本地同步）。
+     */
+    fun onWidgetDisabled(context: Context) {
+        runCatching {
+            val manager = android.appwidget.AppWidgetManager.getInstance(context)
+            val providers = listOf(
+                com.shangkeschedule.widget.tiny.TinyNativeProvider::class.java,
+                com.shangkeschedule.widget.compact.CompactNativeProvider::class.java,
+                com.shangkeschedule.widget.double_days.DoubleDaysNativeProvider::class.java,
+                com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider::class.java
+            )
+            val hasAnyWidget = providers.any { cls ->
+                manager.getAppWidgetIds(android.content.ComponentName(context, cls)).isNotEmpty()
+            }
+            if (!hasAnyWidget) {
+                Log.d("WidgetWorkManager", "全部小组件已移除，仅取消组件专属任务（保留每日零点自愈）")
+                WorkManager.getInstance(context).cancelUniqueWork(UI_UPDATE_WORK_NAME)
+                WorkManager.getInstance(context).cancelUniqueWork(FULL_DATA_SYNC_WORK_NAME)
+            }
+        }.onFailure { Log.e("WidgetWorkManager", "onWidgetDisabled 检查失败", it) }
+    }
 }

@@ -46,9 +46,13 @@ suspend fun updateAllWidgets(context: Context) {
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
 
+        // 读取超时时直接跳过本次渲染（保留旧快照）——清成空列表会让组件整体空白到下个 15min tick
         val dbCourses = withTimeoutOrNull(3.seconds) {
             repository.getWidgetCoursesByDateRange(today.toString(), tomorrow.toString()).first()
-        } ?: emptyList()
+        } ?: run {
+            android.util.Log.w("WidgetSync", "widget 数据读取超时，跳过本次渲染以保留旧快照")
+            return
+        }
 
         val currentWeek = withTimeoutOrNull(2.seconds) {
             repository.getCurrentWeekFlow().first()

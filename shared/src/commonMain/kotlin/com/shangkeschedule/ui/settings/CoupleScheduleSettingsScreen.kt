@@ -416,7 +416,8 @@ fun CoupleScheduleSettingsScreen(
                 showDeleteConfirm = false
                 coroutineScope.launch {
                     val deleted = viewModel.deleteCoupleTable()
-                    viewModel.resetOverlaySwitch()
+                    // 仅在真正删除成功后复位叠加开关；被拒绝（需保留最后一张表）时不动
+                    if (deleted) viewModel.resetOverlaySwitch()
                     ToastManager.show(if (deleted) toastDeleted else toastDeleteFailed)
                 }
             },

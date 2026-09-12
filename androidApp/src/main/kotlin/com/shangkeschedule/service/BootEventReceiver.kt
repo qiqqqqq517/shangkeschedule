@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import org.koin.mp.KoinPlatform
 
 /**
  * 开机自启广播接收器。
@@ -37,10 +36,15 @@ class BootEventReceiver : BroadcastReceiver() {
                 // 1. 补排小组件周期任务（KEEP：若 WorkManager 已持久化的调度仍在，不会重复）
                 WorkManagerHelper.schedulePeriodicWork(context.applicationContext)
 
-                // 2. 触发一次共享层同步：syncNow 完成后 syncCompletedFlow 会驱动
-                //    SyncManager 重新挂载课程提醒精确闹钟与勿扰排程
-                val synchronizer = KoinPlatform.getKoin().get<com.shangkeschedule.data.sync.WidgetDataSynchronizer>()
-                synchronizer.syncNow()
+                // 2. 全量同步改由 WorkManager 执行：goAsync 前台广播窗口约 10s，
+                //    冷启动 syncNow（DataStore/Room 初始化 + 多表查询 + 全部小组件渲染）
+                //    在慢机上极易超时被系统回收，导致当日提醒失联最长可达 ~34 小时；
+                //    挂入 WorkManager 后由系统保证执行，完成后照常级联重排提醒/勿扰/灵动岛
+                androidx.work.WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+                    "BootSync_Once",
+                    androidx.work.ExistingWorkPolicy.REPLACE,
+                    androidx.work.OneTimeWorkRequestBuilder<com.shangkeschedule.widget.FullDataSyncWorker>().build()
+                )
             } catch (e: Exception) {
                 Log.e("BootEventReceiver", "开机重排程失败", e)
             } finally {
