@@ -250,6 +250,17 @@ class CourseTableRepository(
         database.withWriteTransaction {
             tablesToDelete.forEach { courseTableDao.delete(it) }
         }
+
+        // 删除涉及情侣课表（直删或级联）时复位「双人同显」开关：
+        // 否则残留 true 后重建情侣表，叠加会静默重新生效（学期管理页与设置页两条删除入口统一收口）
+        if (tablesToDelete.any { it.isCouple }) {
+            val settings = appSettingsRepository.getAppSettingsOnce()
+            if (settings.coupleScheduleEnabled) {
+                appSettingsRepository.insertOrUpdateAppSettings(
+                    settings.copy(coupleScheduleEnabled = false)
+                )
+            }
+        }
         return true
     }
 

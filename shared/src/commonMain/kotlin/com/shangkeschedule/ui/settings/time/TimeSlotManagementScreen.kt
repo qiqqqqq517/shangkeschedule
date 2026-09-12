@@ -134,6 +134,7 @@ import shangkeschedule.shared.generated.resources.label_time_slot_alias
 import shangkeschedule.shared.generated.resources.save_24px
 import shangkeschedule.shared.generated.resources.text_no_time_slots_hint
 import shangkeschedule.shared.generated.resources.time_slot_section_number
+import shangkeschedule.shared.generated.resources.timeslot_editing_vs_active_hint
 import shangkeschedule.shared.generated.resources.title_time_slot_list
 import shangkeschedule.shared.generated.resources.title_default_duration_settings
 import shangkeschedule.shared.generated.resources.title_scheme_selector
@@ -338,6 +339,24 @@ fun TimeSlotManagementScreen(
                     AppEmptyState(hint = textNoTimeSlotsHint)
                 } else {
                     AppSectionHeader(stringResource(Res.string.title_time_slot_list))
+                }
+
+                // 自动切换开启且当日生效方案 ≠ 正在编辑的手动方案时，提示用户改的是哪套方案
+                val editingSchemeName = uiState.schemeMetas.firstOrNull { it.schemeId == uiState.currentSchemeId }?.schemeId
+                val effectiveSchemeName = uiState.effectiveSchemeId
+                if (effectiveSchemeName != null && editingSchemeName != null && effectiveSchemeName != editingSchemeName) {
+                    Text(
+                        text = stringResource(
+                            Res.string.timeslot_editing_vs_active_hint,
+                            editingSchemeName,
+                            effectiveSchemeName
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
                 }
             }
 

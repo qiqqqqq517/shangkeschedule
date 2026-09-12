@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinViewModel
 
 /**
@@ -90,7 +92,12 @@ class TimeSlotViewModel(
                             schemeIds = schemeIds,
                             isDataLoaded = true,
                             schemeMetas = schemeMetas,
-                            autoSwitchScheme = config?.autoSwitchScheme ?: false
+                            autoSwitchScheme = config?.autoSwitchScheme ?: false,
+                            // 自动切换开启时，当日实际生效方案可能与正在编辑的手动方案不同
+                            effectiveSchemeId = timeSlotRepository.resolveActiveSchemeId(
+                                config, schemeMetas, kotlin.time.Clock.System.now()
+                                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                            )
                         )
                     }
                 }
@@ -279,6 +286,8 @@ data class TimeSlotUiState(
     val defaultBreakDuration: Int,
     val currentSchemeId: String = TimeSlot.DEFAULT_SCHEME_ID,
     val schemeIds: List<String> = emptyList(),
+    /** 当日实际生效的作息方案（自动切换解析结果）；与 currentSchemeId 不同时页头提示。 */
+    val effectiveSchemeId: String? = null,
     val isDataLoaded: Boolean = false,
     val schemeMetas: List<TimeSlotScheme> = emptyList(),
     val autoSwitchScheme: Boolean = false
