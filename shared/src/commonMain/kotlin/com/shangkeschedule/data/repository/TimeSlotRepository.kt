@@ -184,6 +184,7 @@ class TimeSlotRepository(
         timeSlotSchemeDao.deleteByCourseTableId(courseTableId)
     }
 
+    /** 插入或更新一条作息方案元信息。 */
     suspend fun upsertSchemeMeta(scheme: TimeSlotScheme) {
         timeSlotSchemeDao.insertOrUpdate(scheme)
     }

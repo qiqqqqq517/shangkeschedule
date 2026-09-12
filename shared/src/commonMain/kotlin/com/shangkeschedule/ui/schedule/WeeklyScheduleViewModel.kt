@@ -253,15 +253,17 @@ class WeeklyScheduleViewModel (
      * 全链路响应式：情侣课表的创建/删除、其作息配置与方案切换变化都会重新装配，
      * 保证叠加网格的坐标映射始终跟随 TA 课表的最新作息。
      */
-    private val coupleOverlayContextFlow: Flow<CoupleOverlayContext> = combine(
-        appSettingsFlow,
+    private val coupleOverlayContextFlow: StateFlow<CoupleOverlayContext> = combine(
+        appSettingsFlow.map { it.coupleScheduleEnabled },
         currentTableFlow,
-        courseTableConfigFlow,
         timeSlotsFlow
-    ) { settings, currentTable, selfConfig, selfSlots ->
-        Triple(settings, currentTable?.takeIf { !it.isCouple }, selfSlots)
-    }.flatMapLatest { (settings, selfTable, selfSlots) ->
-        if (!settings.coupleScheduleEnabled || selfTable == null) {
+    ) { coupleEnabled, currentTable, selfSlots ->
+        Triple(coupleEnabled, currentTable?.takeIf { !it.isCouple }, selfSlots)
+    }
+        // DUC 前移：设置里任何无关字段写入都不再重启内层冷链（情侣表/配置/时段观察）
+        .distinctUntilChanged()
+        .flatMapLatest { (coupleEnabled, selfTable, selfSlots) ->
+        if (!coupleEnabled || selfTable == null) {
             flowOf(CoupleOverlayContext())
         } else {
             courseTableRepository.getCoupleTableFor(selfTable.id).flatMapLatest { coupleTable ->
@@ -281,7 +283,10 @@ class WeeklyScheduleViewModel (
                 }
             }
         }
-    }.distinctUntilChanged()
+    }
+        // 热化：currentCoursesFlow 与 init 最终 combine 两路共用同一上游，
+        // 消除重复 Room 订阅与「缓存/开关错帧」闪变
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CoupleOverlayContext())
 
     private val currentCoursesFlow = combine(
         _pagerMondayDate,
@@ -290,15 +295,20 @@ class WeeklyScheduleViewModel (
         timeSlotsFlow,
         styleFlow
     ) { date, settings, config, slots, style ->
-        ScheduleSourceSnapshot(
-            settings = settings,
+        // 紧凑源键：只保留课程装配真正消费的字段——DataStore 无关写入
+        //（主题/玻璃/动效等）不再触发三窗口课程链整链重启
+        CourseSourceKey(
+            tableId = settings.currentCourseTableId,
+            coupleEnabled = settings.coupleScheduleEnabled,
+            showNonCurrentWeek = settings.showNonCurrentWeekCourses,
+            selfColor = settings.selfCourseColorIndex,
+            coupleColor = settings.crushCourseColorIndex,
             config = config,
             style = style,
             mondayDate = date,
-            timeSlots = slots,
-            today = getTodayLocalDate()
+            timeSlots = slots
         )
-    }.flatMapLatest { source ->
+    }.distinctUntilChanged().flatMapLatest { source ->
         coupleOverlayContextFlow.flatMapLatest { overlay ->
             if (source.config != null) {
                 val window = listOf(
@@ -322,14 +332,13 @@ class WeeklyScheduleViewModel (
      */
     private fun dayCoursesFlow(
         day: LocalDate,
-        source: ScheduleSourceSnapshot,
+        source: CourseSourceKey,
         overlay: CoupleOverlayContext
     ): Flow<Pair<String, List<MergedCourseBlock>>> {
-        val settings = source.settings
         val config = source.config
             ?: return flowOf(day.toString() to emptyList())
         val mode = source.style.scheduleMode
-        val tableId = settings.currentCourseTableId
+        val tableId = source.tableId
 
         val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
             targetDate = day,
@@ -339,7 +348,7 @@ class WeeklyScheduleViewModel (
 
         val isWithinSemester = pageWeekNum != null && pageWeekNum in 1..config.semesterTotalWeeks
 
-        val coursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
+        val coursesFlow = if (source.showNonCurrentWeek && isWithinSemester) {
             courseTableRepository.getCoursesWithWeeksByTableId(tableId).map { allCourses ->
                 allCourses.filter { cw ->
                     cw.weeks.any { it.weekNumber >= pageWeekNum!! }
@@ -353,7 +362,7 @@ class WeeklyScheduleViewModel (
         // 情侣课程按本人课表的周次过滤（叠加视图的学期进度以本人课表为准）。
         val combinedCoursesFlow: Flow<List<CourseWithWeeks>> =
             if (overlay.active && overlay.coupleTableId != null) {
-                val coupleCoursesFlow = if (settings.showNonCurrentWeekCourses && isWithinSemester) {
+                val coupleCoursesFlow = if (source.showNonCurrentWeek && isWithinSemester) {
                     courseTableRepository.getCoursesWithWeeksByTableId(overlay.coupleTableId).map { allCourses ->
                         allCourses.filter { cw ->
                             cw.weeks.any { it.weekNumber >= pageWeekNum!! }
@@ -364,10 +373,10 @@ class WeeklyScheduleViewModel (
                 }
                 combine(coursesFlow, coupleCoursesFlow) { selfCourses, coupleCourses ->
                     val selfColored = selfCourses.map { cw ->
-                        cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
+                        cw.copy(course = cw.course.copy(colorInt = source.selfColor))
                     }
                     val coupleColored = coupleCourses.map { cw ->
-                        cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
+                        cw.copy(course = cw.course.copy(colorInt = source.coupleColor))
                     }
                     selfColored + coupleColored
                 }
@@ -409,6 +418,13 @@ class WeeklyScheduleViewModel (
 
 
     init {
+        // 0. 切表即清空跨周悬浮课程：手势落库按课程原属表写入，残留状态会写到旧表
+        viewModelScope.launch {
+            appSettingsFlow.map { it.currentCourseTableId }.distinctUntilChanged().collect {
+                if (_uiState.value.floatingCourse != null) exitFloatingMode()
+            }
+        }
+
         // 1. 扁平化组合：先合并 5 路基础流 + 当前日期流（跨天自动重算周次/倒计时），
         //    再并入课程缓存流，避免三层 configAndTimeFlow 中间流。
         viewModelScope.launch {
