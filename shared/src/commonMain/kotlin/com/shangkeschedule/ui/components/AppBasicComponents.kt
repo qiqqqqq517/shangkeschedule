@@ -354,12 +354,7 @@ fun AppFab(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
-                }
-                .clickable(
-                    interactionSource = interaction,
-                    indication = ripple(bounded = true),
-                    onClick = onClick
-                ),
+                },
             contentAlignment = Alignment.Center
         ) {
             LiquidGlass(
@@ -376,6 +371,18 @@ fun AppFab(
                 contentDescription = contentDescription,
                 tint = appColors().primary
             )
+                // 点击层独立成内层覆盖 Box：只裁水波纹（圆形扩散），不影响外层玻璃
+                // 向节点外绘制的阴影/高光（父级 clip 会把它们一并裁掉）
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = ripple(bounded = true),
+                            onClick = onClick
+                        )
+                )
         }
     }
 }

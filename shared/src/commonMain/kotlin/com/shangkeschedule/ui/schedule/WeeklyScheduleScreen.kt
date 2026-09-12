@@ -916,12 +916,7 @@ private fun BackToCurrentWeekFab(
                     .graphicsLayer {
                         scaleX = pressedScale
                         scaleY = pressedScale
-                    }
-                    .clickable(
-                        interactionSource = interaction,
-                        indication = ripple(bounded = true),
-                        onClick = onClick
-                    ),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 LiquidGlass(
@@ -940,6 +935,18 @@ private fun BackToCurrentWeekFab(
                     contentDescription = stringResource(Res.string.a11y_back_to_current_week),
                     tint = appColors().primary,
                     modifier = Modifier.size(22.dp)
+                )
+                // 点击层独立成内层覆盖 Box：只裁水波纹（圆形扩散），不影响外层玻璃
+                // 向节点外绘制的阴影/高光（父级 clip 会把它们一并裁掉，玻璃钮会变"平"）
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = ripple(bounded = true),
+                            onClick = onClick
+                        )
                 )
             }
         }
@@ -979,28 +986,34 @@ private fun WeekPagerGlassSheen(
     val sheenFraction = remember { Animatable(0f) }
     var sheenVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(pagerState.currentPage) {
-        if (!hasSettledOnce) {
-            hasSettledOnce = true
-            return@LaunchedEffect
-        }
-        sheenVisible = true
-        sheenFraction.snapTo(0f)
-        sheenFraction.animateTo(
-            1f,
-            tween(
-                // v3.45.1：柔绘档的换气时长改为**跟随「动效速度」**（此前写死 600ms，
-                // 动效速度旋钮对它完全无效 —— 正是"速度感知不强"的来源之一）。
-                // 取 2× entranceDurationMs：柔绘的换气仍比其它主题的扫光长一档，但不再与用户设置脱钩。
-                durationMillis = if (isSoft) motion.tokens.entranceDurationMs * 2
-                else motion.tokens.entranceDurationMs,
-                // 柔绘：fraction 必须走**线性**——sin(π·f) 本身已是单峰曲线，外面再套一条
-                // ease-in-out 会把亮度峰值压进中段极窄区间，观感变成"停顿—突亮—停顿"
-                // 三段（正是柔绘规格明令禁止的"折点"）。
-                easing = if (isSoft) LinearEasing else motion.tokens.entranceEasing
+    LaunchedEffect(Unit) {
+        // 单协程 + snapshotFlow：currentPage 连续变化（跨多页返回）时中间发射被 conflate，
+        // 上一道光未扫完（isRunning）就跳过——不会像 LaunchedEffect(key) 那样每页取消重启造成频闪
+        var settled = false
+        snapshotFlow { pagerState.currentPage }.collect {
+            if (!settled) {
+                settled = true
+                return@collect
+            }
+            if (sheenFraction.isRunning) return@collect
+            sheenVisible = true
+            sheenFraction.snapTo(0f)
+            sheenFraction.animateTo(
+                1f,
+                tween(
+                    // v3.45.1：柔绘档的换气时长改为**跟随「动效速度」**（此前写死 600ms，
+                    // 动效速度旋钮对它完全无效 —— 正是"速度感知不强"的来源之一）。
+                    // 取 2× entranceDurationMs：柔绘的换气仍比其它主题的扫光长一档，但不再与用户设置脱钩。
+                    durationMillis = if (isSoft) motion.tokens.entranceDurationMs * 2
+                    else motion.tokens.entranceDurationMs,
+                    // 柔绘：fraction 必须走**线性**——sin(π·f) 本身已是单峰曲线，外面再套一条
+                    // ease-in-out 会把亮度峰值压进中段极窄区间，观感变成"停顿—突亮—停顿"
+                    // 三段（正是柔绘规格明令禁止的"折点"）。
+                    easing = if (isSoft) LinearEasing else motion.tokens.entranceEasing
+                )
             )
-        )
-        sheenVisible = false
+            sheenVisible = false
+        }
     }
 
     if (sheenVisible) {

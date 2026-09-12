@@ -1410,7 +1410,8 @@ private fun AgendaCreateSheet(
 
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ScheduleCategory.TODO) }
-    var allDay by remember { mutableStateOf(false) }
+    // 待办默认不带时间（可关掉「全天」开关自定义时间）；活动 / 考试等默认带时间
+    var allDay by remember { mutableStateOf(category == ScheduleCategory.TODO) }
     var startDate by remember { mutableStateOf(initialDate) }
     var endDate by remember { mutableStateOf(initialDate) }
     var startTime by remember { mutableStateOf(hourText(defaultStartHour, defaultStartHour == 23)) }
@@ -1506,7 +1507,11 @@ private fun AgendaCreateSheet(
                     AgendaCategoryChip(
                         category = item,
                         selected = item == category,
-                        onClick = { category = item }
+                        onClick = {
+                            category = item
+                            // 切到待办默认免时间；切到其它类型恢复具体时间
+                            allDay = item == ScheduleCategory.TODO
+                        }
                     )
                 }
             }

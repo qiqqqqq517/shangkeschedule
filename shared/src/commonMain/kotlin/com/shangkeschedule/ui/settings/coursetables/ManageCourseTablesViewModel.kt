@@ -91,7 +91,13 @@ class ManageCourseTablesViewModel(
         val groups = history
             .groupBy { it.schoolYearStart() }
             .map { (startYear, semesters) ->
-                YearGroup(startYear = startYear, semesters = semesters)
+                // 学年内按学期开始日期自动排序：第一学期（秋）在前、第二学期（春）在后
+                YearGroup(
+                    startYear = startYear,
+                    semesters = semesters.sortedWith(
+                        compareBy(nullsLast()) { it.startDate }
+                    )
+                )
             }
             .sortedByDescending { it.startYear }
 
