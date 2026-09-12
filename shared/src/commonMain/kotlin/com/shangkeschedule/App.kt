@@ -341,7 +341,7 @@ fun ScreenContent(
         Destination.SemesterSettings -> SemesterSettingsScreen(onBack)
         Destination.CoupleScheduleSettings -> CoupleScheduleSettingsScreen(onNavigate, onBack)
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack, onNavigate)
-        is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
+        Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
         Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)

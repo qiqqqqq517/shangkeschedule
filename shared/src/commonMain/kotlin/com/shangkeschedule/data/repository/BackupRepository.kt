@@ -265,6 +265,7 @@ class BackupRepository(
                             )
                         )
                         val importModel = CourseTableImportModel(
+                            timeSlotSchemes = pack.tableData.timeSlotSchemes,
                             courses = pack.tableData.courses.map {
                                 ImportCourseJsonModel(
                                     id = it.id,
@@ -288,7 +289,7 @@ class BackupRepository(
                             timeSlots = pack.tableData.timeSlots,
                             config = pack.tableData.config
                         )
-                        courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+                        courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel, restoreMode = true)
                     }
                 }
 
@@ -334,7 +335,7 @@ class BackupRepository(
                             timeSlots = exportModel.timeSlots,
                             config = exportModel.config,
                             timeSlotSchemes = exportModel.timeSlotSchemes
-                        ))
+                        ), restoreMode = true)
                     }
                     val settings = appSettingsRepository.getAppSettingsOnce()
                     appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = backupCurrentTableId))

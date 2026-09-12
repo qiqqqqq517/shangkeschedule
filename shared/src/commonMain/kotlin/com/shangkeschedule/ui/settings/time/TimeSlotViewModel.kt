@@ -40,6 +40,12 @@ class TimeSlotViewModel(
         targetTableId.value = tableId
     }
 
+    /** 有效目标课表：显式 target > 当前选中表（读写路径必须统一走本解析，防跨表误写）。 */
+    private suspend fun resolveEffectiveTableId(): String {
+        return targetTableId.value
+            ?: appSettingsRepository.getAppSettingsOnce().currentCourseTableId
+    }
+
     // 拦截逻辑相关变量（备份点）
     private var initialTimeSlots: List<TimeSlot> = emptyList()
     private var initialClassDuration: Int = 45
@@ -138,7 +144,7 @@ class TimeSlotViewModel(
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             val allTables = courseTableRepository.getAllCourseTables().first()
             val allTableIds = allTables.map { it.id }
 
@@ -179,7 +185,7 @@ class TimeSlotViewModel(
      */
     fun onSwitchScheme(schemeId: String) {
         viewModelScope.launch {
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
                 ?: CourseTableConfig(courseTableId = currentTableId)
             if (currentConfig.currentSchemeId != schemeId) {
@@ -194,7 +200,7 @@ class TimeSlotViewModel(
      */
     fun onCreateScheme(name: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             val schemeId = name.trim()
             if (schemeId.isEmpty()) {
                 onError("empty")
@@ -229,7 +235,7 @@ class TimeSlotViewModel(
         viewModelScope.launch {
             if (schemeId == TimeSlot.DEFAULT_SCHEME_ID) return@launch
 
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             timeSlotRepository.deleteScheme(currentTableId, schemeId)
             onSuccess()
         }
@@ -240,7 +246,7 @@ class TimeSlotViewModel(
      */
     fun onToggleAutoSwitch(enabled: Boolean) {
         viewModelScope.launch {
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
                 ?: CourseTableConfig(courseTableId = currentTableId)
             if (currentConfig.autoSwitchScheme != enabled) {
@@ -254,7 +260,7 @@ class TimeSlotViewModel(
      */
     fun onSaveSchemeDates(schemeId: String, startMonthDay: String?, endMonthDay: String?) {
         viewModelScope.launch {
-            val currentTableId = appSettingsRepository.getAppSettings().first().currentCourseTableId
+            val currentTableId = resolveEffectiveTableId()
             timeSlotRepository.upsertSchemeMeta(
                 TimeSlotScheme(
                     courseTableId = currentTableId,
