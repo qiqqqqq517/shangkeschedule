@@ -9,6 +9,10 @@ import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -475,14 +479,25 @@ private fun SemesterArchiveList(
             item(key = "current-semester") {
                 SemesterSwipeRow(
                     selfCard = {
-                        CurrentSemesterCard(
-                            semester = currentSemester,
-                            currentWeek = uiState.currentWeek,
-                            weekPercent = uiState.currentWeekPercent,
-                            onViewTimetable = onViewTimetable,
-                            onSemesterSettings = onSemesterSettings,
-                            onRename = { onRenameSemester(currentSemester.table) }
-                        )
+                        // 「设为当前」时当前卡内容整体换血：纯溶解过渡（pager 留在本层之外，无嵌套风险）
+                        val cardMotion = LocalAppMotion.current
+                        AnimatedContent(
+                            targetState = currentSemester,
+                            transitionSpec = {
+                                fadeIn(tween(cardMotion.tokens.statusFadeMs)) togetherWith
+                                    fadeOut(tween(cardMotion.tokens.statusFadeMs))
+                            },
+                            label = "currentSemesterCard"
+                        ) { semester ->
+                            CurrentSemesterCard(
+                                semester = semester,
+                                currentWeek = uiState.currentWeek,
+                                weekPercent = uiState.currentWeekPercent,
+                                onViewTimetable = onViewTimetable,
+                                onSemesterSettings = onSemesterSettings,
+                                onRename = { onRenameSemester(semester.table) }
+                            )
+                        }
                     },
                     coupleCard = {
                         CoupleSwipePage(
@@ -790,9 +805,10 @@ private fun SemesterCard(
         else -> tokens.cardBg
     }
     // 当前学期高亮描边随选中状态淡入淡出（其余状态回落到常规描边色）
+    val cardMotion = LocalAppMotion.current
     val animatedBorderColor by animateColorAsState(
         if (highlightBorder) tokens.primary else (if (isClaude) claudeGroupBorder() else tokens.divider),
-        animationSpec = tween(200),
+        animationSpec = tween(cardMotion.tokens.colorDurationMs),
         label = "semesterCardBorder"
     )
     // 柔绘：薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边）+ 手绘柔绘纹理（学期卡是大卡面）；
@@ -949,7 +965,7 @@ private fun CurrentSemesterCard(
                                 .fillMaxWidth(
                                     animateFloatAsState(
                                         targetValue = fraction,
-                                        animationSpec = tween(400),
+                                        animationSpec = tween(LocalAppMotion.current.tokens.resizeDurationMs),
                                         label = "semesterProgress"
                                     ).value
                                 )
