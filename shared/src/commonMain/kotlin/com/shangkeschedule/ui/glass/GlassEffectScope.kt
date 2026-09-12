@@ -226,6 +226,10 @@ fun GlassEffectScope.glassColorControls(
         return
     }
     if (!isLiquidRenderEffectSupported()) return
+    if (!isColorFilterEffectReliable()) {
+        reportOnce("colorControls-unsafe") { "colorControls 跳过（本系统渲染路径上色彩滤镜链不可靠）" }
+        return
+    }
 
     val effect = liquidColorFilterEffect(colorControlsColorFilter(brightness, contrast, saturation))
         ?: return
@@ -239,6 +243,10 @@ fun GlassEffectScope.glassColorControls(
 fun GlassEffectScope.glassVibrancy() {
     if (!isLiquidRenderEffectSupported()) {
         reportOnce("vibrancy") { "vibrancy 跳过（平台不支持 RenderEffect）" }
+        return
+    }
+    if (!isColorFilterEffectReliable()) {
+        reportOnce("vibrancy-unsafe") { "vibrancy 跳过（本系统渲染路径上色彩滤镜链不可靠）" }
         return
     }
 

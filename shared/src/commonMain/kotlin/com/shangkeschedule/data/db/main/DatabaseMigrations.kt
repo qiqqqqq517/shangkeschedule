@@ -309,6 +309,16 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
     }
 }
 
+/**
+ * 数据库版本 11 迁移到 版本 12 的迁移代码。
+ * schedule_events 表新增 done 完成状态列（供今日页「待办」分类日程点击勾选完成）。
+ */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE schedule_events ADD COLUMN done INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 // 【集中管理所有迁移对象】
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -319,4 +329,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_8_9,
     MIGRATION_9_10,
     MIGRATION_10_11,
+    MIGRATION_11_12,
 )

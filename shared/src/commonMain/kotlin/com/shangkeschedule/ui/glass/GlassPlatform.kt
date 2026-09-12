@@ -31,6 +31,29 @@ internal expect fun isLiquidRefractionSupported(): Boolean
 internal expect fun isLiquidRenderEffectSupported(): Boolean
 
 /**
+ * 色彩滤镜环节（vibrancy / colorControls）在当前系统渲染路径上是否可靠。
+ *
+ * 背景：Android 15（API 35）起，targetSdk ≥ 35 的应用 HWUI 默认切到 Vulkan
+ * 硬件渲染；部分机型的 GPU 驱动（如 OPPO Find X8 的 Mali）对
+ * `createChainEffect(createColorFilterEffect, blur)` 这类**链式 RenderEffect**
+ * 存在原生崩溃，且发生在 RenderThread——Java 层 try/catch 拦不住。
+ * 这类平台上返回 false ⇒ [glassVibrancy] / [glassColorControls] 整环节跳过，
+ * 启动关键路径只剩「单一模糊」——与旧版 Haze 路径同类（已被全部机型验证安全）。
+ * 桌面 / iOS（Skiko GL）恒为 true。
+ */
+internal expect fun isColorFilterEffectReliable(): Boolean
+
+/**
+ * 玻璃渲染**自愈兜底**开关：进程上次因崩溃（原生 / Java）退出时置 true，
+ * 本进程内所有 [GlassSurface] 退化为纯色调面板（无背板采样、无效果链），
+ * 保证 App 在驱动级崩溃面前**一定打得开**。由 Android 侧
+ * [applyGlassNativeCrashFallback] 在 `Application.onCreate` 检测写入
+ * （带版本锁存：升级新版本后自动重试完整玻璃）。桌面 / iOS 恒为 false。
+ */
+var isGlassFallbackActive: Boolean = false
+    internal set
+
+/**
  * 创建一块运行时着色器（AGSL / SkSL 源码）。
  *
  * 传入的着色器统一以 `uniform shader content;` 作为输入纹理、

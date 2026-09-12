@@ -85,6 +85,7 @@ fun main() {
                             gridStyle = AppThemePreset.IOS.gridStyle,
                             isDark = dark,
                             onToggleTodo = { _, _ -> },
+                            onToggleEventDone = { _, _ -> },
                             onEditTodo = { },
                         )
                     }

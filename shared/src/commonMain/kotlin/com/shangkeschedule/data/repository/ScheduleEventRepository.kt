@@ -101,6 +101,15 @@ class ScheduleEventRepository(
     }
 
     /**
+     * 设置日程的完成状态（仅「待办」分类的日程在今日页使用）。
+     */
+    suspend fun setDone(eventId: String, done: Boolean) {
+        database.withWriteTransaction {
+            scheduleEventDao.updateDone(eventId, done)
+        }
+    }
+
+    /**
      * 删除指定日程。
      */
     suspend fun deleteEvent(eventId: String) {

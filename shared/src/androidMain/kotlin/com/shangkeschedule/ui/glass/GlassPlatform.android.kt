@@ -1,8 +1,12 @@
 package com.shangkeschedule.ui.glass
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
+import android.content.Context
 import android.graphics.BlurMaskFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
+import java.io.File
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
@@ -23,6 +27,67 @@ internal actual fun isLiquidRefractionSupported(): Boolean =
 
 internal actual fun isLiquidRenderEffectSupported(): Boolean =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+internal actual fun isColorFilterEffectReliable(): Boolean =
+    // Android 15（API 35）起 HWUI 对 targetSdk ≥ 35 的应用默认走 Vulkan 渲染，
+    // 部分机型驱动对链式色彩滤镜 RenderEffect 原生崩溃 ⇒ 整环节跳过（见 commonMain KDoc）。
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+
+/** 自愈兜底的锁存标记文件（filesDir 下，内容 = 降级时的 versionCode）。 */
+private const val GLASS_FALLBACK_MARKER = "glass_fallback.flag"
+
+/** 只把「最近 15 分钟内的崩溃退出」视为本次玻璃渲染所致。 */
+private const val GLASS_FALLBACK_RECENT_MS = 15 * 60 * 1000L
+
+/**
+ * 玻璃渲染自愈兜底（Android 实现），在 `Application.onCreate` 最先调用：
+ *
+ * 1. **版本锁存**：`filesDir/glass_fallback.flag` 存在且内容 == 当前 versionCode
+ *    ⇒ 本进程直接进入降级（[isGlassFallbackActive] = true），保证一定打得开；
+ *    版本不一致（已升级 / 数据残留）⇒ 删除标记，给新版本重试完整玻璃的机会。
+ * 2. **崩溃检测**：`ApplicationExitInfo`（API 30+）最近一条退出记录若为
+ *    CRASH / CRASH_NATIVE 且发生在 15 分钟内 ⇒ 写入标记 + 本进程降级。
+ *
+ * 设计取舍：锁存按版本号而非按时间清除——对确定性的驱动级崩溃（每帧必崩），
+ * "下次打开重试"只会造成「崩一次 / 能开一次」的循环；锁存到下次升级更符合
+ * 本项目的热修发布节奏。若崩溃与玻璃无关（一次性 OOM 等），代价只是本版本
+ * 玻璃降级为色调面板，功能不受影响。
+ */
+public fun applyGlassNativeCrashFallback(context: Context) {
+    val marker = File(context.filesDir, GLASS_FALLBACK_MARKER)
+    val versionCode = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
+    }.getOrDefault(0L)
+
+    if (marker.exists()) {
+        val markerVersion = marker.readText().trim().toLongOrNull()
+        if (markerVersion == versionCode) {
+            isGlassFallbackActive = true
+            println("GLASS: 检测到降级锁存（versionCode=$versionCode），本进程玻璃退化为色调面板")
+            return
+        }
+        marker.delete()
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+        hasRecentGlassKillingCrash(context, System.currentTimeMillis())
+    ) {
+        runCatching { marker.writeText(versionCode.toString()) }
+        isGlassFallbackActive = true
+        println("GLASS: 上次进程崩溃退出，本进程玻璃退化为色调面板（已锁存到 versionCode=$versionCode）")
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.R)
+private fun hasRecentGlassKillingCrash(context: Context, nowMs: Long): Boolean =
+    runCatching {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        am.getHistoricalProcessExitReasons(context.packageName, 0, 3).any { info ->
+            (info.reason == ApplicationExitInfo.REASON_CRASH ||
+                info.reason == ApplicationExitInfo.REASON_CRASH_NATIVE) &&
+                nowMs - info.timestamp < GLASS_FALLBACK_RECENT_MS
+        }
+    }.getOrDefault(false)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createLiquidShader(agsl: String): LiquidShader? =
