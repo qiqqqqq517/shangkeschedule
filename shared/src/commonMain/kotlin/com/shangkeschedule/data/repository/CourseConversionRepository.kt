@@ -8,11 +8,13 @@ import com.shangkeschedule.data.db.main.CourseWeek
 import com.shangkeschedule.data.db.main.CourseWeekDao
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.db.main.TimeSlotScheme
 import com.shangkeschedule.data.db.main.TimeSlotDao
 import com.shangkeschedule.data.model.CourseImportExport.CourseConfigJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableExportModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
 import com.shangkeschedule.data.model.CourseImportExport.ExportCourseJsonModel
+import com.shangkeschedule.data.model.CourseImportExport.SchemeMetaJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.ImportCourseJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.TimeSlotJsonModel
 import com.shangkeschedule.tool.CalendarAccountManager
@@ -280,7 +282,8 @@ class CourseConversionRepository(
      */
     suspend fun importCourseTableFromJson(
         tableId: String,
-        courseTableJsonModel: CourseTableImportModel
+        courseTableJsonModel: CourseTableImportModel,
+        restoreMode: Boolean = false
     ) {
         courseTableJsonModel.courses.forEach { validateCustomCourseTimeOrThrow(it) }
         courseTableJsonModel.timeSlots?.let { validateTimeSlotsOrThrow(it) }
@@ -304,7 +307,8 @@ class CourseConversionRepository(
                 startTime = jsonTimeSlot.startTime,
                 endTime = jsonTimeSlot.endTime,
                 courseTableId = tableId,
-                alias = jsonTimeSlot.alias?.take(5)
+                alias = jsonTimeSlot.alias?.take(5),
+                schemeId = jsonTimeSlot.schemeId
             )
         }
 
@@ -313,12 +317,16 @@ class CourseConversionRepository(
             val currentConfig = appSettingsRepository.getCourseConfigOnce(tableId)
             CourseTableConfig(
                 courseTableId = tableId,
-                showWeekends = currentConfig?.showWeekends ?: false,
+                // 恢复模式（整表备份恢复）下扩展字段随备份走；普通 JSON 文件导入保留本地值，
+                // 避免旧 JSON 缺省值（"default"/false）覆盖本地夏冬令时配置
+                showWeekends = if (restoreMode) it.showWeekends else (currentConfig?.showWeekends ?: false),
                 semesterStartDate = it.semesterStartDate,
                 semesterTotalWeeks = it.semesterTotalWeeks,
                 defaultClassDuration = it.defaultClassDuration,
                 defaultBreakDuration = it.defaultBreakDuration,
-                firstDayOfWeek = it.firstDayOfWeek
+                firstDayOfWeek = it.firstDayOfWeek,
+                currentSchemeId = if (restoreMode) it.currentSchemeId else (currentConfig?.currentSchemeId ?: "default"),
+                autoSwitchScheme = if (restoreMode) it.autoSwitchScheme else (currentConfig?.autoSwitchScheme ?: false)
             )
         }
 
@@ -331,6 +339,21 @@ class CourseConversionRepository(
             if (!jsonTimeSlots.isNullOrEmpty()) {
                 timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
                 timeSlotDao.insertAll(timeSlotEntities.orEmpty())
+            }
+
+            // 作息方案元信息（仅当数据源携带时重建，旧 JSON 文件缺省空列表 → 跳过）
+            if (courseTableJsonModel.timeSlotSchemes.isNotEmpty()) {
+                timeSlotRepository.deleteSchemeMetasByCourseTableId(tableId)
+                courseTableJsonModel.timeSlotSchemes.forEach { meta ->
+                    timeSlotRepository.upsertSchemeMeta(
+                        TimeSlotScheme(
+                            courseTableId = tableId,
+                            schemeId = meta.schemeId,
+                            startMonthDay = meta.startMonthDay,
+                            endMonthDay = meta.endMonthDay
+                        )
+                    )
+                }
             }
 
             // 统一执行课程数据插入
@@ -431,13 +454,25 @@ class CourseConversionRepository(
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
         val configToExport = courseConfig ?: CourseTableConfig(courseTableId = tableId)
 
-        val timeSlots = timeSlotRepository.getActiveTimeSlotsOnce(tableId, configToExport)
-        val exportTimeSlots = timeSlots.map { timeSlot ->
-            TimeSlotJsonModel(
-                number = timeSlot.number,
-                startTime = timeSlot.startTime,
-                endTime = timeSlot.endTime,
-                alias = timeSlot.alias?.take(5)
+        // v2：导出**全部方案**的作息（情侣课表独立作息/夏冬令时多方案在恢复后不丢）
+        val schemeIds = timeSlotRepository.getSchemeIdsByCourseTableId(tableId).first()
+        val exportTimeSlots = schemeIds.flatMap { schemeId ->
+            timeSlotRepository.getTimeSlotsByCourseTableId(tableId, schemeId).first().map { timeSlot ->
+                TimeSlotJsonModel(
+                    number = timeSlot.number,
+                    startTime = timeSlot.startTime,
+                    endTime = timeSlot.endTime,
+                    alias = timeSlot.alias?.take(5),
+                    schemeId = timeSlot.schemeId
+                )
+            }
+        }
+
+        val exportSchemeMetas = timeSlotRepository.getSchemeMetasOnce(tableId).map { meta ->
+            SchemeMetaJsonModel(
+                schemeId = meta.schemeId,
+                startMonthDay = meta.startMonthDay,
+                endMonthDay = meta.endMonthDay
             )
         }
 
@@ -446,13 +481,17 @@ class CourseConversionRepository(
             semesterTotalWeeks = configToExport.semesterTotalWeeks,
             defaultClassDuration = configToExport.defaultClassDuration,
             defaultBreakDuration = configToExport.defaultBreakDuration,
-            firstDayOfWeek = configToExport.firstDayOfWeek
+            firstDayOfWeek = configToExport.firstDayOfWeek,
+            currentSchemeId = configToExport.currentSchemeId,
+            autoSwitchScheme = configToExport.autoSwitchScheme,
+            showWeekends = configToExport.showWeekends
         )
 
         return CourseTableExportModel(
             courses = exportCourses,
             timeSlots = exportTimeSlots,
-            config = exportConfig
+            config = exportConfig,
+            timeSlotSchemes = exportSchemeMetas
         )
     }
 

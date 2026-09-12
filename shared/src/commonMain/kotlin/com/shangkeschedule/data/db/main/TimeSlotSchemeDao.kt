@@ -35,4 +35,9 @@ interface TimeSlotSchemeDao {
      */
     @Query("DELETE FROM time_slot_schemes WHERE courseTableId = :courseTableId AND schemeId = :schemeId")
     suspend fun deleteScheme(courseTableId: String, schemeId: String)
+
+    /** 删除指定课表下全部作息方案的元信息（整表备份恢复前清场用）。 */
+    @Query("DELETE FROM time_slot_schemes WHERE courseTableId = :courseTableId")
+    suspend fun deleteByCourseTableId(courseTableId: String)
+
 }

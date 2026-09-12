@@ -332,7 +332,8 @@ class BackupRepository(
                                 )
                             },
                             timeSlots = exportModel.timeSlots,
-                            config = exportModel.config
+                            config = exportModel.config,
+                            timeSlotSchemes = exportModel.timeSlotSchemes
                         ))
                     }
                     val settings = appSettingsRepository.getAppSettingsOnce()

@@ -179,6 +179,11 @@ class TimeSlotRepository(
     /**
      * 插入或更新某套作息方案的元信息（生效日期范围）。
      */
+    /** 删除某课表的全部作息方案元信息（整表备份恢复前清场用）。 */
+    suspend fun deleteSchemeMetasByCourseTableId(courseTableId: String) {
+        timeSlotSchemeDao.deleteByCourseTableId(courseTableId)
+    }
+
     suspend fun upsertSchemeMeta(scheme: TimeSlotScheme) {
         timeSlotSchemeDao.insertOrUpdate(scheme)
     }
