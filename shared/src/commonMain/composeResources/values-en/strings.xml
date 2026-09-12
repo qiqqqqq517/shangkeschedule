@@ -1099,7 +1099,7 @@
     <string name="couple_manage_rename">Rename</string>
     <string name="couple_manage_edit_timetable">Class times</string>
     <string name="couple_overlay_switch">Show both schedules</string>
-    <string name="couple_overlay_desc">Overlay both partners' courses on one grid, each arranged by their own class times</string>
+    <string name="couple_overlay_desc">Overlay both partners' courses on one grid, each arranged by their own class times. Affects the schedule and today pages only; widgets and reminders always follow the currently shown schedule</string>
     <string name="couple_overlay_disabled_solo">Couple schedule is shown solo; this switch is disabled</string>
     <string name="couple_solo_banner">Showing the couple schedule solo</string>
     <string name="couple_solo_back">Back to my schedule</string>
@@ -1127,4 +1127,5 @@
     <string name="toast_set_current_semester">Set as current semester: %1$s</string>
     <string name="couple_need_create_first">Create the couple schedule first</string>
     <string name="toast_couple_create_failed">Creation failed, please retry</string>
+    <string name="timeslot_editing_vs_active_hint">Auto-switch on: "%1$s" is active today, you are editing "%2$s" — saving will not change today's schedule</string>
 </resources>

@@ -490,7 +490,8 @@ private fun SemesterArchiveList(
                             selfTableId = currentSemester.table.id,
                             onViewCouple = onViewCouple,
                             onDeleteCouple = onDeleteCouple,
-                            onAddCouple = onAddCouple
+                            onAddCouple = onAddCouple,
+                            onRenameCouple = onRenameSemester
                         )
                     }
                 )
@@ -1157,7 +1158,8 @@ private fun HistoryYearGroup(
                         selfTableId = semesterInfo.table.id,
                         onViewCouple = onViewCouple,
                         onDeleteCouple = onDeleteCouple,
-                        onAddCouple = onAddCouple
+                        onAddCouple = onAddCouple,
+                        onRenameCouple = onRename
                     )
                 }
             )
@@ -1342,7 +1344,8 @@ private fun CoupleSwipePage(
     selfTableId: String,
     onViewCouple: (CourseTable) -> Unit,
     onDeleteCouple: (CourseTable) -> Unit,
-    onAddCouple: (String) -> Unit
+    onAddCouple: (String) -> Unit,
+    onRenameCouple: (CourseTable) -> Unit
 ) {
     val coupleInfo = couple
     val motion = LocalAppMotion.current
@@ -1358,7 +1361,8 @@ private fun CoupleSwipePage(
             CoupleSemesterCard(
                 couple = target,
                 onView = { onViewCouple(target.table) },
-                onDelete = { onDeleteCouple(target.table) }
+                onDelete = { onDeleteCouple(target.table) },
+                onRename = { onRenameCouple(target.table) }
             )
         }
     }
@@ -1396,11 +1400,12 @@ private fun CoupleBadge() {
 private fun CoupleSemesterCard(
     couple: SemesterInfo,
     onView: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRename: () -> Unit
 ) {
     val colors = appColors()
 
-    SemesterCard(modifier = Modifier.fillMaxWidth(), onClick = onView) {
+    SemesterCard(modifier = Modifier.fillMaxWidth(), onClick = onView, onLongClick = onRename) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

@@ -1103,7 +1103,7 @@
     <string name="couple_manage_rename">重命名</string>
     <string name="couple_manage_edit_timetable">作息设置</string>
     <string name="couple_overlay_switch">双人同显</string>
-    <string name="couple_overlay_desc">开启后同屏叠加显示双方课程，各自按自己的作息排列</string>
+    <string name="couple_overlay_desc">开启后同屏叠加显示双方课程，各自按自己的作息排列。仅作用于课表页与今日页；桌面组件与上课提醒始终跟随当前显示的课表</string>
     <string name="couple_overlay_disabled_solo">当前正在单独显示情侣课表，此开关自动失效</string>
     <string name="couple_solo_banner">正在单独显示情侣课表</string>
     <string name="couple_solo_back">返回本人课表</string>
@@ -1131,4 +1131,5 @@
     <string name="toast_set_current_semester">已设为当前学期: %1$s</string>
     <string name="couple_need_create_first">请先创建情侣课表</string>
     <string name="toast_couple_create_failed">创建失败，请重试</string>
+    <string name="timeslot_editing_vs_active_hint">自动切换开启：今日实际生效「%1$s」，你正在编辑「%2$s」，保存后不会立即改变今日课表</string>
 </resources>
