@@ -123,6 +123,22 @@ private data class ScheduleSourceSnapshot(
 )
 
 /**
+ * 课程装配源键：currentCoursesFlow 的去重载体——只含课程链真正消费的字段，
+ * DataStore 无关写入（主题/玻璃/动效等）被 distinctUntilChanged 拦截，不重启课程链。
+ */
+private data class CourseSourceKey(
+    val tableId: String,
+    val coupleEnabled: Boolean,
+    val showNonCurrentWeek: Boolean,
+    val selfColor: Int,
+    val coupleColor: Int,
+    val config: CourseTableConfig?,
+    val style: ScheduleGridStyle,
+    val mondayDate: LocalDate,
+    val timeSlots: List<TimeSlot>
+)
+
+/**
  * 情侣课表叠加上下文：叠加是否生效 + 配对情侣课表 ID 与其生效作息。
  */
 private data class CoupleOverlayContext(

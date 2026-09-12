@@ -133,43 +133,45 @@ class CourseTableRepository(
      * @return 新情侣课表 ID；已存在配对情侣表时返回其 ID（幂等）
      */
     suspend fun createCoupleTable(selfTableId: String, name: String? = null): String {
-        getCoupleTableForOnce(selfTableId)?.let { return it.id }
-
-        val selfTable = courseTableDao.getCourseTableById(selfTableId)
-            ?: throw IllegalArgumentException("本人课表不存在: $selfTableId")
-        val coupleId = Uuid.random().toString()
-        val coupleTable = CourseTable(
-            id = coupleId,
-            name = name ?: "${selfTable.name} · 情侣",
-            createdAt = Clock.System.now().toEpochMilliseconds(),
-            isCouple = true,
-            pairedCourseTableId = selfTableId
-        )
-
-        // 复制本人课表的学期配置；无配置时用默认值
-        val selfConfig = appSettingsRepository.getCourseTableConfigFlow(selfTableId).first()
-        val coupleConfig = (selfConfig ?: CourseTableConfig(courseTableId = selfTableId))
-            .copy(courseTableId = coupleId)
-
-        // 复制本人课表**全部方案**的作息（config.currentSchemeId 可能指向非 default 方案）；
-        // 本人表任何方案都没有 slots 时回落到出厂默认模板
-        val schemeIds = timeSlotRepository.getSchemeIdsByCourseTableId(selfTableId).first()
-        val coupleSlots = schemeIds.flatMap { schemeId ->
-            timeSlotRepository.getTimeSlotsByCourseTableId(selfTableId, schemeId).first()
-                .map { it.copy(courseTableId = coupleId) }
-        }.ifEmpty {
-            DEFAULT_TIME_SLOTS.map { it.copy(courseTableId = coupleId) }
-        }
+        // 确定性 ID（与 DB v12→v13 迁移一致）：配合事务内 check-then-insert，
+        // 并发双击/多入口同时创建只会得到同一张表（旧实现各自生成 Uuid 会产生不可见的孤儿情侣表）
+        val coupleId = selfTableId + "_couple"
 
         database.withWriteTransaction {
-            courseTableDao.insert(coupleTable)
-            appSettingsRepository.insertOrUpdateCourseConfig(coupleConfig)
-            timeSlotRepository.insertAll(coupleSlots)
-            // 复制作息方案元信息（生效日期范围）
-            timeSlotRepository.getSchemeMetasOnce(selfTableId).forEach { meta ->
-                timeSlotRepository.upsertSchemeMeta(
-                    meta.copy(courseTableId = coupleId)
+            val existing = courseTableDao.getCourseTableById(coupleId)
+            if (existing == null) {
+                val selfTable = courseTableDao.getCourseTableById(selfTableId)
+                    ?: throw IllegalArgumentException("本人课表不存在: $selfTableId")
+                courseTableDao.insert(
+                    CourseTable(
+                        id = coupleId,
+                        name = name ?: "${selfTable.name} · 情侣",
+                        createdAt = Clock.System.now().toEpochMilliseconds(),
+                        isCouple = true,
+                        pairedCourseTableId = selfTableId
+                    )
                 )
+
+                // 复制本人课表的学期配置；无配置时用默认值（快照读取全部收进事务，防撕裂）
+                val selfConfig = appSettingsRepository.getCourseTableConfigFlow(selfTableId).first()
+                val coupleConfig = (selfConfig ?: CourseTableConfig(courseTableId = selfTableId))
+                    .copy(courseTableId = coupleId)
+                appSettingsRepository.insertOrUpdateCourseConfig(coupleConfig)
+
+                // 复制本人课表**全部方案**的作息；本人表任何方案都没有 slots 时回落到出厂默认模板
+                val schemeIds = timeSlotRepository.getSchemeIdsByCourseTableId(selfTableId).first()
+                val coupleSlots = schemeIds.flatMap { schemeId ->
+                    timeSlotRepository.getTimeSlotsByCourseTableId(selfTableId, schemeId).first()
+                        .map { it.copy(courseTableId = coupleId) }
+                }.ifEmpty {
+                    DEFAULT_TIME_SLOTS.map { it.copy(courseTableId = coupleId) }
+                }
+                timeSlotRepository.insertAll(coupleSlots)
+
+                // 复制作息方案元信息（生效日期范围）
+                timeSlotRepository.getSchemeMetasOnce(selfTableId).forEach { meta ->
+                    timeSlotRepository.upsertSchemeMeta(meta.copy(courseTableId = coupleId))
+                }
             }
         }
         return coupleId

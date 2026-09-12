@@ -67,7 +67,11 @@ object CourseImportExport {
         val semesterTotalWeeks: Int = 20,
         val defaultClassDuration: Int = 45,
         val defaultBreakDuration: Int = 10,
-        val firstDayOfWeek: Int = 1
+        val firstDayOfWeek: Int = 1,
+        // v2 备份：作息方案与显示偏好随备份走（缺省兼容 v1 备份/旧 JSON 文件）
+        val currentSchemeId: String = "default",
+        val autoSwitchScheme: Boolean = false,
+        val showWeekends: Boolean = false
     )
 
     // 导入时使用的 JSON 模型
@@ -75,7 +79,9 @@ object CourseImportExport {
     data class CourseTableImportModel(
         val courses: List<ImportCourseJsonModel>,
         val timeSlots: List<TimeSlotJsonModel>? = emptyList(),
-        val config: CourseConfigJsonModel? = null
+        val config: CourseConfigJsonModel? = null,
+        // v2 备份：作息方案元信息（旧 JSON 文件缺省为空列表，导入跳过）
+        val timeSlotSchemes: List<SchemeMetaJsonModel> = emptyList()
     )
 
     @Serializable
@@ -103,7 +109,9 @@ object CourseImportExport {
     data class CourseTableExportModel(
         val courses: List<ExportCourseJsonModel>,
         val timeSlots: List<TimeSlotJsonModel>,
-        val config: CourseConfigJsonModel
+        val config: CourseConfigJsonModel,
+        // v2 备份：全部作息方案元信息（旧 JSON 文件缺省为空列表，导入跳过）
+        val timeSlotSchemes: List<SchemeMetaJsonModel> = emptyList()
     )
 
     @Serializable
@@ -127,12 +135,22 @@ object CourseImportExport {
     )
 
     // 导入和导出都通用的时间段模型
+    // v2 备份起携带 schemeId（默认 "default"，兼容 v1 备份/旧 JSON 文件）
     @Serializable
     data class TimeSlotJsonModel(
         val number: Int,
         val startTime: String,
         val endTime: String,
-        val alias: String? = null
+        val alias: String? = null,
+        val schemeId: String = "default"
+    )
+
+    /** 作息方案元信息（生效日期范围，夏/冬令时自动切换）；v2 备份新增。 */
+    @Serializable
+    data class SchemeMetaJsonModel(
+        val schemeId: String,
+        val startMonthDay: String? = null,
+        val endMonthDay: String? = null
     )
 
     /**
