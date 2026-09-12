@@ -288,7 +288,8 @@ fun TodayScheduleScreen(
             onTabSelected = { dest -> onNavigate(dest) }
         ) { outerPadding ->
         // v3.49.1：复用脚手架录制的背景快照，不再自建第二份（避免全页重复录制 / 玻璃取样玻璃）。
-        val pageGlassBackdrop = LocalNavigationGlassBackdrop.current
+        // v3.51.2 诊断实验：置 null 断开「页内玻璃件采样包含自身的页面 backdrop」这条边。
+        val pageGlassBackdrop = null // v3.51.2 诊断实验：断开页内玻璃件采样页面 backdrop 的边
         Scaffold(
             // 应用外层底部导航预留的内边距，避免 FAB 被底栏遮挡
             modifier = Modifier,
@@ -320,8 +321,9 @@ fun TodayScheduleScreen(
                         },
                         icon = vectorResource(Res.drawable.add_24px),
                         contentDescription = stringResource(Res.string.a11y_todo_add),
-                        // 液态玻璃 FAB：复用页面背景快照（内容已 glassBackdropSource）
+                        // 液态玻璃 FAB：v3.51.2 改走 Haze 玻璃（自研玻璃采样页面 backdrop 会成环）
                         glassBackdrop = pageGlassBackdrop,
+                        hazeState = hazeState,
                         modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
                     )
                 }

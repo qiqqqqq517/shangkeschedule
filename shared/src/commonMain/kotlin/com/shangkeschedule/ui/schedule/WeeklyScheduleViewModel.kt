@@ -15,9 +15,11 @@ import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -258,6 +260,12 @@ class WeeklyScheduleViewModel (
             flowOf(emptyMap())
         }
     }.flatMapLatest { it }
+        // v3.51.2 修复：切周时「上/本/下三周」课程缓存重建（数据库查询 + mergeCourses 合并
+        // 算法）是 CPU/IO 密集工作，此前在主线程同步执行，课表页横向切周会卡顿甚至 ANR
+        //（真机 Skipped 30-59 帧 / Slow UI thread 113 / 主线程 50-150ms 帧）。
+        // flowOn(Dispatchers.Default) 把上游查询/合并移到默认线程池；下游 collect 仍在
+        // Main（Compose 状态更新线程），只保留轻量状态拼装，UI 线程不再被阻塞。
+        .flowOn(Dispatchers.Default)
 
     init {
         // 1. 扁平化组合：先合并 5 路基础流 + 当前日期流（跨天自动重算周次/倒计时），
@@ -329,7 +337,10 @@ class WeeklyScheduleViewModel (
                     floatingCourse = previousState.floatingCourse,
                     floatingSourceWeek = previousState.floatingSourceWeek
                 )
-            }.collect { _uiState.value = it }
+                // 同 v3.51.2：块内含 getWeekIndexAtDate（数据库查询）×2 与 LocalDate.parse，
+                // flowOn(Default) 让合成在默认线程池执行，.collect 在下游 Main 仅做状态引用赋值。
+            }.flowOn(Dispatchers.Default)
+                .collect { _uiState.value = it }
         }
 
         // 2. 颜色去重 + 越界修复：以「整张课表」为基准，而不是当前可视周的课程缓存。
