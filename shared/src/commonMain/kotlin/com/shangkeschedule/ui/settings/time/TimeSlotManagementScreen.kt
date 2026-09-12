@@ -423,6 +423,28 @@ fun TimeSlotManagementScreen(
                             val targetIdx = updatedList.indexOfFirst { it.number == number }
                             if (targetIdx != -1) {
                                 updatedList[targetIdx] = newOrUpdatedSlot
+
+                                // 结束时间有变化时，后方节次按「上一节结束 + 下课休息 → 开始，
+                                // 开始 + 默认上课时长 → 结束」整体顺延（不改变别名），至 23:59 为止
+                                val originalEnd = editingTimeSlot?.endTime
+                                if (originalEnd != endTime) {
+                                    val breakMin = localDefaultBreakDuration.coerceAtLeast(0)
+                                    val classMin = localDefaultClassDuration.coerceAtLeast(1)
+                                    val dayEnd = LocalTime(23, 59)
+                                    var lastEnd = parseLocalTimeSafely(endTime)
+                                    for (i in targetIdx + 1 until updatedList.size) {
+                                        val newStart = plusMinutesClamped(lastEnd, breakMin)
+                                        val newEnd = plusMinutesClamped(newStart, classMin)
+                                        updatedList[i] = updatedList[i].copy(
+                                            startTime = formatTime(newStart),
+                                            endTime = formatTime(newEnd)
+                                        )
+                                        lastEnd = newEnd
+                                        // 不提前 break：超出 23:59 的节次统一钳到 23:59，
+                                        // 保持尾部时间序单调（重排按 startTime 稳定排序不倒挂）
+                                    }
+                                }
+
                                 ToastManager.show(toastSlotModifiedUnsaved)
                             }
                         } else {
@@ -1015,8 +1037,11 @@ fun TimeSlotEditContent(
 
     val maxAllowedTime by remember(existingTimeSlots, initialNumber, isEditing) {
         derivedStateOf {
-            val nextSlot = if (isEditing) existingTimeSlots.find { it.number == initialNumber + 1 } else null
-            nextSlot?.startTime?.let { parseLocalTimeSafely(it) } ?: LocalTime(23, 59)
+            // 编辑模式不再以上一节原开始时间为上限：结束时间改晚时下一节会被整体顺延，
+            // 旧的「不能侵占下一个课时」校验会把顺延幅度钳死在课间空隙内
+            if (isEditing) LocalTime(23, 59)
+            else existingTimeSlots.find { it.number == initialNumber + 1 }?.startTime?.let { parseLocalTimeSafely(it) }
+                ?: LocalTime(23, 59)
         }
     }
 
@@ -1254,6 +1279,13 @@ private fun formatTime(time: LocalTime): String {
     return "${formatTwoDigits(time.hour)}:${formatTwoDigits(time.minute)}"
 }
 
+/** LocalTime 加分钟并钳制到 23:59（kotlinx-datetime 的 LocalTime 无分钟算术）。 */
+private fun plusMinutesClamped(time: LocalTime, minutes: Int): LocalTime {
+    val maxSeconds = 23 * 3600 + 59 * 60
+    val total = (time.toSecondOfDay() + minutes * 60).coerceAtMost(maxSeconds)
+    return LocalTime(total / 3600, (total % 3600) / 60)
+}
+
 private fun parseTimeString(timeString: String): Pair<Int, Int> {
     return try {
         val time = LocalTime.parse(timeString)
@@ -1269,6 +1301,7 @@ private fun parseLocalTimeSafely(timeStr: String, fallback: LocalTime = LocalTim
     } catch (_: Exception) {
         fallback
     }
+
 }
 
 private fun LocalTime.addMinutes(minutes: Int): LocalTime {

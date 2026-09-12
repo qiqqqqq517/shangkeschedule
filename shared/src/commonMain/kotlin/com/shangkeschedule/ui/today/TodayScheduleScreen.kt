@@ -1468,6 +1468,8 @@ private fun resolveNextCardSlot(
 
     val nextEvent = state.upcomingEvents
         .asSequence()
+        // 已完成的日程（含待办）不再进入「下一节课」卡片
+        .filter { !it.done }
         .filter { !it.isAllDay }
         .filter { ev ->
             val s = parseTimeOrNull(ev.startTime) ?: return@filter false

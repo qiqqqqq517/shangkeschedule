@@ -1123,4 +1123,7 @@
     <string name="couple_manage_created_desc">独立课表：可单独编辑、导入课程，并单独设置作息</string>
     <string name="couple_count_format">情侣课表 · %1$d 门课程</string>
     <string name="toast_couple_delete_failed">删除失败：至少需要保留一张课表</string>
+    <string name="semester_status_upcoming">未开始</string>
+    <string name="semester_status_ongoing">进行中</string>
+    <string name="toast_set_current_semester">已设为当前学期: %1$s</string>
 </resources>

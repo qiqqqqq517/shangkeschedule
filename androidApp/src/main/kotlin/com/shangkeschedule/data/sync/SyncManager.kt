@@ -32,6 +32,11 @@ class SyncManager(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
+        // 0. App 启动即锚定小组件周期任务与每日零点自愈（此前只挂在「添加小组件」与
+        //    「开机广播」上，从未添加过小组件或 ROM 清掉调度时，组件/提醒只能靠打开 App 续命）
+        runCatching { com.shangkeschedule.widget.WorkManagerHelper.schedulePeriodicWork(appContext) }
+            .onFailure { Log.e("SyncManager", "锚定小组件周期任务失败", it) }
+
         // 1. 监听 KMP 共享层的同步完成信号（包含了课表变更与通知/自动化设置变更）
         widgetDataSynchronizer.syncCompletedFlow
             .onEach {

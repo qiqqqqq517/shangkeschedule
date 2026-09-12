@@ -79,13 +79,19 @@ import com.shangkeschedule.ui.theme.claudeReadingSerif
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.couple_badge
+import shangkeschedule.shared.generated.resources.semester_status_ongoing
+import shangkeschedule.shared.generated.resources.semester_status_upcoming
+import shangkeschedule.shared.generated.resources.toast_set_current_semester
 import shangkeschedule.shared.generated.resources.manage_add_couple
 import shangkeschedule.shared.generated.resources.manage_add_couple_desc
 import shangkeschedule.shared.generated.resources.favorite_24px
@@ -248,6 +254,11 @@ fun ManageCourseTablesScreen(
                         showEditTableDialog = true
                     },
                     onSwitchSemester = { table ->
+                        // 点卡片 / 「设为当前」= 指定当前学期（停留在本页，列表实时重排）
+                        viewModel.switchCourseTable(table.id)
+                    },
+                    onViewSemester = { table ->
+                        // 「查看」= 指定当前学期并前往课表页
                         viewModel.switchCourseTable(table.id)
                         onNavigate(Destination.CourseSchedule)
                     },
@@ -409,6 +420,7 @@ private fun SemesterArchiveList(
     onSemesterSettings: () -> Unit,
     onRenameSemester: (CourseTable) -> Unit,
     onSwitchSemester: (CourseTable) -> Unit,
+    onViewSemester: (CourseTable) -> Unit,
     onDeleteSemester: (CourseTable) -> Unit,
     onViewCouple: (CourseTable) -> Unit,
     onDeleteCouple: (CourseTable) -> Unit,
@@ -484,6 +496,7 @@ private fun SemesterArchiveList(
                         HistoryYearGroup(
                             group = group,
                             onSwitch = onSwitchSemester,
+                            onView = onViewSemester,
                             onRename = onRenameSemester,
                             onDelete = onDeleteSemester,
                             onViewCouple = onViewCouple,
@@ -660,6 +673,63 @@ private fun CompletedBadge() {
         )
         Text(
             text = stringResource(Res.string.status_semester_completed),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.textPrimary
+        )
+    }
+}
+
+/**
+ * 历史学期状态徽标：按学期日期区间与今天自动判定——
+ * 未开始（今天在开学日期前）/ 进行中（今天落在学期内）/ 已完成（学期已结束）。
+ * 未设置开学日期时不显示徽标。修掉旧版「非当前学期一律标已完成」的误标。
+ */
+@Composable
+private fun SemesterStatusBadge(semester: SemesterInfo) {
+    val start = semester.startDate ?: return
+    val end = semester.endDate ?: return
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    when {
+        today < start -> HistoryStatusBadge(
+            text = stringResource(Res.string.semester_status_upcoming),
+            icon = vectorResource(Res.drawable.schedule_24px),
+            tint = appColors().info
+        )
+        today > end -> CompletedBadge()
+        else -> HistoryStatusBadge(
+            text = stringResource(Res.string.semester_status_ongoing),
+            icon = vectorResource(Res.drawable.schedule_24px),
+            tint = appColors().success
+        )
+    }
+}
+
+/** 非完成态历史学期徽标（未开始 / 进行中）：白底描边胶囊 + 语义色图标。 */
+@Composable
+private fun HistoryStatusBadge(
+    text: String,
+    icon: ImageVector,
+    tint: Color
+) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .height(26.dp)
+            .clip(appShapes().capsule)
+            .background(colors.cardBgElevated)
+            .border(1.dp, colors.divider, appShapes().capsule)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(12.dp)
+        )
+        Text(
+            text = text,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = colors.textPrimary
         )
@@ -994,6 +1064,7 @@ private fun HeroSecondaryButton(
 private fun HistoryYearGroup(
     group: YearGroup,
     onSwitch: (CourseTable) -> Unit,
+    onView: (CourseTable) -> Unit,
     onRename: (CourseTable) -> Unit,
     onDelete: (CourseTable) -> Unit,
     onViewCouple: (CourseTable) -> Unit,
@@ -1036,6 +1107,7 @@ private fun HistoryYearGroup(
                     HistorySemesterCard(
                         semesterInfo = semesterInfo,
                         onSwitch = { onSwitch(semesterInfo.table) },
+                        onView = { onView(semesterInfo.table) },
                         onRename = { onRename(semesterInfo.table) },
                         onDelete = { onDelete(semesterInfo.table) }
                     )
@@ -1058,12 +1130,13 @@ private fun HistoryYearGroup(
 private fun HistorySemesterCard(
     semesterInfo: SemesterInfo,
     onSwitch: () -> Unit,
+    onView: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit
 ) {
     val colors = appColors()
-    // 切换成功的 Toast 文案需在组合上下文预构建（名字在卡片内已知）
-    val switchSuccessMsg = stringResource(Res.string.toast_switch_table_success, semesterInfo.table.name)
+    // 指定当前学期的 Toast 文案需在组合上下文预构建（名字在卡片内已知）
+    val switchSuccessMsg = stringResource(Res.string.toast_set_current_semester, semesterInfo.table.name)
 
     SemesterCard(
         modifier = Modifier.fillMaxWidth(),
@@ -1098,7 +1171,7 @@ private fun HistorySemesterCard(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    CompletedBadge()
+                    SemesterStatusBadge(semesterInfo)
                 }
                 Text(
                     text = semesterInfo.dateRangeText(),
@@ -1156,7 +1229,7 @@ private fun HistorySemesterCard(
                     text = stringResource(Res.string.action_view),
                     icon = vectorResource(Res.drawable.visibility_24px),
                     danger = false,
-                    onClick = onSwitch,
+                    onClick = onView,
                     modifier = Modifier.weight(1f)
                 )
                 GhostActionButton(
