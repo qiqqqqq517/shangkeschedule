@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule
+package com.shangkeschedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -74,6 +74,7 @@ fun main() {
                             gridStyle = AppThemePreset.CLAUDE.gridStyle,
                             isDark = dark,
                             onToggleTodo = { _, _ -> },
+                            onToggleEventDone = { _, _ -> },
                             onEditTodo = { },
                         )
                     }

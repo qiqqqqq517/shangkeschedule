@@ -77,6 +77,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -376,6 +377,7 @@ fun TodayScheduleScreen(
                                 gridStyle = gridStyle,
                                 isDark = isDark,
                                 onToggleTodo = viewModel::toggleTodo,
+                                onToggleEventDone = viewModel::toggleEventDone,
                                 onEditTodo = { todo ->
                                     editingTodo = todo
                                     showTodoDialog = true
@@ -443,6 +445,7 @@ fun TodayContent(
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
     onToggleTodo: (String, Boolean) -> Unit,
+    onToggleEventDone: (String, Boolean) -> Unit,
     onEditTodo: (TodoItem) -> Unit,
     onNavigateWeekly: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
@@ -531,7 +534,8 @@ fun TodayContent(
                 scrollState = scrollState,
                 onOpenWeeklySchedule = onNavigateWeekly,
                 onOpenSettings = onOpenSettings,
-                onEditCourse = onEditCourse
+                onEditCourse = onEditCourse,
+                onToggleEventDone = onToggleEventDone
             )
             return@Column
         }
@@ -551,7 +555,8 @@ fun TodayContent(
                 scrollState = scrollState,
                 onOpenWeeklySchedule = onNavigateWeekly,
                 onOpenSettings = onOpenSettings,
-                onEditCourse = onEditCourse
+                onEditCourse = onEditCourse,
+                onToggleEventDone = onToggleEventDone
             )
             return@Column
         }
@@ -569,7 +574,8 @@ fun TodayContent(
                 scrollState = scrollState,
                 onOpenWeeklySchedule = onNavigateWeekly,
                 onOpenSettings = onOpenSettings,
-                onEditCourse = onEditCourse
+                onEditCourse = onEditCourse,
+                onToggleEventDone = onToggleEventDone
             )
             return@Column
         }
@@ -799,7 +805,8 @@ private fun ClaudeTodayContent(
     scrollState: androidx.compose.foundation.lazy.LazyListState,
     onOpenWeeklySchedule: () -> Unit,
     onOpenSettings: () -> Unit,
-    onEditCourse: (String) -> Unit
+    onEditCourse: (String) -> Unit,
+    onToggleEventDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
@@ -893,7 +900,7 @@ private fun ClaudeTodayContent(
         // 今日日程事件（来自「日程」页新建的日程）
         if (state.events.isNotEmpty()) {
             item {
-                ClaudeEventsSection(events = state.events)
+                ClaudeEventsSection(events = state.events, onToggleDone = onToggleEventDone)
             }
         }
 
@@ -1756,19 +1763,72 @@ private fun ClaudeTomorrowCard(
     }
 }
 
+/**
+ * 日程区段标签：按当天事件的类型去重拼接（如「待办 · 活动 · 考试」），
+ * 不再写死「今日课表」——来自「日程」页的待办/活动/考试等同步到今日页后，
+ * 标签应如实反映当天日程的类型构成；无事件时回落「今日课表」。
+ */
+@Composable
+private fun todayEventsSectionLabel(events: List<ScheduleEvent>): String {
+    if (events.isEmpty()) return stringResource(Res.string.title_today_schedule)
+    return events.map { event ->
+        stringResource(
+            when (ScheduleCategory.fromKey(event.category)) {
+                ScheduleCategory.TODO -> Res.string.agenda_category_todo
+                ScheduleCategory.ACTIVITY -> Res.string.agenda_category_activity
+                ScheduleCategory.EXAM -> Res.string.agenda_category_exam
+                ScheduleCategory.HOMEWORK -> Res.string.agenda_category_homework
+                ScheduleCategory.OTHER -> Res.string.agenda_category_other
+            }
+        )
+    }.distinct().joinToString(separator = " · ")
+}
+
+/**
+ * 事件行标题：三主题共用的第一行 —— 「待办」分类在标题前显示可点击的完成小方格，
+ * 点击翻转完成状态；已完成待办标题划线（整卡降透明由各行内容卡自行处理）。
+ */
+@Composable
+private fun EventTitleRow(event: ScheduleEvent, onToggleDone: (String, Boolean) -> Unit) {
+    val colors = appColors()
+    val isTodo = ScheduleCategory.fromKey(event.category) == ScheduleCategory.TODO
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (isTodo) {
+            AppCheckboxIndicator(
+                checked = event.done,
+                modifier = Modifier.clickable { onToggleDone(event.id, !event.done) }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Text(
+            text = event.title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 18.sp
+            ),
+            color = colors.textPrimary,
+            textDecoration = if (event.done) TextDecoration.LineThrough else null,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
 /** 今日日程事件区段：来自「日程」页新建的日程，展示在课程时间轴之后。 */
 @Composable
-private fun ClaudeEventsSection(events: List<ScheduleEvent>) {
+private fun ClaudeEventsSection(events: List<ScheduleEvent>, onToggleDone: (String, Boolean) -> Unit) {
     val colors = appColors()
     Spacer(modifier = Modifier.height(8.dp))
     ClaudeSectionLabelRow(
-        label = stringResource(Res.string.title_today_schedule),
+        label = todayEventsSectionLabel(events),
         trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
         fillWidth = true
     )
     Spacer(modifier = Modifier.height(6.dp))
     events.forEachIndexed { index, event ->
-        ClaudeEventRow(event = event, index = index, isLast = index == events.lastIndex)
+        ClaudeEventRow(event = event, index = index, isLast = index == events.lastIndex, onToggleDone = onToggleDone)
         if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
     }
     Spacer(modifier = Modifier.height(8.dp))
@@ -1778,7 +1838,8 @@ private fun ClaudeEventsSection(events: List<ScheduleEvent>) {
 private fun ClaudeEventRow(
     event: ScheduleEvent,
     index: Int,
-    isLast: Boolean
+    isLast: Boolean,
+    onToggleDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     val categoryColor = when (ScheduleCategory.fromKey(event.category)) {
@@ -1828,23 +1889,14 @@ private fun ClaudeEventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
+                .alpha(if (event.done) 0.5f else 1f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Column {
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 18.sp
-                    ),
-                    color = colors.textPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                EventTitleRow(event = event, onToggleDone = onToggleDone)
                 if (metaLine.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -3233,7 +3285,8 @@ private fun SoftTodayContent(
     scrollState: androidx.compose.foundation.lazy.LazyListState,
     onOpenWeeklySchedule: () -> Unit,
     onOpenSettings: () -> Unit,
-    onEditCourse: (String) -> Unit
+    onEditCourse: (String) -> Unit,
+    onToggleEventDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
@@ -3327,7 +3380,7 @@ private fun SoftTodayContent(
         // 今日日程事件（来自「日程」页新建的日程）
         if (state.events.isNotEmpty()) {
             item {
-                SoftEventsSection(events = state.events)
+                SoftEventsSection(events = state.events, onToggleDone = onToggleEventDone)
             }
         }
 
@@ -3974,17 +4027,17 @@ private fun SoftTomorrowCard(
 
 /** 今日日程事件区段：来自「日程」页新建的日程，展示在课程时间轴之后。 */
 @Composable
-private fun SoftEventsSection(events: List<ScheduleEvent>) {
+private fun SoftEventsSection(events: List<ScheduleEvent>, onToggleDone: (String, Boolean) -> Unit) {
     val colors = appColors()
     Spacer(modifier = Modifier.height(8.dp))
     SoftSectionLabelRow(
-        label = stringResource(Res.string.title_today_schedule),
+        label = todayEventsSectionLabel(events),
         trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
         fillWidth = true
     )
     Spacer(modifier = Modifier.height(6.dp))
     events.forEachIndexed { index, event ->
-        SoftEventRow(event = event, index = index, isLast = index == events.lastIndex)
+        SoftEventRow(event = event, index = index, isLast = index == events.lastIndex, onToggleDone = onToggleDone)
         if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
     }
     Spacer(modifier = Modifier.height(8.dp))
@@ -3994,7 +4047,8 @@ private fun SoftEventsSection(events: List<ScheduleEvent>) {
 private fun SoftEventRow(
     event: ScheduleEvent,
     index: Int,
-    isLast: Boolean
+    isLast: Boolean,
+    onToggleDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     // 柔绘事件分类色：不再用 Material 500 档高饱和色（书卷/通透沿用各自历史值），
@@ -4046,23 +4100,14 @@ private fun SoftEventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
+                .alpha(if (event.done) 0.5f else 1f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .softFeatherRim(RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Column {
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 18.sp
-                    ),
-                    color = colors.textPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                EventTitleRow(event = event, onToggleDone = onToggleDone)
                 if (metaLine.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -4443,7 +4488,8 @@ private fun Ios26TodayContent(
     scrollState: androidx.compose.foundation.lazy.LazyListState,
     onOpenWeeklySchedule: () -> Unit,
     onOpenSettings: () -> Unit,
-    onEditCourse: (String) -> Unit
+    onEditCourse: (String) -> Unit,
+    onToggleEventDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     var detailCourse by remember { mutableStateOf<CourseDisplayModel?>(null) }
@@ -4537,7 +4583,7 @@ private fun Ios26TodayContent(
         // 今日日程事件（来自「日程」页新建的日程）
         if (state.events.isNotEmpty()) {
             item {
-                Ios26EventsSection(events = state.events)
+                Ios26EventsSection(events = state.events, onToggleDone = onToggleEventDone)
             }
         }
 
@@ -5197,17 +5243,17 @@ private fun Ios26TomorrowCard(
 
 /** 今日日程事件区段：来自「日程」页新建的日程，展示在课程时间轴之后。 */
 @Composable
-private fun Ios26EventsSection(events: List<ScheduleEvent>) {
+private fun Ios26EventsSection(events: List<ScheduleEvent>, onToggleDone: (String, Boolean) -> Unit) {
     val colors = appColors()
     Spacer(modifier = Modifier.height(8.dp))
     Ios26SectionLabelRow(
-        label = stringResource(Res.string.title_today_schedule),
+        label = todayEventsSectionLabel(events),
         trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
         fillWidth = true
     )
     Spacer(modifier = Modifier.height(6.dp))
     events.forEachIndexed { index, event ->
-        Ios26EventRow(event = event, index = index, isLast = index == events.lastIndex)
+        Ios26EventRow(event = event, index = index, isLast = index == events.lastIndex, onToggleDone = onToggleDone)
         if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
     }
     Spacer(modifier = Modifier.height(8.dp))
@@ -5217,7 +5263,8 @@ private fun Ios26EventsSection(events: List<ScheduleEvent>) {
 private fun Ios26EventRow(
     event: ScheduleEvent,
     index: Int,
-    isLast: Boolean
+    isLast: Boolean,
+    onToggleDone: (String, Boolean) -> Unit
 ) {
     val colors = appColors()
     val categoryColor = when (ScheduleCategory.fromKey(event.category)) {
@@ -5267,23 +5314,14 @@ private fun Ios26EventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
+                .alpha(if (event.done) 0.5f else 1f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Column {
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 18.sp
-                    ),
-                    color = colors.textPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                EventTitleRow(event = event, onToggleDone = onToggleDone)
                 if (metaLine.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(

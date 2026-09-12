@@ -61,6 +61,12 @@ interface ScheduleEventDao {
     suspend fun update(event: ScheduleEvent)
 
     /**
+     * 翻转日程的完成状态（仅「待办」分类的日程在今日页使用）。
+     */
+    @Query("UPDATE schedule_events SET done = :done WHERE id = :eventId")
+    suspend fun updateDone(eventId: String, done: Boolean)
+
+    /**
      * 按 ID 删除单个日程。
      */
     @Query("DELETE FROM schedule_events WHERE id = :eventId")

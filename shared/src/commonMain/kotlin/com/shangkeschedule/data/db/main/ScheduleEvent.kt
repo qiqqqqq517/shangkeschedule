@@ -1,5 +1,6 @@
 package com.shangkeschedule.data.db.main
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
@@ -37,6 +38,7 @@ enum class ScheduleCategory(val key: String) {
  * @param endTime 结束时间，格式 "HH:mm"；全天日程为 null。
  * @param location 地点，限 200 字以内。
  * @param note 备注，限 500 字以内。
+ * @param done 完成状态（仅「待办」分类使用；今日页可点击勾选）。
  * @param createdAt 创建时间戳（毫秒）。
  * @param updatedAt 最近更新时间戳（毫秒）。
  */
@@ -55,6 +57,8 @@ data class ScheduleEvent(
     val endTime: String? = null,
     val location: String? = null,
     val note: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val done: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long
 )

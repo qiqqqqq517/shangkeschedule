@@ -19,7 +19,7 @@ import com.shangkeschedule.data.di.AppStorage
         TodoItem::class,
         ScheduleEvent::class
     ],
-    version = 11,
+    version = 12,
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5, spec = MainAppDatabase.RemoveAppSettingsSpec::class)

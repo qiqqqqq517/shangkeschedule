@@ -213,6 +213,13 @@ class TodayScheduleViewModel(
         }
     }
 
+    /** 翻转一条日程事件（「待办」分类）的完成状态。 */
+    fun toggleEventDone(eventId: String, done: Boolean) {
+        viewModelScope.launch {
+            scheduleEventRepository.setDone(eventId, done)
+        }
+    }
+
     /** 删除一条待办。 */
     fun deleteTodo(todoId: String) {
         viewModelScope.launch {

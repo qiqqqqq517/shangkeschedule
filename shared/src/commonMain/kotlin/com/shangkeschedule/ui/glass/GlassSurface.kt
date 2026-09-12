@@ -75,30 +75,35 @@ fun GlassSurface(
             // 容器级裁剪：约束背板子节点效果输出（blur/着色器边界外溢）的范围
             .clip(shape)
     ) {
-        // ① 背板拷贝 + 效果：效果在父、drawLayer 在子（见类文档对照实验）
-        Box(
-            Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { if (it.isAttached) backdropCoords = it }
-                .graphicsLayer {
-                    scope.applyForLayer(
-                        shape = shape,
-                        density = density,
-                        fontScale = fontScale,
-                        size = size,
-                        layoutDirection = layoutDirection,
-                        effects = effects
-                    )
-                    renderEffect = scope.renderEffect
-                }
-        ) {
+        // ① 背板拷贝 + 效果：效果在父、drawLayer 在子（见类文档对照实验）。
+        // 自愈兜底（isGlassFallbackActive）：上次进程原生/Java 崩溃退出后，本进程跳过
+        // 背板采样与整条效果链（RenderEffect 渲染在 RenderThread，Java 无法拦截），
+        // 只留 ② 表面 tint + ③ 内容——观感退化为半透明面板，但 App 一定可用。
+        if (!isGlassFallbackActive) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .drawBehind {
-                        with(backdrop) { drawGlassBackdrop(backdropCoords, layerBlock) }
+                    .onGloballyPositioned { if (it.isAttached) backdropCoords = it }
+                    .graphicsLayer {
+                        scope.applyForLayer(
+                            shape = shape,
+                            density = density,
+                            fontScale = fontScale,
+                            size = size,
+                            layoutDirection = layoutDirection,
+                            effects = effects
+                        )
+                        renderEffect = scope.renderEffect
                     }
-            )
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .drawBehind {
+                            with(backdrop) { drawGlassBackdrop(backdropCoords, layerBlock) }
+                        }
+                )
+            }
         }
         // ② 表面色 / tint（背板之上、内容之下）
         if (onDrawSurface != null) {
