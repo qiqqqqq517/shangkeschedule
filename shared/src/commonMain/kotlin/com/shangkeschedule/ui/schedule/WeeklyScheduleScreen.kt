@@ -348,7 +348,9 @@ fun WeeklyScheduleScreen(
     ) { innerPadding ->
         // v3.49.1：不再自建背景快照，直接复用脚手架录制的那一份（LocalNavigationGlassBackdrop），
         // 避免「页面 + 脚手架」各录一份（全页重复录制 / 玻璃取样玻璃）。
-        val pageGlassBackdrop = LocalNavigationGlassBackdrop.current
+        // v3.51.2 诊断实验：置 null 断开「页内玻璃件采样包含自身的页面 backdrop」这条边，
+        // 用于定位切周 RenderThread 栈溢出的残余环（悬浮件暂走色调面板分支）。
+        val pageGlassBackdrop = null // v3.51.2 诊断实验：断开页内玻璃件采样页面 backdrop 的边
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -786,6 +788,7 @@ fun WeeklyScheduleScreen(
                 // 玻璃上的文字/图标跟随页面自定义文字色（壁纸模式下保证可读）
                 contentColor = customTextColor,
                 isTransparent = composedStyle.backgroundImagePath.isNotEmpty(),
+                hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
@@ -796,6 +799,7 @@ fun WeeklyScheduleScreen(
                 hideRange = navBarReserve + appSpacing().cardGap + appSpacing().touchMin,
                 glassBackdrop = pageGlassBackdrop,
                 hasWallpaper = composedStyle.backgroundImagePath.isNotEmpty(),
+                hazeState = hazeState,
                 onClick = {
                     coroutineScope.launch {
                         pagerState.animateScrollToPage(INFINITE_PAGER_CENTER)
@@ -874,6 +878,7 @@ private fun BackToCurrentWeekFab(
     hideRange: Dp,
     glassBackdrop: GlassBackdrop?,
     hasWallpaper: Boolean,
+    hazeState: HazeState?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -921,12 +926,14 @@ private fun BackToCurrentWeekFab(
             ) {
                 LiquidGlass(
                     modifier = Modifier.fillMaxSize(),
-                    glassBackdrop = glassBackdrop,
+                    glassBackdrop = null,
                     shape = CircleShape,
                     containerColor = appColors().inputBg,
                     // 壁纸模式下玻璃透出壁纸并补一层暗 scrim，保证图标可读
                     isTransparent = hasWallpaper,
-                    shadowElevation = 8.dp
+                    shadowElevation = 8.dp,
+                    // v3.51.2：页内悬浮件改走 Haze 玻璃（自研玻璃采样页面 backdrop 会成环）
+                    hazeState = hazeState
                 )
                 Icon(
                     imageVector = vectorResource(Res.drawable.calendar_today_24px),

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.components
+package com.shangkeschedule.ui.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -317,11 +317,12 @@ fun AppFab(
     icon: ImageVector,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    glassBackdrop: GlassBackdrop? = null
+    glassBackdrop: GlassBackdrop? = null,
+    hazeState: HazeState? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
     val scale = rememberFabPressedScale(interaction)
-    if (glassBackdrop == null) {
+    if (glassBackdrop == null && hazeState == null) {
         // 无背景快照的页面：保持原主色实心 FAB（向下兼容）
         FloatingActionButton(
             onClick = onClick,
@@ -366,7 +367,8 @@ fun AppFab(
                 glassBackdrop = glassBackdrop,
                 shape = CircleShape,
                 containerColor = appColors().inputBg,
-                shadowElevation = 8.dp
+                shadowElevation = 8.dp,
+                hazeState = hazeState
                 // 模糊强度统一取 LocalGlassBlurRadius（用户设置注入）
             )
             androidx.compose.material3.Icon(

@@ -75,6 +75,15 @@ public fun applyGlassNativeCrashFallback(context: Context) {
         marker.delete()
     }
 
+    // v3.51.2：debug（可调试）构建**不启用崩溃窗口期自动检测** —— 自动兜底会在
+    // 真实崩溃后 15 分钟内把玻璃静默降级，掩盖真问题、污染复测（本项目已两次踩坑：
+    // 「修复后不崩」实为兜底降级假象）。debug 下仅响应手动写入的锁存标记，
+    // 完整玻璃路径始终可用于复现与验证；release 构建行为不变。
+    val isDebuggable = runCatching {
+        (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }.getOrDefault(false)
+    if (isDebuggable) return
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
         hasRecentGlassKillingCrash(context, System.currentTimeMillis())
     ) {

@@ -63,6 +63,10 @@ fun GlassSurface(
     DisposableEffect(scope) {
         onDispose { scope.reset() }
     }
+    // v3.51.2 采样守卫：本 GlassSurface 若被绘制于某个 backdrop 的 source 子树内
+    // （录制期标记），此后永不采样该 backdrop —— 根除「P 的 DL 引用本节点、
+    // 本节点 DL 又引用 P」的渲染树自引用环（HWUI prepareTreeImpl 栈溢出）。
+    val sampleGuard = remember { GlassSampleGuard() }
     val layoutDirection = LocalLayoutDirection.current
     var backdropCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
@@ -112,7 +116,7 @@ fun GlassSurface(
                     Modifier
                         .fillMaxSize()
                         .drawBehind {
-                            with(backdrop) { drawGlassBackdrop(backdropCoords, layerBlock) }
+                            with(backdrop) { drawGlassBackdrop(backdropCoords, layerBlock, sampleGuard) }
                         }
                 )
             }

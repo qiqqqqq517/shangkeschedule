@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.glass.GlassHighlight
 import com.shangkeschedule.ui.glass.GlassRefractionSettings
@@ -74,6 +75,7 @@ fun LiquidGlass(
     shadowElevation: Dp = 14.dp,
     enabled: Boolean = true,
     refraction: GlassRefractionSettings = LocalGlassRefraction.current,
+    hazeState: HazeState? = null,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     if (!enabled) {
@@ -90,6 +92,26 @@ fun LiquidGlass(
     val baseAlpha = if (isTransparent) 0.08f else if (isDark) 0.12f else 0.04f
     val veilAlpha = if (isTransparent) 0.03f else if (isDark) 0.03f else 0.02f
     val bodyScrim = if (isTransparent) 0.10f else if (isDark) 0.03f else 0.005f
+
+    // v3.51.2：页内悬浮件专用 Haze 分支。这些悬浮件位于页面 glassBackdrop 的
+    // source 子树内，采样它会构成渲染树自引用环（HWUI prepareTreeImpl 栈溢出，
+    // Redmi/vivo X200 真机实证）。改走 legacyHazeGlass（v3.44.0 同款 Haze 实现，
+    // 页面 hazeState 的 hazeSource 范围已刻意排除悬浮件——见各页 v3.23.5 修复注释，
+    // 为 v3.44.0 在 X200 上长期验证安全的路径）。观感与自研玻璃分支的"无背板"态一致级别。
+    if (glassBackdrop == null && hazeState != null) {
+        Box(
+            modifier
+                .legacyHazeGlass(
+                    hazeState = hazeState,
+                    shape = shape,
+                    containerColor = containerColor,
+                    isTransparent = isTransparent,
+                    shadowElevation = shadowElevation
+                ),
+            content = content
+        )
+        return
+    }
 
     if (glassBackdrop != null) {
         GlassSurface(

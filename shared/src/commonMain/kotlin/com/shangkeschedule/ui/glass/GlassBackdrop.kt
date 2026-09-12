@@ -57,8 +57,37 @@ interface GlassBackdrop {
 
     fun DrawScope.drawGlassBackdrop(
         coordinates: LayoutCoordinates?,
-        layerBlock: (GraphicsLayerScope.() -> Unit)? = null
+        layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
+        guard: GlassSampleGuard? = null
     )
+}
+
+/**
+ * 采样守卫（v3.51.2）：记录「某个玻璃件位于哪个 backdrop 的 source 子树内」。
+ *
+ * 背景（残余环根因）：页内玻璃件（FAB / 圆钮 / 挂起条）位于页面 backdrop P 的
+ * source 子树内，同时又采样 P。仅靠录制期 `isRecording` 跳过还不够——
+ * 采样子节点自身的 DL 在**录制之外**被单独重录时（如 `backdropCoords` 状态
+ * 变化、效果链重算触发定向 draw 失效），此刻 `isRecording=false`，会把
+ * `drawRenderNode(P)` 写进自己的 DL；而 P 的 DL 又引用该子节点 ⇒
+ * **P ↔ 子节点成环**，HWUI `prepareTreeImpl` 无限递归（v3.51.1 上线后
+ * Redmi 02:25 tombstone 实证仍为同一递归栈）。
+ *
+ * 机制：`GlassBackdropSourceNode` 录制期间（isRecording=true）被画到的
+ * 消费者，把自己的守卫标记为「位于该 source 内」——这是一个**持久拓扑事实**
+ * （Compose 组合结构不变则恒成立）。此后该消费者任何绘制都跳过对本层
+ * `drawLayer`，图结构上不可能再出现双向引用。底栏 A/B/C 位于 P 之外，
+ * 永远不会被标记，玻璃效果完整保留；页内悬浮件退化为色调面板（可接受的稳定性取舍）。
+ */
+class GlassSampleGuard internal constructor() {
+
+    internal val insideSources = mutableSetOf<GlassBackdrop>()
+
+    internal fun markInside(source: GlassBackdrop) {
+        insideSources.add(source)
+    }
+
+    internal fun isInside(source: GlassBackdrop): Boolean = source in insideSources
 }
 
 /**
@@ -104,11 +133,19 @@ class LayerGlassBackdrop internal constructor(
 
     override fun DrawScope.drawGlassBackdrop(
         coordinates: LayoutCoordinates?,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        guard: GlassSampleGuard?
     ) {
-        // 自引用环防御（v3.51.1）：本层正在被录制（即 · 我是当前 record 的目标层）时，
-        // drawLayer(自己) 会构成渲染树环导致 RenderThread 栈溢出 ⇒ 本帧跳过背景采样。
-        if (isRecording) return
+        // 自引用环防御（v3.51.1）：本层正在被录制时，drawLayer(自己) 直接成环。
+        // v3.51.2 增强：此刻同时把该消费者记入守卫（持久拓扑事实：它位于本 source
+        // 子树内），此后它**任何**绘制（包括录制外的定向重录）都不得再采样本层。
+        if (isRecording) {
+            guard?.markInside(this@LayerGlassBackdrop)
+            return
+        }
+        // 残余环防御（v3.51.2）：曾被标记为「位于本 source 子树内」的消费者，
+        // 在录制外重录 DL 时若 emit drawLayer(本层)，会与本层 DL 引用它的边构成环。
+        if (guard != null && guard.isInside(this@LayerGlassBackdrop)) return
         val coordinates = coordinates ?: return
         val layerCoordinates = layerCoordinates ?: return
         withTransform({
@@ -155,10 +192,11 @@ class CombinedGlassBackdrop(
 
     override fun DrawScope.drawGlassBackdrop(
         coordinates: LayoutCoordinates?,
-        layerBlock: (GraphicsLayerScope.() -> Unit)?
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        guard: GlassSampleGuard?
     ) {
-        with(backdrop1) { drawGlassBackdrop(coordinates, layerBlock) }
-        with(backdrop2) { drawGlassBackdrop(coordinates, layerBlock) }
+        with(backdrop1) { drawGlassBackdrop(coordinates, layerBlock, guard) }
+        with(backdrop2) { drawGlassBackdrop(coordinates, layerBlock, guard) }
     }
 }
 

@@ -45,6 +45,7 @@ import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softGlow
 import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.ui.glass.GlassBackdrop
+import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -67,6 +68,7 @@ fun FloatingCourseBar(
     glassBackdrop: GlassBackdrop?,
     contentColor: Color,
     isTransparent: Boolean = false,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
     // v3.26.0 动效收口：出现/消失读全局动效令牌；关掉「玻璃悬浮件」分组 ⇒ 瞬切无动画
@@ -123,11 +125,13 @@ fun FloatingCourseBar(
                 if (!isClaude && !isSoft) {
                     LiquidGlass(
                         modifier = Modifier.matchParentSize(),
-                        glassBackdrop = glassBackdrop,
+                        glassBackdrop = null,
                         shape = CircleShape,
                         containerColor = appColors().inputBg,
                         isTransparent = isTransparent,
-                        shadowElevation = 10.dp
+                        shadowElevation = 10.dp,
+                        // v3.51.2：页内悬浮件改走 Haze 玻璃（自研玻璃采样页面 backdrop 会成环）
+                        hazeState = hazeState
                     )
                 }
                 Row(
