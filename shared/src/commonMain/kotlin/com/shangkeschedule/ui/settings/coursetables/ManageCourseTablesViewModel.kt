@@ -69,12 +69,25 @@ class ManageCourseTablesViewModel(
         activeTableId: String?,
         infos: List<SemesterInfo>
     ): ManageCourseTablesUiState {
-        val current = infos.firstOrNull { it.table.id == activeTableId }
-            ?: infos.firstOrNull()
+        // 情侣课表不作为独立学期展示：按配对关系附挂到本人课表右侧（并排滑动查看）
+        val coupleInfos = infos.filter { it.table.isCouple }
+        val selfInfos = infos.map { info ->
+            if (info.table.isCouple) return@map info
+            info.copy(couple = coupleInfos.firstOrNull { it.table.pairedCourseTableId == info.table.id })
+        }.filter { !it.table.isCouple }
 
-        // 历史学期 = 除当前学期外的所有课表，按学年分组（组内保持创建时间倒序）
+        // 当前学期按「本人课表」判定：正在单独显示情侣课表时，其本人表仍是当前学期
+        val activeEntity = infos.firstOrNull { it.table.id == activeTableId }
+        val activeSelfId = activeEntity?.let { entity ->
+            if (entity.table.isCouple) entity.table.pairedCourseTableId else entity.table.id
+        } ?: activeTableId
+
+        val current = selfInfos.firstOrNull { it.table.id == activeSelfId }
+            ?: selfInfos.firstOrNull()
+
+        // 历史学期 = 除当前学期外的所有本人课表，按学年分组（组内保持创建时间倒序）
         val historyCurrentId = current?.table?.id
-        val history = infos.filter { it.table.id != historyCurrentId }
+        val history = selfInfos.filter { it.table.id != historyCurrentId }
         val groups = history
             .groupBy { it.schoolYearStart() }
             .map { (startYear, semesters) ->
@@ -122,6 +135,15 @@ class ManageCourseTablesViewModel(
     }
 
     /**
+     * 为指定本人课表创建配对情侣课表（幂等：已存在时返回既有表）。
+     */
+    fun createCoupleTableFor(selfTableId: String) {
+        viewModelScope.launch {
+            courseTableRepository.createCoupleTable(selfTableId)
+        }
+    }
+
+    /**
      * 更新一个课表。
      * @param updatedCourseTable 包含新信息的课表对象。
      */
@@ -147,10 +169,9 @@ class ManageCourseTablesViewModel(
      * 删除一个课表。
      * @param courseTable 要删除的课表对象。
      */
-    fun deleteCourseTable(courseTable: CourseTable) {
-        viewModelScope.launch {
-            courseTableRepository.deleteCourseTableAndResolveCurrent(courseTable)
-        }
+    /** 删除课表（本人表级联其情侣表）；返回是否实际删除（剩余表不足时拒绝）。 */
+    suspend fun deleteCourseTable(courseTable: CourseTable): Boolean {
+        return courseTableRepository.deleteCourseTableAndResolveCurrent(courseTable)
     }
 }
 
@@ -160,7 +181,9 @@ class ManageCourseTablesViewModel(
 data class SemesterInfo(
     val table: CourseTable,
     val config: CourseTableConfig?,
-    val courseCount: Int
+    val courseCount: Int,
+    /** 配对情侣课表（独立 CourseTable，isCouple=true）；未创建时为 null。 */
+    val couple: SemesterInfo? = null
 ) {
     /** 学期总周数（未配置时回退到默认 20）。 */
     val totalWeeks: Int get() = config?.semesterTotalWeeks ?: 20

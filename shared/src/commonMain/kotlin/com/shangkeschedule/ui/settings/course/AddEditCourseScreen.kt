@@ -83,12 +83,13 @@ import shangkeschedule.shared.generated.resources.toast_time_invalid
 fun AddEditCourseScreen(
     onBack: () -> Unit,
     courseId: String? = null,
+    targetCourseTableId: String? = null,
     viewModel: AddEditCourseViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(courseId) {
-        viewModel.initWithId(courseId)
+        viewModel.initWithId(courseId, targetCourseTableId)
     }
 
     // 状态追踪：记录当前正在操作哪一个方案

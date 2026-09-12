@@ -56,6 +56,9 @@ class AddEditCourseViewModel(
     private var _courseId: String? = null
     private val courseId: String? get() = _courseId
 
+    /** 显式指定的编辑目标课表（叠加模式下编辑情侣课程时传入其所在表）。 */
+    private var _targetTableId: String? = null
+
     private val _uiState = MutableStateFlow(AddEditCourseUiState())
     val uiState: StateFlow<AddEditCourseUiState> = _uiState.asStateFlow()
 
@@ -69,10 +72,11 @@ class AddEditCourseViewModel(
     private var initialAssessmentMethod: String = ""
     private var initialIsLab: Boolean = false
 
-    fun initWithId(id: String?) {
+    fun initWithId(id: String?, targetCourseTableId: String? = null) {
         if (_uiState.value.isDataLoaded) return
 
         _courseId = id
+        _targetTableId = targetCourseTableId
         loadData()
     }
 
@@ -82,12 +86,17 @@ class AddEditCourseViewModel(
                 AddEditCourseChannel.presetDataFlow.firstOrNull()
             } else { null }
 
+            // 编辑目标课表：显式指定 > 按课程 ID 反查所在表 > 当前选中表（叠加模式下
+            // 编辑情侣课程必须落到情侣课表，而不是当前显示的本人课表）
+            val effectiveTableId = _targetTableId
+                ?: courseId?.let { courseTableRepository.findTableIdOfCourse(it) }
+                ?: appSettingsRepository.getAppSettingsOnce().currentCourseTableId
+
             // 新建课程时的默认配色：在当前课表已有颜色中挑「全局占用最少」的索引，
             // 让不同课程尽量拿到不同颜色（颜色池用尽后才复用），避免旧实现随机分配造成撞色。
             val defaultNewColorIndex: Int = if (courseId == null && initialPresetData?.colorIndex == null) {
                 runCatching {
-                    val tableId = appSettingsRepository.getAppSettingsOnce().currentCourseTableId
-                    val usedColors = courseTableRepository.getCoursesWithWeeksByTableId(tableId).first()
+                    val usedColors = courseTableRepository.getCoursesWithWeeksByTableId(effectiveTableId).first()
                         .filter { !it.course.isCrush }
                         .map { it.course.colorInt }
                     styleSettingsRepository.styleFlow.first().pickLeastUsedColorIndex(usedColors)
@@ -99,17 +108,12 @@ class AddEditCourseViewModel(
             val appSettingsFlow = appSettingsRepository.getAppSettings()
             val styleFlow = styleSettingsRepository.styleFlow
 
-            val courseConfigFlow = appSettingsFlow.flatMapLatest { settings ->
-                val tid = settings.currentCourseTableId
-                appSettingsRepository.getCourseTableConfigFlow(tid)
-            }
+            val courseConfigFlow = appSettingsRepository.getCourseTableConfigFlow(effectiveTableId)
 
-            val timeSlotsFlow = appSettingsFlow.flatMapLatest { settings ->
-                timeSlotRepository.getActiveTimeSlotsByConfigFlow(
-                    settings.currentCourseTableId,
-                    courseConfigFlow
-                )
-            }
+            val timeSlotsFlow = timeSlotRepository.getActiveTimeSlotsByConfigFlow(
+                effectiveTableId,
+                courseConfigFlow
+            )
 
             combine(
                 timeSlotsFlow,
@@ -117,17 +121,15 @@ class AddEditCourseViewModel(
                 courseConfigFlow,
                 styleFlow,
                 if (courseId != null) {
-                    appSettingsFlow.flatMapLatest { settings ->
-                        courseTableRepository.getCoursesWithWeeksByTableId(settings.currentCourseTableId)
-                            .flatMapLatest { all ->
-                                val current = all.find { it.course.id == courseId }
-                                if (current != null) {
-                                    flowOf(all.filter { it.course.name == current.course.name })
-                                } else {
-                                    flowOf(emptyList())
-                                }
+                    courseTableRepository.getCoursesWithWeeksByTableId(effectiveTableId)
+                        .flatMapLatest { all ->
+                            val current = all.find { it.course.id == courseId }
+                            if (current != null) {
+                                flowOf(all.filter { it.course.name == current.course.name })
+                            } else {
+                                flowOf(emptyList())
                             }
-                    }
+                        }
                 } else {
                     flowOf(emptyList())
                 }
@@ -189,7 +191,7 @@ class AddEditCourseViewModel(
                             name = initialName,
                             schemes = schemes,
                             timeSlots = timeSlots,
-                            currentCourseTableId = appSettings.currentCourseTableId,
+                            currentCourseTableId = effectiveTableId,
                             semesterTotalWeeks = totalWeeks,
                             courseColorMaps = currentColorMaps,
                             credit = initialCredit,

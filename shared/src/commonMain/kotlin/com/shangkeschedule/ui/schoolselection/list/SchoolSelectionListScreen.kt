@@ -87,7 +87,6 @@ import shangkeschedule.shared.generated.resources.title_select_school
 fun SchoolSelectionListScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    isCrushImport: Boolean = false,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 观察 ViewModel 状态
@@ -128,7 +127,6 @@ fun SchoolSelectionListScreen(
                             schoolName = selectedSchool.name,
                             categoryNumber = selectedCategory.value,
                             resourceFolder = selectedSchool.resource_folder,
-                            isCrushImport = isCrushImport
                         )
                     )
                     isSearchActive = false
@@ -168,8 +166,7 @@ fun SchoolSelectionListScreen(
                                 schoolName = school.name,
                                 categoryNumber = category.value,
                                 resourceFolder = school.resource_folder,
-                                isCrushImport = isCrushImport
-                            )
+                                )
                         )
                     }
                 )

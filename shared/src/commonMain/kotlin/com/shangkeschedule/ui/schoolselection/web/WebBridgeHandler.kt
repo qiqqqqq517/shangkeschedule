@@ -39,7 +39,6 @@ class WebBridgeHandler(
     private val coroutineScope: CoroutineScope,
     private val uiEventChannel: SendChannel<WebUiEvent>,
     private val courseConversionRepository: CourseConversionRepository,
-    private val isCrushImport: Boolean = false,
     private val onTaskCompleted: () -> Unit,
     private val evaluateJs: (script: String, callback: ((String?) -> Unit)?) -> Unit
 ) {
@@ -242,19 +241,15 @@ class WebBridgeHandler(
 
             val result = runCatching {
                 val importedCoursesList = json.decodeFromString<List<CourseImportExport.ImportCourseJsonModel>>(coursesJsonString)
-                if (isCrushImport) {
-                    courseConversionRepository.importCrushCoursesFromList(tableId, importedCoursesList)
-                } else {
-                    courseConversionRepository.importCoursesFromList(tableId, importedCoursesList)
-                }
+                courseConversionRepository.importCoursesFromList(tableId, importedCoursesList)
             }
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show(getString(if (isCrushImport) Res.string.wb_crush_import_success else Res.string.wb_import_success))
+                    ToastManager.show(getString(Res.string.wb_import_success))
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show(getString(if (isCrushImport) Res.string.wb_crush_import_failed_fmt else Res.string.wb_import_failed_fmt, e.message ?: ""))
+                    ToastManager.show(getString(Res.string.wb_import_failed_fmt, e.message ?: ""))
                     if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_import_failed_fmt, e.message ?: ""))
                 }
             }

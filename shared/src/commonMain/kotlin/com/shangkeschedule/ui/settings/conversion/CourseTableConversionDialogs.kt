@@ -125,46 +125,6 @@ fun IcsExportDialog(
 }
 
 /**
- * 「一键导入 crush 课表」方式选择弹窗。
- * 提供教务系统导入与 JSON 文件导入两种方式。
- */
-@Composable
-fun CrushImportDialog(
-    onDismissRequest: () -> Unit,
-    onImportViaSchool: () -> Unit,
-    onImportViaJson: () -> Unit
-) {
-    AppAlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = { Text(stringResource(Res.string.conversion_crush_title)) },
-        text = {
-            Column {
-                Text(stringResource(Res.string.conversion_crush_choose_method))
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = onImportViaSchool,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(Res.string.conversion_crush_from_system))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onImportViaJson,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(Res.string.conversion_crush_from_file))
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
-    )
-}
-
-/**
  * 课表转换相关弹窗的统一管理中心组件。
  * 根据当前的 UI 状态（ConversionUiState）动态分发渲染导入或导出各类格式的对应弹窗。
  */
@@ -174,7 +134,6 @@ fun ConversionDialogOverlay(
     onDismiss: () -> Unit,
     onConfirmImport: (String) -> Unit,
     onConfirmExport: (String, Int?) -> Unit,
-    onCrushImportViaSchool: () -> Unit = {},
     onCrushImportViaJson: () -> Unit = {}
 ) {
     if (uiState.showImportTableDialog) {
@@ -206,11 +165,4 @@ fun ConversionDialogOverlay(
         }
     }
 
-    if (uiState.showCrushImportDialog) {
-        CrushImportDialog(
-            onDismissRequest = onDismiss,
-            onImportViaSchool = onCrushImportViaSchool,
-            onImportViaJson = onCrushImportViaJson
-        )
-    }
 }

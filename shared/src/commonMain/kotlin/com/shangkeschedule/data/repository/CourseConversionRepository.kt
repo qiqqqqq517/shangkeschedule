@@ -457,79 +457,6 @@ class CourseConversionRepository(
     }
 
     /**
-     * 一键导入 crush（情侣）课表：从 JSON 模型列表导入，标记 isCrush = true。
-     * 与本人课表数据完全隔离（仅删除该课表下已有的 crush 课程，不动本人课程）。
-     *
-     * @param tableId 课表ID（与本人课表共用同一 ID，通过 isCrush 标记隔离）
-     * @param coursesJsonModel 解析后的课程 JSON 模型列表
-     */
-    suspend fun importCrushCoursesFromList(
-        tableId: String,
-        coursesJsonModel: List<ImportCourseJsonModel>
-    ) {
-        coursesJsonModel.forEach { validateCustomCourseTimeOrThrow(it) }
-
-        val currentStyle = styleSettingsRepository.styleFlow.first()
-        val colorSize = currentStyle.courseColorMaps.size
-
-        val (courseEntities, courseWeekEntities) = buildCourseEntities(
-            coursesJsonModel = coursesJsonModel,
-            tableId = tableId,
-            colorSize = colorSize,
-            isCrush = true,
-            preserveId = false
-        )
-
-        // 真事务：仅删除 crush 课程并原子重建，本人课程保持不变
-        database.withWriteTransaction {
-            courseDao.deleteCrushCoursesByTableId(tableId)
-            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
-        }
-    }
-
-    /**
-     * 从一个完整的 JSON 模型导入 crush 课表数据。
-     * 逻辑与 [importCrushCoursesFromList] 一致，额外支持时间段（timeSlots）数据。
-     */
-    suspend fun importCrushCourseTableFromJson(
-        tableId: String,
-        courseTableJsonModel: CourseTableImportModel
-    ) {
-        courseTableJsonModel.courses.forEach { validateCustomCourseTimeOrThrow(it) }
-        courseTableJsonModel.timeSlots?.let { validateTimeSlotsOrThrow(it) }
-        courseTableJsonModel.config?.let { validateCourseConfigOrThrow(it) }
-
-        val currentStyle = styleSettingsRepository.styleFlow.first()
-        val colorSize = currentStyle.courseColorMaps.size
-
-        val (courseEntities, courseWeekEntities) = buildCourseEntities(
-            coursesJsonModel = courseTableJsonModel.courses,
-            tableId = tableId,
-            colorSize = colorSize,
-            isCrush = true,
-            preserveId = true
-        )
-
-        // crush 课表导入不覆盖时间段，避免影响本人课表的作息时间设置
-
-        // 真事务：crush 课程清空重建原子化
-        database.withWriteTransaction {
-            courseDao.deleteCrushCoursesByTableId(tableId)
-            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
-        }
-    }
-
-    /**
-     * 删除指定课表下的所有 crush 课程。
-     * 不影响本人课表数据。
-     */
-    suspend fun deleteCrushCourses(tableId: String) {
-        courseDao.deleteCrushCoursesByTableId(tableId)
-    }
-
-    /**
      * 获取当前选中的课表 ID。
      */
     suspend fun getCurrentTableId(): String {
@@ -543,13 +470,6 @@ class CourseConversionRepository(
     suspend fun isSemesterStartDateSet(): Boolean {
         val tableId = getCurrentTableId()
         return !appSettingsRepository.getCourseConfigOnce(tableId)?.semesterStartDate.isNullOrBlank()
-    }
-
-    /**
-     * 获取指定课表下是否存在 crush 课程。
-     */
-    suspend fun hasCrushCourses(tableId: String): Boolean {
-        return courseDao.getCrushCoursesWithWeeksByTableId(tableId).first().isNotEmpty()
     }
 
     /**

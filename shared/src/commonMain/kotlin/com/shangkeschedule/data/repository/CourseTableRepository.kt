@@ -99,6 +99,82 @@ class CourseTableRepository(
         return courseDao.getCoursesWithWeeksByTableId(tableId)
     }
 
+    /** 按 ID 获取课表实体（一次性）。 */
+    suspend fun getCourseTableById(tableId: String): CourseTable? {
+        return courseTableDao.getCourseTableById(tableId)
+    }
+
+    /** 按课程 ID 反查所属课表 ID（不存在时返回 null）。 */
+    suspend fun findTableIdOfCourse(courseId: String): String? {
+        return courseDao.getCourseTableIdById(courseId)
+    }
+
+    /**
+     * 获取与本人课表配对的情侣课表（数据流）。
+     * 情侣课表是独立的 CourseTable（isCouple=true），拥有自己的课程、作息与学期配置。
+     */
+    fun getCoupleTableFor(selfTableId: String): Flow<CourseTable?> {
+        return courseTableDao.getCoupleTableByPairedId(selfTableId)
+    }
+
+    /**
+     * 获取与本人课表配对的情侣课表（一次性）。
+     */
+    suspend fun getCoupleTableForOnce(selfTableId: String): CourseTable? {
+        return courseTableDao.getCoupleTableByPairedIdOnce(selfTableId)
+    }
+
+    /**
+     * 为本人课表创建配对情侣课表。
+     * 复制本人课表的学期配置与默认作息方案作为初始值（之后可独立修改）。
+     *
+     * @param selfTableId 本人课表 ID
+     * @param name 情侣课表名称；缺省用「<本人课表名> · 情侣」
+     * @return 新情侣课表 ID；已存在配对情侣表时返回其 ID（幂等）
+     */
+    suspend fun createCoupleTable(selfTableId: String, name: String? = null): String {
+        getCoupleTableForOnce(selfTableId)?.let { return it.id }
+
+        val selfTable = courseTableDao.getCourseTableById(selfTableId)
+            ?: throw IllegalArgumentException("本人课表不存在: $selfTableId")
+        val coupleId = Uuid.random().toString()
+        val coupleTable = CourseTable(
+            id = coupleId,
+            name = name ?: "${selfTable.name} · 情侣",
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+            isCouple = true,
+            pairedCourseTableId = selfTableId
+        )
+
+        // 复制本人课表的学期配置；无配置时用默认值
+        val selfConfig = appSettingsRepository.getCourseTableConfigFlow(selfTableId).first()
+        val coupleConfig = (selfConfig ?: CourseTableConfig(courseTableId = selfTableId))
+            .copy(courseTableId = coupleId)
+
+        // 复制本人课表**全部方案**的作息（config.currentSchemeId 可能指向非 default 方案）；
+        // 本人表任何方案都没有 slots 时回落到出厂默认模板
+        val schemeIds = timeSlotRepository.getSchemeIdsByCourseTableId(selfTableId).first()
+        val coupleSlots = schemeIds.flatMap { schemeId ->
+            timeSlotRepository.getTimeSlotsByCourseTableId(selfTableId, schemeId).first()
+                .map { it.copy(courseTableId = coupleId) }
+        }.ifEmpty {
+            DEFAULT_TIME_SLOTS.map { it.copy(courseTableId = coupleId) }
+        }
+
+        database.withWriteTransaction {
+            courseTableDao.insert(coupleTable)
+            appSettingsRepository.insertOrUpdateCourseConfig(coupleConfig)
+            timeSlotRepository.insertAll(coupleSlots)
+            // 复制作息方案元信息（生效日期范围）
+            timeSlotRepository.getSchemeMetasOnce(selfTableId).forEach { meta ->
+                timeSlotRepository.upsertSchemeMeta(
+                    meta.copy(courseTableId = coupleId)
+                )
+            }
+        }
+        return coupleId
+    }
+
     /**
      * 创建一个新的课表。
      * 负责生成 ID 并执行插入操作，并**同步**为新课表创建默认时间段和配置。
@@ -139,21 +215,31 @@ class CourseTableRepository(
      *
      * DataStore 与 Room 不能跨存储事务，因此先持久化一个已经存在的备用 ID；
      * 若随后 Room 删除失败，用户只会停留在备用课表，而不会出现悬空 currentCourseTableId。
+     *
+     * 删除本人课表时级联删除其配对情侣课表（情侣课表依附于配对关系，不独立存活）。
      */
     suspend fun deleteCourseTableAndResolveCurrent(courseTable: CourseTable): Boolean {
         val allTables = courseTableDao.getAllCourseTables().first()
         if (allTables.size <= 1 || allTables.none { it.id == courseTable.id }) return false
 
-        val fallbackTable = allTables.first { it.id != courseTable.id }
+        // 待删除集合：本人表 + 其配对情侣表（若有）
+        val coupleOfSelf = if (!courseTable.isCouple) {
+            courseTableDao.getCoupleTableByPairedIdOnce(courseTable.id)
+        } else null
+        val tablesToDelete = listOfNotNull(courseTable, coupleOfSelf)
+        val deletedIds = tablesToDelete.map { it.id }.toSet()
+
+        // 删除后必须至少剩余一张课表（例如仅剩「本人表+其情侣表」时删本人表应拒绝）
+        val fallbackTable = allTables.firstOrNull { it.id !in deletedIds } ?: return false
         val currentSettings = appSettingsRepository.getAppSettingsOnce()
-        if (currentSettings.currentCourseTableId == courseTable.id) {
+        if (currentSettings.currentCourseTableId in deletedIds) {
             appSettingsRepository.insertOrUpdateAppSettings(
                 currentSettings.copy(currentCourseTableId = fallbackTable.id)
             )
         }
 
         database.withWriteTransaction {
-            courseTableDao.delete(courseTable)
+            tablesToDelete.forEach { courseTableDao.delete(it) }
         }
         return true
     }
@@ -421,56 +507,6 @@ class CourseTableRepository(
             allCourses.filter { cw ->
                 cw.weeks.any { it.weekNumber == weekNumber }
             }
-        }
-    }
-
-    /**
-     * 根据物理日期和配置，获取该周的所有 crush 课程。
-     * 用于情侣课表模式下叠加展示 crush 课表数据。
-     */
-    fun getCrushCoursesWithWeeksByDate(
-        courseTableId: String,
-        targetDate: LocalDate,
-        config: CourseTableConfig
-    ): Flow<List<CourseWithWeeks>> {
-        val weekNumber = appSettingsRepository.getWeekIndexAtDate(
-            targetDate = targetDate,
-            startDateStr = config.semesterStartDate,
-            firstDayOfWeekInt = config.firstDayOfWeek
-        )
-
-        if (weekNumber == null) {
-            return flowOf(emptyList())
-        }
-
-        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次（返回整周课程）
-        return courseDao.getCrushCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
-            allCourses.filter { cw ->
-                cw.weeks.any { it.weekNumber == weekNumber }
-            }
-        }
-    }
-
-    /**
-     * 获取指定课表在特定星期和周次下的 crush 课程（数据流）。
-     * 用于今日课表模块展示 crush 今日课程。
-     */
-    fun getCrushCoursesForDay(
-        courseTableId: String,
-        weekNumber: Int,
-        day: Int
-    ): Flow<List<CourseWithWeeks>> {
-        // 使用简单查询获取全部 crush 课程，再在代码中过滤周次和星期
-        return courseDao.getCrushCoursesWithWeeksByTableId(courseTableId).map { allCourses ->
-            allCourses.filter { cw ->
-                cw.course.day == day && cw.weeks.any { it.weekNumber == weekNumber }
-            }.sortedWith(
-                compareBy<CourseWithWeeks> {
-                    if (it.course.isCustomTime) 99 else it.course.startSection ?: 99
-                }.thenBy {
-                    if (it.course.isCustomTime) it.course.customStartTime ?: "99:99" else "99:99"
-                }
-            )
         }
     }
 }

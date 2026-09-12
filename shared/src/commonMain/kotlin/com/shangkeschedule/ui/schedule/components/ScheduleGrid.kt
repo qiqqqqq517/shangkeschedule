@@ -228,7 +228,9 @@ fun ScheduleGrid(
                 content = {
                     singleSchedulables.forEachIndexed { blockIndex, item ->
                         val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
-                        val isCrushBlock = item.parentBlock.courses.any { it.course.isCrush }
+                        // crush 标记为旧结构遗留（迁移后恒为 false）；叠加视图中来自配对情侣课表的
+                        // 块同样只读——其节次语义属于另一套作息，拖拽/跨周移动会按错表换算写库。
+                        val isReadOnlyBlock = item.parentBlock.courses.any { it.course.isCrush } || item.parentBlock.isForeignTable
 
                         // v3.26.0 C+.15 课程格点按反馈：按压缩放 + 微抬起（读全局令牌；
                         // 关掉「课程格反馈」分组 ⇒ snap 到原样，无动画）
@@ -355,7 +357,7 @@ fun ScheduleGrid(
                                             }
                                             onLongClick {
                                                 // crush 课程仅展示，禁止进入编辑态
-                                                if (!isCrushBlock) {
+                                                if (!isReadOnlyBlock) {
                                                     state.expandedItem = item
                                                     actions.onHoldStateChanged(true)
                                                 }
@@ -386,7 +388,7 @@ fun ScheduleGrid(
                                                     onTap = { actions.onCourseBlockClicked(item.parentBlock) },
                                                     onLongPress = {
                                                         // crush 课程仅展示，禁止进入编辑态
-                                                        if (!isCrushBlock) {
+                                                        if (!isReadOnlyBlock) {
                                                             state.expandedItem = item
                                                             actions.onHoldStateChanged(true)
                                                         }
@@ -406,6 +408,7 @@ fun ScheduleGrid(
                                     style = style,
                                     timeSlots = viewState.timeSlots,
                                     isFloating = isExpanded,
+                                    forceTimeText = item.parentBlock.displayTimeRange,
                                     modifier = if (isExpanded) {
                                         if (!item.parentBlock.isVisualDemoted) {
                                             Modifier.pointerInput(item, state.gridWidthPx) {

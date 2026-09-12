@@ -219,7 +219,7 @@ fun CourseTableConversionScreen(
                 SettingItem(
                     title = stringResource(Res.string.item_school_system_import),
                     subtitle = stringResource(Res.string.desc_school_import_quick),
-                    onClick = { onNavigate(Destination.SchoolSelectionListScreen()) }
+                    onClick = { onNavigate(Destination.SchoolSelectionListScreen) }
                 )
                 SectionDivider()
                 SettingItem(

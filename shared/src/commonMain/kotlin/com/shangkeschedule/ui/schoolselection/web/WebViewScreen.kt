@@ -118,7 +118,6 @@ fun WebViewScreen(
     onBack: () -> Unit,
     initialUrl: String?,
     assetJsPath: String?,
-    isCrushImport: Boolean = false,
     forceDesktopMode: Boolean = false,
     viewModel: WebViewModel = koinViewModel()
 ) {
@@ -165,12 +164,11 @@ fun WebViewScreen(
     val uiEventChannel = remember { Channel<WebUiEvent>(Channel.UNLIMITED) }
     val uiEventsFlow = remember(uiEventChannel) { uiEventChannel.receiveAsFlow() }
 
-    val bridgeHandler = remember(coroutineScope, courseConversionRepository, webViewController, isCrushImport) {
+    val bridgeHandler = remember(coroutineScope, courseConversionRepository, webViewController) {
         WebBridgeHandler(
             coroutineScope = coroutineScope,
             uiEventChannel = uiEventChannel,
             courseConversionRepository = courseConversionRepository,
-            isCrushImport = isCrushImport,
             onTaskCompleted = {
                 coroutineScope.launch {
                     if (courseConversionRepository.isSemesterStartDateSet()) {

@@ -34,8 +34,12 @@ interface CourseDao {
     )
     fun getCoursesByTableId(courseTableId: String): Flow<List<Course>>
 
+    /** 按课程 ID 反查其所属课表 ID（用于叠加模式下定位情侣课程所在表）。 */
+    @Query("SELECT courseTableId FROM courses WHERE id = :courseId LIMIT 1")
+    suspend fun getCourseTableIdById(courseId: String): String?
+
     /**
-     * 一次性获取指定课表ID的所有本人课程（不含 crush 课程。
+     * 一次性获取指定课表ID的所有本人课程（不含 crush 课程）。
      * 用于时间段删除重编号后迁移课程节次引用。
      */
     @Query("SELECT * FROM courses WHERE courseTableId = :courseTableId AND isCrush = 0")

@@ -33,12 +33,13 @@ sealed interface Destination : NavKey {
     @Serializable data object Schedule : MainDestination
 
     // --- 二级功能页面 ---
-    @Serializable data object TimeSlotSettings : Destination
-    @Serializable data object ManageCourseTables : Destination
     @Serializable
-    data class SchoolSelectionListScreen(
-        val isCrushImport: Boolean = false
+    data class TimeSlotSettings(
+        /** 显式指定编辑的课表（情侣课表设置页跳转时传情侣课表 ID）；null = 当前选中课表。 */
+        val targetCourseTableId: String? = null
     ) : Destination
+    @Serializable data object ManageCourseTables : Destination
+    @Serializable data object SchoolSelectionListScreen : Destination
     @Serializable data object CourseTableConversion : Destination
     @Serializable data object NotificationSettings : Destination
     @Serializable data object SemesterSettings : Destination
@@ -86,21 +87,21 @@ sealed interface Destination : NavKey {
         val schoolId: String,
         val schoolName: String,
         val categoryNumber: Int,
-        val resourceFolder: String,
-        val isCrushImport: Boolean = false
+        val resourceFolder: String
     ) : Destination
 
     @Serializable
     data class WebView(
         val initialUrl: String? = "about:blank",
         val assetJsPath: String? = null,
-        val isCrushImport: Boolean = false,
         val forceDesktopMode: Boolean = false
     ) : Destination
 
     @Serializable
     data class AddEditCourse(
-        val courseId: String? = null
+        val courseId: String? = null,
+        /** 显式指定编辑目标课表（叠加模式下编辑情侣课程时传其所在情侣课表 ID）。 */
+        val targetCourseTableId: String? = null
     ) : Destination
 
     @Serializable

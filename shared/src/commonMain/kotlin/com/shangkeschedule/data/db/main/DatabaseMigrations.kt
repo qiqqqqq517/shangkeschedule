@@ -319,6 +319,119 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * 数据库版本 12 迁移到 版本 13 的迁移代码。
+ * 情侣课表独立化：
+ * 1. course_tables 新增 isCouple / pairedCourseTableId 两列。
+ * 2. 把旧结构中挂在本人课表下的 isCrush=1 课程，搬到自动创建的独立情侣课表：
+ *    - 为每个含 crush 课程的课表生成配对情侣表（id = 原表 id + "_couple"）；
+ *    - crush 课程整体转移并清零 isCrush 标记（isCrush 列保留仅为旧备份兼容）；
+ *    - 复制原表的默认作息方案 time_slots 与 course_table_config，保证升级后作息一致。
+ */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE course_tables ADD COLUMN isCouple INTEGER NOT NULL DEFAULT 0")
+        connection.execSQL("ALTER TABLE course_tables ADD COLUMN pairedCourseTableId TEXT")
+
+        // 收集所有含 crush 课程的本人课表 ID
+        val selfTableIds = mutableListOf<String>()
+        connection.prepare(
+            "SELECT DISTINCT courseTableId FROM courses WHERE isCrush = 1"
+        ).use { stmt ->
+            while (stmt.step()) {
+                if (!stmt.isNull(0)) selfTableIds.add(stmt.getText(0))
+            }
+        }
+
+        selfTableIds.forEach { selfId ->
+            val coupleId = selfId + "_couple"
+
+            // id 冲突（例如用户手动建过同名表）时：不再另建情侣表，
+            // crush 课程并入既有情侣表，避免数据滞留 isCrush=1 成为隐形数据。
+            val coupleTableExists = connection.prepare(
+                "SELECT 1 FROM course_tables WHERE id = ?"
+            ).use { stmt ->
+                stmt.bindText(1, coupleId)
+                stmt.step()
+            }
+
+            if (!coupleTableExists) {
+                val selfName = connection.prepare(
+                    "SELECT name FROM course_tables WHERE id = ?"
+                ).use { stmt ->
+                    stmt.bindText(1, selfId)
+                    if (stmt.step() && !stmt.isNull(0)) stmt.getText(0) else "我的课表"
+                }
+
+                connection.prepare(
+                    "INSERT INTO course_tables (id, name, createdAt, isCouple, pairedCourseTableId) VALUES (?, ?, ?, 1, ?)"
+                ).use { stmt ->
+                    stmt.bindText(1, coupleId)
+                    stmt.bindText(2, "${selfName} · 情侣")
+                    stmt.bindLong(3, kotlin.time.Clock.System.now().toEpochMilliseconds())
+                    stmt.bindText(4, selfId)
+                    stmt.step()
+                }
+            }
+
+            // crush 课程整体迁入情侣表并清零标记
+            connection.prepare(
+                "UPDATE courses SET courseTableId = ?, isCrush = 0 WHERE courseTableId = ? AND isCrush = 1"
+            ).use { stmt ->
+                stmt.bindText(1, coupleId)
+                stmt.bindText(2, selfId)
+                stmt.step()
+            }
+
+            // 复制本人表**全部方案**的作息（含夏/冬令时等非 default 方案）：
+            // 只复制 default 而整体复制 config.currentSchemeId 的话，生效方案为非 default 的用户
+            // 升级后情侣表 active 方案将没有任何 slots，情侣课程会整层消失。
+            // OR IGNORE 兼容「情侣表已存在」的冲突路径，避免主键冲突中断迁移。
+            connection.prepare(
+                """
+                INSERT OR IGNORE INTO time_slots (number, startTime, endTime, courseTableId, alias, schemeId)
+                SELECT number, startTime, endTime, ?, alias, schemeId
+                FROM time_slots WHERE courseTableId = ?
+                """.trimIndent()
+            ).use { stmt ->
+                stmt.bindText(1, coupleId)
+                stmt.bindText(2, selfId)
+                stmt.step()
+            }
+
+            // 复制作息方案元信息（生效日期范围，支持夏/冬令时自动切换）
+            connection.prepare(
+                """
+                INSERT OR IGNORE INTO time_slot_schemes (courseTableId, schemeId, startMonthDay, endMonthDay)
+                SELECT ?, schemeId, startMonthDay, endMonthDay
+                FROM time_slot_schemes WHERE courseTableId = ?
+                """.trimIndent()
+            ).use { stmt ->
+                stmt.bindText(1, coupleId)
+                stmt.bindText(2, selfId)
+                stmt.step()
+            }
+
+            // 复制课表配置（学期起止 / 总周数 / 每周起始 / 默认时长等）
+            connection.prepare(
+                """
+                INSERT OR IGNORE INTO course_table_config (
+                    courseTableId, showWeekends, semesterStartDate, semesterTotalWeeks,
+                    defaultClassDuration, defaultBreakDuration, firstDayOfWeek, currentSchemeId, autoSwitchScheme
+                )
+                SELECT ?, showWeekends, semesterStartDate, semesterTotalWeeks,
+                       defaultClassDuration, defaultBreakDuration, firstDayOfWeek, currentSchemeId, autoSwitchScheme
+                FROM course_table_config WHERE courseTableId = ?
+                """.trimIndent()
+            ).use { stmt ->
+                stmt.bindText(1, coupleId)
+                stmt.bindText(2, selfId)
+                stmt.step()
+            }
+        }
+    }
+}
+
 // 【集中管理所有迁移对象】
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -330,4 +443,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_9_10,
     MIGRATION_10_11,
     MIGRATION_11_12,
+    MIGRATION_12_13,
 )

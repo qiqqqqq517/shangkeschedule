@@ -133,7 +133,8 @@ fun CourseBlock(
     style: ScheduleGridStyleComposed,
     timeSlots: List<TimeSlot>,
     modifier: Modifier = Modifier,
-    isFloating: Boolean = false // 标记当前块是否处于长按选中/悬浮状态
+    isFloating: Boolean = false, // 标记当前块是否处于长按选中/悬浮状态
+    forceTimeText: String? = null // 叠加视图作息不同时强制展示的起止时间（按课程所属表作息解析）
 ) {
     val course = courseWrapper.course
     val isDarkTheme = LocalIsDarkTheme.current
@@ -175,7 +176,8 @@ fun CourseBlock(
     val customTimeString = if (customStartTime != null && customEndTime != null) "$customStartTime - $customEndTime" else null
     val isCustomTimeCourse = customTimeString != null
 
-    val timeTextToShow = if (style.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
+    // 叠加视图作息不同时强制展示（"8:00-9:50"），优先级最高；否则按模式默认规则
+    val timeTextToShow = forceTimeText ?: if (style.scheduleMode == ScheduleModeProto.TIME_24H_MODE) {
         // 24小时绝对时间轴模式：全部课程都显示起止时间
         if (isCustomTimeCourse) {
             customTimeString

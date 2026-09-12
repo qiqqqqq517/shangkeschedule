@@ -8,6 +8,7 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TodoItem
+import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.NextCardMode
 import kotlinx.datetime.DateTimeUnit
@@ -47,6 +48,53 @@ class TodayScheduleViewModel(
     private val todoRepository: TodoRepository,
     private val scheduleEventRepository: ScheduleEventRepository
 ) : ViewModel() {
+
+    /**
+     * 某日课程流（含情侣叠加）：本人课程 +（开关开启且存在配对情侣课表时）情侣课表课程。
+     *
+     * 情侣课程按情侣课表自己的作息解析节次时间并烘焙进副本的 customStart/EndTime
+     * （不落库），后续列表页统一按当前表 slotMap 解析时间时，TA 的课程用的就是
+     * TA 自己的作息而非本人的。
+     */
+    private fun mergedDayCoursesFlow(
+        settings: AppSettingsModel,
+        tableId: String,
+        weekIndex: Int,
+        dayOfWeek: Int
+    ): Flow<List<CourseWithWeeks>> {
+        val selfFlow = courseTableRepository.getCoursesForDay(tableId, weekIndex, dayOfWeek)
+        if (!settings.coupleScheduleEnabled) return selfFlow
+
+        // 当前表本身就是情侣课表（单独显示）时查不到配对表 → 自动回落为仅本人（即 TA）课程
+        return courseTableRepository.getCoupleTableFor(tableId).flatMapLatest { coupleTable ->
+            if (coupleTable == null) return@flatMapLatest selfFlow
+
+            val coupleConfigFlow = appSettingsRepository.getCourseTableConfigFlow(coupleTable.id)
+            combine(
+                selfFlow,
+                courseTableRepository.getCoursesForDay(coupleTable.id, weekIndex, dayOfWeek),
+                timeSlotRepository.getActiveTimeSlotsByConfigFlow(coupleTable.id, coupleConfigFlow)
+            ) { selfCourses, coupleCourses, coupleSlots ->
+                val slotByNumber = coupleSlots.associateBy { it.number }
+                val selfColored = selfCourses.map { cw ->
+                    cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
+                }
+                val coupleColored = coupleCourses.map { cw ->
+                    val course = cw.course
+                    val startSlot = slotByNumber[course.startSection]
+                    val endSlot = slotByNumber[course.endSection]
+                    cw.copy(
+                        course = course.copy(
+                            colorInt = settings.crushCourseColorIndex,
+                            customStartTime = course.customStartTime ?: startSlot?.startTime,
+                            customEndTime = course.customEndTime ?: endSlot?.endTime
+                        )
+                    )
+                }
+                selfColored + coupleColored
+            }
+        }
+    }
 
     companion object {
         private const val DEFAULT_SEMESTER_TOTAL_WEEKS = 20
@@ -124,25 +172,7 @@ class TodayScheduleViewModel(
                     // 只有 Normal 状态且不是跳过日期时才查询数据库
                     val coursesFlow: Flow<List<CourseWithWeeks>> =
                         if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null && !snapshot.isSkippedDay) {
-                            val selfCoursesFlow = courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
-
-                            // 情侣课表模式：合并本人课程与 crush 课程，并统一着色
-                            if (settings.coupleScheduleEnabled) {
-                                combine(
-                                    selfCoursesFlow,
-                                    courseTableRepository.getCrushCoursesForDay(tableId, snapshot.weekIndex, dayOfWeek)
-                                ) { selfCourses, crushCourses ->
-                                    val selfColored = selfCourses.map { cw ->
-                                        cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
-                                    }
-                                    val crushColored = crushCourses.map { cw ->
-                                        cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
-                                    }
-                                    selfColored + crushColored
-                                }
-                            } else {
-                                selfCoursesFlow
-                            }
+                            mergedDayCoursesFlow(settings, tableId, snapshot.weekIndex, dayOfWeek)
                         } else {
                             // 如果是跳过日期或非正常学期状态，直接返回空课程列表
                             flowOf(emptyList())
@@ -152,22 +182,7 @@ class TodayScheduleViewModel(
                     val tomorrowDayOfWeek = (dayOfWeek % 7) + 1
                     val tomorrowCoursesFlow: Flow<List<CourseWithWeeks>> =
                         if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null) {
-                            if (settings.coupleScheduleEnabled) {
-                                combine(
-                                    courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, tomorrowDayOfWeek),
-                                    courseTableRepository.getCrushCoursesForDay(tableId, snapshot.weekIndex, tomorrowDayOfWeek)
-                                ) { selfCourses, crushCourses ->
-                                    val selfColored = selfCourses.map { cw ->
-                                        cw.copy(course = cw.course.copy(colorInt = settings.selfCourseColorIndex))
-                                    }
-                                    val crushColored = crushCourses.map { cw ->
-                                        cw.copy(course = cw.course.copy(colorInt = settings.crushCourseColorIndex))
-                                    }
-                                    selfColored + crushColored
-                                }
-                            } else {
-                                courseTableRepository.getCoursesForDay(tableId, snapshot.weekIndex, tomorrowDayOfWeek)
-                            }
+                            mergedDayCoursesFlow(settings, tableId, snapshot.weekIndex, tomorrowDayOfWeek)
                         } else {
                             flowOf(emptyList())
                         }

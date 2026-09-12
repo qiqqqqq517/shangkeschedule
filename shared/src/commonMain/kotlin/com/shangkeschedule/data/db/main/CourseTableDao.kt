@@ -58,4 +58,16 @@ interface CourseTableDao {
      */
     @Query("SELECT * FROM course_tables ORDER BY createdAt ASC LIMIT 1")
     suspend fun getFirstTableOnce(): CourseTable?
+
+    /**
+     * 获取与本人课表配对的情侣课表（数据流）。
+     */
+    @Query("SELECT * FROM course_tables WHERE isCouple = 1 AND pairedCourseTableId = :selfTableId LIMIT 1")
+    fun getCoupleTableByPairedId(selfTableId: String): Flow<CourseTable?>
+
+    /**
+     * 获取与本人课表配对的情侣课表（一次性）。
+     */
+    @Query("SELECT * FROM course_tables WHERE isCouple = 1 AND pairedCourseTableId = :selfTableId LIMIT 1")
+    suspend fun getCoupleTableByPairedIdOnce(selfTableId: String): CourseTable?
 }
