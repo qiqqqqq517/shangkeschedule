@@ -30,6 +30,6 @@ class CompactNativeProvider : AppWidgetProvider() {
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         // 只有在确定不再需要后台更新时才取消
-        WorkManagerHelper.cancelAllWork(context)
+        WorkManagerHelper.onWidgetDisabled(context)
     }
 }

@@ -10,6 +10,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -35,10 +37,13 @@ class ManageCourseTablesViewModel(
     // 组合课表列表 + 当前选中 ID + 每张课表的配置/课程数，产出一个完整的 UI 状态
     val uiState: StateFlow<ManageCourseTablesUiState> = combine(
         courseTableRepository.getAllCourseTables(),
-        appSettingsRepository.getAppSettings()
-    ) { courseTables, appSettings ->
-        courseTables to appSettings.currentCourseTableId
-    }.flatMapLatest { (courseTables, activeTableId) ->
+        appSettingsRepository.getAppSettings().map { it.currentCourseTableId }.distinctUntilChanged()
+    ) { courseTables, activeTableId ->
+        courseTables to activeTableId
+    }
+        // 设置里无关字段的写入不再触发 N 张表 × 2 条 Room 流全量重订阅
+        .distinctUntilChanged()
+        .flatMapLatest { (courseTables, activeTableId) ->
         if (courseTables.isEmpty()) {
             flowOf(buildUiState(courseTables, activeTableId, emptyList()))
         } else {

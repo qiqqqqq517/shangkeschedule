@@ -39,6 +39,7 @@ class FullDataSyncWorker(
             widgetDataSynchronizer.syncNow()
             return Result.success()
         } catch (e: Exception) {
+            Log.e("WidgetSync", "FullDataSyncWorker 全量同步失败", e)
             return Result.failure()
         }
     }

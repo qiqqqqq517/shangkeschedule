@@ -38,6 +38,6 @@ class ListVerticalNativeProvider : AppWidgetProvider() {
      */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        WorkManagerHelper.cancelAllWork(context)
+        WorkManagerHelper.onWidgetDisabled(context)
     }
 }

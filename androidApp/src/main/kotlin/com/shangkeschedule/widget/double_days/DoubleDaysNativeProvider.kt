@@ -29,6 +29,6 @@ class DoubleDaysNativeProvider : AppWidgetProvider() {
     // 移除最后一个小组件时清除任务表
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        WorkManagerHelper.cancelAllWork(context)
+        WorkManagerHelper.onWidgetDisabled(context)
     }
 }

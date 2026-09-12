@@ -44,20 +44,23 @@ class CourseNotificationWorker(
         return try {
             val appSettings = appSettingsRepository.getAppSettings().first()
 
-            // 论开关状态，先清空 50010 - 50110 范围内的所有旧闹钟槽位
-            cancelAllAlarms()
-
-            // 如果开关没开，清理完直接结束
-            if (!appSettings.reminderEnabled) return Result.success()
+            // 如果开关没开，清空槽位后直接结束
+            if (!appSettings.reminderEnabled) {
+                cancelAllAlarms()
+                return Result.success()
+            }
 
             val remindBeforeMinutes = appSettings.remindBeforeMinutes
             val now = LocalDateTime.now()
             val startDate = now.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE)
             val endDate = now.toLocalDate().plusDays(WIDGET_SYNC_DAYS).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-            // 获取未来课程
+            // 先取课程数据（失败 retry 保留旧闹钟），成功后再清空重排——
+            // 旧实现先清后读，读库异常会把 101 个提醒槽位全部清掉且不重试
             val coursesToRemind = widgetRepository.getWidgetCoursesByDateRange(startDate, endDate).first()
                 .filter { !it.isSkipped }
+
+            cancelAllAlarms()
 
             val zoneId = ZoneId.systemDefault()
 
@@ -82,7 +85,8 @@ class CourseNotificationWorker(
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "同步课程提醒失败", e)
-            Result.failure()
+            // retry（默认退避）：提醒已被清空重排前失败时，不能静默放弃至次日零点
+            Result.retry()
         }
     }
 
