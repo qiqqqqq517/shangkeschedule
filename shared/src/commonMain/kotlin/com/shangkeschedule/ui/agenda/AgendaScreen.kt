@@ -6,9 +6,11 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -48,6 +50,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -1738,9 +1741,13 @@ private fun AgendaDateTimeRow(
                 .padding(horizontal = 6.dp, vertical = 6.dp)
         )
         Spacer(modifier = Modifier.weight(1f))
-        if (time != null) {
+        AnimatedVisibility(
+            visible = time != null,
+            enter = fadeIn(tween(200)) + expandHorizontally(),
+            exit = fadeOut(tween(200)) + shrinkHorizontally()
+        ) {
             Text(
-                text = time,
+                text = time.orEmpty(),
                 fontSize = appType().body,
                 fontWeight = FontWeight.SemiBold,
                 color = tokens.textPrimary,

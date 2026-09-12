@@ -341,7 +341,7 @@ fun TimeSlotManagementScreen(
                 }
             }
 
-            itemsIndexed(localTimeSlots, key = { _, slot -> "${slot.number}-${slot.startTime}" }) { _, timeSlot ->
+            itemsIndexed(localTimeSlots, key = { _, slot -> "slot_${slot.number}" }) { _, timeSlot ->
                 TimeSlotItem(
                     timeSlot = timeSlot,
                     onEditClick = {

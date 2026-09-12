@@ -9,6 +9,11 @@ import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -43,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -76,6 +82,8 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeReadingSerif
+import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
 import kotlinx.coroutines.launch
@@ -89,6 +97,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.couple_badge
+import shangkeschedule.shared.generated.resources.toast_couple_created
+import shangkeschedule.shared.generated.resources.toast_couple_create_failed
 import shangkeschedule.shared.generated.resources.semester_status_ongoing
 import shangkeschedule.shared.generated.resources.semester_status_upcoming
 import shangkeschedule.shared.generated.resources.toast_set_current_semester
@@ -189,6 +199,9 @@ fun ManageCourseTablesScreen(
 
     // --- 资源字符串 ---
     val a11yBack = stringResource(Res.string.a11y_back)
+    val toastSwitchFormat = stringResource(Res.string.toast_switch_table_success, "PLACEHOLDER")
+    val toastCoupleCreated = stringResource(Res.string.toast_couple_created)
+    val toastCoupleCreateFailed = stringResource(Res.string.toast_couple_create_failed)
     val dialogTitleAddTable = stringResource(Res.string.dialog_title_add_table)
     val labelTableName = stringResource(Res.string.label_table_name)
     val actionAdd = stringResource(Res.string.action_add)
@@ -225,22 +238,23 @@ fun ManageCourseTablesScreen(
                     .widthIn(max = 640.dp)
             ) {
                 // 正在单独显示情侣课表时，当前学期卡展示的是本人表：
-                // 「查看课表 / 学期设置」先切回本人表，保证卡面与操作目标一致
+                // 「查看课表 / 学期设置」先切回本人表，保证卡面与操作目标一致。
+                // 必须等切表落库完成再导航——页面弹出后 viewModelScope 被取消，
+                // 未完成的切表会丢失（落在旧课表）
                 val activeTableIsCouple = uiState.currentSemester?.let { semester ->
                     uiState.currentActiveTableId != null && uiState.currentActiveTableId != semester.table.id
                 } ?: false
-                val goSelfTimetable: () -> Unit = {
-                    if (activeTableIsCouple) {
-                        uiState.currentSemester?.let { viewModel.switchCourseTable(it.table.id) }
+                val switchThen: (CourseTable?, Destination) -> Unit = { table, dest ->
+                    coroutineScope.launch {
+                        if (activeTableIsCouple) {
+                            uiState.currentSemester?.let { viewModel.switchCourseTableNow(it.table.id) }
+                        }
+                        table?.let { viewModel.switchCourseTableNow(it.id) }
+                        onNavigate(dest)
                     }
-                    onNavigate(Destination.CourseSchedule)
                 }
-                val goSelfSemesterSettings: () -> Unit = {
-                    if (activeTableIsCouple) {
-                        uiState.currentSemester?.let { viewModel.switchCourseTable(it.table.id) }
-                    }
-                    onNavigate(Destination.SemesterSettings)
-                }
+                val goSelfTimetable: () -> Unit = { switchThen(null, Destination.CourseSchedule) }
+                val goSelfSemesterSettings: () -> Unit = { switchThen(null, Destination.SemesterSettings) }
                 SemesterArchiveList(
                     uiState = uiState,
                     showAllGroups = showAllGroups,
@@ -258,24 +272,35 @@ fun ManageCourseTablesScreen(
                         viewModel.switchCourseTable(table.id)
                     },
                     onViewSemester = { table ->
-                        // 「查看」= 指定当前学期并前往课表页
-                        viewModel.switchCourseTable(table.id)
-                        onNavigate(Destination.CourseSchedule)
+                        // 「查看」= 指定当前学期并前往课表页（切表落库后再导航）
+                        val msg = toastSwitchFormat.replace("PLACEHOLDER", table.name)
+                        coroutineScope.launch {
+                            viewModel.switchCourseTableNow(table.id)
+                            ToastManager.show(msg)
+                            onNavigate(Destination.CourseSchedule)
+                        }
                     },
                     onDeleteSemester = { table ->
                         tableToDelete = table
                         showDeleteConfirmDialog = true
                     },
                     onViewCouple = { table ->
-                        viewModel.switchCourseTable(table.id)
-                        onNavigate(Destination.CourseSchedule)
+                        val msg = toastSwitchFormat.replace("PLACEHOLDER", table.name)
+                        coroutineScope.launch {
+                            viewModel.switchCourseTableNow(table.id)
+                            ToastManager.show(msg)
+                            onNavigate(Destination.CourseSchedule)
+                        }
                     },
                     onDeleteCouple = { table ->
                         tableToDelete = table
                         showDeleteConfirmDialog = true
                     },
                     onAddCouple = { selfTableId ->
-                        viewModel.createCoupleTableFor(selfTableId)
+                        coroutineScope.launch {
+                            val created = viewModel.createCoupleTableForNow(selfTableId)
+                            ToastManager.show(if (created) toastCoupleCreated else toastCoupleCreateFailed)
+                        }
                     },
                     onImportSemester = { onNavigate(Destination.SchoolSelectionListScreen) },
                     onRestoreBackup = { onNavigate(Destination.BackupAndRestore) }
@@ -763,6 +788,12 @@ private fun SemesterCard(
         isClaude -> claudeGroupBg()
         else -> tokens.cardBg
     }
+    // 当前学期高亮描边随选中状态淡入淡出（其余状态回落到常规描边色）
+    val animatedBorderColor by animateColorAsState(
+        if (highlightBorder) tokens.primary else (if (isClaude) claudeGroupBorder() else tokens.divider),
+        animationSpec = tween(200),
+        label = "semesterCardBorder"
+    )
     // 柔绘：薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边）+ 手绘柔绘纹理（学期卡是大卡面）；
     // 底色沿用上面已算好的 bg（含「当前学期卡」的 cardBgElevated 覆盖）
     val surfaceModifier = if (isSoft) {
@@ -801,7 +832,7 @@ private fun SemesterCard(
                     // 柔绘：无实色描边（含当前学期高亮）——高亮由主色薄涂底表达；
                     // 羽化描边环已由 softSurface 内含，此处不再重复叠加（与 AppCard 收口一致）
                     isSoft -> Modifier
-                    highlightBorder -> Modifier.border(1.dp, tokens.primary, shape)
+                    highlightBorder -> Modifier.border(1.dp, animatedBorderColor, shape)
                     isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
                     // 通透（iOS 26）：白卡 + 玻璃高光内描边
                     else -> Modifier.iosGlassRim(shape)
@@ -828,7 +859,7 @@ private fun CurrentSemesterCard(
 
     SemesterCard(
         modifier = Modifier.fillMaxWidth(),
-        containerColor = colors.cardBgElevated,
+        containerColor = if (LocalThemePreset.current == AppThemePreset.SOFT) colors.primarySoft else colors.cardBgElevated,
         highlightBorder = true,
         onLongClick = onRename
     ) {
@@ -914,7 +945,13 @@ private fun CurrentSemesterCard(
                         val fraction = (weekPercent.coerceIn(0, 100)) / 100f
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(fraction)
+                                .fillMaxWidth(
+                                    animateFloatAsState(
+                                        targetValue = fraction,
+                                        animationSpec = tween(400),
+                                        label = "semesterProgress"
+                                    ).value
+                                )
                                 .fillMaxHeight()
                                 .clip(appShapes().capsule)
                                 .background(colors.success)
@@ -1102,6 +1139,8 @@ private fun HistoryYearGroup(
 
         // 学期卡列表（本人卡 + 情侣卡并排，左右滑动查看）
         group.semesters.forEach { semesterInfo ->
+            // 稳定 key：防止列表重排后行内 rememberPagerState 按位置继承前任页码
+            key(semesterInfo.table.id) {
             SemesterSwipeRow(
                 selfCard = {
                     HistorySemesterCard(
@@ -1122,6 +1161,7 @@ private fun HistoryYearGroup(
                     )
                 }
             )
+            }
         }
     }
 }
@@ -1258,6 +1298,7 @@ private fun SemesterSwipeRow(
     coupleCard: @Composable () -> Unit
 ) {
     val colors = appColors()
+    val motionTokens = LocalAppMotion.current.tokens
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1276,12 +1317,18 @@ private fun SemesterSwipeRow(
         ) {
             repeat(2) { index ->
                 val active = pagerState.currentPage == index
+                val dotSize by animateDpAsState(if (active) 7.dp else 5.dp, label = "dotSize")
+                val dotColor by animateColorAsState(
+                    if (active) colors.primary else colors.divider,
+                    animationSpec = tween(motionTokens.colorDurationMs),
+                    label = "dotColor"
+                )
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
-                        .size(if (active) 7.dp else 5.dp)
+                        .size(dotSize)
                         .clip(CircleShape)
-                        .background(if (active) colors.primary else colors.divider)
+                        .background(dotColor)
                 )
             }
         }
@@ -1298,14 +1345,22 @@ private fun CoupleSwipePage(
     onAddCouple: (String) -> Unit
 ) {
     val coupleInfo = couple
-    if (coupleInfo == null) {
-        AddCoupleCard(onAdd = { onAddCouple(selfTableId) })
-    } else {
-        CoupleSemesterCard(
-            couple = coupleInfo,
-            onView = { onViewCouple(coupleInfo.table) },
-            onDelete = { onDeleteCouple(coupleInfo.table) }
-        )
+    val motion = LocalAppMotion.current
+    // 创建情侣课表：「添加虚线卡 ⇄ 情侣卡」交叉淡入淡出，替代瞬跳
+    Crossfade(
+        targetState = coupleInfo,
+        animationSpec = tween(motion.tokens.statusFadeMs),
+        label = "coupleSwipePage"
+    ) { target ->
+        if (target == null) {
+            AddCoupleCard(onAdd = { onAddCouple(selfTableId) })
+        } else {
+            CoupleSemesterCard(
+                couple = target,
+                onView = { onViewCouple(target.table) },
+                onDelete = { onDeleteCouple(target.table) }
+            )
+        }
     }
 }
 
@@ -1344,7 +1399,6 @@ private fun CoupleSemesterCard(
     onDelete: () -> Unit
 ) {
     val colors = appColors()
-    val switchSuccessMsg = stringResource(Res.string.toast_switch_table_success, couple.table.name)
 
     SemesterCard(modifier = Modifier.fillMaxWidth(), onClick = onView) {
         Column(
@@ -1426,10 +1480,7 @@ private fun CoupleSemesterCard(
                     text = stringResource(Res.string.action_view),
                     icon = vectorResource(Res.drawable.visibility_24px),
                     danger = false,
-                    onClick = {
-                        ToastManager.show(switchSuccessMsg)
-                        onView()
-                    },
+                    onClick = onView,
                     modifier = Modifier.weight(1f)
                 )
                 GhostActionButton(
@@ -1451,7 +1502,7 @@ private fun AddCoupleCard(onAdd: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(appShapes().card)
             .dashedBorder(colors.divider, cornerRadius = 14.dp)
             .clickable(onClick = onAdd)
             .padding(vertical = 24.dp, horizontal = 16.dp),

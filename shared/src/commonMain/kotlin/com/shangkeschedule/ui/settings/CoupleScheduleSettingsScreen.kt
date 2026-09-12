@@ -4,6 +4,16 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +58,7 @@ import shangkeschedule.shared.generated.resources.favorite_24px
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.couple_need_create_first
 import shangkeschedule.shared.generated.resources.couple_count_format
 import shangkeschedule.shared.generated.resources.couple_delete_confirm_message
 import shangkeschedule.shared.generated.resources.couple_manage_create
@@ -118,6 +129,7 @@ fun CoupleScheduleSettingsScreen(
     val toastToCouple = stringResource(Res.string.toast_switch_to_couple)
     val toastToSelf = stringResource(Res.string.toast_switch_to_self)
     val toastNameEmpty = stringResource(Res.string.toast_name_empty)
+    val needCoupleFirst = stringResource(Res.string.couple_need_create_first)
 
     if (!uiState.isReady) {
         Scaffold(
@@ -194,17 +206,19 @@ fun CoupleScheduleSettingsScreen(
                         title = coupleTable.name,
                         subtitle = stringResource(Res.string.couple_manage_created_desc)
                     )
-                    SectionDivider()
-                    SettingItem(
-                        title = stringResource(Res.string.couple_manage_view),
-                        subtitle = stringResource(Res.string.couple_count_format, uiState.coupleCourseCount),
-                        leadingIcon = vectorResource(Res.drawable.visibility_24px),
-                        onClick = {
-                            coroutineScope.launch {
-                                if (viewModel.switchToCouple()) ToastManager.show(toastToCouple)
+                    if (!isViewingCoupleSolo) {
+                        SectionDivider()
+                        SettingItem(
+                            title = stringResource(Res.string.couple_manage_view),
+                            subtitle = stringResource(Res.string.couple_count_format, uiState.coupleCourseCount),
+                            leadingIcon = vectorResource(Res.drawable.visibility_24px),
+                            onClick = {
+                                coroutineScope.launch {
+                                    if (viewModel.switchToCouple()) ToastManager.show(toastToCouple)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                     SectionDivider()
                     SettingItem(
                         title = stringResource(Res.string.couple_manage_rename),
@@ -233,7 +247,13 @@ fun CoupleScheduleSettingsScreen(
             }
 
             // --- 正在单独显示情侣课表：提供返回本人课表 ---
-            if (isViewingCoupleSolo) {
+            val soloMotion = LocalAppMotion.current
+            val soloAnim = soloMotion.isEnabled(AnimationGroup.PAGE_ENTRANCE)
+            AnimatedVisibility(
+                visible = isViewingCoupleSolo,
+                enter = if (soloAnim) expandVertically() + fadeIn(tween(soloMotion.tokens.statusFadeMs)) else EnterTransition.None,
+                exit = if (soloAnim) shrinkVertically() + fadeOut(tween(soloMotion.tokens.statusFadeMs)) else ExitTransition.None
+            ) {
                 SectionCard {
                     SettingItem(
                         title = stringResource(Res.string.couple_solo_banner),
@@ -249,17 +269,18 @@ fun CoupleScheduleSettingsScreen(
 
             // --- 显示设置 ---
             SectionCard {
+                val hasCouple = uiState.coupleTable != null
                 SettingItem(
                     title = stringResource(Res.string.couple_overlay_switch),
-                    subtitle = if (isViewingCoupleSolo) {
-                        stringResource(Res.string.couple_overlay_disabled_solo)
-                    } else {
-                        stringResource(Res.string.couple_overlay_desc)
+                    subtitle = when {
+                        isViewingCoupleSolo -> stringResource(Res.string.couple_overlay_disabled_solo)
+                        !hasCouple -> stringResource(Res.string.couple_manage_not_created)
+                        else -> stringResource(Res.string.couple_overlay_desc)
                     }
                 ) {
                     AppSwitch(
-                        checked = uiState.coupleScheduleEnabled && !isViewingCoupleSolo,
-                        enabled = !isViewingCoupleSolo,
+                        checked = uiState.coupleScheduleEnabled && !isViewingCoupleSolo && hasCouple,
+                        enabled = !isViewingCoupleSolo && hasCouple,
                         onCheckedChange = { viewModel.onCoupleScheduleEnabledChanged(it) }
                     )
                 }
@@ -289,18 +310,32 @@ fun CoupleScheduleSettingsScreen(
 
             // --- 导入（复用主课表多形式导入，目标课表在导入流程中选择） ---
             SectionCard {
+                val importGuard: () -> Unit = {
+                    if (coupleTable == null) {
+                        ToastManager.show(needCoupleFirst)
+                    } else {
+                        onNavigate(Destination.SchoolSelectionListScreen)
+                    }
+                }
+                val importFileGuard: () -> Unit = {
+                    if (coupleTable == null) {
+                        ToastManager.show(needCoupleFirst)
+                    } else {
+                        onNavigate(Destination.FileImportHub)
+                    }
+                }
                 SettingItem(
                     title = stringResource(Res.string.item_import_crush_schedule),
                     subtitle = stringResource(Res.string.couple_manage_import_school_desc),
                     leadingIcon = vectorResource(Res.drawable.upload_24px),
-                    onClick = { onNavigate(Destination.SchoolSelectionListScreen) }
+                    onClick = importGuard
                 )
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.couple_manage_import_file),
                     subtitle = stringResource(Res.string.couple_manage_import_file_desc),
                     leadingIcon = vectorResource(Res.drawable.upload_24px),
-                    onClick = { onNavigate(Destination.FileImportHub) }
+                    onClick = importFileGuard
                 )
             }
         }
@@ -381,6 +416,7 @@ fun CoupleScheduleSettingsScreen(
                 showDeleteConfirm = false
                 coroutineScope.launch {
                     val deleted = viewModel.deleteCoupleTable()
+                    viewModel.resetOverlaySwitch()
                     ToastManager.show(if (deleted) toastDeleted else toastDeleteFailed)
                 }
             },

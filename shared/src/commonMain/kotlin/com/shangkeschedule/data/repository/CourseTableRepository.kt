@@ -230,7 +230,14 @@ class CourseTableRepository(
         val deletedIds = tablesToDelete.map { it.id }.toSet()
 
         // 删除后必须至少剩余一张课表（例如仅剩「本人表+其情侣表」时删本人表应拒绝）
-        val fallbackTable = allTables.firstOrNull { it.id !in deletedIds } ?: return false
+        // 删除情侣表时优先回退到其配对本人表，避免落到无关的历史学期
+        val fallbackTable = if (courseTable.isCouple && courseTable.pairedCourseTableId != null &&
+            allTables.any { it.id == courseTable.pairedCourseTableId && it.id !in deletedIds }
+        ) {
+            allTables.first { it.id == courseTable.pairedCourseTableId && it.id !in deletedIds }
+        } else {
+            allTables.firstOrNull { it.id !in deletedIds } ?: return false
+        }
         val currentSettings = appSettingsRepository.getAppSettingsOnce()
         if (currentSettings.currentCourseTableId in deletedIds) {
             appSettingsRepository.insertOrUpdateAppSettings(

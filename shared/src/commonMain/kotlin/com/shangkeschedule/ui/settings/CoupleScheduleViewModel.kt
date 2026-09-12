@@ -189,6 +189,11 @@ class CoupleScheduleViewModel(
         }
     }
 
+    /** 删除情侣课表后调用：关闭双人同显开关，避免日后重建时叠加悄然生效。 */
+    fun resetOverlaySwitch() {
+        viewModelScope.launch { updateSettings { it.copy(coupleScheduleEnabled = false) } }
+    }
+
     private suspend fun updateSettings(transform: (AppSettingsModel) -> AppSettingsModel) {
         val settings = appSettingsRepository.getAppSettingsOnce()
         appSettingsRepository.insertOrUpdateAppSettings(transform(settings))

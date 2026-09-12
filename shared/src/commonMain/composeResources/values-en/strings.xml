@@ -1125,4 +1125,6 @@
     <string name="semester_status_upcoming">Upcoming</string>
     <string name="semester_status_ongoing">In progress</string>
     <string name="toast_set_current_semester">Set as current semester: %1$s</string>
+    <string name="couple_need_create_first">Create the couple schedule first</string>
+    <string name="toast_couple_create_failed">Creation failed, please retry</string>
 </resources>
