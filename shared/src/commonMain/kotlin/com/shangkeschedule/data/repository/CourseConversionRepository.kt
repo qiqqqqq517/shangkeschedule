@@ -76,31 +76,35 @@ class CourseConversionRepository(
     private fun validateTimeSlotsOrThrow(timeSlots: List<TimeSlotJsonModel>) {
         if (timeSlots.isEmpty()) return
 
-        val sortedSlots = timeSlots.sortedBy { it.number }
-        var lastEndTimeInMinutes = -1
+        // v2 起备份把全部作息方案拍平在同一列表（每套方案编号各自从 1 起），
+        // 编号连续性与时间重叠都必须**按 schemeId 分组内**校验——全局校验会让多方案备份恢复必然失败
+        timeSlots.groupBy { it.schemeId }.forEach { (_, schemeSlots) ->
+            val sortedSlots = schemeSlots.sortedBy { it.number }
+            var lastEndTimeInMinutes = -1
 
-        sortedSlots.forEachIndexed { index, slot ->
-            val expectedNumber = index + 1
-            if (slot.number != expectedNumber) {
-                throw IllegalArgumentException("时间段编号不连续或未从1开始")
+            sortedSlots.forEachIndexed { index, slot ->
+                val expectedNumber = index + 1
+                if (slot.number != expectedNumber) {
+                    throw IllegalArgumentException("时间段编号不连续或未从1开始")
+                }
+
+                if (!timeRegex.matches(slot.startTime) || !timeRegex.matches(slot.endTime)) {
+                    throw IllegalArgumentException("时间格式错误")
+                }
+
+                val startMinutes = parseToMinutes(slot.startTime)
+                val endMinutes = parseToMinutes(slot.endTime)
+
+                if (startMinutes >= endMinutes) {
+                    throw IllegalArgumentException("开始时间必须早于结束时间")
+                }
+
+                if (lastEndTimeInMinutes != -1 && startMinutes < lastEndTimeInMinutes) {
+                    throw IllegalArgumentException("时间段配置存在重叠")
+                }
+
+                lastEndTimeInMinutes = endMinutes
             }
-
-            if (!timeRegex.matches(slot.startTime) || !timeRegex.matches(slot.endTime)) {
-                throw IllegalArgumentException("时间格式错误")
-            }
-
-            val startMinutes = parseToMinutes(slot.startTime)
-            val endMinutes = parseToMinutes(slot.endTime)
-
-            if (startMinutes >= endMinutes) {
-                throw IllegalArgumentException("开始时间必须早于结束时间")
-            }
-
-            if (lastEndTimeInMinutes != -1 && startMinutes < lastEndTimeInMinutes) {
-                throw IllegalArgumentException("时间段配置存在重叠")
-            }
-
-            lastEndTimeInMinutes = endMinutes
         }
     }
 
