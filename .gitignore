@@ -82,3 +82,4 @@ adapter_secrets.properties
 
 # Cloudflare Wrangler 本地缓存（部署产物，不入库）
 .wrangler/
+.zcode/
