@@ -1741,13 +1741,16 @@ private fun AgendaDateTimeRow(
                 .padding(horizontal = 6.dp, vertical = 6.dp)
         )
         Spacer(modifier = Modifier.weight(1f))
+        // 暂存最近一次非 null 时间：退场期间以旧文本淡出收缩，而非瞬间变空壳
+        var lastShownTime by remember { mutableStateOf<String?>(null) }
+        if (time != null) lastShownTime = time
         AnimatedVisibility(
             visible = time != null,
             enter = fadeIn(tween(200)) + expandHorizontally(),
             exit = fadeOut(tween(200)) + shrinkHorizontally()
         ) {
             Text(
-                text = time.orEmpty(),
+                text = lastShownTime.orEmpty(),
                 fontSize = appType().body,
                 fontWeight = FontWeight.SemiBold,
                 color = tokens.textPrimary,
