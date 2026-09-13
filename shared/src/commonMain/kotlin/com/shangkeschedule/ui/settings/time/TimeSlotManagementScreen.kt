@@ -36,7 +36,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -179,7 +179,7 @@ fun TimeSlotManagementScreen(
     timeSlotViewModel: TimeSlotViewModel = koinViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val uiState by timeSlotViewModel.timeSlotsUiState.collectAsState()
+    val uiState by timeSlotViewModel.timeSlotsUiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(targetCourseTableId) {
         timeSlotViewModel.initWithTargetTable(targetCourseTableId)

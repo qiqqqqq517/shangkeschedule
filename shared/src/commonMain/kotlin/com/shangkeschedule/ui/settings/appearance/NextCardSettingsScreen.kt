@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +60,7 @@ fun NextCardSettingsScreen(
     onBack: () -> Unit,
     settingsViewModel: SettingsViewModel = koinViewModel()
 ) {
-    val uiState by settingsViewModel.uiState.collectAsState()
+    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val settings = uiState.appSettings
 
     Scaffold(

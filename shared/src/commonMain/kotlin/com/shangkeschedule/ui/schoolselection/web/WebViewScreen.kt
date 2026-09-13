@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.schoolselection.web
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
@@ -37,7 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -123,7 +123,7 @@ fun WebViewScreen(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    val isDeveloperModeEnabled by viewModel.isDeveloperModeEnabled.collectAsState()
+    val isDeveloperModeEnabled by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val startedEmpty = remember { initialUrl.isNullOrBlank() || initialUrl == "about:blank" }
     val showAddressBarToggleButton = startedEmpty || isDeveloperModeEnabled
 

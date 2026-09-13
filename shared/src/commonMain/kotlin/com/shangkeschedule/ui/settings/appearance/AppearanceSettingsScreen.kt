@@ -44,7 +44,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -193,7 +192,7 @@ fun ThemeSettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     styleViewModel: StyleSettingsViewModel = koinViewModel()
 ) {
-    val uiState by settingsViewModel.uiState.collectAsState()
+    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val settings = uiState.appSettings
     val styleState by styleViewModel.styleState.collectAsStateWithLifecycle()
     val demoUiState by styleViewModel.demoUiState.collectAsStateWithLifecycle()

@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.Destination
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
@@ -103,7 +103,7 @@ fun CourseNameListScreen(
     onBack: () -> Unit,
     viewModel: CourseNameListViewModel = koinViewModel()
 ) {
-    val uniqueCourseNames by viewModel.uniqueCourseNames.collectAsState()
+    val uniqueCourseNames by viewModel.uniqueCourseNames.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     // 液态玻璃 FAB 背板采样：内容 glassBackdropSource，FAB 玻璃取样其背后的列表
     val pageGlassBackdrop = rememberGlassBackdrop()

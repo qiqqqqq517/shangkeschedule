@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
@@ -33,7 +34,6 @@ import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.ToastManager
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,7 +114,7 @@ fun CoupleScheduleSettingsScreen(
     onBack: () -> Unit,
     viewModel: CoupleScheduleViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 

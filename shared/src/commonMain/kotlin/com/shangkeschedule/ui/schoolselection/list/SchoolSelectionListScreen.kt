@@ -32,10 +32,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -99,16 +99,16 @@ fun SchoolSelectionListScreen(
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 观察 ViewModel 状态
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val filteredSchools by viewModel.filteredSchools.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val schoolHistory by viewModel.schoolHistory.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val filteredSchools by viewModel.filteredSchools.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val schoolHistory by viewModel.schoolHistory.collectAsStateWithLifecycle()
 
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var isSearchActive by remember { mutableStateOf(false) }
-    val loadFailed by viewModel.loadFailed.collectAsState()
+    val loadFailed by viewModel.loadFailed.collectAsStateWithLifecycle()
 
     // 搜索态接管系统返回（v3.54.0）：手势/返回键先清搜索词与激活态，而非直接退出本页
     val searchBackState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)

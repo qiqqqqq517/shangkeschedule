@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.theme.appSpacing
 
 import com.shangkeschedule.ui.theme.appColors
@@ -27,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,8 +114,8 @@ fun CourseTablePickerDialog(
     onTableSelected: (CourseTable) -> Unit,
     deps: CourseTablePickerDeps = koinViewModel()
 ) {
-    val courseTables by deps.courseTableRepository.getAllCourseTables().collectAsState(initial = emptyList())
-    val appSettings by deps.appSettingsRepository.getAppSettings().collectAsState(initial = null)
+    val courseTables by deps.courseTableRepository.getAllCourseTables().collectAsStateWithLifecycle(initialValue = emptyList())
+    val appSettings by deps.appSettingsRepository.getAppSettings().collectAsStateWithLifecycle(initialValue = null)
 
     var selectedTable by remember { mutableStateOf<CourseTable?>(null) }
 

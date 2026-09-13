@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.import
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appColors
 
@@ -34,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +58,7 @@ fun ExcelImportScreen(
     onImportSuccess: (String) -> Unit,
     viewModel: TextImportViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
     val toastNoFile = stringResource(Res.string.import_error_no_file)

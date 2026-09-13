@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.import
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appColors
 
@@ -38,7 +39,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,7 +68,7 @@ fun JsonFileImportScreen(
     onImportSuccess: (String) -> Unit,
     viewModel: TextImportViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var showTablePicker by remember { mutableStateOf(false) }
     var selectedTableId by remember { mutableStateOf<String?>(null) }

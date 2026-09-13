@@ -1,5 +1,6 @@
 ﻿package com.shangkeschedule.ui.settings.appearance
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,7 +114,7 @@ fun GlassBlurScreen(
     onBack: () -> Unit,
     settingsViewModel: SettingsViewModel = koinViewModel()
 ) {
-    val uiState by settingsViewModel.uiState.collectAsState()
+    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val blurDp = uiState.appSettings.glassBlurRadiusDp
     // 拖动节流（v3.54.0）：拖动中只更新本地草稿并就近驱动预览，松手/输入确认才落库一次——
     // 此前每帧写 DataStore，全端玻璃件与设置流整链逐帧重算。

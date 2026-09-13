@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -91,8 +90,8 @@ fun CourseInstanceListScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val courseInstances by viewModel.courseInstances.collectAsStateWithLifecycle()
-    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
-    val selectedCourseIds by viewModel.selectedCourseIds.collectAsState()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedCourseIds by viewModel.selectedCourseIds.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     // 液态玻璃 FAB 背板采样：内容 glassBackdropSource，FAB 玻璃取样其背后的网格
     val pageGlassBackdrop = rememberGlassBackdrop()

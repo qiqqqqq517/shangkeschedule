@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.theme.appColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,7 +72,7 @@ private const val TOAST_DURATION_MS = 2600L
  */
 @Composable
 fun AppToastHost(modifier: Modifier = Modifier) {
-    val event by ToastManager.event.collectAsState()
+    val event by ToastManager.event.collectAsStateWithLifecycle()
     var shownText by remember { mutableStateOf("") }
 
     // 每条新事件（含相同文本）都重置消退计时

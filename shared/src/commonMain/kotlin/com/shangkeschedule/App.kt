@@ -1,5 +1,6 @@
 package com.shangkeschedule
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import shangkeschedule.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppAlertDialog
@@ -28,12 +29,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import com.shangkeschedule.data.repository.CourseConversionRepository
@@ -41,7 +42,11 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.get
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -98,8 +103,8 @@ fun App() {
     val viewModel: SettingsViewModel = koinViewModel()
     // 门控收窄（v3.54.0）：根部就绪态/起始页单独订阅，DataStore 无关写入不再触达根组合；
     // 主题设置仍经 uiState 传入 ShangKeScheduleTheme（主题树内部自行消费）
-    val gate by viewModel.startGate.collectAsState()
-    val state by viewModel.uiState.collectAsState()
+    val gate by viewModel.startGate.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     if (gate.isReady) {
         ShangKeScheduleTheme(settings = state.appSettings) {
@@ -132,20 +137,36 @@ fun AppNavigation(startDestination: Destination) {
         startDestination
     )
 
+    // ── per-tab 导航栈（v3.55.0）──────────────────────────────────────────────
+    // 单条 backStack 内按「段」管理：每个一级 Tab 的段（根 entry + 它推入的子页）
+    // 连续存放，且**选中 Tab 的段恒为列表尾部**。切 Tab = 把目标段整体搬到尾部：
+    // entry 的 key 从不离开列表，SaveableStateHolderNavEntryDecorator 的
+    // removeState 对账（DecoratedNavEntriesKt.PrepareBackStack）因此不会触发，
+    // 各 Tab 的滚动位置 / 子页栈 / ViewModel 全部原地保留；返回只弹当前段内的
+    // 子页，到根即止（不再跨 Tab 弹回）。
     val onNavigate: (Destination) -> Unit = remember(backStack) {
         { dest ->
             if (dest.isMainScreen) {
-                if (backStack.lastOrNull() != dest) {
-                    // P2-5 切 Tab 状态保持：若目标主屏根已在栈中（此前到访过），
-                    // 弹回至它而不是清空重建，保留其 LazyColumn 滚动/子导航等组合状态；
-                    // 仅当目标主屏尚未入栈时才追加一条新根。
-                    val existingRootIndex = backStack.indexOfFirst { it == dest }
-                    if (existingRootIndex >= 0) {
-                        while (backStack.lastIndex > existingRootIndex) {
+                val rootIndex = backStack.indexOfFirst { it == dest }
+                if (rootIndex < 0) {
+                    // 该 Tab 首次到访：根入栈成为新尾段
+                    backStack.add(dest)
+                } else {
+                    val segEnd = tabSegmentEndIndex(backStack, rootIndex)
+                    if (segEnd == backStack.size) {
+                        // 已是选中 Tab：再点底栏图标 = 弹回该 Tab 根（保留旧习惯；
+                        // 根本身在顶时循环体不执行，与旧行为一致）
+                        while (backStack.lastIndex > rootIndex) {
                             backStack.removeAt(backStack.lastIndex)
                         }
                     } else {
-                        backStack.add(dest)
+                        // 切 Tab：目标段从中间原位取出后追加到尾部。原子快照内完成，
+                        // 组合不会观察到「段已被移除」的中间态。
+                        val segment = backStack.subList(rootIndex, segEnd).toList()
+                        Snapshot.withMutableSnapshot {
+                            backStack.subList(rootIndex, segEnd).clear()
+                            backStack.addAll(segment)
+                        }
                     }
                 }
             } else {
@@ -158,7 +179,17 @@ fun AppNavigation(startDestination: Destination) {
 
     val onBack: () -> Unit = remember(backStack) {
         {
-            if (backStack.size > 1) {
+            // 只弹当前 Tab 段内的子页：主屏根只作段起点入栈（不变量），
+            // 栈顶是根即到段底——不跨 Tab 弹回；栈只剩起点根时 NavDisplay
+            // 的返回处理本就未启用（size == 1），系统默认行为不受影响。
+            //
+            // 已知副作用（装机验收项）：栈中存在 ≥2 个 Tab 段时，返回键/预测性返回
+            // 手势在 Tab 根被吞——系统无法用返回退出 App（旧行为会跨 Tab 弹回直至退出）；
+            // 且 Nav3 的 predictivePopTransitionSpec 仍会预览「上一段尾页」，
+            // 松手 commit 后无出栈动作（预览与结果不一致）。如需恢复可退到段底后
+            // 交还系统处理，但那会重新引入跨 Tab 返回。
+            // 空栈防御：不变量下不可达（起点根恒在），仅作兜底。
+            if (backStack.isNotEmpty() && backStack.lastOrNull() !is Destination.MainDestination) {
                 backStack.removeAt(backStack.lastIndex)
             }
         }
@@ -335,6 +366,31 @@ fun AppNavigation(startDestination: Destination) {
             }
         }
     }
+
+    // Tab 根接管系统返回（v3.56.0）：栈顶为主屏根且栈中还有其他段时，吞掉返回但不做
+    // 任何事。两个目的：①维持「Tab 根不跨 Tab 返回、不退出应用」的既定行为；
+    // ②屏蔽 NavDisplay 的预测性返回预览——否则手势会先闪现上一 Tab 段尾页、松手又
+    // 无动作（预览与结果不一致，真机上与系统自带手势动画相冲突，装机反馈已确认）。
+    // 注册在 NavDisplay 之后（同链后注册者优先），子页返回不受影响，仍走正常弹栈动画。
+    // 栈只剩起点根时（size == 1）不接管：NavDisplay 本就未启用返回处理，交还系统
+    // 默认行为（退出应用），与历史版本一致。
+    val tabRootBackState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = tabRootBackState,
+        isBackEnabled = backStack.size > 1 && backStack.lastOrNull() is Destination.MainDestination,
+        onBackCompleted = { /* Tab 根：吞掉返回 */ }
+    )
+}
+
+/**
+ * [backStack] 中自 [rootIndex]（某一级 Tab 段的根）起的段尾边界：
+ * 下一个主屏根的位置（其后无主屏根则为列表尾）。
+ * 依赖不变量：主屏根只作为段起点入栈，段内其余 entry 均为二级页。
+ */
+private fun tabSegmentEndIndex(backStack: List<NavKey>, rootIndex: Int): Int {
+    val nextRootOffset = backStack.drop(rootIndex + 1)
+        .indexOfFirst { (it as? Destination)?.isMainScreen == true }
+    return if (nextRootOffset < 0) backStack.size else rootIndex + 1 + nextRootOffset
 }
 
 @Composable
