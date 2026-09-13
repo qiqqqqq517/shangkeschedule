@@ -10,6 +10,7 @@ import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.NextCardMode
+import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
@@ -313,6 +314,15 @@ class SettingsViewModel(
     fun onMotionSpeedChanged(speed: MotionSpeed) {
         viewModelScope.launch {
             appSettingsRepository.updateMotionSpeed(speed)
+        }
+    }
+
+    /**
+     * 屏幕刷新率偏好（v3.56.0）：写入后由 MainActivity 订阅并应用到窗口显示模式。
+     */
+    fun onRefreshRateModeChanged(mode: RefreshRateMode) {
+        viewModelScope.launch {
+            appSettingsRepository.updateRefreshRateMode(mode)
         }
     }
 

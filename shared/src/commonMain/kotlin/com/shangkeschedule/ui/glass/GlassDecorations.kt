@@ -148,6 +148,9 @@ private class GlassHighlightNode(
     private var highlightShader: LiquidShader? = null
     private var shaderCreated = false
 
+    /** v3.55.0：BlurMaskFilter 按半径缓存——半径不变时不重复新建（每次 draw 原本都会分配）。 */
+    private var prevBlurRadiusPx = Float.NaN
+
     override fun ContentDrawScope.draw() {
         val highlight = highlight()
         if (highlight == null || highlight.width.value <= 0f) {
@@ -196,7 +199,11 @@ private class GlassHighlightNode(
     private fun DrawScope.configurePaint(highlight: GlassHighlight) {
         paint.color = highlight.color
         paint.strokeWidth = ceil(highlight.width.toPx().fastCoerceAtMost(size.minDimension / 2f)) * 2f
-        paint.liquidBlur(highlight.blurRadius.toPx())
+        val blurRadiusPx = highlight.blurRadius.toPx()
+        if (blurRadiusPx != prevBlurRadiusPx) {
+            prevBlurRadiusPx = blurRadiusPx
+            paint.liquidBlur(blurRadiusPx)
+        }
         if (isLiquidRefractionSupported() && isLiquidShaderReliable()) {
             if (!shaderCreated) {
                 shaderCreated = true
@@ -298,6 +305,9 @@ private class GlassShadowNode(
     private var shadowLayer: GraphicsLayer? = null
     private val paint = Paint()
 
+    /** v3.55.0：BlurMaskFilter 按半径缓存——半径不变时不重复新建（每次 draw 原本都会分配）。 */
+    private var prevBlurRadiusPx = Float.NaN
+
     override fun ContentDrawScope.draw() {
         val shadow = shadow() ?: return drawContent()
 
@@ -316,7 +326,11 @@ private class GlassShadowNode(
         val outline = shape.createOutline(size, layoutDirection, density)
 
         paint.color = shadow.color
-        paint.liquidBlur(shadow.radius.toPx())
+        val blurRadiusPx = shadow.radius.toPx()
+        if (blurRadiusPx != prevBlurRadiusPx) {
+            prevBlurRadiusPx = blurRadiusPx
+            paint.liquidBlur(blurRadiusPx)
+        }
 
         shadowLayer.alpha = shadow.alpha
         shadowLayer.blendMode = shadow.blendMode

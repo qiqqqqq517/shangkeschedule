@@ -786,6 +786,12 @@
     <string name="anim_group_tab_switch_desc">底欄選中膠囊遷移與圖示切換</string>
     <string name="anim_section_speed">動效速度</string>
     <string name="anim_section_speed_desc">影響頁面轉場、清單與卡片入場、面板與彈窗、觸控回饋等全部動畫的時長</string>
+    <string name="refresh_rate_title">螢幕重新整理率</string>
+    <string name="refresh_rate_desc">依機型能力自動匹配（120/90/60 取最高支援檔），也可手動固定；變更立即生效</string>
+    <string name="refresh_rate_auto">自動</string>
+    <string name="refresh_rate_120">120Hz</string>
+    <string name="refresh_rate_90">90Hz</string>
+    <string name="refresh_rate_60">60Hz</string>
     <string name="anim_speed_relaxed">舒緩</string>
     <string name="anim_speed_standard">標準</string>
     <string name="anim_speed_fast">快</string>

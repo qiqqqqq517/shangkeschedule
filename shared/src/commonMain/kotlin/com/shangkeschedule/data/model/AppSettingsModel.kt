@@ -213,6 +213,13 @@ data class AppSettingsModel(
      */
     val nextCardMode: NextCardMode = NextCardMode.AUTO_NEXT,
 
+    /**
+     * 屏幕刷新率偏好（v3.56.0「动画效果 → 屏幕刷新率」）。
+     * 默认 AUTO：按机型能力取 120/90/60 中支持的最高档；手动档在机型不支持时向下回落。
+     * 由 MainActivity 应用到 `preferredDisplayModeId`（比 preferredRefreshRate 提示更可靠）。
+     */
+    val refreshRateMode: RefreshRateMode = RefreshRateMode.AUTO,
+
     // --- 「我的」页个人信息（v3.49.0「我的信息」页）---
     /** 昵称；为空时界面回落到应用名（`app_name`）。 */
     val profileNickname: String = "",
@@ -271,6 +278,7 @@ data class AppSettingsModel(
         val KEY_REDUCE_MOTION_ENABLED = booleanPreferencesKey("reduce_motion_enabled")
         val KEY_MOTION_SPEED = stringPreferencesKey("motion_speed")
         val KEY_NEXT_CARD_MODE = stringPreferencesKey("next_card_mode")
+        val KEY_REFRESH_RATE_MODE = stringPreferencesKey("refresh_rate_mode")
 
         // 「我的」页个人信息（v3.49.0）
         val KEY_PROFILE_NICKNAME = stringPreferencesKey("profile_nickname")
@@ -322,6 +330,7 @@ data class AppSettingsModel(
                 reduceMotionEnabled = prefs[KEY_REDUCE_MOTION_ENABLED] ?: d.reduceMotionEnabled,
                 motionSpeed = MotionSpeed.fromString(prefs[KEY_MOTION_SPEED]),
                 nextCardMode = NextCardMode.fromString(prefs[KEY_NEXT_CARD_MODE]),
+                refreshRateMode = RefreshRateMode.fromString(prefs[KEY_REFRESH_RATE_MODE]),
                 profileNickname = prefs[KEY_PROFILE_NICKNAME] ?: d.profileNickname,
                 profileSchool = prefs[KEY_PROFILE_SCHOOL] ?: d.profileSchool,
                 profileCollege = prefs[KEY_PROFILE_COLLEGE] ?: d.profileCollege,
@@ -352,5 +361,30 @@ enum class NextCardMode(val value: String) {
     companion object {
         fun fromString(value: String?): NextCardMode =
             entries.find { it.value == value } ?: AUTO_NEXT
+    }
+}
+
+/**
+ * 屏幕刷新率偏好（v3.56.0「动画效果 → 屏幕刷新率」）。
+ * 三档手动（120/90/60）+ AUTO 自动匹配：按机型实际支持的刷新率档位，
+ * 取「不超过目标档」中最接近的一档（如 120 档在 90Hz 机型上回落 90，60 档恒可满足）。
+ * AUTO = 取 120/90/60 中机型能支持的最高档。
+ */
+enum class RefreshRateMode(val value: String, val labelRes: StringResource) {
+    /** 自动匹配机型能力：取 120/90/60 中设备支持的最高档。 */
+    AUTO("auto", Res.string.refresh_rate_auto),
+
+    /** 优先 120Hz；机型不支持时回落到 ≤120 的最高可用档。 */
+    HZ_120("120", Res.string.refresh_rate_120),
+
+    /** 优先 90Hz；机型不支持时回落到 ≤90 的最高可用档。 */
+    HZ_90("90", Res.string.refresh_rate_90),
+
+    /** 固定 60Hz（省电优先）。 */
+    HZ_60("60", Res.string.refresh_rate_60);
+
+    companion object {
+        fun fromString(value: String?): RefreshRateMode =
+            entries.find { it.value == value } ?: AUTO
     }
 }

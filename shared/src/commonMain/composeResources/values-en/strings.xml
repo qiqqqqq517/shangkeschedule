@@ -790,6 +790,12 @@
     <string name="anim_group_tab_switch_desc">Tab indicator migration and icon crossfade</string>
     <string name="anim_section_speed">Motion speed</string>
     <string name="anim_section_speed_desc">Sets the duration of all animations: page transitions, list and card entrances, sheets and dialogs, touch feedback.</string>
+    <string name="refresh_rate_title">Screen refresh rate</string>
+    <string name="refresh_rate_desc">Matches your device automatically (highest of 120/90/60 supported), or fix a tier manually; applies instantly</string>
+    <string name="refresh_rate_auto">Auto</string>
+    <string name="refresh_rate_120">120Hz</string>
+    <string name="refresh_rate_90">90Hz</string>
+    <string name="refresh_rate_60">60Hz</string>
     <string name="anim_speed_relaxed">Relaxed</string>
     <string name="anim_speed_standard">Standard</string>
     <string name="anim_speed_fast">Fast</string>

@@ -9,6 +9,7 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.NextCardMode
+import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
@@ -148,6 +149,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_REDUCE_MOTION_ENABLED] = newSettings.reduceMotionEnabled
             prefs[AppSettingsModel.KEY_MOTION_SPEED] = newSettings.motionSpeed.value
             prefs[AppSettingsModel.KEY_NEXT_CARD_MODE] = newSettings.nextCardMode.value
+            prefs[AppSettingsModel.KEY_REFRESH_RATE_MODE] = newSettings.refreshRateMode.value
         }
     }
 
@@ -155,6 +157,13 @@ class AppSettingsRepository(
     suspend fun updateThemePreset(preset: AppThemePreset) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_THEME_PRESET] = preset.value
+        }
+    }
+
+    /** 单独持久化屏幕刷新率偏好（v3.56.0「动画效果 → 屏幕刷新率」）。 */
+    suspend fun updateRefreshRateMode(mode: RefreshRateMode) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_REFRESH_RATE_MODE] = mode.value
         }
     }
 

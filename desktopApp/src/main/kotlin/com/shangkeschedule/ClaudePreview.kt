@@ -22,6 +22,7 @@ import com.shangkeschedule.ui.today.TodayUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 
@@ -76,6 +77,7 @@ fun main() {
                             onToggleTodo = { _, _ -> },
                             onToggleEventDone = { _, _ -> },
                             onEditTodo = { },
+                            nowOverride = LocalTime(22, 32),
                         )
                     }
                 }
@@ -84,7 +86,7 @@ fun main() {
 
         // 第一帧完成布局，第二帧拿到稳定画面（字体异步加载也在此时就绪）
         scene.render()
-        Thread.sleep(600)
+        Thread.sleep(5000)
         val image = scene.render()
         scene.close()
 

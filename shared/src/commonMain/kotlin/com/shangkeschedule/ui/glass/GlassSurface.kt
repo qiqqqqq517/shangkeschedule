@@ -109,7 +109,11 @@ fun GlassSurface(
                             layoutDirection = layoutDirection,
                             effects = effects
                         )
-                        renderEffect = scope.renderEffect
+                        // v3.55.0 去重缓存配套：链对象未变时不重新赋值，
+                        // 避免无谓的 layer 属性失效与重绘。
+                        if (renderEffect != scope.renderEffect) {
+                            renderEffect = scope.renderEffect
+                        }
                     }
             ) {
                 Box(

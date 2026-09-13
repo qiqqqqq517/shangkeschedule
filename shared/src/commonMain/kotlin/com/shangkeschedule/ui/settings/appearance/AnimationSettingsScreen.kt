@@ -1,5 +1,7 @@
 package com.shangkeschedule.ui.settings.appearance
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,7 +27,6 @@ import androidx.compose.material3.Surface
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -75,6 +76,12 @@ import shangkeschedule.shared.generated.resources.anim_style_snappy
 import shangkeschedule.shared.generated.resources.anim_style_snappy_desc
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.item_animation_settings
+import shangkeschedule.shared.generated.resources.refresh_rate_120
+import shangkeschedule.shared.generated.resources.refresh_rate_60
+import shangkeschedule.shared.generated.resources.refresh_rate_90
+import shangkeschedule.shared.generated.resources.refresh_rate_auto
+import shangkeschedule.shared.generated.resources.refresh_rate_desc
+import shangkeschedule.shared.generated.resources.refresh_rate_title
 
 /**
  * 「个性化显示 → 动画效果」三级页（v3.26.0 新增）。
@@ -94,7 +101,7 @@ fun AnimationSettingsScreen(
     onBack: () -> Unit,
     settingsViewModel: SettingsViewModel = koinViewModel()
 ) {
-    val uiState by settingsViewModel.uiState.collectAsState()
+    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val settings = uiState.appSettings
     // 顶栏滚动折叠（v3.43.0 ·《交互动效审查》P2）：本页内容较长，顶栏随滚动收起
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -129,6 +136,29 @@ fun AnimationSettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+
+            // 屏幕刷新率（v3.56.0）：自动按机型能力匹配（120/90/60 取最高支持档），可手动固定
+            Text(
+                text = stringResource(Res.string.refresh_rate_title),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            Text(
+                text = stringResource(Res.string.refresh_rate_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = appColors().textSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+            AppSegmentedControl(
+                options = RefreshRateMode.entries.map { stringResource(it.labelRes) },
+                selectedIndex = RefreshRateMode.entries.indexOf(settings.refreshRateMode),
+                onSelect = { settingsViewModel.onRefreshRateModeChanged(RefreshRateMode.entries[it]) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
             // 1) 动效风格

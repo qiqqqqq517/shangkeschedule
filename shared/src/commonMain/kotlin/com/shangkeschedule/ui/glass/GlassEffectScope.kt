@@ -61,6 +61,59 @@ sealed interface GlassEffectScope : Density {
     fun reportOnce(key: String, message: () -> String)
 }
 
+/**
+ * 效果链描述符（v3.55.0 安全去重缓存）：`applyForLayer` 先以「记录模式」执行
+ * `effects { }` 采集参数快照，与上次完全一致 ⇒ 直接复用上次的链对象（零分配），
+ * 不同才从描述符真正重建。全部字段为值类型（结构化 equals）——绝不能按
+ * lambda 身份做 key，否则 effects 每次重组都是新实例、缓存永不命中。
+ */
+internal sealed interface GlassEffectDescriptor {
+    data class Blur(val radius: Float, val edgeTreatment: TileMode) : GlassEffectDescriptor
+    data class ColorControls(
+        val brightness: Float,
+        val contrast: Float,
+        val saturation: Float
+    ) : GlassEffectDescriptor
+
+    data object Vibrancy : GlassEffectDescriptor
+
+    data class Lens(
+        val refractionHeight: Float,
+        val refractionAmount: Float,
+        val depthEffect: Boolean,
+        val chromaticAberration: Boolean,
+        /**
+         * 几何量必须参与缓存键：折射着色器的 `size` / `cornerRadii` uniform 只在
+         * 构建期写入共享 shader 对象，缓存命中时不重建 ⇒ 尺寸（窗口缩放、分屏、
+         * 内容驱动宽高）或形状变化若未使 key 失效，GPU 会继续用旧尺寸的 SDF，
+         * 折射带错位。cornerRadii 是 FloatArray，需按内容比较。
+         */
+        val size: Size,
+        val cornerRadiiKey: List<Float>
+    ) : GlassEffectDescriptor {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Lens) return false
+            return refractionHeight == other.refractionHeight &&
+                refractionAmount == other.refractionAmount &&
+                depthEffect == other.depthEffect &&
+                chromaticAberration == other.chromaticAberration &&
+                size == other.size &&
+                cornerRadiiKey == other.cornerRadiiKey
+        }
+
+        override fun hashCode(): Int {
+            var result = refractionHeight.hashCode()
+            result = 31 * result + refractionAmount.hashCode()
+            result = 31 * result + depthEffect.hashCode()
+            result = 31 * result + chromaticAberration.hashCode()
+            result = 31 * result + size.hashCode()
+            result = 31 * result + cornerRadiiKey.hashCode()
+            return result
+        }
+    }
+}
+
 internal class GlassEffectScopeImpl : GlassEffectScope {
 
     override var density: Float = 1f
@@ -89,6 +142,20 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
     private val shaders = mutableMapOf<String, LiquidShader?>()
 
     private val reported = mutableSetOf<String>()
+
+    /** 记录模式：非 null 时效果函数只采集描述符、不真正构建链（applyForLayer 专用）。 */
+    private var recording: MutableList<GlassEffectDescriptor>? = null
+
+    /** 上次成功构建的描述符快照与链对象——参数不变即复用（安全去重缓存）。 */
+    private var lastDescriptors: List<GlassEffectDescriptor>? = null
+    private var lastChainEffect: RenderEffect? = null
+
+    /** 供效果函数在记录模式下短路：返回 true 表示描述符已采集、调用方直接返回。 */
+    internal fun record(desc: GlassEffectDescriptor): Boolean {
+        val list = recording ?: return false
+        list.add(desc)
+        return true
+    }
 
     override fun reportOnce(key: String, message: () -> String) {
         if (reported.add(key)) {
@@ -145,6 +212,13 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
     /**
      * v3.50.2 UI 树路径专用：由 `Modifier.graphicsLayer{}` 块在每帧调用。
      * 层参数（密度/尺寸）由 GraphicsLayerScope 提供；padding 强制关闭。
+     *
+     * v3.55.0 安全去重缓存：effects 先以记录模式执行（只采集参数描述符），
+     * 与上次快照一致 ⇒ 直接复用缓存链（`GlassSurface` 侧的赋值守卫随即跳过
+     * layer 重绘）；不一致才从描述符重建。描述符复现与原内联执行逐位一致：
+     * 环境字段（密度/尺寸/形状）在记录与重建间不变，padding 在本路径恒 0 且
+     * 不参与（paddingEnabled=false），早退条件（平台能力/参数合法性）在重建时
+     * 原样重跑。
      */
     fun applyForLayer(
         shape: Shape,
@@ -163,7 +237,36 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         renderEffect = null
         _paddingEnabled = false
         try {
-            effects()
+            val descriptors = ArrayList<GlassEffectDescriptor>(4)
+            recording = descriptors
+            try {
+                effects()
+            } finally {
+                recording = null
+            }
+            if (descriptors == lastDescriptors) {
+                renderEffect = lastChainEffect
+            } else {
+                renderEffect = null
+                for (desc in descriptors) {
+                    when (desc) {
+                        is GlassEffectDescriptor.Blur ->
+                            buildBlur(desc.radius, desc.edgeTreatment)
+                        is GlassEffectDescriptor.ColorControls ->
+                            buildColorControls(desc.brightness, desc.contrast, desc.saturation)
+                        GlassEffectDescriptor.Vibrancy -> buildVibrancy()
+                        is GlassEffectDescriptor.Lens ->
+                            buildLens(
+                                desc.refractionHeight,
+                                desc.refractionAmount,
+                                desc.depthEffect,
+                                desc.chromaticAberration
+                            )
+                    }
+                }
+                lastDescriptors = descriptors
+                lastChainEffect = renderEffect
+            }
         } finally {
             _paddingEnabled = true
         }
@@ -178,6 +281,9 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         padding = 0f
         renderEffect = null
         shaders.clear()
+        recording = null
+        lastDescriptors = null
+        lastChainEffect = null
     }
 }
 
@@ -194,6 +300,11 @@ fun GlassEffectScope.glassBlur(
     edgeTreatment: TileMode = TileMode.Clamp
 ) {
     if (radius <= 0f) return
+    if (recordDesc(GlassEffectDescriptor.Blur(radius, edgeTreatment))) return
+    buildBlur(radius, edgeTreatment)
+}
+
+private fun GlassEffectScope.buildBlur(radius: Float, edgeTreatment: TileMode) {
     // 上游 Blur.kt 逐行：Clamp 且无前置效果时不需要外扩（边缘由 Clamp 补齐）。
     // v3.50.2 UI 树路径 paddingEnabled=false：层即节点本身，无外扩可言。
     if (paddingEnabled && (edgeTreatment != TileMode.Clamp || renderEffect != null)) {
@@ -230,7 +341,15 @@ fun GlassEffectScope.glassColorControls(
         reportOnce("colorControls-unsafe") { "colorControls 跳过（本系统渲染路径上色彩滤镜链不可靠）" }
         return
     }
+    if (recordDesc(GlassEffectDescriptor.ColorControls(brightness, contrast, saturation))) return
+    buildColorControls(brightness, contrast, saturation)
+}
 
+private fun GlassEffectScope.buildColorControls(
+    brightness: Float,
+    contrast: Float,
+    saturation: Float
+) {
     val effect = liquidColorFilterEffect(colorControlsColorFilter(brightness, contrast, saturation))
         ?: return
     renderEffect = chainLiquidEffects(renderEffect, effect)
@@ -249,7 +368,11 @@ fun GlassEffectScope.glassVibrancy() {
         reportOnce("vibrancy-unsafe") { "vibrancy 跳过（本系统渲染路径上色彩滤镜链不可靠）" }
         return
     }
+    if (recordDesc(GlassEffectDescriptor.Vibrancy)) return
+    buildVibrancy()
+}
 
+private fun GlassEffectScope.buildVibrancy() {
     val effect = liquidColorFilterEffect(VibrantColorFilter) ?: run {
         reportOnce("vibrancy") { "vibrancy 跳过（色彩滤镜无法包装成 RenderEffect）" }
         return
@@ -319,6 +442,29 @@ fun GlassEffectScope.glassLens(
     if (refractionHeight <= 0f || refractionAmount <= 0f) return
 
     val radii = cornerRadii ?: return
+    if (recordDesc(
+            GlassEffectDescriptor.Lens(
+                refractionHeight,
+                refractionAmount,
+                depthEffect,
+                chromaticAberration,
+                size = size,
+                cornerRadiiKey = radii.toList()
+            )
+        )
+    ) {
+        return
+    }
+    buildLens(refractionHeight, refractionAmount, depthEffect, chromaticAberration)
+}
+
+private fun GlassEffectScope.buildLens(
+    refractionHeight: Float,
+    refractionAmount: Float,
+    depthEffect: Boolean,
+    chromaticAberration: Boolean
+) {
+    val radii = cornerRadii ?: return
     // 上游 Lens.kt 逐行：lens 会收缩 blur 留下的 padding（折射位移向内拉，
     // 不需要向外扩采样范围）。v3.50.2 UI 树路径 paddingEnabled=false：offset 恒 0。
     if (paddingEnabled && padding > 0f) {
@@ -347,6 +493,10 @@ fun GlassEffectScope.glassLens(
     }
     renderEffect = chainLiquidEffects(renderEffect, effect)
 }
+
+/** 记录模式短路：描述符被采集时返回 true，效果函数跳过真实构建。 */
+private fun GlassEffectScope.recordDesc(desc: GlassEffectDescriptor): Boolean =
+    (this as? GlassEffectScopeImpl)?.record(desc) == true
 
 /**
  * 取得形状的四角半径。支持 [CornerBasedShape]（含 `RoundedCornerShape` / `CircleShape`）
