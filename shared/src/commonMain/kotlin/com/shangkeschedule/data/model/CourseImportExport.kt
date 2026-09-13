@@ -182,6 +182,8 @@ object CourseImportExport {
         val customDarkPrimary: Long = 0,
         val developerModeEnabled: Boolean = false,
         val coupleScheduleEnabled: Boolean = false,
+        /** 情侣叠加显示课程时间段（v3.53.3 起随备份迁移）；可空：旧备份缺字段 ⇒ 恢复时保留设备现值 */
+        val coupleShowTimeRanges: Boolean? = null,
         val selfCourseColorIndex: Int = 5,
         val crushCourseColorIndex: Int = 1,
         val scheduleViewMode: String = "WEEK",

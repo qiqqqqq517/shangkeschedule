@@ -137,6 +137,9 @@ data class AppSettingsModel(
     /** 情侣课表开关：开启后主页面同时渲染本人课表 + crush 课表 */
     val coupleScheduleEnabled: Boolean = false,
 
+    /** 情侣叠加时是否在课程卡上显示起止时间（默认关闭，时间文本会挤占课程卡空间） */
+    val coupleShowTimeRanges: Boolean = false,
+
     /** 本人课表课程颜色索引（默认 5 = 蓝色） */
     val selfCourseColorIndex: Int = DEFAULT_SELF_COLOR_INDEX,
 
@@ -253,6 +256,7 @@ data class AppSettingsModel(
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val KEY_COUPLE_SCHEDULE_ENABLED = booleanPreferencesKey("couple_schedule_enabled")
+        val KEY_COUPLE_SHOW_TIME_RANGES = booleanPreferencesKey("couple_show_time_ranges")
         val KEY_SELF_COURSE_COLOR_INDEX = intPreferencesKey("self_course_color_index")
         val KEY_CRUSH_COURSE_COLOR_INDEX = intPreferencesKey("crush_course_color_index")
         val KEY_SCHEDULE_VIEW_MODE = stringPreferencesKey("schedule_view_mode")
@@ -300,6 +304,7 @@ data class AppSettingsModel(
                 customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
                 developerModeEnabled = prefs[KEY_DEVELOPER_MODE_ENABLED] ?: d.developerModeEnabled,
                 coupleScheduleEnabled = prefs[KEY_COUPLE_SCHEDULE_ENABLED] ?: d.coupleScheduleEnabled,
+                coupleShowTimeRanges = prefs[KEY_COUPLE_SHOW_TIME_RANGES] ?: d.coupleShowTimeRanges,
                 selfCourseColorIndex = prefs[KEY_SELF_COURSE_COLOR_INDEX] ?: d.selfCourseColorIndex,
                 crushCourseColorIndex = prefs[KEY_CRUSH_COURSE_COLOR_INDEX] ?: d.crushCourseColorIndex,
                 scheduleViewMode = ScheduleViewMode.fromString(prefs[KEY_SCHEDULE_VIEW_MODE]),

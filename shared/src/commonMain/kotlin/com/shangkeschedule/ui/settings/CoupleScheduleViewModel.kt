@@ -38,6 +38,8 @@ data class CoupleManageUiState(
     val coupleCourseCount: Int = 0,
     /** 双人叠加显示开关（当前为情侣课表时自动失效）。 */
     val coupleScheduleEnabled: Boolean = false,
+    /** 叠加时是否在课程卡上显示起止时间（默认关闭）。 */
+    val coupleShowTimeRanges: Boolean = false,
     val selfCourseColorIndex: Int = 0,
     val crushCourseColorIndex: Int = 1,
     val courseColorMaps: List<DualColor> = emptyList()
@@ -98,6 +100,7 @@ class CoupleScheduleViewModel(
             selfTable = self,
             coupleCourseCount = coupleCount,
             coupleScheduleEnabled = settings.coupleScheduleEnabled,
+            coupleShowTimeRanges = settings.coupleShowTimeRanges,
             selfCourseColorIndex = settings.selfCourseColorIndex,
             crushCourseColorIndex = settings.crushCourseColorIndex,
             courseColorMaps = style.courseColorMaps
@@ -119,8 +122,15 @@ class CoupleScheduleViewModel(
         }
     }
 
-    fun onSelfCourseColorIndexChanged(index: Int) {
-        viewModelScope.launch { updateSettings { it.copy(selfCourseColorIndex = index) } }
+    /**
+     * 叠加视图「显示课程时间段」开关（默认关闭：时间文本会挤占课程卡空间）。
+     * 仅在双人同显生效时对课表页有观感影响，开关本身随时可切。
+     */
+    fun onCoupleShowTimeRangesChanged(enabled: Boolean) {
+        viewModelScope.launch { updateSettings { it.copy(coupleShowTimeRanges = enabled) } }
+    }
+
+    fun onSelfCourseColorIndexChanged(index: Int) {        viewModelScope.launch { updateSettings { it.copy(selfCourseColorIndex = index) } }
     }
 
     fun onCrushCourseColorIndexChanged(index: Int) {

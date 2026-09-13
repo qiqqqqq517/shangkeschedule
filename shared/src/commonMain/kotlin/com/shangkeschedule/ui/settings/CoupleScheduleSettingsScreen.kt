@@ -77,6 +77,8 @@ import shangkeschedule.shared.generated.resources.couple_solo_back
 import shangkeschedule.shared.generated.resources.couple_solo_banner
 import shangkeschedule.shared.generated.resources.desc_crush_course_color
 import shangkeschedule.shared.generated.resources.desc_delete_couple_table
+import shangkeschedule.shared.generated.resources.couple_show_time_ranges
+import shangkeschedule.shared.generated.resources.couple_show_time_ranges_desc
 import shangkeschedule.shared.generated.resources.desc_import_crush_schedule
 import shangkeschedule.shared.generated.resources.desc_self_course_color
 import shangkeschedule.shared.generated.resources.delete_couple_table
@@ -282,6 +284,16 @@ fun CoupleScheduleSettingsScreen(
                         checked = uiState.coupleScheduleEnabled && !isViewingCoupleSolo && hasCouple,
                         enabled = !isViewingCoupleSolo && hasCouple,
                         onCheckedChange = { viewModel.onCoupleScheduleEnabledChanged(it) }
+                    )
+                }
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.couple_show_time_ranges),
+                    subtitle = stringResource(Res.string.couple_show_time_ranges_desc)
+                ) {
+                    AppSwitch(
+                        checked = uiState.coupleShowTimeRanges,
+                        onCheckedChange = { viewModel.onCoupleShowTimeRangesChanged(it) }
                     )
                 }
                 SectionDivider()

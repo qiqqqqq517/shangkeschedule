@@ -106,6 +106,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY] = newSettings.customDarkPrimary
             prefs[AppSettingsModel.KEY_DEVELOPER_MODE_ENABLED] = newSettings.developerModeEnabled
             prefs[AppSettingsModel.KEY_COUPLE_SCHEDULE_ENABLED] = newSettings.coupleScheduleEnabled
+            prefs[AppSettingsModel.KEY_COUPLE_SHOW_TIME_RANGES] = newSettings.coupleShowTimeRanges
             prefs[AppSettingsModel.KEY_SELF_COURSE_COLOR_INDEX] = newSettings.selfCourseColorIndex
             prefs[AppSettingsModel.KEY_CRUSH_COURSE_COLOR_INDEX] = newSettings.crushCourseColorIndex
             prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = newSettings.scheduleViewMode.value

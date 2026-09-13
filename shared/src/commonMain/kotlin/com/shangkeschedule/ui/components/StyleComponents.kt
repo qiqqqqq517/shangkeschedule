@@ -631,18 +631,27 @@ fun AppSegmentedControl(
 
     // v3.43.0：选中胶囊由「各选项瞬切底色」改为**共享胶囊滑动**——
     // 位置 / 宽度 / 颜色三者同时补间，关掉「切换标签」分组（tabIndicatorMs=0）⇒ 瞬移。
+    // v3.53.4：胶囊尺寸/位置全部来自选项实测 bounds。此前高度用 fillMaxHeight()，
+    // 在「父给有界大高度」的容器（如 Column(fillMaxSize) 顶部的学校列表分类条）中
+    // 会把整个控件撑满剩余高度（fillMaxHeight 对有界约束恒成立），渲染成整屏巨胶囊。
     val optionBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val pillRect = optionBounds[selectedIndex]
     val pillLeft by animateDpAsState(
-        targetValue = optionBounds[selectedIndex]?.let { with(density) { it.left.toDp() } } ?: 0.dp,
+        targetValue = pillRect?.let { with(density) { it.left.toDp() } } ?: 0.dp,
         animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
         label = "segmentedPillLeft"
     )
     val pillWidth by animateDpAsState(
-        targetValue = optionBounds[selectedIndex]?.let { with(density) { it.width.toDp() } } ?: 0.dp,
+        targetValue = pillRect?.let { with(density) { it.width.toDp() } } ?: 0.dp,
         animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
         label = "segmentedPillWidth"
     )
-    val pillMeasured = pillWidth > 0.dp
+    val pillHeight by animateDpAsState(
+        targetValue = pillRect?.let { with(density) { it.height.toDp() } } ?: 0.dp,
+        animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
+        label = "segmentedPillHeight"
+    )
+    val pillMeasured = pillWidth > 0.dp && pillHeight > 0.dp
 
     // 胶囊材质：柔绘用软模糊投影 + 羽化环（无硬边 elevation 投影），其余主题用轻投影
     val pillSurface = if (isSoft) {
@@ -674,8 +683,9 @@ fun AppSegmentedControl(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .offset(x = pillLeft)
-                    .width(pillWidth)
-                    .fillMaxHeight()
+                    // 高度 = 选项实测高 + 上下各 4dp 外扩（padding 内缩后与选项等大并垂直居中），
+                    // 等价于旧 fillMaxHeight 在 wrap 容器中的观感，但不再被父容器的有界大高度撑爆
+                    .size(width = pillWidth, height = pillHeight + 8.dp)
                     .padding(4.dp)
                     .then(pillSurface)
             )

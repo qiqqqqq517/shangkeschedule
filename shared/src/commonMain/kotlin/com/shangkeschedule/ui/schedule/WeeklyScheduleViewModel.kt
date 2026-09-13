@@ -138,6 +138,12 @@ private data class CourseSourceKey(
     val timeSlots: List<TimeSlot>
 )
 
+/** 情侣叠加显示偏好：只保留影响课程装配链的字段（DUC 紧凑源）。 */
+private data class CoupleDisplayPrefs(
+    val coupleEnabled: Boolean = false,
+    val showTimeRanges: Boolean = false
+)
+
 /**
  * 情侣课表叠加上下文：叠加是否生效 + 配对情侣课表 ID 与其生效作息。
  */
@@ -146,7 +152,9 @@ private data class CoupleOverlayContext(
     val coupleTableId: String? = null,
     val coupleTimeSlots: List<TimeSlot> = emptyList(),
     /** 双方作息时间是否不一样。 */
-    val timesDiffer: Boolean = false
+    val timesDiffer: Boolean = false,
+    /** 叠加时是否在课程卡上显示起止时间（用户设置，默认不显示）。 */
+    val showTimeRanges: Boolean = false
 )
 
 /**
@@ -254,16 +262,16 @@ class WeeklyScheduleViewModel (
      * 保证叠加网格的坐标映射始终跟随 TA 课表的最新作息。
      */
     private val coupleOverlayContextFlow: StateFlow<CoupleOverlayContext> = combine(
-        appSettingsFlow.map { it.coupleScheduleEnabled },
+        appSettingsFlow.map { CoupleDisplayPrefs(it.coupleScheduleEnabled, it.coupleShowTimeRanges) },
         currentTableFlow,
         timeSlotsFlow
-    ) { coupleEnabled, currentTable, selfSlots ->
-        Triple(coupleEnabled, currentTable?.takeIf { !it.isCouple }, selfSlots)
+    ) { prefs, currentTable, selfSlots ->
+        Triple(prefs, currentTable?.takeIf { !it.isCouple }, selfSlots)
     }
         // DUC 前移：设置里任何无关字段写入都不再重启内层冷链（情侣表/配置/时段观察）
         .distinctUntilChanged()
-        .flatMapLatest { (coupleEnabled, selfTable, selfSlots) ->
-        if (!coupleEnabled || selfTable == null) {
+        .flatMapLatest { (prefs, selfTable, selfSlots) ->
+        if (!prefs.coupleEnabled || selfTable == null) {
             flowOf(CoupleOverlayContext())
         } else {
             courseTableRepository.getCoupleTableFor(selfTable.id).flatMapLatest { coupleTable ->
@@ -277,7 +285,8 @@ class WeeklyScheduleViewModel (
                                 active = true,
                                 coupleTableId = coupleTable.id,
                                 coupleTimeSlots = coupleSlots,
-                                timesDiffer = scheduleTimesDiffer(selfSlots, coupleSlots)
+                                timesDiffer = scheduleTimesDiffer(selfSlots, coupleSlots),
+                                showTimeRanges = prefs.showTimeRanges
                             )
                         }
                 }
@@ -402,7 +411,7 @@ class WeeklyScheduleViewModel (
                 mode = mode,
                 timeSlotsByTable = slotsByTable,
                 gridTableId = tableId,
-                showTimeRanges = overlay.active && overlay.timesDiffer
+                showTimeRanges = overlay.active && overlay.timesDiffer && overlay.showTimeRanges
             )
         }
     }
@@ -1167,7 +1176,8 @@ class WeeklyScheduleViewModel (
 
     /**
      * 课程起止时间文本（如 "8:00-9:50"）：按课程所属表的作息解析节次时间，
-     * 自定义时间课程直接用其 HH:MM。仅在叠加视图且双方作息不一样时展示。
+     * 自定义时间课程直接用其 HH:MM。仅在叠加视图、双方作息不一样且用户开启
+     * 「显示课程时间段」（默认关闭）时展示。
      */
     private fun formatCourseTimeRange(
         cw: CourseWithWeeks,

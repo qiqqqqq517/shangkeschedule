@@ -1242,12 +1242,15 @@ private fun AgendaEntryRow(
                 .padding(top = 6.dp),
             horizontalAlignment = Alignment.End
         ) {
-            Text(
-                text = entry.startTime ?: "--:--",
-                fontSize = appType().caption,
-                fontWeight = FontWeight.SemiBold,
-                color = tokens.textPrimary
-            )
+            // 无时间条目（默认待办）不渲染占位文本，列宽保留维持时间轴对齐
+            if (!entry.startTime.isNullOrBlank()) {
+                Text(
+                    text = entry.startTime,
+                    fontSize = appType().caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tokens.textPrimary
+                )
+            }
             if (!entry.isAllDay && !entry.endTime.isNullOrBlank()) {
                 Text(
                     text = entry.endTime,

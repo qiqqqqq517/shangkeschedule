@@ -1868,26 +1868,28 @@ private fun ClaudeEventRow(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 左侧时间占位（与课程时间列对齐）
-        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
-            if (!isLast) {
+        // 无时间条目（默认待办 / 全天）不渲染时间占位列，内容卡铺满整行
+        if (!event.startTime.isNullOrBlank()) {
+            Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+                if (!isLast) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = 18.dp)
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(colors.divider)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(x = 6.dp, y = 18.dp)
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(colors.divider)
+                        .offset(x = 9.dp, y = 6.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(categoryColor)
                 )
             }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 9.dp, y = 6.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(categoryColor)
-            )
         }
         // 右侧内容卡
         Box(
@@ -2246,12 +2248,12 @@ private fun TodoRow(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        // 左侧时间列：与课程条一致，仅显示待办时间（无时间则留空，不显示占位符）
-        Column(
-            modifier = Modifier.width(65.dp).padding(top = 4.dp),
-            horizontalAlignment = Alignment.End
-        ) {
-            if (!todo.time.isNullOrBlank()) {
+        // 左侧时间列：与课程条一致，仅显示待办时间；无时间整列不渲染，色块铺满整行
+        if (!todo.time.isNullOrBlank()) {
+            Column(
+                modifier = Modifier.width(65.dp).padding(top = 4.dp),
+                horizontalAlignment = Alignment.End
+            ) {
                 Text(
                     text = todo.time,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -2262,9 +2264,8 @@ private fun TodoRow(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
+            Spacer(modifier = Modifier.width(12.dp))
         }
-
-        Spacer(modifier = Modifier.width(12.dp))
 
         val itemStripDrawModifier = Modifier
         Box(
@@ -4079,26 +4080,28 @@ private fun SoftEventRow(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 左侧时间占位（与课程时间列对齐）
-        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
-            if (!isLast) {
+        // 无时间条目（默认待办 / 全天）不渲染时间占位列，内容卡铺满整行
+        if (!event.startTime.isNullOrBlank()) {
+            Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+                if (!isLast) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = 18.dp)
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(colors.divider)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(x = 6.dp, y = 18.dp)
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(colors.divider)
+                        .offset(x = 9.dp, y = 6.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(categoryColor)
                 )
             }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 9.dp, y = 6.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(categoryColor)
-            )
         }
         // 右侧内容卡
         Box(
@@ -5293,26 +5296,28 @@ private fun Ios26EventRow(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 左侧时间占位（与课程时间列对齐）
-        Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
-            if (!isLast) {
+        // 无时间条目（默认待办 / 全天）不渲染时间占位列，内容卡铺满整行
+        if (!event.startTime.isNullOrBlank()) {
+            Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+                if (!isLast) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = 18.dp)
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(colors.divider)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(x = 6.dp, y = 18.dp)
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(colors.divider)
+                        .offset(x = 9.dp, y = 6.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(categoryColor)
                 )
             }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 9.dp, y = 6.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(categoryColor)
-            )
         }
         // 右侧内容卡
         Box(

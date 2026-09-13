@@ -1099,6 +1099,8 @@
     <string name="couple_manage_rename">Rename</string>
     <string name="couple_manage_edit_timetable">Class times</string>
     <string name="couple_overlay_switch">Show both schedules</string>
+    <string name="couple_show_time_ranges">Show course time ranges</string>
+    <string name="couple_show_time_ranges_desc">In overlay view with differing schedules, show start-end times on course cards (off by default to keep cards readable)</string>
     <string name="couple_overlay_desc">Overlay both partners' courses on one grid, each arranged by their own class times. Affects the schedule and today pages only; widgets and reminders always follow the currently shown schedule</string>
     <string name="couple_overlay_disabled_solo">Couple schedule is shown solo; this switch is disabled</string>
     <string name="couple_solo_banner">Showing the couple schedule solo</string>

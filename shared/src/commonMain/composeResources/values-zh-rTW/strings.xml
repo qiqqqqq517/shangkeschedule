@@ -1099,6 +1099,8 @@
     <string name="couple_manage_rename">重新命名</string>
     <string name="couple_manage_edit_timetable">作息設定</string>
     <string name="couple_overlay_switch">雙人同顯</string>
+    <string name="couple_show_time_ranges">顯示課程時間段</string>
+    <string name="couple_show_time_ranges_desc">疊加視圖雙方作息不同時，在課程卡上顯示起訖時間（預設關閉，以免擠佔課程內容）</string>
     <string name="couple_overlay_desc">開啟後同屏疊加顯示雙方課程，各自按自己的作息排列。僅作用於課表頁與今日頁；桌面小工具與上課提醒始終跟隨當前顯示的課表</string>
     <string name="couple_overlay_disabled_solo">目前正在單獨顯示情侶課表，此開關自動失效</string>
     <string name="couple_solo_banner">正在單獨顯示情侶課表</string>
