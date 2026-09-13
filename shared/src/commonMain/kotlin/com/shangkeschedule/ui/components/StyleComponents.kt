@@ -669,6 +669,9 @@ fun AppSegmentedControl(
                 ambientColor = tokens.shadow,
                 spotColor = tokens.shadow
             )
+            // 圆形裁剪（v3.54.1 修复）：v3.53.5 巨胶囊重构时丢失了 clip，
+            // 通透/书卷主题下选中胶囊 background 以直角矩形渲染成「方块」
+            .clip(CircleShape)
             .background(tokens.cardBg)
     }
 
