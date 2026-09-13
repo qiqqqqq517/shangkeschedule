@@ -331,7 +331,9 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
 val MIGRATION_12_13 = object : Migration(12, 13) {
     override suspend fun migrate(connection: SQLiteConnection) {
         connection.execSQL("ALTER TABLE course_tables ADD COLUMN isCouple INTEGER NOT NULL DEFAULT 0")
-        connection.execSQL("ALTER TABLE course_tables ADD COLUMN pairedCourseTableId TEXT")
+        // 实体 @ColumnInfo(defaultValue = "NULL") 要求列定义带 DEFAULT NULL，
+        // 缺失时 Room 迁移后校验（TableInfo defaultValue 'NULL' vs null）不等，启动即闪退。
+        connection.execSQL("ALTER TABLE course_tables ADD COLUMN pairedCourseTableId TEXT DEFAULT NULL")
 
         // 收集所有含 crush 课程的本人课表 ID
         val selfTableIds = mutableListOf<String>()
