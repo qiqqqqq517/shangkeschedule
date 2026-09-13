@@ -104,6 +104,7 @@
     <string name="settings_group_preference">Preferences</string>
     <string name="settings_group_about">About</string>
     <string name="text_no_courses_today">No courses today</string>
+    <string name="text_no_courses_this_week">No courses this week</string>
     <string name="label_crush_course">Partner's class</string>
     <string name="text_course_in_progress">In class now</string>
     <string name="text_courses_finished">All done for today</string>
@@ -193,6 +194,7 @@
     <string name="label_course_color">Course color</string>
     <string name="button_select_color">Select color</string>
     <string name="snackbar_add_course_within_semester">Please add or adjust courses during the semester</string>
+    <string name="snackbar_course_move_failed">Failed to move course, please try again</string>
     <string name="label_section_range_suffix">Period(s)</string>
     <string name="title_select_time">Select class time</string>
     <string name="button_select_weeks">Select weeks</string>

@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
+import com.shangkeschedule.ui.theme.AnimationGroup
+import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.LocalGlassBlurRadius
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
@@ -125,10 +127,14 @@ fun LiquidGlassTabs(
         }
         val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
         val animationScope = rememberCoroutineScope()
+        // 缩放/挤压接动效开关（v3.54.0）：减弱动态效果或关闭 GLASS_FLOATING 分组时，
+        // 底栏按压只保留指示器位移，不再有任何形变
+        val motion = LocalAppMotion.current
+        val scaleEnabled = !motion.reduceMotion && motion.isEnabled(AnimationGroup.GLASS_FLOATING)
         var currentIndex by remember(selectedTabIndex) {
             mutableIntStateOf(selectedTabIndex())
         }
-        val dampedDragAnimation = remember(animationScope) {
+        val dampedDragAnimation = remember(animationScope, scaleEnabled) {
             DampedDragAnimation(
                 animationScope = animationScope,
                 initialValue = selectedTabIndex().toFloat(),
@@ -136,6 +142,7 @@ fun LiquidGlassTabs(
                 visibilityThreshold = 0.001f,
                 initialScale = 1f,
                 pressedScale = 78f / 56f,
+                scaleEnabled = scaleEnabled,
                 onDragStarted = { down ->
                     // 本项目交互需求「点击迅速放大」：手指按下的瞬间就把指示器定位到
                     // 按压的 Tab 并进入按压态（放大 + 折射 + 彩虹边同时出现）。

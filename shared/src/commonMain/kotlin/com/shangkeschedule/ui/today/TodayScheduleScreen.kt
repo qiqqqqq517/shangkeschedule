@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -47,14 +48,28 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -125,11 +140,13 @@ import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import com.shangkeschedule.ui.theme.claudeReadingSerif
 import com.shangkeschedule.ui.theme.claudeUiSans
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.rememberStatusFadeAlpha
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.MotionPressMode
 import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.components.rememberAppHaptics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -335,9 +352,20 @@ fun TodayScheduleScreen(
                     .padding(innerPadding)
                     .hazeSource(hazeState)
             ) {
-                when (val state = uiState) {
-                    is TodayUiState.Loading -> AppLoading()
-                    is TodayUiState.Success -> {
+                // Loading→Success 溶解过渡（v3.54.0）：contentKey 按状态类型区分，
+                // Success 内部更新（每分钟 tick）不触发转场
+                val stateFadeMs = LocalAppMotion.current.tokens.statusFadeMs
+                AnimatedContent(
+                    targetState = uiState,
+                    contentKey = { it::class },
+                    transitionSpec = {
+                        fadeIn(tween(stateFadeMs)) togetherWith fadeOut(tween(stateFadeMs))
+                    },
+                    label = "todayStateSwap"
+                ) { todayState ->
+                    when (val state = todayState) {
+                        is TodayUiState.Loading -> AppLoading()
+                        is TodayUiState.Success -> {
                         PullToRefreshBox(
                             isRefreshing = refreshing,
                             onRefresh = {
@@ -358,7 +386,13 @@ fun TodayScheduleScreen(
                                 // 注意：自定义 indicator 不再受 M3 的定位逻辑托管，
                                 // 必须自行按下拉进度显隐，否则会在页头常驻一枚圆形指示器。
                                 val pullProgress = pullToRefreshState.distanceFraction
-                                if (refreshing || pullProgress > 0.01f) {
+                                // 显隐走 AnimatedVisibility（v3.54.0）：缩放+淡入淡出，
+                                // 取代瞬现瞬失；减弱动态时 AnimatedVisibility 的入场按全局令牌自动退化
+                                AnimatedVisibility(
+                                    visible = refreshing || pullProgress > 0.01f,
+                                    enter = fadeIn() + scaleIn(initialScale = 0.6f),
+                                    exit = fadeOut() + scaleOut(targetScale = 0.6f)
+                                ) {
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.TopCenter)
@@ -391,6 +425,7 @@ fun TodayScheduleScreen(
                                 }
                             )
                         }
+                    }
                     }
                 }
             }
@@ -681,14 +716,21 @@ fun TodayContent(
                         }
                     }
                 } else {
-                    itemsIndexed(state.courses) { index, model ->
-                        CourseTimelineItem(
-                            model,
-                            gridStyle,
-                            isDark,
-                            now = currentTime,
-                            entranceDelayMs = todayEntranceMotion.tokens.entranceStaggerMs * index
-                        )
+                    // key + animateItem（v3.54.0）：课程增删/结课时列表项位移动画，
+                    // 且避免 rememberSaveable 入场标记按位置错位继承
+                    itemsIndexed(
+                        state.courses,
+                        key = { _, m -> m.course.id }
+                    ) { index, model ->
+                        Box(modifier = Modifier.animateItem()) {
+                            CourseTimelineItem(
+                                model,
+                                gridStyle,
+                                isDark,
+                                now = currentTime,
+                                entranceDelayMs = todayEntranceMotion.tokens.entranceStaggerMs * index
+                            )
+                        }
                     }
                 }
                 // 今日待办自动排到课程列表之后（页面最底部）
@@ -1211,13 +1253,38 @@ private fun ClaudeTimelineItem(
                         .background(colors.divider)
                 )
             }
+            // 进行中圆点：状态色经 colorDurationMs 渐变；进行中带呼吸脉冲（兑现设计注释承诺，
+            // v3.54.0）。脉冲值在 graphicsLayer 内延迟读取，呼吸期间不重组 item
+            val dotMotion = LocalAppMotion.current
+            val dotColor by animateColorAsState(
+                targetValue = if (isCurrent) palette.dot else colors.pageBg,
+                animationSpec = tween(
+                    dotMotion.tokens.colorDurationMs,
+                    easing = dotMotion.tokens.entranceEasing
+                ),
+                label = "currentDotColor"
+            )
+            val dotPulseState: State<Float>? = if (isCurrent && !dotMotion.reduceMotion) {
+                rememberInfiniteTransition(label = "currentDotPulse").animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.55f,
+                    animationSpec = infiniteRepeatable(
+                        tween(dotMotion.tokens.pulseDurationMs.coerceAtLeast(1)),
+                        RepeatMode.Reverse
+                    ),
+                    label = "currentDotPulseAlpha"
+                )
+            } else {
+                null
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 9.dp, y = 18.dp)
+                    .graphicsLayer { alpha = dotPulseState?.value ?: 1f }
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isCurrent) palette.dot else colors.pageBg)
+                    .background(dotColor)
                     .border(2.5.dp, palette.dot, CircleShape)
             )
         }
@@ -1548,11 +1615,13 @@ private fun ClaudeNextClassCard(
     val border = if (isDarkTheme) Color(0x339C87F5) else Color(0x269C87F5)
     val shape = RoundedCornerShape(28.dp)
     val minutesUntil = data.minutesUntil
+    // 淡出/恢复随分钟变化：经 statusFadeMs 渐变，取代二值硬跳（v3.54.0）
+    val nextCardAlpha by rememberStatusFadeAlpha(data.faded, 0.62f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
+            .graphicsLayer { alpha = nextCardAlpha }
             .shadow(
                 elevation = 8.dp,
                 shape = shape,
@@ -1895,7 +1964,7 @@ private fun ClaudeEventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .alpha(if (event.done) 0.5f else 1f)
+                .alpha(rememberStatusFadeAlpha(event.done, 0.5f).value)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .border(1.dp, colors.divider, RoundedCornerShape(12.dp))
@@ -2213,6 +2282,8 @@ private fun TodoRow(
     val themeColor = if (isDark) colorPair.dark else colorPair.light
     val textColor = gridStyle.courseTextColorLong?.let { Color(it) }
         ?: adaptiveTextColor(themeColor, MaterialTheme.colorScheme.onSurface)
+    // 勾选完成触觉反馈（v3.54.0）
+    val haptics = rememberAppHaptics()
 
     val cornerRadius = gridStyle.courseBlockCornerRadiusDp.dp
     val shape = RoundedCornerShape(cornerRadius)
@@ -2241,7 +2312,7 @@ private fun TodoRow(
         else -> Modifier
     }
     // 已完成待办整体降透明（同课程已结束）
-    val blockAlpha = if (todo.done) 0.5f else gridStyle.courseBlockAlphaFloat
+    val blockAlpha by rememberStatusFadeAlpha(todo.done, 0.5f, gridStyle.courseBlockAlphaFloat)
 
     Row(
         modifier = Modifier
@@ -2294,6 +2365,7 @@ private fun TodoRow(
                     AppCheckboxIndicator(
                         checked = todo.done,
                         modifier = Modifier.clickable {
+                            haptics.tick()
                             onToggle(todo.id, !todo.done)
                         }
                     )
@@ -2321,207 +2393,6 @@ private fun TodoRow(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TodoEditDialog(
-    existing: TodoItem?,
-    onDismiss: () -> Unit,
-    onConfirm: (title: String, note: String?, time: String?) -> Unit,
-    onDeleteRequest: () -> Unit,
-    hazeState: HazeState? = null
-) {
-    var title by remember(existing) { mutableStateOf(existing?.title ?: "") }
-    var time by remember(existing) { mutableStateOf(existing?.time ?: "") }
-    var note by remember(existing) { mutableStateOf(existing?.note ?: "") }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    AppAlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (existing != null) {
-                    IconButton(onClick = onDeleteRequest) {
-                        Icon(
-                            vectorResource(Res.drawable.delete_24px),
-                            contentDescription = stringResource(Res.string.confirm_delete)
-                        )
-                    }
-                }
-                Text(
-                    text = stringResource(if (existing == null) Res.string.todo_add else Res.string.todo_edit),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        text = {
-            Column {
-                AppTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = stringResource(Res.string.todo_title_label),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                // 时间选择式：点击输入框弹出 TimePicker，右侧 × 清除已选时间
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        AppTextField(
-                            value = time,
-                            onValueChange = {},
-                            label = stringResource(Res.string.todo_time_label),
-                            placeholder = stringResource(Res.string.todo_time_label),
-                            readOnly = true,
-                            singleLine = true,
-                            trailingIcon = if (time.isNotBlank()) {
-                                {
-                                    IconButton(onClick = { time = "" }) {
-                                        Icon(
-                                            vectorResource(Res.drawable.close_24px),
-                                            contentDescription = stringResource(Res.string.action_cancel),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            } else null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable { showTimePicker = true }
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                AppTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = stringResource(Res.string.todo_note_label),
-                    singleLine = false,
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            AppDialogActions(
-                confirmText = stringResource(Res.string.action_confirm),
-                onConfirm = {
-                    if (title.isNotBlank()) {
-                        onConfirm(
-                            title.trim(),
-                            note.trim().takeIf { it.isNotBlank() },
-                            time.trim().takeIf { it.isNotBlank() }
-                        )
-                    }
-                },
-                dismissText = stringResource(Res.string.action_cancel),
-                onDismiss = onDismiss
-            )
-        },
-        dismissButton = {}
-    )
-
-    if (showTimePicker) {
-        TodoTimePickerSheet(
-            initialTime = time,
-            onDismissRequest = { showTimePicker = false },
-            onTimeSelected = { time = it },
-            hazeState = hazeState
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TodoTimePickerSheet(
-    initialTime: String?,
-    onDismissRequest: () -> Unit,
-    onTimeSelected: (String) -> Unit,
-    hazeState: HazeState? = null
-) {
-    // 与应用课程时间选择一致的滚轮底部弹窗（ModalBottomSheet + NativeNumberPicker）
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val parsed = initialTime?.split(":")
-    val initialHour = (parsed?.getOrNull(0)?.toIntOrNull() ?: 12).coerceIn(0, 23)
-    val initialMinute = (parsed?.getOrNull(1)?.toIntOrNull() ?: 0).coerceIn(0, 59)
-    var hour by remember { mutableIntStateOf(initialHour) }
-    var minute by remember { mutableIntStateOf(initialMinute) }
-    val hours = remember { (0..23).map { it.toString().padStart(2, '0') } }
-    val minutes = remember { (0..59).map { it.toString().padStart(2, '0') } }
-
-    // 毛玻璃面板：实色内容列由 AppGlassBottomSheet 统一处理
-    AppGlassBottomSheet(
-        hazeState = hazeState,
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(Res.string.todo_time_label),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                NativeNumberPicker(
-                    values = hours,
-                    selectedValue = hour.toString().padStart(2, '0'),
-                    onValueChange = { hour = it.toInt() },
-                    modifier = Modifier.weight(1f)
-                )
-                Text(":", style = MaterialTheme.typography.titleMedium)
-                NativeNumberPicker(
-                    values = minutes,
-                    selectedValue = minute.toString().padStart(2, '0'),
-                    onValueChange = { minute = it.toInt() },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            // 主色胶囊确认钮（AppDialogActions，与其他弹窗操作区同语言）
-            AppDialogActions(
-                confirmText = stringResource(Res.string.action_confirm),
-                onConfirm = {
-                    val hh = hour.toString().padStart(2, '0')
-                    val mm = minute.toString().padStart(2, '0')
-                    onTimeSelected("$hh:$mm")
-                    onDismissRequest()
-                }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun TodoDeleteDialog(
-    todo: TodoItem,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    // 危险操作统一走 AppDangerDialog：危险色胶囊确认钮（v2 规范 §4 对话框统一）
-    AppDangerDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(Res.string.todo_delete_title),
-        text = stringResource(Res.string.todo_delete_message, todo.title),
-        confirmText = stringResource(Res.string.confirm_delete),
-        onConfirm = onConfirm,
-        dismissText = stringResource(Res.string.action_cancel),
-        onDismiss = onDismiss
-    )
 }
 
 @Composable
@@ -2730,7 +2601,7 @@ fun CourseTimelineItem(
         else -> Modifier
     }
     // 已结束课程整体降透明
-    val blockAlpha = if (isFinished) 0.5f else gridStyle.courseBlockAlphaFloat
+    val blockAlpha by rememberStatusFadeAlpha(isFinished, 0.5f, gridStyle.courseBlockAlphaFloat)
 
     // v3.26.0 C+.15 今日页课程卡点按反馈：按压缩放（读全局令牌；
     // 关掉「课程格反馈」分组 ⇒ snap 到原样）。今日页课程卡此前纯展示无任何反馈。
@@ -3030,7 +2901,7 @@ private fun IosCourseCard(
     val textPrimary = appColors().textPrimary
     val textSecondary = appColors().textSecondary
 
-    val contentAlpha = if (isFinished) 0.5f else 1f
+    val contentAlpha by rememberStatusFadeAlpha(isFinished, 0.5f)
 
     Row(
         modifier = Modifier
@@ -3610,13 +3481,38 @@ private fun SoftTimelineItem(
                         .background(colors.divider)
                 )
             }
+            // 进行中圆点：状态色经 colorDurationMs 渐变；进行中带呼吸脉冲（兑现设计注释承诺，
+            // v3.54.0）。脉冲值在 graphicsLayer 内延迟读取，呼吸期间不重组 item
+            val dotMotion = LocalAppMotion.current
+            val dotColor by animateColorAsState(
+                targetValue = if (isCurrent) palette.dot else colors.pageBg,
+                animationSpec = tween(
+                    dotMotion.tokens.colorDurationMs,
+                    easing = dotMotion.tokens.entranceEasing
+                ),
+                label = "currentDotColor"
+            )
+            val dotPulseState: State<Float>? = if (isCurrent && !dotMotion.reduceMotion) {
+                rememberInfiniteTransition(label = "currentDotPulse").animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.55f,
+                    animationSpec = infiniteRepeatable(
+                        tween(dotMotion.tokens.pulseDurationMs.coerceAtLeast(1)),
+                        RepeatMode.Reverse
+                    ),
+                    label = "currentDotPulseAlpha"
+                )
+            } else {
+                null
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 9.dp, y = 18.dp)
+                    .graphicsLayer { alpha = dotPulseState?.value ?: 1f }
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isCurrent) palette.dot else colors.pageBg)
+                    .background(dotColor)
                     .border(2.5.dp, palette.dot, CircleShape)
             )
         }
@@ -3817,11 +3713,13 @@ private fun SoftNextClassCard(
     }
     val shape = RoundedCornerShape(28.dp)
     val minutesUntil = data.minutesUntil
+    // 淡出/恢复随分钟变化：经 statusFadeMs 渐变，取代二值硬跳（v3.54.0）
+    val nextCardAlpha by rememberStatusFadeAlpha(data.faded, 0.62f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
+            .graphicsLayer { alpha = nextCardAlpha }
             .softShadow(shape = shape, elevation = 8.dp)
             .clip(shape)
             .background(Brush.linearGradient(gradient))
@@ -4107,7 +4005,7 @@ private fun SoftEventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .alpha(if (event.done) 0.5f else 1f)
+                .alpha(rememberStatusFadeAlpha(event.done, 0.5f).value)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .softFeatherRim(RoundedCornerShape(12.dp))
@@ -4815,13 +4713,38 @@ private fun Ios26TimelineItem(
                         .background(colors.divider)
                 )
             }
+            // 进行中圆点：状态色经 colorDurationMs 渐变；进行中带呼吸脉冲（兑现设计注释承诺，
+            // v3.54.0）。脉冲值在 graphicsLayer 内延迟读取，呼吸期间不重组 item
+            val dotMotion = LocalAppMotion.current
+            val dotColor by animateColorAsState(
+                targetValue = if (isCurrent) palette.dot else colors.pageBg,
+                animationSpec = tween(
+                    dotMotion.tokens.colorDurationMs,
+                    easing = dotMotion.tokens.entranceEasing
+                ),
+                label = "currentDotColor"
+            )
+            val dotPulseState: State<Float>? = if (isCurrent && !dotMotion.reduceMotion) {
+                rememberInfiniteTransition(label = "currentDotPulse").animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.55f,
+                    animationSpec = infiniteRepeatable(
+                        tween(dotMotion.tokens.pulseDurationMs.coerceAtLeast(1)),
+                        RepeatMode.Reverse
+                    ),
+                    label = "currentDotPulseAlpha"
+                )
+            } else {
+                null
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 9.dp, y = 18.dp)
+                    .graphicsLayer { alpha = dotPulseState?.value ?: 1f }
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isCurrent) palette.dot else colors.pageBg)
+                    .background(dotColor)
                     .border(2.5.dp, palette.dot, CircleShape)
             )
         }
@@ -5029,11 +4952,13 @@ private fun Ios26NextClassCard(
     val border = if (isDarkTheme) Color(0x339C87F5) else Color(0x269C87F5)
     val shape = RoundedCornerShape(28.dp)
     val minutesUntil = data.minutesUntil
+    // 淡出/恢复随分钟变化：经 statusFadeMs 渐变，取代二值硬跳（v3.54.0）
+    val nextCardAlpha by rememberStatusFadeAlpha(data.faded, 0.62f)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (data.faded) 0.62f else 1f }
+            .graphicsLayer { alpha = nextCardAlpha }
             .shadow(
                 elevation = 8.dp,
                 shape = shape,
@@ -5323,7 +5248,7 @@ private fun Ios26EventRow(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .alpha(if (event.done) 0.5f else 1f)
+                .alpha(rememberStatusFadeAlpha(event.done, 0.5f).value)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .border(1.dp, colors.divider, RoundedCornerShape(12.dp))

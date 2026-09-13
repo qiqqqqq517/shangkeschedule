@@ -188,7 +188,7 @@ fun WeekSelectorBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(totalWeeks) { index ->
+                items(totalWeeks, key = { it }) { index ->
                     val weekNumber = index + 1
                     val isSelected = tempSelectedWeeks.contains(weekNumber)
                     Box(

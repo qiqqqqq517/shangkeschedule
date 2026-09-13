@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,6 +27,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +36,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,6 +67,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import school_index.AdapterCategory
 import school_index.School
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_retry
+import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_clear_search
 import shangkeschedule.shared.generated.resources.a11y_delete
@@ -99,6 +108,18 @@ fun SchoolSelectionListScreen(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var isSearchActive by remember { mutableStateOf(false) }
+    val loadFailed by viewModel.loadFailed.collectAsState()
+
+    // 搜索态接管系统返回（v3.54.0）：手势/返回键先清搜索词与激活态，而非直接退出本页
+    val searchBackState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = searchBackState,
+        isBackEnabled = isSearchActive,
+        onBackCompleted = {
+            isSearchActive = false
+            viewModel.updateSearchQuery("")
+        }
+    )
 
     val titleText = stringResource(Res.string.title_select_school)
     val placeholderText = stringResource(Res.string.search_hint_school)
@@ -152,6 +173,8 @@ fun SchoolSelectionListScreen(
 
                 SchoolContent(
                     isLoading = isLoading,
+                    loadFailed = loadFailed,
+                    onRetry = viewModel::retryLoad,
                     filteredSchools = filteredSchools,
                     lazyListState = lazyListState,
                     selectedCategory = selectedCategory,
@@ -183,6 +206,8 @@ fun SchoolSelectionListScreen(
 @Composable
 private fun SchoolContent(
     isLoading: Boolean,
+    loadFailed: Boolean,
+    onRetry: () -> Unit,
     filteredSchools: List<School>,
     lazyListState: LazyListState,
     selectedCategory: AdapterCategory,
@@ -200,6 +225,26 @@ private fun SchoolContent(
     when {
         isLoading -> {
             AppLoading()
+        }
+        // 索引加载失败：与「无结果」空态区分，提供重试（v3.54.0）
+        loadFailed -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                AppEmptyState(hint = stringResource(Res.string.error_load_failed))
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onRetry,
+                    shape = appShapes().capsule,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = appColors().primary,
+                        contentColor = appColors().textOnPrimary
+                    )
+                ) {
+                    Text(stringResource(Res.string.action_retry))
+                }
+            }
         }
         filteredSchools.isEmpty() && !isLoading -> {
             // 统一空状态：淡灰胶囊 + 辅助文案
@@ -389,7 +434,7 @@ fun SearchBarWithTitle(
                     contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().cardGap),
                     verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                 ) {
-                    items(filteredSchools) { school ->
+                    items(filteredSchools, key = { it.id }) { school ->
                         SchoolItem(school = school) { onSchoolSelected(it) }
                     }
                 }

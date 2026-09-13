@@ -121,6 +121,8 @@ object ScheduleStyleSerializer : OkioSerializer<ScheduleGridStyleProto> {
         return try {
             ScheduleGridStyleProto.ADAPTER.decode(source)
         } catch (e: Exception) {
+            // 样式损坏回落默认值时必须留痕（v3.54.0）：否则「用户样式丢失」类反馈无从定位
+            println("错误：课表样式数据损坏，已回落默认样式 — $e")
             defaultValue
         }
     }

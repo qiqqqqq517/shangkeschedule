@@ -447,6 +447,15 @@ class CourseTableRepository(
     }
 
     /**
+     * 一次性获取课表全部课程（含周次关联）。
+     * 供快速删除等批量操作一次拉全量后内存按 (周,日) 匹配，
+     * 避免逐组合调用 [getCoursesForDay] 造成的全表查询放大（v3.54.0）。
+     */
+    suspend fun getCoursesWithWeeksOnce(courseTableId: String): List<CourseWithWeeks> {
+        return courseDao.getCoursesWithWeeksByTableId(courseTableId).first()
+    }
+
+    /**
      * 快速删除：仅移除特定周次的记录，不物理删除课程定义。
      * * @param tableId 课表唯一 ID
      * @param weekDayPairs 周次与星期的组合列表 (Pair<周次, 星期>)
@@ -455,16 +464,20 @@ class CourseTableRepository(
         tableId: String,
         weekDayPairs: List<Pair<Int, Int>>
     ) {
-        // 先收集所有待删除的 (课程ID列表, 周次)，读操作放事务外
-        val deletions = mutableListOf<Pair<List<String>, Int>>()
-        weekDayPairs.forEach { (week, day) ->
-            // 查找在该课表、该周、该天下的所有课程记录
-            val coursesToDelete = getCoursesForDay(tableId, week, day).first()
-
-            if (coursesToDelete.isNotEmpty()) {
-                deletions += coursesToDelete.map { it.course.id } to week
+        if (weekDayPairs.isEmpty()) return
+        // 一次全量拉取后内存按 (周,日) 匹配，替代此前逐组合全表查询（v3.54.0）
+        val allCourses = getCoursesWithWeeksOnce(tableId)
+        val deletions: List<Pair<List<String>, Int>> = allCourses
+            .flatMap { courseWithWeeks ->
+                weekDayPairs
+                    .filter { (week, day) ->
+                        courseWithWeeks.course.day == day &&
+                            courseWithWeeks.weeks.any { it.weekNumber == week }
+                    }
+                    .map { it.first to courseWithWeeks.course.id }
             }
-        }
+            .groupBy({ it.first }, { it.second })
+            .map { (week, ids) -> ids.distinct() to week }
 
         if (deletions.isEmpty()) return
 

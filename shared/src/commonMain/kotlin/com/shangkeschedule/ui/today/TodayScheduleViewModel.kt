@@ -178,11 +178,19 @@ class TodayScheduleViewModel(
                             flowOf(emptyList())
                         }
 
-                    // 明日课程（iOS 主题用）
+                    // 明日课程（iOS 主题用）。周日跨周修正（v3.54.0）：明天是下周一时
+                    // 查询周次 +1；超出学期总周数则明日无课（此前周日会查到本周一的课）
                     val tomorrowDayOfWeek = (dayOfWeek % 7) + 1
+                    val tomorrowWeekIndex = if (tomorrowDayOfWeek == 1) {
+                        snapshot.weekIndex?.plus(1)
+                    } else {
+                        snapshot.weekIndex
+                    }
                     val tomorrowCoursesFlow: Flow<List<CourseWithWeeks>> =
-                        if (snapshot.status == TodayStatus.Normal && snapshot.weekIndex != null) {
-                            mergedDayCoursesFlow(settings, tableId, snapshot.weekIndex, tomorrowDayOfWeek)
+                        if (snapshot.status == TodayStatus.Normal &&
+                            tomorrowWeekIndex != null && tomorrowWeekIndex in 1..snapshot.totalWeeks
+                        ) {
+                            mergedDayCoursesFlow(settings, tableId, tomorrowWeekIndex, tomorrowDayOfWeek)
                         } else {
                             flowOf(emptyList())
                         }
@@ -318,6 +326,7 @@ data class CourseDisplayModel(
 
 enum class TodayStatus { Normal, NoSemesterConfig, SemesterEnded, Vacation }
 
+@androidx.compose.runtime.Immutable
 sealed class TodayUiState {
     data object Loading : TodayUiState()
     data class Success(

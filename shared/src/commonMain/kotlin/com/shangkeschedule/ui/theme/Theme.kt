@@ -91,6 +91,9 @@ fun ShangKeScheduleTheme(
             speed = settings.motionSpeed,
         )
     ) {
+        // 主题/深浅切换为原位重组（终审 P1：曾试以 (深浅, 预设) 为 key 包 Crossfade，
+        // 但它为每个 key 组建全新分支组合，会连同 rememberNavBackStack 一起重建，
+        // 用户被弹回起始页并丢失返回栈——含导航状态的 content 严禁以主题为 key 重建）
         ShangKeScheduleTheme(
             darkTheme = darkTheme,
             dynamicColor = settings.useDynamicColor && seedColor == null,

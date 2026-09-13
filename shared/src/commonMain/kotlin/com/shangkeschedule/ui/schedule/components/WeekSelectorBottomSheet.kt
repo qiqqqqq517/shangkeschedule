@@ -93,7 +93,7 @@ fun WeekSelectorBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(totalWeeks) { weekIndex ->
+                items(totalWeeks, key = { it }) { weekIndex ->
                     val weekNumber = weekIndex + 1
                     val isCurrentWeek = weekNumber == currentWeek
                     val isSelectedWeek = weekNumber == selectedWeek

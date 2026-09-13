@@ -31,6 +31,10 @@ class SchoolSelectionViewModel(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // 区分「索引加载失败」与「真空列表」（v3.54.0）：失败时给出重试入口
+    private val _loadFailed = MutableStateFlow(false)
+    val loadFailed: StateFlow<Boolean> = _loadFailed
+
     // 观察历史记录
     val schoolHistory: StateFlow<SchoolHistoryModel> = historyRepository.historyFlow
         .stateIn(
@@ -82,11 +86,20 @@ class SchoolSelectionViewModel(
     private fun loadSchools() {
         viewModelScope.launch {
             _isLoading.value = true
-            val schools = schoolRepository.getSchools()
-            _allSchools.value = schools
+            _loadFailed.value = false
+            runCatching { schoolRepository.getSchools() }
+                .onSuccess { schools ->
+                    // 正常索引至少含一所学校：空结果说明索引未加载成功
+                    _loadFailed.value = schools.isEmpty()
+                    _allSchools.value = schools
+                }
+                .onFailure { _loadFailed.value = true }
             _isLoading.value = false
         }
     }
+
+    /** 加载失败后的手动重试（v3.54.0）。 */
+    fun retryLoad() = loadSchools()
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query

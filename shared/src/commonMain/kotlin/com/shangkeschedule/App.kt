@@ -4,6 +4,9 @@ import shangkeschedule.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppToastHost
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
+import androidx.compose.ui.Alignment
 import shangkeschedule.shared.generated.resources.webview_semester_prompt_title
 import shangkeschedule.shared.generated.resources.webview_semester_prompt_message
 import shangkeschedule.shared.generated.resources.webview_semester_prompt_later
@@ -19,6 +22,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -92,20 +96,32 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun App() {
     val viewModel: SettingsViewModel = koinViewModel()
+    // 门控收窄（v3.54.0）：根部就绪态/起始页单独订阅，DataStore 无关写入不再触达根组合；
+    // 主题设置仍经 uiState 传入 ShangKeScheduleTheme（主题树内部自行消费）
+    val gate by viewModel.startGate.collectAsState()
     val state by viewModel.uiState.collectAsState()
 
-    if (state.isReady) {
+    if (gate.isReady) {
         ShangKeScheduleTheme(settings = state.appSettings) {
-            val startDest = remember(state.appSettings.startScreen) {
-                when (state.appSettings.startScreen) {
+            val startDest = remember(gate.startScreen) {
+                when (gate.startScreen) {
                     StartScreen.COURSE_SCHEDULE -> Destination.CourseSchedule
                     StartScreen.TODAY_SCHEDULE -> Destination.TodaySchedule
                 }
             }
-            AppNavigation(startDestination = startDest)
+            Box(modifier = Modifier.fillMaxSize()) {
+                AppNavigation(startDestination = startDest)
+                // 全局反馈横幅（v3.54.0）：ToastManager.show 的主题化应用内呈现
+                AppToastHost()
+            }
         }
     } else {
-        Surface(modifier = Modifier.fillMaxSize()) {}
+        // 冷启动 DB 初始化期间的加载占位（v3.54.0）：不再是无内容白/黑屏
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ThemedLoadingIndicator()
+            }
+        }
     }
 }
 
@@ -176,7 +192,17 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
     val fadeAnimSpec = remember(motion) {
-        tween<Float>(navDurationMs, easing = navEasing)
+        if (navMode == NavMotionMode.SLIDE) {
+            // 通透：淡入淡出与位移共用同参数物理弹簧（v3.54.0）——此前位移走弹簧、
+            // 透明度走 tween，两者收束时长天然不同步（位移未落定 alpha 已到 1）
+            spring<Float>(
+                dampingRatio = 1f,
+                stiffness = Spring.StiffnessMediumLow,
+                visibilityThreshold = 0.001f
+            )
+        } else {
+            tween<Float>(navDurationMs, easing = navEasing)
+        }
     }
 
     // 退场（淡出）单独一套：慢进快出——旧页不再陪新页一起走 600ms。

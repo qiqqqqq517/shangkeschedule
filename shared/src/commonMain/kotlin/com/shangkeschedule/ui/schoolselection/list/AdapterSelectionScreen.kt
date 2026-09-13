@@ -2,7 +2,9 @@ package com.shangkeschedule.ui.schoolselection.list
 
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,6 +50,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import school_index.Adapter
 import school_index.AdapterCategory
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_retry
+import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.a11y_back_to_school_list
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.category_bachelor_associate
@@ -101,6 +107,9 @@ fun AdapterSelectionScreen(
     // 异步加载状态
     var adapters by remember { mutableStateOf<List<Adapter>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    // 区分「加载失败」与「该分类下确实没有适配器」（v3.54.0）：失败给重试入口
+    var loadFailed by remember { mutableStateOf(false) }
+    var retryKey by remember { mutableIntStateOf(0) }
 
     // 从传入的 number 计算当前的 AdapterCategory
     val currentCategory = remember(categoryNumber) {
@@ -118,13 +127,15 @@ fun AdapterSelectionScreen(
     }
 
     // 数据加载逻辑
-    LaunchedEffect(schoolId, currentCategory) {
+    LaunchedEffect(schoolId, currentCategory, retryKey) {
         isLoading = true
+        loadFailed = false
         try {
             viewModel.updateSelectedCategory(currentCategory)
             adapters = viewModel.getAdaptersForSchoolAndCategory(schoolId)
         } catch (e: Exception) {
             adapters = emptyList()
+            loadFailed = true
         } finally {
             isLoading = false
         }
@@ -154,7 +165,27 @@ fun AdapterSelectionScreen(
         ) {
             when {
                 isLoading -> {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    ThemedLoadingIndicator(Modifier.align(Alignment.Center))
+                }
+                // 加载失败：给错误提示与重试按钮，不再与「无适配器」空态混同（v3.54.0）
+                loadFailed -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Text(text = stringResource(Res.string.error_load_failed))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { retryKey++ },
+                            shape = appShapes().capsule,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = appColors().primary,
+                                contentColor = appColors().textOnPrimary
+                            )
+                        ) {
+                            Text(stringResource(Res.string.action_retry))
+                        }
+                    }
                 }
                 adapters.isEmpty() -> {
                     Text(

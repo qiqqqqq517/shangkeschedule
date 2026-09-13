@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
+import com.shangkeschedule.ui.components.rememberAppHaptics
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.MotionPressMode
 import com.shangkeschedule.ui.theme.appColors
@@ -80,6 +81,8 @@ fun ScheduleGrid(
         val density = LocalDensity.current
         // 拖拽落位吸附的协程宿主（v3.43.0）
         val snapScope = rememberCoroutineScope()
+        // 长按进入挂起模式触觉反馈（v3.54.0）
+        val haptics = rememberAppHaptics()
 
         LaunchedEffect(viewState.mergedCourses) {
             state.resetAllStates()
@@ -389,6 +392,7 @@ fun ScheduleGrid(
                                                     onLongPress = {
                                                         // crush 课程仅展示，禁止进入编辑态
                                                         if (!isReadOnlyBlock) {
+                                                            haptics.longPress()
                                                             state.expandedItem = item
                                                             actions.onHoldStateChanged(true)
                                                         }

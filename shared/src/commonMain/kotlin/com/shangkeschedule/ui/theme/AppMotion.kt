@@ -5,9 +5,12 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
@@ -186,7 +189,7 @@ enum class AnimationGroup(
     /** 对话框（确认弹窗的淡入 / 收起的缩放回弹）。v3.43.0 新增——此前不受任何开关控制。 */
     DIALOG("DIALOG", Res.string.anim_group_dialog, Res.string.anim_group_dialog_desc),
 
-    /** Tab 切换（底栏选中胶囊迁移 + 图标变体切换 + 页面内容淡入）。v3.43.0 新增。 */
+    /** Tab 切换（底栏选中胶囊迁移 + 图标变体切换）。v3.43.0 新增——页面内容不做淡入：底栏属于页面内容的一部分，整页淡入会让底栏闪烁（v3.54.0 注）。 */
     TAB_SWITCH("TAB_SWITCH", Res.string.anim_group_tab_switch, Res.string.anim_group_tab_switch_desc);
 
     companion object {
@@ -677,3 +680,22 @@ fun resolveMotion(
  * `reduceMotionEnabled` + `motionSpeed` 注入；调节入口在「外观与样式 → 个性化显示 → 动画效果」。
  */
 val LocalAppMotion = compositionLocalOf { resolveMotion(AnimationStyle.GLASS, emptySet()) }
+
+/**
+ * 状态渐变（v3.54.0）：已完成 / 已结束 / 淡出等二值 alpha 的统一通道——
+ * 经 [MotionTokens.statusFadeMs] 渐变，取代各处 `if (x) 0.5f else 1f` 硬跳。
+ * 三主题平行实现曾多次漏接此通道（书卷/柔绘卡有、通透卡没有），新增状态行一律走这里。
+ */
+@Composable
+internal fun rememberStatusFadeAlpha(
+    dimmed: Boolean,
+    dimmedAlpha: Float,
+    normalAlpha: Float = 1f
+): State<Float> {
+    val tokens = LocalAppMotion.current.tokens
+    return animateFloatAsState(
+        targetValue = if (dimmed) dimmedAlpha else normalAlpha,
+        animationSpec = tween(tokens.statusFadeMs, easing = tokens.entranceEasing),
+        label = "statusFadeAlpha"
+    )
+}

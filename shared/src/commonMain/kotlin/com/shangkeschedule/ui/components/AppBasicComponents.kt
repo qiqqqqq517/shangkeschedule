@@ -33,14 +33,15 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -177,33 +178,56 @@ fun ThemedLoadingIndicator(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * 环境循环相位（v3.54.0）：[animated]=false 时**不创建** infiniteTransition 动画时钟，
+ * 返回恒定中间值——此前三个变体无条件创建时钟，减弱动态下仍在逐帧驱动（白耗电）。
+ * 相位值在调用方的 graphicsLayer 内延迟读取，动画期间不触发重组。
+ */
+@Composable
+private fun rememberLoopPhase(
+    animated: Boolean,
+    period: Int,
+    label: String,
+    delayMillis: Int = 0,
+    reverse: Boolean = true
+): State<Float> {
+    if (!animated) {
+        return remember(label) { mutableStateOf(0.5f) }
+    }
+    return rememberInfiniteTransition(label = label).animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = period,
+                delayMillis = delayMillis,
+                easing = LinearOutSlowInEasing
+            ),
+            repeatMode = if (reverse) RepeatMode.Reverse else RepeatMode.Restart
+        ),
+        label = label
+    )
+}
+
 /** 柔绘：三枚柔光圆点，依次呼吸（错峰 1/4 周期，对称缓动）。 */
 @Composable
 private fun SoftBreathingDots(animated: Boolean, modifier: Modifier = Modifier) {
     val color = appColors().primary
     val period = LocalAppMotion.current.tokens.pulseDurationMs.coerceAtLeast(600)
-    val transition = rememberInfiniteTransition(label = "softDots")
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(3) { i ->
-            val phase by transition.animateFloat(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(
-                        durationMillis = period,
-                        delayMillis = i * (period / 4),
-                        easing = LinearOutSlowInEasing
-                    ),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "softDot$i"
+            val phase = rememberLoopPhase(
+                animated = animated,
+                period = period,
+                label = "softDot$i",
+                delayMillis = i * (period / 4)
             )
-            val f = if (animated) phase else 0.5f
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .graphicsLayer {
                         // 缩放幅度刻意很小（0.78~1.0），配合浓度起伏即可读出「呼吸」
+                        val f = if (animated) phase.value else 0.5f
                         scaleX = 0.78f + 0.22f * f
                         scaleY = 0.78f + 0.22f * f
                         alpha = 0.32f + 0.68f * f
@@ -220,23 +244,14 @@ private fun SoftBreathingDots(animated: Boolean, modifier: Modifier = Modifier) 
 private fun ClaudeInkDot(animated: Boolean, modifier: Modifier = Modifier) {
     val color = appColors().primary
     val period = LocalAppMotion.current.tokens.pulseDurationMs.coerceAtLeast(600)
-    val transition = rememberInfiniteTransition(label = "claudeInk")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = period, easing = LinearOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "inkPhase"
-    )
-    val f = if (animated) phase else 0.5f
+    val phase = rememberLoopPhase(animated = animated, period = period, label = "claudeInk")
     Box(modifier = modifier.size(26.dp), contentAlignment = Alignment.Center) {
         // 晕开环：自小而大、同时淡出（「墨在纸上化开」）
         Box(
             modifier = Modifier
                 .size(26.dp)
                 .graphicsLayer {
+                    val f = if (animated) phase.value else 0.5f
                     val s = 0.52f + 0.48f * f
                     scaleX = s
                     scaleY = s
@@ -248,7 +263,10 @@ private fun ClaudeInkDot(animated: Boolean, modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .size(10.dp)
-                .graphicsLayer { alpha = 0.40f + 0.60f * (1f - f) }
+                .graphicsLayer {
+                    val f = if (animated) phase.value else 0.5f
+                    alpha = 0.40f + 0.60f * (1f - f)
+                }
                 .clip(CircleShape)
                 .background(color)
         )
@@ -260,19 +278,22 @@ private fun ClaudeInkDot(animated: Boolean, modifier: Modifier = Modifier) {
 private fun IosSegmentedSpinner(animated: Boolean, modifier: Modifier = Modifier) {
     val color = appColors().primary
     val period = LocalAppMotion.current.tokens.pulseDurationMs.coerceAtLeast(600)
-    val transition = rememberInfiniteTransition(label = "iosSpinner")
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = period, easing = LinearEasing)
-        ),
-        label = "spinnerAngle"
-    )
+    val angleState: State<Float>? = if (animated) {
+        rememberInfiniteTransition(label = "iosSpinner").animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = period, easing = LinearEasing)
+            ),
+            label = "spinnerAngle"
+        )
+    } else {
+        null
+    }
     Box(
         modifier = modifier
             .size(24.dp)
-            .graphicsLayer { rotationZ = if (animated) angle else 0f },
+            .graphicsLayer { rotationZ = angleState?.value ?: 0f },
         contentAlignment = Alignment.Center
     ) {
         repeat(8) { i ->
@@ -379,7 +400,8 @@ fun AppFab(
                         .clip(CircleShape)
                         .clickable(
                             interactionSource = interaction,
-                            indication = ripple(bounded = true),
+                            // 走主题化按压指示（v3.54.0）：硬编码 ripple 在书卷/通透下会闪出 Material 涟漪
+                            indication = LocalIndication.current,
                             onClick = onClick
                         )
                 )
@@ -501,6 +523,8 @@ fun AppDangerDialog(
     dismissText: String? = null,
     onDismiss: (() -> Unit)? = null
 ) {
+    // 确认删除触觉反馈（v3.54.0）
+    val haptics = rememberAppHaptics()
     AppAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(title) },
@@ -508,7 +532,10 @@ fun AppDangerDialog(
         confirmButton = {
             AppDialogActions(
                 confirmText = confirmText,
-                onConfirm = onConfirm,
+                onConfirm = {
+                    haptics.confirm()
+                    onConfirm()
+                },
                 dismissText = dismissText,
                 onDismiss = onDismiss,
                 danger = true

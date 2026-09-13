@@ -122,6 +122,11 @@ class DampedDragAnimation(
     val visibilityThreshold: Float,
     val initialScale: Float,
     val pressedScale: Float,
+    /**
+     * 缩放/挤压总开关（v3.54.0）：false 时按压缩放、整条放大与速度挤压全部降级为纯位移——
+     * 接「减弱动态效果」与 GLASS_FLOATING 分组开关，关闭后底栏不再有任何形变。
+     */
+    val scaleEnabled: Boolean = true,
     val onDragStarted: DampedDragAnimation.(position: Offset) -> Unit,
     val onDragStopped: DampedDragAnimation.() -> Unit,
     val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -> Unit,
@@ -181,6 +186,7 @@ class DampedDragAnimation(
 
     fun press() {
         velocityTracker.resetTracking()
+        if (!scaleEnabled) return
         animationScope.launch {
             launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(pressedScale, scaleXAnimationSpec) }
@@ -199,6 +205,7 @@ class DampedDragAnimation(
                     .filter { abs(it - valueAnimation.targetValue) < threshold }
                     .first()
             }
+            if (!scaleEnabled) return@launch
             launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }
             launch { scaleYAnimation.animateTo(initialScale, scaleYAnimationSpec) }
@@ -227,6 +234,7 @@ class DampedDragAnimation(
     }
 
     private fun updateVelocity() {
+        if (!scaleEnabled) return
         velocityTracker.addPosition(
             Clock.System.now().toEpochMilliseconds(),
             Offset(value, 0f)

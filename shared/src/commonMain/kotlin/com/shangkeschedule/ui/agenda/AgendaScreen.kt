@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -104,6 +105,8 @@ import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
+import com.shangkeschedule.ui.theme.rememberStatusFadeAlpha
+import com.shangkeschedule.ui.components.rememberAppHaptics
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -182,6 +185,7 @@ import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.location_on_24px
 import shangkeschedule.shared.generated.resources.month_names
 import shangkeschedule.shared.generated.resources.more_vert_24px
+import shangkeschedule.shared.generated.resources.item_more_options
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.week_days_short_names
@@ -408,14 +412,17 @@ private fun AgendaContent(
                             }
                         }
                     ) { entry ->
-                        AgendaEntryRow(
-                            entry = entry,
-                            selectedDate = state.selectedDate,
-                            today = state.today,
-                            nowMinutes = nowMinutes,
-                            onDelete = { onDeleteEntry(entry) },
-                            onToggleDone = { onToggleEntry(entry) }
-                        )
+                        // animateItem（v3.54.0）：勾选完成/删除条目时位移动画
+                        Box(modifier = Modifier.animateItem()) {
+                            AgendaEntryRow(
+                                entry = entry,
+                                selectedDate = state.selectedDate,
+                                today = state.today,
+                                nowMinutes = nowMinutes,
+                                onDelete = { onDeleteEntry(entry) },
+                                onToggleDone = { onToggleEntry(entry) }
+                            )
+                        }
                     }
                 }
             }
@@ -574,7 +581,7 @@ private fun AgendaDatePanel(
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.more_vert_24px),
-                        contentDescription = null,
+                        contentDescription = stringResource(Res.string.item_more_options),
                         tint = tokens.textSecondary
                     )
                 }
@@ -1210,6 +1217,10 @@ private fun AgendaEntryRow(
     onToggleDone: () -> Unit
 ) {
     val tokens = appColors()
+    // 完成态渐隐：statusFadeMs 渐变取代二值硬跳（v3.54.0）
+    val entryAlpha = rememberStatusFadeAlpha(entry.done, 0.55f)
+    // 长按删除触觉反馈（v3.54.0）
+    val haptics = rememberAppHaptics()
     val status = entryStatus(entry, selectedDate, today, nowMinutes)
     val statusLabel = when (status) {
         STATUS_FINISHED -> stringResource(Res.string.agenda_status_finished)
@@ -1284,7 +1295,7 @@ private fun AgendaEntryRow(
         AppCard(
             modifier = Modifier
                 .weight(1f)
-                .graphicsLayer { alpha = if (entry.done) 0.55f else 1f },
+                .graphicsLayer { alpha = entryAlpha.value },
             elevation = 1
         ) {
             Row(
@@ -1292,7 +1303,12 @@ private fun AgendaEntryRow(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = { if (canToggleDone) onToggleDone() },
-                        onLongClick = { if (!entry.isCourse) onDelete() }
+                        onLongClick = {
+                            if (!entry.isCourse) {
+                                haptics.confirm()
+                                onDelete()
+                            }
+                        }
                     )
                     .padding(appSpacing().cardInner)
             ) {
@@ -1435,6 +1451,8 @@ private fun AgendaCreateSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // 键盘弹起时顶起内容（v3.54.0）：此前备注框与「创建」按钮会被 IME 遮挡
+                .imePadding()
                 .padding(horizontal = spacing.pageHorizontal)
                 .padding(bottom = 24.dp)
         ) {
@@ -1747,10 +1765,12 @@ private fun AgendaDateTimeRow(
         // 暂存最近一次非 null 时间：退场期间以旧文本淡出收缩，而非瞬间变空壳
         var lastShownTime by remember { mutableStateOf<String?>(null) }
         if (time != null) lastShownTime = time
+        // 时长接动效令牌（v3.54.0）：statusFadeMs 取代硬编码 200ms
+        val chipFadeMs = LocalAppMotion.current.tokens.statusFadeMs
         AnimatedVisibility(
             visible = time != null,
-            enter = fadeIn(tween(200)) + expandHorizontally(),
-            exit = fadeOut(tween(200)) + shrinkHorizontally()
+            enter = fadeIn(tween(chipFadeMs)) + expandHorizontally(),
+            exit = fadeOut(tween(chipFadeMs)) + shrinkHorizontally()
         ) {
             Text(
                 text = lastShownTime.orEmpty(),

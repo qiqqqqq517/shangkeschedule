@@ -104,6 +104,7 @@
     <string name="settings_group_preference">偏好</string>
     <string name="settings_group_about">关于</string>
     <string name="text_no_courses_today">今天没有课程</string>
+    <string name="text_no_courses_this_week">本周没有课程</string>
     <string name="label_crush_course">TA的课</string>
     <string name="text_course_in_progress">正在上课</string>
     <string name="text_courses_finished">今日课程已结束</string>
@@ -193,6 +194,7 @@
     <string name="label_course_color">课程颜色</string>
     <string name="button_select_color">选择颜色</string>
     <string name="snackbar_add_course_within_semester">请在教学周期间添加或调整课程</string>
+    <string name="snackbar_course_move_failed">调课失败，请重试</string>
     <string name="label_section_range_suffix">节</string>
     <string name="title_select_time">选择上课时间</string>
     <string name="button_select_weeks">选择周数</string>

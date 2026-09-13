@@ -389,6 +389,8 @@ fun StyleSliderItem(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     stepValue: Float = 1f,
+    /** 拖动/输入结束回调（v3.54.0）：供调用方做「拖动中本地预览、结束才落库」的节流。 */
+    onValueChangeFinished: (() -> Unit)? = null,
     onValueChange: (Float) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
@@ -456,6 +458,7 @@ fun StyleSliderItem(
                             } else clampedValue
 
                             onValueChange(steppedValue)
+                            onValueChangeFinished?.invoke()
                             showDialog = false
                         }
                     },
@@ -492,6 +495,7 @@ fun StyleSliderItem(
         Slider(
             value = value,
             onValueChange = onValueChange,
+            onValueChangeFinished = { onValueChangeFinished?.invoke() },
             valueRange = range,
             steps = if (steps > 0) steps else 0,
             modifier = Modifier.height(32.dp),

@@ -12,15 +12,20 @@ import com.shangkeschedule.service.DynamicIslandManager
 import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.core.annotation.Single
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 平台层同步管理器（Android 端）。
  * 仅负责响应共享层 (KMP) 的同步完成信号与 Android 本地样式更新，执行系统 Widget 刷新及 WorkManager 调度。
  */
+@OptIn(FlowPreview::class)
 @Single(createdAtStart = true)
 class SyncManager(
     private val appContext: Context,
@@ -49,8 +54,12 @@ class SyncManager(
             }
             .launchIn(scope)
 
-        // 2. 监听 Android 端专属的样式更新事件（styleFlow 本身即响应式数据流）
+        // 2. 监听 Android 端专属的样式更新事件（styleFlow 本身即响应式数据流）。
+        //    样式滑杆拖动期 styleFlow 逐帧发射：distinctUntilChanged 去重 + debounce(800ms)
+        //    合并为一次组件重绘，避免拖动过程每帧渲染 4 个小组件（v3.54.0）。
         styleSettingsRepository.styleFlow
+            .distinctUntilChanged()
+            .debounce(800.milliseconds)
             .onEach {
                 Log.d("SyncManager", "收到样式更改通知，正在刷新小组件...")
                 updateAllWidgets(appContext)

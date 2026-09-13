@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -86,6 +87,8 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.DrawableResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.app_name
@@ -189,6 +192,9 @@ fun SettingsScreen(
     val isIosPreset = themePreset == AppThemePreset.IOS
     val isSoftPreset = themePreset == AppThemePreset.SOFT
     val isClaudePreset = themePreset == AppThemePreset.CLAUDE
+    // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，三主题各自渲染，
+    // 新增设置项不再需要同步改三处（历史上已出现 tone 映射漂移）
+    val settingsSections = buildSettingsSections(uiState, viewModel)
     // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
     val hazeState = rememberHazeState()
     val glassTint = appColors().pageBg.copy(alpha = 0.72f)
@@ -281,10 +287,8 @@ fun SettingsScreen(
                 )
             ) {
                 if (isClaudePreset) {
-                    // ===== 书卷主题：inset grouped 分组列表（对齐设计稿 profile.html）=====
+                    // ===== 书卷主题：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
                     item {
-                        // v3.49.0：删除页头「我的」大标题与其下描述（通透主题下与顶栏标题重复），
-                        // 顶部只留一张增高后的个人身份卡，点击进入「我的信息」页。
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -299,145 +303,10 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            ClaudeGroupLabel(stringResource(Res.string.settings_group_timetable))
-                            ClaudeInsetGroup {
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_course_conversion),
-                                    icon = vectorResource(Res.drawable.school_24px),
-                                    tone = ClaudeCellTone.PURPLE,
-                                    onClick = { onNavigate(Destination.CourseTableConversion) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.section_title_semester_settings),
-                                    icon = vectorResource(Res.drawable.calendar_today_24px),
-                                    tone = ClaudeCellTone.ORANGE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.SemesterSettings) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_time_slot_customization),
-                                    icon = vectorResource(Res.drawable.schedule_24px),
-                                    tone = ClaudeCellTone.RED,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.title_manage_course_tables),
-                                    icon = vectorResource(Res.drawable.class_24px),
-                                    tone = ClaudeCellTone.OLIVE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.ManageCourseTables) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            ClaudeGroupLabel(stringResource(Res.string.settings_group_courses))
-                            ClaudeInsetGroup {
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_course_management),
-                                    icon = vectorResource(Res.drawable.edit_24px),
-                                    tone = ClaudeCellTone.MATCHA,
-                                    onClick = { onNavigate(Destination.CourseManagementList) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_couple_schedule),
-                                    icon = vectorResource(Res.drawable.favorite_24px),
-                                    tone = ClaudeCellTone.PINK,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            ClaudeGroupLabel(stringResource(Res.string.settings_group_preference))
-                            ClaudeInsetGroup {
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_appearance_settings),
-                                    icon = vectorResource(Res.drawable.palette_24px),
-                                    tone = ClaudeCellTone.ORANGE,
-                                    onClick = { onNavigate(Destination.AppearanceSettings) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.title_course_notification_settings),
-                                    icon = vectorResource(Res.drawable.notifications_24px),
-                                    tone = ClaudeCellTone.PURPLE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.NotificationSettings) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_backup_restore),
-                                    icon = vectorResource(Res.drawable.cloud_24px),
-                                    tone = ClaudeCellTone.GREEN,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.BackupAndRestore) }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_show_non_current_week),
-                                    icon = vectorResource(Res.drawable.filter_list_24px),
-                                    tone = ClaudeCellTone.GRAY,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
-                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
-                                        )
-                                    }
-                                )
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_show_weekends),
-                                    icon = vectorResource(Res.drawable.view_week_24px),
-                                    tone = ClaudeCellTone.AMBER,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.courseConfig?.showWeekends ?: false,
-                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            ClaudeGroupLabel(stringResource(Res.string.settings_group_about))
-                            ClaudeInsetGroup {
-                                ClaudeListItem(
-                                    title = stringResource(Res.string.item_more_options),
-                                    icon = vectorResource(Res.drawable.more_horiz_24px),
-                                    tone = ClaudeCellTone.BROWN,
-                                    onClick = { onNavigate(Destination.MoreOptions) }
-                                )
-                            }
-                        }
-                    }
+                    claudeSettingsItems(settingsSections, onNavigate)
                 } else if (isSoftPreset) {
-                    // ===== 柔绘主题：inset grouped 分组列表 =====
-                    // 结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）与上面的书卷、
-                    // 下面的通透**完全一致**——同一份结构换组件，不是重新排布。
-                    // 材质换成柔绘：24dp 虚化圆角 + 薄涂底 + 漫射柔光 + 手绘纹理 + 软模糊投影。
+                    // ===== 柔绘主题：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
+                    // 材质：24dp 虚化圆角 + 薄涂底 + 漫射柔光 + 手绘纹理 + 软模糊投影。
                     item {
                         Column(
                             modifier = Modifier
@@ -453,145 +322,10 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            SoftGroupLabel(stringResource(Res.string.settings_group_timetable))
-                            SoftSettingsGroup {
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_course_conversion),
-                                    icon = vectorResource(Res.drawable.school_24px),
-                                    tone = SoftCellTone.LILAC,
-                                    onClick = { onNavigate(Destination.CourseTableConversion) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.section_title_semester_settings),
-                                    icon = vectorResource(Res.drawable.calendar_today_24px),
-                                    tone = SoftCellTone.APRICOT,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.SemesterSettings) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_time_slot_customization),
-                                    icon = vectorResource(Res.drawable.schedule_24px),
-                                    tone = SoftCellTone.CLAY,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.title_manage_course_tables),
-                                    icon = vectorResource(Res.drawable.class_24px),
-                                    tone = SoftCellTone.SAGE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.ManageCourseTables) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            SoftGroupLabel(stringResource(Res.string.settings_group_courses))
-                            SoftSettingsGroup {
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_course_management),
-                                    icon = vectorResource(Res.drawable.edit_24px),
-                                    tone = SoftCellTone.FERN,
-                                    onClick = { onNavigate(Destination.CourseManagementList) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_couple_schedule),
-                                    icon = vectorResource(Res.drawable.favorite_24px),
-                                    tone = SoftCellTone.ROSE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            SoftGroupLabel(stringResource(Res.string.settings_group_preference))
-                            SoftSettingsGroup {
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_appearance_settings),
-                                    icon = vectorResource(Res.drawable.palette_24px),
-                                    tone = SoftCellTone.APRICOT,
-                                    onClick = { onNavigate(Destination.AppearanceSettings) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.title_course_notification_settings),
-                                    icon = vectorResource(Res.drawable.notifications_24px),
-                                    tone = SoftCellTone.LILAC,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.NotificationSettings) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_backup_restore),
-                                    icon = vectorResource(Res.drawable.cloud_24px),
-                                    tone = SoftCellTone.SAGE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.BackupAndRestore) }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_show_non_current_week),
-                                    icon = vectorResource(Res.drawable.filter_list_24px),
-                                    tone = SoftCellTone.STEEL,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
-                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
-                                        )
-                                    }
-                                )
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_show_weekends),
-                                    icon = vectorResource(Res.drawable.view_week_24px),
-                                    tone = SoftCellTone.SAND,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.courseConfig?.showWeekends ?: false,
-                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            SoftGroupLabel(stringResource(Res.string.settings_group_about))
-                            SoftSettingsGroup {
-                                SoftSettingCell(
-                                    title = stringResource(Res.string.item_more_options),
-                                    icon = vectorResource(Res.drawable.more_horiz_24px),
-                                    tone = SoftCellTone.COCOA,
-                                    onClick = { onNavigate(Destination.MoreOptions) }
-                                )
-                            }
-                        }
-                    }
+                    softSettingsItems(settingsSections, onNavigate)
                 } else if (isIosPreset) {
-                    // ===== 通透主题（iOS 26）：inset grouped 分组列表 =====
-                    // 结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）与上面的书卷、
-                    // 柔绘**完全一致**——同一份结构换组件。
-                    // 材质换成通透：白卡 + 玻璃高光内描边 + SF 系统字体。
+                    // ===== 通透主题（iOS 26）：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
+                    // 材质：白卡 + 玻璃高光内描边 + SF 系统字体。
                     item {
                         Column(
                             modifier = Modifier
@@ -607,140 +341,7 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_timetable))
-                            IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_course_conversion),
-                                    icon = vectorResource(Res.drawable.school_24px),
-                                    tone = IosCellTone.PURPLE,
-                                    onClick = { onNavigate(Destination.CourseTableConversion) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.section_title_semester_settings),
-                                    icon = vectorResource(Res.drawable.calendar_today_24px),
-                                    tone = IosCellTone.ORANGE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.SemesterSettings) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_time_slot_customization),
-                                    icon = vectorResource(Res.drawable.schedule_24px),
-                                    tone = IosCellTone.RED,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.TimeSlotSettings()) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.title_manage_course_tables),
-                                    icon = vectorResource(Res.drawable.class_24px),
-                                    tone = IosCellTone.TEAL,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.ManageCourseTables) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_courses))
-                            IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_course_management),
-                                    icon = vectorResource(Res.drawable.edit_24px),
-                                    tone = IosCellTone.GREEN,
-                                    onClick = { onNavigate(Destination.CourseManagementList) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_couple_schedule),
-                                    icon = vectorResource(Res.drawable.favorite_24px),
-                                    tone = IosCellTone.PINK,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.CoupleScheduleSettings) }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_preference))
-                            IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_appearance_settings),
-                                    icon = vectorResource(Res.drawable.palette_24px),
-                                    tone = IosCellTone.ORANGE,
-                                    onClick = { onNavigate(Destination.AppearanceSettings) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.title_course_notification_settings),
-                                    icon = vectorResource(Res.drawable.notifications_24px),
-                                    tone = IosCellTone.PURPLE,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.NotificationSettings) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_backup_restore),
-                                    icon = vectorResource(Res.drawable.cloud_24px),
-                                    tone = IosCellTone.GREEN,
-                                    showDivider = true,
-                                    onClick = { onNavigate(Destination.BackupAndRestore) }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_show_non_current_week),
-                                    icon = vectorResource(Res.drawable.filter_list_24px),
-                                    tone = IosCellTone.GRAY,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.appSettings.showNonCurrentWeekCourses,
-                                            onCheckedChange = { viewModel.onShowNonCurrentWeekChanged(it) }
-                                        )
-                                    }
-                                )
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_show_weekends),
-                                    icon = vectorResource(Res.drawable.view_week_24px),
-                                    tone = IosCellTone.YELLOW,
-                                    showDivider = true,
-                                    trailing = {
-                                        AppSwitch(
-                                            checked = uiState.courseConfig?.showWeekends ?: false,
-                                            onCheckedChange = { viewModel.onShowWeekendsChanged(it) }
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                        ) {
-                            IosGroupLabel(stringResource(Res.string.settings_group_about))
-                            IosSettingsGroup {
-                                IosSettingCell(
-                                    title = stringResource(Res.string.item_more_options),
-                                    icon = vectorResource(Res.drawable.more_horiz_24px),
-                                    tone = IosCellTone.GRAY,
-                                    onClick = { onNavigate(Destination.MoreOptions) }
-                                )
-                            }
-                        }
-                    }
+                    iosSettingsItems(settingsSections, onNavigate)
                 } // 非 iOS 主题布局结束
             }
         }
@@ -1131,4 +732,234 @@ internal fun NumberPickerDialog(
             }
         }
     )
+}
+
+// ==================== 设置主页数据驱动模型（v3.54.0） ====================
+
+/**
+ * 设置条目语义色调：三主题共用一份语义，各自映射为专属 tone。
+ * 历史上三份复制已出现映射漂移（课程管理在书卷是 MATCHA、通透是 GREEN，其余条目
+ * 也靠人工对齐）；收口后新增条目只需选一个语义色调。
+ */
+private enum class SettingsEntryTone { PURPLE, ORANGE, RED, OLIVE, MATCHA, PINK, GREEN, GRAY, AMBER, BROWN }
+
+/** 开关类条目的 trailing 状态包。 */
+private data class SettingsEntryToggle(
+    val checked: Boolean,
+    val onCheckedChange: (Boolean) -> Unit
+)
+
+/** 一条设置条目：[destination] 为 null 时是纯开关行（点击不导航）。 */
+private data class SettingsEntry(
+    val titleRes: StringResource,
+    val iconRes: DrawableResource,
+    val tone: SettingsEntryTone,
+    val destination: Destination? = null,
+    val toggle: SettingsEntryToggle? = null
+)
+
+/** 一个设置分组：组标题 + 条目列表。 */
+private data class SettingsSection(
+    val labelRes: StringResource,
+    val entries: List<SettingsEntry>
+)
+
+/**
+ * 构建设置主页全部分组。结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）
+ * 与 v3.53.5 三份主题复制完全一致；开关条目的取值随 [uiState] 刷新。
+ */
+private fun buildSettingsSections(
+    uiState: SettingsUiState,
+    viewModel: SettingsViewModel
+): List<SettingsSection> = listOf(
+    SettingsSection(
+        labelRes = Res.string.settings_group_timetable,
+        entries = listOf(
+            SettingsEntry(Res.string.item_course_conversion, Res.drawable.school_24px, SettingsEntryTone.PURPLE, Destination.CourseTableConversion),
+            SettingsEntry(Res.string.section_title_semester_settings, Res.drawable.calendar_today_24px, SettingsEntryTone.ORANGE, Destination.SemesterSettings),
+            SettingsEntry(Res.string.item_time_slot_customization, Res.drawable.schedule_24px, SettingsEntryTone.RED, Destination.TimeSlotSettings()),
+            SettingsEntry(Res.string.title_manage_course_tables, Res.drawable.class_24px, SettingsEntryTone.OLIVE, Destination.ManageCourseTables)
+        )
+    ),
+    SettingsSection(
+        labelRes = Res.string.settings_group_courses,
+        entries = listOf(
+            SettingsEntry(Res.string.item_course_management, Res.drawable.edit_24px, SettingsEntryTone.MATCHA, Destination.CourseManagementList),
+            SettingsEntry(Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK, Destination.CoupleScheduleSettings)
+        )
+    ),
+    SettingsSection(
+        labelRes = Res.string.settings_group_preference,
+        entries = listOf(
+            SettingsEntry(Res.string.item_appearance_settings, Res.drawable.palette_24px, SettingsEntryTone.ORANGE, Destination.AppearanceSettings),
+            SettingsEntry(Res.string.title_course_notification_settings, Res.drawable.notifications_24px, SettingsEntryTone.PURPLE, Destination.NotificationSettings),
+            SettingsEntry(Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN, Destination.BackupAndRestore),
+            SettingsEntry(
+                Res.string.item_show_non_current_week, Res.drawable.filter_list_24px, SettingsEntryTone.GRAY,
+                toggle = SettingsEntryToggle(
+                    checked = uiState.appSettings.showNonCurrentWeekCourses,
+                    onCheckedChange = viewModel::onShowNonCurrentWeekChanged
+                )
+            ),
+            SettingsEntry(
+                Res.string.item_show_weekends, Res.drawable.view_week_24px, SettingsEntryTone.AMBER,
+                toggle = SettingsEntryToggle(
+                    checked = uiState.courseConfig?.showWeekends ?: false,
+                    onCheckedChange = viewModel::onShowWeekendsChanged
+                )
+            )
+        )
+    ),
+    SettingsSection(
+        labelRes = Res.string.settings_group_about,
+        entries = listOf(
+            SettingsEntry(Res.string.item_more_options, Res.drawable.more_horiz_24px, SettingsEntryTone.BROWN, Destination.MoreOptions)
+        )
+    )
+)
+
+// ---- 三主题语义色调映射（与 v3.53.5 各主题原取值逐条一致） ----
+
+private fun SettingsEntryTone.toClaudeTone(): ClaudeCellTone = when (this) {
+    SettingsEntryTone.PURPLE -> ClaudeCellTone.PURPLE
+    SettingsEntryTone.ORANGE -> ClaudeCellTone.ORANGE
+    SettingsEntryTone.RED -> ClaudeCellTone.RED
+    SettingsEntryTone.OLIVE -> ClaudeCellTone.OLIVE
+    SettingsEntryTone.MATCHA -> ClaudeCellTone.MATCHA
+    SettingsEntryTone.PINK -> ClaudeCellTone.PINK
+    SettingsEntryTone.GREEN -> ClaudeCellTone.GREEN
+    SettingsEntryTone.GRAY -> ClaudeCellTone.GRAY
+    SettingsEntryTone.AMBER -> ClaudeCellTone.AMBER
+    SettingsEntryTone.BROWN -> ClaudeCellTone.BROWN
+}
+
+private fun SettingsEntryTone.toSoftTone(): SoftCellTone = when (this) {
+    SettingsEntryTone.PURPLE -> SoftCellTone.LILAC
+    SettingsEntryTone.ORANGE -> SoftCellTone.APRICOT
+    SettingsEntryTone.RED -> SoftCellTone.CLAY
+    SettingsEntryTone.OLIVE -> SoftCellTone.SAGE
+    SettingsEntryTone.MATCHA -> SoftCellTone.FERN
+    SettingsEntryTone.PINK -> SoftCellTone.ROSE
+    SettingsEntryTone.GREEN -> SoftCellTone.SAGE
+    SettingsEntryTone.GRAY -> SoftCellTone.STEEL
+    SettingsEntryTone.AMBER -> SoftCellTone.SAND
+    SettingsEntryTone.BROWN -> SoftCellTone.COCOA
+}
+
+private fun SettingsEntryTone.toIosTone(): IosCellTone = when (this) {
+    SettingsEntryTone.PURPLE -> IosCellTone.PURPLE
+    SettingsEntryTone.ORANGE -> IosCellTone.ORANGE
+    SettingsEntryTone.RED -> IosCellTone.RED
+    SettingsEntryTone.OLIVE -> IosCellTone.TEAL
+    SettingsEntryTone.MATCHA -> IosCellTone.GREEN
+    SettingsEntryTone.PINK -> IosCellTone.PINK
+    SettingsEntryTone.GREEN -> IosCellTone.GREEN
+    SettingsEntryTone.GRAY -> IosCellTone.GRAY
+    SettingsEntryTone.AMBER -> IosCellTone.YELLOW
+    SettingsEntryTone.BROWN -> IosCellTone.GRAY
+}
+
+// ---- 三主题分组渲染器：同一份数据，各自换组件 ----
+
+private fun LazyListScope.claudeSettingsItems(
+    sections: List<SettingsSection>,
+    onNavigate: (Destination) -> Unit
+) {
+    sections.forEachIndexed { sectionIndex, section ->
+        item(key = "claude-settings-$sectionIndex") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+            ) {
+                ClaudeGroupLabel(stringResource(section.labelRes))
+                ClaudeInsetGroup {
+                    section.entries.forEachIndexed { entryIndex, entry ->
+                        val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
+                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
+                        }
+                        ClaudeListItem(
+                            title = stringResource(entry.titleRes),
+                            icon = vectorResource(entry.iconRes),
+                            tone = entry.tone.toClaudeTone(),
+                            showDivider = entryIndex > 0,
+                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
+                            trailing = toggleTrailing ?: {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                                    contentDescription = null,
+                                    tint = appColors().textSecondary.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun LazyListScope.softSettingsItems(
+    sections: List<SettingsSection>,
+    onNavigate: (Destination) -> Unit
+) {
+    sections.forEachIndexed { sectionIndex, section ->
+        item(key = "soft-settings-$sectionIndex") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+            ) {
+                SoftGroupLabel(stringResource(section.labelRes))
+                SoftSettingsGroup {
+                    section.entries.forEachIndexed { entryIndex, entry ->
+                        val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
+                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
+                        }
+                        SoftSettingCell(
+                            title = stringResource(entry.titleRes),
+                            icon = vectorResource(entry.iconRes),
+                            tone = entry.tone.toSoftTone(),
+                            showDivider = entryIndex > 0,
+                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
+                            trailing = toggleTrailing
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun LazyListScope.iosSettingsItems(
+    sections: List<SettingsSection>,
+    onNavigate: (Destination) -> Unit
+) {
+    sections.forEachIndexed { sectionIndex, section ->
+        item(key = "ios-settings-$sectionIndex") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+            ) {
+                IosGroupLabel(stringResource(section.labelRes))
+                IosSettingsGroup {
+                    section.entries.forEachIndexed { entryIndex, entry ->
+                        val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
+                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
+                        }
+                        IosSettingCell(
+                            title = stringResource(entry.titleRes),
+                            icon = vectorResource(entry.iconRes),
+                            tone = entry.tone.toIosTone(),
+                            showDivider = entryIndex > 0,
+                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
+                            trailing = toggleTrailing
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

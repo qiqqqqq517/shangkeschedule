@@ -286,6 +286,8 @@ fun AdaptiveNavigationScaffold(
                 val useLegacyBar = isGlassFallbackActive
                 val hazeState = rememberHazeState()
                 val density = LocalDensity.current
+                // 方案 A 底栏 Tab 触觉（终审 P3：此前只接在方案 B 兜底栏）
+                val haptics = rememberAppHaptics()
                 val navInsetPx = WindowInsets.navigationBars.getBottom(density)
                 // 底栏占用 = 胶囊高（方案 A 64dp / 方案 B touchMin + 上下 7dp）+ 上下外距
                 val barOccupied = if (useLegacyBar) {
@@ -452,6 +454,7 @@ fun AdaptiveNavigationScaffold(
                                         // 原版流程：点击只更新外部 selectedTabIndex 状态；
                                         // 指示器滑动与导航由 LiquidGlassTabs 的
                                         // snapshotFlow(currentIndex) → onTabSelected 驱动
+                                        haptics.tick()
                                         selectedTabIndex = index
                                     }
                                 ) {
@@ -528,6 +531,8 @@ private fun LegacyGlassBottomBar(
 ) {
     val density = LocalDensity.current
     val navMotion = LocalAppMotion.current
+    // Tab 切换触觉反馈（v3.54.0）
+    val haptics = rememberAppHaptics()
 
     // 选中胶囊按各 Tab 的实测位置在项之间平滑迁移
     // （v3.43.0：此前每个 Tab 各自瞬切底色，在柔绘薄涂底 / 书卷实色底上会被读成一次"闪"，
@@ -611,7 +616,12 @@ private fun LegacyGlassBottomBar(
                         .selectable(
                             selected = isSelected,
                             role = Role.Tab,
-                            onClick = { if (!isSelected) onTabSelected(item.destination) }
+                            onClick = {
+                                if (!isSelected) {
+                                    haptics.tick()
+                                    onTabSelected(item.destination)
+                                }
+                            }
                         )
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically

@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -64,10 +64,7 @@ fun AdvancedSettingsCard(
                 onClick = onUpdateHolidays,
                 trailingContent = {
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(26.dp),
-                            strokeWidth = 4.dp
-                        )
+                        ThemedLoadingIndicator(modifier = Modifier.size(26.dp))
                     }
                 }
             )

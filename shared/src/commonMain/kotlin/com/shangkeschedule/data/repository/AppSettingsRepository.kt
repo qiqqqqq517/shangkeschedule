@@ -13,12 +13,18 @@ import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -67,20 +73,40 @@ class AppSettingsRepository(
 
     // 应用全局设置 (DataStore)
 
+    /** 首表 ID 数据流：与 [CourseTableDao.getFirstTableOnce] 同序，表增删时自动刷新。 */
+    private val firstTableIdFlow: Flow<String> =
+        courseTableDao.getFirstTableFlow().map { it?.id ?: "" }
+
+    /**
+     * 共享热流：全仓 20+ 处订阅 [getAppSettings]，若各自订阅冷流，任意一个设置键写入
+     * 都会让每个订阅者重放 DataStore 且各查一次 Room；shareIn 收敛为单上游，
+     * 订阅归零 5s 后自动停止（v3.54.0）。
+     */
+    private val sharedAppSettings: Flow<AppSettingsModel> = combine(
+        dataStore.data,
+        firstTableIdFlow
+    ) { prefs, dbFirstTableId ->
+        AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
+    }.shareIn(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        started = SharingStarted.WhileSubscribed(5000),
+        replay = 1
+    )
+
     /**
      * 获取应用设置数据流。
      */
-    fun getAppSettings(): Flow<AppSettingsModel> = dataStore.data.map { prefs ->
-        val dbFirstTableId = courseTableDao.getFirstTableOnce()?.id ?: ""
-
-        AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
-    }
+    fun getAppSettings(): Flow<AppSettingsModel> = sharedAppSettings
 
     /**
      * 获取一次性的应用设置快照。
+     * 走冷读（直接读 DataStore 最新落盘值），不经 [sharedAppSettings] 热流——
+     * 热流 replay 可能落后于刚完成的写入，破坏「写后立即读」语义（v3.54.0 复审 P2）。
      */
     suspend fun getAppSettingsOnce(): AppSettingsModel {
-        return getAppSettings().first()
+        val prefs = dataStore.data.first()
+        val dbFirstTableId = courseTableDao.getFirstTableOnce()?.id ?: ""
+        return AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
     }
 
     /**

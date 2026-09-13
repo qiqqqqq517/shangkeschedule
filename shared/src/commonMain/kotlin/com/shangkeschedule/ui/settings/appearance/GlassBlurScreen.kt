@@ -27,9 +27,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +46,7 @@ import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.glass.GlassRefractionSettings
 import com.shangkeschedule.ui.glass.LocalGlassRefraction
+import com.shangkeschedule.ui.theme.LocalGlassBlurRadius
 import com.shangkeschedule.ui.glass.glassBackdropSource
 import com.shangkeschedule.ui.glass.isGlassRefractionAvailable
 import com.shangkeschedule.ui.glass.rememberGlassBackdrop
@@ -111,6 +116,19 @@ fun GlassBlurScreen(
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
     val blurDp = uiState.appSettings.glassBlurRadiusDp
+    // 拖动节流（v3.54.0）：拖动中只更新本地草稿并就近驱动预览，松手/输入确认才落库一次——
+    // 此前每帧写 DataStore，全端玻璃件与设置流整链逐帧重算。
+    // 提交值在设置回流达成前继续兜底显示，消除「松手瞬间滑杆回跳旧值再跳新值」的闪动
+    //（复审 P3：回流是异步往返，直接清草稿会露出旧值一拍）。
+    var blurDraft by remember { mutableStateOf<Float?>(null) }
+    var committedBlur by remember { mutableStateOf<Float?>(null) }
+    val sliderValue = blurDraft ?: committedBlur ?: blurDp
+    LaunchedEffect(blurDp) {
+        val committed = committedBlur
+        if (committed != null && blurDp == committed) {
+            committedBlur = null
+        }
+    }
     // v3.47.0：折射配置直接读全局注入值 —— 与真机玻璃件同源，预览即真机观感，
     // 不再是"第二套近似值"（沿用 v3.24.7 定下的规矩）。
     val refraction = LocalGlassRefraction.current
@@ -154,23 +172,40 @@ fun GlassBlurScreen(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            // 实时预览：底栏胶囊 + 圆钮压在模拟课程格上，改档位立刻看得到雾度
-            GlassBlurPreview()
+            // 实时预览：底栏胶囊 + 圆钮压在模拟课程格上，改档位立刻看得到雾度。
+            // 拖动中用本地草稿就近覆写 LocalGlassBlurRadius，预览零延迟且不依赖 DataStore 回流
+            CompositionLocalProvider(LocalGlassBlurRadius provides sliderValue.dp) {
+                GlassBlurPreview()
+            }
 
             StyleSliderItem(
                 label = stringResource(Res.string.label_glass_blur),
-                value = blurDp,
+                value = sliderValue,
                 // 量程必须覆盖全部预设档（0/4/8/16/24）：v3.48.1 档位重标定到 24 后
                 // 滑杆仍停在 0..12，选中「朦胧/磨砂」后滑杆顶死、往回拖再也回不去
                 //（用户实测"无法调模糊"的根因之一）。
                 range = 0f..24f,
-                stepValue = 0.5f
-            ) { settingsViewModel.onGlassBlurRadiusChanged(it) }
+                stepValue = 0.5f,
+                onValueChange = { blurDraft = it },
+                onValueChangeFinished = {
+                    val pending = blurDraft
+                    if (pending != null) {
+                        committedBlur = pending
+                        settingsViewModel.onGlassBlurRadiusChanged(pending)
+                    }
+                    blurDraft = null
+                }
+            )
 
             // 常用档位：关闭 / 清澈 / 标准(默认) / 磨砂
             GlassPresetRow(
-                currentDp = blurDp,
-                onSelect = { settingsViewModel.onGlassBlurRadiusChanged(it) }
+                currentDp = sliderValue,
+                onSelect = {
+                    // 档位值先兜底显示、回流达成后自动恢复跟随（与滑杆同一条通道）
+                    blurDraft = null
+                    committedBlur = it
+                    settingsViewModel.onGlassBlurRadiusChanged(it)
+                }
             )
 
             Text(

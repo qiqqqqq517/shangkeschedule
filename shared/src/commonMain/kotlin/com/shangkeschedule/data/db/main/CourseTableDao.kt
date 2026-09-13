@@ -60,6 +60,13 @@ interface CourseTableDao {
     suspend fun getFirstTableOnce(): CourseTable?
 
     /**
+     * 获取最早创建的一张课表（数据流）。
+     * 与 [getFirstTableOnce] 同序（createdAt ASC），供全局设置热流响应表增删（v3.54.0）。
+     */
+    @Query("SELECT * FROM course_tables ORDER BY createdAt ASC LIMIT 1")
+    fun getFirstTableFlow(): Flow<CourseTable?>
+
+    /**
      * 获取与本人课表配对的情侣课表（数据流）。
      */
     @Query("SELECT * FROM course_tables WHERE isCouple = 1 AND pairedCourseTableId = :selfTableId LIMIT 1")

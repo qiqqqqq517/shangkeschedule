@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -41,7 +42,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ripple
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
@@ -99,6 +99,7 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.TelegramMenu
@@ -151,6 +152,8 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back_to_current_week
+import shangkeschedule.shared.generated.resources.text_no_courses_this_week
+import shangkeschedule.shared.generated.resources.snackbar_course_move_failed
 import shangkeschedule.shared.generated.resources.action_select_table
 import shangkeschedule.shared.generated.resources.arrow_drop_down_24px
 import shangkeschedule.shared.generated.resources.calendar_today_24px
@@ -311,6 +314,15 @@ fun WeeklyScheduleScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    // 手势调课落库失败提示（v3.54.0）：此前写库失败静默，课程会「弹回」原位无解释。
+    // key 带上文案（终审 P3）：语言热切换后用新文案，不残留旧语言
+    val moveFailedMsg = stringResource(Res.string.snackbar_course_move_failed)
+    LaunchedEffect(viewModel, moveFailedMsg) {
+        viewModel.gestureSaveFailed.collect {
+            snackbarHostState.showSnackbar(moveFailedMsg)
+        }
+    }
+
     val gridScrollState = rememberScrollState()
 
     val customTextColor = composedStyle.pageTextColor ?: MaterialTheme.colorScheme.onSurface
@@ -394,7 +406,8 @@ fun WeeklyScheduleScreen(
                                     .background(weekChipBg)
                                     .clickable {
                                         if (!uiState.isSemesterSet || uiState.semesterStartDate == null) {
-                                            onNavigate(Destination.Settings)
+                                            // 学期未设置直达学期设置页（v3.54.0）：不再绕道「我的」再找一层
+                                            onNavigate(Destination.SemesterSettings)
                                         } else {
                                             showWeekSelector = true
                                         }
@@ -609,7 +622,14 @@ fun WeeklyScheduleScreen(
                             null
                         }
 
-                        val gridViewState = remember(pageDateStrings, pageYearString, uiState, pageCourses, pageTodayIndex, weekStr) {
+                        // key 收窄（v3.54.0）：uiState 每分钟随 currentSectionIndex tick 重建，
+                        // 宽 key 会让 ViewState 每分钟重建实例并重跑下游 LaunchedEffect；
+                        // 这里只依赖实际读取的四个字段
+                        val gridViewState = remember(
+                            pageDateStrings, pageYearString,
+                            uiState.timeSlots, uiState.showWeekends, uiState.firstDayOfWeek,
+                            uiState.currentSectionIndex, pageCourses, pageTodayIndex, weekStr
+                        ) {
                             ScheduleGridViewState(
                                 dates = pageDateStrings,
                                 currentYear = pageYearString,
@@ -623,7 +643,12 @@ fun WeeklyScheduleScreen(
                             )
                         }
 
-                        val gridActions = remember(uiState, floatingDuration, snackbarMsg) {
+                        // key 收窄（v3.54.0）：Actions 闭包读取的是周次字段 / 挂起课程 / 模式，
+                        // 以具体字段为 key，避免随每分钟 tick 或无关 uiState 变化重建
+                        val gridActions = remember(
+                            uiState.weekIndexInPager, uiState.totalWeeks, uiState.currentWeekNumber,
+                            floatingCourse, composedStyle, floatingDuration, snackbarMsg
+                        ) {
                         object : ScheduleGridActions {
                             override fun onCourseBlockClicked(block: MergedCourseBlock) {
                                 selectedBlockForDetail = block
@@ -857,7 +882,9 @@ fun WeeklyScheduleScreen(
             onEditClick = { courseId ->
                 selectedBlockForDetail = null
                 onNavigate(Destination.AddEditCourse(courseId = courseId))
-            }
+            },
+            // 补传 hazeState（v3.54.0）：与今日页同款 sheet 保持一致的玻璃材质
+            hazeState = hazeState
         )
     }
 }
@@ -944,7 +971,8 @@ private fun BackToCurrentWeekFab(
                         .clip(CircleShape)
                         .clickable(
                             interactionSource = interaction,
-                            indication = ripple(bounded = true),
+                            // 走主题化按压指示（v3.54.0）：硬编码 ripple 与全站语言不一致
+                            indication = LocalIndication.current,
                             onClick = onClick
                         )
                 )
@@ -1090,6 +1118,15 @@ private fun ScheduleListView(
         contentPadding = PaddingValues(bottom = bottomInset),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // 整周无课时显示空态占位（v3.54.0）：与今日页/日程页空态同语言
+        if (pageCourses.isEmpty()) {
+            item(key = "empty-week") {
+                AppEmptyState(
+                    hint = stringResource(Res.string.text_no_courses_this_week),
+                    modifier = Modifier.padding(top = 48.dp)
+                )
+            }
+        }
         orderedDays.forEach { day ->
             val dayBlocks = pageCourses.filter { it.day == day }
             if (dayBlocks.isEmpty()) return@forEach
@@ -1119,8 +1156,16 @@ private fun ScheduleListView(
                 }
             }
 
-            // v3.26.0 C+.17 列表块入场错峰：按「天序 + 天内序」递增延迟
-            itemsIndexed(items = dayBlocks, key = { _, block -> block.hashCode() }) { blockIdx, block ->
+            // v3.26.0 C+.17 列表块入场错峰：按「天序 + 天内序」递增延迟。
+            // key 用业务复合键（v3.54.0）：hashCode 在「同周同天同时段同名课」时冲突、
+            // 且随字段漂移，会导致 LazyColumn 复用错乱
+            itemsIndexed(
+                items = dayBlocks,
+                key = { _, block ->
+                    "${day}-${block.startSection}-${block.endSection}-" +
+                        block.courses.joinToString("_") { it.course.id }
+                }
+            ) { blockIdx, block ->
                 ScheduleListViewBlock(
                     block = block,
                     timeSlots = timeSlots,

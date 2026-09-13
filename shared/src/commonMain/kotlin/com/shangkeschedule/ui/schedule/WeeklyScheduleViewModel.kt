@@ -20,10 +20,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -125,6 +128,8 @@ private data class ScheduleSourceSnapshot(
 /**
  * 课程装配源键：currentCoursesFlow 的去重载体——只含课程链真正消费的字段，
  * DataStore 无关写入（主题/玻璃/动效等）被 distinctUntilChanged 拦截，不重启课程链。
+ * 样式只取 [scheduleMode]（课程链的唯一消费字段）；其余样式变化经 UI 层
+ * WeeklyScheduleUiState.style 传递，圆角/透明度等调整不再重启三窗口课程链（v3.54.0）。
  */
 private data class CourseSourceKey(
     val tableId: String,
@@ -133,7 +138,7 @@ private data class CourseSourceKey(
     val selfColor: Int,
     val coupleColor: Int,
     val config: CourseTableConfig?,
-    val style: ScheduleGridStyle,
+    val scheduleMode: ScheduleModeProto,
     val mondayDate: LocalDate,
     val timeSlots: List<TimeSlot>
 )
@@ -209,6 +214,10 @@ class WeeklyScheduleViewModel (
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WeeklyScheduleUiState())
+
+    /** 手势调课落库失败信号（v3.54.0）：屏幕侧收集后展示本地化错误提示。 */
+    private val _gestureSaveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val gestureSaveFailed: SharedFlow<Unit> = _gestureSaveFailed.asSharedFlow()
     val uiState: StateFlow<WeeklyScheduleUiState> = _uiState.asStateFlow()
 
     private val _pagerMondayDate = MutableStateFlow(
@@ -313,7 +322,7 @@ class WeeklyScheduleViewModel (
             selfColor = settings.selfCourseColorIndex,
             coupleColor = settings.crushCourseColorIndex,
             config = config,
-            style = style,
+            scheduleMode = style.scheduleMode,
             mondayDate = date,
             timeSlots = slots
         )
@@ -349,7 +358,7 @@ class WeeklyScheduleViewModel (
     ): Flow<Pair<String, List<MergedCourseBlock>>> {
         val config = source.config
             ?: return flowOf(day.toString() to emptyList())
-        val mode = source.style.scheduleMode
+        val mode = source.scheduleMode
         val tableId = source.tableId
 
         val pageWeekNum = appSettingsRepository.getWeekIndexAtDate(
@@ -821,6 +830,9 @@ class WeeklyScheduleViewModel (
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                // 落库失败必须让用户感知（v3.54.0）：否则 UI 已按拖拽位置更新，
+                // 下次流重算课程会「弹回」原位而无任何提示
+                _gestureSaveFailed.tryEmit(Unit)
             } finally {
                 _uiState.update {
                     it.copy(
@@ -912,6 +924,7 @@ class WeeklyScheduleViewModel (
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                _gestureSaveFailed.tryEmit(Unit)
             } finally {
                 onComplete()
             }

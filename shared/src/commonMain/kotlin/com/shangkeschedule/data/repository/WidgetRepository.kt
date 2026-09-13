@@ -8,6 +8,7 @@ import com.shangkeschedule.data.db.widget.WidgetCourseDao
 import com.shangkeschedule.data.db.widget.WidgetDatabase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.datetime.DateTimeUnit
@@ -69,6 +70,23 @@ class WidgetRepository(
             widgetAppSettingsDao.insertOrUpdate(settings)
         }
         _dataUpdatedChannel.trySend(Unit)
+    }
+
+    /**
+     * 原子替换完整 Widget 快照，但先与现有快照比对：内容一致时跳过写库与更新通知（v3.54.0）。
+     * 返回是否实际写入。用于截断「设置流发射 → 全量重写 → 全组件重绘」的放大链。
+     */
+    suspend fun replaceSnapshotIfChanged(
+        courses: List<WidgetCourse>,
+        settings: WidgetAppSettings
+    ): Boolean {
+        val currentCourses = widgetCourseDao.getAllWidgetCourses().first().associateBy { it.id }
+        val currentSettings = widgetAppSettingsDao.getAppSettings().first()
+        if (currentSettings == settings && currentCourses == courses.associateBy { it.id }) {
+            return false
+        }
+        replaceSnapshot(courses, settings)
+        return true
     }
 
     /**

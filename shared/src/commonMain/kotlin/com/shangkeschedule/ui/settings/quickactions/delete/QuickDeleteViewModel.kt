@@ -183,13 +183,17 @@ class QuickDeleteViewModel(
                 }
             }
 
-            // 查询并平铺数据
-            val flatList = mutableListOf<AffectedCourseItem>()
-            queryPairs.forEach { (w, d) ->
-                val coursesForDay = courseTableRepository.getCoursesForDay(tableId, w, d).first()
-                coursesForDay.forEach { courseWithWeeks ->
-                    flatList.add(AffectedCourseItem(courseWithWeeks, w))
-                }
+            // 查询并平铺数据：一次拉取课表全量课程后内存按 (周,日) 匹配，
+            // 替代此前逐组合调用 getCoursesForDay（全选时可达 140 次全表查询，v3.54.0）
+            val pairSet = queryPairs
+            val allCourses = courseTableRepository.getCoursesWithWeeksOnce(tableId)
+            val flatList = allCourses.flatMap { courseWithWeeks ->
+                pairSet
+                    .filter { (w, d) ->
+                        courseWithWeeks.course.day == d &&
+                            courseWithWeeks.weeks.any { it.weekNumber == w }
+                    }
+                    .map { AffectedCourseItem(courseWithWeeks, it.first) }
             }
 
             // 排序

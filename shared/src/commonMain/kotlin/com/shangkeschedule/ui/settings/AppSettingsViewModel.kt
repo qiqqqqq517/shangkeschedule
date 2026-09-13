@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -50,6 +51,16 @@ data class SettingsUiState(
     val courseConfig: CourseTableConfig? = null,
     val currentWeek: Int? = null,
     val isReady: Boolean = false
+)
+
+/**
+ * 启动门控窄状态：App() 根部只依赖「是否就绪 + 起始页」两个字段（v3.54.0）。
+ * 此前根部 collect 整个 uiState，DataStore 任意键写入都会触达根组合；
+ * 收窄后无关设置变化在根部被 distinct 掉，主题树重组只由真正消费设置的层驱动。
+ */
+data class AppStartGateState(
+    val isReady: Boolean = false,
+    val startScreen: StartScreen = StartScreen.COURSE_SCHEDULE
 )
 
 @OptIn(ExperimentalUuidApi::class)
@@ -101,6 +112,20 @@ class SettingsViewModel(
         started = SharingStarted.Lazily,
         initialValue = SettingsUiState()
     )
+
+    /**
+     * 启动门控：isReady + startScreen 单独 map 出来供 App() 根部订阅（v3.54.0）。
+     * 从 [uiState] 派生（而非直接 map appSettingsFlow）：保留旧门控「DataStore + Room 配置
+     * 双源到齐才放行」的时序，避免门控打开时主题仍用默认设置渲染一到两帧（复审 P2）。
+     */
+    val startGate: StateFlow<AppStartGateState> = uiState
+        .map { AppStartGateState(isReady = it.isReady, startScreen = it.appSettings.startScreen) }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = AppStartGateState()
+        )
 
     /**
      * 当前主题的课程配色表，供情侣课表颜色选择器使用。

@@ -459,13 +459,6 @@ private fun AppearanceStylePreview(
                 .background(appColors().primarySoft.copy(alpha = 0.3f))
                 .horizontalScroll(rememberScrollState())
                 .animateContentSize(animationSpec = resizeSpec)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent()
-                        }
-                    }
-                }
         ) {
             Box(modifier = Modifier.requiredWidth(windowWidthDp)) {
                 ScheduleGridContent(currentStyle, demoUiState)

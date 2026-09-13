@@ -424,6 +424,7 @@ data class MonthKey(val year: Int, val month: Int) {
 }
 
 /** 周条 / 日期滚轴单元格。整月日历复用同一模型（[isInMonth] 区分月内 / 月外补白格）。 */
+@androidx.compose.runtime.Immutable
 data class AgendaDayCell(
     val date: LocalDate,
     val lunarLabel: String,
@@ -444,6 +445,7 @@ enum class AgendaEntrySource {
 }
 
 /** 日程条目（课程、自建日程与今日待办统一展示模型）。 */
+@androidx.compose.runtime.Immutable
 data class AgendaEntry(
     val id: String,
     val title: String,

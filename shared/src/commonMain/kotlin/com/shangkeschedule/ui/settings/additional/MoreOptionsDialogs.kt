@@ -16,7 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -141,7 +141,7 @@ fun UpdateResultDialog(
             title = { Text(stringResource(Res.string.dialog_checking_update)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    ThemedLoadingIndicator(modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(16.dp))
                     Text(stringResource(Res.string.tip_please_wait))
                 }

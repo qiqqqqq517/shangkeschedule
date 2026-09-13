@@ -353,7 +353,7 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
                 if (courses.isEmpty()) {
                     item { Text(text = textNoCourse, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(8.dp)) }
                 } else {
-                    items(courses) { courseWithWeeks: CourseWithWeeks ->
+                    items(courses, key = { it.course.id }) { courseWithWeeks: CourseWithWeeks ->
                         val course = courseWithWeeks.course
                         val dayString = getLocalizedDayString(course.day)
                         val detailsText = if (course.isCustomTime) {

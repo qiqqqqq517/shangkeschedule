@@ -168,8 +168,11 @@ fun QuickDeleteScreen(
             // 仅当有选中的课程受到影响时显示删除按钮（危险操作 = 危险色胶囊）
             if (uiState.affectedCourses.isNotEmpty()) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp) {
+                    // 删除执行期禁用按钮（v3.54.0）：isLoading 此前从未被 UI 消费，
+                    // 慢设备上可重复触发确认
                     Button(
                         onClick = { showConfirmDialog = true }, // 点击后弹出确认弹窗
+                        enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
@@ -309,7 +312,7 @@ fun QuickDeleteScreen(
             onDismissRequest = { showConfirmDialog = false },
             title = stringResource(Res.string.confirm_delete),
             text = stringResource(Res.string.dialog_delete_confirm_msg),
-            confirmText = stringResource(Res.string.action_confirm),
+            confirmText = stringResource(Res.string.confirm_delete),
             onConfirm = {
                 showConfirmDialog = false
                 viewModel.executeDelete() // 真正执行删除

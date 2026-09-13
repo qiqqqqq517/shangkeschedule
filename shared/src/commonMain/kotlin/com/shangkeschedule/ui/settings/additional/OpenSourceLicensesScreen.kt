@@ -6,7 +6,7 @@ import com.shangkeschedule.ui.theme.appColors
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,7 +83,7 @@ fun OpenSourceLicensesScreen(onBack: () -> Unit) {
         ) {
             when (val state = librariesState) {
                 is ResourceState.Loading -> {
-                    CircularProgressIndicator()
+                    ThemedLoadingIndicator()
                 }
                 is ResourceState.Success -> {
                     LibrariesContainer(

@@ -5,7 +5,6 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.widget.WidgetAppSettings
 import com.shangkeschedule.data.db.widget.WidgetCourse
-import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
@@ -17,11 +16,13 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -44,6 +46,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * 负责主数据库与 Widget 数据库之间的数据同步（跨平台共享核心逻辑）。
@@ -70,34 +73,39 @@ class WidgetDataSynchronizer(
     /**
      * 持续监听主数据库变化的 Flow 核心链条。
      * 当当前课表 ID 改变时，会自动切换监听对应的课程、时间段与配置数据。
+     *
+     * DUC 收窄（v3.54.0）：同步链只消费「当前课表 ID + 免打扰日期」两个字段，
+     * 其余任意设置项写入不再重启链条；快照内容与现库一致时跳过重写并抑制完成广播，
+     * 截断「拨动无关开关 → widget 全量重写 + 101 闹钟重排 + 4 组件重绘」的放大链。
+     * 发射值为「本次是否实际写库」，供 startSync 过滤无变化的完成信号。
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val syncFlow: Flow<Unit> = appSettingsRepository.getAppSettings()
-        .flatMapLatest { appSettings ->
-            val tableId = appSettings.currentCourseTableId
-
-            if (tableId.isNotEmpty()) {
-                val coursesFlow = courseTableRepository.getCoursesWithWeeksByTableId(tableId)
-                val configFlow = appSettingsRepository.getCourseTableConfigFlow(tableId)
+    private val syncFlow: Flow<Boolean> = appSettingsRepository.getAppSettings()
+        .map { SyncSource(it.currentCourseTableId, it.skippedDates) }
+        .distinctUntilChanged()
+        .flatMapLatest { source ->
+            if (source.tableId.isNotEmpty()) {
+                val coursesFlow = courseTableRepository.getCoursesWithWeeksByTableId(source.tableId)
+                val configFlow = appSettingsRepository.getCourseTableConfigFlow(source.tableId)
 
                 // 联合监听当前课表的所有相关数据表（时间段按当前日期自动解析作息方案读取）
                 configFlow.flatMapLatest { config ->
-                    val timeSlotsFlow = timeSlotRepository.getActiveTimeSlotsByConfigFlow(tableId, flowOf(config))
+                    val timeSlotsFlow = timeSlotRepository.getActiveTimeSlotsByConfigFlow(source.tableId, flowOf(config))
 
-                    combine(coursesFlow, timeSlotsFlow, flowOf(config)) { courses, timeSlots, config ->
-                        Quadruple(appSettings, courses, timeSlots, config)
+                    combine(coursesFlow, timeSlotsFlow) { courses, timeSlots ->
+                        SyncFrame(source, config, courses, timeSlots)
                     }
                 }
             } else {
-                flowOf(Quadruple(appSettings, emptyList(), emptyList(), null))
+                flowOf(SyncFrame(source, null, emptyList(), emptyList()))
             }
         }
-        .map { (appSettings, coursesWithWeeks, timeSlots, config) ->
-            if (config != null) {
-                performSync(appSettings, config, coursesWithWeeks, timeSlots)
+        .map { frame ->
+            if (frame.config != null) {
+                performSync(frame.source.skippedDates, frame.config, frame.coursesWithWeeks, frame.timeSlots)
             } else {
                 syncMutex.withLock {
-                    widgetRepository.replaceSnapshot(
+                    widgetRepository.replaceSnapshotIfChanged(
                         courses = emptyList(),
                         settings = WidgetAppSettings(id = 1, semesterStartDate = null)
                     )
@@ -106,8 +114,12 @@ class WidgetDataSynchronizer(
         }
 
     init {
-        // 自动触发启动
-        startSync()
+        // 冷启动让路（v3.54.0）：初始同步需打开双库并重算 7 天课程，推迟 3s 执行，
+        // 避免与首屏 DataStore/Room 读取抢占 IO；平台如需提前启动仍可显式调 startSync()（幂等）。
+        scope.launch {
+            delay(3.seconds)
+            startSync()
+        }
     }
 
     /**
@@ -116,13 +128,13 @@ class WidgetDataSynchronizer(
      */
     @OptIn(FlowPreview::class)
     fun startSync() {
-        // 确保防重：若已经启动过则直接返回
-        if (isStarted.value) return
-        isStarted.value = true
+        // 确保防重：CAS 原子守卫（复审 P3），并发调用只放行首个
+        if (!isStarted.compareAndSet(false, true)) return
 
-        // 1. 监听课表数据与小组件所需数据的实时变更
+        // 1. 监听课表数据与小组件所需数据的实时变更（快照无变化时不广播，v3.54.0）
         syncFlow
             .debounce(500.milliseconds)
+            .filter { it }
             .onEach {
                 _syncCompletedChannel.trySend(Unit)
             }
@@ -145,6 +157,17 @@ class WidgetDataSynchronizer(
             .launchIn(scope)
     }
 
+    /** 同步源键：只含同步真正消费的设置字段（DUC 紧凑源，v3.54.0）。 */
+    private data class SyncSource(val tableId: String, val skippedDates: Set<String>)
+
+    /** 一次同步帧：源键 + 当前课表配置 / 课程 / 时段。 */
+    private data class SyncFrame(
+        val source: SyncSource,
+        val config: CourseTableConfig?,
+        val coursesWithWeeks: List<CourseWithWeeks>,
+        val timeSlots: List<TimeSlot>
+    )
+
     /** 四元组辅助数据类，用于 combine 操作符传递多路数据 */
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
@@ -160,7 +183,7 @@ class WidgetDataSynchronizer(
         val timeSlots = if (tableId.isNotEmpty()) timeSlotRepository.getActiveTimeSlotsOnce(tableId, courseConfig) else emptyList()
 
         if (courseConfig != null) {
-            performSyncUnlocked(appSettings, courseConfig, coursesWithWeeks, timeSlots)
+            performSyncUnlocked(appSettings.skippedDates, courseConfig, coursesWithWeeks, timeSlots)
         } else {
             widgetRepository.replaceSnapshot(
                 courses = emptyList(),
@@ -173,22 +196,23 @@ class WidgetDataSynchronizer(
 
     /**
      * 核心计算与写库逻辑：解析开学日期、计算周次、匹配课程时间并写入 Widget 数据库。
+     * 返回快照是否实际发生变化（v3.54.0：无变化跳过重写）。
      */
     private suspend fun performSync(
-        appSettings: AppSettingsModel,
+        skippedDates: Set<String>,
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
         timeSlots: List<TimeSlot>
-    ) = syncMutex.withLock {
-        performSyncUnlocked(appSettings, courseConfig, coursesWithWeeks, timeSlots)
+    ): Boolean = syncMutex.withLock {
+        performSyncUnlocked(skippedDates, courseConfig, coursesWithWeeks, timeSlots)
     }
 
     private suspend fun performSyncUnlocked(
-        appSettings: AppSettingsModel,
+        skippedDates: Set<String>,
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
         timeSlots: List<TimeSlot>
-    ) = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(Dispatchers.IO) {
         val semesterStartDateString = courseConfig.semesterStartDate
         val semesterTotalWeeks = courseConfig.semesterTotalWeeks
         val firstDayOfWeekInt = courseConfig.firstDayOfWeek
@@ -201,11 +225,10 @@ class WidgetDataSynchronizer(
             firstDayOfWeekInt in 1..7
 
         if (!isValidConfig) {
-            widgetRepository.replaceSnapshot(
+            return@withContext widgetRepository.replaceSnapshotIfChanged(
                 courses = emptyList(),
                 settings = WidgetAppSettings(id = 1, semesterStartDate = null)
             )
-            return@withContext
         }
 
         val widgetSettings = WidgetAppSettings(
@@ -215,7 +238,6 @@ class WidgetDataSynchronizer(
             firstDayOfWeek = firstDayOfWeekInt
         )
 
-        val skippedDates = appSettings.skippedDates
         val timeSlotMap = timeSlots.associateBy { it.number }
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val alignedSemesterStartDate = getStartDayOfWeek(semesterStartDate, firstDayOfWeekInt)
@@ -262,7 +284,7 @@ class WidgetDataSynchronizer(
             }
         }
 
-        widgetRepository.replaceSnapshot(widgetCourses, widgetSettings)
+        widgetRepository.replaceSnapshotIfChanged(widgetCourses, widgetSettings)
     }
 
     /**

@@ -58,6 +58,9 @@ fun <T> NativeNumberPicker(
         "可见项数量必须是大于等于 3 的奇数"
     }
 
+    // 滚轮拨动一档的触觉反馈（v3.54.0）
+    val haptics = rememberAppHaptics()
+
     val initialSelectedIndex = remember(values, selectedValue) {
         values.indexOf(selectedValue).coerceAtLeast(0)
     }
@@ -107,6 +110,7 @@ fun <T> NativeNumberPicker(
     }
     LaunchedEffect(centerIndex) {
         if (centerIndex in values.indices && values[centerIndex] != selectedValue) {
+            haptics.tick()
             onValueChange(values[centerIndex])
         }
     }

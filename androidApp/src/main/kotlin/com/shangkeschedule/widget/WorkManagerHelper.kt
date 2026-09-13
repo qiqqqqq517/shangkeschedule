@@ -37,11 +37,12 @@ object WorkManagerHelper {
             uiUpdateWorkRequest
         )
 
-        // 调度完整数据同步任务 (每天一次)
+        // 调度完整数据同步任务 (每天一次)。KEEP：启动时不重写既有调度，
+        // 与实时同步流 / 每日零点自愈互为兜底即可，避免每次冷启动改写 WorkManager spec（v3.54.0）
         val fullDataSyncWorkRequest = PeriodicWorkRequestBuilder<FullDataSyncWorker>(1, TimeUnit.DAYS).build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             FULL_DATA_SYNC_WORK_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.KEEP,
             fullDataSyncWorkRequest
         )
 
