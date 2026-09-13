@@ -45,11 +45,8 @@ dependencyResolutionManagement {
         }
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            from(files("gradle/libs.versions.toml"))
-        }
-    }
+    // 注：version catalog `libs` 由 Gradle 自动从 gradle/libs.versions.toml 发现，
+    // 无需在此显式 create + from，否则会触发 "Multiple 'from' invocations" 错误。
 }
 
 rootProject.name = "shangkeschedule"
