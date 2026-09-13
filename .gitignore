@@ -90,3 +90,8 @@ adapter_secrets.properties
 提示词_*.md
 *_archive_*.zip
 repair-*.mjs
+
+# 已废弃的设计包（v3.33.0 重命名前的旧命名 / 被取代的 Apple 设计包，已移出仓库）
+ios-style-page.design/
+apple-style-page.design/
+_design_inbox/
