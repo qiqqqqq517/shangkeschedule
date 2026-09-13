@@ -28,7 +28,6 @@ jobs:
         uses: gradle/actions/dependency-submission@v4
         with:
           # 海外 runner 不走阿里云镜像，否则 502 会导致依赖解析失败
-          gradle-arguments: -PuseMirror=false
-          build-root-directory: .
+          additional-arguments: -PuseMirror=false
           dependency-graph: generate-and-submit
           cache-write-only: true
