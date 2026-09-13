@@ -83,3 +83,10 @@ adapter_secrets.properties
 # Cloudflare Wrangler 本地缓存（部署产物，不入库）
 .wrangler/
 .zcode/
+
+# AI 过程产物 / 一次性报告（仅本地，不入库）
+视觉核验报告_*.md
+交互动效审查_*.md
+提示词_*.md
+*_archive_*.zip
+repair-*.mjs
