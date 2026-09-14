@@ -56,14 +56,18 @@ import shangkeschedule.shared.generated.resources.item_contact_author
 import shangkeschedule.shared.generated.resources.home_24px
 import shangkeschedule.shared.generated.resources.item_github_repo
 import shangkeschedule.shared.generated.resources.item_language_settings
+import shangkeschedule.shared.generated.resources.item_official_website
 import shangkeschedule.shared.generated.resources.item_open_source_licenses
 import shangkeschedule.shared.generated.resources.item_start_screen_settings
 import shangkeschedule.shared.generated.resources.label_version_prefix
 import shangkeschedule.shared.generated.resources.language_24px
+import shangkeschedule.shared.generated.resources.link_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.title_more_options
 
 private const val GITHUB_REPO_URL = "https://github.com/qiqqqqq517/shangkeschedule"
+private const val OFFICIAL_WEBSITE_URL = "https://shangke.asia"
+private const val OFFICIAL_WEBSITE_DISPLAY = "shangke.asia"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,7 +145,7 @@ fun MoreOptionsScreen(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             )
 
-            // 语言/启动页/GitHub/开源许可证（分区大卡，组内分割）
+            // 语言/启动页/官网/GitHub/开源许可证（分区大卡，组内分割）
             SectionCard(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
@@ -162,6 +166,13 @@ fun MoreOptionsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_official_website),
+                    subtitle = OFFICIAL_WEBSITE_DISPLAY,
+                    leadingIcon = vectorResource(Res.drawable.link_24px),
+                    onClick = { uriHandler.openUri(OFFICIAL_WEBSITE_URL) }
                 )
                 SectionDivider()
                 SettingItem(

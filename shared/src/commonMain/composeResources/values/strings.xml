@@ -512,6 +512,7 @@
     <string name="label_special_thanks">特别鸣谢</string>
     <string name="text_acknowledgment_body">衷心感谢为本应用软件和教务适配代码仓库的开发和维护做出贡献的每一位开发者。您的奉献是应用持续更新和完善的动力！</string>
     <string name="item_github_repo">本项目GitHub仓库</string>
+    <string name="item_official_website">上课官网</string>
     <string name="item_open_source_licenses">查看开源许可证</string>
     <string name="title_open_source_licenses">开源许可证</string>
     <string name="item_update_repo">更新教务适配仓库</string>

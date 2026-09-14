@@ -514,6 +514,7 @@
     <string name="label_special_thanks">Special thanks</string>
     <string name="text_acknowledgment_body">Heartfelt thanks to every developer who contributed to this app and the academic system adapter repository. Your dedication drives continuous improvement!</string>
     <string name="item_github_repo">Project GitHub repository</string>
+    <string name="item_official_website">Official website</string>
     <string name="item_open_source_licenses">View open source licenses</string>
     <string name="title_open_source_licenses">Open source licenses</string>
     <string name="item_update_repo">Update academic adapter repository</string>
