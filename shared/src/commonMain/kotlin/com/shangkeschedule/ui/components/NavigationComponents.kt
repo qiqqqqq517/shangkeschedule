@@ -21,6 +21,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -243,7 +244,13 @@ fun AdaptiveNavigationScaffold(
                                     .padding(horizontal = 8.dp)
                                     .clip(appShapes().capsule)
                                     .background(railItemBg)
-                                    .clickable { if (!isSelected) onTabSelected(item.destination) }
+                                    // v3.56.4：与 AppSegmentedControl 同源问题——选中态已由自绘胶囊
+                                    // 背景承载（railItemBg 滑动补间），再叠默认按压指示会出现
+                                    // 「灰色按压块 + 选中胶囊」双层并存；禁用选项级指示保持一致。
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { if (!isSelected) onTabSelected(item.destination) }
                                     .padding(vertical = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -613,8 +620,14 @@ private fun LegacyGlassBottomBar(
                             val rect = coords.boundsInParent()
                             if (tabBounds[index] != rect) tabBounds[index] = rect
                         }
+                        // v3.56.4：与 AppSegmentedControl 同源问题——选中态已由共享胶囊
+                        // （indicatorLeft/Width 补间）承载，selectable 默认按压指示会造成
+                        // 同样的「灰色按压块 + 选中胶囊」双层并存；置 null 与方案 A
+                        // （LiquidGlassTabs indication = null）保持一致。
                         .selectable(
                             selected = isSelected,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
                             role = Role.Tab,
                             onClick = {
                                 if (!isSelected) {

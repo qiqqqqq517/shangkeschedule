@@ -716,7 +716,14 @@ fun AppSegmentedControl(
                             val rect = coords.boundsInParent()
                             if (optionBounds[index] != rect) optionBounds[index] = rect
                         }
-                        .clickable { onSelect(index) }
+                        // v3.56.4：禁用选项级按压指示（indication = null）——
+                        // 白色选中胶囊的滑动动画本身就是按压反馈；再叠加书卷/通透的
+                        // 整块加深或柔绘的径向扩散，会在点击瞬间出现「灰色按压块」与
+                        // 滑动中的白色胶囊错位并存（胶囊旧位置没被灰块盖住，观感漏一块）。
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(index) }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
