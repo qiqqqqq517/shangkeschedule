@@ -959,6 +959,13 @@
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
     <string name="wb_crush_import_failed_fmt">Crush timetable import failed: %1$s</string>
     <string name="wb_config_import_no_table">Config import failed: no target timetable selected.</string>
+    <string name="item_auto_sync_adapter">Auto-sync school system</string>
+    <string name="desc_auto_sync_adapter">Pull the latest adapter to keep schedule sync working</string>
+    <string name="sync_status_syncing">Syncing…</string>
+    <string name="sync_status_updated">Updated %1$d adapter file(s)</string>
+    <string name="sync_status_up_to_date">Already up to date</string>
+    <string name="sync_status_disabled">Remote sync is disabled</string>
+    <string name="sync_status_failed">Sync failed, using built-in adapter</string>
     <string name="adapter_remote_update_failed">Adapter update failed: checksum mismatch, update discarded.</string>
     <string name="wb_config_import_success">Timetable config imported!</string>
     <string name="wb_config_import_failed_fmt">Timetable config import failed: %1$s</string>

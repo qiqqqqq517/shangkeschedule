@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,12 +33,16 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.shangkeschedule.Destination
+import com.shangkeschedule.tool.AdapterRemoteUpdater
+import com.shangkeschedule.tool.AdapterSyncResult
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
@@ -63,6 +68,15 @@ import shangkeschedule.shared.generated.resources.label_version_prefix
 import shangkeschedule.shared.generated.resources.language_24px
 import shangkeschedule.shared.generated.resources.link_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
+import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
+import shangkeschedule.shared.generated.resources.desc_auto_sync_adapter
+import shangkeschedule.shared.generated.resources.item_auto_sync_adapter
+import shangkeschedule.shared.generated.resources.school_24px
+import shangkeschedule.shared.generated.resources.sync_status_disabled
+import shangkeschedule.shared.generated.resources.sync_status_failed
+import shangkeschedule.shared.generated.resources.sync_status_syncing
+import shangkeschedule.shared.generated.resources.sync_status_up_to_date
+import shangkeschedule.shared.generated.resources.sync_status_updated
 import shangkeschedule.shared.generated.resources.title_more_options
 
 private const val GITHUB_REPO_URL = "https://github.com/qiqqqqq517/shangkeschedule"
@@ -85,6 +99,31 @@ fun MoreOptionsScreen(
     // 状态观察
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled = uiState.appSettings.developerModeEnabled
+
+    // 「自动同步教务系统」：手动触发远程适配同步，并展示同步结果
+    val adapterRemoteUpdater: AdapterRemoteUpdater = koinInject()
+    val syncScope = rememberCoroutineScope()
+    var syncing by remember { mutableStateOf(false) }
+    var syncStatusText by remember { mutableStateOf<String?>(null) }
+    fun triggerAdapterSync() {
+        if (syncing) return
+        syncing = true
+        syncStatusText = null
+        syncScope.launch {
+            val result = adapterRemoteUpdater.sync()
+            val text = when (result) {
+                is AdapterSyncResult.Updated ->
+                    getString(Res.string.sync_status_updated, result.fileCount)
+                AdapterSyncResult.UpToDate -> getString(Res.string.sync_status_up_to_date)
+                AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
+                is AdapterSyncResult.VerificationFailed ->
+                    getString(Res.string.adapter_remote_update_failed)
+                is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
+            }
+            syncing = false
+            syncStatusText = text
+        }
+    }
 
     // 弹窗可见性控制
     var showStartScreenDialog by remember { mutableStateOf(false) }
@@ -185,6 +224,24 @@ fun MoreOptionsScreen(
                     title = stringResource(Res.string.item_open_source_licenses),
                     leadingIcon = vectorResource(Res.drawable.list_alt_24px),
                     onClick = { onNavigate(Destination.OpenSourceLicenses) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 自动同步教务系统：手动触发远程适配同步，并轮询展示同步结果
+            SectionCard(
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
+            ) {
+                SettingItem(
+                    title = stringResource(Res.string.item_auto_sync_adapter),
+                    subtitle = when {
+                        syncing -> stringResource(Res.string.sync_status_syncing)
+                        syncStatusText != null -> syncStatusText!!
+                        else -> stringResource(Res.string.desc_auto_sync_adapter)
+                    },
+                    leadingIcon = vectorResource(Res.drawable.school_24px),
+                    onClick = ::triggerAdapterSync
                 )
             }
 

@@ -960,6 +960,13 @@
     <string name="wb_import_failed_fmt">課程匯入失敗: %1$s</string>
     <string name="wb_crush_import_failed_fmt">crush 課表匯入失敗: %1$s</string>
     <string name="wb_config_import_no_table">設定匯入失敗：未選擇目標課表。</string>
+    <string name="item_auto_sync_adapter">自動同步教務系統</string>
+    <string name="desc_auto_sync_adapter">手動拉取最新教務適配，讓課表抓取保持可用</string>
+    <string name="sync_status_syncing">正在同步…</string>
+    <string name="sync_status_updated">已更新 %1$d 個適配檔案</string>
+    <string name="sync_status_up_to_date">已是最新，無需更新</string>
+    <string name="sync_status_disabled">遠端同步未啟用</string>
+    <string name="sync_status_failed">同步失敗，已回退到內建適配</string>
     <string name="adapter_remote_update_failed">適配更新失敗：檔案校驗未通過，本次更新已丟棄。</string>
     <string name="wb_config_import_success">課表設定匯入成功！</string>
     <string name="wb_config_import_failed_fmt">課表設定匯入失敗: %1$s</string>

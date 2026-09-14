@@ -973,6 +973,13 @@
     <string name="wb_import_failed_fmt">课程导入失败: %1$s</string>
     <string name="wb_crush_import_failed_fmt">crush 课表导入失败: %1$s</string>
     <string name="wb_config_import_no_table">配置导入失败：未选择目标课表。</string>
+    <string name="item_auto_sync_adapter">自动同步教务系统</string>
+    <string name="desc_auto_sync_adapter">手动拉取最新教务适配，让课表抓取保持可用</string>
+    <string name="sync_status_syncing">正在同步…</string>
+    <string name="sync_status_updated">已更新 %1$d 个适配文件</string>
+    <string name="sync_status_up_to_date">已是最新，无需更新</string>
+    <string name="sync_status_disabled">远程同步未启用</string>
+    <string name="sync_status_failed">同步失败，已回退到内置适配</string>
     <string name="adapter_remote_update_failed">适配更新失败：文件校验未通过，本次更新已丢弃。</string>
     <string name="wb_config_import_success">课表配置导入成功！</string>
     <string name="wb_config_import_failed_fmt">课表配置导入失败: %1$s</string>
