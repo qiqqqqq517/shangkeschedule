@@ -8,8 +8,11 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-3.53.5-blueviolet)
+![Version](https://img.shields.io/badge/version-3.56.6-blueviolet)
 ![Release](https://img.shields.io/github/v/release/qiqqqqq517/shangkeschedule)
+![Website](https://img.shields.io/badge/website-shangke.asia-c96442)
+
+**官网** <https://shangke.asia> ｜ **下载** <https://shangke.asia/download> ｜ **更新日志** <https://shangke.asia/changelog> ｜ **问题反馈** [GitHub Issues](https://github.com/qiqqqqq517/shangkeschedule/issues)
 
 ---
 
@@ -100,7 +103,7 @@
 - **160+ 所学校专属适配脚本**，适配特殊教务页面与登录流程（如汕头大学强制电脑版 + 一次点击完成导入、沈阳农业大学 WebVPN 双入口、西安医学院 API 直取等）。
 - 学校列表提供本科 / 专科、研究生、通用工具三类分组与 A–Z 字母索引，数千所学校也能秒定位。
 - 通用适配器支持桌面 UA + 1280px 视口修复，解决部分学校手机端教务菜单无法打开课表的问题。
-- 适配资源支持**在线安全更新**（私有适配仓库 + 逐文件 sha256 校验，校验失败自动回退内置资源，不影响导入）。
+- 适配资源支持**在线安全更新**（私有适配仓库 + 逐文件 sha256 校验，校验失败自动回退内置资源，不影响导入）；三层结构与自动同步流程见 [教务适配与自动同步](#教务适配与自动同步)。
 - 支持**学期选择**、**一键导航到课表**、验证码 / CAS / WebVPN 等多种登录形态。
 
 ### 文件导入 / 导出与同步
@@ -215,6 +218,59 @@
 
 ---
 
+## 教务适配与自动同步
+
+教务导入不是一份写死的名单，而是「**离线内置 + 私有适配仓库 + 鉴权网关**」三层配合：离线可用是底线，适配更新走独立通道，任何一环出问题都不影响导入本身。
+
+### 三层结构
+
+| 层 | 位置 | 职责 |
+| --- | --- | --- |
+| ① 离线内置资源 | APP 内置 `school_index.pb` 与 `schools/resources/` | 1700+ 所高校索引、7 类通用适配器、160+ 所学校专属适配脚本；**完全离线可用**，装完即可导入 |
+| ② 私有适配仓库 | `schedule-adapter-private`（保持私有） | 适配脚本与清单 `index.json` 的唯一权威来源，逐文件记录 sha256 |
+| ③ 鉴权网关 | Cloudflare Worker `schedule-adapter-gateway`，正式入口 **`adapter.shangke.asia`** | APP 与私有仓库之间的唯一通道：只放行 `index.json` 与 `adapters/**`，其余路径一律 `403` |
+
+APP **不直接访问**私有仓库，也不持有 GitHub Token —— Token 只存在于 Worker 的环境变量中，私有仓库与适配脚本内容均不对外暴露。
+
+### 自动同步流程
+
+APP 在后台按需触发一次同步，全程静默、不打扰使用：
+
+1. 携带 `X-App-Secret` 请求头拉取 `index.json` 清单；
+2. 逐个文件与本地比对 sha256，**只有本地缺失或被改动过的文件才会下载**；
+3. 下载完成后对每个文件**强制校验 sha256**，与清单声明不一致的一律丢弃，并提示「适配更新失败」；
+4. 校验通过的文件先写临时文件、再原子替换落地（中途失败不会写坏已有适配）；
+5. 结果分三种：全部一致 → 已是最新；有新文件 → 已更新 N 个文件；清单 / 下载等环节异常 → **退回内置资源**，导入功能不受影响。
+
+网关侧同时承担四件事：**路径白名单**、**密钥鉴权**（无密钥或错误密钥一律 `403`）、**5 分钟缓存**（改完适配最长 5 分钟生效）、**单 IP 每分钟 120 次限流**。
+
+### 新增 / 修改一所学校的适配
+
+全部在私有适配仓库内完成，**不需要改 APP，也不需要改 Worker**：
+
+```bash
+# 1) 新增或修改脚本：adapters/<学校代码>/<适配脚本>.js
+
+# 2) 重新生成清单（新增 / 修改 / 删除文件后必须执行，否则 APP 会因哈希不匹配拒绝该文件）
+python tools/build_index.py
+
+# 3) 校验清单与文件逐一致（建议提交前执行）
+python tools/verify_index.py
+
+# 4) 提交推送，最长 5 分钟后 APP 端自动生效
+git add -A && git commit -m "adapter: update <学校代码>" && git push
+```
+
+> 若目标学校**尚未在 APP 内置索引中**，需先在主仓库更新 `school_index.pb` 并随版本发布 —— 全新学校无法只靠私有仓库生效。
+
+### 安全与可验证性
+
+- GitHub PAT、`APP_SECRET` **只存在于 Worker 环境变量**：不写入仓库代码、不进入 APP 公开源码、不打印在日志与提交信息中；Worker 所用 Token 仅授予该私有仓库 `Contents: Read` 最小权限。
+- APP 侧密钥在构建期由 git 忽略的 `adapter_secrets.properties`（`adapter.workerUrl` / `adapter.appSecret`）注入，文件缺失时远程更新自动关闭，不影响编译与离线导入。
+- 一致性可独立核对：清单声明了每个文件的路径与 sha256，网关返回内容应与之一一相符（撰写时清单为 **187 个文件**，随机抽检任意文件 sha256 均一致）；链路健康度也可直接用三条请求自测 —— 无密钥 `403`、错误密钥 `403`、正确密钥 `200`。
+
+---
+
 ## 设置（我的）页
 
 「我的」页为设置主入口，按「高频置前、低频后置」组织导航卡片，全部明细功能保留于各二级页：
@@ -277,6 +333,7 @@ run-android.bat
 
 ## 反馈与教务适配
 
+- **官网**：<https://shangke.asia>（产品介绍、下载、更新日志与隐私政策）。
 - **联系作者**：「我的 → 更多 → 联系作者反馈」，或直接发送邮件至 **hhixingchen520@163.com**。
 - 欢迎反馈使用问题、希望新增的功能，或请求适配你的学校教务系统。
 - **教务适配请求**：请随邮件附上 **学校名称、教务系统账号、教务系统密码**，便于开发者对接调试。
@@ -304,6 +361,20 @@ run-android.bat
 | v3.22.0 | 毛玻璃质感全局改版（Telegram 形态） |
 | v3.15.1 | 状态栏灵动岛完整版（Android 16 ProgressStyle + 时间窗口启停） |
 | v3.13.1 | 今日课表新增「今日待办」 |
+
+## 相关链接
+
+| 用途 | 地址 |
+| --- | --- |
+| 官网（产品介绍 / 下载 / 更新日志 / 隐私政策） | <https://shangke.asia> |
+| 下载最新正式版 | <https://shangke.asia/download> |
+| 更新日志 | <https://shangke.asia/changelog> |
+| 隐私政策 | <https://shangke.asia/privacy> |
+| GitHub 仓库 | <https://github.com/qiqqqqq517/shangkeschedule> |
+| Gitee 镜像 | <https://gitee.com/qiqqq517/shangkeschedule> |
+| 问题反馈 / 功能建议 | <https://github.com/qiqqqqq517/shangkeschedule/issues> |
+
+> 官网为产品主入口，下载主渠道为夸克网盘；GitHub Releases 作为备用通道保留。
 
 ## 许可证与致谢
 
