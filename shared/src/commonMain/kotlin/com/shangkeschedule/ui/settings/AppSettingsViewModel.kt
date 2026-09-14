@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -353,14 +355,18 @@ class SettingsViewModel(
         signature: String
     ) {
         viewModelScope.launch {
-            appSettingsRepository.updateProfileInfo(
-                nickname = nickname.trim(),
-                school = school.trim(),
-                college = college.trim(),
-                major = major.trim(),
-                grade = grade.trim(),
-                signature = signature.trim()
-            )
+            // withContext(NonCancellable)：即使返回页面导致本条目的 ViewModel 被清空，
+            // 本次写入仍会落盘，避免「输入后立即返回」丢失最后内容（v3.49.0 持久化缺陷修复）。
+            withContext(NonCancellable) {
+                appSettingsRepository.updateProfileInfo(
+                    nickname = nickname.trim(),
+                    school = school.trim(),
+                    college = college.trim(),
+                    major = major.trim(),
+                    grade = grade.trim(),
+                    signature = signature.trim()
+                )
+            }
         }
     }
 

@@ -31,8 +31,8 @@ android {
         applicationId = "com.shangkeschedule"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 222
-        versionName = "3.56.6"
+        versionCode = 223
+        versionName = "3.56.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

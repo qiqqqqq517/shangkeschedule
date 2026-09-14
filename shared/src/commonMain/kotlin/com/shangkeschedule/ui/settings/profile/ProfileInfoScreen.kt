@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,9 +51,6 @@ import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -90,7 +86,7 @@ import shangkeschedule.shared.generated.resources.profile_signature_hint
  *
  * 交互约定：
  * - 头像：点击唤起系统图片选择器 → 1:1 裁剪 → 存私有目录（`avatar_<uuid>.jpg`），旧文件自动清理；
- * - 文本：本地编辑态即时回显，落库走 500ms 防抖（避免逐字符写 DataStore）；
+ * - 文本：本地编辑态即时回显，每次变化即时落库（VM 内 NonCancellable 写入，返回页面也不丢）；
  * - 返回即已保存（无需显式「保存」按钮，与主流 App 的个人资料页一致）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,15 +119,11 @@ fun ProfileInfoScreen(
         }
     }
 
-    val scope = rememberCoroutineScope()
-    var saveJob by remember { mutableStateOf<Job?>(null) }
-    // 防抖落库：任何字段变化后 500ms 统一写一次
-    val scheduleSave: () -> Unit = {
-        saveJob?.cancel()
-        saveJob = scope.launch {
-            delay(500)
-            viewModel.onProfileInfoChanged(nickname, school, college, major, grade, signature)
-        }
+    // 即时落库：本地编辑态每次变化立即写入 DataStore。
+    // 不防抖——防抖协程绑定在页面作用域上，返回瞬间即被取消，最后一段内容会丢（v3.49.0 缺陷修复）。
+    // 落盘动作用 NonCancellable 在 VM 侧执行，即使页面返回也能写完。
+    val saveProfile: () -> Unit = {
+        viewModel.onProfileInfoChanged(nickname, school, college, major, grade, signature)
     }
 
     // 头像：系统选择器 → 1:1 裁剪 → 保存
@@ -270,7 +262,7 @@ fun ProfileInfoScreen(
                     value = nickname,
                     onValueChange = {
                         nickname = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_nickname),
                     placeholder = stringResource(Res.string.profile_nickname_hint),
@@ -281,7 +273,7 @@ fun ProfileInfoScreen(
                     value = signature,
                     onValueChange = {
                         signature = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_signature),
                     placeholder = stringResource(Res.string.profile_signature_hint),
@@ -299,7 +291,7 @@ fun ProfileInfoScreen(
                     value = school,
                     onValueChange = {
                         school = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_school),
                     placeholder = stringResource(Res.string.profile_school_hint),
@@ -310,7 +302,7 @@ fun ProfileInfoScreen(
                     value = college,
                     onValueChange = {
                         college = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_college),
                     placeholder = stringResource(Res.string.profile_college_hint),
@@ -321,7 +313,7 @@ fun ProfileInfoScreen(
                     value = major,
                     onValueChange = {
                         major = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_major),
                     placeholder = stringResource(Res.string.profile_major_hint),
@@ -332,7 +324,7 @@ fun ProfileInfoScreen(
                     value = grade,
                     onValueChange = {
                         grade = it
-                        scheduleSave()
+                        saveProfile()
                     },
                     label = stringResource(Res.string.profile_grade),
                     placeholder = stringResource(Res.string.profile_grade_hint),
