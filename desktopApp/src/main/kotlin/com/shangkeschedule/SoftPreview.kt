@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
 import com.shangkeschedule.data.db.main.Course
+import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.ShangKeScheduleTheme
@@ -34,14 +35,25 @@ import java.io.File
  *
  * 运行：
  *   .\gradlew.bat :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.SoftPreviewKt"
+ * 尺寸可调（默认 430x932 与另两个宿主一致；新增页面底部区段如「今日待办」在 932
+ * 视口下不可见，验该区时用 `-DsoftPreviewHeight=1400` 渲染整页——Gradle 的 run 会
+ * fork JVM，`-D` 需经 JAVA_TOOL_OPTIONS 传入；也可用环境变量 SOFT_PREVIEW_HEIGHT）。
  */
 private val OUT_DIR = File("../build_qa/softdraw")
 
 fun main() {
-    val dark = false
-    val width = 430
-    val height = 932
-    val shotName = "soft-today-light"
+    // 属性读取：-D 系统属性或环境变量（softPreviewHeight / SOFT_PREVIEW_HEIGHT 两种写法均可）
+    fun prop(name: String, default: String): String =
+        System.getProperty(name)
+            ?: System.getenv(
+                name.replace(Regex("([a-z])([A-Z])"), "$1_$2").replace('.', '_').uppercase()
+            )
+            ?: default
+
+    val dark = prop("softPreviewDark", "false").toBoolean()
+    val width = prop("softPreviewWidth", "430").toInt()
+    val height = prop("softPreviewHeight", "932").toInt()
+    val shotName = prop("softPreviewName", "soft-today-light")
 
     runBlocking(Dispatchers.Default) {
         val scene = ImageComposeScene(
@@ -139,7 +151,24 @@ private fun previewState(): TodayUiState.Success {
     return TodayUiState.Success(
         courses = today,
         tomorrowCourses = tomorrow,
-        todos = emptyList(),
+        // 今日待办区（todo_items）像素回归样例：带时间 / 无时间 / 已完成各一条
+        todos = listOf(
+            TodoItem(
+                id = "todo-1", date = "2026-09-09", title = "交操作系统实验报告",
+                note = "第 4 章 进程调度", time = "18:00", done = false,
+                sortOrder = 0, createdAt = 0L, updatedAt = 0L
+            ),
+            TodoItem(
+                id = "todo-2", date = "2026-09-09", title = "复习英语六级单词",
+                time = null, done = false,
+                sortOrder = 1, createdAt = 0L, updatedAt = 0L
+            ),
+            TodoItem(
+                id = "todo-3", date = "2026-09-09", title = "归还图书馆借书",
+                note = null, time = "20:30", done = true,
+                sortOrder = 2, createdAt = 0L, updatedAt = 0L
+            ),
+        ),
         weekIndex = 3,
         today = LocalDate(2026, 9, 9),
         status = TodayStatus.Normal,

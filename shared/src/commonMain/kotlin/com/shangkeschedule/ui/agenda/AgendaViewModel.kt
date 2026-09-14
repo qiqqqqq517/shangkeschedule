@@ -225,7 +225,13 @@ class AgendaViewModel(
         visibleMonth.value = MonthKey(today.year, today.month.number)
     }
 
-    /** 新增日程。 */
+    /**
+     * 新增条目。
+     *
+     * TODO 分类写入 `todo_items`（待办表），其余分类写入 `schedule_events`（日程表）——
+     * 与 [deleteEntry] / [toggleEntryDone] 的按来源分派语义保持一致。今日页的「今日待办」
+     * 区读的就是 `todo_items`，因此日程页选「待办」分类新建的条目会自动出现在今日页。
+     */
     fun addEvent(
         date: LocalDate,
         title: String,
@@ -237,16 +243,25 @@ class AgendaViewModel(
         note: String?
     ) {
         viewModelScope.launch {
-            scheduleEventRepository.addEvent(
-                date = date.toString(),
-                title = title,
-                category = category,
-                isAllDay = isAllDay,
-                startTime = startTime,
-                endTime = endTime,
-                location = location,
-                note = note
-            )
+            if (category == ScheduleCategory.TODO) {
+                todoRepository.addTodo(
+                    date = date.toString(),
+                    title = title,
+                    note = note,
+                    time = startTime?.takeIf { it.isNotBlank() }
+                )
+            } else {
+                scheduleEventRepository.addEvent(
+                    date = date.toString(),
+                    title = title,
+                    category = category,
+                    isAllDay = isAllDay,
+                    startTime = startTime,
+                    endTime = endTime,
+                    location = location,
+                    note = note
+                )
+            }
         }
     }
 

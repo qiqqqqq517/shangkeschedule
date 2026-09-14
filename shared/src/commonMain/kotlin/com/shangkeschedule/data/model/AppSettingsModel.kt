@@ -215,7 +215,8 @@ data class AppSettingsModel(
 
     /**
      * 屏幕刷新率偏好（v3.56.0「动画效果 → 屏幕刷新率」）。
-     * 默认 AUTO：按机型能力取 120/90/60 中支持的最高档；手动档在机型不支持时向下回落。
+     * 默认 AUTO：不钉任何显示模式（preferredDisplayModeId 置 0），交还系统按场景自适应升降频；
+     * 手动档（120/90/60）钉到目标档，机型不支持时向下回落。
      * 由 MainActivity 应用到 `preferredDisplayModeId`（比 preferredRefreshRate 提示更可靠）。
      */
     val refreshRateMode: RefreshRateMode = RefreshRateMode.AUTO,
@@ -366,12 +367,12 @@ enum class NextCardMode(val value: String) {
 
 /**
  * 屏幕刷新率偏好（v3.56.0「动画效果 → 屏幕刷新率」）。
- * 三档手动（120/90/60）+ AUTO 自动匹配：按机型实际支持的刷新率档位，
+ * 三档手动（120/90/60）+ AUTO 交还系统自适应：手动档按机型实际支持的刷新率档位，
  * 取「不超过目标档」中最接近的一档（如 120 档在 90Hz 机型上回落 90，60 档恒可满足）。
- * AUTO = 取 120/90/60 中机型能支持的最高档。
+ * AUTO = 不钉任何显示模式（preferredDisplayModeId 置 0），由系统按场景自行升降频。
  */
 enum class RefreshRateMode(val value: String, val labelRes: StringResource) {
-    /** 自动匹配机型能力：取 120/90/60 中设备支持的最高档。 */
+    /** 交还系统自适应：解除窗口对显示模式的钉定，静止/滚动由系统自行升降频（省电）。 */
     AUTO("auto", Res.string.refresh_rate_auto),
 
     /** 优先 120Hz；机型不支持时回落到 ≤120 的最高可用档。 */

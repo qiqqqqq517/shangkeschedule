@@ -4,7 +4,6 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +17,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,18 +26,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -50,14 +42,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -70,22 +58,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
-import com.shangkeschedule.ui.components.AppAlertDialog
-import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -108,44 +92,28 @@ import com.shangkeschedule.data.model.NextCardMode
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import com.shangkeschedule.data.db.main.TodoItem
-import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
-import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
-import com.shangkeschedule.ui.components.AppDialogActions
-import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppFab
-import com.shangkeschedule.ui.components.AppHeroMotif
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
-import com.shangkeschedule.ui.components.AppTextField
-import com.shangkeschedule.ui.components.NativeNumberPicker
-import com.shangkeschedule.ui.components.LocalNavigationGlassBackdrop
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
-import com.shangkeschedule.ui.theme.softGlow
-import com.shangkeschedule.ui.theme.softTexture
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.iosUiSans
-import com.shangkeschedule.ui.theme.appType
-import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import com.shangkeschedule.ui.theme.claudeReadingSerif
-import com.shangkeschedule.ui.theme.claudeUiSans
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.rememberStatusFadeAlpha
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.MotionPressMode
-import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.components.rememberAppHaptics
 import kotlinx.coroutines.delay
@@ -166,42 +134,19 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.a11y_todo_add
-import shangkeschedule.shared.generated.resources.action_cancel
-import shangkeschedule.shared.generated.resources.action_confirm
-import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.chevron_right_24px
-import shangkeschedule.shared.generated.resources.close_24px
-import shangkeschedule.shared.generated.resources.confirm_delete
-import shangkeschedule.shared.generated.resources.course_position_prefix
-import shangkeschedule.shared.generated.resources.course_teacher_prefix
 import shangkeschedule.shared.generated.resources.date_format_year_month_day
-import shangkeschedule.shared.generated.resources.delete_24px
-import shangkeschedule.shared.generated.resources.label_crush_course
-import shangkeschedule.shared.generated.resources.label_remark
 import shangkeschedule.shared.generated.resources.location_on_24px
 import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.status_semester_ended
-import shangkeschedule.shared.generated.resources.text_countdown_remaining
-import shangkeschedule.shared.generated.resources.text_countdown_start
-import shangkeschedule.shared.generated.resources.text_course_in_progress
 import shangkeschedule.shared.generated.resources.text_courses_count
-import shangkeschedule.shared.generated.resources.text_courses_finished
-import shangkeschedule.shared.generated.resources.action_week_view
 import shangkeschedule.shared.generated.resources.text_no_courses_today
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
 import shangkeschedule.shared.generated.resources.title_today_courses
 import shangkeschedule.shared.generated.resources.title_today_schedule
-import shangkeschedule.shared.generated.resources.title_tomorrow_courses
 import shangkeschedule.shared.generated.resources.title_vacation_until_start
-import shangkeschedule.shared.generated.resources.todo_add
-import shangkeschedule.shared.generated.resources.todo_delete_message
-import shangkeschedule.shared.generated.resources.todo_delete_title
-import shangkeschedule.shared.generated.resources.todo_edit
-import shangkeschedule.shared.generated.resources.todo_note_label
-import shangkeschedule.shared.generated.resources.todo_time_label
-import shangkeschedule.shared.generated.resources.todo_title_label
+import shangkeschedule.shared.generated.resources.todo_count_format
 import shangkeschedule.shared.generated.resources.agenda_category_activity
 import shangkeschedule.shared.generated.resources.agenda_category_exam
 import shangkeschedule.shared.generated.resources.agenda_category_homework
@@ -228,21 +173,16 @@ import shangkeschedule.shared.generated.resources.today_ios_tomorrow_format
 import shangkeschedule.shared.generated.resources.today_ios_type_lab
 import shangkeschedule.shared.generated.resources.today_ios_type_theory
 import shangkeschedule.shared.generated.resources.today_ios_view_all
-import shangkeschedule.shared.generated.resources.today_claude_badge_lab
-import shangkeschedule.shared.generated.resources.today_claude_badge_required
 import shangkeschedule.shared.generated.resources.today_claude_countdown_label
-import shangkeschedule.shared.generated.resources.today_claude_date_format
 import shangkeschedule.shared.generated.resources.today_claude_meta_credit
 import shangkeschedule.shared.generated.resources.today_claude_meta_room
 import shangkeschedule.shared.generated.resources.today_claude_meta_teacher
 import shangkeschedule.shared.generated.resources.today_claude_meta_time
 import shangkeschedule.shared.generated.resources.today_claude_next_label
 import shangkeschedule.shared.generated.resources.next_card_label_agenda
-import shangkeschedule.shared.generated.resources.next_card_minutes_until
 import shangkeschedule.shared.generated.resources.next_card_today_ended
 import shangkeschedule.shared.generated.resources.today_claude_note_hours
 import shangkeschedule.shared.generated.resources.today_claude_note_type
-import shangkeschedule.shared.generated.resources.today_claude_remaining
 import shangkeschedule.shared.generated.resources.today_claude_sections_format
 import shangkeschedule.shared.generated.resources.today_claude_sheet_close
 import shangkeschedule.shared.generated.resources.today_claude_sheet_edit
@@ -253,7 +193,7 @@ import shangkeschedule.shared.generated.resources.today_claude_tomorrow_format
 import shangkeschedule.shared.generated.resources.today_claude_type_lab
 import shangkeschedule.shared.generated.resources.today_claude_type_theory
 import shangkeschedule.shared.generated.resources.today_claude_view_all
-import shangkeschedule.shared.generated.resources.widget_title_today
+import shangkeschedule.shared.generated.resources.today_todos_section
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
 
@@ -278,14 +218,6 @@ fun TodayScheduleScreen(
     val isClaudePreset = themePreset == AppThemePreset.CLAUDE
     val isIosPreset = themePreset == AppThemePreset.IOS
     val isSoftPreset = themePreset == AppThemePreset.SOFT
-    // 柔绘同样自带页头（周次胶囊 + 日期大字），必须与书卷/通透一样屏蔽 M3 顶栏与待办 FAB，
-    // 否则柔绘今日页会多出一条「今日课表」标题栏 + FAB，信息架构与另两套主题不一致。
-    val hasCustomHeader = isClaudePreset || isIosPreset || isSoftPreset
-
-    // 待办弹窗状态提升到页面层，供右下角悬浮「+」号触发
-    var showTodoDialog by remember { mutableStateOf(false) }
-    var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
-    var deletingTodo by remember { mutableStateOf<TodoItem?>(null) }
 
     // 下拉刷新状态（v3.43.0 ·《交互动效审查》P2）：列表已是 DB Flow 驱动，刷新 = 立刻重读一次
     var refreshing by remember { mutableStateOf(false) }
@@ -310,43 +242,15 @@ fun TodayScheduleScreen(
         // v3.51.2 诊断实验：置 null 断开「页内玻璃件采样包含自身的页面 backdrop」这条边。
         val pageGlassBackdrop = null // v3.51.2 诊断实验：断开页内玻璃件采样页面 backdrop 的边
         Scaffold(
-            // 应用外层底部导航预留的内边距，避免 FAB 被底栏遮挡
+            // 应用外层底部导航预留的内边距，避免内容被底栏遮挡
             modifier = Modifier,
             // P2-1 内外 Scaffold 系统栏 inset 双计数修复：
             // 底部导航栏 inset 已由外层 AdaptiveNavigationScaffold（barInsetBottom）统一预留，
-            // 内层再套默认 contentWindowInsets=navigationBars 会导致底部内边距叠加，列表/FAB 偏高。
+            // 内层再套默认 contentWindowInsets=navigationBars 会导致底部内边距叠加，列表偏高。
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = {
-                if (!hasCustomHeader) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            Text(
-                                text = stringResource(Res.string.title_today_schedule),
-                                style = MaterialTheme.typography.titleLarge.copy(fontSize = appType().pageTitle),
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors()
-                    )
-                }
-            },
-            floatingActionButton = {
-                // 书卷 / 通透两套主题均隐藏待办 FAB，待办改由「日程」页承载
-                if (!hasCustomHeader) {
-                    AppFab(
-                        onClick = {
-                            editingTodo = null
-                            showTodoDialog = true
-                        },
-                        icon = vectorResource(Res.drawable.add_24px),
-                        contentDescription = stringResource(Res.string.a11y_todo_add),
-                        // 液态玻璃 FAB：v3.51.2 改走 Haze 玻璃（自研玻璃采样页面 backdrop 会成环）
-                        glassBackdrop = pageGlassBackdrop,
-                        hazeState = hazeState,
-                        modifier = Modifier.padding(bottom = outerPadding.calculateBottomPadding())
-                    )
-                }
-            }
+            // 无 topBar / FAB：三主题今日页均自带页头（周次胶囊 + 日期大字），M3 顶栏与
+            // 待办 FAB 自 v3.41.1（最后一个无自带页头的主题下线）起便不再渲染；
+            // 待办的创建/编辑统一由「日程」页承载，此处仅只读展示 + 勾选当日待办。
         ) { innerPadding ->
             Box(
                 modifier = Modifier
@@ -416,12 +320,9 @@ fun TodayScheduleScreen(
                                 isDark = isDark,
                                 onToggleTodo = viewModel::toggleTodo,
                                 onToggleEventDone = viewModel::toggleEventDone,
-                                onEditTodo = { todo ->
-                                    editingTodo = todo
-                                    showTodoDialog = true
-                                },
+                                // 待办的创建/编辑统一由「日程」页承载（今日页只读展示 + 勾选）
+                                onEditTodo = { onNavigate(Destination.Schedule) },
                                 onNavigateWeekly = { onNavigate(Destination.CourseSchedule) },
-                                onOpenSettings = { onNavigate(Destination.Settings) },
                                 onEditCourse = { courseId ->
                                     onNavigate(Destination.AddEditCourse(courseId))
                                 }
@@ -433,47 +334,6 @@ fun TodayScheduleScreen(
             }
         }
         }
-    }
-
-    // 待办添加/编辑弹窗
-    if (showTodoDialog) {
-        TodoEditDialog(
-            existing = editingTodo,
-            hazeState = hazeState,
-            onDismiss = {
-                showTodoDialog = false
-                editingTodo = null
-            },
-            onConfirm = { title, note, time ->
-                val existing = editingTodo
-                if (existing != null) {
-                    viewModel.updateTodo(existing.copy(title = title, note = note, time = time))
-                } else {
-                    viewModel.addTodo(title, note, time)
-                }
-                showTodoDialog = false
-                editingTodo = null
-            },
-            onDeleteRequest = {
-                val existing = editingTodo
-                if (existing != null) {
-                    showTodoDialog = false
-                    deletingTodo = existing
-                }
-            }
-        )
-    }
-
-    // 删除确认弹窗
-    deletingTodo?.let { todo ->
-        TodoDeleteDialog(
-            todo = todo,
-            onDismiss = { deletingTodo = null },
-            onConfirm = {
-                viewModel.deleteTodo(todo.id)
-                deletingTodo = null
-            }
-        )
     }
 }
 
@@ -487,7 +347,6 @@ fun TodayContent(
     onToggleEventDone: (String, Boolean) -> Unit,
     onEditTodo: (TodoItem) -> Unit,
     onNavigateWeekly: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
     onEditCourse: (String) -> Unit = {},
     // 仅用于视觉回归预览：覆盖主题预设，避免预览宿主必须走完整 CompositionLocal 链
     presetOverride: AppThemePreset? = null,
@@ -579,9 +438,10 @@ fun TodayContent(
             dateText = dateStr,
             scrollState = scrollState,
             onOpenWeeklySchedule = onNavigateWeekly,
-            onOpenSettings = onOpenSettings,
             onEditCourse = onEditCourse,
-            onToggleEventDone = onToggleEventDone
+            onToggleEventDone = onToggleEventDone,
+            onToggleTodo = onToggleTodo,
+            onEditTodo = onEditTodo
         )
         return@Column
 
@@ -681,7 +541,7 @@ private fun todayClaudePalette(peach: Boolean): TodayTimelinePalette {
  * 任何字段的取值都与旧三份拷贝逐位对应——像素回归以此为准。
  */
 private class TodayCardStyle(
-    /** 下节课卡点缀色梯（50/100/500/700/800）；dark 档三主题同值。 */
+    /** 下节课卡亮色档点缀色梯（50/100/500/700/800）。暗色档不在此类：TodayNextClassCard 内三主题共用硬编码书卷紫。 */
     val accent50: Color,
     val accent100: Color,
     val accent500: Color,
@@ -906,7 +766,7 @@ private object Ios26TodaySkin : TodaySkin {
 
 /**
  * 三主题共用的今日页骨架（原 Claude/Soft/Ios26 三份逐行相同的 Content 收敛）：
- * 页头 + 下节课卡 + 课程时间轴 + 日程事件 + 明日预览 + 课程详情面板。
+ * 页头 + 下节课卡 + 课程时间轴 + 日程事件 + 明日预览 + 自建待办 + 课程详情面板。
  * 分钟级 now 由 TodayContent 统一供给，滚动状态单点持有（主题切换保位）。
  */
 @Composable
@@ -921,9 +781,10 @@ private fun TodayThemeContent(
     dateText: String,
     scrollState: androidx.compose.foundation.lazy.LazyListState,
     onOpenWeeklySchedule: () -> Unit,
-    onOpenSettings: () -> Unit,
     onEditCourse: (String) -> Unit,
-    onToggleEventDone: (String, Boolean) -> Unit
+    onToggleEventDone: (String, Boolean) -> Unit,
+    onToggleTodo: (String, Boolean) -> Unit,
+    onEditTodo: (TodoItem) -> Unit
 ) {
     val colors = appColors()
     val style = skin.cardStyle()
@@ -931,6 +792,9 @@ private fun TodayThemeContent(
 
     val nextSlot = remember(state, now) { resolveNextCardSlot(state, now, state.nextCardMode) }
     val tomorrowDate = skin.tomorrowDateText(state)
+    // 列表位移动画受「减弱动态效果」门控（同 QuickDeleteScreen 写法）；
+    // animateItem 是 LazyItemScope 成员，须在 item 作用域内求值，故传 reduceMotion 布尔。
+    val reduceMotion = LocalAppMotion.current.reduceMotion
 
     LazyColumn(
         state = scrollState,
@@ -1004,16 +868,18 @@ private fun TodayThemeContent(
                 state.courses,
                 key = { _, model -> model.course.id }
             ) { index, model ->
-                TodayTimelineItem(
-                    model = model,
-                    index = index,
-                    isLast = index == state.courses.lastIndex,
-                    gridStyle = gridStyle,
-                    isDark = isDark,
-                    now = now,
-                    onClick = { detailCourse = model },
-                    style = style
-                )
+                Box(modifier = if (reduceMotion) Modifier else Modifier.animateItem()) {
+                    TodayTimelineItem(
+                        model = model,
+                        index = index,
+                        isLast = index == state.courses.lastIndex,
+                        gridStyle = gridStyle,
+                        isDark = isDark,
+                        now = now,
+                        onClick = { detailCourse = model },
+                        style = style
+                    )
+                }
             }
         }
 
@@ -1052,7 +918,25 @@ private fun TodayThemeContent(
                 state.tomorrowCourses,
                 key = { _, model -> "tomorrow-${model.course.id}" }
             ) { _, model ->
-                TodayTomorrowCard(model = model, gridStyle = gridStyle, isDark = isDark, style = style)
+                Box(modifier = if (reduceMotion) Modifier else Modifier.animateItem()) {
+                    TodayTomorrowCard(model = model, gridStyle = gridStyle, isDark = isDark, style = style)
+                }
+            }
+        }
+
+        // 今日自建待办（「今日」页 + 新建的 todo_items）：排在明日预览之后；
+        // 课程为空时本区自然成为页面底部内容（沿用旧死区实现「待办排最后」的语义）。
+        // 整区聚合为单个 item（与 TodayEventsSection 同构）：LazyColumn 的 spacedBy(16dp)
+        // 只在区段之间生效，区段内部行距由本区自己的 6dp 决定——与日程事件区保持一致；
+        // 若拆成每行一个 item，行距会被列表级 spacedBy 放大到 16dp（比事件区疏 2.7 倍）。
+        if (state.todos.isNotEmpty()) {
+            item(key = "today-todos") {
+                TodayTodosSection(
+                    todos = state.todos,
+                    onToggle = onToggleTodo,
+                    onEdit = onEditTodo,
+                    style = style
+                )
             }
         }
     }
@@ -2136,6 +2020,158 @@ private fun TodayEventRow(
     }
 }
 
+/**
+ * 今日自建待办区段（`todo_items`）：与 [TodayEventsSection] 同构——整区一个 LazyColumn
+ * item，区段内自行排 8dp/6dp 间距，避免列表级 spacedBy(16dp) 把区内行距放大。
+ * 计数走待办专属文案（`todo_items` 不是日程，用 agenda_count_format 会显示成「N 个日程」）。
+ */
+@Composable
+private fun TodayTodosSection(
+    todos: List<TodoItem>,
+    onToggle: (String, Boolean) -> Unit,
+    onEdit: (TodoItem) -> Unit,
+    style: TodayCardStyle
+) {
+    Spacer(modifier = Modifier.height(8.dp))
+    TodaySectionLabelRow(
+        label = stringResource(Res.string.today_todos_section),
+        trailing = stringResource(Res.string.todo_count_format, todos.size.toString()),
+        fillWidth = true,
+        labelFont = style.sectionLabelFont
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    todos.forEachIndexed { index, todo ->
+        TodayTodoRow(
+            todo = todo,
+            isLast = index == todos.lastIndex,
+            onToggle = onToggle,
+            onEdit = onEdit,
+            style = style
+        )
+        if (index < todos.lastIndex) Spacer(modifier = Modifier.height(6.dp))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+/**
+ * 自建待办行：卡面语言与 [TodayEventRow] 一致（cardBg + 分隔描边 / 柔绘 featherRim），
+ * 刻意不复用旧课程条的青色块语言（旧实现随三主题分发死区一并废弃）。
+ * 复选框点击切换完成态（渐变降透明 + 标题删除线），整行点击进入编辑；
+ * 无时间待办不渲染时间轴列，内容卡铺满整行。
+ */
+@Composable
+private fun TodayTodoRow(
+    todo: TodoItem,
+    isLast: Boolean,
+    onToggle: (String, Boolean) -> Unit,
+    onEdit: (TodoItem) -> Unit,
+    style: TodayCardStyle
+) {
+    val colors = appColors()
+    val haptics = rememberAppHaptics()
+    // 待办与日程事件的 TODO 分类同色（柔绘走语义色，书卷/通透沿用 Material 500 历史值）
+    val todoAccent = if (style.semanticEventColors) colors.success else Color(0xFF4CAF50)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onEdit(todo) },
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 有时间的待办渲染时间轴列（圆点+连线，同事件行）；默认待办整列不渲染
+        if (!todo.time.isNullOrBlank()) {
+            Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
+                if (!isLast) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = 18.dp)
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(colors.divider)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 9.dp, y = 6.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(todoAccent)
+                )
+            }
+        }
+        // 右侧内容卡：已完成渐变降透明（同事件行 0.5f）
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .alpha(rememberStatusFadeAlpha(todo.done, 0.5f).value)
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.cardBg)
+                .then(
+                    if (style.softMaterial) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
+                    else Modifier.border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppCheckboxIndicator(
+                        checked = todo.done,
+                        modifier = Modifier.clickable {
+                            haptics.tick()
+                            onToggle(todo.id, !todo.done)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = todo.title,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 18.sp
+                        ),
+                        color = colors.textPrimary,
+                        textDecoration = if (todo.done) TextDecoration.LineThrough else null,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                todo.time?.takeIf { it.isNotBlank() }?.let { time ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = time,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1
+                    )
+                }
+                todo.note?.takeIf { it.isNotBlank() }?.let { note ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = colors.textSecondary.copy(alpha = 0.75f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** 幽灵小按钮：设计稿 .btn.ghost.view-all-btn（32dp 高 + 12sp + chevron）。 */
 @Composable
 private fun TodayGhostButton(text: String, onClick: () -> Unit) {
@@ -2367,190 +2403,6 @@ private fun todayAccentColor(
         ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
     }
     return if (isDark) pair.dark else pair.light
-}
-
-/**
- * iOS 风格小组标题：13sp Semibold uppercase + 主色链接
- * 对齐画布 .group-header（明日课程）
- */
-@Composable
-private fun IosGroupHeader(
-    title: String,
-    action: String? = null
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.8.sp
-            ),
-            color = appColors().textSecondary
-        )
-        if (action != null) {
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = action,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = appColors().primary,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
-@Composable
-private fun IosCourseCard(
-    model: CourseDisplayModel,
-    gridStyle: ScheduleGridStyle,
-    isDark: Boolean,
-    now: LocalTime,
-    showFinishedState: Boolean = true
-) {
-    val isFinished = if (showFinishedState) {
-        remember(model.endTime, now) {
-            val endText = model.endTime?.takeIf { it.isNotBlank() }
-            if (endText == null) {
-                false
-            } else {
-                try {
-                    LocalTime.parse(endText) < now
-                } catch (e: Exception) { false }
-            }
-        }
-    } else false
-
-    val colorPair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
-        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
-    }
-
-    // iOS 风格：背景色 = 系统色 12% 透明度，色条色 = 系统色
-    val bgColor = colorPair.dark.copy(alpha = if (isDark) 0.2f else 0.12f)
-    val accentColor = colorPair.dark
-    val textPrimary = appColors().textPrimary
-    val textSecondary = appColors().textSecondary
-
-    val contentAlpha by rememberStatusFadeAlpha(isFinished, 0.5f)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer(alpha = contentAlpha)
-            .padding(end = 8.dp)
-            .clickable { /* 预留点击跳转 */ },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 左侧色条：4dp 宽，上下各留 8dp 间距
-        Box(
-            modifier = Modifier
-                .padding(vertical = 8.dp)
-                .width(4.dp)
-                .height(40.dp)
-                .background(
-                    color = accentColor,
-                    shape = RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp)
-                )
-        )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 中间内容区
-        Column(
-            modifier = Modifier.weight(1f).padding(vertical = 14.dp)
-        ) {
-            // 顶部：课程名 + 时间徽章
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = model.course.name,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 20.sp
-                    ),
-                    color = textPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                val timeText = listOfNotNull(
-                    model.startTime?.takeIf { it.isNotBlank() },
-                    model.endTime?.takeIf { it.isNotBlank() }
-                ).joinToString("-")
-                if (timeText.isNotBlank()) {
-                    Text(
-                        text = timeText,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        color = textSecondary,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 元信息：地点 + 教师
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = vectorResource(Res.drawable.location_on_24px),
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = textSecondary.copy(alpha = 0.8f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = model.course.position,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
-                            color = textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = vectorResource(Res.drawable.person_24px),
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = textSecondary.copy(alpha = 0.8f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = model.course.teacher,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
-                            color = textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        // 右侧 chevron
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = appColors().divider
-        )
-    }
 }
 
 // ===== 通透主题（iOS 26）· 今日页专用组件 =====

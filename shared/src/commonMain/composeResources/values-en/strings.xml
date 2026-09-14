@@ -37,6 +37,8 @@
     <string name="nav_schedule">Agenda</string>
     <string name="title_today_schedule">Today\'s schedule</string>
     <string name="title_today_courses">Today\'s Courses</string>
+    <string name="today_todos_section">Today\'s To-dos</string>
+    <string name="todo_count_format">%1$d items</string>
     <string name="title_tomorrow_courses">Tomorrow</string>
     <string name="text_courses_count">%1$s classes</string>
     <string name="action_week_view">Week View</string>
@@ -791,7 +793,7 @@
     <string name="anim_section_speed">Motion speed</string>
     <string name="anim_section_speed_desc">Sets the duration of all animations: page transitions, list and card entrances, sheets and dialogs, touch feedback.</string>
     <string name="refresh_rate_title">Screen refresh rate</string>
-    <string name="refresh_rate_desc">Matches your device automatically (highest of 120/90/60 supported), or fix a tier manually; applies instantly</string>
+    <string name="refresh_rate_desc">Auto hands control back to the system (adaptive, saves power when idle); or pin a tier manually at 120/90/60; applies instantly</string>
     <string name="refresh_rate_auto">Auto</string>
     <string name="refresh_rate_120">120Hz</string>
     <string name="refresh_rate_90">90Hz</string>
@@ -874,18 +876,7 @@
     <string name="contact_author_email">hhixingchen520@163.com</string>
     <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
 
-    <!-- Today to-do -->
-    <string name="title_today_todo">Today's to-do</string>
-    <string name="todo_add">Add to-do</string>
-    <string name="todo_edit">Edit to-do</string>
-    <string name="todo_empty">No to-dos yet, tap + to add</string>
-    <string name="todo_progress">%1$s/%2$s done</string>
-    <string name="todo_title_label">To-do content</string>
-    <string name="todo_time_label">Time (optional, HH:mm)</string>
-    <string name="todo_note_label">Note (optional)</string>
-    <string name="todo_delete_title">Delete to-do</string>
-    <string name="todo_delete_message">Delete "%1$s"?</string>
-    <string name="a11y_todo_add">Add to-do</string>
+    <!-- Today to-do (creation/editing lives on the Agenda tab; Today shows read-only) -->
 
 
     <!-- import 链路 i18n（UI 迭代第 4 轮） -->

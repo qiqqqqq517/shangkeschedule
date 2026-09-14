@@ -138,7 +138,7 @@ fun AnimationSettingsScreen(
         ) {
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
 
-            // 屏幕刷新率（v3.56.0）：自动按机型能力匹配（120/90/60 取最高支持档），可手动固定
+            // 屏幕刷新率（v3.56.0）：自动 = 交还系统自适应（解除钉定）；手动可固定 120/90/60
             Text(
                 text = stringResource(Res.string.refresh_rate_title),
                 style = MaterialTheme.typography.labelLarge,

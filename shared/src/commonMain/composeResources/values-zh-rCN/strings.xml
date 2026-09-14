@@ -37,6 +37,8 @@
     <string name="nav_schedule">日程</string>
     <string name="title_today_schedule">今日课表</string>
     <string name="title_today_courses">今日课程</string>
+    <string name="today_todos_section">今日待办</string>
+    <string name="todo_count_format">%1$d 项</string>
     <string name="title_tomorrow_courses">明日课程</string>
     <string name="text_courses_count">共 %1$s 节</string>
     <string name="action_week_view">周视图</string>
@@ -793,7 +795,7 @@
     <string name="anim_section_speed">动效速度</string>
     <string name="anim_section_speed_desc">影响页面转场、列表与卡片入场、面板与弹窗、触摸反馈等全部动画的时长</string>
     <string name="refresh_rate_title">屏幕刷新率</string>
-    <string name="refresh_rate_desc">按机型能力自动匹配（120/90/60 取最高支持档），也可手动固定；改动立即生效</string>
+    <string name="refresh_rate_desc">自动：交还系统按场景自适应（静止时自动降频更省电）；也可手动固定 120/90/60；改动立即生效</string>
     <string name="refresh_rate_auto">自动</string>
     <string name="refresh_rate_120">120Hz</string>
     <string name="refresh_rate_90">90Hz</string>
@@ -875,18 +877,7 @@
     <string name="contact_author_email">hhixingchen520@163.com</string>
     <string name="contact_author_hint">若适配教务系统，请随邮件附上：学校名称、教务系统账号、教务系统密码</string>
 
-    <!-- 今日待办 -->
-    <string name="title_today_todo">今日待办</string>
-    <string name="todo_add">添加待办</string>
-    <string name="todo_edit">编辑待办</string>
-    <string name="todo_empty">今天还没有待办，点击 + 添加</string>
-    <string name="todo_progress">已完成 %1$s/%2$s</string>
-    <string name="todo_title_label">待办内容</string>
-    <string name="todo_time_label">时间（可选，HH:mm）</string>
-    <string name="todo_note_label">备注（可选）</string>
-    <string name="todo_delete_title">删除待办</string>
-    <string name="todo_delete_message">确定要删除「%1$s」吗？</string>
-    <string name="a11y_todo_add">添加待办</string>
+    <!-- 今日待办（创建/编辑统一由「日程」页承载，今日页只读展示） -->
 
 
     <!-- import 链路 i18n（UI 迭代第 4 轮） -->

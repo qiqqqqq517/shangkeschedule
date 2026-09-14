@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.Course
+import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.ShangKeScheduleTheme
@@ -43,10 +44,12 @@ private val OUT_DIR = File("../build_qa/ios26")
 
 fun main() {
     // 读 -D 系统属性；Gradle 的 :desktopApp:run 会 fork 子进程，-D 不总是透传，
-    // 因此同时支持环境变量便于从命令行切换（IOS_PREVIEW_DARK=true）。
+    // 因此同时支持环境变量便于从命令行切换（iosPreviewDark / IOS_PREVIEW_DARK 均可）。
     fun prop(name: String, default: String): String =
         System.getProperty(name)
-            ?: System.getenv(name.replace('.', '_').uppercase())
+            ?: System.getenv(
+                name.replace(Regex("([a-z])([A-Z])"), "$1_$2").replace('.', '_').uppercase()
+            )
             ?: default
 
     val dark = prop("iosPreviewDark", "false").toBoolean()
@@ -191,7 +194,24 @@ private fun previewState(): TodayUiState.Success {
     return TodayUiState.Success(
         courses = today,
         tomorrowCourses = tomorrow,
-        todos = emptyList(),
+        // 今日待办区（todo_items）像素回归样例：带时间 / 无时间 / 已完成各一条
+        todos = listOf(
+            TodoItem(
+                id = "todo-1", date = "2026-09-09", title = "交操作系统实验报告",
+                note = "第 4 章 进程调度", time = "18:00", done = false,
+                sortOrder = 0, createdAt = 0L, updatedAt = 0L
+            ),
+            TodoItem(
+                id = "todo-2", date = "2026-09-09", title = "复习英语六级单词",
+                time = null, done = false,
+                sortOrder = 1, createdAt = 0L, updatedAt = 0L
+            ),
+            TodoItem(
+                id = "todo-3", date = "2026-09-09", title = "归还图书馆借书",
+                note = null, time = "20:30", done = true,
+                sortOrder = 2, createdAt = 0L, updatedAt = 0L
+            ),
+        ),
         weekIndex = 3,
         today = LocalDate(2026, 9, 9),
         status = TodayStatus.Normal,
