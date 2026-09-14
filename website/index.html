@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上课 · ShangKeSchedule — 面向中国高校的开源课表 App</title>
+<meta name="description" content="「上课」是一款面向中国高校的开源无广告课表 App。1700+ 所高校教务一键导入，书卷 / 通透 / 柔绘三套主题，多作息方案、情侣课表、桌面小组件、上课免打扰与 WebDAV 云备份，Android 8.0+ 免费下载。">
+<meta name="keywords" content="课表App,课程表,大学课表,教务导入,开源课表,上课,ShangKeSchedule,Android课表">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://shangke.asia/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="上课 · ShangKeSchedule">
+<meta property="og:title" content="上课 · ShangKeSchedule — 面向中国高校的开源课表 App">
+<meta property="og:description" content="1700+ 所高校教务一键导入，三套主题、多作息方案、情侣课表、桌面小组件与上课免打扰。开源、无广告、无追踪。">
+<meta property="og:url" content="https://shangke.asia/">
+<meta property="og:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="上课 · ShangKeSchedule">
+<meta name="twitter:description" content="面向中国高校的开源无广告课表 App。">
+<meta name="twitter:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
+
+<link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
+
+<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+
+<script>
+  /* 尽早确定主题，避免刷新时闪白 */
+  (function () {
+    try {
+      var saved = localStorage.getItem('sk-theme');
+      var dark = saved ? saved === 'dark'
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) { /* 忽略 */ }
+  })();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要内容</a>
+
+<!-- ======================================================== 导航 -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+      <span class="brand-text">
+        <b>上课</b>
+        <span>ShangKeSchedule</span>
+      </span>
+    </a>
+
+    <nav aria-label="主导航">
+      <ul class="nav-links">
+        <li><a href="#features">功能</a></li>
+        <li><a href="#import">教务导入</a></li>
+        <li><a href="#themes">主题</a></li>
+        <li><a href="#download">下载</a></li>
+        <li><a href="changelog.html">更新日志</a></li>
+      </ul>
+    </nav>
+
+    <div class="nav-end">
+      <button class="theme-toggle" type="button" aria-label="切换深色 / 浅色模式">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn btn-primary btn-sm" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载
+      </a>
+      <button class="nav-burger" type="button" aria-label="展开导航菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ======================================================== Hero -->
+<section class="hero">
+  <div class="hero-rules" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+
+      <div class="hero-copy">
+        <span class="eyebrow reveal">开源 · 无广告 · Apache-2.0 许可</span>
+
+        <h1 class="reveal">把课表，<br><span class="accent">排得清清楚楚</span>。</h1>
+
+        <p class="hero-sub reveal">
+          「上课」是一款面向中国高校的开源课表 App。内置 <strong>1700+ 所高校教务索引</strong>，一键导入课程与作息；
+          三套主题、多作息方案、情侣课表、桌面小组件与上课免打扰，从开学第一天一直用到期末。
+        </p>
+
+        <div class="btn-row reveal">
+          <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            下载 Android 版 <span class="mono" data-version>v3.56.5</span>
+          </a>
+          <a class="btn btn-ghost" data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.44-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.54 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+            查看源代码
+          </a>
+        </div>
+
+        <div class="hero-meta reveal">
+          <span>Android 8.0+</span>
+          <span>简体 / 繁體 / English</span>
+          <span>无需账号</span>
+          <span>无广告追踪</span>
+        </div>
+
+        <div class="stat-strip reveal">
+          <div class="stat"><b>1700<span class="unit">+</span></b><span>高校教务索引</span></div>
+          <div class="stat"><b>160<span class="unit">+</span></b><span>学校专属适配脚本</span></div>
+          <div class="stat"><b>7<span class="unit">类</span></b><span>通用教务适配器</span></div>
+          <div class="stat"><b>3<span class="unit">套</span></b><span>内置主题 + 深色</span></div>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal">
+        <div class="phone">
+          <div class="phone-screen">
+            <img src="assets/img/today.jpg" width="540" height="1170" alt="「上课」今日课表界面：日期与周次、下节课卡片、今日课程时间轴">
+          </div>
+        </div>
+
+        <div class="float-card fc-1">
+          <span class="fc-label">下一节课</span>
+          <b>离散数学</b>
+          <small>10:00 – 11:40 · 理科楼 305</small>
+        </div>
+
+        <div class="float-card fc-2">
+          <span class="fc-label">今日课程</span>
+          <b>3 节 · 6 学时</b>
+          <small>08:00 开始，18:00 结束</small>
+        </div>
+
+        <div class="float-card fc-3">
+          <span class="fc-label">桌面小组件</span>
+          <b>明天 4 节课</b>
+          <small>每日零点自动刷新，无需打开 App</small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 跑马灯 -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>今日课表</span><span>周课表</span><span>日程与待办</span><span>教务一键导入</span>
+    <span>情侣课表</span><span>多作息方案</span><span>桌面小组件</span><span>上课免打扰</span>
+    <span>灵动岛状态栏</span><span>WebDAV 云备份</span><span>ICS 日历导出</span><span>多语言</span>
+    <span>今日课表</span><span>周课表</span><span>日程与待办</span><span>教务一键导入</span>
+    <span>情侣课表</span><span>多作息方案</span><span>桌面小组件</span><span>上课免打扰</span>
+    <span>灵动岛状态栏</span><span>WebDAV 云备份</span><span>ICS 日历导出</span><span>多语言</span>
+  </div>
+</div>
+
+<!-- ======================================================== 核心功能 -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">核心能力</span>
+      <h2>一个 App，装下整个学期的安排</h2>
+      <p class="lead">
+        从「今天上什么课」到「这学期什么时候放假」，围绕真实的中国高校场景打磨。
+        不做花哨的功能堆砌，只把每天都会用到的那几件事做到位。
+      </p>
+    </div>
+
+    <div class="grid g-3">
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/><path d="m9 16 2 2 4-4"/></svg>
+        </div>
+        <h3>今日课表</h3>
+        <p>当天课程一览，下节课卡片显示起止时间与剩余时间，「正在上课」自动高亮，已结束的课程变淡沉底。</p>
+        <ul class="card-list">
+          <li>下节课卡可设为「自动下一次 / 已结束变淡 / 课后消失」</li>
+          <li>今日课程时间轴 + 今日待办 + 明日预告同屏</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 9v12M13 9v12M18 9v12"/></svg>
+        </div>
+        <h3>周课表</h3>
+        <p>周一至周日网格，左侧节次与时间段对齐课程彩块。左右滑动切换周次，长按课程块即可调整位置与高度。</p>
+        <ul class="card-list">
+          <li>字号随课程块宽度自适应缩放，窄块不再裁切</li>
+          <li>地点智能换行，<code class="mono">A-302</code> 不会被拆开</li>
+          <li>撞色自动修正，同名课次配色稳定可辨</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M7 13h4M7 17h7"/></svg>
+        </div>
+        <h3>日程与待办</h3>
+        <p>日期轴 + 整月日历，课程与待办、活动、考试、作业同屏混排，分类与完成状态一目了然。</p>
+        <ul class="card-list">
+          <li>今日页勾选的待办，日程页同步显示删除线</li>
+          <li>无时间的待办卡片整行铺满，不再出现占位「--:--」</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="M4 10.5V16c0 1.7 3.6 3 8 3s8-1.3 8-3v-5.5"/></svg>
+        </div>
+        <h3>教务一键导入</h3>
+        <p>离线内置 1700+ 所高校索引，选学校、登录、选学期，课程与作息自动落到课表里，无需联网即可完成。</p>
+        <ul class="card-list">
+          <li>7 类通用适配器覆盖超星、正方、URP、青果、强智、金智、南软</li>
+          <li>160+ 所学校专属脚本，处理特殊登录与页面结构</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-9.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7 3.5C19 15.6 12 20 12 20z"/></svg>
+        </div>
+        <h3>情侣课表</h3>
+        <p>TA 的课表是一份<b>独立课表</b>：独立课程、独立作息、独立学期，可单独编辑也可与本人课表叠加同显。</p>
+        <ul class="card-list">
+          <li>支持教务 / Excel / JSON / 文本多形式导入</li>
+          <li>叠加视图按双方各自作息换算位置，冲突检测精确到周次</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        </div>
+        <h3>多作息方案</h3>
+        <p>一张课表可保存多套上课时间，按「月-日」生效区间自动切换，夏令时与冬令时不再需要手动改表。</p>
+        <ul class="card-list">
+          <li>支持跨年区间，如 <span class="mono">10-01 ~ 次年 04-30</span></li>
+          <li>改动某一节结束时间，后方节次自动整体顺延</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/></svg>
+        </div>
+        <h3>桌面小组件</h3>
+        <p>多种尺寸与样式的桌面、锁屏小组件，直出「今天 / 明天」课程概览与当日课程数，点按直达课程详情。</p>
+        <ul class="card-list">
+          <li>深色模式有对应外观</li>
+          <li>每日零点自动同步课表并刷新，不必打开 App</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path d="m3 3 18 18"/></svg>
+        </div>
+        <h3>上课免打扰</h3>
+        <p>课前自动提醒；上课期间自动切换勿扰或静音，下课自动恢复。内置全年节假日数据，假期不打扰。</p>
+        <ul class="card-list">
+          <li>状态栏灵动岛常驻显示当前 / 下一节课进度（Android 16）</li>
+          <li>仅在第一节课前至最后一节课后运行，其余时间零常驻</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+        </div>
+        <h3>备份与迁移</h3>
+        <p>JSON 完整备份（含多方案作息与情侣课表）、ICS 日历导出、系统日历同步，以及 WebDAV 自托管云备份。</p>
+        <ul class="card-list">
+          <li>ICS 导出可指定提醒时间，导入系统日历自带课前提醒</li>
+          <li>导入前先预览、可逐条编辑，再决定导入方式</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 教务导入 -->
+<section class="section section-tint" id="import">
+  <div class="wrap">
+    <div class="grid g-2-1" style="align-items:center">
+      <div>
+        <div class="section-head reveal" style="margin-bottom:0">
+          <span class="eyebrow">教务导入</span>
+          <h2>选学校、登录、选学期，剩下的交给它</h2>
+          <p class="lead">
+            新课表最麻烦的一步，往往是照着教务系统一条条手抄。
+            「上课」把这件事做成了一次点击：适配逻辑全部内置离线，导入过程可预览、可编辑、可撤销。
+          </p>
+        </div>
+
+        <div class="steps reveal" style="margin-top:32px">
+          <div class="step">
+            <span class="step-idx mono">01</span>
+            <div>
+              <h3>内置学校索引</h3>
+              <p>1700+ 所高校，按本科 / 专科、研究生、通用工具分组，配 A–Z 字母索引，几千所学校也能秒定位。</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-idx mono">02</span>
+            <div>
+              <h3>七类通用适配器</h3>
+              <p>超星、正方、URP、青果、强智、金智、南软等主流教务系统统一处理，并自动修复桌面 UA 与 1280px 视口，解决部分学校手机端打不开课表的问题。</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-idx mono">03</span>
+            <div>
+              <h3>专属脚本兜底</h3>
+              <p>160+ 所学校配有专属适配脚本，处理特殊页面结构与登录流程——强制电脑版、WebVPN 双入口、API 直取等。</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-idx mono">04</span>
+            <div>
+              <h3>在线安全更新</h3>
+              <p>适配资源支持远程更新，逐文件 <span class="mono">sha256</span> 校验；校验失败自动回退内置资源，不会影响正常导入。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <figure class="shot" style="margin:0">
+          <img src="assets/img/import-school.jpg" width="540" height="1170" loading="lazy" alt="教务导入的学校选择界面，含本科 / 专科 / 研究生分组与字母索引">
+          <figcaption>选择学校<small>1700+ 索引 · 分组 + 字母导航</small></figcaption>
+        </figure>
+        <div class="pills" style="margin-top:20px">
+          <span class="pill pill-brand">超星</span>
+          <span class="pill pill-brand">正方</span>
+          <span class="pill pill-brand">URP</span>
+          <span class="pill pill-brand">青果</span>
+          <span class="pill pill-brand">强智</span>
+          <span class="pill pill-brand">金智</span>
+          <span class="pill pill-brand">南软</span>
+        </div>
+        <div class="pills" style="margin-top:10px">
+          <span class="pill">验证码</span>
+          <span class="pill">CAS 统一身份</span>
+          <span class="pill">WebVPN</span>
+          <span class="pill">桌面 UA 修复</span>
+          <span class="pill pill-sage">sha256 校验</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 排版演示 -->
+<section class="section" id="layout">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">排版细节</span>
+      <h2>课表好不好用，取决于最小的那块格子</h2>
+      <p class="lead">
+        课程名、地点、教师要同时塞进一个可能只有两指宽的色块里。
+        下面这块课表用演示数据渲染，可以横向拖动、悬停查看——它展示的正是课程块在同一行里的真实对齐方式。
+      </p>
+    </div>
+
+    <div class="demo-board reveal">
+      <div class="demo-head">
+        <span class="demo-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="demo-title">课表 · 第 2 周 · 演示数据</span>
+        <span class="pill" style="margin-left:auto">共 15 门课</span>
+      </div>
+      <div class="demo-body">
+        <div class="week-scroll">
+          <div class="week-mini" role="table" aria-label="演示课表">
+            <div class="wm-col" aria-hidden="true"></div>
+            <div class="wm-col">周一<b>09-07</b></div>
+            <div class="wm-col">周二<b>09-08</b></div>
+            <div class="wm-col is-today">周三<b>09-09</b></div>
+            <div class="wm-col">周四<b>09-10</b></div>
+            <div class="wm-col">周五<b>09-11</b></div>
+
+            <div class="wm-time mono">08:00<br>09:40</div>
+            <div class="wm-cell c1">高等数学（二）<em>@教一楼101</em></div>
+            <div class="wm-cell c2">线性代数<em>@教一楼208</em></div>
+            <div class="wm-cell c3">数据结构与算法<em>@信息楼210</em></div>
+            <div class="wm-cell c5">计算机网络<em>@信息楼202</em></div>
+            <div class="wm-cell c6">操作系统<em>@信息楼401</em></div>
+
+            <div class="wm-time mono">10:00<br>11:40</div>
+            <div class="wm-cell c4">大学英语（二）<em>@外语楼305</em></div>
+            <div class="wm-cell c6">大学物理（二）<em>@理科楼401</em></div>
+            <div class="wm-cell c3">离散数学<em>@理科楼305</em></div>
+            <div class="wm-cell c1">概率论与数理统计<em>@理科楼108</em></div>
+            <div class="wm-cell c2">毛泽东思想和中国特色社会主义理论体系概论<em>@文科楼305</em></div>
+
+            <div class="wm-time mono">14:00<br>15:40</div>
+            <div class="wm-cell c5">程序设计基础<em>@实验楼B203</em></div>
+            <div class="wm-cell c4">中国近现代史纲要<em>@文科楼205</em></div>
+            <div class="wm-cell c3">数据结构实验<em>@实验楼B105</em></div>
+            <div class="wm-cell c4">大学英语（二）<em>@外语楼305</em></div>
+            <div class="wm-cell c1">体育（二）<em>@风雨操场</em></div>
+
+            <div class="wm-time mono">16:00<br>17:40</div>
+            <div class="wm-cell c6">体育（二）<em>@风雨操场</em></div>
+            <div class="wm-cell wm-empty" aria-hidden="true"></div>
+            <div class="wm-cell wm-empty" aria-hidden="true"></div>
+            <div class="wm-cell wm-empty" aria-hidden="true"></div>
+            <div class="wm-cell wm-empty" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-3" style="margin-top:26px">
+      <div class="card card-warm reveal">
+        <span class="card-num mono">RULE 01</span>
+        <h3>字号自适应缩放</h3>
+        <p>课程块文字随实际可用宽度动态缩放：窄块不裁切，宽块更清晰，长课程名如「毛泽东思想和中国特色社会主义理论体系概论」也能完整落格。</p>
+      </div>
+      <div class="card card-warm reveal">
+        <span class="card-num mono">RULE 02</span>
+        <h3>地点智能换行</h3>
+        <p>优先在 <span class="mono">@</span>、<span class="mono">-</span>、中英文括号等分隔符处断行，避免 <span class="mono">A-302</span> 被拆成 <span class="mono">A-3 / 02</span> 这类读不出来的结果。</p>
+      </div>
+      <div class="card card-warm reveal">
+        <span class="card-num mono">RULE 03</span>
+        <h3>撞色自动修正</h3>
+        <p>同名课次统一颜色，不同课程优先分配未被占用的颜色；课程配色可单独成页管理，也能一键重置。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 主题 -->
+<section class="section section-tint" id="themes">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">外观</span>
+      <h2>三套主题，三种气质</h2>
+      <p class="lead">
+        每套主题同时决定配色、课表样式与专属动效语言——不是换一层皮，而是换一种手感。
+        另有跟随系统 / 浅色 / 深色三种模式，以及基于壁纸的动态取色（Android 12+）。
+      </p>
+    </div>
+
+    <div class="reveal">
+      <div class="theme-tabs" role="tablist" aria-label="主题选择">
+        <button type="button" role="tab" data-stage="cjk" aria-selected="true">书卷</button>
+        <button type="button" role="tab" data-stage="glass" aria-selected="false">通透</button>
+        <button type="button" role="tab" data-stage="soft" aria-selected="false">柔绘</button>
+        <button type="button" role="tab" data-stage="dark" aria-selected="false">深色模式</button>
+      </div>
+
+      <div class="theme-stage" data-stage="cjk">
+        <div class="theme-panel is-active" data-panel="cjk">
+          <div>
+            <h3>书卷 · 暖砂纸与赤陶</h3>
+            <p>暖砂纸底色配赤陶主色，衬线标题，纸页层叠式的转场。安静的阅读感，适合在自习室盯一下午。</p>
+            <div class="pills">
+              <span class="pill pill-brand">#c96442 赤陶</span>
+              <span class="pill">暖砂纸底</span>
+              <span class="pill">衬线标题</span>
+              <span class="pill">纸页转场</span>
+            </div>
+          </div>
+          <div class="theme-shot"><img src="assets/img/theme-cjk.jpg" width="540" height="1170" loading="lazy" alt="书卷主题的周课表界面"></div>
+        </div>
+
+        <div class="theme-panel" data-panel="glass">
+          <div>
+            <h3>通透 · 液态玻璃</h3>
+            <p>iOS 26 Liquid Glass 质感，systemBlue 主色，物理弹簧动效。信息密度最高，一眼扫完全周。</p>
+            <div class="pills">
+              <span class="pill pill-brand">systemBlue</span>
+              <span class="pill">液态玻璃</span>
+              <span class="pill">物理弹簧</span>
+              <span class="pill">玻璃底栏</span>
+            </div>
+          </div>
+          <div class="theme-shot"><img src="assets/img/week.jpg" width="540" height="1170" loading="lazy" alt="通透主题的周课表界面"></div>
+        </div>
+
+        <div class="theme-panel" data-panel="soft">
+          <div>
+            <h3>柔绘 · 晕染雾紫</h3>
+            <p>柔和晕染渐变与雾紫配色，漫射柔光，零过冲缓动。视觉压力最小的一套，适合晚上看。</p>
+            <div class="pills">
+              <span class="pill pill-brand">雾紫</span>
+              <span class="pill">晕染渐变</span>
+              <span class="pill">漫射柔光</span>
+              <span class="pill">零过冲</span>
+            </div>
+          </div>
+          <div class="theme-shot"><img src="assets/img/theme-soft.jpg" width="540" height="1170" loading="lazy" alt="柔绘主题界面"></div>
+        </div>
+
+        <div class="theme-panel" data-panel="dark">
+          <div>
+            <h3>深色模式 · 全链路适配</h3>
+            <p>界面、桌面小组件、通知与课程块配色一并转深，夜间翻课表不刺眼。</p>
+            <div class="pills">
+              <span class="pill pill-brand">跟随系统 / 手动</span>
+              <span class="pill">小组件深色</span>
+              <span class="pill">动态取色</span>
+            </div>
+          </div>
+          <div class="theme-shot"><img src="assets/img/theme-dark.jpg" width="540" height="1170" loading="lazy" alt="深色模式下的课表界面"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="split-theme reveal">
+      <figure class="shot" style="margin:0">
+        <img src="assets/img/appearance.jpg" width="540" height="1170" loading="lazy" alt="外观与样式设置页">
+        <figcaption>外观与样式<small>主题 · 深色模式 · 课表微调 · 动效</small></figcaption>
+      </figure>
+      <figure class="shot" style="margin:0">
+        <img src="assets/img/time-slots.jpg" width="540" height="1170" loading="lazy" alt="自定义时间段管理页">
+        <figcaption>自定义时间段<small>多方案 · 自动切换 · 后节顺延</small></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 界面速览 -->
+<section class="section" id="screens">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">界面速览</span>
+      <h2>四个主页面，覆盖一天里所有要看的东西</h2>
+    </div>
+
+    <div class="gallery">
+      <figure class="shot reveal">
+        <img src="assets/img/today.jpg" width="540" height="1170" loading="lazy" alt="今日课表页面">
+        <figcaption>今日<small>下节课 · 时间轴 · 待办</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/week.jpg" width="540" height="1170" loading="lazy" alt="周课表页面">
+        <figcaption>课表<small>周网格 · 滑动切周 · 长按调整</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/agenda.jpg" width="540" height="1170" loading="lazy" alt="日程页面">
+        <figcaption>日程<small>整月日历 · 待办活动考试</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/settings.jpg" width="540" height="1170" loading="lazy" alt="我的设置页面">
+        <figcaption>我的<small>四组归类 · 全部二级页</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/couple.jpg" width="540" height="1170" loading="lazy" alt="情侣课表设置">
+        <figcaption>情侣课表<small>独立课表 · 独立作息</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/semester.jpg" width="540" height="1170" loading="lazy" alt="学期设置页面">
+        <figcaption>学期管理<small>多学期 · 进度条 · 自动判定</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/course-manage.jpg" width="540" height="1170" loading="lazy" alt="课程管理页面">
+        <figcaption>课程管理<small>按名聚合 · 调课 · 快速删除</small></figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <img src="assets/img/reminder.jpg" width="540" height="1170" loading="lazy" alt="课程提醒设置页面">
+        <figcaption>课程提醒<small>免打扰 · 灵动岛 · 节假日</small></figcaption>
+      </figure>
+    </div>
+
+    <div class="btn-row reveal" style="margin-top:31px;justify-content:center">
+      <a class="btn btn-quiet" href="features.html">
+        查看完整功能说明
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13m0 0-5-5m5 5-5 5"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 开源与隐私 -->
+<section class="section section-plain">
+  <div class="wrap">
+    <div class="grid g-3">
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <h3>数据只在你自己的设备上</h3>
+        <p>课表、待办与设置全部保存在本机数据库。App 不需要账号、不接入广告或统计 SDK；云备份走你自己的 WebDAV，服务端由你选择。</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+        </div>
+        <h3>Apache-2.0 开源</h3>
+        <p>全部源码公开在 GitHub，可自行审阅、编译与二次开发。基于 Compose Multiplatform 构建，Android 为正式版本，Desktop 与 iOS 正在开发。</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>想要的功能，直接说</h3>
+        <p>欢迎在 GitHub Issues 反馈问题或提需求；如果你的学校教务还没被适配，发一封邮件说明学校与教务系统类型即可，作者会跟进对接。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 下载 -->
+<section class="section section-ink" id="download">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">下载</span>
+      <h2>下载安装包</h2>
+      <p class="lead" style="color:#b7b5a9">
+        当前版本 <span class="mono" data-version>v3.56.5</span>（versionCode <span class="mono" data-version-code>221</span>）。
+        安装包统一通过夸克网盘分发，三份按 CPU 架构拆分的 APK 都在同一个分享里；
+        不确定选哪个就取 <span class="mono">arm64-v8a</span>——近几年的机型基本都是它。
+      </p>
+    </div>
+
+    <div class="btn-row reveal" style="margin-bottom:28px">
+      <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        打开夸克网盘下载
+      </a>
+      <a class="btn btn-ghost" href="changelog.html" style="color:#faf9f5;border-color:#4a4a43">查看更新日志</a>
+    </div>
+
+    <div class="dl-grid">
+      <div class="dl-card reveal">
+        <span class="abi">arm64-v8a</span>
+        <span class="abi-desc">绝大多数 2017 年后的 Android 手机 · 约 5.6 MB</span>
+        <span class="size" data-asset-name="arm64-v8a">shangke-v3.56.5-arm64-v8a-release.apk</span>
+      </div>
+      <div class="dl-card reveal">
+        <span class="abi">armeabi-v7a</span>
+        <span class="abi-desc">较早的 32 位机型与部分平板 · 约 5.6 MB</span>
+        <span class="size" data-asset-name="armeabi-v7a">shangke-v3.56.5-armeabi-v7a-release.apk</span>
+      </div>
+      <div class="dl-card reveal">
+        <span class="abi">x86_64</span>
+        <span class="abi-desc">模拟器 / x86 架构设备 · 约 5.6 MB</span>
+        <span class="size" data-asset-name="x86_64">shangke-v3.56.5-x86_64-release.apk</span>
+      </div>
+    </div>
+
+    <div class="secret reveal">
+      <div class="secret-body">
+        <span class="secret-label">夸克口令 · 复制后在夸克 App 中打开</span>
+        <code class="secret-code" data-quark-code>~9a263aTFyF~:/</code>
+      </div>
+      <button class="btn btn-quiet btn-sm" type="button" data-copy="quark">复制口令</button>
+    </div>
+
+    <div class="dl-note reveal">
+      <b>安装提示：</b>首次安装需在系统设置中允许「安装未知来源应用」。
+      从 v3.5x 起的正式版均由作者本地签名构建，可直接覆盖升级，数据完整保留。
+      Android 8.0（API 26）及以上可正常安装。
+      网盘若失效，可从
+      <a data-dl="release" href="https://github.com/qiqqqqq517/shangkeschedule/releases/latest" rel="noopener">GitHub Releases</a>
+      获取同一份安装包。
+    </div>
+
+    <div class="dl-note reveal">
+      <b>安装提示：</b>首次安装需在系统设置中允许「安装未知来源应用」。
+      从 v3.5x 起的正式版均由作者本地签名构建，可直接覆盖升级，数据完整保留。
+      Android 8.0（API 26）及以上可正常安装。
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 更新预览 -->
+<section class="section">
+  <div class="wrap wrap-narrow">
+    <div class="section-head reveal">
+      <span class="eyebrow">版本动态</span>
+      <h2>最近几个版本在改什么</h2>
+      <p class="lead">项目迭代节奏很密——修复、性能、交互细节每周都在推进，完整记录见更新日志。</p>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item reveal">
+        <div>
+          <span class="tl-ver">v3.56.5</span>
+          <span class="tl-date">2026-09-14</span>
+        </div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>今日待办恢复显示</h3>
+          <ul>
+            <li>修复今日页「待办」区因主题分支提前返回而不再渲染的问题，待办重新出现并可勾选完成</li>
+            <li>待办创建统一由「日程」页承载，创建的待办会直接出现在今日页</li>
+            <li>修复课程提醒通知的应用大图标不显示</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal">
+        <div>
+          <span class="tl-ver">v3.56.0</span>
+          <span class="tl-date">2026-09-14</span>
+        </div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>玻璃渲染缓存与屏幕刷新率设置</h3>
+          <ul>
+            <li>今日页三主题架构统一，玻璃渲染结果加入缓存，切页更顺</li>
+            <li>新增屏幕刷新率设置，可在「自动 / 120Hz」之间选择</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal">
+        <div>
+          <span class="tl-ver">v3.55.0</span>
+          <span class="tl-date">2026-09-14</span>
+        </div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>每个 Tab 独立导航栈</h3>
+          <ul>
+            <li>四个主页面各自保留导航栈与滚动位置，来回切换不再丢失上下文</li>
+            <li>数据收集改为生命周期感知，后台切换更省电</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row reveal" style="margin-top:30px">
+      <a class="btn btn-quiet" href="changelog.html">查看完整更新日志</a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== FAQ -->
+<section class="section section-tint">
+  <div class="wrap wrap-narrow">
+    <div class="section-head reveal">
+      <span class="eyebrow">常见问题</span>
+      <h2>上手前你可能想知道的</h2>
+    </div>
+
+    <div class="acc reveal">
+      <details open>
+        <summary>我的学校教务系统没被适配怎么办？</summary>
+        <div class="acc-body">
+          <p>先试试「通用适配器」——超星、正方、URP、青果、强智、金智、南软这七类覆盖了绝大多数教务系统，导入入口里按系统类型选择即可。</p>
+          <p>如果仍失败，可以发邮件到 <a data-email href="mailto:hhixingchen520@163.com">hhixingchen520@163.com</a> 说明学校名称与教务系统类型，或直接在 GitHub 提 Issue。仓库的适配脚本是开放的，也欢迎自行补充后提交。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>课表数据会上传到服务器吗？</summary>
+        <div class="acc-body">
+          <p>不会。课表、待办与个性化设置保存在本机数据库，App 不要求注册账号，也不集成广告或用户行为统计 SDK。</p>
+          <p>唯一的联网场景是「教务导入」（访问你自己学校的教务系统）与「适配资源更新」，以及你在设置里主动开启的 WebDAV 云备份——备份目标由你自行填写。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>换手机 / 重装之后怎么迁移？</summary>
+        <div class="acc-body">
+          <p>三种方式任选：导出 JSON 完整备份（含多方案作息与情侣课表）后在新设备导入；把课表导出为 ICS 并同步到系统日历；或在设置里配置 WebDAV 云备份，在新设备直接恢复。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>为什么 APK 要按 ABI 分成三个？</summary>
+        <div class="acc-body">
+          <p>拆包后每个架构只带自己需要的原生库，安装包从十几兆降到 5.6 MB 左右，装机更快也更省空间。</p>
+          <p>不确定机型架构时选 <span class="mono">arm64-v8a</span>：2017 年之后上市的 Android 手机基本都是 64 位 ARM。安装后系统会自动选择匹配的版本。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>有 iOS 或桌面版吗？</summary>
+        <div class="acc-body">
+          <p>项目基于 Compose Multiplatform 构建，Android 是当前的正式版本，Desktop 与 iOS 仍在开发中，尚未发布可安装包。进度会同步更新在 GitHub 仓库里。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>免费吗？以后会收费或加广告吗？</summary>
+        <div class="acc-body">
+          <p>免费，且不会加入广告。项目以 Apache-2.0 协议开源，即使有一天官方版本改变策略，任何人都可以基于已公开的源码继续维护与分发。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================================================== 页脚 -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/img/app-icon-1024.png" alt="">
+        <div>
+          <b>上课 · ShangKeSchedule</b>
+          <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>
+        </div>
+      </div>
+
+      <div>
+        <h4>产品</h4>
+        <ul>
+          <li><a href="#features">核心功能</a></li>
+          <li><a href="#import">教务导入</a></li>
+          <li><a href="#themes">主题外观</a></li>
+          <li><a href="features.html">完整功能说明</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>下载与支持</h4>
+        <ul>
+          <li><a data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e" rel="noopener">夸克网盘下载</a></li>
+          <li><a href="changelog.html">更新日志</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">源代码</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">问题反馈</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="privacy.html">隐私政策</a></li>
+          <li><a data-email href="mailto:hhixingchen520@163.com">联系作者</a></li>
+          <li><a href="https://www.apache.org/licenses/LICENSE-2.0" rel="noopener">Apache-2.0 许可</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>
+        © <span data-year>2026</span> 上课 · ShangKeSchedule · 以 Apache-2.0 协议开源。
+        项目最初演进自 <a href="https://github.com/XingHeYuZhuan/shiguangschedule" rel="noopener">拾光课程表</a>，谨此致谢原作者与全体贡献者。
+      </p>
+      <p>本站为静态页面，无 Cookie、无第三方统计。</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</button>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>

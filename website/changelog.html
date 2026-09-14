@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>更新日志 — 上课 · ShangKeSchedule</title>
+<meta name="description" content="「上课」课表 App 的完整版本更新日志：修复记录、性能优化、交互细节与外观调整，逐版本可查。">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://shangke.asia/changelog">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="上课 · ShangKeSchedule">
+<meta property="og:title" content="更新日志 — 上课 · ShangKeSchedule">
+<meta property="og:description" content="逐版本可查的修复、优化与外观调整记录。">
+<meta property="og:url" content="https://shangke.asia/changelog">
+<meta property="og:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
+<link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
+<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('sk-theme');
+      var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要内容</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+      <span class="brand-text"><b>上课</b><span>ShangKeSchedule</span></span>
+    </a>
+    <nav aria-label="主导航">
+      <ul class="nav-links">
+        <li><a href="index.html#features">功能</a></li>
+        <li><a href="index.html#import">教务导入</a></li>
+        <li><a href="index.html#themes">主题</a></li>
+        <li><a href="index.html#download">下载</a></li>
+        <li><a href="changelog.html">更新日志</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <button class="theme-toggle" type="button" aria-label="切换深色 / 浅色模式">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn btn-primary btn-sm" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载
+      </a>
+      <button class="nav-burger" type="button" aria-label="展开导航菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<section class="doc">
+  <div class="wrap">
+    <div class="doc-head reveal">
+      <span class="eyebrow">更新日志</span>
+      <h1>版本更新记录</h1>
+      <p class="lead">
+        「上课」的迭代节奏很密：修复、性能、交互与外观细节几乎每周都在推进。
+        这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
+      </p>
+      <div class="doc-meta">
+        <span>当前版本 <b class="mono" data-version>v3.56.5</b></span>
+        <span>versionCode <b class="mono" data-version-code>221</b></span>
+        <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
+      </div>
+    </div>
+
+    <div class="toc reveal">
+      <div class="toc-title">本页版本索引</div>
+      <ol>
+        <li><a href="#v3567">v3.56.7 · 我的信息持久化修复</a></li>
+        <li><a href="#v3566">v3.56.6 · 适配更新服务切换自建域名（大陆可直连）</a></li>
+        <li><a href="#v3565">v3.56.5 · 今日待办恢复显示 + 通知图标修复</a></li>
+        <li><a href="#v3564">v3.56.4 · 分段控件点击反馈修正</a></li>
+        <li><a href="#v3563">v3.56.3 · 图标比例修正</a></li>
+        <li><a href="#v3560">v3.56.0 · 玻璃渲染缓存 + 屏幕刷新率设置</a></li>
+        <li><a href="#v3550">v3.55.0 · 每个 Tab 独立导航栈</a></li>
+        <li><a href="#v3540">v3.54.0 · 全库体检五批次优化</a></li>
+        <li><a href="#v3530">v3.53.0 · 时段顺延 + 每日自愈 + 学期管理重写</a></li>
+        <li><a href="#v3520">v3.52.0 · 情侣课表独立化</a></li>
+        <li><a href="#v3512">v3.51.2 · 根治课表切周闪退与卡顿</a></li>
+        <li><a href="#v3510">v3.51.0 · 日程页与今日课表联动</a></li>
+      </ol>
+    </div>
+
+    <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3567">
+        <div><span class="tl-ver">v3.56.7</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>「我的信息」内容在返回页面 / 重启后丢失</h3>
+          <ul>
+            <li>个人资料（昵称、学校、学院、专业、年级、个性签名）此前依赖页面作用域内的 500ms 防抖落库，返回页面的瞬间该协程被取消、数据从未写入本地存储，导致下回进入一片空白。本版改为每次输入即时写入本地存储，并在写入时使用不可取消作用域，即使立即返回也能保证落盘，重启后依然保留、可反复修改。</li>
+            <li>头像（选择 / 裁剪 / 更换）与昵称等文本信息均持久保存，修改即时生效。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3566">
+        <div><span class="tl-ver">v3.56.6</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>教务适配更新在部分网络下连不上</h3>
+          <ul>
+            <li>适配更新入口此前使用 <code>*.workers.dev</code> 域名，该域名在中国大陆遭 DNS 污染（实测被解析到无关 IP），导致适配拉取失败。本版把入口切换到自建域名 <code>https://adapter.shangke.asia</code>（Cloudflare Worker 自定义域，证书已签发），大陆可直连。</li>
+            <li>本次仅更换域名，鉴权方式（<code>X-App-Secret</code> 请求头）、路径白名单（仅 <code>index.json</code> 与 <code>adapters/**</code>）、5 分钟缓存与单 IP 限流策略全部保持不变；私有仓库、适配脚本与密钥依旧不对外暴露。</li>
+            <li>旧域名作为排障对照仍保留在线，但新版本 APP 已不再引用它。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3565">
+        <div><span class="tl-ver">v3.56.5</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>今日待办恢复显示</h3>
+          <ul>
+            <li>今日页「待办」区自 v3.42.0 起因主题分支提前返回而不再渲染（数据一直在、界面看不到），本版修复渲染链路，当天待办重新出现并支持勾选完成。</li>
+            <li>待办创建统一由「日程」页承载，这样创建的待办会直接出现在今日页；已完成待办也集中在该页管理。</li>
+            <li>今日课程、明日课程列表补充增删与结课时的位移动画（跟随「减弱动态效果」设置自动降级）。</li>
+          </ul>
+          <h3><span class="tl-tag tag-fix">修复</span>通知图标与刷新率</h3>
+          <ul>
+            <li>修复课程提醒通知的应用大图标始终为空的问题（图标资源为自适应图标，原解码方式读不出来）。</li>
+            <li>屏幕刷新率「自动」档由「固定到机型最高档」改为交还系统按场景自适应，静止时自动降频更省电。</li>
+            <li>全站分段控件的点击反馈不再与选中胶囊动画错位（含宽屏侧边导航与玻璃底栏）。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3564">
+        <div><span class="tl-ver">v3.56.4</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>分段控件点击反馈修正</h3>
+          <ul>
+            <li>修正分段控件（如「动画效果 → 屏幕刷新率」档位切换）点击时灰色按压块与白色选中胶囊错位、旧位置漏一块的问题。</li>
+            <li>按压反馈改由选中胶囊的滑行动画单独承载，不再叠加主题按压指示；同一修正覆盖宽屏侧边导航项与玻璃底栏兜底方案。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3563">
+        <div><span class="tl-ver">v3.56.3</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>图标比例修正</h3>
+          <ul>
+            <li>实测兔子高度占图标约 67.5%、四周留白偏窄，桌面观感偏拥挤；本版将兔子缩放到 83%（高度占比降至约 56%），四周留白扩大到约 22%。</li>
+            <li>学士帽、耳朵、腮红等细节随整体等比缩放，小尺寸（48px）核验清晰度无损失。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3562">
+        <div><span class="tl-ver">v3.56.2</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>图标构图修正</h3>
+          <ul>
+            <li>上一版为适配圆形蒙版把画面整体缩小，导致图标内的蓝色方块几乎撑满整幅、失去四周留白，观感偏「闷」。</li>
+            <li>本版恢复方块完整轮廓与四周留白，兔子比例与居中原样保留。Android 启动器按机型裁切图标外沿属正常表现，兔子本体始终完整。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3561">
+        <div><span class="tl-ver">v3.56.1</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>全新应用图标「兔兔学士款」</h3>
+          <ul>
+            <li>全新应用图标：戴学士帽的兔兔学长，在 Android 启动器、iOS 与设置页「关于」卡片三处同步更换。</li>
+            <li>Android 自适应图标前景按启动器蒙版重制：圆形 / 圆角方形蒙版下兔子完整不裁切，抽屉与通知等小尺寸场景清晰可辨。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3560">
+        <div><span class="tl-ver">v3.56.0</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>玻璃渲染缓存 + 三主题架构统一 + 屏幕刷新率设置</h3>
+          <ul>
+            <li>玻璃渲染安全缓存：底栏与悬浮玻璃的效果链按参数复用，参数不变时不再重复创建渲染效果对象。</li>
+            <li>今日页架构统一：书卷 / 柔绘 / 通透三主题共用同一套页面骨架与卡片实现，页面代码量减少约 39%，后续改版三主题一次生效。</li>
+            <li>新增「屏幕刷新率」设置：自动（在 120 / 90 / 60Hz 中匹配机型最高支持档）/ 120 / 90 / 60 三档手动，改动立即生效。</li>
+            <li>修复玻璃折射在容器尺寸变化（桌面缩放 / 分屏 / 内容驱动宽高）后可能使用旧尺寸着色器参数的问题。</li>
+            <li>三主题今日页经逐像素比对与上一版渲染完全一致，无任何视觉变化。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3550">
+        <div><span class="tl-ver">v3.55.0</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>每个 Tab 独立导航栈 + 生命周期感知数据收集</h3>
+          <ul>
+            <li>底部四个 Tab 各自保留独立导航栈：切走再切回，子页面与滚动位置原地保留。</li>
+            <li>全局数据收集改为生命周期感知，页面退到后台即暂停收集、回前台自动恢复，降低后台耗电。</li>
+            <li>修复在 Tab 首页按返回键会「跳到另一个 Tab」的跨 Tab 返回问题，以及返回手势与系统手势动画相冲突导致的页面闪现。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3541">
+        <div><span class="tl-ver">v3.54.1</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>分段控件选中胶囊形状</h3>
+          <ul>
+            <li>修复通透 / 书卷主题下，分段控件选中胶囊渲染为直角方块的问题；三主题选中胶囊恢复圆角胶囊形态。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3540">
+        <div><span class="tl-ver">v3.54.0</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>全库体检：性能 / 动画 / 交互 / 正确性 / 结构五批次优化</h3>
+          <ul>
+            <li><b>性能</b>：全局设置流热化共享，消除 20+ 处独立查询带来的冗余 IO；桌面组件同步链收口，拨动无关设置不再触发全量重写与 101 个闹钟重排；样式滑杆拖动仅在松手后落库一次；快速删除页 N+1 查询由 140 次降为 1 次；冷启动让路，组件初始同步推迟 3 秒。</li>
+            <li><b>动画</b>：「已完成 / 已结束 / 淡出」状态统一接入动效令牌渐变，消除十余处二值硬跳；今日页与日程页列表接入增删位移动画；加载指示器在「减弱动态」下不再创建动画时钟。</li>
+            <li><b>交互</b>：新建日程、待办编辑、课程编辑补齐键盘避让；全局操作提示升级为主题化应用内横幅；学校列表搜索态接管系统返回；待办标题为空时确认按钮禁用；课表列表整周无课时显示空态占位。</li>
+            <li><b>修复</b>：修复今日页「明日课程」在周日错误显示本周一课程的问题；修复手势调课落库失败时静默无提示的问题。</li>
+            <li><b>重构</b>：设置主页「我的」三主题三份复制（约 460 行）收敛为单一数据模型 + 三主题渲染器。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3535">
+        <div><span class="tl-ver">v3.53.5</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>学校列表页巨胶囊</h3>
+          <ul>
+            <li>修复教务导入「选择学校」页打开后整页被一个巨大胶囊形色块占据、学校列表无法显示的问题（分类切换条的自适应高度缺陷）。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3534">
+        <div><span class="tl-ver">v3.53.4 · v3.53.3 · v3.53.2</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>待办显示 / 情侣叠加 / 升级闪退</h3>
+          <ul>
+            <li>v3.53.4：日程页无时间的待办不再显示「--:--」占位文本；今日页无时间的待办卡片铺满整行显示。</li>
+            <li>v3.53.3：开启情侣课表叠加时不再默认在课程卡上显示起止时间，新增「显示课程时间段」开关（默认关闭）。</li>
+            <li>v3.53.2：修复从 3.51.2 及更早版本升级后启动即闪退的问题（数据库迁移新增列缺少默认值声明）。已遇闪退的用户直接覆盖安装本版即可，原有课表数据不受影响。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3531">
+        <div><span class="tl-ver">v3.53.1</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>八轮全库审查加固</h3>
+          <ul>
+            <li>多方案作息（夏 / 冬令时）课表的完整备份恢复失败修复，时段校验改为按作息方案分组校验。</li>
+            <li>情侣设置页进入「作息设置」后保存目标错误（写进本人课表）的跨表误写问题修复，读写路径统一。</li>
+            <li>情侣课表创建的并发幂等（确定性 ID + 事务内检查），双击不再产生不可见的重复课表。</li>
+            <li>开机自启的全量同步挪入 WorkManager 执行；删除某类小组件不再连带取消其它组件的任务。</li>
+            <li>课程提醒同步改为「先取数据、成功后再重排」，读库失败自动重试，不再清空全部提醒。</li>
+            <li>小组件数据读取超时保留旧快照，不再整体刷成空白。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3530">
+        <div><span class="tl-ver">v3.53.0</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>时段自动顺延 + 每日零点自愈 + 学期管理重写</h3>
+          <ul>
+            <li><b>自定义时间段</b>：修改某一节的结束时间后，后方节次自动整体顺延（按默认上课时长与下课休息逐节重排至 23:59），不再需要逐节手改。</li>
+            <li><b>免开 App 每日自动更新</b>：新增每日 00:05 零点自愈任务，自动同步课表数据、重排未来 7 天上课提醒闹钟、勿扰时段、灵动岛并刷新全部小组件；跨天换周不再依赖手动打开 App。</li>
+            <li><b>学期管理重写</b>：点击任意学期卡即可设为当前学期（停留本页、列表实时重排）；历史学期状态按日期自动判定（未开始 / 进行中 / 已完成）；同学年内按开始日期自动排序。</li>
+            <li><b>新建日程</b>：待办默认不带时间，需要时关掉「全天」开关即可自定义。</li>
+            <li>修复「回到本周」等圆钮按压时水波纹呈方形扩散的问题；周切换玻璃扫光不再频闪；已完成待办不再出现在今日页「下一节课」卡片中。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3520">
+        <div><span class="tl-ver">v3.52.0</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>情侣课表独立化</h3>
+          <ul>
+            <li>情侣课表升级为<b>独立课表</b>：拥有自己的课程、作息时间与学期配置，不再依附本人课表；学期管理页并排展示（带 ❤ 标记），支持添加 / 查看 / 重命名 / 删除。</li>
+            <li>开放完整编辑能力：点击课程即可修改名称、教师、地点、周次、节次与颜色，也可手动添加课程。</li>
+            <li>支持多种导入方式：教务系统导入、Excel / JSON / 文本文件导入（导入时选择目标课表即可）。</li>
+            <li>情侣课表可单独显示，也可与本人课表叠加；叠加视图按双方各自作息换算位置，作息不一致时课程卡顶部显示起止时间。</li>
+            <li>旧版本已导入的情侣课表数据升级时自动迁移，无感升级；备份与恢复完整支持。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3512">
+        <div><span class="tl-ver">v3.51.2</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>根治课表切周闪退与卡顿</h3>
+          <ul>
+            <li><b>切周偶发闪退（根治）</b>：页内悬浮玻璃件位于页面背景快照的录制子树内、又采样该快照，渲染节点在特定重绘时序下互相引用成环导致栈溢出。现页内悬浮件整体改走已验证安全的 Haze 玻璃方案，底栏自研液态玻璃不受影响。</li>
+            <li><b>切周卡顿</b>：切周时「上 / 本 / 下三周」课程缓存重建此前在主线程同步执行，造成 Skipped 36–59 帧的卡顿；现移至后台线程池，真机复测同负载下 Skipped 告警归零。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3510">
+        <div><span class="tl-ver">v3.51.0</span><span class="tl-date">2026-09-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>日程页与今日课表联动打通</h3>
+          <ul>
+            <li>今日页勾选的日程 / 待办，在日程页以删除线 + 变淡呈现，反向亦然——完成状态双向同步。</li>
+            <li>今日待办并入日程页，课程与待办、活动、考试混排同屏。</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout reveal" style="margin-top:38px">
+      <b>更早的版本呢？</b>
+      本页保留最近两个大版本的明细。完整历史（含 v3.30.0 起全部记录）可在 GitHub 仓库的
+      <a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">CHANGELOG.md</a>
+      与 <a data-repo href="https://github.com/qiqqqqq517/shangkeschedule/releases" rel="noopener">Releases 页面</a> 中查阅。
+    </div>
+
+    <div class="btn-row reveal" style="margin-top:34px">
+      <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        下载 <span class="mono" data-version>v3.56.5</span>
+      </a>
+      <a class="btn btn-ghost" href="index.html">返回首页</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/img/app-icon-1024.png" alt="">
+        <div>
+          <b>上课 · ShangKeSchedule</b>
+          <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>
+        </div>
+      </div>
+      <div>
+        <h4>产品</h4>
+        <ul>
+          <li><a href="index.html#features">核心功能</a></li>
+          <li><a href="index.html#import">教务导入</a></li>
+          <li><a href="index.html#themes">主题外观</a></li>
+          <li><a href="features.html">完整功能说明</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>下载与支持</h4>
+        <ul>
+          <li><a data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e" rel="noopener">夸克网盘下载</a></li>
+          <li><a href="changelog.html">更新日志</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">源代码</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">问题反馈</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="privacy.html">隐私政策</a></li>
+          <li><a data-email href="mailto:hhixingchen520@163.com">联系作者</a></li>
+          <li><a href="https://www.apache.org/licenses/LICENSE-2.0" rel="noopener">Apache-2.0 许可</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        © <span data-year>2026</span> 上课 · ShangKeSchedule · 以 Apache-2.0 协议开源。
+        项目最初演进自 <a href="https://github.com/XingHeYuZhuan/shiguangschedule" rel="noopener">拾光课程表</a>，谨此致谢原作者与全体贡献者。
+      </p>
+      <p>本站为静态页面，无 Cookie、无第三方统计。</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</button>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隐私政策 — 上课 · ShangKeSchedule</title>
+<meta name="description" content="「上课」课表 App 的隐私政策：不收集个人数据、不接入广告或统计 SDK，课表与设置全部保存在本机，云备份由用户自选 WebDAV 服务端。">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://shangke.asia/privacy">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="上课 · ShangKeSchedule">
+<meta property="og:title" content="隐私政策 — 上课 · ShangKeSchedule">
+<meta property="og:description" content="不收集个人数据，课表与设置全部保存在本机。">
+<meta property="og:url" content="https://shangke.asia/privacy">
+<meta property="og:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
+<link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
+<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('sk-theme');
+      var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要内容</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+      <span class="brand-text"><b>上课</b><span>ShangKeSchedule</span></span>
+    </a>
+    <nav aria-label="主导航">
+      <ul class="nav-links">
+        <li><a href="index.html#features">功能</a></li>
+        <li><a href="index.html#import">教务导入</a></li>
+        <li><a href="index.html#themes">主题</a></li>
+        <li><a href="index.html#download">下载</a></li>
+        <li><a href="changelog.html">更新日志</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <button class="theme-toggle" type="button" aria-label="切换深色 / 浅色模式">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn btn-primary btn-sm" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载
+      </a>
+      <button class="nav-burger" type="button" aria-label="展开导航菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<section class="doc">
+  <div class="wrap">
+    <div class="doc-head reveal">
+      <span class="eyebrow">隐私政策</span>
+      <h1>我们不收集你的数据</h1>
+      <p class="lead">
+        「上课」是一款开源课表 App，没有账号体系、没有广告、没有统计 SDK。
+        这一页说明 App 实际会读写哪些数据、申请哪些系统权限、以及在什么情况下才会联网。
+      </p>
+      <div class="doc-meta">
+        <span>最后更新：2026-09-14</span>
+        <span>适用于：Android 版 v3.56.5</span>
+      </div>
+    </div>
+
+    <div class="doc-body">
+      <h2>一、我们收集哪些信息</h2>
+      <p><strong>不收集。</strong>App 不要求注册或登录任何开发者账号，不采集设备标识、位置、通讯录、剪贴板或使用行为数据，也不包含广告、埋点或第三方分析 SDK。</p>
+      <p>项目为 Apache-2.0 开源，上述说法可以自行在源码中核对。</p>
+
+      <h2>二、数据保存在哪里</h2>
+      <ul>
+        <li><strong>课表、日程、待办与设置</strong>：保存在你手机上的本机数据库与应用私有目录中，不经过开发者服务器。</li>
+        <li><strong>背景图片等自定义素材</strong>：仅保存在 App 私有目录或你自行指定的本地位置。</li>
+        <li><strong>卸载 App</strong> 会清除上述本机数据。如需保留，请在卸载前导出 JSON 备份。</li>
+      </ul>
+
+      <h2>三、App 申请的系统权限及用途</h2>
+      <p>下表列出 Android 版声明的全部权限，以及每一项实际承担的功能。所有涉及隐私的权限都只在对应功能被你主动使用时才生效。</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>权限</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td><code>INTERNET</code>、<code>ACCESS_NETWORK_STATE</code></td><td>访问你学校的教务系统进行课表导入、检查适配资源更新、以及你主动开启的 WebDAV 云备份</td></tr>
+            <tr><td><code>POST_NOTIFICATIONS</code>、<code>POST_PROMOTED_NOTIFICATIONS</code></td><td>发送课前提醒与当前课程状态通知</td></tr>
+            <tr><td><code>SCHEDULE_EXACT_ALARM</code></td><td>精确调度课前提醒，避免课程开始后才收到通知</td></tr>
+            <tr><td><code>FOREGROUND_SERVICE</code>、<code>FOREGROUND_SERVICE_SPECIAL_USE</code></td><td>上课期间维持状态栏课程进度显示（灵动岛 / 常驻通知）</td></tr>
+            <tr><td><code>ACCESS_NOTIFICATION_POLICY</code></td><td>上课期间自动切换勿扰或静音模式，下课后自动恢复</td></tr>
+            <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>开机后恢复课表同步、提醒与小组件调度</td></tr>
+            <tr><td><code>READ_CALENDAR</code>、<code>WRITE_CALENDAR</code></td><td>仅在你使用「系统日历同步」功能时读写日历；不开启该功能则不会申请或访问</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>四、什么时候会联网</h2>
+      <p>App 只在你主动触发以下操作时联网，且所有网络请求的目标都由你所在环境决定：</p>
+      <ol>
+        <li><strong>教务导入</strong>：在你的设备上打开你所在学校的教务系统页面并抓取课表。学校名称、教务系统类型等适配信息是公开的公共信息，不包含个人身份数据。</li>
+        <li><strong>适配资源更新</strong>：从项目的适配仓库拉取最新学校适配脚本，逐文件做 <code>sha256</code> 校验；校验失败会自动回退到 App 内置的离线资源。</li>
+        <li><strong>WebDAV 云备份</strong>：仅在你于「备份与恢复」中自行填写服务器地址并开启后才会执行，备份文件上传到你自己的服务器，开发者无法访问。</li>
+        <li><strong>跳转外部链接</strong>：如「我的 → 更多」中的 GitHub 仓库、开源许可证等，会通过系统浏览器打开。</li>
+      </ol>
+      <div class="callout">
+        <b>关于教务系统账号密码：</b>登录表单由你所在学校自己的教务系统网页提供，App 不额外留存这些凭据。
+        仍建议你按所在学校的账号安全要求使用，并自行判断是否在第三方 App 中输入校园账号。
+      </div>
+
+      <h2>五、第三方组件</h2>
+      <p>App 使用的第三方依赖均为开源库（如 Kotlin / Compose Multiplatform 生态组件、本地数据库与 WorkManager 等），用于界面渲染、数据存储与任务调度，不包含广告或用户行为分析用途。</p>
+      <p>相关依赖清单与许可证可在 GitHub 仓库的构建配置中查看。</p>
+
+      <h2>六、你的数据权利</h2>
+      <ul>
+        <li><strong>导出</strong>：随时通过「课表导入 / 导出」把全部数据导出为 JSON 或 ICS 文件。</li>
+        <li><strong>删除</strong>：在 App 内删除课表、学期或待办；或直接卸载 App 以清除全部本机数据。</li>
+        <li><strong>不联网使用</strong>：除教务导入与适配更新外的所有功能（手工建课、日历、小组件、提醒等）均可离线使用。</li>
+      </ul>
+
+      <h2>七、未成年人</h2>
+      <p>App 不面向未满 14 周岁的儿童设计，也不会有意收集儿童的个人信息——事实上它不收集任何用户的个人信息。</p>
+
+      <h2>八、政策变更</h2>
+      <p>若未来功能变化导致本政策需要调整，我们会在本页与 GitHub 仓库同步更新，并注明生效日期。由于 App 本身不收集联系方式，无法逐一通知，建议在版本更新时留意本页。</p>
+
+      <h2>九、联系我们</h2>
+      <p>对本政策有疑问，或发现任何与上述描述不符的行为，欢迎通过以下方式联系：</p>
+      <ul>
+        <li>邮箱：<a data-email href="mailto:hhixingchen520@163.com">hhixingchen520@163.com</a></li>
+        <li>GitHub Issues：<a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">qiqqqqq517/shangkeschedule</a></li>
+      </ul>
+
+      <h2>十、关于本站</h2>
+      <p>
+        本网站（shangke.asia）是由项目维护者部署在 Cloudflare 上的纯静态页面。
+        它不设置 Cookie、不使用第三方统计或广告脚本，仅在本地浏览器存储中记录你的「深色 / 浅色模式」偏好。
+        页面中出现的下载链接指向 GitHub Releases，访问时适用 GitHub 自身的隐私政策。
+      </p>
+
+      <div class="btn-row" style="margin-top:36px">
+        <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">下载 Android 版</a>
+        <a class="btn btn-ghost" href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/img/app-icon-1024.png" alt="">
+        <div>
+          <b>上课 · ShangKeSchedule</b>
+          <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>
+        </div>
+      </div>
+      <div>
+        <h4>产品</h4>
+        <ul>
+          <li><a href="index.html#features">核心功能</a></li>
+          <li><a href="index.html#import">教务导入</a></li>
+          <li><a href="index.html#themes">主题外观</a></li>
+          <li><a href="features.html">完整功能说明</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>下载与支持</h4>
+        <ul>
+          <li><a data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e" rel="noopener">夸克网盘下载</a></li>
+          <li><a href="changelog.html">更新日志</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">源代码</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">问题反馈</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="privacy.html">隐私政策</a></li>
+          <li><a data-email href="mailto:hhixingchen520@163.com">联系作者</a></li>
+          <li><a href="https://www.apache.org/licenses/LICENSE-2.0" rel="noopener">Apache-2.0 许可</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        © <span data-year>2026</span> 上课 · ShangKeSchedule · 以 Apache-2.0 协议开源。
+        项目最初演进自 <a href="https://github.com/XingHeYuZhuan/shiguangschedule" rel="noopener">拾光课程表</a>，谨此致谢原作者与全体贡献者。
+      </p>
+      <p>本站为静态页面，无 Cookie、无第三方统计。</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</button>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>

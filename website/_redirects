@@ -1,0 +1,12 @@
+# Cloudflare Pages 重定向规则
+# 语法：<来源> <目标> <状态码>
+#
+# 注意：不要在这里为 /features → /features.html 这类「去掉扩展名」的规则做 200 重写。
+# Cloudflare Pages 自带的 HTML 处理已经会把 features.html 规范化为 /features
+# （反向 308），两者叠加会形成 /features → /features → … 的重定向环。
+# 站内链接直接写 *.html 文件名，Pages 会自动 308 到对应的干净地址。
+
+# 快捷入口：/download 指向夸克网盘分享（主分发渠道），其余指向仓库
+/download        https://pan.quark.cn/s/02947cbc1d4e                            302
+/github          https://github.com/qiqqqqq517/shangkeschedule                  302
+/issues          https://github.com/qiqqqqq517/shangkeschedule/issues           302

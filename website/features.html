@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>完整功能说明 — 上课 · ShangKeSchedule</title>
+<meta name="description" content="「上课」课表 App 完整功能说明：今日课表、周课表、日程待办、教务一键导入、文件导入导出、情侣课表、多作息方案、学期与课程管理、桌面小组件、课程提醒、备份同步、外观与动效。">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://shangke.asia/features">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="上课 · ShangKeSchedule">
+<meta property="og:title" content="完整功能说明 — 上课 · ShangKeSchedule">
+<meta property="og:description" content="十三类能力，逐项说明它解决什么问题、怎么用。">
+<meta property="og:url" content="https://shangke.asia/features">
+<meta property="og:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
+<link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
+<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('sk-theme');
+      var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要内容</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+      <span class="brand-text"><b>上课</b><span>ShangKeSchedule</span></span>
+    </a>
+    <nav aria-label="主导航">
+      <ul class="nav-links">
+        <li><a href="index.html#features">功能</a></li>
+        <li><a href="index.html#import">教务导入</a></li>
+        <li><a href="index.html#themes">主题</a></li>
+        <li><a href="index.html#download">下载</a></li>
+        <li><a href="changelog.html">更新日志</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <button class="theme-toggle" type="button" aria-label="切换深色 / 浅色模式">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="btn btn-primary btn-sm" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载
+      </a>
+      <button class="nav-burger" type="button" aria-label="展开导航菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<section class="doc">
+  <div class="wrap">
+    <div class="doc-head reveal">
+      <span class="eyebrow">功能说明</span>
+      <h1>十三类能力，逐项说清楚</h1>
+      <p class="lead">
+        这一页不是营销列表，而是把每个功能「解决什么问题、具体怎么用」写明白，方便你在装之前判断它是否合适。
+        所有描述对应 <span class="mono" data-version>v3.56.5</span>。
+      </p>
+      <div class="doc-meta">
+        <span>Android 8.0+</span>
+        <span>Apache-2.0 开源</span>
+        <span>简体 / 繁體 / English</span>
+      </div>
+    </div>
+
+    <div class="toc reveal">
+      <div class="toc-title">目录</div>
+      <ol>
+        <li><a href="#overview">功能总览</a></li>
+        <li><a href="#today">今日课表</a></li>
+        <li><a href="#week">周课表与排版</a></li>
+        <li><a href="#agenda">日程与待办</a></li>
+        <li><a href="#import">教务一键导入</a></li>
+        <li><a href="#files">文件导入导出</a></li>
+        <li><a href="#couple">情侣课表</a></li>
+        <li><a href="#timeslots">多作息方案</a></li>
+        <li><a href="#manage">学期与课程管理</a></li>
+        <li><a href="#widget">桌面小组件</a></li>
+        <li><a href="#reminder">课程提醒与免打扰</a></li>
+        <li><a href="#backup">备份、迁移与日历同步</a></li>
+        <li><a href="#appearance">外观与动效</a></li>
+        <li><a href="#i18n">多语言与无障碍</a></li>
+      </ol>
+    </div>
+
+    <div class="doc-body">
+
+      <h2 id="overview">功能总览</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>模块</th><th>能力</th></tr></thead>
+          <tbody>
+            <tr><td><strong>今日课表</strong></td><td>当天课程速览、下节课倒计时卡、「正在上课」高亮、今日待办、明日预告</td></tr>
+            <tr><td><strong>周课表</strong></td><td>左右滑动切换周次、课程块长按调整、撞色自动修正、隐藏周末与非本周课程</td></tr>
+            <tr><td><strong>日程</strong></td><td>日期轴 + 整月日历，待办 / 活动 / 考试 / 作业分类，与今日页完成状态双向同步</td></tr>
+            <tr><td><strong>教务导入</strong></td><td>内置 1700+ 所高校索引、7 类通用适配器、160+ 所学校专属脚本、在线安全更新</td></tr>
+            <tr><td><strong>情侣课表</strong></td><td>独立课表：完整编辑、教务 / 文件多形式导入、独立作息、双人同显叠加</td></tr>
+            <tr><td><strong>多作息方案</strong></td><td>夏令时 / 冬令时多方案、按日期自动切换、自定义时间段（后节自动顺延）</td></tr>
+            <tr><td><strong>学期管理</strong></td><td>多学期并排管理、点击即设当前学期、状态自动判定、学期进度条</td></tr>
+            <tr><td><strong>桌面小组件</strong></td><td>多尺寸样式、明日预告、深色适配、每日零点自动更新</td></tr>
+            <tr><td><strong>课程提醒</strong></td><td>课前提醒、上课期间勿扰 / 静音、节假日避开、状态栏灵动岛（Android 16）</td></tr>
+            <tr><td><strong>备份同步</strong></td><td>JSON 导入导出、ICS 日历导出、系统日历同步、WebDAV 云备份</td></tr>
+            <tr><td><strong>个性化</strong></td><td>书卷 / 通透 / 柔绘三套主题、动态取色、自定义配色与布局、全局动效设置</td></tr>
+            <tr><td><strong>多语言</strong></td><td>简体中文、繁体中文、English，跟随系统自动切换</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="today">今日课表</h2>
+      <p>打开 App 落地的第一屏，回答「我今天到底要上什么」。核心是一张会随时间变化的时间轴：已结束的课程变淡沉底，正在上课的高亮并显示剩余时间，未开始的排在下方。</p>
+      <ul>
+        <li><strong>下节课卡片</strong>显示课程名、教师、地点与起止时间，三种策略可选：自动指向下一次课、已结束变淡、课后消失。</li>
+        <li><strong>今日课程时间轴</strong>按节次排列，每张卡显示节数、地点、教师，以及从备注里识别出的「课程类型」「学时」等结构化信息。</li>
+        <li><strong>今日待办</strong>与课程同屏，可直接勾选完成，完成后自动沉底并渐变降透明；待办创建统一由「日程」页承载，这样创建的待办会直接出现在今日页。</li>
+        <li><strong>明日预告</strong>列在页面底部，避免第二天早上才发现有早八。</li>
+      </ul>
+      <div class="grid g-3" style="margin:26px 0 8px">
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/today.jpg" width="540" height="1170" loading="lazy" alt="今日课表界面">
+          <figcaption>今日<small>下节课 · 时间轴 · 待办 · 明日预告</small></figcaption>
+        </figure>
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/agenda.jpg" width="540" height="1170" loading="lazy" alt="日程界面">
+          <figcaption>日程<small>日期轴 + 整月日历</small></figcaption>
+        </figure>
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/reminder.jpg" width="540" height="1170" loading="lazy" alt="课程提醒设置">
+          <figcaption>课程提醒<small>免打扰 · 灵动岛</small></figcaption>
+        </figure>
+      </div>
+
+      <h2 id="week">周课表与排版</h2>
+      <p>周一至周日的网格视图，左侧是节次序号与时间段，右侧是课程彩块。左右滑动切换周次，点击顶部周次胶囊可以快速跳到指定周，长按课程块可直接调整位置与高度。</p>
+      <ul>
+        <li><strong>字号自适应缩放</strong>：课程块文字随实际可用宽度动态缩放，窄块不裁切、宽块更清晰。</li>
+        <li><strong>地点智能换行</strong>：优先在 <code>@</code>、<code>-</code>、中英文括号等分隔符处断行，避免 <code>A-302</code> 被拆成 <code>A-3 / 02</code>。</li>
+        <li><strong>信息优先级重排</strong>：按「名称 &gt; 地点 &gt; 教师」取舍，紧凑块自动隐藏次要信息。</li>
+        <li><strong>撞色自动修正</strong>：同名课次统一颜色，不同课程优先分配未占用的颜色，整张表配色稳定可辨。</li>
+        <li>可隐藏周末与「非本周课程」，让单双周课表只显示当周真实要上的课。</li>
+      </ul>
+
+      <h2 id="agenda">日程与待办</h2>
+      <p>第四个 Tab，把课程之外的安排也收进来。日期轴左右滑动浏览、点击选中，下拉可展开整月日历；课程与待办、活动、考试、作业在同一时间轴上混排。</p>
+      <ul>
+        <li><strong>完成状态双向同步</strong>：今日页勾选的待办，在日程页以删除线 + 变淡呈现；反向亦然。</li>
+        <li><strong>待办默认不带时间</strong>，需要时关掉「全天」开关即可指定具体时间。无时间的待办卡片整行铺满，不显示占位「--:--」。</li>
+        <li>分类清晰、可长按删除、支持编辑，右下角「+」一键新增。</li>
+      </ul>
+
+      <h2 id="import">教务一键导入</h2>
+      <p>新课表最麻烦的一步是照着教务系统手抄。「上课」把这一步做成一次点击，并且把适配资源全部内置离线——新用户不联网也能完成导入。</p>
+      <ul>
+        <li><strong>1700+ 所高校索引</strong>，按本科 / 专科、研究生、通用工具分组，配 A–Z 字母索引与搜索。</li>
+        <li><strong>7 类通用教务适配器</strong>：超星、正方、URP、青果、强智、金智、南软等主流系统统一处理。</li>
+        <li><strong>160+ 所学校专属适配脚本</strong>，处理特殊页面与登录流程：强制电脑版 + 一次点击完成导入、WebVPN 双入口、API 直取等。</li>
+        <li><strong>桌面 UA + 1280px 视口修复</strong>，解决部分学校手机端教务菜单打不开课表的问题。</li>
+        <li><strong>在线安全更新</strong>：适配资源支持远程更新，逐文件 <code>sha256</code> 校验，校验失败自动回退内置资源，不影响导入。</li>
+        <li>支持学期选择、一键导航到课表，兼容验证码 / CAS 统一身份 / WebVPN 等多种登录形态。</li>
+      </ul>
+      <div class="callout"><b>学校没被适配？</b>先试通用适配器；仍失败可发邮件到 <a data-email href="mailto:hhixingchen520@163.com">hhixingchen520@163.com</a> 或在 GitHub 提 Issue，说明学校名称与教务系统类型即可。</div>
+
+      <h2 id="files">文件导入导出</h2>
+      <p>教务之外，还有完整的文件通道：五类导入、两种导出，覆盖从同学那里拷课表、从旧 App 迁移、把课表送进系统日历等场景。</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>方向</th><th>格式</th><th>典型用途</th></tr></thead>
+          <tbody>
+            <tr><td>导入</td><td>Excel / JSON / ICS / CSV / HTML、TXT</td><td>从旧版备份、同学分享或教务网页导出的内容恢复课表</td></tr>
+            <tr><td>导出</td><td>JSON（含时间段与学期设置）</td><td>换机、重装后一键还原完整数据</td></tr>
+            <tr><td>导出</td><td>ICS（可指定提醒时间）</td><td>导入 iOS / Android / 桌面日历，自带课前提醒</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>导入前先预览、可逐条编辑，再选择「导入到当前课表 / 存为新课表 / 覆盖」，避免手滑覆盖掉已有数据。</p>
+      <div class="grid g-2" style="margin:26px 0 8px">
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/import-export.jpg" width="540" height="1170" loading="lazy" alt="课表导入导出界面">
+          <figcaption>导入 / 导出<small>教务 · 文件 · 同步</small></figcaption>
+        </figure>
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/import-file.jpg" width="540" height="1170" loading="lazy" alt="文件导入界面">
+          <figcaption>文件导入<small>Excel / JSON / ICS / CSV / 文本</small></figcaption>
+        </figure>
+      </div>
+
+      <h2 id="couple">情侣课表</h2>
+      <p>从 v3.52.0 起，情侣课表升级为<b>独立课表实体</b>，不再依附本人课表——它有自己的课程、作息时间与学期配置。</p>
+      <ul>
+        <li>在学期管理页与本人课表并排展示（带 ❤ 标记），支持添加 / 查看 / 重命名 / 删除。</li>
+        <li><strong>完整编辑能力</strong>：点击课程即可修改名称、教师、地点、周次、节次与颜色，也可手动添加课程。</li>
+        <li><strong>多形式导入</strong>：教务系统导入、Excel / JSON / 文本文件导入，导入时选择目标课表即可。</li>
+        <li><strong>独立作息</strong>：可单独设置 TA 课表的节次时间（含多作息方案）。</li>
+        <li><strong>双人同显</strong>时双方课程分别按各自作息换算位置；冲突检测精确判断周次是否重叠，本人课程优先。课程卡顶部是否显示起止时间可开关（默认关闭）。</li>
+        <li>可单独显示情侣课表；旧版本已导入的数据在升级时自动迁移，备份与恢复完整支持。</li>
+      </ul>
+
+      <h2 id="timeslots">多作息方案</h2>
+      <p>一张课表可同时保存多套上课时间，并按「月-日」生效区间自动切换，告别每学期手动改时间。</p>
+      <ul>
+        <li>内置默认 / 夏令时 / 冬令时，也可新建自定义方案。</li>
+        <li>支持跨年区间，例如 <code>10-01 ~ 次年 04-30</code>。</li>
+        <li><strong>改动一节，后方整体顺延</strong>：修改某一节的结束时间后，后面节次按「一节课时长 + 课间休息」逐节重排至 23:59，不再需要逐节手改。</li>
+      </ul>
+      <div class="grid g-2" style="margin:26px 0 8px">
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/time-slots.jpg" width="540" height="1170" loading="lazy" alt="时间段管理界面">
+          <figcaption>自定义时间段<small>多方案 · 自动切换 · 后节顺延</small></figcaption>
+        </figure>
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/semester.jpg" width="540" height="1170" loading="lazy" alt="学期设置界面">
+          <figcaption>学期设置<small>开学日期 · 总周数 · 每周起始日</small></figcaption>
+        </figure>
+      </div>
+
+      <h2 id="manage">学期与课程管理</h2>
+      <h3>学期管理</h3>
+      <ul>
+        <li>多学期并排管理，<strong>点击任意学期卡即可把它设为当前学期</strong>，列表实时重排，「查看课表」才跳转课表页。</li>
+        <li>历史学期状态按日期自动判定（未开始 / 进行中 / 已完成），同学年内按开始日期自动排序。</li>
+        <li>当前学期卡带进度条：第 N 周 / 共 M 周 · 已过 P%；长按可重命名。</li>
+        <li>新建学期支持三种方式：教务导入 / 手动创建 / 备份恢复。</li>
+      </ul>
+      <h3>课程管理</h3>
+      <ul>
+        <li>按课程名聚合查看与编辑全部课程，批量处理同名课程更方便。</li>
+        <li><strong>课程调动</strong>：把某天所有课一键调到新日期（应对临时调课、放假补课）。</li>
+        <li><strong>快速删除</strong>：按周次 / 星期 / 指定日期批量清理。</li>
+        <li>课程支持记录<strong>学分、考核方式、实验课</strong>三个结构化字段，并在导入时从备注文本自动识别中英文写法（如 <code>学分 3.5，考核方式：考试，实验课</code>）。</li>
+      </ul>
+      <figure class="shot reveal" style="margin:26px 0 8px;max-width:420px">
+        <img src="assets/img/course-manage.jpg" width="540" height="1170" loading="lazy" alt="课程管理界面">
+        <figcaption>课程管理<small>按名聚合 · 课程调动 · 快速删除</small></figcaption>
+      </figure>
+
+      <h2 id="widget">桌面小组件</h2>
+      <p>不打开 App 也能看到今天要上什么。提供多种尺寸与样式的桌面、锁屏小组件，直出「今天 / 明天」课程概览与当日课程数。</p>
+      <ul>
+        <li>深色模式有对应外观，点按可直达课程详情。</li>
+        <li><strong>每日零点自动更新</strong>：无需打开 App，每日 00:05 自动同步课表、重排提醒并刷新所有小组件；跨天换周不再依赖手动打开。</li>
+        <li>小组件数据读取超时保留上一份快照，不会突然刷成空白。</li>
+      </ul>
+
+      <h2 id="reminder">课程提醒与免打扰</h2>
+      <ul>
+        <li><strong>课前提醒</strong>：支持系统精确闹钟与 WorkManager 两条调度路径。</li>
+        <li><strong>上课免打扰</strong>：上课期间自动切换勿扰（DND）或静音，下课自动恢复。</li>
+        <li><strong>节假日避开</strong>：内置全年节假日数据，假期里的课不打扰。</li>
+        <li><strong>状态栏灵动岛</strong>（Android 16 实时更新）：常驻显示当前 / 下一节课状态，实时刷新上课进度与剩余时间；只在当天第一节课前至最后一节课后运行，其余时间零常驻更省电，低版本自动降级为持续通知。</li>
+      </ul>
+
+      <h2 id="backup">备份、迁移与日历同步</h2>
+      <figure class="shot reveal" style="margin:0 0 22px;max-width:420px">
+        <img src="assets/img/backup.jpg" width="540" height="1170" loading="lazy" alt="备份与恢复界面">
+        <figcaption>备份与恢复<small>本地文件 · WebDAV</small></figcaption>
+      </figure>
+      <ul>
+        <li><strong>JSON 导入 / 导出</strong>：完整备份与迁移课表及作息，含多方案作息与情侣课表。</li>
+        <li><strong>ICS 导出</strong>：导入 iOS / Android / 桌面日历，一键对齐系统日历并自带提醒。</li>
+        <li><strong>系统日历同步</strong>：把当前课表写入系统日历账号。</li>
+        <li><strong>WebDAV 云备份</strong>：自托管云端自动备份与恢复，备份服务器由你选择。</li>
+      </ul>
+
+      <h2 id="appearance">外观与动效</h2>
+      <ul>
+        <li><strong>三套主题</strong>：书卷（暖砂纸底 + 赤陶主色，衬线标题，纸页层叠转场）、通透（iOS 26 Liquid Glass 玻璃质感，systemBlue 主色，物理弹簧动效）、柔绘（柔和晕染渐变 + 雾紫配色，漫射柔光，零过冲缓动）。每套主题同时决定配色、课表样式与动效语言。</li>
+        <li><strong>主题模式</strong>：跟随系统 / 浅色 / 深色。</li>
+        <li><strong>动态取色</strong>（Material You，Android 12+）：基于系统壁纸自动生成配色方案，也可自定义主色调。</li>
+        <li><strong>自定义背景图片</strong>、格子高度 / 圆角 / 间距 / 透明度，以及课程块颜色与内容显示样式；课程配色可独立成页管理并一键重置。</li>
+        <li><strong>全局动效系统</strong>：三档动效速度倍率 + 九组可独立开关的动画分组 + 屏幕刷新率设置 + 「减弱动态效果」无障碍开关；触摸反馈全站覆盖。</li>
+        <li><strong>我的信息页</strong>：头像、昵称、个性签名、学校、学院、专业、年级。</li>
+      </ul>
+      <div class="grid g-2" style="margin:26px 0 8px">
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/appearance.jpg" width="540" height="1170" loading="lazy" alt="外观与样式设置界面">
+          <figcaption>外观与样式<small>主题 · 深色 · 课表微调 · 动效</small></figcaption>
+        </figure>
+        <figure class="shot reveal" style="margin:0">
+          <img src="assets/img/theme.jpg" width="540" height="1170" loading="lazy" alt="主题设置界面">
+          <figcaption>主题<small>书卷 / 通透 / 柔绘</small></figcaption>
+        </figure>
+      </div>
+
+      <h2 id="i18n">多语言与无障碍</h2>
+      <ul>
+        <li>简体中文、繁体中文、English 三套界面语言，跟随系统自动切换。</li>
+        <li>「减弱动态效果」开关会同时关闭过渡动画与加载指示器动画时钟，兼顾无障碍与省电。</li>
+        <li>关键操作按钮补充无障碍描述，日程页菜单等此前缺失处已补齐。</li>
+      </ul>
+
+      <div class="callout" style="margin-top:44px">
+        <b>还有想确认的功能？</b>
+        完整变更记录见 <a href="changelog.html">更新日志</a>；
+        源码与细节实现可在 <a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">GitHub 仓库</a> 中查阅。
+      </div>
+
+      <div class="btn-row" style="margin-top:34px">
+        <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">下载 Android 版</a>
+        <a class="btn btn-ghost" href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/img/app-icon-1024.png" alt="">
+        <div>
+          <b>上课 · ShangKeSchedule</b>
+          <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>
+        </div>
+      </div>
+      <div>
+        <h4>产品</h4>
+        <ul>
+          <li><a href="index.html#features">核心功能</a></li>
+          <li><a href="index.html#import">教务导入</a></li>
+          <li><a href="index.html#themes">主题外观</a></li>
+          <li><a href="features.html">完整功能说明</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>下载与支持</h4>
+        <ul>
+          <li><a data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e" rel="noopener">夸克网盘下载</a></li>
+          <li><a href="changelog.html">更新日志</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">源代码</a></li>
+          <li><a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">问题反馈</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="privacy.html">隐私政策</a></li>
+          <li><a data-email href="mailto:hhixingchen520@163.com">联系作者</a></li>
+          <li><a href="https://www.apache.org/licenses/LICENSE-2.0" rel="noopener">Apache-2.0 许可</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        © <span data-year>2026</span> 上课 · ShangKeSchedule · 以 Apache-2.0 协议开源。
+        项目最初演进自 <a href="https://github.com/XingHeYuZhuan/shiguangschedule" rel="noopener">拾光课程表</a>，谨此致谢原作者与全体贡献者。
+      </p>
+      <p>本站为静态页面，无 Cookie、无第三方统计。</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</button>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>
