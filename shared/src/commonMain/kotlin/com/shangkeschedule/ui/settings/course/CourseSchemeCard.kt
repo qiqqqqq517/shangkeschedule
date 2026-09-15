@@ -136,7 +136,10 @@ fun CourseSchemeCard(
                     placeholder = stringResource(Res.string.label_remark),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    minLines = 1,
+                    // 备注为多行文本：必须显式 singleLine=false（AppTextField 默认 true，否则把
+                    // minLines/maxLines 覆盖成单行），并给足默认可视高度 3 行、上限 5 行，便于长备注输入/回看
+                    singleLine = false,
+                    minLines = 3,
                     maxLines = 5,
                     supportingText = {
                         Box(modifier = Modifier.fillMaxWidth()) {
