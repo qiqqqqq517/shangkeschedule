@@ -299,7 +299,13 @@ class AddEditCourseViewModel(
             val state = uiState.value
             if (state.name.isBlank()) return@launch
 
+            // 保存目标课表：优先当前选中；新装/未选择课表时 currentCourseTableId 可能为空，
+            // 空 id 落库会因外键引用不存在的课表而闪退，故兜底为第一个有效（本人）课表。
             val tableId = state.currentCourseTableId.orEmpty()
+                .ifBlank { courseTableRepository.getAllCourseTables().first().firstOrNull { !it.isCouple }?.id.orEmpty() }
+            // 数据库尚无任何课表时拒绝落库，避免写入空 courseTableId 触发外键约束异常
+            if (tableId.isBlank()) return@launch
+
             val currentSchemeDbIds = state.schemes.mapNotNull { it.dbId }.toSet()
 
             (originalDbIds - currentSchemeDbIds).forEach { idToRemove ->
