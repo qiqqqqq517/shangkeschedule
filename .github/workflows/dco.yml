@@ -1,0 +1,37 @@
+name: DCO Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码（含完整历史）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 校验所有提交是否包含 Signed-off-by（DCO）
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # 兜底拉取 base 提交，确保范围比较可用
+          git fetch --no-tags origin "$BASE_SHA" 2>/dev/null || true
+          missing=0
+          for sha in $(git log --format=%H "$BASE_SHA..$HEAD_SHA"); do
+            if ! git show -s --format=%B "$sha" | grep -q "^Signed-off-by:"; then
+              echo "::error file=DCO.txt::$sha 缺少 Signed-off-by 签名（DCO，见 DCO.txt）"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error file=DCO.txt::请为每个提交追加签名行，例如：git commit -s 或 git commit --signoff"
+            exit 1
+          fi
