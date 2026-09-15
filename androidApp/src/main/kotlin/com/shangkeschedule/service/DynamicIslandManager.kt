@@ -182,20 +182,51 @@ class DynamicIslandManager(
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // v3.57.1 修复「灵动岛每隔几秒自动连续弹出」：
+        // AlarmManager 对「触发时刻已经过去」的闹钟是**立即投递**的。而窗口期内每次 sync()
+        // （同步完成 / 开机 / 零点自愈 / 窗口闹钟本身）都会重新排一次窗口——若此时仍把 START
+        // 闹钟设到已经过去的 window.startMillis，它会立刻触发 → 接收器再 sync() → 再排同一个
+        // 过期时刻 → 再立刻触发 …… 形成自激循环：每一轮都重复 startForeground/notify，
+        // 状态栏实时胶囊（灵动岛）被反复重绘/反复弹出，同时空转耗电。
+        // 因此：过期的触发点一律取消且不再排程。窗口内的启动由 [sync] 直接调
+        // [DynamicIslandService.start] 承担，不需要窗口内再补一个 START 闹钟。
+        val now = System.currentTimeMillis()
+        if (window.startMillis > now) {
+            setWindowAlarm(am, exactAllowed, window.startMillis, startPi)
+        } else {
+            cancelWindowAlarm(am, startPi)
+        }
+        if (window.endMillis > now) {
+            setWindowAlarm(am, exactAllowed, window.endMillis, stopPi)
+        } else {
+            cancelWindowAlarm(am, stopPi)
+        }
+    }
+
+    /** 排一个窗口闹钟；无精确闹钟权限（或被系统拒绝）时降级为非精确，功能仍可用。 */
+    private fun setWindowAlarm(
+        am: AlarmManager,
+        exactAllowed: Boolean,
+        triggerAtMillis: Long,
+        pi: PendingIntent
+    ) {
         if (exactAllowed) {
             try {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.startMillis, startPi)
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.endMillis, stopPi)
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+                return
             } catch (e: SecurityException) {
                 Log.w(TAG, "精确闹钟被拒，降级为非精确调度", e)
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.startMillis, startPi)
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.endMillis, stopPi)
             }
         } else {
             Log.w(TAG, "无精确闹钟权限，使用非精确闹钟调度灵动岛窗口（可能有少量延迟）")
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.startMillis, startPi)
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, window.endMillis, stopPi)
         }
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+    }
+
+    /** 取消窗口闹钟并回收 PendingIntent（不留存活 token，避免后续 FLAG_NO_CREATE 误命中）。 */
+    private fun cancelWindowAlarm(am: AlarmManager, pi: PendingIntent) {
+        am.cancel(pi)
+        pi.cancel()
     }
 
     private fun cancelAlarms() {

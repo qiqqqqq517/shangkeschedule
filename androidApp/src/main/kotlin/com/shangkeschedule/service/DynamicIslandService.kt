@@ -65,6 +65,17 @@ class DynamicIslandService : Service(), KoinComponent {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var tickerJob: Job? = null
 
+    /** 最近一次真实投递的通知：重复 onStartCommand 时复用它进入前台，避免占位内容来回覆盖（v3.57.1）。
+     *  ticker 在 IO 线程写入、onStartCommand 在主线程读取，故用 @Volatile 保证可见性。 */
+    @Volatile
+    private var lastNotification: Notification? = null
+
+    /** 最近一次投递的通知内容签名；内容未变化时不再重复 notify（v3.57.1）。 */
+    private var lastStateSignature: String? = null
+
+    /** 最近一次投递通知的时刻（毫秒），用于内容长期不变时的保活重投。 */
+    private var lastNotifyWallMillis = 0L
+
     companion object {
         private const val TAG = "DynamicIslandService"
 
@@ -77,8 +88,24 @@ class DynamicIslandService : Service(), KoinComponent {
         /** 刷新间隔：课程粒度到分钟，20s 即可让进度条/倒计时顺滑变化 */
         private const val UPDATE_INTERVAL_MS = 20_000L
 
+        /**
+         * 实时更新保活上限（v3.57.1）：内容长时间不变（如整节课的进度百分比取整后相同）时，
+         * 也至少每 5 分钟重投一次，避免系统判定 Live Updates 长时间未更新而收回胶囊。
+         * 内容真正变化时（倒计时/进度按分钟变化）照常立即刷新。
+         */
+        private const val KEEP_ALIVE_REFRESH_MS = 5 * 60_000L
+
         /** ProgressStyle 分段长度（每节课等长段） */
         private const val SEGMENT_LENGTH = 100
+
+        /**
+         * 服务是否正在运行（v3.57.1）。
+         *
+         * 仅用于同进程的 [DynamicIslandAlarmReceiver] 做「窗口开始闹钟重复投递」兜底判断，
+         * 不是业务状态：进程被杀后随进程重置，[onDestroy] 时归位。
+         */
+        @Volatile
+        var isRunning: Boolean = false
 
         /** 已完成课程分段的颜色（绿色，完成感） */
         private val SEGMENT_DONE_COLOR = Color.rgb(76, 175, 80)
@@ -106,15 +133,30 @@ class DynamicIslandService : Service(), KoinComponent {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        isRunning = true
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureNotificationChannel()
-        // 先用占位通知尽快进入前台，随后由 ticker 立即刷新真实内容
-        startForegroundWithPlaceholder()
+        // v3.57.1：重复 start（同步完成 / 窗口闹钟兜底 / 系统重启）不再投占位通知。
+        // 旧实现每次 onStartCommand 都先 startForeground 一条「应用名」占位通知——它会覆盖真实
+        // 课程内容、并丢掉 Live Updates 的提升请求（胶囊先消失再出现），是「灵动岛每隔几秒弹一次」
+        // 的直接可见来源。已有真实通知时直接复用同一对象进前台：内容零抖动，且照样满足
+        // startForegroundService 必须在 onStartCommand 内进入前台的要求。
+        val existing = lastNotification
+        if (existing != null) {
+            startForegroundCompat(existing)
+        } else {
+            startForegroundWithPlaceholder()
+        }
         startTicker()
         return START_STICKY
     }
 
     override fun onDestroy() {
+        isRunning = false
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -126,15 +168,23 @@ class DynamicIslandService : Service(), KoinComponent {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
+        lastNotification = placeholder
+        startForegroundCompat(placeholder)
+    }
+
+    private fun startForegroundCompat(notification: Notification) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, placeholder, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
-            startForeground(NOTIFICATION_ID, placeholder)
+            startForeground(NOTIFICATION_ID, notification)
         }
     }
 
     private fun startTicker() {
-        tickerJob?.cancel()
+        // v3.57.1：循环已在运行就直接复用，不再 cancel + 重启。
+        // 旧实现每次 onStartCommand 都重启循环，而新循环会立刻重算并（无脑）再投递一次通知，
+        // 于是每多一次 start 就多一次「灵动岛弹出」。
+        if (tickerJob?.isActive == true) return
         tickerJob = serviceScope.launch {
             while (isActive) {
                 try {
@@ -150,27 +200,46 @@ class DynamicIslandService : Service(), KoinComponent {
                     val now = LocalDateTime.now()
                     val courses = loadTodayCourses()
 
-                    // 窗口兜底检查：已滑出「第一节课开始-lead → 最后一节课结束」则自停
-                    val window = DynamicIslandManager.computeWindow(
-                        courses,
-                        settings.remindBeforeMinutes,
-                        now.toLocalDate()
-                    )
-                    val nowMillis = System.currentTimeMillis()
-                    if (window == null || nowMillis !in window.startMillis until window.endMillis) {
-                        Log.d(TAG, "当前不在灵动岛显示窗口内，服务自停")
-                        stopSelf()
-                        cancelNotification()
-                        break
-                    }
+                    // 读库失败（null）与「今日确实无课」（emptyList）必须区分：
+                    // 前者若按无课处理会 self-stop，且窗口内的 START 闹钟已按 v3.57.1 新策略不再补排，
+                    // 灵动岛就会静默消失到下一次同步；这里保留服务、下一轮重试。
+                    if (courses == null) {
+                        Log.w(TAG, "读取今日课程失败，保留灵动岛服务并等待下一轮重试")
+                    } else {
+                        // 窗口兜底检查：已滑出「第一节课开始-lead → 最后一节课结束」则自停
+                        val window = DynamicIslandManager.computeWindow(
+                            courses,
+                            settings.remindBeforeMinutes,
+                            now.toLocalDate()
+                        )
+                        val nowMillis = System.currentTimeMillis()
+                        if (window == null || nowMillis !in window.startMillis until window.endMillis) {
+                            Log.d(TAG, "当前不在灵动岛显示窗口内，服务自停")
+                            stopSelf()
+                            cancelNotification()
+                            break
+                        }
 
-                    val state = computeState(courses, now)
-                    val notification = buildNotification(
-                        state = state,
-                        requestPromoted = !settings.compatWearableSync
-                    )
-                    val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                    nm?.notify(NOTIFICATION_ID, notification)
+                        val state = computeState(courses, now)
+                        val requestPromoted = !settings.compatWearableSync
+                        val signature = stateSignature(state, requestPromoted)
+                        // 内容去重（v3.57.1）：倒计时/进度按分钟变化，固定 20s 无脑重投会让状态栏
+                        // 实时胶囊被系统反复重新渲染（观感即「隔几秒又弹一次」）；仅在内容变化或
+                        // 超过保活上限时投递。
+                        if (signature != lastStateSignature ||
+                            nowMillis - lastNotifyWallMillis >= KEEP_ALIVE_REFRESH_MS
+                        ) {
+                            val notification = buildNotification(
+                                state = state,
+                                requestPromoted = requestPromoted
+                            )
+                            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                            nm?.notify(NOTIFICATION_ID, notification)
+                            lastStateSignature = signature
+                            lastNotifyWallMillis = nowMillis
+                            lastNotification = notification
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "更新灵动岛通知失败", e)
                 }
@@ -178,6 +247,22 @@ class DynamicIslandService : Service(), KoinComponent {
             }
         }
     }
+
+    /**
+     * 通知内容签名（v3.57.1）：只取真正影响通知呈现的标量字段。
+     * 不直接用 [IslandState.toString]——其中的 ProgressStyle.Segment 未重写 toString，
+     * 会带上对象身份哈希，导致签名每次都不同、去重失效。
+     */
+    private fun stateSignature(state: IslandState, requestPromoted: Boolean): String = listOf(
+        requestPromoted.toString(),
+        state.title,
+        state.text,
+        state.subText,
+        state.chipText,
+        state.progress.toString(),
+        state.dayProgress.toString(),
+        (state.segments?.size ?: 0).toString()
+    ).joinToString("\u0001")
 
     private fun cancelNotification() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -203,11 +288,15 @@ class DynamicIslandService : Service(), KoinComponent {
         nm.createNotificationChannel(channel)
     }
 
-    private suspend fun loadTodayCourses(): List<WidgetCourse> {
+    /**
+     * 读取今日课程；读库失败返回 null，与「今日确实无课」的 emptyList 区分
+     * （ticker 对前者保留服务重试，对后者按窗口外自停）。
+     */
+    private suspend fun loadTodayCourses(): List<WidgetCourse>? {
         val today = LocalDate.now().format(ISO_DATE)
         return runCatching {
             widgetRepository.getWidgetCoursesByDateRange(today, today).first()
-        }.getOrDefault(emptyList())
+        }.getOrNull()
     }
 
     // ---------------------------------------------------------------------
