@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3574">v3.57.4 · 课程详情弹窗观感修复</a></li>
         <li><a href="#v3573">v3.57.3 · 课程详情弹窗样式统一</a></li>
         <li><a href="#v3572">v3.57.2 · 添加自定义课程保存闪退修复</a></li>
         <li><a href="#v3571">v3.57.1 · 灵动岛重复弹出修复</a></li>
@@ -104,6 +105,17 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3574">
+        <div><span class="tl-ver">v3.57.4</span><span class="tl-date">2026-09-15</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>课表课程详情弹窗顶部圆角与底部底色修复</h3>
+          <ul>
+            <li>v3.57.3 将课表详情弹窗改为玻璃透明分支（<code>hazeState</code> 透传）后，弹窗顶部圆角被内层方角蒙层盖住、底部在系统手势区露出透明色块，与今日日程弹窗观感不一致。本版移除该玻璃透传、统一走与「今日日程」一致的纯色分支——顶部两角圆滑过渡、底部以实色填满至屏幕底沿，两处观感缺陷均已消除，课程数据与编辑逻辑不变。</li>
+            <li>课表详情弹窗与「今日日程」详情弹层现在完全同源渲染。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3573">
         <div><span class="tl-ver">v3.57.3</span><span class="tl-date">2026-09-15</span></div>
