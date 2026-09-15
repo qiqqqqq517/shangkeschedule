@@ -6,7 +6,8 @@ APP 侧教务适配的**唯一**远程入口。它在 APP 与私有 GitHub 适�
 
 - 运行平台：Cloudflare Workers
 - 鉴权方式：请求头 `X-App-Secret`
-- 放行路径：仅 `index.json` 与 `adapters/**`，其余一律 `403`
+- 放行路径：仅 `index.json`、`adapters/**` 与学校索引 `index/school_index.pb`，其余一律 `403`
+- 取文件方式：`raw.githubusercontent.com`（逐字节返回原样内容；**不可**改用 GitHub contents API——它会把二进制内容按文本转码，导致 APP 侧 sha256 校验失败）
 - 缓存：命中后 5 分钟（`Cache-Control: public, max-age=300`）
 - 限流：单 IP 每分钟 120 次（超出返回 `429`）
 
@@ -70,7 +71,14 @@ curl -i -H "X-App-Secret: <APP_SECRET>" $BASE/index.json
 
 # 5) 非白名单路径（即使密钥正确）→ 403
 curl -i -H "X-App-Secret: <APP_SECRET>" $BASE/README.md
+
+# 6) 学校索引（密钥正确）→ 200，且必须与私有仓库逐字节一致
+curl -s -H "X-App-Secret: <APP_SECRET>" -o /tmp/school_index.pb $BASE/index/school_index.pb
+sha256sum /tmp/school_index.pb   # 应等于 index.json 中该条目的 sha256
 ```
+
+> ⚠️ Windows 上请用 `curl.exe` 验证：PowerShell 5.1 的 `Invoke-WebRequest` 在携带自定义
+> 请求头时可能不按预期生效，会误报 403（本机实测）。
 
 ---
 
