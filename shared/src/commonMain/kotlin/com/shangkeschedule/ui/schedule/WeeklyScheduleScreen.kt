@@ -882,9 +882,10 @@ fun WeeklyScheduleScreen(
             onEditClick = { courseId ->
                 selectedBlockForDetail = null
                 onNavigate(Destination.AddEditCourse(courseId = courseId))
-            },
-            // 补传 hazeState（v3.54.0）：与今日页同款 sheet 保持一致的玻璃材质
-            hazeState = hazeState
+            }
+            // v3.57.4（原 v3.54.0 传 hazeState 走玻璃透明分支）：玻璃分支内层蒙层未裁剪到 sheetTop
+            // 圆角、且透明容器在底部 inset 露出透明块，顶部圆角被方角蒙糊 —— 与今日日程详情弹窗
+            // （纯色分支）观感不一致。改为与日程完全一致、不传 hazeState，消除圆角丢失与透明块。
         )
     }
 }
