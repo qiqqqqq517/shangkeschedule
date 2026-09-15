@@ -2244,10 +2244,10 @@ u_7096bb22南宁理工学院nnlgxy"qiangzhi*�
 u_7096bb22_01强智教务系统"qiangzhi.js*-http://bwgljw.yinghuaonline.com/gllgdxbwglxy/2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
 u_65543cc4内江师范学院njsfxy"	zhengfang*�
-u_65543cc4_01正方教务系统"zhengfang.js*Qhttps://tpass.njtc.edu.cn/frontend/center_portal_njtc/home/index.html#/home/index21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_65543cc4_01正方教务系统"zhengfang.js*Qhttps://tpass.njtc.edu.cn/frontend/center_portal_njtc/home/index.html#/home/index21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_14aab9a2南昌大学ncdx"qiangzhi*�
-u_14aab9a2_01强智教务系统"qiangzhi.js*http://my.ncu.edu.cn/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+u_14aab9a2南昌大学ncdx"NCU_JW*�
+u_14aab9a2_01 强智教务系统(南昌大学)"ncu.js*5https://jwpt.ncu.edu.cn/jsxsd/framework/xsMainV.htmlx2'自动导入自 timetable，类型: ncu:auto-import�
 
 u_005e8367南昌工学院ncgxy"	zhengfang*�
 u_005e8367_01正方教务系统"zhengfang.js*:http://jwxt.ncpu.edu.cn:8088/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
