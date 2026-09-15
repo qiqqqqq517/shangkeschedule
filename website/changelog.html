@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3571">v3.57.1 · 灵动岛重复弹出修复</a></li>
+        <li><a href="#v3570">v3.57.0 · 自动同步教务系统按钮</a></li>
         <li><a href="#v3567">v3.56.7 · 我的信息持久化修复</a></li>
         <li><a href="#v3566">v3.56.6 · 适配更新服务切换自建域名（大陆可直连）</a></li>
         <li><a href="#v3565">v3.56.5 · 今日待办恢复显示 + 通知图标修复</a></li>
@@ -100,6 +102,33 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3571">
+        <div><span class="tl-ver">v3.57.1</span><span class="tl-date">2026-09-15</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>状态栏「灵动岛」每隔几秒自动连续弹出</h3>
+          <ul>
+            <li>灵动岛在显示窗口内会被系统闹钟反复触发窗口排程——已经过去的触发时刻会被系统立即投递，投递后接收器又重新排上同一时刻，形成自激循环，通知因此被反复重建刷新，状态栏实时胶囊（灵动岛）持续反复弹出，同时空转耗电。本版改为过期触发点不再排程、窗口内的启动由同步链路直接拉起，自激链彻底切断。</li>
+            <li>重复拉起前台服务不再投递「应用名」占位通知（此前会覆盖真实课程内容，并让胶囊先消失再出现）；实时刷新循环改为幂等复用、不再重启；通知内容未变化时不再重复投递（倒计时/进度按分钟变化，最长 5 分钟保活重投一次）；读取课表失败时保留服务等待重试，不再静默消失。</li>
+            <li>窗口开始闹钟若被系统重复派发、且灵动岛已在运行，重复投递会被忽略（服务未运行时绝不忽略，保证窗口开始那一次一定生效），杜绝再次出现「反复弹出」。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3570">
+        <div><span class="tl-ver">v3.57.0</span><span class="tl-date">2026-09-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>「更多」页新增「自动同步教务系统」</h3>
+          <ul>
+            <li>可手动一键拉取最新的教务适配脚本，让课表抓取保持可用，无需等待下次启动后台静默同步。点击后按结果提示「正在同步…」「已更新 N 个适配文件」「已是最新，无需更新」或失败回退内置适配。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li>条目带校徽图标（school_24px），同步进行中实时反馈状态。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3567">
         <div><span class="tl-ver">v3.56.7</span><span class="tl-date">2026-09-14</span></div>
