@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3573">v3.57.3 · 课程详情弹窗样式统一</a></li>
+        <li><a href="#v3572">v3.57.2 · 添加自定义课程保存闪退修复</a></li>
         <li><a href="#v3571">v3.57.1 · 灵动岛重复弹出修复</a></li>
         <li><a href="#v3570">v3.57.0 · 自动同步教务系统按钮</a></li>
         <li><a href="#v3567">v3.56.7 · 我的信息持久化修复</a></li>
@@ -102,6 +104,27 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3573">
+        <div><span class="tl-ver">v3.57.3</span><span class="tl-date">2026-09-15</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>课表界面的课程详情弹窗改为与「今日日程」弹窗一致的新样式</h3>
+          <ul>
+            <li>此前课表里点开课程是较为陈旧的「图标 + 文字」列表；本版统一为——顶部星期小节标题 + 大号加粗课程名标题、圆角容器内的「标签 + 值」分隔行（上课时间 / 地点 / 授课教师 / 上课周次 / 学分 / 考核方式 / 实验课 / 备注）、底部「关闭 + 编辑课程」双按钮。仅更新观感，课程数据与编辑逻辑完全不变。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3572">
+        <div><span class="tl-ver">v3.57.2</span><span class="tl-date">2026-09-15</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>添加自定义课程时点击右上角「保存」会闪退</h3>
+          <ul>
+            <li>新装或尚未选择课表时，<code>currentCourseTableId</code> 为空，保存课程会以空的课表 id 写入数据库，触发 <code>courses</code> 表对 <code>course_tables</code> 表的外键约束（<code>FOREIGN KEY constraint failed</code>）而崩溃。本版在保存时自动兜底解析到第一个有效的「本人」课表；若数据库尚无任何课表则拒绝落库而不再闪退，新增课程数据可正常保存。</li>
+            <li>兼容既有账号：已配置课表的用户行为不变，课程仍保存到当前选中的课表。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3571">
         <div><span class="tl-ver">v3.57.1</span><span class="tl-date">2026-09-15</span></div>
