@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
@@ -56,9 +55,6 @@ fun main() {
             // 映射进 M3 ColorScheme，并注入 appColors()/appShapes()/appType() 三套 token
             ShangKeScheduleTheme(
                 darkTheme = dark,
-                dynamicColor = false,
-                customLightPrimary = Color(0xFFC96442),
-                customDarkPrimary = Color(0xFFD97757),
                 themePreset = AppThemePreset.CLAUDE,
             ) {
                 Box(

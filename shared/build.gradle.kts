@@ -62,9 +62,6 @@ kotlin {
                 implementation(libs.compose.components.resources)
                 implementation(libs.compose.ui.tooling.preview)
 
-                // Dynamic Color 主题生成 (MaterialKolor)
-                implementation(libs.material.kolor)
-
                 // Haze 毛玻璃 backdrop blur（悬浮底栏 / 玻璃质感面板）
                 implementation(libs.haze)
 

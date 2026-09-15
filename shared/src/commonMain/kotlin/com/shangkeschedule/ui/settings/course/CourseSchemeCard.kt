@@ -3,7 +3,6 @@ package com.shangkeschedule.ui.settings.course
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -76,7 +75,11 @@ fun CourseSchemeCard(
         shape = appShapes().menu,
         containerColor = appColors().cardBg
     ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+        // 外层不能用 height(IntrinsicSize.Min)：它会把本 Row 高度锁进子项的 minIntrinsic
+        // 高度，而右列内又叠了 weight + fillMaxHeight，intrinsic 阶段会低估高度，导致
+        // 「上课周次」文本多行超出的部分被裁剪（实测全选周次时最后一行被截断）。改为
+        // 常规布局后，行高由内容自然撑起，左色条 fillMaxHeight 仍与右侧等高对齐。
+        Row(modifier = Modifier) {
 
             // 左侧颜色指示器块
             ColorIndicatorSection(
@@ -136,10 +139,11 @@ fun CourseSchemeCard(
                     placeholder = stringResource(Res.string.label_remark),
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    // 备注为多行文本：必须显式 singleLine=false（AppTextField 默认 true，否则把
-                    // minLines/maxLines 覆盖成单行），并给足默认可视高度 3 行、上限 5 行，便于长备注输入/回看
+                    // 备注为多行文本：singleLine=false（AppTextField 默认 true，否则会把
+                    // minLines/maxLines 覆盖成单行）。minLines=1 使其「有几行显示几行」——
+                    // 短备注即一行，长备注自动撑到上限 5 行，避免空备注也占 3 行高度
                     singleLine = false,
-                    minLines = 3,
+                    minLines = 1,
                     maxLines = 5,
                     supportingText = {
                         Box(modifier = Modifier.fillMaxWidth()) {

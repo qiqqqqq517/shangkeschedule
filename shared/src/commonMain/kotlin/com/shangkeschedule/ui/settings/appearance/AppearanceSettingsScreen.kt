@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,14 +24,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -40,8 +37,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,10 +50,8 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -71,12 +64,8 @@ import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
-import com.shangkeschedule.ui.components.AdvancedColorPicker
 import com.shangkeschedule.ui.components.AppCard
-import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSegmentedControl
-import com.shangkeschedule.ui.components.AppSwitch
-import com.shangkeschedule.ui.components.ColorPickerConfig
 import com.shangkeschedule.ui.components.ImageCropper
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
@@ -86,11 +75,6 @@ import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.settings.style.ScheduleGridContent
 import com.shangkeschedule.ui.settings.style.SettingsListContent
 import com.shangkeschedule.ui.settings.style.StyleSettingsViewModel
-import com.shangkeschedule.ui.theme.LocalIsDarkTheme
-import com.shangkeschedule.ui.theme.supportsDynamicColor
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -101,10 +85,7 @@ import shangkeschedule.shared.generated.resources.appearance_switch_confirm
 import shangkeschedule.shared.generated.resources.appearance_switch_message
 import shangkeschedule.shared.generated.resources.appearance_switch_title
 import shangkeschedule.shared.generated.resources.a11y_back
-import shangkeschedule.shared.generated.resources.action_reset
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.custom_color_title
-import shangkeschedule.shared.generated.resources.dark_primary_color
 import shangkeschedule.shared.generated.resources.desc_schedule_style_settings
 import shangkeschedule.shared.generated.resources.desc_theme_settings
 import shangkeschedule.shared.generated.resources.image_24px
@@ -114,14 +95,8 @@ import shangkeschedule.shared.generated.resources.item_personalized_display
 import shangkeschedule.shared.generated.resources.desc_personalized_display
 import shangkeschedule.shared.generated.resources.tune_24px
 import shangkeschedule.shared.generated.resources.item_theme_settings
-import shangkeschedule.shared.generated.resources.dynamic_color_desc
-import shangkeschedule.shared.generated.resources.dynamic_color_title
 import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_personalization
-import shangkeschedule.shared.generated.resources.light_primary_color
-import shangkeschedule.shared.generated.resources.refresh_24px
-import shangkeschedule.shared.generated.resources.theme_color_hint
-import shangkeschedule.shared.generated.resources.theme_color_disabled_hint
 import shangkeschedule.shared.generated.resources.theme_mode_label
 import shangkeschedule.shared.generated.resources.theme_style_desc
 import shangkeschedule.shared.generated.resources.theme_style_section
@@ -182,7 +157,7 @@ fun AppearanceSettingsScreen(
 }
 
 /**
- * 主题二级页：主题风格预设 / 深色模式 / 动态取色 / 自定义主题色。
+ * 主题二级页：主题风格预设 / 深色模式。
  * 从「外观与样式」二级导航页进入。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -199,9 +174,6 @@ fun ThemeSettingsScreen(
 
     // 切换主题确认：避免误操作覆盖用户个性化配置
     var pendingThemePreset by remember { mutableStateOf<AppThemePreset?>(null) }
-
-    // 取色器面板玻璃：主内容 hazeSource
-    val hazeState = rememberHazeState()
 
     Scaffold(
         topBar = {
@@ -258,52 +230,6 @@ fun ThemeSettingsScreen(
                     selectedMode = settings.themeMode,
                     onModeSelected = { settingsViewModel.onThemeModeChanged(it) }
                 )
-
-                if (supportsDynamicColor) {
-                    AppearanceDynamicColorToggle(
-                        enabled = settings.useDynamicColor,
-                        onEnabledChange = { settingsViewModel.onUseDynamicColorChanged(it) }
-                    )
-                }
-
-                val customColorUsesDynamic = supportsDynamicColor && settings.useDynamicColor
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AppearanceSectionHeader(stringResource(Res.string.custom_color_title))
-                    if (customColorUsesDynamic) {
-                        Text(
-                            text = stringResource(Res.string.theme_color_disabled_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = appColors().textSecondary,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                    }
-                    val isDark = LocalIsDarkTheme.current
-                    if (isDark) {
-                        AppearanceThemeColorPickerItem(
-                            label = stringResource(Res.string.dark_primary_color),
-                            currentColor = Color(settings.customDarkPrimary),
-                            onColorChanged = { settingsViewModel.onCustomDarkPrimaryChanged(it) },
-                            onReset = { settingsViewModel.onCustomDarkPrimaryChanged() },
-                            enabled = true,
-                            hazeState = hazeState
-                        )
-                    } else {
-                        AppearanceThemeColorPickerItem(
-                            label = stringResource(Res.string.light_primary_color),
-                            currentColor = Color(settings.customLightPrimary),
-                            onColorChanged = { settingsViewModel.onCustomLightPrimaryChanged(it) },
-                            onReset = { settingsViewModel.onCustomLightPrimaryChanged() },
-                            enabled = true,
-                            hazeState = hazeState
-                        )
-                    }
-                    Text(
-                        text = stringResource(Res.string.theme_color_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = appColors().textSecondary,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
                 }
             }
         }
@@ -538,95 +464,3 @@ private fun AppearanceThemeModeSelector(
     )
 }
 
-@Composable
-private fun AppearanceDynamicColorToggle(
-    enabled: Boolean,
-    onEnabledChange: (Boolean) -> Unit
-) {
-    Surface(
-        onClick = { onEnabledChange(!enabled) },
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(Res.string.dynamic_color_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(Res.string.dynamic_color_desc), style = MaterialTheme.typography.bodySmall)
-            }
-            AppSwitch(checked = enabled, onCheckedChange = onEnabledChange)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AppearanceThemeColorPickerItem(
-    label: String,
-    hazeState: HazeState? = null,
-    currentColor: Color,
-    onColorChanged: (Color) -> Unit,
-    onReset: () -> Unit,
-    enabled: Boolean = true
-) {
-    var showSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
-
-    Surface(
-        onClick = { if (enabled) showSheet = true },
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.alpha(if (enabled) 1f else 0.45f)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(currentColor)
-            )
-        }
-    }
-
-    if (showSheet) {
-        AppGlassBottomSheet(
-            hazeState = hazeState,
-            onDismissRequest = { showSheet = false },
-            sheetState = sheetState
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, bottom = 40.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = onReset) {
-                        Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(Res.string.action_reset))
-                    }
-                }
-                AdvancedColorPicker(
-                    initialColor = currentColor,
-                    onColorChanged = onColorChanged,
-                    config = ColorPickerConfig(
-                        showAlpha = false,
-                        showInputMode = true
-                    )
-                )
-            }
-        }
-    }
-}

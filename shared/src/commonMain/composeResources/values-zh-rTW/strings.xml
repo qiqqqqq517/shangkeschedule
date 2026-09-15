@@ -823,13 +823,6 @@
     <string name="theme_style_desc">每個主題同時套用配色與課表樣式</string>
     <string name="desc_theme_settings">自訂應用程式主題與配色</string>
     <string name="theme_mode_label">主題模式切換</string>
-    <string name="dynamic_color_title">動態取色 (Material You)</string>
-    <string name="dynamic_color_desc">基於系統桌布自動生成配色方案（僅支持 Android 12+）</string>
-    <string name="custom_color_title">自定義主色調</string>
-    <string name="light_primary_color">淺色模式主色</string>
-    <string name="dark_primary_color">深色模式主色</string>
-    <string name="theme_color_hint">說明：改變此顏色後，系統將作為種子色重新計算全應用配色方案。</string>
-    <string name="theme_color_disabled_hint">選擇自定義顏色後將自動關閉動態取色</string>
     <string name="label_page_text_color">課表頁面文字顏色</string>
     <string name="widget_course_remaining_count">剩餘 %1$d 節</string>
     <string name="section_sync">同步</string>

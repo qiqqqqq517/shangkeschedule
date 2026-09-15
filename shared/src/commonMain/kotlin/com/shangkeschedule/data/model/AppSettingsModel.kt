@@ -1,11 +1,9 @@
 package com.shangkeschedule.data.model
 
-import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import org.jetbrains.compose.resources.StringResource
@@ -14,7 +12,6 @@ import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
-import com.shangkeschedule.ui.theme.DefaultThemeColor
 
 /**
  * 上课时的自动化控制模式枚举
@@ -121,15 +118,6 @@ data class AppSettingsModel(
 
     /** 应用主题预设：同时决定全局配色种子色与课表视觉样式 */
     val themePreset: AppThemePreset = AppThemePreset.default,
-
-    /** 是否开启动态取色 (Material You) */
-    val useDynamicColor: Boolean = false,
-
-    /** 自定义浅色主题主色 */
-    val customLightPrimary: Long = DefaultThemeColor.toArgb().toLong(),
-
-    /** 自定义深色主题主色 */
-    val customDarkPrimary: Long = DefaultThemeColor.toArgb().toLong(),
 
     /** 开发者功能总开关（默认关闭） */
     val developerModeEnabled: Boolean = false,
@@ -259,9 +247,6 @@ data class AppSettingsModel(
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_THEME_PRESET = stringPreferencesKey("theme_preset")
-        val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
-        val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
-        val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val KEY_COUPLE_SCHEDULE_ENABLED = booleanPreferencesKey("couple_schedule_enabled")
         val KEY_COUPLE_SHOW_TIME_RANGES = booleanPreferencesKey("couple_show_time_ranges")
@@ -308,9 +293,6 @@ data class AppSettingsModel(
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,
                 themePreset = AppThemePreset.fromString(prefs[KEY_THEME_PRESET]),
-                useDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
-                customLightPrimary = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customLightPrimary,
-                customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
                 developerModeEnabled = prefs[KEY_DEVELOPER_MODE_ENABLED] ?: d.developerModeEnabled,
                 coupleScheduleEnabled = prefs[KEY_COUPLE_SCHEDULE_ENABLED] ?: d.coupleScheduleEnabled,
                 coupleShowTimeRanges = prefs[KEY_COUPLE_SHOW_TIME_RANGES] ?: d.coupleShowTimeRanges,

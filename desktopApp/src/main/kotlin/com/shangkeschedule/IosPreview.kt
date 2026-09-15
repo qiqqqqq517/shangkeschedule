@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
@@ -69,9 +68,6 @@ fun main() {
             // （IOS → iosColorScheme + IosStyle token + SF 字阶；CLAUDE → claude* 那一套）
             ShangKeScheduleTheme(
                 darkTheme = dark,
-                dynamicColor = false,
-                customLightPrimary = Color(0xFF007AFF),
-                customDarkPrimary = Color(0xFF0A84FF),
                 themePreset = AppThemePreset.IOS,
             ) {
                 Box(

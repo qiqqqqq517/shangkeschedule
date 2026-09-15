@@ -5,7 +5,7 @@
  *   1. 私有仓库（schedule-adapter-private）不被直接访问；
  *   2. 浏览器 / 爬虫直接访问本 Worker 一律 403；
  *   3. 只有携带正确 X-App-Secret 请求头的 APP 才能拿到配置；
- *   4. 仅放行 index.json 与 adapters/** 两个路径，其余全部 403；
+ *   4. 仅放行 index.json、adapters/** 与 index/school_index.pb（学校索引），其余全部 403；
  *   5. 命中缓存 5 分钟，并对单 IP 做基础限流。
  *
  * 敏感值全部通过环境变量注入（wrangler secret），本文件不含任何密钥：
@@ -79,9 +79,10 @@ function normalizePath(pathname) {
   return path;
 }
 
-/** 路径白名单：仅 index.json 与 adapters/**。 */
+/** 路径白名单：仅 index.json、adapters/** 与学校索引 index/school_index.pb。 */
 function isAllowedPath(path) {
   if (path === MANIFEST_PATH) return true;
+  if (path === 'index/school_index.pb') return true;
   return path.startsWith(ADAPTERS_PREFIX) && path.length > ADAPTERS_PREFIX.length;
 }
 
@@ -104,20 +105,24 @@ function contentTypeFor(path) {
   return "application/octet-stream";
 }
 
-/** 从私有仓库读取原始文件内容（绝不透出 PAT）。 */
+/**
+ * 从私有仓库读取原始文件内容（绝不透出 PAT）。
+ *
+ * 注意必须走 raw.githubusercontent.com 而非 api.github.com/contents：
+ * GitHub contents API 会把二进制内容（如 school_index.pb）按文本转码，
+ * 导致 APP 侧 sha256 校验失败；raw 域名返回逐字节原样内容。
+ */
 async function fetchFromGitHub(path, env) {
   const owner = encodeURIComponent(env.GH_OWNER);
   const repo = encodeURIComponent(env.GH_REPO);
   const branch = encodeURIComponent(env.GH_BRANCH || "main");
   const url =
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
 
   return fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${env.GH_PAT}`,
-      Accept: "application/vnd.github.raw",
-      "X-GitHub-Api-Version": "2022-11-28",
       "User-Agent": "shangke-adapter-gateway",
     },
   });

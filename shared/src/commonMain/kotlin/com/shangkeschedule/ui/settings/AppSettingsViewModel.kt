@@ -1,7 +1,5 @@
 package com.shangkeschedule.ui.settings
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.CourseTableConfig
@@ -408,51 +406,6 @@ class SettingsViewModel(
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }
-    }
-
-    /**
-     * 动态取色开关 (Material You)
-     */
-    fun onUseDynamicColorChanged(enabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(useDynamicColor = enabled)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
-        }
-    }
-
-    /**
-     * 自定义浅色模式种子色（传 Color 则修改，传 null 则重置）
-     */
-    fun onCustomLightPrimaryChanged(color: Color? = null) {
-        viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val newColorArgb = color?.toArgb()?.toLong()
-                ?: AppSettingsModel().customLightPrimary
-
-            val updatedSettings = currentSettings.copy(
-                customLightPrimary = newColorArgb,
-                useDynamicColor = if (color != null) false else currentSettings.useDynamicColor
-            )
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
-        }
-    }
-
-    /**
-     * 自定义深色模式种子色（传 Color 则修改，传 null 则重置）
-     */
-    fun onCustomDarkPrimaryChanged(color: Color? = null) {
-        viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val newColorArgb = color?.toArgb()?.toLong()
-                ?: AppSettingsModel().customDarkPrimary
-
-            val updatedSettings = currentSettings.copy(
-                customDarkPrimary = newColorArgb,
-                useDynamicColor = if (color != null) false else currentSettings.useDynamicColor
-            )
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
         }
     }
 

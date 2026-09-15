@@ -832,13 +832,6 @@
     <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>
     <string name="theme_mode_label">主题模式切换</string>
-    <string name="dynamic_color_title">动态取色 (Material You)</string>
-    <string name="dynamic_color_desc">基于系统壁纸自动生成配色方案（仅支持 Android 12+）</string>
-    <string name="custom_color_title">自定义主色调</string>
-    <string name="light_primary_color">浅色模式主色</string>
-    <string name="dark_primary_color">深色模式主色</string>
-    <string name="theme_color_hint">说明：改变此颜色后，系统将作为种子色重新计算全应用配色方案。</string>
-    <string name="theme_color_disabled_hint">选择自定义颜色后将自动关闭动态取色</string>
 
     <!-- 备份和还原 -->
     <string name="backup_err_empty">备份文件为空，无法恢复</string>

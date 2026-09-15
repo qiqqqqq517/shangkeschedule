@@ -1,11 +1,8 @@
 package com.shangkeschedule.ui.theme
 
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import com.shangkeschedule.data.model.AppThemeMode
 import platform.UIKit.UIApplication
 import platform.UIKit.UIStatusBarStyleDarkContent
@@ -14,20 +11,6 @@ import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowScene
 import platform.UIKit.setStatusBarStyle
-
-@Composable
-actual fun rememberColorScheme(
-    darkTheme: Boolean,
-    dynamicColor: Boolean,
-    customLightPrimary: Color,
-    customDarkPrimary: Color
-): ColorScheme {
-    return if (darkTheme) {
-        darkColorScheme(primary = customDarkPrimary)
-    } else {
-        lightColorScheme(primary = customLightPrimary)
-    }
-}
 
 @Composable
 actual fun SetupPlatformThemeEffects(
@@ -61,5 +44,3 @@ actual fun SetupPlatformThemeEffects(
         UIApplication.sharedApplication.setStatusBarStyle(style, animated = true)
     }
 }
-
-actual val supportsDynamicColor: Boolean = false

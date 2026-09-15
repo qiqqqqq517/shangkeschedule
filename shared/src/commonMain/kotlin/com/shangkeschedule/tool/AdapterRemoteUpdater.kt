@@ -59,8 +59,11 @@ sealed interface AdapterSyncResult {
  * 远程适配更新器（只新增，不改变任何既有业务逻辑）。
  *
  * 通过 Cloudflare Worker（携带 `X-App-Secret` 鉴权）拉取私有适配仓库的 index.json，
- * 遍历各文件逐个下载并强制 sha256 校验；校验通过才覆盖本地
- * `repo/schools/resources/...` 下的适配脚本，校验失败直接丢弃并提示用户。
+ * 遍历各文件逐个下载并强制 sha256 校验；校验通过才覆盖本地目标文件，校验失败直接丢弃并提示用户。
+ *
+ * 支持两类同步目标（由清单中的相对路径决定）：
+ * - `adapters/...` → 适配脚本，写入 `repo/schools/resources/...`
+ * - `index/school_index.pb` → 学校索引，写入 `repo/index/school_index.pb`（OTA 同步索引）
  *
  * 拉取失败（断网、Worker 不可达等）时静默回退——内置适配资源照常可用，
  * 教务抓取、课表解析、学校匹配逻辑完全不受影响。
@@ -74,6 +77,8 @@ class AdapterRemoteUpdater(
         const val MANIFEST_PATH = "index.json"
         const val REMOTE_PREFIX = "adapters/"
         const val LOCAL_PREFIX = "schools/resources/"
+        /** 学校索引的远程相对路径（相对仓库根目录），同步后写入 repo/index/school_index.pb。 */
+        const val INDEX_RELATIVE_PATH = "index/school_index.pb"
         const val SECRET_HEADER = "X-App-Secret"
         const val TEMP_SUFFIX = ".shangke-tmp"
     }
@@ -128,12 +133,12 @@ class AdapterRemoteUpdater(
 
         var updated = 0
         for (entry in manifest.files) {
-            val relative = entry.path.removePrefix(REMOTE_PREFIX)
-            if (entry.sha256.isBlank() || relative == entry.path || relative.isEmpty()) {
+            if (entry.sha256.isBlank()) {
                 return AdapterSyncResult.VerificationFailed(entry.path)
             }
+            val localPath = resolveLocalPath(entry.path)
+                ?: return AdapterSyncResult.VerificationFailed(entry.path)
 
-            val localPath = repoDir / (LOCAL_PREFIX + relative)
             if (localHashMatches(localPath, entry.sha256)) continue
 
             val bytes = try {
@@ -152,6 +157,25 @@ class AdapterRemoteUpdater(
         }
 
         return if (updated > 0) AdapterSyncResult.Updated(updated) else AdapterSyncResult.UpToDate
+    }
+
+    /**
+     * 把清单中的远程路径映射为本地 repo 内的绝对路径。
+     *
+     * - `adapters/<相对路径>` → `repo/schools/resources/<相对路径>`（适配脚本）
+     * - `index/school_index.pb` → `repo/index/school_index.pb`（学校索引，OTA 同步索引的关键）
+     * - 其余路径一律视为非法清单项，拒绝下载（VerificationFailed）。
+     */
+    private fun resolveLocalPath(remotePath: String): Path? {
+        if (remotePath.startsWith(REMOTE_PREFIX)) {
+            val relative = remotePath.removePrefix(REMOTE_PREFIX)
+            if (relative.isEmpty()) return null
+            return repoDir / (LOCAL_PREFIX + relative)
+        }
+        if (remotePath == INDEX_RELATIVE_PATH) {
+            return repoDir / INDEX_RELATIVE_PATH
+        }
+        return null
     }
 
     /** 本地文件已是目标版本时跳过下载（内容一致才跳过，被篡改会自动重下）。 */

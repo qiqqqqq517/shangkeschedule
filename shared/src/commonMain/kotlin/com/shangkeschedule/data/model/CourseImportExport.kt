@@ -177,9 +177,6 @@ object CourseImportExport {
         val startScreen: String = "COURSE_SCHEDULE",
         val themeMode: String = "FOLLOW_SYSTEM",
         val themePreset: String = "ORIGINAL",
-        val useDynamicColor: Boolean = false,
-        val customLightPrimary: Long = 0,
-        val customDarkPrimary: Long = 0,
         val developerModeEnabled: Boolean = false,
         val coupleScheduleEnabled: Boolean = false,
         /** 情侣叠加显示课程时间段（v3.53.3 起随备份迁移）；可空：旧备份缺字段 ⇒ 恢复时保留设备现值 */

@@ -709,7 +709,6 @@ private fun renderScene(cfg: GlassConfig): File {
     ) {
         ShangKeScheduleTheme(
             darkTheme = false,
-            dynamicColor = false,
             themePreset = AppThemePreset.IOS,
         ) {
             // 显式注入被测配置，与数据层完全解耦

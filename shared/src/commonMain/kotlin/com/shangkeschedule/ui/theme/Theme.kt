@@ -11,10 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import com.materialkolor.PaletteStyle
-import com.materialkolor.rememberDynamicColorScheme
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
@@ -47,22 +44,8 @@ fun ShangKeScheduleTheme(
         AppThemeMode.DARK -> true
     }
 
-    // 配色优先级：动态取色 > 当前模式的自定义主色 > 主题预设种子色
-    // 浅色和深色主色独立保存，必须按当前模式检查对应字段；否则深色模式修改
-    // customDarkPrimary 时仍会因 customLightPrimary 未变化而回退到预设色。
-    // 例外：通透锁定 systemBlue、柔绘锁定雾蓝紫、书卷锁定赤陶 brand-500，
-    // 三者都不跟随动态取色 / 自定义主色（这是各自主题的身份色）。
-    val defaultPrimaryArgb = DefaultThemeColor.toArgb().toLong()
-    val currentCustomPrimary = if (darkTheme) settings.customDarkPrimary else settings.customLightPrimary
-    val seedColor: Color? = when {
-        settings.themePreset == AppThemePreset.IOS -> settings.themePreset.seedColor
-        settings.themePreset == AppThemePreset.SOFT -> settings.themePreset.seedColor
-        settings.themePreset == AppThemePreset.CLAUDE -> settings.themePreset.seedColor
-        settings.useDynamicColor && supportsDynamicColor -> null
-        currentCustomPrimary != defaultPrimaryArgb -> Color(currentCustomPrimary)
-        else -> settings.themePreset.seedColor
-    }
-
+    // 三套主题预设各自锁定身份主色（通透 systemBlue / 柔绘雾蓝紫 / 书卷赤陶 brand-500），
+    // 主色不再由用户的自定义色或系统动态取色推导——原「自定义主色调 + 动态取色」能力已删除。
     CompositionLocalProvider(
         LocalIsDarkTheme provides darkTheme,
         LocalThemePreset provides settings.themePreset,
@@ -96,9 +79,6 @@ fun ShangKeScheduleTheme(
         // 用户被弹回起始页并丢失返回栈——含导航状态的 content 严禁以主题为 key 重建）
         ShangKeScheduleTheme(
             darkTheme = darkTheme,
-            dynamicColor = settings.useDynamicColor && seedColor == null,
-            customLightPrimary = seedColor ?: DefaultThemeColor,
-            customDarkPrimary = seedColor ?: DefaultThemeColor,
             themeMode = settings.themeMode,
             themePreset = settings.themePreset,
             content = content
@@ -109,38 +89,29 @@ fun ShangKeScheduleTheme(
 /**
  * 核心主题实现函数（跨平台通用）。
  *
- * 主题分流：
- * - 通透（IOS）：ColorScheme 取 [iosLightColorScheme] / [iosDarkColorScheme]，**不经过
- *   MaterialKolor 派生**（Expressive 会对种子色做色相旋转，systemBlue 会被派生成绿系）；
- *   token 走 `IosStyle.kt`，排版 SF 字阶（[iosTypography]）。
+ * 三套预设各自提供完整 ColorScheme，互不派生：
+ * - 通透（IOS）：ColorScheme 取 [iosLightColorScheme] / [iosDarkColorScheme]（systemBlue 为身份色，
+ *   不做任何色相旋转派生）；token 走 `IosStyle.kt`，排版 SF 字阶（[iosTypography]）。
  * - 柔绘（SOFT）：ColorScheme 取 [softLightColorScheme] / [softDarkColorScheme]；token 走
  *   `SoftStyle.kt`（虚化大圆角 / 干净留白 / 轻字重），材质走 softWash / softSurface 系列。
  * - 书卷（CLAUDE）：ColorScheme 取 [claudeLightColorScheme] / [claudeDarkColorScheme]，
  *   色板 / token 走 `ClaudeStyle.kt`，排版用 Poppins / Newsreader / Lora（[claudeTypography]）。
- * - 兜底分支：仅当未来新增预设时落到 MaterialKolor 派生 + iOS tokens。
+ *
+ * [themePreset] 为穷尽 when：新增预设时编译器会强制补齐配色方案，不再有隐藏兜底分支。
  */
 @Composable
 fun ShangKeScheduleTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    customLightPrimary: Color = DefaultThemeColor,
-    customDarkPrimary: Color = DefaultThemeColor,
     themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
     themePreset: AppThemePreset = AppThemePreset.default,
     content: @Composable () -> Unit
 ) {
     val isClaude = themePreset == AppThemePreset.CLAUDE
     val isSoft = themePreset == AppThemePreset.SOFT
-    val colorScheme = when {
-        themePreset == AppThemePreset.IOS -> if (darkTheme) iosDarkColorScheme() else iosLightColorScheme()
-        isSoft -> if (darkTheme) softDarkColorScheme() else softLightColorScheme()
-        isClaude -> if (darkTheme) claudeDarkColorScheme() else claudeLightColorScheme()
-        else -> rememberColorScheme(
-            darkTheme = darkTheme,
-            dynamicColor = dynamicColor,
-            customLightPrimary = customLightPrimary,
-            customDarkPrimary = customDarkPrimary
-        )
+    val colorScheme = when (themePreset) {
+        AppThemePreset.IOS -> if (darkTheme) iosDarkColorScheme() else iosLightColorScheme()
+        AppThemePreset.SOFT -> if (darkTheme) softDarkColorScheme() else softLightColorScheme()
+        AppThemePreset.CLAUDE -> if (darkTheme) claudeDarkColorScheme() else claudeLightColorScheme()
     }
 
     // 结构性颜色映射：页面底 / 卡片底等映射进 ColorScheme，让所有 Scaffold /
@@ -238,37 +209,6 @@ fun ShangKeScheduleTheme(
 }
 
 /**
- * 平台特定的配色生成声明（保留给未来可能恢复的自定义主色能力）。
- */
-@Composable
-expect fun rememberColorScheme(
-    darkTheme: Boolean,
-    dynamicColor: Boolean,
-    customLightPrimary: Color,
-    customDarkPrimary: Color
-): ColorScheme
-
-/**
- * 共享的 MaterialKolor 动态配色方案生成函数。
- *
- * ⚠️ 通透（iOS 26）主题**不使用**它：Expressive 风格会对种子色做色相旋转，
- * systemBlue 会被派生成绿色系 primary，破坏 iOS 系统色的身份一致性。
- * 保留此函数仅供平台侧 [rememberColorScheme] 的既有实现与后续扩展使用。
- */
-@Composable
-fun rememberMaterialKolorScheme(
-    darkTheme: Boolean,
-    seedColor: Color,
-    style: PaletteStyle = PaletteStyle.Expressive
-): ColorScheme {
-    return rememberDynamicColorScheme(
-        seedColor = seedColor,
-        isDark = darkTheme,
-        style = style
-    )
-}
-
-/**
  * 平台特定的窗口与系统栏外观控制声明
  */
 @Composable
@@ -277,8 +217,3 @@ expect fun SetupPlatformThemeEffects(
     darkTheme: Boolean,
     themeMode: AppThemeMode
 )
-
-/**
- * 平台特定的能力：当前系统/平台是否支持 Dynamic Color (动态取色)
- */
-expect val supportsDynamicColor: Boolean
