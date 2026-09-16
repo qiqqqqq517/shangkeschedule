@@ -88,8 +88,8 @@ private val FORCE_DESKTOP_MODE_SCHOOL_IDS = setOf(
     "MANUAL_UCAS",
     // 滁州学院：金智 EAMS 老版手机端页面布局错乱，无法看到课表网格
     "MANUAL_CHZU",
-    // 湖北职业技术学院：CAS 手机 UA 下提示「暂不支持手机浏览器登录」；登录后强智(jwgl)教务
-    // 为固定宽度桌面布局，手机视口下横向溢出、右侧截断，需桌面 UA + 1280 视口修正
+    // 湖北职业技术学院：教务系统 jwgl.hbvtc.edu.cn/jsxsd 为固定宽度桌面布局，
+    // 手机视口下横向溢出、课表压缩，需桌面 UA + 1280 视口修正（入口 jwc.hbvtc.edu.cn → 服务大厅 → 教务）
     "u_c654f04a",
 )
 
