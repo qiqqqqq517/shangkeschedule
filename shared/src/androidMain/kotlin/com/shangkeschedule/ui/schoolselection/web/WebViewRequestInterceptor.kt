@@ -48,7 +48,50 @@ class WebViewRequestInterceptor {
             }
         }
 
-        private val postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
+        private var postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
+
+        /** 判断声明的 charset 是否含 UTF-8（大小写不敏感，容忍 "utf8" / "utf-8" / "UTF_8"） */
+        private fun containsUtf8(charset: String): Boolean {
+            val normalized = charset.lowercase().replace("_", "")
+            return normalized.contains("utf8") || normalized.contains("utf-8")
+        }
+
+        /**
+         * 判断字节流是否为合法 UTF-8 编码（含纯 ASCII）。
+         * 仅做结构校验，不产生解码副作用，供编码回填判定使用。
+         */
+        private fun isValidUtf8(bytes: ByteArray): Boolean {
+            val len = bytes.size
+            var i = 0
+            while (i < len) {
+                val b = bytes[i].toInt() and 0xFF
+                val n: Int
+                if (b < 0x80) {
+                    n = 1
+                } else if (b >= 0xC2 && b <= 0xDF) {
+                    n = 2
+                } else if (b >= 0xE0 && b <= 0xEF) {
+                    n = 3
+                } else if (b >= 0xF0 && b <= 0xF4) {
+                    n = 4
+                } else {
+                    return false
+                }
+                if (i + n > len) return false
+                for (j in 1 until n) {
+                    val cb = bytes[i + j].toInt() and 0xFF
+                    if (cb < 0x80 || cb > 0xBF) return false
+                }
+                // 拒绝过长编码 / 过短表示（合法 UTF-8 的额外约束）
+                if (n == 2 && b < 0xC2) return false
+                if (n == 3 && b == 0xE0 && (bytes[i + 1].toInt() and 0xFF) < 0xA0) return false
+                if (n == 3 && b == 0xED && (bytes[i + 1].toInt() and 0xFF) > 0x9F) return false
+                if (n == 4 && b == 0xF0 && (bytes[i + 1].toInt() and 0xFF) < 0x90) return false
+                if (n == 4 && b == 0xF4 && (bytes[i + 1].toInt() and 0xFF) > 0x8F) return false
+                i += n
+            }
+            return true
+        }
 
         fun registerPostData(id: String, body: String, contentType: String) {
             // 容量防护：防止恶意页面无限注册 POST 体撑爆内存；
@@ -80,8 +123,10 @@ class WebViewRequestInterceptor {
             )
         }
 
-        // 1. 基础校验：只在 Desktop 模式且 http/https 请求下工作
-        if (!rawUrl.startsWith("http") || !isDesktopMode) return null
+        // 1. 基础校验：仅处理 http/https 请求。
+        //    注意：不要求 isDesktopMode——主框架 HTML 即使在手机模式也需接管，
+        //    用于清洗服务端返回的多余 UTF-8 BOM（如湖北职院 casp 双 BOM 导致 WebView 用 GBK 解码乱码）。
+        if (!rawUrl.startsWith("http")) return null
 
         val requestIdHeader = request.requestHeaders["X-WebView-Post-Id"]
         val requestIdParam = request.url.getQueryParameter("_webview_post_id")
@@ -203,12 +248,38 @@ class WebViewRequestInterceptor {
                     }
                 }
 
+                // 部分教务系统（如湖北职院强智 jwgl）返回的是 UTF-8 字节，但响应头要么不带 charset、
+                // 要么标注成 GBK/ISO-8859-1 等非 UTF-8 值。若未显式声明 charset，国产 ROM WebView 会回退
+                // 到系统默认 GBK，把 UTF-8 中文解成乱码（本会话见过的 {"flag1":2,"msgContent":"..乱码.."}）。
+                val rawBytes = response.bodyAsChannel().toInputStream().readBytes()
+                if (request.isForMainFrame) {
+                    val preview = rawBytes.take(8).joinToString(" ") { "%02x".format(it) }
+                    Log.i("WebViewInterceptor", "MAIN $url CT=$contentTypeHeader enc=$encoding mime=$mimeType len=${rawBytes.size} first8=$preview")
+                }
+                // 仅当「未声明 UTF-8」（默认/空/ISO-8859-1）才校验字节：若字节是合法 UTF-8，则强制按 UTF-8
+                // 解码，规避系统回退 GBK；若确实是 GBK 字节，则保留原 encoding，不影响其它正常学校。
+                if (!containsUtf8(encoding)) {
+                    val validUtf8 = isValidUtf8(rawBytes)
+                    val verboseLog = request.isForMainFrame || encoding.equals("ISO-8859-1", ignoreCase = true)
+                    if (verboseLog) {
+                        Log.i("WebViewInterceptor", "ENC-CHECK declared=$encoding validUtf8=$validUtf8 -> ${if (validUtf8) "UTF-8" else "keep"}")
+                    }
+                    if (validUtf8) encoding = "UTF-8"
+                }
+
                 val responseHeadersMap = mutableMapOf<String, String>()
                 response.headers.forEach { name, values ->
                     // 剔除 Content-Encoding，防止底层自动解压后 WebView 重复解压导致乱码
                     if (!name.equals("Content-Encoding", ignoreCase = true)) {
                         responseHeadersMap[name] = values.joinToString(", ")
                     }
+                }
+
+                // 若上面将 encoding 修正为 UTF-8，同步改写 Content-Type 头里的 charset，
+                // 否则 WebView 仍可能按头里残留的 GBK 解码（编码修正对 JSON 等子资源同样生效）。
+                if (containsUtf8(encoding) && !contentTypeHeader.isNullOrBlank()) {
+                    val fixedHeader = contentTypeHeader.replace(Regex("(?i)charset\\s*=\\s*[^;]+"), "charset=UTF-8")
+                    responseHeadersMap[HttpHeaders.ContentType] = fixedHeader
                 }
 
                 // CORS 跨域子资源：适配器跨域 fetch（如国科大 xkgo→xkcts 课程详情页）经拦截器
@@ -220,7 +291,24 @@ class WebViewRequestInterceptor {
                     responseHeadersMap["Access-Control-Allow-Origin"] = "*"
                 }
 
-                val inputStream = response.bodyAsChannel().toInputStream()
+                // 对 text/html 清洗开头可能多余的 UTF-8 BOM：
+                // 部分学校（如湖北职院 casp）服务端会输出双重 BOM（EF BB BF EF BB BF），
+                // 国产 ROM WebView 遇双 BOM 时编码检测会回退到系统默认 GBK，把 UTF-8 中文解成乱码。
+                val servedBytes = if (mimeType.startsWith("text/html", ignoreCase = true)) {
+                    var i = 0
+                    while (i + 2 < rawBytes.size &&
+                        rawBytes[i] == 0xEF.toByte() &&
+                        rawBytes[i + 1] == 0xBB.toByte() &&
+                        rawBytes[i + 2] == 0xBF.toByte()
+                    ) i += 3
+                    if (i > 0) rawBytes.copyOfRange(i, rawBytes.size) else rawBytes
+                } else rawBytes
+                if (request.isForMainFrame) {
+                    val after = servedBytes.take(16).joinToString(" ") { "%02x".format(it) }
+                    val sample = runCatching { servedBytes.toString(Charsets.UTF_8).substring(0, 200) }.getOrDefault("decode-fail")
+                    Log.i("WebViewInterceptor", "AFTER-CLEAN len=${servedBytes.size} first16=$after enc=$encoding")
+                    Log.i("WebViewInterceptor", "SAMPLE: $sample")
+                }
 
                 WebResourceResponse(
                     mimeType,
@@ -228,7 +316,7 @@ class WebViewRequestInterceptor {
                     statusCode,
                     response.status.description.ifBlank { "OK" },
                     responseHeadersMap,
-                    inputStream
+                    servedBytes.inputStream()
                 )
             }
         } catch (e: Exception) {
