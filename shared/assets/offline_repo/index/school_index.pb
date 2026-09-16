@@ -778,11 +778,11 @@ u_80105d6b$广州涉外经济职业技术学院gzswjjzyjsxy"	zhengfang*�
 
 u_1f0d5747广州珠江职业技术学院
 gzzjzyjsxy"	zhengfang*�
-u_1f0d5747_01正方教务系统"zhengfang.js*http://www.gzzjedu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_1f0d5747_01正方教务系统"zhengfang.js*http://www.gzzjedu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_8327464d广州番禺职业技术学院
-gzpyzyjsxy"qiangzhi*�
-u_8327464d_01强智教务系统"qiangzhi.js*!http://jiaowu.gzpyp.edu.cn/jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+gzpyzyjsxy"GZPYP*�
+u_8327464d_012强智教务系统(广州番禺职业技术学院)"gzpyp.js*https://jiaowu.gzpyp.edu.cn/2)自动导入自 timetable，类型: gzpyp:auto-import�
 
 u_0bfb7991广州航海学院gzhhxy"	zhengfang*�
 u_0bfb7991_01正方教务系统"zhengfang.js*http://jw.gzmtu.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
