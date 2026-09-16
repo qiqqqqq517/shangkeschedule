@@ -5558,10 +5558,10 @@ zzqcgczyxy"	zhengfang*�
 u_4e79e93f_01正方教务系统"zhengfang.js*$https://portal.zzvcae.edu.cn/jwglxt/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_f1a0ea1f长江职业学院cjzyxy"	zhengfang*�
-u_f1a0ea1f_01正方教务系统"zhengfang.js*5http://jwxt.cjxy.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_f1a0ea1f_01正方教务系统"zhengfang.js*5http://jwxt.cjxy.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_c654f04a湖北职业技术学院hbzyjsxy"qiangzhi*�
-u_c654f04a_01强智教务系统"qiangzhi.js*Zhttps://cas.hbvtc.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.hbvtc.edu.cn%2Fsso.jsp2,自动导入自 timetable，类型: qiangzhi:auto-import�
+u_c654f04a湖北职业技术学院hbzyjsxy"HBVTC*�
+u_c654f04a_01,强智教务系统(湖北职业技术学院)"hbvtc.js*~https://cas.hbvtc.edu.cn/authserver/login?service=https%3A%2F%2Fjwgl.hbvtc.edu.cn%2Fjsxsd%2Fxskb%2Fxskb_list.do%3FviweType%3D02)自动导入自 timetable，类型: hbvtc:auto-import�
 
 u_cf7dba14武汉船舶职业技术学院
 whcbzyjsxy"	zhengfang*�
