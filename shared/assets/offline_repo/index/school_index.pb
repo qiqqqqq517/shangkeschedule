@@ -2949,10 +2949,10 @@ u_11af376c太原科技大学tykjdx"	zhengfang*�
 u_11af376c_01正方教务系统"zhengfang.js*]https://sso1.tyust.edu.cn/login?service=https://zero.tyust.edu.cn/login/casCallback/r3IveGXj/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_43196867太原理工大学tylgdx"urp*�
-u_43196867_01URP教务系统"urp.js*,http://202.207.247.50:808/login/logindefault2'自动导入自 timetable，类型: urp:auto-import�
+u_43196867_01URP教务系统"urp.js*,http://202.207.247.50:808/login/logindefault2'自动导入自 timetable，类型: urp:auto-import�
 
-u_5b7efa04太原师范学院tysfxy"	zhengfang*�
-u_5b7efa04_01正方教务系统"zhengfang.js*<https://jwxk.tynu.edu.cn:50000/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_5b7efa04太原师范学院tysfxy"	zhengfang*�
+u_5b7efa04_01正方教务系统"zhengfang.js*https://iam.tynu.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_10c24f00天津财经大学珠江学院
 tjcjdxzjxy"qiangzhi*�
