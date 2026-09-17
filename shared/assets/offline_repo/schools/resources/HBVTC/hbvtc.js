@@ -543,14 +543,29 @@
             });
     }
 
-    // ---------- 「一键导航到课表」入口 ----------
+    // ---------- 「一键导航到课表」入口（会话先探后跳，杜绝跳进 JSON 乱码页）----------
+    // 原因：未登录/会话失效时，直接 location.href=KB_ABSOLUTE 会导航到服务器返回的
+    //   {"flag1":2,"msgContent":"请先登录教务系统"}（GBK JSON），被 WebView 整页按 UTF-8
+    //   渲染成黑色乱码。这里先同源 fetch 探测课表接口：能取到 HTML 课表才跳；
+    //   返回 JSON 判定未登录 → 改回教务域首页（未登录时它是正常 HTML 登录表单，绝不乱码）。
     window.shangkeNavigateToTimetable = function () {
-        if (isJwHost()) {
-            location.href = KB_ABSOLUTE;
-        } else {
+        if (!isJwHost()) {
             location.href = 'https://' + JW_HOST + '/jsxsd/framework/xsMainV.htmlx';
+            return true;
         }
-        return true;
+        if (!window.fetch) { location.href = KB_ABSOLUTE; return true; }
+        return fetch(KB_PATH, { credentials: 'include' })
+            .then(function (r) { return r.text(); })
+            .then(function (text) {
+                var t = (text || '').replace(/^\s+/, '');
+                if (!t || t.charAt(0) === '{' || t.charAt(0) === '[' || t.indexOf('flag1') !== -1) {
+                    toast('教务系统会话未就绪，请先确认已登录');
+                    location.href = 'https://' + JW_HOST + '/jsxsd/framework/xsMainV.htmlx';
+                    return;
+                }
+                location.href = KB_ABSOLUTE;
+            })
+            .catch(function () { location.href = KB_ABSOLUTE; });
     };
 
     if (typeof window !== 'undefined') {
