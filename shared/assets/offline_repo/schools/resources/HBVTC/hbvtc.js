@@ -1,38 +1,54 @@
-// 湖北职业技术学院（hbvtc）教务专属适配器 v2
+// 湖北职业技术学院（hbvtc）教务专属适配器 v3
+// 【完全参照汕头大学 stu.js 的 v4 架构重写】
 //
-// ===== 站点事实（2026-09-16 重测）=====
-//   门户：https://jwc.hbvtc.edu.cn/（教务处官网），「服务直通车 → 教务系统」→ https://casp.hbvtc.edu.cn 一站式服务大厅
-//   教务：https://jwgl.hbvtc.edu.cn/jsxsd/（湖南强智新前端，固定宽度桌面布局）
-//   课表页：https://jwgl.hbvtc.edu.cn/jsxsd/xskb/xskb_list.do?viweType=0
-//     table#timetable；第 0 行表头（周/节次 | 星期一..星期日）；行首：第一大节..第五大节 / 备注:
-//   课程 td 内 div：
-//     - div.kbcontent1（display:none，历史周次备份，无教师字段，跳过）
-//     - div.kbcontent（含完整字段；GET 当前学期时可见，POST 切旧学期后服务端返回 display:none 但仍可解析）
-//     - div.kbcontent（display:none，空，跳过）
-//     每门课字段（font[title]）：
-//       font（无 title）→ 课程名
-//       font[title=教师] → 邹娟娟
-//       font[title=周次(节次)] → 2-5,7-15(周)[01-02节]
-//       font[title=教学楼]（display:none，name=jxlmc）→ 【德艺楼(#06)】
-//       font[title=教室] → 6-313教室
-//     **同一 div.kbcontent 内多门课用 "---------------------" 文本分隔线隔开**（必须按分隔线拆多门课）
-//   学期下拉 #xnxq01id（多年多学期）；节次模式 #kbjcmsid；周次 #zc。
-//   学期切换：POST /jsxsd/xskb/xskb_list.do?viweType=0（同套强智，实测返回目标学期课表）。
+// ===== 站点事实（2026-09-16/17 实测）=====
+//   入口（直连教务域，对照汕头 jw.stu.edu.cn/jsxsd/framework/xsMainV.htmlx）：
+//     https://jwgl.hbvtc.edu.cn/jsxsd/framework/xsMainV.htmlx
+//   未登录访问该入口返回强智自带登录表单页（<form id="loginForm">，
+//     input#userAccount / input#userPassword / #yzm 验证码——强智经典登录，非 CAS），
+//     UTF-8 正常，无「暂不支持手机浏览器」限制，但页面是固定 1200px 桌面布局，
+//     需强制桌面 UA + 1280 视口（由 AdapterSelectionScreen.FORCE_DESKTOP_MODE_SCHOOL_IDS 对
+//     u_c654f04a 开启，对照汕头 u_15f498f5）。
+//   教务域内会话建立后：/jsxsd/xskb/xskb_list.do 可同源 fetch（自动携带会话 Cookie），
+//     DOMParser 解析即得课表，无需页面跳转。
+//   课表页：/jsxsd/xskb/xskb_list.do?viweType=0
+//     table#timetable；第 0 行表头（[空|节次] | 星期一..星期日）；行首 第一大节..第五大节 / 备注:
+//   课程单元格结构：
+//     - div.kbcontent（含完整字段）+ div.kbcontent1（display:none 历史周次备份，无教师，跳过）
+//     - 每门课字段用 <font title="…">：无 title → 课程名；title=教师 → 教师名；
+//       title=周次(节次) → "2-5,7-15(周)[01-02节]"；title=教学楼 → 【德艺楼(#06)】；title=教室 → 6-313教室
+//     - **同一 div.kbcontent 内多门课用 "---------------------" 文本分隔线隔开**（必须按分隔线拆多门课）
+//   学期：#xnxq01id 下拉（多年多学期）；frame 节次模式 #kbjcmsid；周次 #zc
+//   学期切换：POST /jsxsd/xskb/xskb_list.do?viweType=0（同套强智，实测返回目标学期课表）
+//
+// ===== v3 相对旧 v2 的架构修复（对照汕头 stu.js v4）=====
+//   1. 【核心】不再用 location.href 裸跳到课表页。旧 v2 在「非教务域（官网 jwc）点导入」时会
+//      先 alert 再 location.href=KB_URL 跳转，此时教务域会话未建立，强智直接返回
+//      {"flag1":2,"msgContent":"请先登录系统"}（UTF-8 被国产 ROM 回退 GBK 解成乱码），
+//      用户看到一整屏乱码 JSON。v3 改为：**入口就落在教务域登录页**（xsMainV.htmlx 未登录即登录表
+//      单页，loginForm 正常渲染），用户在教务域完成登录后，适配器**同源 fetch** 课表页
+//      （fetch 自动带会话 Cookie，credentials:include），DOMParser 解析后直接导入——
+//      一次点击完成，绝不裸跳、绝不把 JSON 当页面显示。
+//   2. 增加 isLoginPage() 检测：若仍停在登录表单页，明确提示用户先输入账号密码登录后再导入。
+//   3. 增加 fetchDoc 返回内容校验：非 HTML / 无课表表格 → 判为未登录或会话失效，提示登录，
+//      而不是把一段 JSON 渲染出来。
+//   4. 菜单校园改造与汕头一致：KB_PATH 同源路径、shangkeNavigateToTimetable 精确跳转课表页。
 //
 // ===== 桥接契约 =====
-//   window.shangkeImportEntry 由注入器自动调用。
+//   window.shangkeImportEntry 由注入器（WebBridgeProtocol.JS_IMPORT_AUTOSTART）自动调用。
 //   课程 JSON 字段：name / teacher / position / day / startSection / endSection / weeks
 
 (function () {
     'use strict';
 
     var JW_HOST = 'jwgl.hbvtc.edu.cn';
-    var KB_URL = 'https://jwgl.hbvtc.edu.cn/jsxsd/xskb/xskb_list.do?viweType=0';
+    var KB_PATH = '/jsxsd/xskb/xskb_list.do?viweType=0';
+    var KB_ABSOLUTE = 'https://' + JW_HOST + KB_PATH;
     var WEEKDAY = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
     var SEP_RE = /^[-=_]{3,}$/;
-    // 大节 → 节次兜底映射（块内 font[title=周次(节次)] 通常自带 [xx-yy节]，此处仅在缺失时兜底）
     var BIG_SECTION = { '第一大节': [1, 2], '第二大节': [3, 4], '第三大节': [5, 6], '第四大节': [7, 8], '第五大节': [9, 10], '第六大节': [11, 12] };
 
+    // ---------- 桥接工具（汕头 stu.js 同款）----------
     function toast(msg) {
         try {
             if (window.shangkeBridge && typeof window.shangkeBridge.showToast === 'function') {
@@ -46,65 +62,109 @@
     function select(title, items, defaultIdx) {
         return window.shangkeBridgePromise.showSingleSelection(title, JSON.stringify(items), defaultIdx);
     }
+    function sleep(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
     function clean(text) {
         if (!text) return '';
-        return String(text).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+        return String(text).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
     }
+    function range(count) {
+        var out = [];
+        for (var i = 1; i <= count; i++) out.push(i);
+        return out;
+    }
+
+    // ---------- 文档收集（含同源 iframe，汕头同款）----------
+    function collectDocuments() {
+        var docs = [];
+        var seen = [];
+        seen.push(document);
+        docs.push(document);
+        function collect(doc) {
+            var iframes;
+            try { iframes = doc.querySelectorAll('iframe, frame'); } catch (e) { return; }
+            for (var i = 0; i < iframes.length; i++) {
+                try {
+                    var d = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow.document);
+                    if (d && seen.indexOf(d) === -1) {
+                        seen.push(d);
+                        docs.push(d);
+                        collect(d);
+                    }
+                } catch (e) { }
+            }
+        }
+        collect(document);
+        return docs;
+    }
+
+    // ---------- 是否停在登录表单（强智经典登录）----------
+    function isLoginPageIn(doc) {
+        if (!doc || !doc.getElementById) return false;
+        if (doc.getElementById('loginForm')) return true;
+        if (doc.getElementById('userAccount') && doc.getElementById('userPassword')) return true;
+        if ((doc.title || '').indexOf('登录') !== -1 && doc.getElementById('userPassword')) return true;
+        return false;
+    }
+    function isLoginPage() {
+        var docs = collectDocuments();
+        for (var i = 0; i < docs.length; i++) {
+            if (isLoginPageIn(docs[i])) return true;
+        }
+        if (location.host.indexOf('casp.hbvtc.edu.cn') !== -1) return true;
+        return false;
+    }
+
+    // ---------- 是否在教务域 ----------
     function isJwHost() {
         return location.host.indexOf(JW_HOST) !== -1;
     }
-    function fetchDoc(url) {
-        return fetch(url, { credentials: 'include' })
-            .then(function (r) { return r.text(); })
-            .then(function (html) { return new DOMParser().parseFromString(html, 'text/html'); });
-    }
-    function readSelect(doc, id) {
+
+    // ---------- 定位课表表格 ----------
+    function findTimetableIn(doc) {
         if (!doc || !doc.getElementById) return null;
-        var sel = doc.getElementById(id);
-        if (!sel) return null;
-        var options = sel.getElementsByTagName('option');
-        var list = [];
-        var currentIndex = -1;
-        for (var i = 0; i < options.length; i++) {
-            var value = options[i].getAttribute('value') || '';
-            var label = clean(options[i].textContent) || value;
-            if (!value) continue;
-            list.push({ value: value, label: label });
-            if (options[i].selected) currentIndex = list.length - 1;
+        var t = doc.getElementById('timetable');
+        if (t && t.rows && t.rows.length > 1 && (t.textContent || '').indexOf('星期一') !== -1) return t;
+        var t2 = doc.getElementById('kbtable');
+        if (t2 && t2.rows && t2.rows.length > 1 && (t2.textContent || '').indexOf('星期一') !== -1) return t2;
+        var all = doc.querySelectorAll('table');
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].querySelector('div.kbcontent')) return all[i];
         }
-        if (currentIndex < 0 && list.length) currentIndex = 0;
-        return { list: list, currentIndex: currentIndex };
+        return null;
     }
-    function readSemesters(doc) {
-        var r = readSelect(doc, 'xnxq01id');
-        return r || { list: [], currentIndex: -1 };
-    }
-    function readKbjcmsid(doc) {
-        var r = readSelect(doc, 'kbjcmsid');
-        if (r && r.list.length) return r.list[0].value;
-        return '';
-    }
-    function postSemester(semesterValue, kbjcmsid) {
-        function enc(v) { return encodeURIComponent(v == null ? '' : String(v)); }
-        var body = 'viweType=' + enc('0') +
-            '&showallprint=' + enc('0') +
-            '&showkchprint=' + enc('0') +
-            '&showkink=' + enc('0') +
-            '&showfzmprint=' + enc('0') +
-            '&baseUrl=' + enc('/jsxsd') +
-            '&xsflMapListJsonStr=' + enc('讲课学时,实验学时,实践学时,上机学时,其他学时,') +
-            '&xnxq01id=' + enc(semesterValue || '') +
-            '&zc=' + enc('') +
-            '&kbjcmsid=' + enc(kbjcmsid || '');
-        return fetch('/jsxsd/xskb/xskb_list.do?viweType=0', {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-            body: body
-        }).then(function (r) { return r.text(); })
-          .then(function (html) { return new DOMParser().parseFromString(html, 'text/html'); });
+    function findTimetable() {
+        var docs = collectDocuments();
+        for (var i = 0; i < docs.length; i++) {
+            var t = findTimetableIn(docs[i]);
+            if (t) return { doc: docs[i], table: t };
+        }
+        return null;
     }
 
-    // ---------- 周次 / 节次 ----------
+    // ---------- 同源抓取课表页（汕头 v4 核心：不裸跳）----------
+    // 课表页与门户同源，fetch 自动携带会话 Cookie。返回内容若为 JSON / 无课表表格，
+    // 一律判为未登录或会话失效，绝不把原始内容渲染给用户。
+    function fetchDoc(url) {
+        return fetch(url, { credentials: 'include' })
+            .then(function (resp) {
+                var ct = (resp.headers && resp.headers.get ? resp.headers.get('content-type') : '') || '';
+                return resp.text().then(function (text) {
+                    var trimmed = text.replace(/^\s+/, '');
+                    // 内容为 JSON（强智未登录/会话失效返回 {"flag1":2,"msgContent":".."}）→ 视为未登录
+                    if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+                        return { json: true, text: text };
+                    }
+                    if (ct.indexOf('application/json') !== -1) {
+                        return { json: true, text: text };
+                    }
+                    return { json: false, doc: new DOMParser().parseFromString(text, 'text/html') };
+                });
+            });
+    }
+
+    // ---------- 周次 / 节次（保留 v2 已验证规则）----------
     function parseWeeks(numText) {
         var weeks = [];
         if (!numText) return weeks;
@@ -155,7 +215,7 @@
         return null;
     }
 
-    // ---------- 网格 ----------
+    // ---------- 网格（rowspan/colspan 展开）----------
     function buildGrid(table) {
         var trs = Array.prototype.slice.call(table.rows || []);
         var grid = [];
@@ -219,7 +279,6 @@
                     var title = node2.getAttribute('title') || '';
                     var fv = clean(node2.textContent);
                     if (!fv) continue;
-                    // 湖北职院课程名在无 title 的 font 内（非裸文本节点）
                     if (!title && !name) name = fv;
                     else if (title.indexOf('老师') !== -1 || title.indexOf('教师') !== -1) teacher = teacher || fv;
                     else if (title.indexOf('周次') !== -1 || title.indexOf('节次') !== -1) weekSecText = weekSecText || fv;
@@ -268,8 +327,6 @@
                 try { divs = cell.td.querySelectorAll('div.kbcontent'); } catch (e) { continue; }
                 for (var k = 0; k < divs.length; k++) {
                     var div = divs[k];
-                    // 注意：POST 切学期后服务端返回的课程块也带 display:none，因此**不**按 display 过滤；
-                    // 空块（无课程名 font）由 parseVisibleBlock 的 !name continue 自然过滤。
                     var list = parseVisibleBlock(div, day, rowRange[r] || null);
                     for (var j = 0; j < list.length; j++) courses.push(list[j]);
                 }
@@ -296,29 +353,107 @@
         return result;
     }
 
-    function findTimetableIn(doc) {
+    // ---------- 学期 ----------
+    function readSelect(doc, id) {
         if (!doc || !doc.getElementById) return null;
-        var t = doc.getElementById('timetable');
-        if (t && t.rows && t.rows.length > 1 && (t.textContent || '').indexOf('星期一') !== -1) return t;
-        var t2 = doc.getElementById('kbtable');
-        if (t2 && t2.rows && t2.rows.length > 1 && (t2.textContent || '').indexOf('星期一') !== -1) return t2;
-        var all = doc.querySelectorAll('table');
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].querySelector('div.kbcontent')) return all[i];
+        var sel = doc.getElementById(id);
+        if (!sel) return null;
+        var options = sel.getElementsByTagName('option');
+        var list = [];
+        var currentIndex = -1;
+        for (var i = 0; i < options.length; i++) {
+            var value = options[i].getAttribute('value') || '';
+            var label = clean(options[i].textContent) || value;
+            if (!value) continue;
+            list.push({ value: value, label: label });
+            if (options[i].selected) currentIndex = list.length - 1;
         }
-        return null;
+        if (currentIndex < 0 && list.length) currentIndex = 0;
+        return { list: list, currentIndex: currentIndex };
     }
+    function readSemesters(doc) {
+        var r = readSelect(doc, 'xnxq01id');
+        return r || { list: [], currentIndex: -1 };
+    }
+    function readKbjcmsid(doc) {
+        var r = readSelect(doc, 'kbjcmsid');
+        if (r && r.list.length) return r.list[0].value;
+        return '';
+    }
+    // 学期周数上限：#zc 「第N周」选项数，用于周次兜底
+    function totalWeeksOf(doc) {
+        var count = 0;
+        try {
+            var sel = doc && doc.getElementById ? doc.getElementById('zc') : null;
+            if (sel) {
+                var options = sel.getElementsByTagName('option');
+                for (var i = 0; i < options.length; i++) {
+                    var m = clean(options[i].textContent).match(/第\s*(\d+)\s*周/);
+                    if (m) count = Math.max(count, parseInt(m[1], 10));
+                }
+            }
+        } catch (e) { }
+        return count > 0 && count <= 40 ? count : 20;
+    }
+    function postSemester(semesterValue, kbjcmsid) {
+        function enc(v) { return encodeURIComponent(v == null ? '' : String(v)); }
+        var body = 'viweType=' + enc('0') +
+            '&showallprint=' + enc('0') +
+            '&showkchprint=' + enc('0') +
+            '&showkink=' + enc('0') +
+            '&showfzmprint=' + enc('0') +
+            '&baseUrl=' + enc('/jsxsd') +
+            '&xsflMapListJsonStr=' + enc('讲课学时,实验学时,实践学时,上机学时,其他学时,') +
+            '&xnxq01id=' + enc(semesterValue || '') +
+            '&zc=' + enc('') +
+            '&kbjcmsid=' + enc(kbjcmsid || '');
+        return fetch('/jsxsd/xskb/xskb_list.do?viweType=0', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+            body: body
+        }).then(function (r) { return r.text(); })
+          .then(function (html) {
+              var trimmed = html.replace(/^\s+/, '');
+              if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[' || (html.match && html.match(/{\s*"flag1"/))) {
+                  return { json: true };
+              }
+              return { json: false, doc: new DOMParser().parseFromString(html, 'text/html') };
+          });
+    }
+
+    // ---------- 诊断 ----------
+    function diagnose() {
+        var info = { url: location.href, loginPage: isLoginPage(), onJwHost: isJwHost() };
+        var live = findTimetable();
+        info.tables = live ? 1 : 0;
+        info.blocks = live ? live.table.querySelectorAll('div.kbcontent').length : 0;
+        return info;
+    }
+
+    // ---------- 取得课表来源：优先当前页，否则同源 fetch（绝不裸跳）----------
+    // 汕头 v4 关键：不 location.href 跳转 —— 一旦导航即销毁当前 JS 上下文，后续 await 不执行，
+    // 且可能把会话未建立时的 JSON 响应整页渲染。这里一律同源 fetch，失败则判为未登录提示登录。
     function resolveSource() {
-        var live = findTimetableIn(document);
-        if (live) return Promise.resolve({ doc: document, table: live });
+        // 1. 当前文档（含 iframe）已有课表 → 直接用
+        var live = findTimetable();
+        if (live) return Promise.resolve({ doc: live.doc, table: live.table });
+
+        // 2. 停在登录页 → 让用户先登录，不做任何抓取
+        if (isLoginPage()) return Promise.resolve(null);
+
+        // 3. 非教务域 → 无法同源抓取，交给主流程提示（引导进教务域）
         if (!isJwHost()) return Promise.resolve(null);
+
+        // 4. 教务域内同源 fetch 课表页
         toast('正在读取课表…');
-        return fetchDoc(KB_URL).then(function (doc) {
-            var t = findTimetableIn(doc);
-            return t ? { doc: doc, table: t } : null;
+        return fetchDoc(KB_PATH).then(function (res) {
+            if (res.json) return null;                  // 会话失效返回 JSON → 判未登录
+            var t = findTimetableIn(res.doc);
+            return t ? { doc: res.doc, table: t } : null;
         }).catch(function () { return null; });
     }
 
+    // ---------- 主流程 ----------
     function runImport() {
         var semesterLabel = '';
         function fail(title, message) {
@@ -326,14 +461,13 @@
         }
         return Promise.resolve()
             .then(function () {
-                if (!isJwHost()) {
-                    return alert('跳转到教务系统',
-                        '当前不在湖北职业技术学院教务系统页面。\n\n' +
-                        '点击「确定」将跳转到课表页：\n' +
-                        '1. 如未登录，会先到统一身份认证（CAS）登录页\n' +
-                        '2. 完成账号密码登录后自动回到课表页\n' +
-                        '3. 再点「执行导入」即可。'
-                    ).then(function () { location.href = KB_URL; return null; });
+                // 0. 停在登录页 / 非教务域：提示用户先登录（对照汕头）
+                if (isLoginPage() || !isJwHost()) {
+                    return alert('请先在教务系统登录',
+                        '请先在登录页输入学号 / 密码（含验证码）完成登录，\n' +
+                        '登录成功后会自动进入教务系统，再点「执行导入」即可。\n\n' +
+                        '若当前不在教务系统页面，请先点下方「一键导航到课表」。'
+                    ).then(function () { return null; });
                 }
                 return resolveSource();
             })
@@ -341,8 +475,9 @@
                 if (!src) {
                     return fail('未找到课表',
                         '没有读到课表数据。\n\n' +
-                        '请确认：\n1. 已登录教务系统并进入「学期理论课表」页面\n' +
-                        '2. 课表已正常显示\n\n也可以先点下方「一键导航到课表」，进入后再点「执行导入」。');
+                        '请确认：\n1. 已登录教务系统并进入「学期理论课表」\n' +
+                        '2. 会话未过期、课表已正常显示\n\n' +
+                        '也可以先点下方「一键导航到课表」，进入后再点「执行导入」。');
                 }
                 return src;
             })
@@ -371,10 +506,11 @@
                         }
                         toast('正在获取「' + chosen.label + '」的课表…');
                         return postSemester(chosen.value, readKbjcmsid(src.doc))
-                            .then(function (doc) {
-                                var t = findTimetableIn(doc);
+                            .then(function (res) {
+                                if (res.json) return fail('登录已失效', '会话已过期，请重新登录后再导入。');
+                                var t = findTimetableIn(res.doc);
                                 if (!t) return fail('获取课表失败', '未能获取「' + chosen.label + '」的课表。');
-                                var courses = dedupe(parseTimetable(doc, t));
+                                var courses = dedupe(parseTimetable(res.doc, t));
                                 if (!courses.length) return fail('该学期没有课程', '「' + chosen.label + '」没有解析到课程。');
                                 return { courses: courses, semester: chosen };
                             });
@@ -398,19 +534,25 @@
                     .then(function () { window.shangkeBridge.notifyTaskCompletion(); });
             })
             .catch(function (error) {
-                var live = findTimetableIn(document);
-                var info = { tables: live ? 1 : 0, blocks: live ? live.querySelectorAll('div.kbcontent').length : 0 };
+                var info = diagnose();
                 return alert('导入失败',
                     '错误信息：' + (error && error.message ? error.message : String(error)) + '\n\n' +
-                    '诊断：课表表格 ' + info.tables + ' 个 / 课程块 ' + info.blocks + ' 个\n\n' +
-                    '请确认已登录并进入「学期理论课表」后重试。', '确定');
+                    '诊断：课表表格 ' + info.tables + ' 个 / 课程块 ' + info.blocks + ' 个' +
+                    (info.loginPage ? '（当前在登录页）' : '') + '\n\n' +
+                    '请确认已登录教务系统进入「学期理论课表」后重试。', '确定');
             });
     }
 
+    // ---------- 「一键导航到课表」入口 ----------
     window.shangkeNavigateToTimetable = function () {
-        location.href = KB_URL;
+        if (isJwHost()) {
+            location.href = KB_ABSOLUTE;
+        } else {
+            location.href = 'https://' + JW_HOST + '/jsxsd/framework/xsMainV.htmlx';
+        }
         return true;
     };
+
     if (typeof window !== 'undefined') {
         window.shangkeImportEntry = runImport;
         window.hbvtcImport = runImport;
