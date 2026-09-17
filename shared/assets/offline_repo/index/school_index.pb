@@ -5766,4 +5766,7 @@ njlgdxzjxy"urp*�
 u_7efa914c湖南财政经济学院hnczjjxy"hufe*�
 u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import�
 u_gzutcm_001广州中医药大学gzzyydx"GZUTCM*�
-u_gzutcm_001_01乘方教务系统"	gzutcm.js*https://jw.gzucm.edu.cn/2多入口：乘方教务系统:manual-multi-entry
+u_gzutcm_001_01乘方教务系统"	gzutcm.js*https://jw.gzucm.edu.cn/2多入口：乘方教务系统:manual-multi-entry�
+
+u_9b650832右江民族医学院yjmzyxy"YMUN*�
+u_9b650832_01)乘方教务系统(右江民族医学院)"ymun.js*http://emis.ymun.edu.cn/2(自动导入自 timetable，类型: ymun:auto-import
