@@ -57,6 +57,8 @@ main_app_database.db
 
 # AI 工作文件（仅本地，不上传 GitHub）
 工作日志.md
+工作日志_archive.md
+工作日志.md.bak
 tools/
 _*.py
 _*.html
