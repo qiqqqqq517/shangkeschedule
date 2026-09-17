@@ -182,8 +182,8 @@
         }
         // 星期：qsxq 1=周一 ... 7=周日
         var day = parseInt(item.qsxq, 10) || 1;
-        // 周次：zc 字段如 "1,2,3" 或 "1-3"
-        var weeks = clean(item.zc || '');
+        // 周次：zc 字段如 "1,2,3" 或 "1-3"，解析为整数数组
+        var weeks = parseWeeksString(item.zc || '');
         // 节次：根据 qssj/jssj 计算
         var startSection = timeToStartSection(item.qssj || '08:00');
         var endSection = timeToEndSection(item.jssj || '09:30');
@@ -288,8 +288,8 @@
             var c = courses[i];
             var key = c.name + '|' + c.day + '|' + c.startSection + '|' + c.endSection + '|' + c.teacher;
             if (map[key]) {
-                // 合并周次
-                map[key].weeks = mergeWeeks(map[key].weeks, c.weeks);
+                // 合并周次数组
+                map[key].weeks = mergeWeeksArray(map[key].weeks, c.weeks);
             } else {
                 map[key] = {
                     name: c.name,
@@ -306,42 +306,14 @@
         return result;
     }
 
-    // 合并两个周次字符串
-    function mergeWeeks(a, b) {
+    // 合并两个周次数组（去重排序）
+    function mergeWeeksArray(a, b) {
         var set = {};
-        var aw = parseWeeksString(a);
-        var bw = parseWeeksString(b);
-        for (var i = 0; i < aw.length; i++) set[aw[i]] = true;
-        for (var i = 0; i < bw.length; i++) set[bw[i]] = true;
-        var weeks = Object.keys(set).map(function (w) { return parseInt(w, 10); }).sort(function (a, b) { return a - b; });
-        // 转为范围表示
-        return weeksToRange(weeks);
-    }
-
-    // 将周次数组转为范围字符串 "1-3,5,7-9"
-    function weeksToRange(weeks) {
-        if (!weeks.length) return '';
-        var result = [];
-        var start = weeks[0];
-        var end = weeks[0];
-        for (var i = 1; i <= weeks.length; i++) {
-            if (i < weeks.length && weeks[i] === end + 1) {
-                end = weeks[i];
-            } else {
-                if (start === end) {
-                    result.push(String(start));
-                } else if (end === start + 1) {
-                    result.push(start + ',' + end);
-                } else {
-                    result.push(start + '-' + end);
-                }
-                if (i < weeks.length) {
-                    start = weeks[i];
-                    end = weeks[i];
-                }
-            }
-        }
-        return result.join(',');
+        for (var i = 0; i < a.length; i++) set[a[i]] = true;
+        for (var i = 0; i < b.length; i++) set[b[i]] = true;
+        return Object.keys(set)
+            .map(function (w) { return parseInt(w, 10); })
+            .sort(function (x, y) { return x - y; });
     }
 
     // ---------- 主流程 ----------
