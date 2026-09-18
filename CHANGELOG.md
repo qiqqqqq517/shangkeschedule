@@ -7,6 +7,15 @@
 
 ## 最新版本
 
+### v3.64.2（2026-09-18）· 湖北职业技术学院教务入口统一为 https
+
+**修复**
+- **湖北职业技术学院登录后教务内容区 JSON 乱码问题修复**：此前入口 CAS `service` 参数指向 http（`jwgl.hbvtc.edu.cn/sso.jsp`），登录会话绑定 http 域；而 WebView 会把页面内相对路径的 iframe 自动升级为 https 请求，https 域与 http 域会话不互通，内容区（个人中心 / 课表查询等）会显示 `{"flag1":2,"msgContent":"请先登录系统"}` 乱码 JSON。现将入口 `service` 统一改为 **https**，登录后会话与 iframe 请求同域，内容区恢复正常。
+- 版本说明：学校索引（school_index.pb）已重建，湖北职院入口指向 https 版 CAS 单点登录。
+
+**构建**
+- versionCode 244，versionName 3.64.2；支持 ABI：arm64-v8a / armeabi-v7a / x86_64（按 ABI 拆分 APK）。
+
 ### v3.63.1（2026-09-17）· 湖北职业技术学院入口改为统一认证（CAS）
 
 **修复**
