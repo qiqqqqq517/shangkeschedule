@@ -180,8 +180,10 @@
         } else {
             position = clean(item.jxcdmc || '');
         }
-        // 星期：qsxq 1=周一 ... 7=周日
-        var day = parseInt(item.qsxq, 10) || 1;
+        // 星期：qsxq 1=周日, 2=周一, ..., 7=周六，转换为 1=周一, 7=周日
+        var rawDay = parseInt(item.qsxq, 10) || 1;
+        var day = rawDay - 1;
+        if (day < 1) day = 7;
         // 周次：zc 字段如 "1,2,3" 或 "1-3"，解析为整数数组
         var weeks = parseWeeksString(item.zc || '');
         // 节次：根据 qssj/jssj 计算
