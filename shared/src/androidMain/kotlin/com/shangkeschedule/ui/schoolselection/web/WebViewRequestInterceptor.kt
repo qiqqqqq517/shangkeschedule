@@ -50,6 +50,18 @@ class WebViewRequestInterceptor {
 
         private var postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
 
+        /**
+         * 协议归一目标主机：湖北职业技术学院教务域（jwgl.hbvtc.edu.cn）。
+         *
+         * 背景：Android WebView（Chromium）会把页面内相对路径的 iframe/fetch 子资源请求
+         * 自动升级为 https（Upgrade-Insecure-Requests / HTTPS-First）。若登录会话落在 http 域
+         * （学校侧 CAS service 曾配置为 http），升级后的 https 请求不带会话，服务器返回
+         * {"flag1":2,"msgContent":"请先登录系统"}（GBK）被按 UTF-8 解码成乱码渲染在内容区。
+         * 本拦截器对该域的非主框架「页面/接口类」子资源接管，强制改写为主文档（会话域）
+         * 的协议后用 ktor 转发（自动附带对应协议的 Cookie），从根上消除 http/https 会话失配。
+         */
+        private const val PROTOCOL_NORMALIZE_HOST = "jwgl.hbvtc.edu.cn"
+
         /** 判断声明的 charset 是否含 UTF-8（大小写不敏感，容忍 "utf8" / "utf-8" / "UTF_8"） */
         private fun containsUtf8(charset: String): Boolean {
             val normalized = charset.lowercase().replace("_", "")
@@ -93,6 +105,19 @@ class WebViewRequestInterceptor {
             return true
         }
 
+        /**
+         * 是否为静态资源请求（按扩展名判断）。
+         * 静态资源无需会话，被原生栈升级到 https 也能正常加载，故放行原生栈以保留性能。
+         */
+        private fun isStaticAsset(url: String): Boolean {
+            val path = url.substringBefore('?').substringBefore('#').lowercase()
+            return path.endsWith(".js") || path.endsWith(".css") || path.endsWith(".png") ||
+                path.endsWith(".jpg") || path.endsWith(".jpeg") || path.endsWith(".gif") ||
+                path.endsWith(".ico") || path.endsWith(".woff") || path.endsWith(".woff2") ||
+                path.endsWith(".ttf") || path.endsWith(".svg") || path.endsWith(".webp") ||
+                path.endsWith(".map") || path.endsWith(".eot") || path.endsWith(".otf")
+        }
+
         fun registerPostData(id: String, body: String, contentType: String) {
             // 容量防护：防止恶意页面无限注册 POST 体撑爆内存；
             // 单条 body 也限制在 1MB 内（正常表单提交远小于此）。
@@ -105,10 +130,21 @@ class WebViewRequestInterceptor {
 
     private val cookieManager = CookieManager.getInstance()
 
+    /**
+     * 最近一次主框架导航的协议（http/https），作为「登录会话所在域」的指示。
+     * 主框架导航先于其页面内子资源请求到达，故子资源处理时可据此归一协议。
+     */
+    private var currentMainFrameScheme: String? = null
+
     fun intercept(request: WebResourceRequest, isDesktopMode: Boolean): WebResourceResponse? {
         val rawUrl = request.url.toString()
 
-        // 0. 康普「全新教务」等教务登录页依赖微信 wxLogin.js；
+        // 0. 记录主框架导航协议（登录会话所在域指示），供协议归一使用。
+        if (request.isForMainFrame) {
+            request.url.scheme?.let { currentMainFrameScheme = it }
+        }
+
+        // 0.5 康普「全新教务」等教务登录页依赖微信 wxLogin.js；
         //    WebView 请求该脚本常被拒绝/失败，页面内联脚本在 new WxLogin 处抛
         //    ReferenceError 而整体中断，导致「立即登录」按钮事件未绑定、点击无反应。
         //    这里在任意模式下都用本地无害 stub 兜底，确保账号密码登录可正常使用。
@@ -135,11 +171,27 @@ class WebViewRequestInterceptor {
         // 2. 关键过滤逻辑：
         // 如果既不是 MainFrame (主网页导航)，也没有带 POST ID 标，
         // 说明这只是网页内部的普通 GET/AJAX/图片/JS 资源请求，直接放行给 WebView 原生网络栈！
+        //     ——例外：湖北职院 jwgl 域的非主框架「页面/接口类」请求需先做协议归一（见 2.5），
+        //        否则 WebView 原生栈把 http iframe/fetch 升级为 https 后无会话，返回乱码 JSON。
         if (!request.isForMainFrame && requestId == null) {
+            // 2.5 协议归一（湖北职院教务域）：仅接管「页面/接口类」子资源（排除静态资源），
+            //     且仅当请求协议与主文档（会话域）不一致时，改写协议后用 ktor 转发。
+            val scheme = request.url.scheme
+            val isNormalizeTarget = rawUrl.contains(PROTOCOL_NORMALIZE_HOST) &&
+                currentMainFrameScheme != null &&
+                scheme != currentMainFrameScheme
+            if (isNormalizeTarget && !isStaticAsset(rawUrl)) {
+                val normalizedUrl = rawUrl.replaceFirst("$scheme://", "$currentMainFrameScheme://")
+                Log.i(
+                    "WebViewInterceptor",
+                    "PROTO-NORMALIZE $rawUrl -> $normalizedUrl (main=$currentMainFrameScheme)"
+                )
+                return forwardWithKtor(normalizedUrl, request, null, isMainFrame = false)
+            }
             return null
         }
 
-        // 剥离内部凭据 Query 参数，恢复真实的目标请求 URL
+        // 3. 剥离内部凭据 Query 参数，恢复真实的目标请求 URL
         val url = if (requestIdParam != null) {
             val uriBuilder = request.url.buildUpon().clearQuery()
             request.url.queryParameterNames.forEach { name ->
@@ -156,12 +208,29 @@ class WebViewRequestInterceptor {
 
         val registeredData = requestId?.let { postBodyRegistry.remove(it) }
 
-        // 如果不是 GET 且没有获取到 Body 数据，放回原生处理
+        // 4. 如果不是 GET 且没有获取到 Body 数据，放回原生处理
         if (request.method.uppercase() != "GET" && registeredData == null) {
             return null
         }
 
-        val client = if (request.isForMainFrame) ktorClientNoRedirects else ktorClientWithRedirects
+        return forwardWithKtor(url, request, registeredData, request.isForMainFrame)
+    }
+
+    /**
+     * 用 ktor 转发请求并构造 WebResourceResponse。
+     *
+     * @param url 实际请求 URL（协议归一后可能与原始 URL 不同）
+     * @param request 原始 WebResourceRequest（携带请求头 / 方法 / 是否主框架）
+     * @param registeredData 已注册的 POST Body（无则 null）
+     * @param isMainFrame 是否主框架导航（决定跟随重定向策略与 3xx 处理方式）
+     */
+    private fun forwardWithKtor(
+        url: String,
+        request: WebResourceRequest,
+        registeredData: RegisteredPostData?,
+        isMainFrame: Boolean
+    ): WebResourceResponse? {
+        val client = if (isMainFrame) ktorClientNoRedirects else ktorClientWithRedirects
 
         try {
             return runBlocking {
@@ -205,7 +274,7 @@ class WebViewRequestInterceptor {
 
                 // WebView 无法原生解析 3xx 响应，主框架需通过 JS 跳转替代
                 if (statusCode in 300..399) {
-                    if (request.isForMainFrame) {
+                    if (isMainFrame) {
                         val location = response.headers[HttpHeaders.Location]
                         if (location != null) {
                             val absoluteLocation = resolveAbsoluteUrl(url, location)
@@ -252,7 +321,7 @@ class WebViewRequestInterceptor {
                 // 要么标注成 GBK/ISO-8859-1 等非 UTF-8 值。若未显式声明 charset，国产 ROM WebView 会回退
                 // 到系统默认 GBK，把 UTF-8 中文解成乱码（本会话见过的 {"flag1":2,"msgContent":"..乱码.."}）。
                 val rawBytes = response.bodyAsChannel().toInputStream().readBytes()
-                if (request.isForMainFrame) {
+                if (isMainFrame) {
                     val preview = rawBytes.take(8).joinToString(" ") { "%02x".format(it) }
                     Log.i("WebViewInterceptor", "MAIN $url CT=$contentTypeHeader enc=$encoding mime=$mimeType len=${rawBytes.size} first8=$preview")
                 }
@@ -260,7 +329,7 @@ class WebViewRequestInterceptor {
                 // 解码，规避系统回退 GBK；若确实是 GBK 字节，则保留原 encoding，不影响其它正常学校。
                 if (!containsUtf8(encoding)) {
                     val validUtf8 = isValidUtf8(rawBytes)
-                    val verboseLog = request.isForMainFrame || encoding.equals("ISO-8859-1", ignoreCase = true)
+                    val verboseLog = isMainFrame || encoding.equals("ISO-8859-1", ignoreCase = true)
                     if (verboseLog) {
                         Log.i("WebViewInterceptor", "ENC-CHECK declared=$encoding validUtf8=$validUtf8 -> ${if (validUtf8) "UTF-8" else "keep"}")
                     }
@@ -285,7 +354,7 @@ class WebViewRequestInterceptor {
                 // CORS 跨域子资源：适配器跨域 fetch（如国科大 xkgo→xkcts 课程详情页）经拦截器
                 // 转发时，目标服务器不返回 Access-Control-Allow-Origin，渲染进程同源策略会拦截响应。
                 // 对非主框架的拦截响应回填 ACAO:*（适配器侧配合 credentials:'omit'），绕过浏览器 CORS。
-                if (!request.isForMainFrame &&
+                if (!isMainFrame &&
                     !responseHeadersMap.keys.any { it.equals("Access-Control-Allow-Origin", ignoreCase = true) }
                 ) {
                     responseHeadersMap["Access-Control-Allow-Origin"] = "*"
@@ -303,7 +372,7 @@ class WebViewRequestInterceptor {
                     ) i += 3
                     if (i > 0) rawBytes.copyOfRange(i, rawBytes.size) else rawBytes
                 } else rawBytes
-                if (request.isForMainFrame) {
+                if (isMainFrame) {
                     val after = servedBytes.take(16).joinToString(" ") { "%02x".format(it) }
                     val sample = runCatching { servedBytes.toString(Charsets.UTF_8).substring(0, 200) }.getOrDefault("decode-fail")
                     Log.i("WebViewInterceptor", "AFTER-CLEAN len=${servedBytes.size} first16=$after enc=$encoding")
