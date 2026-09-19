@@ -169,35 +169,90 @@
     }
 
     // ---------- 课程解析 ----------
-    // 将 API 返回的原始数据转为标准课程对象
+    // 解析 jxcdmc2 字段（格式：地点1-周次1,地点2-周次2,...），返回 地点->周次数组 映射
+    function parseLocationWeeks(jxcdmc2) {
+        var result = {};
+        if (!jxcdmc2) return result;
+        var parts = jxcdmc2.split(',');
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i].trim();
+            if (!part) continue;
+            // 从右边找最后一个 '-'（地点中可能包含 '-'，周次在末尾）
+            var lastDash = part.lastIndexOf('-');
+            if (lastDash === -1) continue;
+            var location = part.substring(0, lastDash).trim();
+            var weekStr = part.substring(lastDash + 1).trim();
+            var week = parseInt(weekStr, 10);
+            if (isNaN(week)) continue;
+            if (!result[location]) result[location] = [];
+            if (result[location].indexOf(week) === -1) result[location].push(week);
+        }
+        return result;
+    }
+
+    // 将 API 返回的原始数据转为标准课程对象数组（按地点拆分）
     function parseCourseItem(item) {
         var name = clean(item.kcmc || '');
         var teacher = clean(item.teaxms || '');
-        // 教室：bapjxcd="1" 表示不用场地
-        var position = '';
-        if (item.bapjxcd === '1') {
-            position = '';
-        } else {
-            position = clean(item.jxcdmc || '');
-        }
         // 星期：qsxq 1=周日, 2=周一, ..., 7=周六，转换为 1=周一, 7=周日
         var rawDay = parseInt(item.qsxq, 10) || 1;
         var day = rawDay - 1;
         if (day < 1) day = 7;
-        // 周次：zc 字段如 "1,2,3" 或 "1-3"，解析为整数数组
-        var weeks = parseWeeksString(item.zc || '');
         // 节次：根据 qssj/jssj 计算
         var startSection = timeToStartSection(item.qssj || '08:00');
         var endSection = timeToEndSection(item.jssj || '09:30');
-        return {
+
+        // 不用场地
+        if (item.bapjxcd === '1') {
+            return [{
+                name: name,
+                teacher: teacher,
+                position: '',
+                day: day,
+                startSection: startSection,
+                endSection: endSection,
+                weeks: parseWeeksString(item.zc || '')
+            }];
+        }
+
+        // 优先用 jxcdmc2 按周次拆分地点
+        var locWeeks = parseLocationWeeks(item.jxcdmc2 || '');
+        var locKeys = Object.keys(locWeeks);
+        if (locKeys.length > 0) {
+            var courses = [];
+            for (var i = 0; i < locKeys.length; i++) {
+                var loc = locKeys[i];
+                var weeks = locWeeks[loc].slice().sort(function(a, b) { return a - b; });
+                courses.push({
+                    name: name,
+                    teacher: teacher,
+                    position: clean(loc),
+                    day: day,
+                    startSection: startSection,
+                    endSection: endSection,
+                    weeks: weeks
+                });
+            }
+            return courses;
+        }
+
+        // 没有 jxcdmc2 时，用 jxcdmc（多地点取第一个）
+        var rawPos = clean(item.jxcdmc || '');
+        var position = '';
+        if (rawPos.indexOf(',') !== -1) {
+            position = clean(rawPos.split(',')[0]);
+        } else {
+            position = rawPos;
+        }
+        return [{
             name: name,
             teacher: teacher,
             position: position,
             day: day,
             startSection: startSection,
             endSection: endSection,
-            weeks: weeks
-        };
+            weeks: parseWeeksString(item.zc || '')
+        }];
     }
 
     // 获取整个学期的课程数据（一次性大范围日期查询）
@@ -232,7 +287,12 @@
                     throw new Error(json.message || '课表API返回错误 code=' + json.code);
                 }
                 var items = json.data || [];
-                return items.map(parseCourseItem);
+                var result = [];
+                for (var i = 0; i < items.length; i++) {
+                    var courses = parseCourseItem(items[i]);
+                    for (var j = 0; j < courses.length; j++) result.push(courses[j]);
+                }
+                return result;
             });
     }
 
@@ -288,7 +348,7 @@
         var result = [];
         for (var i = 0; i < courses.length; i++) {
             var c = courses[i];
-            var key = c.name + '|' + c.day + '|' + c.startSection + '|' + c.endSection + '|' + c.teacher;
+            var key = c.name + '|' + c.day + '|' + c.startSection + '|' + c.endSection + '|' + c.teacher + '|' + c.position;
             if (map[key]) {
                 // 合并周次数组
                 map[key].weeks = mergeWeeksArray(map[key].weeks, c.weeks);
