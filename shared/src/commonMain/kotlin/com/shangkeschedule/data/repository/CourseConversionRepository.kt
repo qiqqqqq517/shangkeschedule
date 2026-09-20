@@ -256,6 +256,10 @@ class CourseConversionRepository(
         tableId: String,
         coursesJsonModel: List<ImportCourseJsonModel>
     ) {
+        // 空结果保护：下方事务会先 deleteCoursesByTableId 再插入，
+        // 若解析结果为 0 门课（例如未登录页/错误页被当作成功解析），原课表会被静默清空。
+        // 这里直接拒绝，由上层（WebBridgeHandler）提示用户并保留原有课表。
+        require(coursesJsonModel.isNotEmpty()) { "解析结果为空，已保留原有课表" }
         coursesJsonModel.forEach { validateCustomCourseTimeOrThrow(it) }
 
         val currentStyle = styleSettingsRepository.styleFlow.first()
@@ -341,7 +345,18 @@ class CourseConversionRepository(
 
             // 处理时间段数据（仅在有数据时覆盖）
             if (!jsonTimeSlots.isNullOrEmpty()) {
-                timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+                // 只替换 JSON 中出现的作息方案，保留其它方案（夏/冬令时等）的原有时间段。
+                // 原实现按 courseTableId 整表删除（deleteAllTimeSlotsByCourseTableId），
+                // 会把用户配置的其它方案时间段一并清空且不可恢复；旧 JSON 的 schemeId 缺省为
+                // "default"，因此只影响 default 方案。
+                val affectedSchemeIds = timeSlotEntities.orEmpty().map { it.schemeId }.toSet()
+                if (affectedSchemeIds.isEmpty()) {
+                    timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+                } else {
+                    affectedSchemeIds.forEach { schemeId ->
+                        timeSlotDao.deleteTimeSlotsByScheme(tableId, schemeId)
+                    }
+                }
                 timeSlotDao.insertAll(timeSlotEntities.orEmpty())
             }
 

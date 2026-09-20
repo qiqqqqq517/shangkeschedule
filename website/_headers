@@ -12,11 +12,13 @@
 /assets/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
+# CSS/JS 每次回源校验，确保字体/图片之外的样式与脚本改动即时上线
+#（原为 7 天强缓存，导致样式/脚本修复最长一周才被访客看到）
 /assets/css/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=0, must-revalidate
 
 /assets/js/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=0, must-revalidate
 
 /assets/img/*
   Cache-Control: public, max-age=2592000

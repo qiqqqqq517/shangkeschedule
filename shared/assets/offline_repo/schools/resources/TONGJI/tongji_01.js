@@ -117,11 +117,13 @@
   }
 
   main()
+    .then(() => {
+      // 仅成功路径通知原生任务完成（原生收到后会跳转课表页）；
+      // 此前放在 .finally() 中，失败时也会通知，把失败呈现为成功跳转。
+      window.shangkeBridge.notifyTaskCompletion();
+    })
     .catch((e) => {
       window.shangkeBridge.showToast(`错误: ${e.message ?? e}`);
       console.error(e);
-    })
-    .finally(() => {
-      window.shangkeBridge.notifyTaskCompletion();
     });
 })();

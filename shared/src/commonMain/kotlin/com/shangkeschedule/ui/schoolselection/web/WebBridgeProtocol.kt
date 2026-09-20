@@ -348,7 +348,15 @@ val JS_IMPORT_AUTOSTART = """
     }
 
     if (!entry) {
-        notify('未找到导入入口，请确认已打开课表页面后重试，或改用文本导入。');
+        // 自启动型适配器无法在此刻被识别：它们在顶层直接调用自己的入口函数（如 runImportFlow），
+        // 入口名不符合上述探测规则，但流程其实已经跑起来了；要等异步流程走到桥接回调
+        // （showToast/showAlert/saveImportedCourses 等）才会置位 __shangkeImportTriggered。
+        // 因此这里不立即报错，而是给一个宽限期后再判定，避免误报"未找到导入入口"。
+        // 注意：切勿改为"扩大入口名单后直接调用"——那会让已自启动的适配器并发跑两遍。
+        setTimeout(function () {
+            if (window.__shangkeImportTriggered) return; // 适配器已自行启动，静默
+            notify('未找到导入入口，请确认已打开课表页面后重试，或改用文本导入。');
+        }, 1500);
         return;
     }
 

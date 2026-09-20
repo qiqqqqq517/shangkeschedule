@@ -12,6 +12,7 @@ import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.repository.TodoRepository
+import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.tool.LunarCalendar
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,8 +90,13 @@ class AgendaViewModel(
     val uiState: StateFlow<AgendaUiState> = combine(
         appSettingsRepository.getAppSettings(),
         selectedDate,
-        visibleMonth
-    ) { settings, date, month -> Triple(settings, date, month) }
+        visibleMonth,
+        // 跨午夜刷新：todayDate 是「每次访问现算」的 getter，但只有 flow 重发射时才会被重新读取。
+        // 缺这一源时，长驻页面（日程是底栏主 Tab）跨过午夜后 state.today 仍停在昨天 →
+        // 「今日」徽标与所有 entryStatus（已结束/进行中/未开始）判定整体错一天。
+        // 周课表已用同一手法修过同类问题（WeeklyScheduleScreen 用 currentDateFlow）。
+        currentDateFlow()
+    ) { settings, date, month, _ -> Triple(settings, date, month) }
         .flatMapLatest { (settings, date, month) ->
             val tableId = settings.currentCourseTableId
             // 查询范围要同时覆盖：① 整月日历含月外补白格 → 前后各多取 7 天；

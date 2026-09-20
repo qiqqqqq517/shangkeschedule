@@ -902,6 +902,7 @@ function getTimeSlotsByAreaIndex(areaIndex) {
 async function runImportFlow() {
     let shouldExit = false;          // 最终是否退出（由用户选择决定）
     let flowEnded = false;           // 标记流程是否已经走到需要询问退出的节点
+    let importSucceeded = false;     // 是否成功完成导入（失败时不得通知原生"任务完成"）
 
     try {
         // ================= 流程开始 =================
@@ -1030,6 +1031,7 @@ async function runImportFlow() {
         await promptUserToSUCCESS(courses.length);
         console.log("JS: 整个导入流程执行完毕并成功。");
         flowEnded = true; // 成功结束
+        importSucceeded = true;
 
     } catch (e) {
         console.error('JS: 导入流程异常：', e);
@@ -1037,16 +1039,23 @@ async function runImportFlow() {
             window.shangkeBridge.showToast('导入失败：' + (e && e.message ? e.message : e));
         } catch (_) {}
         flowEnded = true; // 异常结束
+        importSucceeded = false;
     } finally {
         // 无论成功、失败、取消，只要流程已经结束，就询问是否退出
         if (flowEnded) {
             shouldExit = await promptUserToExit();
             if (shouldExit) {
-                console.log("JS: 用户选择退出，通知原生任务结束。");
-                try {
-                    window.shangkeBridge.notifyTaskCompletion();
-                } catch (error) {
-                    console.error("JS: 调用 notifyTaskCompletion 失败:", error);
+                // 仅成功导入才通知原生"任务完成"——原生收到后会跳转课表页。
+                // 异常结束时通知会把失败呈现为成功跳转，故此处显式区分。
+                if (importSucceeded) {
+                    console.log("JS: 用户选择退出，通知原生任务结束。");
+                    try {
+                        window.shangkeBridge.notifyTaskCompletion();
+                    } catch (error) {
+                        console.error("JS: 调用 notifyTaskCompletion 失败:", error);
+                    }
+                } else {
+                    console.log("JS: 导入失败结束，不通知原生完成，保留在当前页面。");
                 }
             } else {
                 console.log("JS: 用户选择留在页面，不通知原生。");

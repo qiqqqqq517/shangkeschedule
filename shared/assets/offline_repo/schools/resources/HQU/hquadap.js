@@ -32,8 +32,10 @@ async function runImportFlow() {
         const currentXNXQ = termJson.datas.xtcscx.CSZA || "2025-2026-2";
 
         const parts = currentXNXQ.split('-');
-        const currentXN = `${parts}-${parts}`;
-        const currentXQ = parts;
+        // parts 是数组：此前 `${parts}` 会得到 "2025,2026,2" 这种逗号串，XN 参数必然错误；
+        // currentXQ 也被赋成了整个数组。此处按 学年-学期 拆解。
+        const currentXN = `${parts[0]}-${parts[1]}`;
+        const currentXQ = parts[2];
 
         // --- 2. 获取配置与开学日期 ---
         let startDate = "2026-03-02";
@@ -47,7 +49,7 @@ async function runImportFlow() {
             const configJson = await configResp.json();
             const schoolConfig = configJson.datas.cxjcs.rows;
             if (schoolConfig && schoolConfig.XQKSRQ) {
-                startDate = schoolConfig.XQKSRQ.split(' ');
+                startDate = schoolConfig.XQKSRQ.split(' ')[0];   // 取日期部分；赋成数组会让原生 LocalDate.parse 抛错
                 totalWeeks = parseInt(schoolConfig.ZZC) || 18;
             }
         } catch (e) { console.log("配置抓取跳过"); }

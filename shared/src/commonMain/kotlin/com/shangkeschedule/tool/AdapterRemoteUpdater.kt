@@ -169,13 +169,37 @@ class AdapterRemoteUpdater(
     private fun resolveLocalPath(remotePath: String): Path? {
         if (remotePath.startsWith(REMOTE_PREFIX)) {
             val relative = remotePath.removePrefix(REMOTE_PREFIX)
-            if (relative.isEmpty()) return null
-            return repoDir / (LOCAL_PREFIX + relative)
+            if (!isSafeRelativePath(relative)) return null
+            return confinedToRepo(repoDir / (LOCAL_PREFIX + relative))
         }
         if (remotePath == INDEX_RELATIVE_PATH) {
-            return repoDir / INDEX_RELATIVE_PATH
+            return confinedToRepo(repoDir / INDEX_RELATIVE_PATH)
         }
         return null
+    }
+
+    /**
+     * 拒绝路径穿越：`..`、`.`、空段、绝对路径、反斜杠、空字节与 URL 编码的点/斜杠。
+     *
+     * 清单（index.json）本身无签名、path 字段不可信；即便网关侧已做白名单，
+     * 客户端也必须独立校验，避免网关被替换或配置错误时写到 repo 沙箱之外。
+     */
+    private fun isSafeRelativePath(relative: String): Boolean {
+        if (relative.isEmpty()) return false
+        if (relative.contains('\u0000')) return false
+        if (relative.contains('\\')) return false
+        if (relative.startsWith("/")) return false
+        if (relative.split('/').any { it.isEmpty() || it == "." || it == ".." }) return false
+        val lowered = relative.lowercase()
+        if (lowered.contains("%2e") || lowered.contains("%2f") || lowered.contains("%5c")) return false
+        return true
+    }
+
+    /** 双保险：断言归一化后的目标仍落在 repo 目录内。 */
+    private fun confinedToRepo(path: Path): Path? {
+        val normalized = path.normalized()
+        val repo = repoDir.normalized()
+        return if (normalized.toString().startsWith(repo.toString())) normalized else null
     }
 
     /** 本地文件已是目标版本时跳过下载（内容一致才跳过，被篡改会自动重下）。 */

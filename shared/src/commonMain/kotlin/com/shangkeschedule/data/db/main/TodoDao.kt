@@ -40,6 +40,19 @@ interface TodoDao {
     fun getAllTodos(): Flow<List<TodoItem>>
 
     /**
+     * 一次性取出全部待办（非 Flow）。供「全量备份」导出使用：
+     * 备份是快照语义，不需要实时流。
+     */
+    @Query("SELECT * FROM todo_items ORDER BY date ASC, sortOrder ASC")
+    suspend fun getAllTodosOnce(): List<TodoItem>
+
+    /**
+     * 清空全部待办。仅供「全量恢复」使用（恢复为快照替换语义，需先清空再插入）。
+     */
+    @Query("DELETE FROM todo_items")
+    suspend fun deleteAllTodos()
+
+    /**
      * 检查指定 ID 的待办是否存在，用于 Repository 判断插入还是更新。
      */
     @Query("SELECT EXISTS(SELECT 1 FROM todo_items WHERE id = :todoId)")

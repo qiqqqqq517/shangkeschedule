@@ -234,6 +234,10 @@ actual fun PlatformWebView(
 
     DisposableEffect(Unit) {
         onDispose {
+            // 复位进程级调试开关：该 API 是静态的，开启后本进程所有 WebView 都会开放
+            // chrome://inspect 调试口（可读取教务会话与页面内容）。用户离开页面即关闭。
+            WebView.setWebContentsDebuggingEnabled(false)
+
             androidController?.webViewInstance?.let { wv ->
                 wv.stopLoading()
                 wv.webChromeClient = null

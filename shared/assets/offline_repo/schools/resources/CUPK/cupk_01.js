@@ -32,7 +32,7 @@ async function promptUserToStart() {
 // 2. 获取学期信息
 async function getSemesterIndex() {
     try {
-        const response = await fetch(`https://eams.cupk.edu.cn/student/for-std/course-table`)
+        const response = await fetch(`https://eams.cupk.edu.cn/student/for-std/course-table`, { credentials: 'include' })
         const htmlString = await response.text();
         const parser = new DOMParser();
         const dom = parser.parseFromString(htmlString, 'text/html');
@@ -86,7 +86,7 @@ async function getSemesterIndex() {
 // 3. 获取课程数据
 async function fetchPrintData(semesterIndex) {
     try {
-        const responds = await fetch(`https://eams.cupk.edu.cn/student/for-std/course-table/semester/${semesterIndex}/print-data`);
+        const responds = await fetch(`https://eams.cupk.edu.cn/student/for-std/course-table/semester/${semesterIndex}/print-data`, { credentials: 'include' });
         if (!responds.ok) {
             throw new Error(`网络请求失败，状态码: ${responds.status}`);
         }
@@ -175,7 +175,7 @@ async function importPresetTimeSlots(printData) {
 async function saveConfig(semesterIndex) {
     console.log("正在准备配置数据...");
 
-    const responds = await fetch(`https://eams.cupk.edu.cn/student/ws/semester/get/${semesterIndex}`);
+    const responds = await fetch(`https://eams.cupk.edu.cn/student/ws/semester/get/${semesterIndex}`, { credentials: 'include' });
     if (!responds.ok) {
         throw new Error(`网络请求失败，状态码: ${responds.status}`);
     }

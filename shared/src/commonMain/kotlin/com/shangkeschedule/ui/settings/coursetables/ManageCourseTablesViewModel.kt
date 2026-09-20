@@ -117,11 +117,14 @@ class ManageCourseTablesViewModel(
                 startDateStr = config.semesterStartDate,
                 firstDayOfWeekInt = config.firstDayOfWeek
             )
-            if (rawWeek != null) {
-                val totalWeeks = current.totalWeeks.coerceAtLeast(1)
-                val displayWeek = rawWeek.coerceIn(1, totalWeeks)
-                currentWeek = displayWeek
-                currentWeekPercent = (displayWeek * 100) / totalWeeks
+            // 与数据层语义对齐（AppSettingsRepository：`if (rawWeek in 1..totalWeeks) rawWeek else null`）：
+            // 开学前 rawWeek ≤ 0、学期结束后 rawWeek > totalWeeks，二者都应视为「无当前周」。
+            // 原实现用 coerceIn 钳到边界，会让未开学的学期显示「第 1 周 / 5%」、
+            // 已结束的显示「第 20 周 / 100%」，与课表页/今日页的「未开始 / 学期未设置」自相矛盾。
+            val totalWeeks = current.totalWeeks.coerceAtLeast(1)
+            if (rawWeek != null && rawWeek in 1..totalWeeks) {
+                currentWeek = rawWeek
+                currentWeekPercent = (rawWeek * 100) / totalWeeks
             }
         }
 
@@ -188,6 +191,10 @@ class ManageCourseTablesViewModel(
         return try {
             courseTableRepository.createCoupleTable(selfTableId)
             true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // CancellationException 是 Exception 子类：吞掉会把「用户离开页面导致的正常取消」
+            // 误报成「创建情侣课表失败」，且被取消的协程不再向上传播取消。
+            throw e
         } catch (e: Exception) {
             false
         }

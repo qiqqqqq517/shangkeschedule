@@ -252,6 +252,13 @@ class BackupViewModel(
                     // 批量下载并校验各模块数据文件
                     val payloadMap = mutableMapOf<String, ByteArray>()
                     for (module in meta.modules) {
+                        // 远端 meta.json 完全由服务器控制，module.key 不可直接用于本地路径拼接：
+                        // 形如 "../../files/xxx" 的 key 会写到临时目录之外（okio 的 Path / String
+                        // 不做 `..` 归一化）。此处按本 App 已知模块 key 白名单收口。
+                        if (BackupModule.entries.none { it.key == module.key }) {
+                            skippedModuleKeys.add(module.key)
+                            continue
+                        }
                         val modulePath = tempDir / "${module.key}_restore.cbor"
                         if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", modulePath)) {
                             val bytes = FileSystem.SYSTEM.read(modulePath) { readByteArray() }

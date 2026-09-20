@@ -118,20 +118,27 @@ fun ScheduleGrid(
                     val deltaSection = state.topHandleDragOffsetY / sectionHeightPx
                     var proposedStart = state.expandedItem!!.startSection + deltaSection
                     proposedStart = (proposedStart / 0.25f).roundToInt() * 0.25f
-                    proposedStart.coerceIn(0f, state.expandedItem!!.endSection - minGap)
+                    // 上界必须先夹到 ≥ 下界：endSection 可为 0（24H 模式下结束时间为 00:00），
+                    // 此时 endSection - minGap = -0.25 < 0 = 下界 → coerceIn 抛
+                    // IllegalArgumentException: Cannot coerce value to an empty range（长按展开即崩）。
+                    proposedStart.coerceIn(0f, (state.expandedItem!!.endSection - minGap).coerceAtLeast(0f))
                 }
                 state.isBottomHandleDragging -> {
                     val minGap = 0.25f
                     val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
                     var proposedEnd = state.expandedItem!!.endSection + deltaSection
                     proposedEnd = (proposedEnd / 0.25f).roundToInt() * 0.25f
-                    proposedEnd.coerceIn(state.expandedItem!!.startSection + minGap, maxGridSections.toFloat())
+                    // 同理：startSection 接近 24 时下界会超过上界
+                    proposedEnd.coerceIn(
+                        (state.expandedItem!!.startSection + minGap).coerceAtMost(maxGridSections.toFloat()),
+                        maxGridSections.toFloat()
+                    )
                 }
                 state.activeMoveIntent != null -> {
                     val duration = state.activeMoveIntent!!.duration
                     var targetStart = state.activeMoveIntent!!.initialStartSection + (state.bodyDragOffsetY / sectionHeightPx)
                     targetStart = (targetStart / 0.25f).roundToInt() * 0.25f
-                    targetStart.coerceIn(0f, maxGridSections - duration)
+                    targetStart.coerceIn(0f, (maxGridSections - duration).coerceAtLeast(0f))
                 }
                 else -> null
             }
@@ -454,6 +461,14 @@ fun ScheduleGrid(
                                                                 state.bodyDragOffsetY = (targetStart - intent.initialStartSection) * sectionHeightPx
 
                                                                 actions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
+                                                                // 正常落位后必须清理拖拽/按住状态：
+                                                                // 否则 state.isEditingActive 恒为 true → 网格禁止上下滚动
+                                                                // （verticalScroll(enabled = expandedItem == null)）、
+                                                                // 左右滑周失效（userScrollEnabled = !isGridHolding），
+                                                                // 且「落位后位置未变」时不写库 → Room 流不重发 → 状态永久卡住。
+                                                                // 上方「拖到边缘进入悬浮模式」分支已做同样清理。
+                                                                state.resetAllStates()
+                                                                actions.onHoldStateChanged(false)
                                                             }
                                                         }
                                                     },
@@ -531,12 +546,15 @@ fun ScheduleGrid(
                                                     val deltaSection = state.topHandleDragOffsetY / sectionHeightPx
                                                     var proposedStart = currentItem.startSection + deltaSection
                                                     proposedStart = if (is24HourMode) (proposedStart / 0.25f).roundToInt() * 0.25f else proposedStart.roundToInt().toFloat()
-                                                    finalStart = proposedStart.coerceIn(0f, finalEnd - minGap)
+                                                    finalStart = proposedStart.coerceIn(0f, (finalEnd - minGap).coerceAtLeast(0f))
                                                 } else if (state.isBottomHandleDragging) {
                                                     val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
                                                     var proposedEnd = currentItem.endSection + deltaSection
                                                     proposedEnd = if (is24HourMode) (proposedEnd / 0.25f).roundToInt() * 0.25f else proposedEnd.roundToInt().toFloat()
-                                                    finalEnd = proposedEnd.coerceIn(finalStart + minGap, maxGridSections.toFloat())
+                                                    finalEnd = proposedEnd.coerceIn(
+                                                        (finalStart + minGap).coerceAtMost(maxGridSections.toFloat()),
+                                                        maxGridSections.toFloat()
+                                                    )
                                                 }
                                                 // v3.43.0 尺寸把手吸附：先把拖出的偏移弹簧吸回整格，再提交时间变更
                                                 val isTopHandle = state.isTopHandleDragging

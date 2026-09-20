@@ -112,13 +112,23 @@ class CourseInstanceListViewModel(
         }
     }
 
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
     fun deleteSelectedCourses() {
+        // 防重入：确认按钮可连点，而原实现在协程启动**前**读取集合并于 suspend 之后才清空，
+        // 因此连点两次会读到同一份非空集合 → 对同一批 ID 重复执行删除事务。
+        if (_isDeleting.value) return
         val idsToDelete = _selectedCourseIds.value.toList()
-        if (idsToDelete.isNotEmpty()) {
-            viewModelScope.launch {
+        if (idsToDelete.isEmpty()) return
+        _isDeleting.value = true
+        viewModelScope.launch {
+            try {
                 courseTableRepository.deleteCoursesByIds(idsToDelete)
                 _selectedCourseIds.value = emptySet()
                 _isSelectionMode.value = false
+            } finally {
+                _isDeleting.value = false
             }
         }
     }

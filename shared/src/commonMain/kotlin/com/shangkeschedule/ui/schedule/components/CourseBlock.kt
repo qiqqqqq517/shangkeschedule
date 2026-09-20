@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.schedule.components
+package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -145,7 +145,13 @@ fun CourseBlock(
         val baseColorMap = style.courseColorMaps[index]
         if (isDarkTheme) baseColorMap.dark else baseColorMap.light
     }
-    val fallbackColorAdapted: Color = if (isDarkTheme) style.courseColorMaps.first().dark else style.courseColorMaps.first().light
+    // 兜底色：色板为空时不能用 first()（抛 NoSuchElementException，周课表为首页 ⇒ 冷启动闪退）。
+    // 与同文件上方 buildPresetRenderSpec 及 WeeklyScheduleScreen 保持同一套兜底写法。
+    val fallbackColorAdapted: Color = (
+        style.courseColorMaps.firstOrNull()
+            ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
+        )?.let { if (isDarkTheme) it.dark else it.light }
+        ?: if (isDarkTheme) Color(0xFF3A3A3C) else Color(0xFFB0B0B8)
 
     val currentAlpha = if (isFloating) 0.95f else style.courseBlockAlpha
     // 【颜色池 alpha 不可覆盖】颜色池里的颜色自带 alpha，且是设计令牌（书卷/通透浅色池 = 0x40 / 0x1F 淡底）。

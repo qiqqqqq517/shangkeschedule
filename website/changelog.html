@@ -84,6 +84,18 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3648">v3.64.8 · 全库审计修复批次（二）：数据安全 / 教务适配 / UI 正确性</a></li>
+        <li><a href="#v3647">v3.64.7 · 全库审计后修复批次（数据安全 / 发布安全 / 教务适配）</a></li>
+        <li><a href="#v3644">v3.64.4 · 湖北职业技术学院教务内容区乱码根治（协议归一）</a></li>
+        <li><a href="#v3642">v3.64.2 · 湖北职业技术学院教务入口统一为 https</a></li>
+        <li><a href="#v3631">v3.63.1 · 湖北职业技术学院入口改为统一认证（CAS）</a></li>
+        <li><a href="#v3630">v3.63.0 · 湖北职业技术学院适配完全重开发（参照汕头大学架构）</a></li>
+        <li><a href="#v3620">v3.62.0 · 湖北职业技术学院适配重做（新入口 jwc.hbvtc.edu.cn）</a></li>
+        <li><a href="#v3613">v3.61.3 · 湖北职院登录后教务显示优化</a></li>
+        <li><a href="#v3612">v3.61.2 · 太原师范学院教务入口更新</a></li>
+        <li><a href="#v3611">v3.61.1 · 湖北职院登录页中文乱码修复</a></li>
+        <li><a href="#v3610">v3.61.0 · 新增广州番禺职业技术学院适配</a></li>
+        <li><a href="#v3600">v3.60.0 · 新增湖北职业技术学院适配</a></li>
         <li><a href="#v3591">v3.59.1 · 南昌大学入口调整与适配网关上线</a></li>
         <li><a href="#v3590">v3.59.0 · 教务适配增强与主题精简</a></li>
         <li><a href="#v3575">v3.57.5 · 课程备注可多行编辑</a></li>
@@ -108,6 +120,161 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3648">
+        <div><span class="tl-ver">v3.64.8</span><span class="tl-date">2026-09-20</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3647">
+        <div><span class="tl-ver">v3.64.7</span><span class="tl-date">2026-09-19</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>导入课表时误报「未找到导入入口」</h3>
+          <ul>
+            <li>126 个自启动型适配器（顶层直接调用 <code>runImportFlow</code> 等、入口名不符合探测规则）在流程其实已启动的情况下仍弹出该提示，用户误以为失败而放弃或重试。改为宽限期 1.5 秒后复查自启动标志，已启动则静默。</li>
+            <li>导入接口在空结果时直接拒绝并保留原有课表（此前会先删除再插入空列表，还提示「导入成功」）。</li>
+            <li>时间段覆盖改为「按方案替换」（此前按课表整表删除，用户配置的夏/冬令时方案时间段被一并清空且不可恢复）。</li>
+            <li>新增「全局用户数据」备份模块，换机/恢复不再丢失待办与日程。</li>
+            <li>昵称/学校/学院/专业/年级/签名/头像、动态岛、减少动效、动效速度、下节课卡片模式、刷新率模式现随备份迁移（旧备份缺字段时保留设备现值，不会被默认值静默清空）。</li>
+            <li>拒绝内容为空/被截断的备份（此前会删光所有课表却返回成功）；恢复后的「当前课表」指针会校验有效性，不再指向不存在的课表。</li>
+            <li>任一模块导出失败即整体失败，避免「备份成功但课表模块缺失」。</li>
+            <li>远端 <code>meta.json</code> 的模块 key 增加白名单校验（此前可直接用于拼接本地路径）。</li>
+            <li>CORS 回显收窄为「同站（同一可注册域）」白名单，并移除 <code>ACAO:*</code> 回退；同时修正可注册域判定（原实现只取末两段标签，把 <code>hbvtc.edu.cn</code> 与 <code>zjnu.edu.cn</code> 都算成 <code>edu.cn</code>，使跨站保护形同虚设）。</li>
+            <li>此前进入编辑器会永久停在未加载态（空表单），保存时零写入却提示「保存成功」。</li>
+            <li>保存按钮增加「数据已加载且列表非空」前置条件。</li>
+            <li><code>coerceIn</code> 区间反转（结束时间为 00:00 时上界为负）导致 <code>IllegalArgumentException</code>，已改为先夹端点。</li>
+            <li>导致网格无法上下滚动、左右滑周失效。</li>
+            <li>滚轮显示值与确认值不一致，已修正。</li>
+            <li>情侣叠加模式下可能重复 key 导致整页崩溃。</li>
+            <li>改为按用户设置的每周首日。</li>
+            <li>均已加固。</li>
+            <li>华侨大学学年参数拼接错误；同济/广东技师「失败也报完成」；中国石油大学（两校区）跨域请求未带凭据；重庆大学失败分支引用未定义变量。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3644">
+        <div><span class="tl-ver">v3.64.4</span><span class="tl-date">2026-09-19</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>湖北职业技术学院教务内容区 JSON 乱码从根上修复</h3>
+          <ul>
+            <li>此前仅统一入口为 https（v3.64.2），但 WebView 对页面内相对路径的 iframe/fetch 子资源仍会自动升级为 https，与登录会话所在域（http）失配，内容区（个人中心 / 首页课表 / 学籍二维码 / 课表查询等）仍可能显示 <code>{"flag1":2,"msgContent":"请先登录系统"}</code> 乱码。本次在 WebView 请求拦截层新增<b>协议归一</b>：对 <code>jwgl.hbvtc.edu.cn</code> 域的非主框架页面/接口类请求，自动改写为主文档（登录会话域）的协议后转发并携带对应 Cookie，iframe 与 fetch 与主文档同协议同会话，内容区恢复正常（真机实测通过：iframe 课表、学籍二维码、课表查询均正常渲染）。</li>
+            <li>静态资源（JS/CSS/图片等）无需会话，保持原生加载不受影响；改动仅限湖北职院教务域，不影响其它学校。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3642">
+        <div><span class="tl-ver">v3.64.2</span><span class="tl-date">2026-09-18</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>湖北职业技术学院登录后教务内容区 JSON 乱码问题修复</h3>
+          <ul>
+            <li>此前入口 CAS <code>service</code> 参数指向 http（<code>jwgl.hbvtc.edu.cn/sso.jsp</code>），登录会话绑定 http 域；而 WebView 会把页面内相对路径的 iframe 自动升级为 https 请求，https 域与 http 域会话不互通，内容区（个人中心 / 课表查询等）会显示 <code>{"flag1":2,"msgContent":"请先登录系统"}</code> 乱码 JSON。现将入口 <code>service</code> 统一改为 <b>https</b>，登录后会话与 iframe 请求同域，内容区恢复正常。</li>
+            <li>版本说明：学校索引（school_index.pb）已重建，湖北职院入口指向 https 版 CAS 单点登录。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3631">
+        <div><span class="tl-ver">v3.63.1</span><span class="tl-date">2026-09-17</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li>湖北职业技术学院导入入口由原教务域直连改为<b>统一身份认证（CAS）</b>：<code>cas.hbvtc.edu.cn/authserver/login?service=…/jwgl.hbvtc.edu.cn/sso.jsp</code>。用户先在统一认证页用校园账号登录，CAS 单点登录后再落地教务域（jwgl），适配器在其上正常解析课表，登录体验与其他采用统一认证的学校一致。</li>
+            <li>版本说明：学校索引（school_index.pb）已重建，湖北职院入口指向 CAS 登录页。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3630">
+        <div><span class="tl-ver">v3.63.0</span><span class="tl-date">2026-09-17</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>湖北职业技术学院适配器完全重开发</h3>
+          <ul>
+            <li>删除此前经官网跳转的抓取链路，改为与汕头大学一致的「直连强智教务域入口」架构——入口直接落在 <code>jwgl.hbvtc.edu.cn/jsxsd/framework/xsMainV.htmlx</code>，登录后在同一教务域内以<b>同源 fetch</b> 抓取课表（<code>xskb_list.do</code>），DOMParser 解析即得课表，一次点击完成导入。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>登录/会话失效时 JSON 乱码整屏问题根治</h3>
+          <ul>
+            <li>此前未登录点导入会以 <code>location.href</code> 裸跳到课表页，教务域会话未建立时强智直接返回 <code>{"flag1":2,"msgContent":"请先登录系统"}</code> 文本，UTF-8 被国产 ROM 回退 GBK 解成乱码占据整屏。新适配器<b>绝不裸跳</b>：停在任何页面点导入都只做同源 fetch；返回内容校验（JSON / 非 HTML / 无课表表格）一律判为未登录，明确提示用户先在教务域登录后再导入，绝不把原始响应当页面渲染。</li>
+            <li>新增 <code>isLoginPage</code> 检测，停在强智登录表单（<code>loginForm</code> / <code>userAccount</code> / <code>userPassword</code>）时提示用户输入学号、密码与验证码登录后再执行导入；「一键导航到课表」精确跳转教务域课表页。</li>
+            <li>同一 <code>div.kbcontent</code> 内多门课以 <code>----</code> 文本分隔线分隔，现在能完整拆分并分别导入，不再漏课。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li>湖北职业技术学院继续列入「强制电脑版」名单，以其固定 1280px 桌面布局正常登录与展示课表。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3620">
+        <div><span class="tl-ver">v3.62.0</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>湖北职业技术学院专属适配重做</h3>
+          <ul>
+            <li>清理旧版适配（旧 CAS 直登入口失效），改以教务处官网 <code>jwc.hbvtc.edu.cn</code> 为入口，经服务大厅进入强智教务（<code>jwgl.hbvtc.edu.cn/jsxsd</code>）。新适配器按 <code>table#timetable</code> + <code>div.kbcontent</code> + <code>font[title]</code> 精确解析课程名、教师、周次节次与教室，支持多年多学期下拉选择与 POST 切换，当前学期与历史学期均验证可导入。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>重新纳入湖北职院「强制电脑版」名单</h3>
+          <ul>
+            <li>其教务系统为固定宽度桌面布局，继续以桌面 UA + 1280px 视口进入，保证登录后课表完整可见。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3613">
+        <div><span class="tl-ver">v3.61.3</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>湖北职业技术学院登录后教务页手机显示异常修复</h3>
+          <ul>
+            <li>该校统一身份认证（CAS）登录页在手机 UA 下会提示「暂不支持手机浏览器登录」，且登录后跳转的强智教务（<code>jwgl.hbvtc.edu.cn</code>）为固定宽度桌面布局，手机视口下横向溢出、右侧内容被截断。现将该校纳入「强制电脑版」名单，以桌面 UA + 1280px 视口修正进入，登录后课表网格完整可见、可正常导入。</li>
+            <li>部分教务接口返回 UTF-8 字节但响应头未声明 charset（或标注为 GBK / ISO-8859-1 等非 UTF-8），国产 ROM WebView 会回退到系统默认 GBK，把「请先登录系统」一类提示解成乱码。现对「未声明 UTF-8」的响应做字节级 UTF-8 合法性校验，确认为 UTF-8 即强制按 UTF-8 解码并同步修正 Content-Type 头，本身使用 GBK 的学校不受影响。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3612">
+        <div><span class="tl-ver">v3.61.2</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>太原师范学院教务入口改为学校统一身份认证</h3>
+          <ul>
+            <li>导入入口由 <code>jwxk.tynu.edu.cn:50000</code> 正方教务直连地址改为学校统一身份认证平台 <code>iam.tynu.edu.cn</code>，登录路径更贴合学校实际，并规避原域名失效风险。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3611">
+        <div><span class="tl-ver">v3.61.1</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>湖北职业技术学院统一认证（CAS）登录页 App 内中文乱码修复</h3>
+          <ul>
+            <li>服务端返回的 HTML 响应体开头带双重 UTF-8 BOM（服务端缺陷），国产 ROM WebView 遇双 BOM 时编码检测会回退到系统默认 GBK，导致登录页占位符与按钮中文全部乱码。现由应用内请求代理接管主框架 HTML，剥离开头所有多余 BOM 后再交给 WebView 渲染。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3610">
+        <div><span class="tl-ver">v3.61.0</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增广州番禺职业技术学院专属教务适配</h3>
+          <ul>
+            <li>识别强智经典课表 \#kbtable\，正确处理同一单元格内多门课程以分隔线隔开的布局，按「老师 / 周次(节次) / 教室」字段精确解析；支持学期切换选择。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3600">
+        <div><span class="tl-ver">v3.60.0</span><span class="tl-date">2026-09-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增湖北职业技术学院专属教务适配</h3>
+          <ul>
+            <li>经学校统一身份认证（CAS）登录后直达强智课表，按 \div.kbcontent\ 与 \</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3591">
         <div><span class="tl-ver">v3.59.1</span><span class="tl-date">2026-09-16</span></div>

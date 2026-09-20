@@ -31,8 +31,8 @@ android {
         applicationId = "com.shangkeschedule"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 247
-        versionName = "3.64.5"
+        versionCode = 250
+        versionName = "3.64.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -136,5 +136,34 @@ androidComponents {
             // 动态设置输出的 APK 文件名
             output.outputFileName.set("shangke-v${versionName}-${abiFilter}-${buildType}.apk")
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 发布安全闸：release 构建缺少签名时直接失败
+//
+// 背景：signingConfigs 与 release.signingConfig 都被 `if (hasLocalKeystore)` 包住，
+// 且没有 else / 没有 throw —— 忘记拷 keystore.properties 时 release 会「构建成功」并产出
+// **未签名** APK；又因上方 outputFileName 覆盖了 AGP 默认的 "-unsigned" 后缀，
+// 产物文件名与已签名包完全相同，一旦误发 Release，用户侧统一报「应用未安装 / 解析包错误」。
+//
+// 注：AGENTS.md 提到的 validateSigningRelease 在当前脚本中并不存在，此处补上等价关卡。
+// ---------------------------------------------------------------------------
+val releaseSigningInjected = providers.gradleProperty("android.injected.signing.store.file").isPresent
+
+gradle.taskGraph.whenReady {
+    val buildingRelease = allTasks.any {
+        it.name == "assembleRelease" ||
+            it.name == "packageRelease" ||
+            it.name == "bundleRelease" ||
+            it.name.startsWith("assembleRelease") ||
+            it.name.startsWith("bundleRelease")
+    }
+    if (buildingRelease && !hasLocalKeystore && !releaseSigningInjected) {
+        throw GradleException(
+            "release 构建缺少签名，已阻止产出未签名包。\n" +
+                "  本地构建：请确认 androidApp/keystore.properties 存在（含 storeFile/storePassword/keyAlias/keyPassword）。\n" +
+                "  CI 构建：请通过 -Pandroid.injected.signing.store.file=... 等参数注入签名。"
+        )
     }
 }

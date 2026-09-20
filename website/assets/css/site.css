@@ -869,6 +869,12 @@ ul, ol { margin: 0; padding: 0; }
 }
 .theme-stage[data-stage='dark'] .theme-shot { border-color: #3e3e38; }
 .theme-shot img { width: 100%; }
+/* 手机截图为超长竖屏(540×1170)，统一限高，超高即等比收缩居中显示、不裁切内容 */
+.shot img,
+.theme-shot img {
+  max-height: min(620px, 76vh);
+  object-fit: contain;
+}
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
@@ -881,6 +887,9 @@ ul, ol { margin: 0; padding: 0; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 20px;
+  /* 两列并列手机截图易过大，收窄居中使每台手机约 310px 宽、不顶满整列 */
+  max-width: 640px;
+  margin-inline: auto;
 }
 .split-theme figure { margin: 0; }
 .split-theme figcaption {

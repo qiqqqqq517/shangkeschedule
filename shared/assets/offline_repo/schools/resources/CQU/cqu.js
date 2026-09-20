@@ -19,7 +19,7 @@ const baseFetch = async (url, accessToken, method, body, description) => {
     );
     if (!response.ok) {
         window.shangkeBridge.showToast(`获取${description}失败，请退出重试`);
-        throw new Error(`获取${description}失败: ${termResponse.status} ${termResponse.statusText}`);
+        throw new Error(`获取${description}失败: ${response.status} ${response.statusText}`);
     }
     return await response.json();
 }

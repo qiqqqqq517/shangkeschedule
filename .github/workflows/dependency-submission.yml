@@ -1,8 +1,9 @@
 name: Gradle Dependency Submission
 
+# 【仅手动触发】原为 `on: push: branches: [main]`，导致每次推送 main 都会在托管 runner 上
+# 执行仓库内 Gradle 脚本并持 contents:write 令牌，与 AGENTS.md「正式版一律本地构建、禁用 CI」
+# 的策略表述不一致。需要刷新依赖图谱时手动运行本工作流即可。
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 permissions:

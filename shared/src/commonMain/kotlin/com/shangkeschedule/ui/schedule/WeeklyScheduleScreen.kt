@@ -491,6 +491,14 @@ fun WeeklyScheduleScreen(
                                         text = stringResource(Res.string.title_add_course),
                                         onClick = {
                                             showOverflowMenu = false
+                                            // 必须发送预设事件：AddEditCourseViewModel 在 courseId == null 时
+                                            // 会阻塞等待 AddEditCourseChannel.presetDataFlow.firstOrNull()。
+                                            // 漏发会让编辑器永久停在未加载态（空表单：无方案卡/无节次/无颜色），
+                                            // 保存时 schemes 为空 → 一条数据都不写却提示「保存成功」。
+                                            // 其余入口（同文件空网格入口、课程名列表、课程实例列表）均已发送。
+                                            AddEditCourseChannel.sendEvent(
+                                                PresetCourseData(startSection = 1, endSection = 2)
+                                            )
                                             onNavigate(Destination.AddEditCourse())
                                         }
                                     )

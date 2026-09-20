@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings
+package com.shangkeschedule.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -714,7 +714,11 @@ internal fun NumberPickerDialog(
         text = {
             NativeNumberPicker(
                 values = range.toList(),
-                selectedValue = initialValue.coerceIn(range),
+                // 必须传本地编辑值：传恒定的 initialValue 时，NativeNumberPicker 内部
+                // LaunchedEffect(initialSelectedIndex) 会把滚轮拉回原位并再次回调
+                // onValueChange(initialValue)，把 dialogSelectedValue 重置为初始值 ——
+                // 用户拨动滚轮后点确认写入的是「未修改的旧值」，改总周数直接无效。
+                selectedValue = dialogSelectedValue,
                 onValueChange = { newValue ->
                     dialogSelectedValue = newValue
                 },

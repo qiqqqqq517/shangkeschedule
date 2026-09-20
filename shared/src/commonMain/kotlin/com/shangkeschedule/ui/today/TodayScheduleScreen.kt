@@ -866,7 +866,11 @@ private fun TodayThemeContent(
         } else {
             itemsIndexed(
                 state.courses,
-                key = { _, model -> model.course.id }
+                // key 必须带课表维度：开启情侣叠加后 state.courses 是「本人 + 情侣」拼接列表，
+                // 跨表同 id（导入保留原 id）会产生重复 key → LazyColumn 抛
+                // IllegalArgumentException: Key was already used，整页崩溃。
+                // 下方明日列表已用 "tomorrow-" 前缀隔离，此处保持一致口径。
+                key = { _, model -> "${model.course.courseTableId}-${model.course.id}" }
             ) { index, model ->
                 Box(modifier = if (reduceMotion) Modifier else Modifier.animateItem()) {
                     TodayTimelineItem(

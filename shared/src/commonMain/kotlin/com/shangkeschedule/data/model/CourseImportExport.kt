@@ -15,6 +15,12 @@ object CourseImportExport {
     const val COURSE_SCHEMA_VERSION = 2
 
     /**
+     * 全局用户数据（待办 / 日程）备份规范版本号。
+     * v1：首次纳入全量备份（此前这两个表完全不进备份，换机/恢复即丢）。
+     */
+    const val USER_DATA_SCHEMA_VERSION = 1
+
+    /**
      * 自定义 Json 解析器
      * ignoreUnknownKeys = true: 确保旧版 App 遇到新加的字段（如 remark）时能跳过而不崩溃
      * encodeDefaults = true: 导出时即使字段是默认值也会包含在 JSON 中
@@ -199,7 +205,66 @@ object CourseImportExport {
         /** 全局动画风格名（GLASS/GENTLE/SNAPPY）；v3.26.0 新增 */
         val animationStyle: String = "GLASS",
         /** 已关闭的动画分组名集合；v3.26.0 新增 */
-        val disabledAnimationGroups: Set<String> = emptySet()
+        val disabledAnimationGroups: Set<String> = emptySet(),
+
+        // ---- v2 新增：此前未纳入备份、换机恢复即丢的字段 ----
+        // 全部可空：旧备份缺字段 ⇒ CBOR 解码为 null ⇒ 恢复时保留设备现值，
+        // 避免用非空默认值（""/false）把用户已填写的资料静默清空。
+        val dynamicIslandEnabled: Boolean? = null,
+        val reduceMotionEnabled: Boolean? = null,
+        val motionSpeed: String? = null,
+        val nextCardMode: String? = null,
+        val refreshRateMode: String? = null,
+        val profileNickname: String? = null,
+        val profileSchool: String? = null,
+        val profileCollege: String? = null,
+        val profileMajor: String? = null,
+        val profileGrade: String? = null,
+        val profileSignature: String? = null,
+        val profileAvatarPath: String? = null
+    )
+
+    /**
+     * 全局用户数据（待办 + 日程）备份信封。
+     *
+     * 背景：`todo_items` / `schedule_events` 是 Room 实体，但此前不属于任何备份模块，
+     * 全量备份/恢复（本地 zip 与 WebDAV）完全不覆盖它们 —— 换机或恢复后这两张表为空。
+     */
+    @Serializable
+    data class UserDataBackupEnvelope(
+        val backupTimestamp: Long,
+        val appVersionCode: Int,
+        val todos: List<TodoBackupModel> = emptyList(),
+        val events: List<ScheduleEventBackupModel> = emptyList()
+    )
+
+    @Serializable
+    data class TodoBackupModel(
+        val id: String,
+        val date: String,
+        val title: String,
+        val note: String? = null,
+        val time: String? = null,
+        val done: Boolean = false,
+        val sortOrder: Int = 0,
+        val createdAt: Long = 0L,
+        val updatedAt: Long = 0L
+    )
+
+    @Serializable
+    data class ScheduleEventBackupModel(
+        val id: String,
+        val date: String,
+        val title: String,
+        val category: String = "other",
+        val isAllDay: Boolean = false,
+        val startTime: String? = null,
+        val endTime: String? = null,
+        val location: String? = null,
+        val note: String? = null,
+        val done: Boolean = false,
+        val createdAt: Long = 0L,
+        val updatedAt: Long = 0L
     )
 
 }

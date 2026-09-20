@@ -30,12 +30,18 @@ class WebCompatDelegate(private val webView: WebView) {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
+            // 本 WebView 只加载 http(s) 教务页面，file:// 相关开关纯属多余攻击面：
+            // allowUniversalAccessFromFileURLs / allowFileAccessFromFileURLs 均已 deprecated，
+            // 官方建议恒为 false；allowFileAccess / allowContentAccess 同理。
             @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true
+            allowUniversalAccessFromFileURLs = false
             @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = true
-            allowFileAccess = true
-            allowContentAccess = true
+            allowFileAccessFromFileURLs = false
+            allowFileAccess = false
+            allowContentAccess = false
+            // 注意：mixedContentMode 保持 ALWAYS_ALLOW —— 大量教务站点为 http，
+            // 且 https 门户页会嵌入 http 子资源；收紧会直接打断这些学校的正常访问。
+            // 该风险由「拦截器 CORS 同站白名单」与「桥接来源校验」两项来对冲（见审计清单 E8）。
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             useWideViewPort = true
             loadWithOverviewMode = true
@@ -104,8 +110,15 @@ class WebCompatDelegate(private val webView: WebView) {
             }
 
             override fun onReceivedSslError(v: WebView?, h: SslErrorHandler?, e: SslError?) {
-                val host = e?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() } ?: ""
-                onLoadError(host)
+                // 仅当失败请求与主框架同主机时才提示全屏错误页：
+                // 页面内子资源（统计脚本、外链图片）证书异常不应打断用户，
+                // 否则会误触全屏「加载失败」，且原实现把主机名当作错误描述展示。
+                // 取消行为保持不变（不调用 proceed()）。
+                val mainHost = v?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
+                val errHost = e?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
+                if (mainHost != null && errHost != null && mainHost == errHost) {
+                    onLoadError(errHost)
+                }
                 h?.cancel()
                 original.onReceivedSslError(v, h, e)
             }

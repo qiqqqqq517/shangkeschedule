@@ -169,21 +169,25 @@
     }
 
     // ---------- 课程解析 ----------
-    // 解析 jxcdmc2 字段（格式：地点1-周次1,地点2-周次2,...），返回 地点->周次数组 映射
+    // 解析 jxcdmc2 字段（格式：地点1-周次1,地点2-周次2,...），返回 地点->周次数组 映射。
+    // 同平台（乘方教务）的其它适配器逐周列出「地点-周次」，故按最后一个 '-' 切分；
+    // 若某项省略了地点（如 "-3"），沿用上一项的地点，避免产出空地点的课程块。
     function parseLocationWeeks(jxcdmc2) {
         var result = {};
         if (!jxcdmc2) return result;
         var parts = jxcdmc2.split(',');
+        var lastLocation = '';
         for (var i = 0; i < parts.length; i++) {
             var part = parts[i].trim();
             if (!part) continue;
             // 从右边找最后一个 '-'（地点中可能包含 '-'，周次在末尾）
             var lastDash = part.lastIndexOf('-');
             if (lastDash === -1) continue;
-            var location = part.substring(0, lastDash).trim();
-            var weekStr = part.substring(lastDash + 1).trim();
-            var week = parseInt(weekStr, 10);
-            if (isNaN(week)) continue;
+            var week = parseInt(part.substring(lastDash + 1).trim(), 10);
+            if (isNaN(week) || week < 1) continue;
+            var location = part.substring(0, lastDash).trim() || lastLocation;
+            if (!location) continue;
+            lastLocation = location;
             if (!result[location]) result[location] = [];
             if (result[location].indexOf(week) === -1) result[location].push(week);
         }
@@ -202,8 +206,8 @@
         var startSection = timeToStartSection(item.qssj || '08:00');
         var endSection = timeToEndSection(item.jssj || '09:30');
 
-        // 不用场地
-        if (item.bapjxcd === '1') {
+        // 不用场地（bapjxcd 可能是字符串 "1" 也可能是数字 1，统一转字符串比较）
+        if (String(item.bapjxcd) === '1') {
             return [{
                 name: name,
                 teacher: teacher,
@@ -256,21 +260,17 @@
     }
 
     // 获取整个学期的课程数据（一次性大范围日期查询）
+    // xnxqdm 前 4 位是学年起始年（202601 = 2026-2027学年第1学期），该学年的两个学期
+    // 都落在 year-08 ~ (year+1)-08 区间内；服务端按 xnxqdm 过滤学期，故用整个学年窗口即可。
+    // 注意：不要按 term 分别推算——第2学期跨到次年，用 year 推算会整整差一年、查不到课。
+    // （同平台的成都医学院适配器 CMC/cmc_01.js 亦采用同样的学年窗口写法。）
     function fetchAllWeeks(xnxqdm) {
-        // 根据学期代码推算大致的学期日期范围
-        // xnxqdm 格式：202601 = 2026-2027学年第1学期
         var year = parseInt(xnxqdm.substring(0, 4), 10);
-        var term = parseInt(xnxqdm.substring(4, 6), 10);
-        var d1, d2;
-        if (term === 1) {
-            // 第1学期：9月初 ~ 1月中
-            d1 = year + '-08-25 00:00:00';
-            d2 = (year + 1) + '-01-20 23:59:59';
-        } else {
-            // 第2学期：2月底 ~ 7月初
-            d1 = year + '-02-20 00:00:00';
-            d2 = year + '-07-15 23:59:59';
+        if (isNaN(year)) {
+            throw new Error('学期代码无法解析：' + xnxqdm);
         }
+        var d1 = year + '-08-01 00:00:00';
+        var d2 = (year + 1) + '-08-31 23:59:59';
         var body = 'd1=' + encodeURIComponent(d1) +
             '&d2=' + encodeURIComponent(d2) +
             '&zc=' + encodeURIComponent('') +
@@ -405,11 +405,19 @@
                 var items = semesters.list.map(function (s) { return s.label; });
                 return select('选择学期', items, semesters.currentIndex)
                     .then(function (idx) {
-                        var chosen = semesters.list[idx];
-                        return { chosen: chosen, semesters: semesters };
+                        // 宿主取消时 resolve(null)；正常返回下标（可能是数字或数字字符串）。
+                        // 必须显式判定取消，否则 list[null] 会得到 undefined 并在后续抛错，
+                        // 用户主动取消却看到「导入失败」。
+                        var i = (idx === null || idx === undefined) ? -1 : parseInt(idx, 10);
+                        if (isNaN(i) || i < 0 || i >= semesters.list.length) {
+                            toast('导入已取消');
+                            return null;
+                        }
+                        return { chosen: semesters.list[i], semesters: semesters };
                     });
             })
             .then(function (ctx) {
+                if (!ctx || !ctx.chosen) return null;
                 var chosen = ctx.chosen;
                 toast('正在获取「' + chosen.label + '」的课表…');
                 // 获取所有周的课程数据

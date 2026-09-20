@@ -43,6 +43,18 @@ interface ScheduleEventDao {
     fun getEventsBetweenDates(startDate: String, endDate: String): Flow<List<ScheduleEvent>>
 
     /**
+     * 一次性取出全部日程（非 Flow）。供「全量备份」导出使用（快照语义）。
+     */
+    @Query("SELECT * FROM schedule_events ORDER BY date ASC, createdAt ASC")
+    suspend fun getAllEventsOnce(): List<ScheduleEvent>
+
+    /**
+     * 清空全部日程。仅供「全量恢复」使用（恢复为快照替换语义，需先清空再插入）。
+     */
+    @Query("DELETE FROM schedule_events")
+    suspend fun deleteAllEvents()
+
+    /**
      * 检查指定 ID 的日程是否存在，用于 Repository 判断插入还是更新。
      */
     @Query("SELECT EXISTS(SELECT 1 FROM schedule_events WHERE id = :eventId)")

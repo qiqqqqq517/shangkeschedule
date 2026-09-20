@@ -178,10 +178,11 @@ class TodayScheduleViewModel(
                             flowOf(emptyList())
                         }
 
-                    // 明日课程（iOS 主题用）。周日跨周修正（v3.54.0）：明天是下周一时
-                    // 查询周次 +1；超出学期总周数则明日无课（此前周日会查到本周一的课）
+                    // 明日课程（iOS 主题用）。跨周修正：明天是「每周首日」时查询周次 +1；
+                    // 注意周界由 firstDayOfWeek 决定，不能写死周一（用户把首日设为周日时，
+                    // 周六查看「明天=周日」属下一周，写死 1 会查到本周周日的课）。
                     val tomorrowDayOfWeek = (dayOfWeek % 7) + 1
-                    val tomorrowWeekIndex = if (tomorrowDayOfWeek == 1) {
+                    val tomorrowWeekIndex = if (tomorrowDayOfWeek == snapshot.firstDayOfWeek) {
                         snapshot.weekIndex?.plus(1)
                     } else {
                         snapshot.weekIndex

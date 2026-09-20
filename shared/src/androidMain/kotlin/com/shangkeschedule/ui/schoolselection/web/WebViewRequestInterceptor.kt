@@ -48,7 +48,25 @@ class WebViewRequestInterceptor {
             }
         }
 
-        private var postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
+        /** POST 体注册表容量上限（正常表单提交远小于此，仅作内存防护） */
+        private const val POST_REGISTRY_MAX = 16
+
+        /**
+         * POST 体注册表条目存活时间。注册后若请求始终未被拦截（被缓存 / 被取消 / 走了别的分支），
+         * 条目会永久占用名额；超过该时长即视为滞留条目回收。
+         */
+        private const val POST_REGISTRY_TTL_MS = 60_000L
+
+        /**
+         * 单次拦截可缓冲的响应体上限。
+         *
+         * 主框架导航会被本拦截器无条件代理，且响应体是整体读入堆的（BOM 剥离还会再复制一份）。
+         * 导航到导出文件/附件（xls/zip/pdf 等）会 OOM。超过该阈值时返回 null，
+         * 交还 WebView 原生网络栈直接处理（原生栈是流式下载，且支持 HTTP 缓存与断点）。
+         */
+        private const val MAX_INTERCEPT_BYTES = 4L * 1024 * 1024
+
+        private val postBodyRegistry = Collections.synchronizedMap(mutableMapOf<String, RegisteredPostData>())
 
         /**
          * 协议归一目标主机：湖北职业技术学院教务域（jwgl.hbvtc.edu.cn）。
@@ -61,6 +79,17 @@ class WebViewRequestInterceptor {
          * 的协议后用 ktor 转发（自动附带对应协议的 Cookie），从根上消除 http/https 会话失配。
          */
         private const val PROTOCOL_NORMALIZE_HOST = "jwgl.hbvtc.edu.cn"
+
+        /**
+         * 常见的「两段公共后缀」。切分可注册域时必须识别它们，否则
+         * `hbvtc.edu.cn` 与 `zjnu.edu.cn` 的末两段都是 `edu.cn`，会被误判为同站。
+         */
+        private val MULTI_PART_SUFFIXES = setOf(
+            "edu.cn", "com.cn", "net.cn", "org.cn", "gov.cn", "ac.cn", "mil.cn",
+            "edu.hk", "com.hk", "org.hk", "gov.hk",
+            "edu.tw", "com.tw", "org.tw", "gov.tw",
+            "edu.mo", "com.mo", "org.mo"
+        )
 
         /** 判断声明的 charset 是否含 UTF-8（大小写不敏感，容忍 "utf8" / "utf-8" / "UTF_8"） */
         private fun containsUtf8(charset: String): Boolean {
@@ -119,13 +148,35 @@ class WebViewRequestInterceptor {
         }
 
         fun registerPostData(id: String, body: String, contentType: String) {
-            // 容量防护：防止恶意页面无限注册 POST 体撑爆内存；
-            // 单条 body 也限制在 1MB 内（正常表单提交远小于此）。
-            if (postBodyRegistry.size >= 16 || body.length > 1_000_000) return
-            postBodyRegistry[id] = RegisteredPostData(body, contentType)
+            // 容量防护：单条 body 限制在 1MB 内（正常表单提交远小于此）。
+            if (body.length > 1_000_000) return
+            synchronized(postBodyRegistry) {
+                val now = System.currentTimeMillis()
+                // 先回收滞留条目：注册后未被消费的条目会一直占名额，
+                // 一旦占满，后续所有 POST 体都会被静默丢弃 → 导入/查询全线失败且无任何提示。
+                val expired = postBodyRegistry
+                    .filterValues { now - it.createdAtMs > POST_REGISTRY_TTL_MS }
+                    .keys.toList()
+                expired.forEach { postBodyRegistry.remove(it) }
+                // 仍然满则淘汰最旧一条，保证新请求体不被丢弃（宁可牺牲最旧的悬挂请求）。
+                if (postBodyRegistry.size >= POST_REGISTRY_MAX) {
+                    postBodyRegistry.minByOrNull { it.value.createdAtMs }?.let { oldest ->
+                        postBodyRegistry.remove(oldest.key)
+                        Log.w(
+                            "WebViewInterceptor",
+                            "POST registry full, evicted oldest entry: ${oldest.key}"
+                        )
+                    }
+                }
+                postBodyRegistry[id] = RegisteredPostData(body, contentType, now)
+            }
         }
 
-        private data class RegisteredPostData(val body: String, val contentType: String)
+        private data class RegisteredPostData(
+            val body: String,
+            val contentType: String,
+            val createdAtMs: Long
+        )
     }
 
     private val cookieManager = CookieManager.getInstance()
@@ -133,15 +184,27 @@ class WebViewRequestInterceptor {
     /**
      * 最近一次主框架导航的协议（http/https），作为「登录会话所在域」的指示。
      * 主框架导航先于其页面内子资源请求到达，故子资源处理时可据此归一协议。
+     *
+     * @Volatile：shouldInterceptRequest 会在 WebView 的多个后台线程并发调用，
+     * 无同步会导致可见性/竞态问题（协议归一失效或反向误改写）。
      */
+    @Volatile
     private var currentMainFrameScheme: String? = null
+
+    /**
+     * 最近一次主框架导航的主机。用于防止「跨站串用」：
+     * 若主文档与目标教务域不同站，则不套用主文档协议，避免把别的站点的协议误加到教务域上。
+     */
+    @Volatile
+    private var currentMainFrameHost: String? = null
 
     fun intercept(request: WebResourceRequest, isDesktopMode: Boolean): WebResourceResponse? {
         val rawUrl = request.url.toString()
 
-        // 0. 记录主框架导航协议（登录会话所在域指示），供协议归一使用。
+        // 0. 记录主框架导航协议与主机（登录会话所在域指示），供协议归一使用。
         if (request.isForMainFrame) {
             request.url.scheme?.let { currentMainFrameScheme = it }
+            currentMainFrameHost = request.url.host?.lowercase()
         }
 
         // 0.5 康普「全新教务」等教务登录页依赖微信 wxLogin.js；
@@ -176,12 +239,8 @@ class WebViewRequestInterceptor {
         if (!request.isForMainFrame && requestId == null) {
             // 2.5 协议归一（湖北职院教务域）：仅接管「页面/接口类」子资源（排除静态资源），
             //     且仅当请求协议与主文档（会话域）不一致时，改写协议后用 ktor 转发。
-            val scheme = request.url.scheme
-            val isNormalizeTarget = rawUrl.contains(PROTOCOL_NORMALIZE_HOST) &&
-                currentMainFrameScheme != null &&
-                scheme != currentMainFrameScheme
-            if (isNormalizeTarget && !isStaticAsset(rawUrl)) {
-                val normalizedUrl = rawUrl.replaceFirst("$scheme://", "$currentMainFrameScheme://")
+            val normalizedUrl = normalizeProtocolIfNeeded(rawUrl, isMainFrame = false)
+            if (normalizedUrl != rawUrl) {
                 Log.i(
                     "WebViewInterceptor",
                     "PROTO-NORMALIZE $rawUrl -> $normalizedUrl (main=$currentMainFrameScheme)"
@@ -213,7 +272,87 @@ class WebViewRequestInterceptor {
             return null
         }
 
-        return forwardWithKtor(url, request, registeredData, request.isForMainFrame)
+        // 5. 带请求体的请求（POST 等）同样需要协议归一：否则 WebView 把 http POST 升级为 https 后
+        //    会话 Cookie 对不上，教务系统返回「请先登录系统」JSON（切学期 / 查询等操作静默失败）。
+        val finalUrl = normalizeProtocolIfNeeded(url, request.isForMainFrame)
+        if (finalUrl != url) {
+            Log.i(
+                "WebViewInterceptor",
+                "PROTO-NORMALIZE $url -> $finalUrl (main=$currentMainFrameScheme, method=${request.method})"
+            )
+        }
+        return forwardWithKtor(finalUrl, request, registeredData, request.isForMainFrame)
+    }
+
+    /**
+     * 按需把请求协议改写成主文档（会话所在域）的协议。
+     *
+     * 仅在以下条件全部满足时改写，其余情况原样返回：
+     *  1) 非主框架请求（主框架导航本身就是会话域的判定依据，不改写）；
+     *  2) 目标属于 [PROTOCOL_NORMALIZE_HOST]；
+     *  3) 不是静态资源（静态资源无需会话）；
+     *  4) 已记录主文档协议，且（若已知主文档主机）与目标同站，避免跨站串用协议；
+     *  5) 请求协议与主文档协议确实不一致。
+     */
+    private fun normalizeProtocolIfNeeded(url: String, isMainFrame: Boolean): String {
+        if (isMainFrame) return url
+        if (!url.contains(PROTOCOL_NORMALIZE_HOST)) return url
+        if (isStaticAsset(url)) return url
+
+        val sessionScheme = currentMainFrameScheme ?: return url
+
+        // 跨站保护：主文档与目标不同站时不做归一。
+        // 主文档主机未知（极早期请求）时保持原行为，避免把已有修复改坏。
+        val targetHost = hostOf(url)
+        if (targetHost != null) {
+            currentMainFrameHost?.let { mainHost ->
+                if (!isSameSite(mainHost, targetHost)) return url
+            }
+        }
+
+        val scheme = when {
+            url.startsWith("https://") -> "https"
+            url.startsWith("http://") -> "http"
+            else -> return url
+        }
+        if (scheme == sessionScheme) return url
+        return sessionScheme + url.removePrefix(scheme)
+    }
+
+    /** 从 URL 中取出主机名（小写、去掉 userinfo 与端口）。解析失败返回 null。 */
+    private fun hostOf(url: String): String? {
+        val start = url.indexOf("://")
+        if (start < 0) return null
+        val rest = url.substring(start + 3)
+        val end = rest.indexOfFirst { it == '/' || it == '?' || it == '#' }
+        val authority = if (end < 0) rest else rest.substring(0, end)
+        val host = authority.substringAfter('@').substringBefore(':').lowercase()
+        return host.ifBlank { null }
+    }
+
+    /**
+     * 是否为同一站点（比较可注册域 / 近似 eTLD+1）。
+     * 例：cas.hbvtc.edu.cn 与 jwgl.hbvtc.edu.cn → 同站；hbvtc.edu.cn 与 zjnu.edu.cn → 不同站。
+     */
+    private fun isSameSite(a: String, b: String): Boolean {
+        val ra = registrableDomain(a)
+        val rb = registrableDomain(b)
+        return ra.isNotEmpty() && ra == rb
+    }
+
+    /**
+     * 取可注册域（近似 eTLD+1）。
+     *
+     * 不能简单取末两段标签：`hbvtc.edu.cn` 与 `zjnu.edu.cn` 的末两段都是 `edu.cn`
+     * （公共后缀），会被误判成同站，使跨站保护形同虚设。故对已知的两段公共后缀取末三段。
+     */
+    private fun registrableDomain(host: String): String {
+        val h = host.lowercase().trim('.')
+        if (h.isEmpty()) return ""
+        val parts = h.split('.')
+        if (parts.size <= 2) return h
+        val last2 = parts.takeLast(2).joinToString(".")
+        return if (last2 in MULTI_PART_SUFFIXES) parts.takeLast(3).joinToString(".") else last2
     }
 
     /**
@@ -269,6 +408,14 @@ class WebViewRequestInterceptor {
                     cookieManager.setCookie(url, cookieStr)
                 }
                 cookieManager.flush()
+
+                // 大响应体保护（见 MAX_INTERCEPT_BYTES）：声明长度超限时直接交还原生栈，
+                // 避免把导出文件/附件整包读进堆导致 OOM（还会因 BOM 剥离再复制一份）。
+                val declaredLength = response.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+                if (declaredLength != null && declaredLength > MAX_INTERCEPT_BYTES) {
+                    Log.i("WebViewInterceptor", "SKIP large response len=$declaredLength url=$url")
+                    return@runBlocking null
+                }
 
                 val statusCode = response.status.value
 
@@ -353,11 +500,40 @@ class WebViewRequestInterceptor {
 
                 // CORS 跨域子资源：适配器跨域 fetch（如国科大 xkgo→xkcts 课程详情页）经拦截器
                 // 转发时，目标服务器不返回 Access-Control-Allow-Origin，渲染进程同源策略会拦截响应。
-                // 对非主框架的拦截响应回填 ACAO:*（适配器侧配合 credentials:'omit'），绕过浏览器 CORS。
+                //
+                // 安全约束（重要）：本拦截器会**无条件**把目标站点的 Cookie 附加到转发请求上
+                // （见上方 cookieManager.getCookie），因此绝不能对任意来源回填 ACAO——
+                // 否则任意页面（被注入的第三方 iframe、或被中间人篡改的明文页）都能跨站读取
+                // 其它站点「已登录」后的响应（成绩/学籍）。此前回填 ACAO:* 同样可被利用
+                // （攻击者用默认的非凭据模式即可读取），故 * 回退一并移除。
+                //
+                // 仅在「请求来源」与「请求目标」同站（同一可注册域）时才回显 Origin 并声明
+                // Allow-Credentials。学校自身的跨子域适配器（jw.cupk.edu.cn → eams.cupk.edu.cn、
+                // xkgo → xkcts 等）属同站，不受影响；跨站的（含 44 条错配适配器）将被拦截并记录日志。
                 if (!isMainFrame &&
                     !responseHeadersMap.keys.any { it.equals("Access-Control-Allow-Origin", ignoreCase = true) }
                 ) {
-                    responseHeadersMap["Access-Control-Allow-Origin"] = "*"
+                    val origin = request.requestHeaders.entries
+                        .firstOrNull { it.key.equals("Origin", ignoreCase = true) }
+                        ?.value
+                    val originHost = origin?.let { hostOf(it) }
+                    val targetHost = hostOf(url)
+                    val sameSite = originHost != null && targetHost != null && isSameSite(originHost, targetHost)
+                    if (sameSite) {
+                        responseHeadersMap["Access-Control-Allow-Origin"] = origin!!
+                        responseHeadersMap["Access-Control-Allow-Credentials"] = "true"
+                        val varyKey = responseHeadersMap.keys.firstOrNull { it.equals("Vary", ignoreCase = true) }
+                        when {
+                            varyKey == null -> responseHeadersMap["Vary"] = "Origin"
+                            !responseHeadersMap.getValue(varyKey).contains("Origin", ignoreCase = true) ->
+                                responseHeadersMap[varyKey] = responseHeadersMap.getValue(varyKey) + ", Origin"
+                        }
+                    } else if (originHost != null) {
+                        Log.w(
+                            "WebViewInterceptor",
+                            "CORS-BLOCK cross-site response: origin=$originHost target=$targetHost"
+                        )
+                    }
                 }
 
                 // 对 text/html 清洗开头可能多余的 UTF-8 BOM：

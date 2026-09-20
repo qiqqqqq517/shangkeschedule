@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.time
+package com.shangkeschedule.ui.settings.time
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -211,7 +211,13 @@ fun TimeSlotManagementScreen(
     val toastSchemeNameDuplicate = stringResource(Res.string.toast_scheme_name_duplicate)
 
     // 数据加载同步逻辑
-    LaunchedEffect(uiState) {
+    //
+    // key 不能是整个 uiState：它是 data class，`effectiveSchemeId` / `schemeMetas` 等
+    // 与草稿无关的字段变化也会重新发射并重跑本 effect，把用户正在编辑的 localTimeSlots
+    // 清空并回填为 DB 当前值（未保存的编辑被静默丢弃）；且 handleBackPress 的
+    // 「未保存变更」检测基于同一份被污染的草稿，会误判「无变更」直接返回，编辑彻底不可恢复。
+    // 收窄为「数据首次加载完成」与「切换作息方案」两个真正需要回填的时机。
+    LaunchedEffect(uiState.isDataLoaded, uiState.currentSchemeId) {
         if (uiState.isDataLoaded) {
             localTimeSlots.clear()
             localTimeSlots.addAll(uiState.timeSlots.sortedBy { it.number })
@@ -271,22 +277,29 @@ fun TimeSlotManagementScreen(
                     }) {
                         Icon(vectorResource(Res.drawable.add_24px), contentDescription = a11yAddTimeSlot)
                     }
-                    IconButton(onClick = {
-                        coroutineScope.launch {
-                            val sortedAndNumberedSlots = localTimeSlots
-                                .sortedBy { parseLocalTimeSafely(it.startTime) }
-                                .mapIndexed { index, slot -> slot.copy(number = index + 1) }
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                val sortedAndNumberedSlots = localTimeSlots
+                                    .sortedBy { parseLocalTimeSafely(it.startTime) }
+                                    .mapIndexed { index, slot -> slot.copy(number = index + 1) }
 
-                            timeSlotViewModel.onSaveAllSettings(
-                                timeSlots = sortedAndNumberedSlots,
-                                classDuration = localDefaultClassDuration,
-                                breakDuration = localDefaultBreakDuration,
-                                onSuccess = {
-                                    ToastManager.show(toastSettingsSaved)
-                                }
-                            )
-                        }
-                    }) {
+                                timeSlotViewModel.onSaveAllSettings(
+                                    timeSlots = sortedAndNumberedSlots,
+                                    classDuration = localDefaultClassDuration,
+                                    breakDuration = localDefaultBreakDuration,
+                                    onSuccess = {
+                                        ToastManager.show(toastSettingsSaved)
+                                    }
+                                )
+                            }
+                        },
+                        // 首帧/空列表保护：uiState 初始 isDataLoaded=false，localTimeSlots 初值取自
+                        // uiState.timeSlots（此时为空）。若在这一帧点保存，会传入空列表 →
+                        // saveSchemeSettings 先无条件 deleteTimeSlotsByScheme、空列表则跳过插入
+                        // → 该作息方案全部时间段被清空（不可恢复），却提示「已保存」。
+                        enabled = uiState.isDataLoaded && localTimeSlots.isNotEmpty()
+                    ) {
                         Icon(vectorResource(Res.drawable.save_24px), contentDescription = a11ySaveAllSettings)
                     }
                 }
@@ -360,7 +373,11 @@ fun TimeSlotManagementScreen(
                 }
             }
 
-            itemsIndexed(localTimeSlots, key = { _, slot -> "slot_${slot.number}" }) { _, timeSlot ->
+            // key 用稳定身份（起始时间，本页语义下唯一），不能用 slot.number：
+            // number 在每次增删/保存时都会按 startTime 重新编号（mapIndexed），
+            // 删除中间一节会让其后所有项的 key 全部变化，Compose 判定为全新项并重建
+            // （丢失 item 级状态与 animateItem 连续性）。
+            itemsIndexed(localTimeSlots, key = { _, slot -> "slot_${slot.startTime}" }) { _, timeSlot ->
                 TimeSlotItem(
                     timeSlot = timeSlot,
                     onEditClick = {

@@ -468,7 +468,10 @@ class WeeklyScheduleViewModel (
                 val mondayDate = source.mondayDate
                 val timeSlots = source.timeSlots
                 val composedStyle = style.toComposedStyle()
-                val startDate = config?.semesterStartDate?.let { LocalDate.parse(it) }
+                // 裸解析会抛 DateTimeFormatException：semesterStartDate 为可空 String，
+                // 导入/历史数据可能是空串或非 ISO 格式；异常会沿 flow 传播并取消收集协程，
+                // 导致整个周课表 uiState 永久失联（标题恒「学期未设置」、课程不再刷新）。
+                val startDate = config?.semesterStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
                 val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
                 val totalWeeks = config?.semesterTotalWeeks ?: 20
                 val today = source.today

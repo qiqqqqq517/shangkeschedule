@@ -4,12 +4,20 @@ import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.db.main.MainAppDatabase
+import com.shangkeschedule.data.db.main.ScheduleEvent
+import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupEnvelope
+import com.shangkeschedule.data.model.CourseImportExport.ScheduleEventBackupModel
+import com.shangkeschedule.data.model.CourseImportExport.TodoBackupModel
+import com.shangkeschedule.data.model.CourseImportExport.UserDataBackupEnvelope
+import com.shangkeschedule.data.model.NextCardMode
+import com.shangkeschedule.data.model.RefreshRateMode
+import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
 import com.shangkeschedule.data.model.CourseImportExport.ImportCourseJsonModel
@@ -37,7 +45,16 @@ import kotlin.time.Clock
 enum class BackupModule(val key: String) {
     COURSE("course"),
     STYLE("style"),
-    APP_SETTINGS("app_settings")
+    APP_SETTINGS("app_settings"),
+
+    /**
+     * 全局用户数据（待办 + 日程）。
+     *
+     * 新增原因：`todo_items` / `schedule_events` 是 Room 实体，但此前不属于任何备份模块，
+     * 全量备份/恢复（本地 zip 与 WebDAV 共用同一入口）完全不覆盖它们 ——
+     * 用户换机或恢复备份后，全部待办与日程丢失且无任何提示。
+     */
+    USER_DATA("user_data")
 }
 
 /**
@@ -89,22 +106,31 @@ class BackupRepository(
             modules.forEach { module ->
                 when (module) {
                     BackupModule.COURSE -> {
-                        exportAllCourseTablesCbor()?.let {
-                            payloadMap[module.key] = it
+                        val bytes = exportAllCourseTablesCbor()
+                        if (bytes != null) {
+                            payloadMap[module.key] = bytes
                             moduleInfos.add(ModuleInfo(module.key, CourseImportExport.COURSE_SCHEMA_VERSION))
+                        } else if (courseTableRepository.getAllCourseTables().first().isNotEmpty()) {
+                            // 有课表却导出为 null ⇒ 是异常而非「无数据」。
+                            // 原实现静默跳过，导致备份「成功」但课表模块缺失，换机恢复才发现课表全空。
+                            return@withContext null
                         }
+                        // 确实没有任何课表时跳过该模块是正确语义
                     }
                     BackupModule.STYLE -> {
-                        exportAppStyleBytes()?.let {
-                            payloadMap[module.key] = it
-                            moduleInfos.add(ModuleInfo(module.key, StyleSettingsRepository.STYLE_SCHEMA_VERSION))
-                        }
+                        val bytes = exportAppStyleBytes() ?: return@withContext null
+                        payloadMap[module.key] = bytes
+                        moduleInfos.add(ModuleInfo(module.key, StyleSettingsRepository.STYLE_SCHEMA_VERSION))
                     }
                     BackupModule.APP_SETTINGS -> {
-                        exportAppSettingsBytes()?.let {
-                            payloadMap[module.key] = it
-                            moduleInfos.add(ModuleInfo(module.key, APP_SETTINGS_SCHEMA_VERSION))
-                        }
+                        val bytes = exportAppSettingsBytes() ?: return@withContext null
+                        payloadMap[module.key] = bytes
+                        moduleInfos.add(ModuleInfo(module.key, APP_SETTINGS_SCHEMA_VERSION))
+                    }
+                    BackupModule.USER_DATA -> {
+                        val bytes = exportUserDataBytes() ?: return@withContext null
+                        payloadMap[module.key] = bytes
+                        moduleInfos.add(ModuleInfo(module.key, CourseImportExport.USER_DATA_SCHEMA_VERSION))
                     }
                 }
             }
@@ -147,11 +173,17 @@ class BackupRepository(
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
                     }
+                    BackupModule.USER_DATA.key -> {
+                        if (info.schemaVersion > CourseImportExport.USER_DATA_SCHEMA_VERSION) {
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+                        }
+                    }
                 }
             }
             val courseSnapshot = exportAllCourseTablesCbor()
             val styleSnapshot = exportAppStyleBytes()
             val appSettingsSnapshot = exportAppSettingsBytes()
+            val userDataSnapshot = exportUserDataBytes()
 
             try {
                 backupPackage.meta.modules.forEach { info ->
@@ -160,6 +192,7 @@ class BackupRepository(
                         BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
                         BackupModule.STYLE.key -> restoreAppStyleBytes(data)
                         BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
+                        BackupModule.USER_DATA.key -> restoreUserDataBytes(data)
                         else -> Result.success(Unit)
                     }
                     if (result.isFailure) {
@@ -174,6 +207,7 @@ class BackupRepository(
                 runCatching { courseSnapshot?.let { restoreAllCourseTablesCbor(it).getOrThrow() } }
                 runCatching { styleSnapshot?.let { restoreAppStyleBytes(it).getOrThrow() } }
                 runCatching { appSettingsSnapshot?.let { restoreAppSettingsBytes(it).getOrThrow() } }
+                runCatching { userDataSnapshot?.let { restoreUserDataBytes(it).getOrThrow() } }
                 Result.failure(e)
             }
         } catch (e: Exception) {
@@ -230,6 +264,14 @@ class BackupRepository(
 
             if (envelope.appVersionCode > CourseImportExport.COURSE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            }
+
+            // 完整性校验：allTables 为空的备份（内容为空、或被截断但恰好仍可解码）会让下方
+            // 「清空现有课表」删光用户所有课表却什么都不插入，且全程返回成功。
+            if (envelope.allTables.isEmpty()) {
+                return@withContext Result.failure(
+                    IllegalStateException(getString(Res.string.backup_err_corrupted))
+                )
             }
 
             // 事务保护：先备份当前所有课表到内存，恢复失败时可回滚
@@ -400,7 +442,11 @@ class BackupRepository(
     // 3. 应用设置备份通道
 
     companion object {
-        const val APP_SETTINGS_SCHEMA_VERSION = 1
+        /**
+         * 应用设置备份规范版本。
+         * v2：新增个人信息（昵称/学校/学院/专业/年级/签名/头像）与 5 项此前未备份的设置。
+         */
+        const val APP_SETTINGS_SCHEMA_VERSION = 2
     }
 
     /**
@@ -435,7 +481,20 @@ class BackupRepository(
                 glassRefractionDispersion = settings.glassRefractionDispersion,
                 glassRefractionDepthEffect = settings.glassRefractionDepthEffect,
                 animationStyle = settings.animationStyle.name,
-                disabledAnimationGroups = settings.disabledAnimationGroups.map { it.name }.toSet()
+                disabledAnimationGroups = settings.disabledAnimationGroups.map { it.name }.toSet(),
+                // v2：此前未纳入备份、换机恢复即丢的字段
+                dynamicIslandEnabled = settings.dynamicIslandEnabled,
+                reduceMotionEnabled = settings.reduceMotionEnabled,
+                motionSpeed = settings.motionSpeed.name,
+                nextCardMode = settings.nextCardMode.name,
+                refreshRateMode = settings.refreshRateMode.name,
+                profileNickname = settings.profileNickname,
+                profileSchool = settings.profileSchool,
+                profileCollege = settings.profileCollege,
+                profileMajor = settings.profileMajor,
+                profileGrade = settings.profileGrade,
+                profileSignature = settings.profileSignature,
+                profileAvatarPath = settings.profileAvatarPath
             )
             val envelope = AppSettingsBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
@@ -470,8 +529,18 @@ class BackupRepository(
 
             val bm = envelope.settings
             val currentSettings = appSettingsRepository.getAppSettingsOnce()
+
+            // 指针有效性校验（E10）：备份里的 currentCourseTableId 可能在本机不存在 ——
+            // 例如 WebDAV 部分恢复时 course 模块下载失败被跳过、而 app_settings 恢复成功。
+            // 直接采用会让 App 指向不存在的课表 → 界面显示空课表，用户只看到「部分模块恢复」警告，
+            // 无从定位原因。
+            val validTableIds = courseTableRepository.getAllCourseTables().first().map { it.id }.toSet()
+            val resolvedCurrentTableId = bm.currentCourseTableId.takeIf { it.isNotBlank() && it in validTableIds }
+                ?: currentSettings.currentCourseTableId.takeIf { it in validTableIds }
+                ?: validTableIds.firstOrNull().orEmpty()
+
             val restoredSettings = currentSettings.copy(
-                currentCourseTableId = bm.currentCourseTableId,
+                currentCourseTableId = resolvedCurrentTableId,
                 reminderEnabled = bm.reminderEnabled,
                 remindBeforeMinutes = bm.remindBeforeMinutes,
                 skippedDates = bm.skippedDates,
@@ -499,9 +568,121 @@ class BackupRepository(
                 animationStyle = runCatching { com.shangkeschedule.ui.theme.AnimationStyle.valueOf(bm.animationStyle) }.getOrNull() ?: currentSettings.animationStyle,
                 disabledAnimationGroups = bm.disabledAnimationGroups
                     .mapNotNull { runCatching { com.shangkeschedule.ui.theme.AnimationGroup.valueOf(it) }.getOrNull() }
-                    .toSet()
+                    .toSet(),
+                // v2 可空字段：旧备份解码为 null ⇒ 保留设备现值（避免被 ""/false 默认值静默清空）
+                dynamicIslandEnabled = bm.dynamicIslandEnabled ?: currentSettings.dynamicIslandEnabled,
+                reduceMotionEnabled = bm.reduceMotionEnabled ?: currentSettings.reduceMotionEnabled,
+                motionSpeed = bm.motionSpeed?.let { runCatching { MotionSpeed.valueOf(it) }.getOrNull() }
+                    ?: currentSettings.motionSpeed,
+                nextCardMode = bm.nextCardMode?.let { runCatching { NextCardMode.valueOf(it) }.getOrNull() }
+                    ?: currentSettings.nextCardMode,
+                refreshRateMode = bm.refreshRateMode?.let { runCatching { RefreshRateMode.valueOf(it) }.getOrNull() }
+                    ?: currentSettings.refreshRateMode,
+                profileNickname = bm.profileNickname ?: currentSettings.profileNickname,
+                profileSchool = bm.profileSchool ?: currentSettings.profileSchool,
+                profileCollege = bm.profileCollege ?: currentSettings.profileCollege,
+                profileMajor = bm.profileMajor ?: currentSettings.profileMajor,
+                profileGrade = bm.profileGrade ?: currentSettings.profileGrade,
+                profileSignature = bm.profileSignature ?: currentSettings.profileSignature,
+                profileAvatarPath = bm.profileAvatarPath ?: currentSettings.profileAvatarPath
             )
             appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 4. 全局用户数据（待办 / 日程）备份通道
+
+    /**
+     * 导出全部待办与日程为 CBOR 字节。
+     *
+     * 这两张表是全局数据（不随课表切换），故与课表模块分开、单独作为一个备份模块。
+     * 即使无任何数据也返回**有效信封**（而非 null），以保证「备份包含该模块」语义明确 ——
+     * 用户可能确实没有待办，此时空列表就是正确快照。
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun exportUserDataBytes(): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val todos = database.todoDao().getAllTodosOnce().map {
+                TodoBackupModel(
+                    id = it.id, date = it.date, title = it.title, note = it.note,
+                    time = it.time, done = it.done, sortOrder = it.sortOrder,
+                    createdAt = it.createdAt, updatedAt = it.updatedAt
+                )
+            }
+            val events = database.scheduleEventDao().getAllEventsOnce().map {
+                ScheduleEventBackupModel(
+                    id = it.id, date = it.date, title = it.title, category = it.category,
+                    isAllDay = it.isAllDay, startTime = it.startTime, endTime = it.endTime,
+                    location = it.location, note = it.note, done = it.done,
+                    createdAt = it.createdAt, updatedAt = it.updatedAt
+                )
+            }
+            val envelope = UserDataBackupEnvelope(
+                backupTimestamp = Clock.System.now().toEpochMilliseconds(),
+                appVersionCode = CourseImportExport.USER_DATA_SCHEMA_VERSION,
+                todos = todos,
+                events = events
+            )
+            CourseImportExport.cbor.encodeToByteArray(UserDataBackupEnvelope.serializer(), envelope)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 从 CBOR 字节恢复待办与日程。
+     *
+     * 采用**快照替换**语义（同一事务内先清空再插入），与课表模块的恢复语义保持一致，
+     * 避免旧数据残留导致「恢复到某个时间点」的结果不准确。
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun restoreUserDataBytes(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (bytes.isEmpty()) {
+                return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
+            }
+
+            val envelope = try {
+                CourseImportExport.cbor.decodeFromByteArray(UserDataBackupEnvelope.serializer(), bytes)
+            } catch (_: Exception) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
+            }
+
+            if (envelope.appVersionCode > CourseImportExport.USER_DATA_SCHEMA_VERSION) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            }
+
+            database.withWriteTransaction {
+                database.todoDao().deleteAllTodos()
+                database.scheduleEventDao().deleteAllEvents()
+
+                if (envelope.todos.isNotEmpty()) {
+                    database.todoDao().insertAll(
+                        envelope.todos.map {
+                            TodoItem(
+                                id = it.id, date = it.date, title = it.title, note = it.note,
+                                time = it.time, done = it.done, sortOrder = it.sortOrder,
+                                createdAt = it.createdAt, updatedAt = it.updatedAt
+                            )
+                        }
+                    )
+                }
+                if (envelope.events.isNotEmpty()) {
+                    database.scheduleEventDao().insertAll(
+                        envelope.events.map {
+                            ScheduleEvent(
+                                id = it.id, date = it.date, title = it.title, category = it.category,
+                                isAllDay = it.isAllDay, startTime = it.startTime, endTime = it.endTime,
+                                location = it.location, note = it.note, done = it.done,
+                                createdAt = it.createdAt, updatedAt = it.updatedAt
+                            )
+                        }
+                    )
+                }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
