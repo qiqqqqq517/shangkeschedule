@@ -844,6 +844,10 @@
     <string name="item_webdav_config">WebDAV Configuration</string>
     <string name="desc_webdav_unconfigured">Cloud drive connection not configured</string>
     <string name="desc_webdav_connected">Connected: %1$s</string>
+    <string name="item_webdav_auto_sync">WebDAV Auto Sync</string>
+    <string name="desc_webdav_auto_sync_unconfigured">Configure WebDAV to enable auto sync</string>
+    <string name="desc_webdav_auto_sync_enabled">On; data changes are uploaded to the cloud automatically</string>
+    <string name="desc_webdav_auto_sync_disabled">Off; upload only when backing up manually</string>
     <string name="dialog_title_backup_target">Select Backup Destination</string>
     <string name="dialog_title_restore_source">Select Restore Source</string>
     <string name="dialog_title_config_webdav">Configure WebDAV</string>

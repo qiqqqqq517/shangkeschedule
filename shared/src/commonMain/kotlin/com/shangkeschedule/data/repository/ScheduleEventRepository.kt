@@ -37,6 +37,11 @@ class ScheduleEventRepository(
         return scheduleEventDao.getEventsBetweenDates(startDate, endDate)
     }
 
+    /** 获取全部日程的数据流，供 WebDAV 自动同步监听全局数据变化。 */
+    fun getAllEvents(): Flow<List<ScheduleEvent>> {
+        return scheduleEventDao.getAllEvents()
+    }
+
     /**
      * 新增一条日程。
      *

@@ -2,6 +2,7 @@ package com.shangkeschedule.data.repository
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.shangkeschedule.data.api.webdav.WebDavClient
@@ -35,6 +36,7 @@ class ApiConfigRepository(
             val ROOT_PATH = stringPreferencesKey("${PREFIX}root_path")
             val ENCRYPTED_PASSWORD = stringPreferencesKey("${PREFIX}encrypted_pwd")
             val CRYPTO_IV = stringPreferencesKey("${PREFIX}crypto_iv")
+            val AUTO_SYNC_ENABLED = booleanPreferencesKey("${PREFIX}auto_sync_enabled")
         }
     }
 
@@ -66,6 +68,11 @@ class ApiConfigRepository(
         } else {
             null
         }
+    }
+
+    /** WebDAV 自动同步总开关。默认关闭，断开 WebDAV 时一并清除。 */
+    val webDavAutoSyncEnabledFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[ApiKeys.WebDav.AUTO_SYNC_ENABLED] ?: false
     }
 
     /**
@@ -100,6 +107,19 @@ class ApiConfigRepository(
             preferences.remove(ApiKeys.WebDav.ROOT_PATH)
             preferences.remove(ApiKeys.WebDav.ENCRYPTED_PASSWORD)
             preferences.remove(ApiKeys.WebDav.CRYPTO_IV)
+            preferences.remove(ApiKeys.WebDav.AUTO_SYNC_ENABLED)
+        }
+    }
+
+    /**
+     * 更新 WebDAV 自动同步开关。
+     *
+     * 这里只负责持久化；真正的后台调度由平台层监听该开关后处理，
+     * 共享层不依赖 WorkManager，便于桌面端/iOS 后续复用同一配置。
+     */
+    suspend fun setWebDavAutoSyncEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[ApiKeys.WebDav.AUTO_SYNC_ENABLED] = enabled
         }
     }
 

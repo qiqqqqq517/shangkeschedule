@@ -848,6 +848,10 @@
     <string name="item_webdav_config">WebDAV 参数配置</string>
     <string name="desc_webdav_unconfigured">未配置网盘连接</string>
     <string name="desc_webdav_connected">已连接: %1$s</string>
+    <string name="item_webdav_auto_sync">WebDAV 自动同步</string>
+    <string name="desc_webdav_auto_sync_unconfigured">配置 WebDAV 后可开启</string>
+    <string name="desc_webdav_auto_sync_enabled">已开启，数据变更后自动上传云端备份</string>
+    <string name="desc_webdav_auto_sync_disabled">已关闭，仅在手动备份时上传</string>
     <string name="dialog_title_backup_target">选择备份目标渠道</string>
     <string name="dialog_title_restore_source">选择恢复数据来源</string>
     <string name="dialog_title_config_webdav">配置 WebDAV</string>

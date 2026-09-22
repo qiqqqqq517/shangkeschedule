@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -58,6 +59,7 @@ data class BackupUiState(
     val username: String = "",
     val rootPath: String = "ShangKeSchedule",
     val hasSavedPassword: Boolean = false,
+    val autoSyncEnabled: Boolean = false,
     val isTesting: Boolean = false,
     val isBusy: Boolean = false,
     val testResult: TestResult = TestResult.Idle
@@ -94,14 +96,20 @@ class BackupViewModel(
     init {
         // 监听并同步本地存储的 WebDAV 配置变化
         viewModelScope.launch {
-            apiConfigRepository.webDavConfigFlow.collectLatest { config ->
+            combine(
+                apiConfigRepository.webDavConfigFlow,
+                apiConfigRepository.webDavAutoSyncEnabledFlow
+            ) { config, autoSyncEnabled ->
+                config to autoSyncEnabled
+            }.collectLatest { (config, autoSyncEnabled) ->
                 cachedConfig = config
                 _uiState.update { state ->
                     state.copy(
                         baseUrl = config?.baseUrl ?: "",
                         username = config?.username ?: "",
                         rootPath = config?.rootPath ?: "ShangKeSchedule",
-                        hasSavedPassword = !config?.password.isNullOrBlank()
+                        hasSavedPassword = !config?.password.isNullOrBlank(),
+                        autoSyncEnabled = autoSyncEnabled && config != null
                     )
                 }
             }
@@ -164,57 +172,36 @@ class BackupViewModel(
     }
 
     /**
+     * 更新 WebDAV 自动同步开关。
+     *
+     * 未配置 WebDAV 时拒绝开启，避免后台任务反复失败。
+     */
+    fun setWebDavAutoSyncEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            if (enabled && cachedConfig == null) {
+                _uiState.update {
+                    it.copy(testResult = TestResult.Error(getString(Res.string.error_webdav_unconfigured)))
+                }
+                return@launch
+            }
+            apiConfigRepository.setWebDavAutoSyncEnabled(enabled)
+        }
+    }
+
+    /**
      * 将全量应用数据打包并上传备份至 WebDAV 服务器
      */
     fun backupToWebDav() {
         viewModelScope.launch {
             _uiState.update { it.copy(isBusy = true, testResult = TestResult.Idle) }
-
-            val client = apiConfigRepository.createWebDavClient() ?: run {
-                val errMsg = getString(Res.string.error_webdav_unconfigured)
-                _uiState.update { it.copy(isBusy = false, testResult = TestResult.Error(errMsg)) }
-                return@launch
-            }
-
-            val backupPackage = backupRepository.createFullSoftwareBackup(BackupModule.entries)
-            if (backupPackage == null) {
-                client.close()
-                val errMsg = getString(Res.string.backup_err_empty)
-                _uiState.update { it.copy(isBusy = false, testResult = TestResult.Error(errMsg)) }
-                return@launch
-            }
-
-            val success = withContext(Dispatchers.IO) {
-                try {
-                    val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
-
-                    // 1. 生成并上传元数据 meta.json
-                    val metaPath = tempDir / "meta.json"
-                    FileSystem.SYSTEM.write(metaPath) {
-                        writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
-                    }
-                    if (!client.uploadFile(metaPath, "$FIXED_BACKUP_DIR/meta.json")) return@withContext false
-
-                    // 2. 逐模块生成并上传 cbor 数据文件
-                    for ((key, bytes) in backupPackage.payloadMap) {
-                        val modulePath = tempDir / "$key.cbor"
-                        FileSystem.SYSTEM.write(modulePath) {
-                            write(bytes)
-                        }
-                        if (!client.uploadFile(modulePath, "$FIXED_BACKUP_DIR/$key.cbor")) return@withContext false
-                    }
-                    true
-                } catch (_: Exception) {
-                    false
-                }
-            }
-
-            client.close()
-            val resultErrorMsg = getString(Res.string.backup_err_upload_failed)
+            val result = backupRepository.uploadFullBackupToWebDav()
             _uiState.update {
                 it.copy(
                     isBusy = false,
-                    testResult = if (success) TestResult.Success else TestResult.Error(resultErrorMsg)
+                    testResult = result.fold(
+                        onSuccess = { TestResult.Success },
+                        onFailure = { TestResult.Error(it.message ?: getString(Res.string.backup_err_upload_failed)) }
+                    )
                 )
             }
         }

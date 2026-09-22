@@ -27,16 +27,23 @@ import com.shangkeschedule.data.model.StartScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import okio.FileSystem
+import okio.SYSTEM
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.backup_err_corrupted
 import shangkeschedule.shared.generated.resources.backup_err_empty
+import shangkeschedule.shared.generated.resources.backup_err_upload_failed
 import shangkeschedule.shared.generated.resources.backup_err_version_too_new
+import shangkeschedule.shared.generated.resources.error_webdav_unconfigured
 import kotlin.time.Clock
 
 /**
@@ -79,6 +86,8 @@ data class ModuleInfo(
     val schemaVersion: Int
 )
 
+private const val WEBDAV_BACKUP_DIR = "Backup"
+
 /**
  * 备份与恢复的中央总仓库（KMP 共享层）
  * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
@@ -92,8 +101,10 @@ class BackupRepository(
     private val courseTableRepository: CourseTableRepository,
     private val courseConversionRepository: CourseConversionRepository,
     private val appSettingsRepository: AppSettingsRepository,
-    private val styleSettingsRepository: StyleSettingsRepository
+    private val styleSettingsRepository: StyleSettingsRepository,
+    private val apiConfigRepository: ApiConfigRepository
 ) {
+    private val webDavBackupMutex = Mutex()
 
     /**
      * 构建全软件多模块统一内存备份包
@@ -148,6 +159,52 @@ class BackupRepository(
             )
         } catch (e: Exception) {
             null
+        }
+    }
+
+    /**
+     * 将全量应用数据上传到已配置的 WebDAV。
+     *
+     * 手动备份与后台自动同步共用此入口，保证两者生成的目录结构、元数据和模块文件完全一致。
+     * 串行锁避免自动任务与用户手动备份同时写同一批临时文件。
+     */
+    suspend fun uploadFullBackupToWebDav(): Result<Unit> = webDavBackupMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val client = apiConfigRepository.createWebDavClient()
+                ?: return@withContext Result.failure(
+                    IllegalStateException(getString(Res.string.error_webdav_unconfigured))
+                )
+            val backupPackage = createFullSoftwareBackup(BackupModule.entries)
+                ?: run {
+                    client.close()
+                    return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_empty)))
+                }
+
+            try {
+                val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+                val metaPath = tempDir / "meta.json"
+                FileSystem.SYSTEM.write(metaPath) {
+                    writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
+                }
+                if (!client.uploadFile(metaPath, "$WEBDAV_BACKUP_DIR/meta.json")) {
+                    return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
+                }
+
+                for ((key, bytes) in backupPackage.payloadMap) {
+                    val modulePath = tempDir / "$key.cbor"
+                    FileSystem.SYSTEM.write(modulePath) {
+                        write(bytes)
+                    }
+                    if (!client.uploadFile(modulePath, "$WEBDAV_BACKUP_DIR/$key.cbor")) {
+                        return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
+                    }
+                }
+                Result.success(Unit)
+            } catch (_: Exception) {
+                Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
+            } finally {
+                client.close()
+            }
         }
     }
 

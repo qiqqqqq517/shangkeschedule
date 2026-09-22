@@ -42,6 +42,10 @@ interface ScheduleEventDao {
     )
     fun getEventsBetweenDates(startDate: String, endDate: String): Flow<List<ScheduleEvent>>
 
+    /** 获取全部日程，返回数据流。供 WebDAV 自动同步监听全局数据变化。 */
+    @Query("SELECT * FROM schedule_events ORDER BY date ASC, createdAt ASC")
+    fun getAllEvents(): Flow<List<ScheduleEvent>>
+
     /**
      * 一次性取出全部日程（非 Flow）。供「全量备份」导出使用（快照语义）。
      */

@@ -49,6 +49,7 @@ import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppRadioRow
 import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
@@ -75,6 +76,9 @@ import shangkeschedule.shared.generated.resources.cloud_24px
 import shangkeschedule.shared.generated.resources.desc_backup_data
 import shangkeschedule.shared.generated.resources.desc_restore_data
 import shangkeschedule.shared.generated.resources.desc_webdav_connected
+import shangkeschedule.shared.generated.resources.desc_webdav_auto_sync_disabled
+import shangkeschedule.shared.generated.resources.desc_webdav_auto_sync_enabled
+import shangkeschedule.shared.generated.resources.desc_webdav_auto_sync_unconfigured
 import shangkeschedule.shared.generated.resources.desc_webdav_path_hint
 import shangkeschedule.shared.generated.resources.desc_webdav_unconfigured
 import shangkeschedule.shared.generated.resources.dialog_title_backup_target
@@ -92,6 +96,7 @@ import shangkeschedule.shared.generated.resources.item_backup_data
 import shangkeschedule.shared.generated.resources.item_backup_restore
 import shangkeschedule.shared.generated.resources.item_restore_data
 import shangkeschedule.shared.generated.resources.item_webdav_config
+import shangkeschedule.shared.generated.resources.item_webdav_auto_sync
 import shangkeschedule.shared.generated.resources.label_webdav_account
 import shangkeschedule.shared.generated.resources.label_webdav_path
 import shangkeschedule.shared.generated.resources.label_webdav_pwd_empty
@@ -99,6 +104,7 @@ import shangkeschedule.shared.generated.resources.label_webdav_pwd_saved
 import shangkeschedule.shared.generated.resources.label_webdav_url
 import shangkeschedule.shared.generated.resources.section_data_maintenance
 import shangkeschedule.shared.generated.resources.section_service_config
+import shangkeschedule.shared.generated.resources.sync_alt_24px
 import shangkeschedule.shared.generated.resources.title_loading
 import shangkeschedule.shared.generated.resources.toast_operation_failed
 import shangkeschedule.shared.generated.resources.toast_operation_success
@@ -251,6 +257,36 @@ fun BackupScreen(
                     },
                     icon = vectorResource(Res.drawable.cloud_24px),
                     onClick = { showConfigDialog = true }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
+                    color = appColors().divider,
+                    thickness = 0.5.dp
+                )
+                SettingItem(
+                    title = stringResource(Res.string.item_webdav_auto_sync),
+                    subtitle = when {
+                        state.baseUrl.isBlank() -> stringResource(Res.string.desc_webdav_auto_sync_unconfigured)
+                        state.autoSyncEnabled -> stringResource(Res.string.desc_webdav_auto_sync_enabled)
+                        else -> stringResource(Res.string.desc_webdav_auto_sync_disabled)
+                    },
+                    leadingIcon = vectorResource(Res.drawable.sync_alt_24px),
+                    onClick = if (state.baseUrl.isNotBlank() && !state.isBusy) {
+                        { viewModel.setWebDavAutoSyncEnabled(!state.autoSyncEnabled) }
+                    } else {
+                        null
+                    },
+                    trailingContent = {
+                        AppSwitch(
+                            checked = state.autoSyncEnabled,
+                            onCheckedChange = if (state.baseUrl.isNotBlank() && !state.isBusy) {
+                                { viewModel.setWebDavAutoSyncEnabled(it) }
+                            } else {
+                                null
+                            },
+                            enabled = state.baseUrl.isNotBlank() && !state.isBusy
+                        )
+                    }
                 )
             }
         }
