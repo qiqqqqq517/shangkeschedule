@@ -30,11 +30,19 @@
 
 ## 正式版构建与发布（强制：本地构建 + 手动上传）
 
+> 逐条可执行命令见 `docs/agents/release-runbook.md`；本节是必须遵守的硬规则。
+
 - **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中禁用，**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
+- **前置：`CHANGELOG.md` 必须已有对应版本条目**。Release body 直接取自该条目（或与之相同的内容）；条目未就绪不得发版。
 - 正式版一律**本地构建**：`./gradlew :androidApp:assembleRelease`，产物为 `androidApp/build/outputs/apk/release/shangke-vX.Y.Z-<abi>-release.apk`（按 ABI 拆分，arm64-v8a / armeabi-v7a / x86_64）。
-- 构建完成后**手动上传**到 GitHub Release（`gh release create`），说明取自 `CHANGELOG.md` 对应版本条目。
-- 本地签名依赖仓库根目录 `keystore.properties`（已 git 忽略，不入库）；CI 侧不再需要签名密钥。
-- 发布完成后按上一节补 `CHANGELOG.md`，并在 `工作日志.md` 追加 `BUILD` 记录。
+  - 本机 `JAVA_HOME` 环境变量是坏的，每条 Gradle 命令前必须显式设为本机 JBR：`C:\Program Files\Android\Android Studio\jbr`。
+  - 若构建整体 `UP-TO-DATE`，**必须核对产物 mtime 晚于 `HEAD` 提交时间**才能认定产物含本次改动；否则加 `--rerun-tasks` 重打。
+- **发布前必须逐包校验三条**（任一不过即不得发布）：① `aapt2 dump badging` 的 `versionCode`/`versionName` 与本次版本一致；② `native-code` 每包**只有单一 ABI**；③ `apksigner verify --print-certs` 的 V2 证书 SHA-256 = `4ae49d8c97d881c7c249115b833f932c70f9b429624e88e68807e8fc2232475f`（三包一致且与历史一致）。工具在 `D:\Android\SDK\build-tools\37.0.0\`。
+- **上传方式**：本机**未安装 `gh`**，一律走 GitHub REST API（令牌用 `git credential fill` 从凭据管理器取，账号 `qiqqqqq517`）：**先建草稿** → 上传全部资产（`state=uploaded`）→ `PATCH draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。不得改用 CI，也不得绕过校验在网页手工上传。
+- **官网同步（每次发版必做，单独提交）**：`website/changelog.html` 补时间线条目 + 页头版本号、`website/assets/js/site.js` 的 `SITE.version`/`versionCode`、`website/sitemap.xml` 的 `/changelog` lastmod；提交信息 `docs(website): 同步 vX.Y.Z 更新日志 vX.Y.Z`。
+- **推送 origin 的已知故障**：可能报 `schannel: failed to receive handshake`。**不要**清空代理直连（报 `Connection was reset`）、**不要**切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`）；正确做法是等约 20 秒后用 `git ls-remote --heads origin main` 探活，恢复后原样重推。`gitee` 镜像每次同步推送。
+- 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）；CI 侧不再需要签名密钥。
+- 发布完成后在 `工作日志.md` 追加 `BUILD` 记录（构建结果、三包体积、versionCode/ABI/签名校验结论、Release id 与 URL、tag 指向、官网同步提交、origin/gitee 推送状态、是否装机验证）。
 
 ## 分支使用规范（强制：每次开工前先对表）
 
