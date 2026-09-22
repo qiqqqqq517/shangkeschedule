@@ -5,9 +5,9 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp"
-    android:paddingHorizontal="4dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp"
+    android:paddingHorizontal="2dp">
 
     <ImageView
         android:id="@+id/course_indicator_dark"
@@ -21,7 +21,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="5dp"
         android:orientation="vertical">
 
         <TextView
@@ -32,7 +32,7 @@
             android:includeFontPadding="false"
             android:maxLines="1"
             android:textColor="@color/widget_text_primary"
-            android:textSize="12dp"
+            android:textSize="11sp"
             android:textStyle="bold"
             tools:text="高等数学" />
 
@@ -51,7 +51,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10dp"
+                android:textSize="9sp"
                 tools:text="教一 101" />
 
             <TextView
@@ -61,7 +61,7 @@
                 android:layout_alignParentEnd="true"
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10dp"
+                android:textSize="9sp"
                 tools:text="08:00-09:35" />
         </RelativeLayout>
 
@@ -74,7 +74,7 @@
             android:includeFontPadding="false"
             android:maxLines="1"
             android:textColor="@color/widget_text_hint"
-            android:textSize="9dp"
+            android:textSize="9sp"
             tools:text="张老师" />
     </LinearLayout>
 </LinearLayout>

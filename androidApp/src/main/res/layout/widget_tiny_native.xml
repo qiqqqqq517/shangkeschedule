@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:background="@drawable/widget_bg_rounded"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="10dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -19,9 +19,10 @@
 
             <LinearLayout
                 android:id="@+id/container_info"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
+                android:layout_alignParentStart="true"
                 android:layout_toStartOf="@+id/bubble_frame"
                 android:orientation="vertical"
                 tools:visibility="visible">
@@ -33,7 +34,8 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="14dp"
+                    android:includeFontPadding="false"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     tools:text="计算机网络" />
 
@@ -43,7 +45,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="1dp"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="12dp"
+                    android:includeFontPadding="false"
+                    android:textSize="10sp"
                     tools:text="08:30 - 23:59" />
 
                 <TextView
@@ -54,14 +57,15 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/widget_text_hint"
-                    android:textSize="12dp"
+                    android:includeFontPadding="false"
+                    android:textSize="10sp"
                     tools:text="实验楼 402" />
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/bubble_frame"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentTop="true"
                 tools:visibility="visible">
@@ -74,7 +78,8 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11dp"
+                    android:includeFontPadding="false"
+                    android:textSize="9sp"
                     android:textStyle="bold"
                     tools:text="1" />
             </FrameLayout>
@@ -94,7 +99,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="15dp"
+                    android:includeFontPadding="false"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     tools:text="假期中" />
 
@@ -104,7 +110,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11dp"
+                    android:includeFontPadding="false"
+                    android:textSize="10sp"
                     tools:text="期待新学期" />
             </LinearLayout>
 

@@ -13,7 +13,7 @@ import java.time.LocalTime
 
 object TinyNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot): RemoteViews {
+    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_tiny_native)
 
         // 状态彻底重置

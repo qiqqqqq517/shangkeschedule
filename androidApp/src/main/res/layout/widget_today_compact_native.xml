@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:background="@drawable/widget_bg_rounded"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -24,7 +24,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11dp"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 tools:text="周三" />
 
@@ -32,14 +35,6 @@
                 android:layout_width="8dp"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
-
-            <TextView
-                android:id="@+id/tv_footer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_hint"
-                android:textSize="8dp"
-                tools:text="剩余 3 节" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -52,19 +47,32 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10dp"
+                android:includeFontPadding="false"
+                android:textSize="9sp"
                 tools:text="第 18 周" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/container_courses"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1"
             android:orientation="vertical">
             <include layout="@layout/widget_item_course_common" />
             <include layout="@layout/widget_item_course_common" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_footer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="2dp"
+            android:includeFontPadding="false"
+            android:textColor="@color/widget_text_hint"
+            android:textSize="9sp"
+            tools:text="剩余 3 节" />
 
     </LinearLayout>
 
@@ -81,7 +89,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
-            android:textSize="16dp"
+            android:includeFontPadding="false"
+            android:textSize="13sp"
             android:textStyle="bold"
             tools:text="今日课程已结束" />
     </LinearLayout>
@@ -94,14 +103,15 @@
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone"
-        android:padding="14dp">
+        android:padding="10dp">
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
         <TextView
             android:id="@+id/tv_full_status_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
-            android:textSize="18dp"
+            android:includeFontPadding="false"
+            android:textSize="15sp"
             android:textStyle="bold"
             tools:text="假期中" />
         <TextView
@@ -110,7 +120,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13dp"
+            android:includeFontPadding="false"
+            android:textSize="11sp"
             tools:text="期待新学期" />
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>

@@ -11,19 +11,22 @@
         android:layout_height="match_parent"
         android:background="@drawable/widget_bg_rounded"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="8dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="6dp">
 
             <TextView
                 android:id="@+id/tv_header_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="14dp"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 tools:text="第 8 周  周五" />
 
@@ -33,14 +36,16 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11dp"
+                android:includeFontPadding="false"
+                android:textSize="10sp"
                 tools:text="今日还有 3 节课" />
         </RelativeLayout>
 
         <LinearLayout
             android:id="@+id/container_courses"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical"
             tools:visibility="visible">
 
@@ -66,7 +71,8 @@
         <LinearLayout
             android:id="@+id/container_status"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical"
             android:visibility="gone">
@@ -76,7 +82,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="13dp"
+                android:includeFontPadding="false"
+                android:textSize="11sp"
                 tools:text="今日课程已结束" />
         </LinearLayout>
     </LinearLayout>
@@ -95,7 +102,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
-            android:textSize="16dp"
+            android:includeFontPadding="false"
+            android:textSize="14sp"
             android:textStyle="bold"
             tools:text="假期中" />
 
@@ -105,7 +113,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="12dp"
+            android:includeFontPadding="false"
+            android:textSize="10sp"
             tools:text="期待新学期" />
     </LinearLayout>
 </FrameLayout>

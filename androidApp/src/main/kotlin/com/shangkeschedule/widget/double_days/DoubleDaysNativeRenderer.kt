@@ -16,7 +16,7 @@ import java.util.Locale
 
 object DoubleDaysNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot): RemoteViews {
+    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_double_days_native)
 
         // 状态彻底重置
@@ -62,7 +62,7 @@ object DoubleDaysNativeRenderer {
             context, rv,
             R.id.container_today, R.id.tv_today_date, R.id.tv_today_footer,
             R.id.empty_today_container,
-            today, remainingToday, remainingToday.size,
+            today, remainingToday.take(maxCourseCount), remainingToday.size,
             true, snapshot
         )
 
@@ -74,7 +74,7 @@ object DoubleDaysNativeRenderer {
             context, rv,
             R.id.container_tomorrow, R.id.tv_tomorrow_date, R.id.tv_tomorrow_footer,
             R.id.empty_tomorrow_container,
-            tomorrow, effectiveTomorrow, effectiveTomorrow.size,
+            tomorrow, effectiveTomorrow.take(maxCourseCount), effectiveTomorrow.size,
             false, snapshot
         )
 

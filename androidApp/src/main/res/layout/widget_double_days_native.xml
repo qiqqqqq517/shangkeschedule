@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:background="@drawable/widget_bg_rounded"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="10dp">
 
         <TextView
             android:id="@+id/tv_current_week"
@@ -19,12 +19,14 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10dp"
+            android:includeFontPadding="false"
+            android:textSize="9sp"
             tools:text="第 18 周" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:baselineAligned="false"
             android:orientation="horizontal">
 
@@ -49,7 +51,10 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_secondary"
-                            android:textSize="11dp"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textSize="10sp"
                             android:textStyle="bold"
                             tools:text="今日 1.07 周三" />
 
@@ -64,15 +69,17 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_hint"
-                            android:textSize="8dp"
+                            android:includeFontPadding="false"
+                            android:textSize="9sp"
                             tools:text="剩余 2 节" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/container_today"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="4dp"
                         android:orientation="vertical">
                         <include layout="@layout/widget_item_course_common" />
                     </LinearLayout>
@@ -90,7 +97,8 @@
                         android:layout_height="wrap_content"
                         android:text="无课程"
                         android:textColor="@color/widget_text_hint"
-                        android:textSize="12dp" />
+                        android:includeFontPadding="false"
+                        android:textSize="10sp" />
                 </LinearLayout>
             </RelativeLayout>
 
@@ -124,7 +132,10 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_secondary"
-                            android:textSize="11dp"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textSize="10sp"
                             android:textStyle="bold"
                             tools:text="明日 1.08 周四" />
 
@@ -139,15 +150,17 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_hint"
-                            android:textSize="8dp"
+                            android:includeFontPadding="false"
+                            android:textSize="9sp"
                             tools:text="共有 4 节" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/container_tomorrow"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="4dp"
                         android:orientation="vertical">
                         <include layout="@layout/widget_item_course_common" />
                     </LinearLayout>
@@ -165,7 +178,8 @@
                         android:layout_height="wrap_content"
                         android:text="无课程"
                         android:textColor="@color/widget_text_hint"
-                        android:textSize="12dp" />
+                        android:includeFontPadding="false"
+                        android:textSize="10sp" />
                 </LinearLayout>
             </RelativeLayout>
         </LinearLayout>
@@ -178,7 +192,7 @@
         android:background="@drawable/widget_bg_rounded"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="14dp"
+        android:padding="10dp"
         android:visibility="gone">
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
         <TextView
@@ -186,7 +200,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
-            android:textSize="18dp"
+            android:includeFontPadding="false"
+            android:textSize="15sp"
             android:textStyle="bold"
             tools:text="暑假快乐" />
         <TextView
@@ -195,7 +210,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="13dp"
+            android:includeFontPadding="false"
+            android:textSize="11sp"
             tools:text="愿你的假期充满阳光" />
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>

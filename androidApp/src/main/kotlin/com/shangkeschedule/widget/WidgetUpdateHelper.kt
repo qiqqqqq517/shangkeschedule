@@ -108,17 +108,30 @@ suspend fun updateAllWidgets(context: Context) {
                     delay(300.milliseconds)
                 }
 
-                try {
-                    val remoteViews = renderFunc(context, snapshot)
-                    appWidgetManager.updateAppWidget(componentName, remoteViews)
-                    Log.d("WidgetUpdateHelper", "成功刷新规格 ${providerClass.simpleName}")
-                } catch (e: Exception) {
-                    Log.e("WidgetUpdateHelper", "规格 ${providerClass.simpleName} 渲染失败", e)
+                ids.forEach { widgetId ->
+                    try {
+                        val remoteViews = renderFunc(context, snapshot, resolveMaxCourseCount(appWidgetManager, widgetId))
+                        appWidgetManager.updateAppWidget(widgetId, remoteViews)
+                        Log.d("WidgetUpdateHelper", "成功刷新组件 $widgetId (${providerClass.simpleName})")
+                    } catch (e: Exception) {
+                        Log.e("WidgetUpdateHelper", "组件 $widgetId 渲染失败 (${providerClass.simpleName})", e)
+                    }
                 }
             }
         }
 
     } catch (e: Exception) {
         Log.e("WidgetUpdateHelper", "更新流程异常: ${e.stackTraceToString()}")
+    }
+}
+
+private fun resolveMaxCourseCount(appWidgetManager: AppWidgetManager, widgetId: Int): Int {
+    val minHeight = appWidgetManager.getAppWidgetOptions(widgetId)
+        .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+
+    return when {
+        minHeight < 90 -> 1
+        minHeight < 150 -> 2
+        else -> 3
     }
 }

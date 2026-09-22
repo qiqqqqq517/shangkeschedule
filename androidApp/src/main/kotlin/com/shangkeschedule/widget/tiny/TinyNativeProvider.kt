@@ -4,18 +4,10 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import com.shangkeschedule.widget.WorkManagerHelper
+import com.shangkeschedule.widget.ScheduledWidgetProvider
 import com.shangkeschedule.widget.updateAllWidgets
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 
-class TinyNativeProvider : AppWidgetProvider() {
-    private val scope = MainScope()
-
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        scope.launch {
-            updateAllWidgets(context)
-        }
-    }
+class TinyNativeProvider : ScheduledWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)

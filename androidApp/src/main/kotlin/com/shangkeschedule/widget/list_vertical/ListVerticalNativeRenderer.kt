@@ -14,7 +14,7 @@ import java.time.LocalTime
 
 object ListVerticalNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot): RemoteViews {
+    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_list_vertical_native)
 
         resetWidgetState(rv)
@@ -62,12 +62,12 @@ object ListVerticalNativeRenderer {
                 val weekText = context.getString(R.string.title_current_week, currentWeek.toString())
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_today, todayRemaining.size))
-                renderCourseContent(context, rv, todayRemaining, snapshot)
+                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot, todayRemaining.size)
             }
             tomorrowCourses.isNotEmpty() -> {
                 rv.setTextViewText(R.id.tv_header_title, context.getString(R.string.widget_tomorrow_course_preview))
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_tomorrow, tomorrowCourses.size))
-                renderCourseContent(context, rv, tomorrowCourses, snapshot)
+                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot, tomorrowCourses.size)
             }
             else -> {
                 val hasCoursesToday = allCourses.any { it.date == todayStr || it.date.isBlank() }
@@ -89,7 +89,13 @@ object ListVerticalNativeRenderer {
         rv.removeAllViews(R.id.container_courses)
     }
 
-    private fun renderCourseContent(context: Context, rv: RemoteViews, courses: List<WidgetCourseProto>, snapshot: WidgetSnapshot) {
+    private fun renderCourseContent(
+        context: Context,
+        rv: RemoteViews,
+        courses: List<WidgetCourseProto>,
+        snapshot: WidgetSnapshot,
+        totalCount: Int
+    ) {
         rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
 
         courses.forEachIndexed { index, course ->
