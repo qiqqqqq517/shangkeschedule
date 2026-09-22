@@ -26,7 +26,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="第 8 周  周五" />
 
@@ -37,7 +37,7 @@
                 android:layout_alignParentEnd="true"
                 android:textColor="@color/widget_text_secondary"
                 android:includeFontPadding="false"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 tools:text="今日还有 3 节课" />
         </RelativeLayout>
 
@@ -83,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_secondary"
                 android:includeFontPadding="false"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 tools:text="今日课程已结束" />
         </LinearLayout>
     </LinearLayout>
@@ -103,7 +103,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
             android:includeFontPadding="false"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             tools:text="假期中" />
 
@@ -114,7 +114,7 @@
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false"
-            android:textSize="10sp"
+            android:textSize="11sp"
             tools:text="期待新学期" />
     </LinearLayout>
 </FrameLayout>

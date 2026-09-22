@@ -207,8 +207,10 @@ fun DayHeader(
                     Text(
                         text = currentYear,
                         fontSize = AppTypeGrid.timeLabel,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = subTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         style = TextStyle.Default
                     )
 
@@ -217,8 +219,10 @@ fun DayHeader(
                         Text(
                             text = currentWeek,
                             fontSize = AppTypeGrid.timeSmall,
-                            fontWeight = FontWeight.Normal,
+                            fontWeight = FontWeight.Medium,
                             color = subTextColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             style = TextStyle.Default
                         )
                     }
@@ -264,7 +268,7 @@ fun DayHeader(
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .padding(vertical = 1.dp),
+                                .padding(vertical = 2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -275,8 +279,9 @@ fun DayHeader(
                                 // 今天列：星期名用主色突出（iOS 日历表头语言）
                                 color = if (isToday) appColors().primary else textColor,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(
-                                    lineHeight = 16.sp
+                                    lineHeight = 18.sp
                                 )
                             )
 
@@ -288,9 +293,9 @@ fun DayHeader(
                                     color = subTextColor,
                                     fontWeight = FontWeight.Normal,
                                     maxLines = 1,
-                                    modifier = Modifier,
+                                    overflow = TextOverflow.Ellipsis,
                                     style = TextStyle(
-                                        lineHeight = 12.sp
+                                        lineHeight = 13.sp
                                     )
                                 )
                             }
@@ -450,21 +455,31 @@ fun TimeColumn(
                         if (slot != null) {
                             Text(
                                 text = slot.alias ?: slot.number.toString(),
-                                fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.dayHeader,
+                                fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else 13.sp,
                                 // 字重也随高亮补间（Bold 700 → ExtraBold 800），避免颜色渐变时字重突兀跳档
                                 fontWeight = FontWeight((700f + 100f * highlightFraction).roundToInt().coerceIn(1, 1000)),
                                 color = slotTextColor,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1,
+                                style = TextStyle(
+                                    lineHeight = 15.sp
+                                )
                             )
                             if (!style.hideSectionTime) {
                                 when {
                                     h >= 52.dp -> {
-                                        Spacer(Modifier.height(2.dp))
+                                        Spacer(Modifier.height(1.dp))
                                         TimeText(slot.startTime, subTextColor)
                                         TimeText(slot.endTime, subTextColor)
                                     }
                                     h >= 38.dp -> {
-                                        Text(text = "${slot.startTime}-${slot.endTime}", fontSize = AppTypeGrid.timeTiny, color = subTextColor, maxLines = 1)
+                                        Text(
+                                            text = "${slot.startTime}-${slot.endTime}",
+                                            fontSize = 9.sp,
+                                            color = subTextColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
                             }
@@ -539,7 +554,14 @@ private fun EditHandleDot() {
 
 @Composable
 fun TimeText(text: String, color: Color) {
-    Text(text = text, fontSize = AppTypeGrid.timeSmall, color = color, style = TextStyle(lineHeight = 1.em))
+    Text(
+        text = text,
+        fontSize = 9.sp,
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = TextStyle(lineHeight = 10.sp)
+    )
 }
 
 /**

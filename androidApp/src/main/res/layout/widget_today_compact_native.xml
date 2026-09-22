@@ -27,7 +27,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 tools:text="周三" />
 
@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/widget_text_secondary"
                 android:includeFontPadding="false"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 tools:text="第 18 周" />
         </LinearLayout>
 
@@ -71,7 +71,7 @@
             android:layout_marginTop="2dp"
             android:includeFontPadding="false"
             android:textColor="@color/widget_text_hint"
-            android:textSize="9sp"
+            android:textSize="10sp"
             tools:text="剩余 3 节" />
 
     </LinearLayout>
@@ -90,7 +90,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
             android:includeFontPadding="false"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             tools:text="今日课程已结束" />
     </LinearLayout>
@@ -111,7 +111,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
             android:includeFontPadding="false"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             tools:text="假期中" />
         <TextView
@@ -121,7 +121,7 @@
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false"
-            android:textSize="11sp"
+            android:textSize="12sp"
             tools:text="期待新学期" />
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>

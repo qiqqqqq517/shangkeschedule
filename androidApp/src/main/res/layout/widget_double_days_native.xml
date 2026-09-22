@@ -20,7 +20,7 @@
             android:layout_gravity="end"
             android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false"
-            android:textSize="9sp"
+            android:textSize="10sp"
             tools:text="第 18 周" />
 
         <LinearLayout
@@ -54,7 +54,7 @@
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
                             tools:text="今日 1.07 周三" />
 
@@ -70,7 +70,7 @@
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_hint"
                             android:includeFontPadding="false"
-                            android:textSize="9sp"
+                            android:textSize="10sp"
                             tools:text="剩余 2 节" />
                     </LinearLayout>
 
@@ -98,7 +98,7 @@
                         android:text="无课程"
                         android:textColor="@color/widget_text_hint"
                         android:includeFontPadding="false"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
             </RelativeLayout>
 
@@ -135,7 +135,7 @@
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
                             tools:text="明日 1.08 周四" />
 
@@ -151,7 +151,7 @@
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_hint"
                             android:includeFontPadding="false"
-                            android:textSize="9sp"
+                            android:textSize="10sp"
                             tools:text="共有 4 节" />
                     </LinearLayout>
 
@@ -179,7 +179,7 @@
                         android:text="无课程"
                         android:textColor="@color/widget_text_hint"
                         android:includeFontPadding="false"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
             </RelativeLayout>
         </LinearLayout>
@@ -201,7 +201,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_primary"
             android:includeFontPadding="false"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             tools:text="暑假快乐" />
         <TextView
@@ -211,7 +211,7 @@
             android:layout_marginTop="8dp"
             android:textColor="@color/widget_text_secondary"
             android:includeFontPadding="false"
-            android:textSize="11sp"
+            android:textSize="12sp"
             tools:text="愿你的假期充满阳光" />
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>

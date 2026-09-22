@@ -35,7 +35,7 @@
                     android:maxLines="1"
                     android:textColor="@color/widget_text_primary"
                     android:includeFontPadding="false"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     tools:text="计算机网络" />
 
@@ -46,7 +46,7 @@
                     android:layout_marginTop="1dp"
                     android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     tools:text="08:30 - 23:59" />
 
                 <TextView
@@ -58,7 +58,7 @@
                     android:maxLines="1"
                     android:textColor="@color/widget_text_hint"
                     android:includeFontPadding="false"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     tools:text="实验楼 402" />
             </LinearLayout>
 
@@ -79,7 +79,7 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
                     android:includeFontPadding="false"
-                    android:textSize="9sp"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     tools:text="1" />
             </FrameLayout>
@@ -100,7 +100,7 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/widget_text_primary"
                     android:includeFontPadding="false"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     tools:text="假期中" />
 
@@ -111,7 +111,7 @@
                     android:layout_marginTop="4dp"
                     android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     tools:text="期待新学期" />
             </LinearLayout>
 

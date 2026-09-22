@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 tools:text="14:00" />
 
@@ -50,7 +50,7 @@
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 tools:text="15:35" />
         </LinearLayout>
@@ -70,7 +70,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 tools:text="设计模式原理" />
 
@@ -86,7 +86,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 tools:text="实验楼 B402" />
 
             <FrameLayout
@@ -101,7 +101,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_hint"
-                android:textSize="9sp"
+                android:textSize="10sp"
                 tools:text="张建国 教授" />
         </LinearLayout>
     </RelativeLayout>
