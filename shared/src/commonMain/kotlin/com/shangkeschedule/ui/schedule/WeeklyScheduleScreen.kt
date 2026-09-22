@@ -112,6 +112,7 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGrid
 import com.shangkeschedule.ui.schedule.components.ScheduleGridActions
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
+import com.shangkeschedule.ui.schedule.components.STRIP_FILL_ALPHA_LIGHT
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
 import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
@@ -1210,7 +1211,15 @@ private fun ScheduleListViewBlock(
 
     // 背景按「课程块不透明度」乘算：颜色池自带 alpha（淡底令牌）必须保留，只在其上缩放，
     // 与网格视图 CourseBlock 的取色方式保持一致。
-    val bg = (if (isDark) colorPair.dark else colorPair.light).scaleAlpha(composedStyle.courseBlockAlpha)
+    //
+    // 色条主题（通透 / 柔绘）例外：它们的**浅色档**只有 0x1F(12%) / 0x33(20%) alpha，列表行又不画
+    // 左侧色条，浅色模式下整行几乎与卡片同色（同样被反馈为「课程方块透明」）。故与网格视图统一
+    // 按 STRIP_FILL_ALPHA_LIGHT 取「深色档 × 系数」，填充可见度与网格一致；深色档维持色板实色。
+    val isStripTheme = LocalThemePreset.current == AppThemePreset.IOS || isSoft
+    val bg = when {
+        isStripTheme && !isDark -> colorPair.dark.scaleAlpha(STRIP_FILL_ALPHA_LIGHT * composedStyle.courseBlockAlpha)
+        else -> (if (isDark) colorPair.dark else colorPair.light).scaleAlpha(composedStyle.courseBlockAlpha)
+    }
     val stripColor = colorPair.dark
     val textColor = adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
     val demotedAlpha = if (block.isVisualDemoted) AppAlpha.dimmed else 1f

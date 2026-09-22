@@ -184,7 +184,10 @@ class StyleSettingsViewModel(
         styleRepository.setCourseBlockInnerPadding(padding)
     }
 
-    fun updateAlpha(alpha: Float) = viewModelScope.launch { styleRepository.setCourseBlockAlpha(alpha) }
+    /** 课程块不透明度：夹到 [ScheduleGridStyle.MIN_BLOCK_ALPHA]..1，避免写进「透明方块」区间。 */
+    fun updateAlpha(alpha: Float) = viewModelScope.launch {
+        styleRepository.setCourseBlockAlpha(alpha.coerceIn(ScheduleGridStyle.MIN_BLOCK_ALPHA, 1f))
+    }
 
     // --- UI 渲染开关 API ---
 

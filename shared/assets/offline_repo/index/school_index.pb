@@ -926,10 +926,10 @@ u_5df340b5!广西民族大学相思湖学院gxmzdxxshxy"qiangzhi*�
 u_5df340b5_01强智教务系统"qiangzhi.js*(http://49.234.155.183/gxmzdxxshxy_jsxsd/2,自动导入自 timetable，类型: qiangzhi:auto-import�
 
 u_843454dd贵阳信息科技学院gyxxkjxy"	zhengfang*�
-u_843454dd_01正方教务系统"zhengfang.js*http://tmis.gyiist.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_843454dd_01正方教务系统"zhengfang.js*http://tmis.gyiist.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_18842e61$广西生态工程职业技术学院gxstgczyjsxy"	zhengfang*�
-u_18842e61_01正方教务系统"zhengfang.js*'https://cas.gxstzy.cn/lyuapServer/login21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_18842e61$广西生态工程职业技术学院gxstgczyjsxy"GXSTZY*�
+u_18842e61_01综合教务管理系统"	gxstzy.js*'https://cas.gxstzy.cn/lyuapServer/login2$多入口：综合教务管理系统:manual-multi-entry�
 
 u_e01ad05a$广西自然资源职业技术学院gxzrzyzyjsxy"	zhengfang*�
 u_e01ad05a_01正方教务系统"zhengfang.js*"https://jwxt.gxnrvtc.edu.cn/jwglxt21自动导入自 timetable，类型: zhengfang_new:auto-import�

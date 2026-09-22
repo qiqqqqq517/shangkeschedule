@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -165,7 +166,12 @@ data class StyleBackupEnvelope(
  */
 @Single
 class StyleSettingsRepository(
-    private val dataStore: DataStore<ScheduleGridStyleProto>
+    private val dataStore: DataStore<ScheduleGridStyleProto>,
+    /**
+     * 仅用于「持久化配色为空时回落当前主题预设色板」（见 [styleFlow] / [getStyleOnce]）。
+     * 依赖方向为 样式 → 应用设置，单向无环。
+     */
+    private val appSettingsRepository: AppSettingsRepository
 ) {
 
     companion object {
@@ -184,13 +190,27 @@ class StyleSettingsRepository(
         preloadScope.launch {
             try {
                 upgradeLegacyPresetPalette()
-                val current = dataStore.data.map { it.toCompose() }.first()
+                val current = dataStore.data
+                    .map { it.toCompose(currentPaletteFallback()) }
+                    .first()
                 styleCache.value = current
             } catch (_: Exception) {
                 // 预热失败，后续仍可从 dataStore 读取
             }
         }
     }
+
+    /**
+     * 持久化配色为空时的回落色板 = **当前主题预设**的课表配色。
+     *
+     * 新装用户从未切换过主题 ⇒ 样式 proto 为空，此前一律回落 `ScheduleGridStyle.DEFAULT`
+     * （经典马卡龙 12 色），而 UI 主题默认是「通透」，于是出现「通透主题 + 马卡龙配色」的错配
+     * （真机截图里马卡龙深色档色值与页面逐一吻合，即此路径）。改为跟随当前主题预设后，新装即
+     * 与主题一致；用户仍可在「个性化配色」里逐色调整（切换主题时 [applyStylePreset] 会写入
+     * 该预设配色，故只有「从未切过主题」这一种情况会走到本回落）。
+     */
+    private suspend fun currentPaletteFallback(): List<DualColor> =
+        appSettingsRepository.getAppSettingsOnce().themePreset.gridStyle.courseColorMaps
 
     /**
      * 一次性把「历史预设调色板」升级为当前预设调色板。
@@ -245,16 +265,23 @@ class StyleSettingsRepository(
      * 获取当前样式的单次快照。
      */
     suspend fun getStyleOnce(): ScheduleGridStyle {
-        return dataStore.data.map { it.toCompose() }.first()
+        val fallback = currentPaletteFallback()
+        return dataStore.data.map { it.toCompose(fallback) }.first()
     }
 
     /**
      * 响应式样式数据流。
      * 每次发射时同步更新内存缓存，供 ViewModel 作为初始值避免闪烁。
+     *
+     * 与主题设置合并：持久化配色为空时回落**当前主题预设**色板（见 [currentPaletteFallback]），
+     * 用户切换主题后立即反映，不会停留在上一次的回落色板。
      */
-    val styleFlow: Flow<ScheduleGridStyle> = dataStore.data
-        .map { proto -> proto.toCompose() }
-        .onEach { style -> styleCache.value = style }
+    val styleFlow: Flow<ScheduleGridStyle> = combine(
+        dataStore.data,
+        appSettingsRepository.getAppSettings()
+    ) { proto, settings ->
+        proto.toCompose(settings.themePreset.gridStyle.courseColorMaps)
+    }.onEach { style -> styleCache.value = style }
 
     /**
      * 获取内存缓存的样式（可能为 null，用于 ViewModel 初始值）。

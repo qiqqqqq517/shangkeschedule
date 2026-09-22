@@ -87,8 +87,10 @@ private fun buildPresetRenderSpec(
         ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull() ?: DualColor(Color(0xFF6C5CE7), Color(0xFF6C5CE7))
     // 色条主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
     // （半透明底色同样按「课程块不透明度」乘算，保持与其它主题一致）
+    // 填充系数见 CourseBlockColorUtil.kt 的 STRIP_FILL_ALPHA_*：
+    // 原为浅色 0.12 / 深色 0.25，方块近乎透明（只剩色条与文字），现提高到 0.30 / 0.38。
     val timetableBg = timetableDual.dark.scaleAlpha(
-        (if (isDarkTheme) 0.25f else 0.12f) * currentAlpha
+        (if (isDarkTheme) STRIP_FILL_ALPHA_DARK else STRIP_FILL_ALPHA_LIGHT) * currentAlpha
     )
     val timetableStrip = timetableDual.dark
     val timetableText = timetableDual.dark

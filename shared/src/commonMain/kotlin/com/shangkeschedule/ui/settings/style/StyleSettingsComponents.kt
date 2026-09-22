@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.ui.components.AdvancedColorPicker
@@ -229,7 +230,14 @@ fun SettingsListContent(
         StyleSliderItem(stringResource(Res.string.label_corner_radius), currentStyle.courseBlockCornerRadius.value, 0f..24f, 1f) { viewModel.updateCornerRadius(it) }
         StyleSliderItem(stringResource(Res.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
         StyleSliderItem(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
-        StyleSliderItem(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
+        // 下限 = MIN_BLOCK_ALPHA（0.5）：再低会让浅色模式的方块填充掉到「透明」（见该常量注释），
+        // 与读取侧 toCompose() 的夹取保持同一口径。
+        StyleSliderItem(
+            stringResource(Res.string.label_opacity),
+            currentStyle.courseBlockAlpha,
+            ScheduleGridStyle.MIN_BLOCK_ALPHA..1f,
+            0.05f
+        ) { viewModel.updateAlpha(it) }
     }
 }
 

@@ -121,6 +121,16 @@ data class ScheduleGridStyle(
         val DEFAULT_BLOCK_OUTER_PADDING = 1f
         val DEFAULT_BLOCK_INNER_PADDING = 2f
         val DEFAULT_BLOCK_ALPHA = 1f
+        /**
+         * 「课程块不透明度」下限。
+         *
+         * 该值在渲染时是**乘算**系数（叠在色板自带 alpha / 色条主题填充系数之上），历史滑杆下限
+         * 0.1 会让浅色模式的实际填充掉到 3%（色条主题）/ 2.5%（书卷），方块重新变成「透明」——
+         * 即用户反馈「多个主题中课程方块都是透明的」的同一现象。故下限提到 0.5：
+         * 最淡时浅色填充仍 ≥15%、深色 ≥19%，方块始终可辨。
+         * 读取侧同步夹取（见 [ScheduleGridStyleProto.toCompose]），避免历史低值把 UI 与渲染拉偏。
+         */
+        val MIN_BLOCK_ALPHA = 0.5f
         val DEFAULT_FONT_SCALE = 1.2f
 
         // 柔和协调的马卡龙配色（浅色背景 + 深色模式深色背景）。
@@ -312,8 +322,15 @@ fun DualColor.toProto(): DualColorProto {
 
 /**
  * Protobuf -> ScheduleGridStyle 转换 function
+ *
+ * @param paletteFallback 持久化配色为空（用户从未切换过主题 / 刚重置样式）时的回落色板。
+ *   必须传**当前主题预设**的 `gridStyle.courseColorMaps`：此前一律回落 [ScheduleGridStyle.DEFAULT]
+ *   的经典马卡龙 12 色，而 UI 主题默认是「通透」，于是新装用户看到的是「通透主题 + 马卡龙配色」
+ *   的错配组合（深色下还会出现「深色档强调色当文字、叠在同色淡底上」的低对比）。
  */
-fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
+fun ScheduleGridStyleProto.toCompose(
+    paletteFallback: List<DualColor> = ScheduleGridStyle.DEFAULT_COLOR_MAPS
+): ScheduleGridStyle {
     val d = ScheduleGridStyle.DEFAULT
 
     return ScheduleGridStyle(
@@ -328,12 +345,13 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         courseBlockOuterPaddingDp = this.course_block_outer_padding_dp ?: d.courseBlockOuterPaddingDp,
         courseBlockInnerPaddingDp = this.course_block_inner_padding_dp ?: d.courseBlockInnerPaddingDp,
 
-        // 3. 透明度与缩放
-        courseBlockAlphaFloat = this.course_block_alpha_float ?: d.courseBlockAlphaFloat,
+        // 3. 透明度与缩放（不透明度夹到可辨下限，历史低值不再渲染出「透明方块」）
+        courseBlockAlphaFloat = (this.course_block_alpha_float ?: d.courseBlockAlphaFloat)
+            .coerceIn(ScheduleGridStyle.MIN_BLOCK_ALPHA, 1f),
         courseBlockFontScale = this.course_block_font_scale ?: d.courseBlockFontScale,
 
         // 5. 列表转换 (Wire 中 List 不会是 null，为空则是 EmptyList)
-        courseColorMaps = if (this.course_color_maps.isEmpty()) d.courseColorMaps else this.course_color_maps.map { it.toCompose() },
+        courseColorMaps = if (this.course_color_maps.isEmpty()) paletteFallback else this.course_color_maps.map { it.toCompose() },
 
         // 6. 开关映射
         hideGridLines = this.hide_grid_lines ?: d.hideGridLines,
