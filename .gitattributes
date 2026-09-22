@@ -1,0 +1,9 @@
+# 换行规范化
+#
+# ⚠️ 为什么需要这条：本机 core.autocrlf=true，若不加约束，git 会把工作区的
+# `.githooks/pre-commit` 写成 CRLF。shell 脚本首行 `#!/bin/sh` 尾随 \r 时，
+# Linux / macOS 会报 "bad interpreter"，**提交门禁会静默失效**（Windows 上 Git Bash
+# 有时能容忍，反而让问题更难发现）。故这两个目录强制 LF。
+
+.githooks/* text eol=lf
+scripts/*.py text eol=lf
