@@ -59,6 +59,11 @@ data class CourseBlockColors(
  *
  * - 通透 / 柔绘：使用深色强调色做淡底，主题填充系数为浅色 0.30、深色 0.38；
  * - 书卷 / 用户自定义实底：直接使用当前深浅模式对应的色板色；
+ * - **课表设了自定义背景图（壁纸）：一律改走「书卷深色模式」口径**——深色档强调色作**实色**底、
+ *   文字按底色亮度自适应黑 / 白。原因：色条主题的淡底（0.30/0.38）设计前提是页面底为纯色，
+ *   叠在照片上会直接透出壁纸纹理、视觉上等同「课程块变透明」；且淡底 + 深色档文字的组合在
+ *   照片上也压不住对比度。实色块是唯一在任意照片上都稳定的方案，用户仍可用「不透明度」滑块
+ *   缩放整体不透明程度（1.0 = 实色，下限 0.5 = 半透，壁纸按比例透出）；
  * - 色板自带 alpha 必须保留，用户不透明度只做乘算，不覆盖。
  */
 fun resolveCourseBlockColors(
@@ -67,26 +72,31 @@ fun resolveCourseBlockColors(
     colorPair: DualColor?,
     blockAlpha: Float,
     fallbackContent: Color,
-    preferredContent: Color? = null
+    preferredContent: Color? = null,
+    hasWallpaper: Boolean = false
 ): CourseBlockColors {
     val safeColorPair = colorPair
         ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
         ?: DualColor(Color(0xFF6C5CE7), Color(0xFF6C5CE7))
     val safeAlpha = blockAlpha.coerceIn(ScheduleGridStyle.MIN_BLOCK_ALPHA, 1f)
     val isStripTheme = themePreset == AppThemePreset.IOS || themePreset == AppThemePreset.SOFT
+    // 壁纸模式 = 书卷深色模式口径：实底色块（不参与「淡底」语言）
+    val isSolidBlock = hasWallpaper
     val baseColor = when {
+        isSolidBlock -> safeColorPair.dark
         isStripTheme -> safeColorPair.dark
         isDarkTheme -> safeColorPair.dark
         else -> safeColorPair.light
     }
     val themeFillAlpha = when {
+        isSolidBlock -> 1f
         isStripTheme && isDarkTheme -> STRIP_FILL_ALPHA_DARK
         isStripTheme -> STRIP_FILL_ALPHA_LIGHT
         else -> 1f
     }
     val background = baseColor.scaleAlpha(themeFillAlpha * safeAlpha)
     val content = preferredContent
-        ?: if (isStripTheme) {
+        ?: if (isStripTheme && !isSolidBlock) {
             safeColorPair.dark
         } else {
             adaptiveTextColor(background, fallbackContent)

@@ -130,7 +130,9 @@ fun CourseBlock(
         colorPair = colorPair,
         blockAlpha = currentAlpha,
         fallbackContent = MaterialTheme.colorScheme.onSurface,
-        preferredContent = style.courseTextColor
+        preferredContent = style.courseTextColor,
+        // 课表设了背景图时改走「书卷深色模式」口径（实色底 + 自适应文字），见 resolveCourseBlockColors
+        hasWallpaper = style.backgroundImagePath.isNotEmpty()
     )
     val presetRender = buildPresetRenderSpec(
         themePreset = themePreset,

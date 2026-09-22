@@ -1213,7 +1213,9 @@ private fun ScheduleListViewBlock(
         isDarkTheme = isDark,
         colorPair = colorPair,
         blockAlpha = composedStyle.courseBlockAlpha,
-        fallbackContent = MaterialTheme.colorScheme.onSurface
+        fallbackContent = MaterialTheme.colorScheme.onSurface,
+        // 与网格同一口径：壁纸模式下改走「书卷深色模式」口径（实色底 + 自适应文字）
+        hasWallpaper = composedStyle.backgroundImagePath.isNotEmpty()
     )
     val bg = blockColors.background
     val textColor = blockColors.content
