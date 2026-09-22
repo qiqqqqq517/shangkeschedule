@@ -116,6 +116,7 @@ import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.MotionPressMode
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.components.rememberAppHaptics
+import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -1780,7 +1781,12 @@ private fun TodayTomorrowCard(
     style: TodayCardStyle
 ) {
     val colors = appColors()
-    val accent = todayAccentColor(model, gridStyle, isDark)
+    val accent = todayAccentColor(
+        model = model,
+        gridStyle = gridStyle,
+        isDark = isDark,
+        themePreset = LocalThemePreset.current
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2401,12 +2407,19 @@ private fun todayIsCourseOngoing(model: CourseDisplayModel, now: LocalTime): Boo
 private fun todayAccentColor(
     model: CourseDisplayModel,
     gridStyle: ScheduleGridStyle,
-    isDark: Boolean
+    isDark: Boolean,
+    themePreset: AppThemePreset
 ): Color {
-    val pair = gridStyle.courseColorMaps.getOrElse(model.course.colorInt) {
-        ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
-    }
-    return if (isDark) pair.dark else pair.light
+    val colorPair = gridStyle.courseColorMaps.getOrNull(model.course.colorInt)
+        ?: gridStyle.courseColorMaps.firstOrNull()
+        ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
+    return resolveCourseBlockColors(
+        themePreset = themePreset,
+        isDarkTheme = isDark,
+        colorPair = colorPair,
+        blockAlpha = 1f,
+        fallbackContent = Color.Unspecified
+    ).accent
 }
 
 // ===== 通透主题（iOS 26）· 今日页专用组件 =====

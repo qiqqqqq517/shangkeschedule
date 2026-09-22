@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.model.AppThemePreset
-import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
@@ -66,12 +65,7 @@ private data class CourseBlockPresetRender(
 private fun buildPresetRenderSpec(
     themePreset: AppThemePreset,
     isDarkTheme: Boolean,
-    colorInt: Int,
-    isFloating: Boolean,
-    currentAlpha: Float,
-    courseColorAdapted: Color?,
-    fallbackColorAdapted: Color,
-    blockColor: Color,
+    colors: CourseBlockColors,
     style: ScheduleGridStyleComposed
 ): CourseBlockPresetRender {
     // 云舒（SLEEPY）主题已删除，其专属投影分支不再存在；isStripStylePreset = 通透（iOS 26）
@@ -80,29 +74,11 @@ private fun buildPresetRenderSpec(
     // 材质差异走「软模糊投影 + 羽化描边 + 细柔和色条」，在材质层单独处理。
     val isSoftPreset = themePreset == AppThemePreset.SOFT
 
-    // iOS 左侧色条主题：从 courseColorMaps 取 light/dark 对，浅色模式 bg=light半透明/strip=dark，深色模式 bg=dark半透明/strip=dark
-    // 这样用户在个性化配置中修改课程颜色后，色条主题的背景和色条都会同步变化。
-    val timetableDual = style.courseColorMaps.getOrNull(colorInt)
-        ?: style.courseColorMaps.firstOrNull()
-        ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull() ?: DualColor(Color(0xFF6C5CE7), Color(0xFF6C5CE7))
-    // 色条主题：courseColorMaps 颜色极浅，直接用 light 会与白底融为一体，改用 dark 半透明
-    // （半透明底色同样按「课程块不透明度」乘算，保持与其它主题一致）
-    // 填充系数见 CourseBlockColorUtil.kt 的 STRIP_FILL_ALPHA_*：
-    // 原为浅色 0.12 / 深色 0.25，方块近乎透明（只剩色条与文字），现提高到 0.30 / 0.38。
-    val timetableBg = timetableDual.dark.scaleAlpha(
-        (if (isDarkTheme) STRIP_FILL_ALPHA_DARK else STRIP_FILL_ALPHA_LIGHT) * currentAlpha
-    )
-    val timetableStrip = timetableDual.dark
-    val timetableText = timetableDual.dark
-
     // 色条主题与柔绘共用「淡底 + 深色条」取色口径（透通为 isStripStylePreset，
-    // 柔绘为 isSoftPreset），两者都从 courseColorMaps 取 light/dark 对。
     val usesStripPalette = isStripStylePreset || isSoftPreset
-    val blockBackgroundColor = if (usesStripPalette) timetableBg else blockColor
-    val stripColor = if (usesStripPalette) timetableStrip
-        else (courseColorAdapted ?: fallbackColorAdapted).scaleAlpha(currentAlpha)
-    val textColor = if (usesStripPalette) timetableText
-        else (style.courseTextColor ?: adaptiveTextColor(blockColor, MaterialTheme.colorScheme.onSurface))
+    val blockBackgroundColor = colors.background
+    val stripColor = colors.accent
+    val textColor = colors.content
 
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
     // 课程块投影：通透（iOS 26）与书卷均不加投影，靠材质与留白分层；
@@ -143,34 +119,23 @@ fun CourseBlock(
 
     // 颜色适配
     val colorIndex = course.colorInt.takeIf { it in style.courseColorMaps.indices }
-    val courseColorAdapted: Color? = colorIndex?.let { index ->
-        val baseColorMap = style.courseColorMaps[index]
-        if (isDarkTheme) baseColorMap.dark else baseColorMap.light
-    }
-    // 兜底色：色板为空时不能用 first()（抛 NoSuchElementException，周课表为首页 ⇒ 冷启动闪退）。
-    // 与同文件上方 buildPresetRenderSpec 及 WeeklyScheduleScreen 保持同一套兜底写法。
-    val fallbackColorAdapted: Color = (
-        style.courseColorMaps.firstOrNull()
-            ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
-        )?.let { if (isDarkTheme) it.dark else it.light }
-        ?: if (isDarkTheme) Color(0xFF3A3A3C) else Color(0xFFB0B0B8)
-
     val currentAlpha = if (isFloating) 0.95f else style.courseBlockAlpha
-    // 【颜色池 alpha 不可覆盖】颜色池里的颜色自带 alpha，且是设计令牌（书卷/通透浅色池 = 0x40 / 0x1F 淡底）。
-    // 此前用 copy(alpha = currentAlpha) 直接覆盖，导致浅色池的淡底在周课表网格里被渲染成实色——
-    // 页面颜色与颜色池里显示的颜色对不上，也与列表视图 / 今日页（均保留原 alpha）不一致。
-    // 改为乘算：「课程块不透明度」在其之上缩放，颜色池的颜色得以原样呈现。
-    val blockColor = (courseColorAdapted ?: fallbackColorAdapted).scaleAlpha(currentAlpha)
     val themePreset = LocalThemePreset.current
+    val colorPair = colorIndex?.let { style.courseColorMaps[it] }
+        ?: style.courseColorMaps.firstOrNull()
+        ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
+    val blockColors = resolveCourseBlockColors(
+        themePreset = themePreset,
+        isDarkTheme = isDarkTheme,
+        colorPair = colorPair,
+        blockAlpha = currentAlpha,
+        fallbackContent = MaterialTheme.colorScheme.onSurface,
+        preferredContent = style.courseTextColor
+    )
     val presetRender = buildPresetRenderSpec(
         themePreset = themePreset,
         isDarkTheme = isDarkTheme,
-        colorInt = course.colorInt,
-        isFloating = isFloating,
-        currentAlpha = currentAlpha,
-        courseColorAdapted = courseColorAdapted,
-        fallbackColorAdapted = fallbackColorAdapted,
-        blockColor = blockColor,
+        colors = blockColors,
         style = style
     )
 

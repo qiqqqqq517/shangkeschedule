@@ -1,6 +1,9 @@
 package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.ui.graphics.Color
+import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.DualColor
+import com.shangkeschedule.data.model.ScheduleGridStyle
 
 /**
  * 根据课程块背景色自动计算文字颜色。
@@ -38,6 +41,63 @@ fun adaptiveTextColor(background: Color, fallback: Color): Color {
  */
 internal const val STRIP_FILL_ALPHA_LIGHT = 0.30f
 internal const val STRIP_FILL_ALPHA_DARK = 0.38f
+
+/**
+ * 课程块最终渲染色：背景、强调色和内容由同一个解析器产出。
+ *
+ * 主题语言只决定“基础填充系数”；用户设置的「课程块不透明度」始终作为最后一层乘算。
+ * 这样网格、列表和后续新增入口不会出现同一份色板/同一设置渲染出不同透明度的问题。
+ */
+data class CourseBlockColors(
+    val background: Color,
+    val accent: Color,
+    val content: Color
+)
+
+/**
+ * 解析课程块颜色。
+ *
+ * - 通透 / 柔绘：使用深色强调色做淡底，主题填充系数为浅色 0.30、深色 0.38；
+ * - 书卷 / 用户自定义实底：直接使用当前深浅模式对应的色板色；
+ * - 色板自带 alpha 必须保留，用户不透明度只做乘算，不覆盖。
+ */
+fun resolveCourseBlockColors(
+    themePreset: AppThemePreset,
+    isDarkTheme: Boolean,
+    colorPair: DualColor?,
+    blockAlpha: Float,
+    fallbackContent: Color,
+    preferredContent: Color? = null
+): CourseBlockColors {
+    val safeColorPair = colorPair
+        ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS.firstOrNull()
+        ?: DualColor(Color(0xFF6C5CE7), Color(0xFF6C5CE7))
+    val safeAlpha = blockAlpha.coerceIn(ScheduleGridStyle.MIN_BLOCK_ALPHA, 1f)
+    val isStripTheme = themePreset == AppThemePreset.IOS || themePreset == AppThemePreset.SOFT
+    val baseColor = when {
+        isStripTheme -> safeColorPair.dark
+        isDarkTheme -> safeColorPair.dark
+        else -> safeColorPair.light
+    }
+    val themeFillAlpha = when {
+        isStripTheme && isDarkTheme -> STRIP_FILL_ALPHA_DARK
+        isStripTheme -> STRIP_FILL_ALPHA_LIGHT
+        else -> 1f
+    }
+    val background = baseColor.scaleAlpha(themeFillAlpha * safeAlpha)
+    val content = preferredContent
+        ?: if (isStripTheme) {
+            safeColorPair.dark
+        } else {
+            adaptiveTextColor(background, fallbackContent)
+        }
+
+    return CourseBlockColors(
+        background = background,
+        accent = safeColorPair.dark,
+        content = content
+    )
+}
 
 /**
  * 在颜色自带的 alpha 之上再做一次乘算，得到最终不透明度。

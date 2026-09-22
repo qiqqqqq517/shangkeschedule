@@ -112,11 +112,10 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGrid
 import com.shangkeschedule.ui.schedule.components.ScheduleGridActions
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
-import com.shangkeschedule.ui.schedule.components.STRIP_FILL_ALPHA_LIGHT
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
-import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
 import com.shangkeschedule.ui.schedule.components.scaleAlpha
+import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -1209,19 +1208,15 @@ private fun ScheduleListViewBlock(
         composedStyle.courseColorMaps.firstOrNull() ?: ScheduleGridStyle.DEFAULT_COLOR_MAPS[0]
     }
 
-    // 背景按「课程块不透明度」乘算：颜色池自带 alpha（淡底令牌）必须保留，只在其上缩放，
-    // 与网格视图 CourseBlock 的取色方式保持一致。
-    //
-    // 色条主题（通透 / 柔绘）例外：它们的**浅色档**只有 0x1F(12%) / 0x33(20%) alpha，列表行又不画
-    // 左侧色条，浅色模式下整行几乎与卡片同色（同样被反馈为「课程方块透明」）。故与网格视图统一
-    // 按 STRIP_FILL_ALPHA_LIGHT 取「深色档 × 系数」，填充可见度与网格一致；深色档维持色板实色。
-    val isStripTheme = LocalThemePreset.current == AppThemePreset.IOS || isSoft
-    val bg = when {
-        isStripTheme && !isDark -> colorPair.dark.scaleAlpha(STRIP_FILL_ALPHA_LIGHT * composedStyle.courseBlockAlpha)
-        else -> (if (isDark) colorPair.dark else colorPair.light).scaleAlpha(composedStyle.courseBlockAlpha)
-    }
-    val stripColor = colorPair.dark
-    val textColor = adaptiveTextColor(bg, MaterialTheme.colorScheme.onSurface)
+    val blockColors = resolveCourseBlockColors(
+        themePreset = LocalThemePreset.current,
+        isDarkTheme = isDark,
+        colorPair = colorPair,
+        blockAlpha = composedStyle.courseBlockAlpha,
+        fallbackContent = MaterialTheme.colorScheme.onSurface
+    )
+    val bg = blockColors.background
+    val textColor = blockColors.content
     val demotedAlpha = if (block.isVisualDemoted) AppAlpha.dimmed else 1f
     val cornerRadius = composedStyle.courseBlockCornerRadius
     val shape = RoundedCornerShape(cornerRadius)
