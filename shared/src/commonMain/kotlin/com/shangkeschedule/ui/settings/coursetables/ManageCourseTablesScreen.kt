@@ -87,7 +87,6 @@ import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.claudeReadingSerif
 import com.shangkeschedule.ui.theme.LocalAppMotion
-import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
 import kotlinx.coroutines.launch

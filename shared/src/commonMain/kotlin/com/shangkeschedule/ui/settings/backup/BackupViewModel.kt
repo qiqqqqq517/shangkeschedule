@@ -31,7 +31,6 @@ import okio.use
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.backup_err_connect_failed
 import shangkeschedule.shared.generated.resources.backup_err_corrupted
 import shangkeschedule.shared.generated.resources.backup_err_empty

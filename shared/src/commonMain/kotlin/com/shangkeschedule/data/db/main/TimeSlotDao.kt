@@ -32,12 +32,6 @@ interface TimeSlotDao {
     fun getSchemeIdsByCourseTableId(courseTableId: String): Flow<List<String>>
 
     /**
-     * 根据节次编号、课表ID和作息方案ID获取单个时间段。
-     */
-    @Query("SELECT * FROM time_slots WHERE number = :number AND courseTableId = :courseTableId AND schemeId = :schemeId LIMIT 1")
-    suspend fun getTimeSlot(number: Int, courseTableId: String, schemeId: String): TimeSlot?
-
-    /**
      * 插入一个或多个时间段。如果发生主键冲突，则替换旧数据。
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

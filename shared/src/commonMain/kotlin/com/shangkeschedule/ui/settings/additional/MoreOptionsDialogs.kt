@@ -1,51 +1,19 @@
 package com.shangkeschedule.ui.settings.additional
 
-import com.shangkeschedule.ui.components.AppAlertDialog
-import com.shangkeschedule.ui.components.AppDialogActions
-import com.shangkeschedule.ui.components.AppRadioRow
-import com.shangkeschedule.ui.theme.appColors
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import com.shangkeschedule.ui.components.ThemedLoadingIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.model.StartScreen
-import com.shangkeschedule.tool.UpdatePlatform
-import com.shangkeschedule.tool.UpdateStatus
+import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.AppRadioRow
+import com.shangkeschedule.ui.theme.appColors
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_cancel
-import shangkeschedule.shared.generated.resources.action_confirm
-import shangkeschedule.shared.generated.resources.btn_download_update
-import shangkeschedule.shared.generated.resources.dialog_checking_update
-import shangkeschedule.shared.generated.resources.dialog_current_version_latest
-import shangkeschedule.shared.generated.resources.dialog_new_version_found
 import shangkeschedule.shared.generated.resources.dialog_select_start_screen
-import shangkeschedule.shared.generated.resources.dialog_select_update_channel
-import shangkeschedule.shared.generated.resources.dialog_update_check_failed
-import shangkeschedule.shared.generated.resources.label_error_message
-import shangkeschedule.shared.generated.resources.label_version_prefix
-import shangkeschedule.shared.generated.resources.tip_please_wait
 
 /**
  * 启动页面选择弹窗
@@ -77,133 +45,6 @@ fun StartScreenSelectionDialog(
             // 取消弱化为灰字文本钮（与其他对话框取消语言一致）
             TextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel), color = appColors().textSecondary)
-            }
-        }
-    )
-}
-
-/**
- * 更新渠道选择弹窗
- */
-@Composable
-fun ChannelSelectionDialog(
-    showDialog: Boolean,
-    currentSelected: UpdatePlatform,
-    onDismiss: () -> Unit,
-    onConfirm: (UpdatePlatform) -> Unit
-) {
-    if (!showDialog) return
-
-    var selectedPlatform by remember(currentSelected) { mutableStateOf(currentSelected) }
-
-    AppAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.dialog_select_update_channel)) },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                UpdatePlatform.entries.forEach { platform ->
-                    AppRadioRow(
-                        text = platform.title,
-                        selected = platform == selectedPlatform,
-                        onClick = { selectedPlatform = platform }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
-            AppDialogActions(
-                confirmText = stringResource(Res.string.action_confirm),
-                onConfirm = { onConfirm(selectedPlatform) },
-                dismissText = stringResource(Res.string.action_cancel),
-                onDismiss = onDismiss
-            )
-        },
-        dismissButton = {}
-    )
-}
-
-/**
- * 更新检查结果弹窗
- */
-@Composable
-fun UpdateResultDialog(
-    showDialog: Boolean,
-    updateStatus: UpdateStatus,
-    onDismiss: () -> Unit,
-    onDownloadClick: (String) -> Unit
-) {
-    if (!showDialog || updateStatus is UpdateStatus.Idle || updateStatus is UpdateStatus.NotSupported) return
-
-    if (updateStatus is UpdateStatus.Checking) {
-        AppAlertDialog(
-            onDismissRequest = { },
-            title = { Text(stringResource(Res.string.dialog_checking_update)) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ThemedLoadingIndicator(modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.width(16.dp))
-                    Text(stringResource(Res.string.tip_please_wait))
-                }
-            },
-            confirmButton = {}
-        )
-        return
-    }
-
-    val (title, text, confirmBtn) = when (updateStatus) {
-        is UpdateStatus.Found -> Triple(
-            stringResource(Res.string.dialog_new_version_found, updateStatus.versionName),
-            updateStatus.changelog,
-            @Composable {
-                // 下载更新 CTA：主色胶囊（与全局按钮语言一致）
-                Button(
-                    onClick = { onDownloadClick(updateStatus.targetUrl) },
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = appColors().primary,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(stringResource(Res.string.btn_download_update))
-                }
-            }
-        )
-        is UpdateStatus.Latest -> Triple(
-            stringResource(Res.string.dialog_current_version_latest),
-            stringResource(Res.string.label_version_prefix, updateStatus.currentVersion),
-            null
-        )
-        is UpdateStatus.Error -> Triple(
-            stringResource(Res.string.dialog_update_check_failed),
-            stringResource(Res.string.label_error_message, updateStatus.message),
-            null
-        )
-    }
-
-    AppAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 350.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        },
-        confirmButton = { confirmBtn?.invoke() },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    stringResource(if (updateStatus is UpdateStatus.Found) Res.string.action_cancel else Res.string.action_confirm),
-                    color = appColors().textSecondary
-                )
             }
         }
     )

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.theme
+package com.shangkeschedule.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -11,7 +11,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -34,22 +33,12 @@ import androidx.compose.ui.unit.sp
 
 // --- iOS 26 语义色（Apple 原始定义） ---------------------------------------
 
-/** iOS 26 systemBlue（浅色）。 */
-const val IosSystemBlueLight = 0xFF007AFF
-/** iOS 26 systemBlue（深色，暗底上提亮一档）。 */
-const val IosSystemBlueDark = 0xFF0A84FF
-
 private val IosLabelLight = Color(0xFF000000)
-private val IosSecondaryLabelLight = Color(0x993C3C43)   // secondaryLabel 60%
-private val IosTertiaryLabelLight = Color(0x4D3C3C43)    // tertiaryLabel 30%
 private val IosLabelDark = Color(0xFFFFFFFF)
-private val IosSecondaryLabelDark = Color(0x99EBEBF5)
-private val IosTertiaryLabelDark = Color(0x4CEBEBF5)
 
 // systemGroupedBackground 家族（浅色）
 private val IosGroupedBgLight = Color(0xFFF2F2F7)
 private val IosSecondaryGroupedBgLight = Color(0xFFFFFFFF)
-private val IosTertiaryGroupedBgLight = Color(0xFFF2F2F7)
 
 // systemGroupedBackground 家族（深色）
 private val IosGroupedBgDark = Color(0xFF000000)
@@ -71,7 +60,6 @@ private val IosGreenLight = Color(0xFF34C759)
 private val IosOrangeLight = Color(0xFFFF9500)
 private val IosRedLight = Color(0xFFFF3B30)
 private val IosPinkLight = Color(0xFFFF2D55)
-private val IosPurpleLight = Color(0xFFAF52DE)
 private val IosTealLight = Color(0xFF5AC8FA)
 private val IosIndigoLight = Color(0xFF5856D6)
 private val IosYellowLight = Color(0xFFFFCC00)
@@ -81,7 +69,6 @@ private val IosGreenDark = Color(0xFF30D158)
 private val IosOrangeDark = Color(0xFFFF9F0A)
 private val IosRedDark = Color(0xFFFF453A)
 private val IosPinkDark = Color(0xFFFF375F)
-private val IosPurpleDark = Color(0xFFBF5AF2)
 private val IosTealDark = Color(0xFF64D2FF)
 private val IosIndigoDark = Color(0xFF5E5CE6)
 private val IosYellowDark = Color(0xFFFFD60A)
@@ -267,6 +254,8 @@ internal val iosSpacingTokens = AppSpacingTokens(
     listGap = 24.dp,
     cardInner = 16.dp,
     rowMinHeight = 52.dp,
+    // A1/P2：设置列表行高度独立成 token（通透与普通行同高）
+    settingsRowMinHeight = 52.dp,
     touchMin = 48.dp,
     chipIcon = 44.dp,
     fab = 56.dp,
@@ -293,6 +282,9 @@ internal val iosTypeTokens = AppTypeTokens(
     badge = 11.sp,
     pageTitle = 22.sp,
     rowTitle = 17.sp,
+    // A1/P2：设置项行标题独立成 token（通透与普通行同字号/字重）
+    settingsRowTitle = 17.sp,
+    settingsRowTitleWeight = FontWeight.SemiBold,
     body = 17.sp,
     caption = 13.sp,
     hint = 11.sp
@@ -313,17 +305,6 @@ fun iosGroupBg(): Color = if (LocalIsDarkTheme.current) {
     IosSecondaryGroupedBgDark
 } else {
     IosSecondaryGroupedBgLight
-}
-
-/**
- * 通透分组卡描边：iOS 26 玻璃高光边——浅色下是极淡的冷灰内描边（把白卡从浅灰页面上
- * 托起来），深色下是极淡的白色内描边（把深卡从纯黑页面上托起来）。
- */
-@Composable
-fun iosGroupBorder(): Color = if (LocalIsDarkTheme.current) {
-    Color(0x14FFFFFF)
-} else {
-    Color(0x0F3C3C43)
 }
 
 // ============================================================================

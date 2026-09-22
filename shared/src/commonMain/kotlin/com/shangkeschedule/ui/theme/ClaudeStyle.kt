@@ -268,6 +268,9 @@ val claudeSpacingTokens: AppSpacingTokens = AppSpacingTokens(
     listGap = 20.dp,
     cardInner = 16.dp,
     rowMinHeight = 56.dp,
+    // A1/P2：设置列表行 48dp —— 此前是 SettingsScreen 里 `if (isClaudePreset) 48.dp` 的历史硬编码，
+    // 现成为显式 token（书卷设置行比普通行矮 8dp）
+    settingsRowMinHeight = 48.dp,
     touchMin = 48.dp,
     chipIcon = 44.dp,
     fab = 56.dp,
@@ -286,6 +289,10 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
     badge = 11.sp,
     pageTitle = 28.sp,
     rowTitle = 18.sp,
+    // A1/P2：设置项行标题 15sp / Medium —— 此前是 SettingsScreen 里的 `if (isClaudePreset)` 分支，
+    // 现成为显式 token；书卷设置行比页面行标题更小更轻（Medium 而非 SemiBold）
+    settingsRowTitle = 15.sp,
+    settingsRowTitleWeight = FontWeight.Medium,
     body = 15.sp,
     caption = 13.sp,
     hint = 12.sp

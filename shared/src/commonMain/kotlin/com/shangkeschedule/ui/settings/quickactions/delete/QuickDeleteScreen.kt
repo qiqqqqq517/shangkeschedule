@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.ui.settings.quickactions.asString
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
@@ -102,14 +103,6 @@ import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_select_weeks
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Instant
-
-/**
- * 将 UiTextRes 转化为 Composable 的字符串
- */
-@Composable
-fun UiTextRes.asString(): String {
-    return stringResource(resource, *args.toTypedArray())
-}
 
 /**
  * 快速删除界面：支持按“周次+星期”或“日期范围”筛选并批量清理课程。

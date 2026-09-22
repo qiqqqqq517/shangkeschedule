@@ -3,6 +3,7 @@ package com.shangkeschedule.data.db.main
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
+import com.shangkeschedule.data.time.daysInMonth
 
 /**
  * Room 实体类，代表“作息方案元信息”数据表。
@@ -64,14 +65,6 @@ data class TimeSlotScheme(
             if (month !in 1..12) return -1
             if (day !in 1..daysInMonth(month)) return -1 // 拦截 9-31 等不存在的日期
             return month * 100 + day
-        }
-
-        /** 返回某月的天数（2 月按闰年处理）。 */
-        private fun daysInMonth(month: Int): Int = when (month) {
-            1, 3, 5, 7, 8, 10, 12 -> 31
-            4, 6, 9, 11 -> 30
-            2 -> 29
-            else -> 0
         }
 
         /**

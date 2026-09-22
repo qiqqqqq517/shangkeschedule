@@ -8,22 +8,14 @@ import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppSectionHeader
 import shangkeschedule.shared.generated.resources.Res
@@ -31,8 +23,6 @@ import shangkeschedule.shared.generated.resources.item_clear_skipped_dates
 import shangkeschedule.shared.generated.resources.item_update_holiday_info
 import shangkeschedule.shared.generated.resources.item_view_skipped_dates
 import shangkeschedule.shared.generated.resources.section_title_advanced
-import shangkeschedule.shared.generated.resources.section_title_skip_dates
-import shangkeschedule.shared.generated.resources.skipped_dates_count_format
 import shangkeschedule.shared.generated.resources.skipped_dates_none
 import shangkeschedule.shared.generated.resources.text_skip_dates_experimental
 import shangkeschedule.shared.generated.resources.update_holiday_info_hint

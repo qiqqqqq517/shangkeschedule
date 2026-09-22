@@ -17,23 +17,14 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.until
 import kotlinx.datetime.todayIn
-import org.jetbrains.compose.resources.StringResource
+import com.shangkeschedule.ui.settings.quickactions.UiTextRes
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.error_tweak_failed
 import shangkeschedule.shared.generated.resources.error_tweak_no_table_or_semester
 import shangkeschedule.shared.generated.resources.error_tweak_same_day
 import shangkeschedule.shared.generated.resources.toast_tweak_success
 import kotlin.time.Clock
-
-/**
- * 带有格式化参数的资源字符串包装类，避免硬编码
- */
-data class UiTextRes(
-    val resource: StringResource,
-    val args: List<Any> = emptyList()
-)
 
 /**
  * 获取当前系统本地日期的辅助函数

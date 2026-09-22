@@ -39,27 +39,16 @@
     <string name="title_today_courses">Today\'s Courses</string>
     <string name="today_todos_section">Today\'s To-dos</string>
     <string name="todo_count_format">%1$d items</string>
-    <string name="title_tomorrow_courses">Tomorrow</string>
     <string name="text_courses_count">%1$s classes</string>
-    <string name="action_week_view">Week View</string>
     <!-- Claude theme · Today page (mirrors claude-schedule-page.design/pages/今日日程.html) -->
-    <string name="today_claude_date_format">%2$s %1$s</string>
-    <string name="today_claude_week_range">%1$s – %2$s</string>
-    <string name="today_claude_week_prev">Previous week</string>
-    <string name="today_claude_week_next">Next week</string>
-    <string name="today_claude_remaining">%1$s left</string>
     <string name="today_claude_tomorrow_format">Tomorrow · %1$s</string>
     <string name="today_claude_view_all">View all</string>
     <string name="today_claude_status_done">Finished</string>
     <string name="today_claude_status_live">In progress</string>
     <string name="today_claude_status_upcoming">Upcoming</string>
-    <string name="today_claude_badge_required">Required</string>
-    <string name="today_claude_badge_elective">Elective</string>
-    <string name="today_claude_badge_lab">Lab</string>
     <string name="today_claude_meta_time">Time</string>
     <string name="today_claude_meta_room">Location</string>
     <string name="today_claude_meta_teacher">Teacher</string>
-    <string name="today_claude_meta_weeks">Weeks</string>
     <string name="today_claude_meta_credit">Credits</string>
 
     <string name="today_claude_next_label">Next class</string>
@@ -71,19 +60,11 @@
     <string name="today_claude_countdown_label">min to start</string>
     <string name="today_claude_sheet_close">Close</string>
     <string name="today_claude_sheet_edit">Edit course</string>
-    <string name="today_ios_date_format">%2$s %1$s</string>
-    <string name="today_ios_week_range">%1$s – %2$s</string>
-    <string name="today_ios_week_prev">Previous week</string>
-    <string name="today_ios_week_next">Next week</string>
-    <string name="today_ios_remaining">%1$s left</string>
     <string name="today_ios_tomorrow_format">Tomorrow · %1$s</string>
     <string name="today_ios_view_all">View all</string>
     <string name="today_ios_status_done">Finished</string>
     <string name="today_ios_status_live">In progress</string>
     <string name="today_ios_status_upcoming">Upcoming</string>
-    <string name="today_ios_badge_required">Required</string>
-    <string name="today_ios_badge_elective">Elective</string>
-    <string name="today_ios_badge_lab">Lab</string>
     <string name="today_ios_meta_time">Time</string>
     <string name="today_ios_meta_room">Location</string>
     <string name="today_ios_meta_teacher">Teacher</string>
@@ -98,26 +79,17 @@
     <string name="today_ios_countdown_label">min to start</string>
     <string name="today_ios_sheet_close">Close</string>
     <string name="today_ios_sheet_edit">Edit course</string>
-    <string name="settings_group_course">Courses</string>
-    <string name="settings_group_tools">Tools</string>
-    <string name="settings_group_other">Other</string>
     <string name="settings_group_timetable">Timetable</string>
     <string name="settings_group_courses">Courses</string>
     <string name="settings_group_preference">Preferences</string>
     <string name="settings_group_about">About</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="text_no_courses_this_week">No courses this week</string>
-    <string name="label_crush_course">Partner's class</string>
-    <string name="text_course_in_progress">In class now</string>
-    <string name="text_courses_finished">All done for today</string>
-    <string name="text_countdown_start">Starts in %1$s min</string>
-    <string name="text_countdown_remaining">%1$s min left</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
     <string name="title_semester_not_set">Please set semester start date</string>
     <string name="date_format_year_month_day">%2$s/%3$s/%1$s</string>
 
     <!-- Agenda -->
-    <string name="title_agenda">Agenda</string>
     <string name="agenda_today_badge">Today</string>
     <string name="agenda_day_title_format">%1$d/%2$d %3$s</string>
     <string name="agenda_lunar_format">Lunar %1$s</string>
@@ -185,7 +157,6 @@
     <string name="toast_name_empty">Course name cannot be empty</string>
     <string name="label_teacher">Instructor</string>
     <string name="label_position">Location</string>
-    <string name="label_course_time">Class time</string>
     <string name="label_day_of_week">Day of week</string>
     <string name="label_start_section">Start period</string>
     <string name="label_end_section">End period</string>
@@ -193,20 +164,13 @@
     <string name="label_course_weeks">Course weeks</string>
     <string name="action_single_week">Odd weeks</string>
     <string name="action_double_week">Even weeks</string>
-    <string name="label_course_color">Course color</string>
-    <string name="button_select_color">Select color</string>
     <string name="snackbar_add_course_within_semester">Please add or adjust courses during the semester</string>
     <string name="snackbar_course_move_failed">Failed to move course, please try again</string>
     <string name="label_section_range_suffix">Period(s)</string>
     <string name="title_select_time">Select class time</string>
-    <string name="button_select_weeks">Select weeks</string>
     <string name="text_weeks_selected">Selected: %1$s</string>
     <string name="title_select_weeks">Select course weeks</string>
     <string name="title_select_color">Select course color</string>
-    <string name="a11y_color_selected">Selected</string>
-    <string name="label_custom_time_range">Custom Time Range</string>
-    <string name="label_select_custom_time">Select Custom Time</string>
-    <string name="toast_custom_time_empty">Start time or end time cannot be empty</string>
     <string name="label_custom_time">Custom Time</string>
     <string name="label_start_time">Start Time</string>
     <string name="label_end_time">End Time</string>
@@ -216,18 +180,12 @@
     <string name="label_credit">Credits</string>
     <string name="label_assessment_method">Assessment</string>
     <string name="label_is_lab">Lab course</string>
-    <string name="course_time_description">Time: Period %1$s-%2$s (%3$s-%4$s)</string>
     <string name="course_section_range">Period %1$s-%2$s</string>
-    <string name="course_position_prefix">Location: %1$s</string>
     <string name="course_teacher_prefix">Instructor: %1$s</string>
-    <string name="title_course_overlap">Overlapping Courses</string>
-    <string name="label_courses_overlap">%1$d overlapping</string>
-    <string name="course_time_sections_count">(%1$s periods)</string>
     <string name="title_select_week">Select week</string>
     <string name="title_current_week">Week %1$s</string>
     <string name="title_vacation">On vacation</string>
     <string name="status_semester_ended">Semester ended %1$d days ago</string>
-    <string name="status_week_calc_error">Week calculation error</string>
     
     <!-- Time and Day Formats -->
     <string-array name="week_days_short_names">
@@ -251,33 +209,15 @@
     
     <!-- Notifications and Alarms -->
     <string name="format_week_display">Wk %1$d</string>
-    <string name="notification_channel_desc_course_alert">Course reminder notifications</string>
-    <string name="notification_title_course_alert">Class reminder</string>
     <string name="item_auto_mode">Auto mode during class</string>
     <string name="text_auto_mode_dependency">Requires \"Course reminders\" to be enabled</string>
     <string name="toast_enable_reminder_first">Please enable \"Course reminders\" first</string>
     <string name="alarm_option_none">No reminder</string>
     <string name="alarm_option_on_time">On time</string>
-    <string name="notification_live_status_preparing">Pre-class</string>
-    <string name="notification_unknown_course">Unknown Course</string>
-    <string name="notification_unknown_position">Unknown Location</string>
 
     <!-- Widget Related -->
-    <string name="widget_name_tiny">Tiny 2x1</string>
-    <string name="widget_name_compact">Compact 2x2</string>
-    <string name="widget_name_double_days">Recent Days 4x2</string>
-    <string name="widget_name_list_vertical">Vertical Course List 4xN</string>
-    <string name="widget_tomorrow_course_preview">Tomorrow</string>
-    <string name="widget_no_courses_tomorrow">No courses tomorrow</string>
-    <string name="widget_today_courses_finished">Today\'s classes ended.</string>
-    <string name="widget_vacation_expecting">Looking forward to new semester</string>
-    <string name="widget_remaining_courses_format_today">%1$d courses left today</string>
-    <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
-    <string name="widget_title_today">Today</string>
-    <string name="widget_title_tomorrow">Tomorrow</string>
     
     <!-- Notification Settings -->
-    <string name="widget_course_total_count">%1$d total</string>
     <string name="title_course_notification_settings">Course reminder settings</string>
     <string name="section_title_general">General</string>
     <string name="section_title_advanced">Advanced</string>
@@ -294,24 +234,18 @@
     <string name="status_unauthorized">Unauthorized</string>
     <string name="item_background_and_autostart">Background run &amp; Auto-start</string>
     <string name="item_ignore_battery_optimization">Ignore battery optimization</string>
-    <string name="section_title_skip_dates">Skip dates feature</string>
     <string name="text_skip_dates_experimental">Experimental feature, not guaranteed to work</string>
     <string name="item_update_holiday_info">Update holiday information</string>
     <string name="update_holiday_info_hint">May be unstable (holiday info usually published at year-end)</string>
     <string name="item_clear_skipped_dates">Clear skipped dates</string>
     <string name="item_view_skipped_dates">View skipped dates</string>
-    <string name="skipped_dates_count_format">%1$d dates</string>
     <string name="skipped_dates_none">None</string>
-    <string name="toast_holidays_update_success">Holiday information updated successfully!</string>
-    <string name="toast_update_failed">Update failed: %1$s</string>
     <string name="toast_clear_success">All skipped dates cleared!</string>
     <string name="toast_clear_failed">Clear failed: %1$s</string>
     <string name="dialog_title_auto_mode_selection">Select auto mode</string>
     <string name="auto_mode_dnd_permission_warning">(Missing DND permission, DND/Silent may not work)</string>
     <string name="dialog_title_set_remind_time">Set reminder time</string>
     <string name="label_minutes_input">Minutes</string>
-    <string name="error_input_empty">Please enter minutes</string>
-    <string name="error_input_range">Please enter a number between 0 and 60</string>
     <string name="dialog_title_exact_alarm_permission">Exact alarm permission needed</string>
     <string name="dialog_text_exact_alarm_permission">To ensure reminders arrive on time, please grant exact alarm permission.</string>
     <string name="action_go_to_settings">Go to settings</string>
@@ -323,7 +257,6 @@
     <string name="auto_mode_dnd">Do not disturb (DND)</string>
     <string name="auto_mode_silent">Silent mode</string>
     <string name="dialog_title_view_skipped_dates">Skipped reminder dates</string>
-    <string name="text_no_skipped_dates">No skipped dates set.</string>
     <string name="action_close">Close</string>
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
@@ -332,15 +265,10 @@
     <string name="desc_dynamic_island">Android 16 Live Updates: keep current/next class status in the status bar, refreshing remaining time and progress in real time</string>
     
     <!-- Settings Options -->
-    <string name="title_schedule_settings">Schedule settings</string>
-    <string name="section_title_general_settings">General settings</string>
     <string name="item_show_weekends">Show weekends</string>
     <string name="item_show_non_current_week">Show non-current week courses</string>
-    <string name="desc_show_non_current_week">Display courses that are outside of the current week in the schedule</string>
-    <string name="desc_show_weekends">When enabled, weekend courses will be displayed</string>
     <string name="item_set_start_date">Set semester start date</string>
     <string name="desc_set_start_date">Select Monday of the first week (as per academic system)</string>
-    <string name="desc_semester_settings">Start date, total weeks and current week</string>
     <string name="status_not_set">Not set</string>
     <string name="item_total_weeks">Total weeks</string>
     <string name="desc_total_weeks">Set total number of weeks in semester</string>
@@ -355,15 +283,9 @@
     <string name="day_of_week_sunday">Sunday</string>
     <string name="item_schedule_tweak">Schedule adjustment</string>
     <string name="desc_schedule_tweak">Move all courses from one date to another</string>
-    <string name="section_title_advanced_features">Advanced features</string>
     <string name="item_course_conversion">Import/Export schedule</string>
-    <string name="desc_course_conversion">Supports file, academic affairs import and sync</string>
-    <string name="desc_notification_settings">Manage course reminder notifications</string>
-    <string name="desc_manage_course_tables">Manage multiple schedules, switch or delete</string>
     <string name="item_time_slot_customization">Custom time periods</string>
-    <string name="desc_time_slot_customization">Edit course time period settings</string>
     <string name="item_more_options">More</string>
-    <string name="desc_more_options">Additional information and options</string>
     <string name="a11y_more_options">More options</string>
     <string name="dialog_title_select_total_weeks">Select total weeks</string>
     <string name="dialog_title_manual_set_week">Manually set current week</string>
@@ -378,7 +300,6 @@
     <string name="dialog_title_add_table">Add new schedule</string>
     <string name="a11y_add_new_table">Add new schedule</string>
     <string name="label_table_name">Schedule name</string>
-    <string name="text_no_tables_hint">No schedules yet, tap the button below to add one.</string>
     <string name="toast_switch_table_success">Switched to schedule: %1$s</string>
     <string name="toast_add_table_success">Schedule \'%1$s\' added</string>
     <string name="dialog_title_edit_table">Edit schedule name</string>
@@ -386,9 +307,7 @@
     <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule \'%1$s\'? This cannot be undone.</string>
     <string name="toast_delete_table_success">%1$s deleted</string>
     <string name="toast_delete_last_table_failed">Cannot delete the last schedule</string>
-    <string name="a11y_current_table">Current schedule</string>
     <string name="item_course_management">Course Management</string>
-    <string name="desc_course_management">View and edit all courses by name</string>
 
     <!-- Course Management -->
     <string name="title_selected_items_count">%1$d items selected</string>
@@ -396,7 +315,6 @@
     <string name="a11y_cancel_selection">Cancel multiple selection</string>
     <string name="a11y_exit_selection_mode">Exit selection mode</string>
     <string name="a11y_enter_selection_mode">Enter selection mode</string>
-    <string name="a11y_not_selected">Not selected</string>
     <string name="label_weeks_format">Weeks: %1$s</string>
 
     <!-- Time Slot Management -->
@@ -443,7 +361,6 @@
     <string name="action_delete">Delete</string>
     <string name="title_auto_switch_scheme">Auto-switch schedule</string>
     <string name="desc_auto_switch_scheme">Automatically switch between summer/winter schedules by date</string>
-    <string name="action_edit_scheme_dates">Active dates</string>
     <string name="dialog_title_scheme_dates">Set active dates</string>
     <string name="label_start_month_day">Start date</string>
     <string name="label_end_month_day">End date</string>
@@ -458,8 +375,6 @@
     <string name="toast_scheme_dates_incomplete">Please set both start and end dates</string>
     <string name="title_conversion">Import/Export schedule</string>
     <string name="section_file_conversion">File import/export</string>
-    <string name="item_import_course_file">Import course file</string>
-    <string name="desc_import_json">Import JSON file</string>
     <string name="item_export_course_file">Export course file</string>
     <string name="desc_export_json_with_config">Export JSON course file with time period configuration</string>
     <string name="item_export_ics_file">Export calendar file</string>
@@ -468,11 +383,7 @@
     <string name="item_school_system_import">Import from academic system</string>
     <string name="desc_school_import_quick">Import courses from academic system, quick and easy</string>
     <string name="item_import_crush_schedule">One-click import crush schedule</string>
-    <string name="desc_import_crush_schedule">Import their schedule, stored separately from your own</string>
-    <string name="item_delete_crush_schedule">Delete crush schedule</string>
-    <string name="desc_delete_crush_schedule">Clear all imported crush schedule data</string>
     <string name="item_couple_schedule">Couple schedule</string>
-    <string name="desc_couple_schedule">Show both your own and crush schedule when enabled</string>
     <string name="item_self_course_color">Your course color</string>
     <string name="desc_self_course_color">Choose display color for your courses</string>
     <string name="item_crush_course_color">Crush course color</string>
@@ -481,24 +392,13 @@
     <string name="dialog_title_select_export_table">Select schedule to export</string>
     <string name="dialog_title_ics_export_settings">Calendar export settings</string>
     <string name="label_select_alarm_time">Select reminder time:</string>
-    <string name="a11y_import">Import</string>
-    <string name="a11y_export">Export</string>
-    <string name="a11y_details">Details</string>
-    <string name="snackbar_cannot_open_file">Cannot open file.</string>
-    <string name="snackbar_file_selection_canceled">File selection canceled.</string>
-    <string name="snackbar_cannot_save_file">Cannot save file.</string>
     <string name="snackbar_file_save_canceled">File save canceled.</string>
     <string name="dialog_title_file_saved">File saved</string>
     <string name="dialog_text_file_saved_share_prompt">File successfully exported to Downloads folder. Would you like to share it?</string>
-    <string name="snackbar_file_copy_failed_for_share">File copy failed, cannot share.</string>
     <string name="action_share">Share</string>
-    <string name="toast_import_success">Schedule imported successfully!</string>
-    <string name="toast_ics_export_success">Calendar file exported successfully!</string>
     <string name="error_export_table_not_found">Export failed: Schedule not found</string>
     <string name="error_export_failed">Export failed: %1$s</string>
-    <string name="error_import_failed">Import failed: %1$s</string>
     <string name="error_ics_export_data_failed">Calendar export failed: Failed to get data</string>
-    <string name="error_ics_export_failed">Calendar export failed: %1$s</string>
     
     <!-- More Settings -->
     <string name="item_developer_options">Developer Options</string>
@@ -509,35 +409,17 @@
     <string name="error_sync_calendar_failed">Sync failed. Please check calendar permissions.</string>
     <string name="title_more_options">More</string>
     <string name="a11y_app_icon">App icon</string>
-    <string name="a11y_navigate">Navigate</string>
-    <string name="a11y_acknowledgment">Acknowledgment</string>
     <string name="label_special_thanks">Special thanks</string>
     <string name="text_acknowledgment_body">Heartfelt thanks to every developer who contributed to this app and the academic system adapter repository. Your dedication drives continuous improvement!</string>
     <string name="item_github_repo">Project GitHub repository</string>
     <string name="item_official_website">Official website</string>
     <string name="item_open_source_licenses">View open source licenses</string>
     <string name="title_open_source_licenses">Open source licenses</string>
-    <string name="item_update_repo">Update academic adapter repository</string>
-    <string name="desc_update_repo">Sync the latest academic system adapter scripts</string>
-    <string name="item_contributors">Contributors list</string>
     <string name="label_version_prefix">Version: %1$s</string>
-    <string name="default_app_name">Unknown app</string>
-    <string name="item_check_software_update">Check for Software Updates</string>
     <string name="item_language_settings">Language Settings</string>
     <string name="language_follow_system">Follow System</string>
 
-    <string name="dialog_checking_update">Checking for update...</string>
-    <string name="tip_please_wait">Connecting to server, please wait.</string>
 
-    <string name="dialog_new_version_found">New version found %1$s</string>
-    <string name="dialog_current_version_latest">Current version is the latest</string>
-    <string name="dialog_update_check_failed">Update check failed</string>
-    <string name="label_error_message">Error message: %1$s</string>
-    <string name="btn_download_update">Download update</string>
-    <string name="btn_update_now">Update now</string>
-    <string name="tip_non_mandatory_update">Tip: The cancel button is not shown for mandatory updates.</string>
-    <string name="dialog_select_update_channel">Select update channel</string>
-    <string name="a11y_selected">Selected</string>
     <string name="item_start_screen_settings">Startup Page Settings</string>
     <string name="dialog_select_start_screen">Select default startup page</string>
     
@@ -587,12 +469,10 @@
     <string name="a11y_load">Load</string>
     <string name="a11y_enter_url">Enter URL</string>
     <string name="action_refresh">Refresh</string>
-    <string name="a11y_refresh">Refresh</string>
     <string name="action_switch_to_phone_mode">Switch to mobile mode</string>
     <string name="action_switch_to_desktop_mode">Switch to desktop mode</string>
     <string name="toast_switched_to_desktop">Switched to desktop mode</string>
     <string name="toast_switched_to_phone">Switched to mobile mode</string>
-    <string name="toast_url_empty_enter_first">URL is empty, please enter a URL first.</string>
     <string name="item_devtools_debug">DevTools web debugging</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools web debugging %1$s.</string>
@@ -605,37 +485,12 @@
     <string name="toast_executing_import_script">Executing import script...</string>
     <string name="toast_import_script_not_found">Import script file not found: %1$s</string>
     <string name="toast_load_import_script_failed">Failed to load import script: %1$s</string>
-    <string name="toast_no_import_script">This adapter has no import script</string>
-    <string name="toast_import_script_finished">Import script completed, returning to schedule page.</string>
-    <string name="dialog_ssl_error_title">SSL Certificate Error</string>
-    <string name="dialog_ssl_error_message">SSL certificate verification failed, which may indicate an insecure connection. Continue browsing?</string>
-    <string name="action_continue_browsing">Continue</string>
-    <string name="toast_ssl_error_cancelled">SSL certificate verification failed, connection canceled.</string>
-    <string name="toast_web_load_error_format">Web page load error: %1$s</string>
     
     <!-- Contributors List -->
-    <string name="title_contribution_list">Contributors</string>
-    <string name="tab_adapter_development">Academic adapters</string>
-    <string name="tab_app_development">App development</string>
-    <string name="text_no_contributors">No contributor information for this category.</string>
     <string name="text_loading_failed">Loading failed: %1$s</string>
     <string name="action_retry">Retry</string>
-    <string name="label_github">GitHub</string>
-    <string name="a11y_back_to_previous">Back to previous</string>
-    <string name="a11y_contributor_avatar">Contributor avatar: %1$s</string>
     
     <!-- Academic Adapter Repository -->
-    <string name="title_update_repo_screen">Update academic adapter repository</string>
-    <string name="label_select_repo">Select repository</string>
-    <string name="text_select_repo_hint">Please select repository</string>
-    <string name="action_update">Update</string>
-    <string name="action_updating">Updating...</string>
-    <string name="label_repo_url">Repository URL</string>
-    <string name="label_repo_branch">Branch</string>
-    <string name="label_private_repo_credentials">Private repository credentials (Username/Token)</string>
-    <string name="label_username_or_token_key">Username or token key</string>
-    <string name="label_password_or_token_value">Password or token value</string>
-    <string name="title_update_log">Update log</string>
 
     <!-- Color Picker -->
     <string name="color_picker_title_edit">Adjust Color</string>
@@ -650,17 +505,12 @@
 
     <!-- Personalization -->
     <string name="item_personalization">Personalization</string>
-    <string name="desc_personalization">Adjust schedule grid height, corner radius, spacing, and opacity</string>
     <string name="style_category_interface">Interface</string>
     <string name="style_category_grid_size">Grid Size</string>
     <string name="style_category_course_block">Course Block Settings</string>
     <string name="style_category_color_scheme">Color Scheme (Tap circle to edit)</string>
-    <string name="label_ui_style_preset">Schedule UI Style</string>
     <string name="label_view_mode_week">Week</string>
     <string name="label_view_mode_list">List</string>
-    <string name="ui_style_preset_original">Original (Free)</string>
-    <string name="ui_style_preset_sleepy">Sleepy Style</string>
-    <string name="ui_style_preset_timetable">Timetable Style</string>
     <string name="label_wallpaper">Schedule Wallpaper</string>
     <string name="desc_wallpaper_set">Set (Long press to clear)</string>
     <string name="desc_wallpaper_unset">Not set (Tap to select image)</string>
@@ -686,8 +536,6 @@
     <string name="dialog_reset_colors_message">This restores the course color pool to the current theme preset. Colors you adjusted manually will be overwritten.</string>
     <string name="title_light_color_pool">Light Mode Color Pool</string>
     <string name="title_dark_color_pool">Dark Mode Color Pool</string>
-    <string name="preview_light_mode">Light Mode Preview\nFixed dark text</string>
-    <string name="preview_dark_mode">Dark Mode Preview\nFixed light text</string>
     <string name="action_reset_style">Reset to default style</string>
     <string name="dialog_reset_title">Reset Style</string>
     <string name="dialog_reset_message">Are you sure you want to reset all style settings to default? This action cannot be undone.</string>
@@ -703,8 +551,6 @@
     <!-- Quick Actions -->
     <string name="label_course_text_color">Course block text color</string>
     <string name="label_schedule_mode_24h">24-Hour Timeline Mode</string>
-    <string name="item_quick_actions">Quick Actions</string>
-    <string name="desc_quick_actions">Includes schedule tweaks, temporary changes, etc.</string>
     <string name="label_quick_action_category_schedule">Schedule Adjustments</string>
     <string name="item_quick_delete">Quick Delete Courses</string>
     <string name="quick_delete_subtitle">Batch clear schedule by weeks, days, or dates</string>
@@ -715,7 +561,6 @@
     <string name="hint_no_selection">Please select weeks, days, or dates</string>
     <string name="hint_affected_count">%1$d course records will be removed</string>
     <string name="dialog_delete_confirm_msg">This action cannot be undone. Affected records will be erased from the selected time points, but basic course info will remain.</string>
-    <string name="btn_add_date">Add Date</string>
     <string name="quick_delete_filter_weeks_days_hint">Set recurring weeks &amp; days (Optional)</string>
     <string name="quick_delete_filter_date_range_hint">Set specific date range (Optional)</string>
     <string name="quick_delete_label_days_prefix">Days: %1$s</string>
@@ -726,7 +571,6 @@
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light Mode</string>
     <string name="theme_dark">Dark Mode</string>
-    <string name="theme_settings_title">Theme Settings</string>
     <string name="item_appearance_settings">Appearance &amp; Style</string>
     <string name="item_theme_settings">Theme</string>
     <string name="item_schedule_style_settings">Customize Schedule Page</string>
@@ -813,13 +657,8 @@
     <string name="next_card_mode_hide">Disappear after classes end</string>
     <string name="next_card_mode_hide_desc">Hide the card once today's classes end</string>
     <string name="next_card_label_agenda">Next event</string>
-    <string name="next_card_minutes_until">%1$s min later</string>
     <string name="next_card_today_ended">Today's classes are over — explore freely</string>
     <string name="anim_settings_more_placeholder">More motion groups (coming soon)</string>
-    <string name="desc_appearance_settings">Theme style, dark mode and schedule appearance tuning</string>
-    <string name="theme_preset_classic">Classic</string>
-    <string name="theme_preset_cloud">Cloud</string>
-    <string name="theme_preset_clean">Clean</string>
     <string name="theme_preset_ios">Airy</string>
     <string name="theme_preset_soft">Soft Draw</string>
     <string name="theme_preset_claude">Shujuan</string>
@@ -828,7 +667,6 @@
     <string name="desc_theme_settings">Customize the app theme and colors</string>
     <string name="theme_mode_label">Theme Mode</string>
     <string name="label_page_text_color">Schedule text color</string>
-    <string name="widget_course_remaining_count">%1$d left</string>
 
     <string name="backup_err_empty">The backup file is empty and cannot be restored</string>
     <string name="backup_err_corrupted">Failed to parse file; the data may be corrupted</string>
@@ -863,7 +701,6 @@
     <string name="error_stream_open_failed">Cannot open data stream</string>
     <string name="backup_err_connect_failed">Connection failed. Please check your configuration or network</string>
     <string name="backup_err_upload_failed">Failed to upload file</string>
-    <string name="backup_err_download_failed">Failed to download backup</string>
     <string name="backup_err_local_export_failed">Local export failed</string>
     <string name="backup_err_restore_failed_prefix">Restore failed: %1$s</string>
     <string name="backup_target_webdav">WebDAV Cloud Sync</string>
@@ -934,14 +771,9 @@
     <string name="webview_semester_prompt_title">Set the Semester Start Date</string>
     <string name="webview_semester_prompt_message">A new timetable was imported but the semester start date is not set. Set it to show the current week and highlight correctly.</string>
     <string name="webview_semester_prompt_later">Later</string>
-    <string name="couple_delete_message">Delete the couple timetable? This cannot be undone.</string>
     <string name="appearance_switch_title">Switch Theme</string>
     <string name="appearance_switch_message">Switch to “%1$s”? This resets current customizations (corners, spacing, colors, etc.).</string>
     <string name="appearance_switch_confirm">Confirm Switch</string>
-    <string name="conversion_crush_title">One-tap Couple Timetable Import</string>
-    <string name="conversion_crush_choose_method">Choose an import method:</string>
-    <string name="conversion_crush_from_system">From school system</string>
-    <string name="conversion_crush_from_file">From calendar/JSON file</string>
     <string name="import_cat_text_paste">Pasted Text Import</string>
     <string name="import_status_processing">Processing…</string>
     <string name="conversion_file_import_desc">Excel / JSON / text files, sorted by type</string>
@@ -952,9 +784,7 @@
     <string name="wb_table_cancelled">Timetable selection canceled.</string>
     <string name="wb_table_cancelled_or_unset">Timetable selection canceled or not set.</string>
     <string name="wb_import_success">Courses imported! Timetable updated.</string>
-    <string name="wb_crush_import_success">Crush timetable imported!</string>
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
-    <string name="wb_crush_import_failed_fmt">Crush timetable import failed: %1$s</string>
     <string name="wb_config_import_no_table">Config import failed: no target timetable selected.</string>
     <string name="item_auto_sync_adapter">Auto-sync school system</string>
     <string name="desc_auto_sync_adapter">Pull the latest adapter to keep schedule sync working</string>
@@ -980,8 +810,6 @@
     <string name="tivm_import_failed_fmt">Import failed: %1$s</string>
     <string name="tivm_error_parse_first">Parse and preview first</string>
     <string name="tivm_error_table_name_empty">Enter a timetable name</string>
-    <string name="cvm_crush_deleted">Crush timetable deleted</string>
-    <string name="cvm_crush_delete_failed_fmt">Delete crush timetable failed: %1$s</string>
     <string name="wb_default_confirm">OK</string>
 
     <!-- 风格预览演示数据 i18n（UI 迭代第 7 轮） -->
@@ -1008,15 +836,8 @@
     <string name="dialog_title_confirm_tweak">Confirm tweak</string>
     <string name="dialog_text_confirm_tweak">Apply the schedule tweak? It will affect %1$d courses and cannot be undone.</string>
     <string name="dialog_text_confirm_delete_scheme">Delete the schedule scheme "%1$s"? This cannot be undone.</string>
-    <string name="desc_more_settings">Low-frequency settings such as timetable display and semester</string>
-    <string name="desc_quick_settings">High-frequency actions, shown first</string>
     <string name="section_title_couple_schedule">Couple timetable</string>
-    <string name="section_title_display_settings">Timetable display</string>
-    <string name="section_title_quick_notify">Quick actions &amp; notifications</string>
     <string name="section_title_semester_settings">Semester settings</string>
-    <string name="title_core_functions">Core features</string>
-    <string name="title_more_settings">More settings</string>
-    <string name="title_secondary_settings">More settings entries</string>
     <string name="title_semester_settings">Semester settings</string>
     <string name="webview_load_error_generic">Couldn't load this page. Check your network and try again.</string>
     <string name="webview_load_error_fmt">Load failed: %1$s</string>
@@ -1046,12 +867,10 @@
     <string name="semester_count_short_format">%1$d semesters</string>
     <string name="status_current_semester">Current semester</string>
     <string name="courses_count_format">%1$d courses</string>
-    <string name="weeks_count_format">%1$d weeks</string>
     <string name="week_progress_format">Week %1$d of %2$d</string>
     <string name="no_semester_configured">Start date not set</string>
     <string name="action_view_timetable">View timetable</string>
     <string name="action_semester_settings">Semester settings</string>
-    <string name="section_bottom_actions">Actions</string>
     <string name="semester_progress_label">Semester progress</string>
     <string name="progress_percent_format">%1$d%% elapsed</string>
     <string name="school_year_format">%1$d-%2$d school year</string>
@@ -1109,7 +928,6 @@
     <string name="couple_overlay_disabled_solo">Couple schedule is shown solo; this switch is disabled</string>
     <string name="couple_solo_banner">Showing the couple schedule solo</string>
     <string name="couple_solo_back">Back to my schedule</string>
-    <string name="couple_manage_import_school">Import from academic system</string>
     <string name="couple_manage_import_school_desc">Import TA's schedule from the academic system; pick the target table when importing</string>
     <string name="couple_manage_import_file">Import from file</string>
     <string name="couple_manage_import_file_desc">Supports Excel / JSON / text files; pick the target table when importing</string>

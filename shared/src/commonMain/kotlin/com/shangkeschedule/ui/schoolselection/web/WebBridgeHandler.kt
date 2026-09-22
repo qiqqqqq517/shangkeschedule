@@ -5,8 +5,6 @@ import shangkeschedule.shared.generated.resources.wb_default_confirm
 import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_config_import_no_table
 import shangkeschedule.shared.generated.resources.wb_config_import_success
-import shangkeschedule.shared.generated.resources.wb_crush_import_failed_fmt
-import shangkeschedule.shared.generated.resources.wb_crush_import_success
 import shangkeschedule.shared.generated.resources.wb_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_import_no_table
 import shangkeschedule.shared.generated.resources.wb_import_success

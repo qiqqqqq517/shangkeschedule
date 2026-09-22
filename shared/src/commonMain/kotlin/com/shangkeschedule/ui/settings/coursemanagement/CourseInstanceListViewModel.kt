@@ -114,7 +114,6 @@ class CourseInstanceListViewModel(
     }
 
     private val _isDeleting = MutableStateFlow(false)
-    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
     fun deleteSelectedCourses() {
         // 防重入：确认按钮可连点，而原实现在协程启动**前**读取集合并于 suspend 之后才清空，

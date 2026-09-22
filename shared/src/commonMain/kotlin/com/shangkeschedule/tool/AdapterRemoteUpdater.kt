@@ -26,7 +26,6 @@ import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
 @Serializable
 private data class AdapterManifest(
     @SerialName("schema_version") val schemaVersion: Int = 0,
-    @SerialName("generated_at") val generatedAt: String = "",
     @SerialName("file_count") val fileCount: Int = 0,
     val files: List<AdapterManifestEntry> = emptyList(),
 )

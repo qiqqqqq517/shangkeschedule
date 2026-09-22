@@ -59,18 +59,6 @@ class TimeSlotRepository(
         timeSlotDao.insertAll(timeSlots)
     }
 
-    /**
-     * 完全替换指定课表、指定作息方案下的所有时间段。
-     */
-    suspend fun replaceAllForCourseTable(courseTableId: String, timeSlots: List<TimeSlot>, schemeId: String = TimeSlot.DEFAULT_SCHEME_ID) {
-        database.withWriteTransaction {
-            timeSlotDao.deleteTimeSlotsByScheme(courseTableId, schemeId)
-            if (timeSlots.isNotEmpty()) {
-                timeSlotDao.insertAll(timeSlots.map { it.copy(courseTableId = courseTableId, schemeId = schemeId) })
-            }
-        }
-    }
-
     /** 保存当前方案的时间段及课表默认时长，保证两部分同时成功。 */
     suspend fun saveSchemeSettings(
         courseTableId: String,

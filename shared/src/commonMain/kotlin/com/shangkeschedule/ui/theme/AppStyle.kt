@@ -2,7 +2,6 @@ package com.shangkeschedule.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Shapes
@@ -11,9 +10,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -92,13 +91,6 @@ data class AppColorTokens(
      */
     val outlineVariant: Color = Color(0xFFCAC4D0)
 ) {
-    val headerGradient: Brush
-        get() = Brush.linearGradient(
-            colors = listOf(gradientStart, gradientEnd),
-            start = androidx.compose.ui.geometry.Offset.Zero,
-            end = androidx.compose.ui.geometry.Offset.Infinite
-        )
-
     fun tone(tone: AccentTone): AppSemanticColors = when (tone) {
         AccentTone.PRIMARY -> AppSemanticColors(primary, primarySoft)
         AccentTone.SUCCESS -> AppSemanticColors(success, successSoft)
@@ -247,8 +239,6 @@ object AppTypeGrid {
     val timeLabel = 12.sp
     /** 次级时间 / 小标签。 */
     val timeSmall = 10.sp
-    /** 24 小时模式微时间。 */
-    val timeTiny = 8.sp
     /** 紧凑高度下的星期/时间降级字号。 */
     val timeCompact = 11.sp
 }
@@ -258,8 +248,6 @@ object AppTypeGrid {
  * 新代码必须取档位；存量逐步替换。特殊设计值（如黄金比例 0.618f）可豁免但需注释。
  */
 object AppAlpha {
-    /** 极淡：提示底 / 微分隔。 */
-    const val subtle = 0.12f
     /** 淡色：淡色底 / 降级内容。 */
     const val soft = 0.25f
     /** 微弱：装饰光斑等大面积低对比元素。 */
@@ -343,6 +331,15 @@ data class AppSpacingTokens(
     val listGap: Dp,
     val cardInner: Dp,
     val rowMinHeight: Dp,
+    /**
+     * 设置列表行最小高度 —— **独立于 [rowMinHeight]**。
+     *
+     * 由 A1/P2 token 补齐引入（规范 R2：每个 token 必须由每套主题显式赋值）。
+     * 原先 `SettingsScreen` 用 `if (isClaudePreset) 48.dp else appSpacing().rowMinHeight` 表达，
+     * 而 `rowMinHeight` 描述的是**普通列表行**（书卷 56dp），设置行是另一个角色（书卷 48dp）
+     * —— `SoftStyle.kt` 的注释里把 48dp 记为"书卷设置行的历史硬编码"。补 token 后分支消失。
+     */
+    val settingsRowMinHeight: Dp,
     val touchMin: Dp,
     val chipIcon: Dp,
     val fab: Dp,
@@ -362,6 +359,16 @@ data class AppTypeTokens(
     val badge: TextUnit,
     val pageTitle: TextUnit,
     val rowTitle: TextUnit,
+    /**
+     * 设置项行标题字号与字重 —— **独立于 [rowTitle]**。
+     *
+     * 由 A1/P2 token 补齐引入（规范 R2）。原 `SettingsScreen` 用
+     * `if (isClaudePreset) 15.sp else appType().rowTitle` + 同款字重分支表达；
+     * `rowTitle` 是**页面行标题**（书卷 18sp），设置行是另一个角色（书卷 15sp / Medium）。
+     * 字重也随主题不同（书卷 Medium，通透/柔绘 SemiBold），故一并成为 token。
+     */
+    val settingsRowTitle: TextUnit,
+    val settingsRowTitleWeight: FontWeight,
     val body: TextUnit,
     val caption: TextUnit,
     val hint: TextUnit

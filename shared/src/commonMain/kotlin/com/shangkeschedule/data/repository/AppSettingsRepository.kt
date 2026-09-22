@@ -182,43 +182,11 @@ class AppSettingsRepository(
     }
 
     /**
-     * 液态玻璃边缘折射（v3.47.0）：五个键各自独立写入，避免整份 copy 写回时
-     * 覆盖别的并发修改（与 [updateGlassBlurRadius] 同一约定）。
+     * 液态玻璃边缘折射（v3.47.0）：一次性写入整组折射参数（预设档位用，减少 5 次 DataStore 事务）。
      *
      * 注意 [glassRefractionEnabled] 与模糊半径是两个独立维度：
      * 折射只增加"边缘透镜"这一层，雾度始终由 KEY_GLASS_BLUR_RADIUS_DP 决定。
      */
-    suspend fun updateGlassRefractionEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.KEY_GLASS_REFRACTION_ENABLED] = enabled
-        }
-    }
-
-    suspend fun updateGlassRefractionHeight(heightDp: Float) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.KEY_GLASS_REFRACTION_HEIGHT_DP] = heightDp
-        }
-    }
-
-    suspend fun updateGlassRefractionAmount(amountDp: Float) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.KEY_GLASS_REFRACTION_AMOUNT_DP] = amountDp
-        }
-    }
-
-    suspend fun updateGlassRefractionDispersion(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.KEY_GLASS_REFRACTION_DISPERSION] = enabled
-        }
-    }
-
-    suspend fun updateGlassRefractionDepthEffect(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.KEY_GLASS_REFRACTION_DEPTH_EFFECT] = enabled
-        }
-    }
-
-    /** 一次性写入整组折射参数（预设档位用，减少 5 次 DataStore 事务）。 */
     suspend fun updateGlassRefractionAll(
         enabled: Boolean,
         heightDp: Float,

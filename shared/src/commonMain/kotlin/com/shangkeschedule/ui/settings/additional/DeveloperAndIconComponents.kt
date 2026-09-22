@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.additional
+package com.shangkeschedule.ui.settings.additional
 
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appSpacing
@@ -23,9 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf

@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.repository.CourseTableRepository.TweakMode
+import com.shangkeschedule.ui.settings.quickactions.asString
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
@@ -85,15 +86,6 @@ import shangkeschedule.shared.generated.resources.tweak_mode_merge
 import shangkeschedule.shared.generated.resources.tweak_mode_overwrite
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Instant
-
-@Composable
-fun UiTextRes.asString(): String {
-    return if (args.isEmpty()) {
-        stringResource(resource)
-    } else {
-        stringResource(resource, *args.toTypedArray())
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

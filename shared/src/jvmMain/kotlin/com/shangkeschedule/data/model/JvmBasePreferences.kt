@@ -70,38 +70,12 @@ abstract class JvmBasePreferences(
         save()
     }
 
-    protected fun getBoolean(key: String, defaultValue: Boolean = false): Boolean {
-        return properties.getProperty(key)?.toBoolean() ?: defaultValue
-    }
-
-    protected fun putBoolean(key: String, value: Boolean) {
-        properties.setProperty(key, value.toString())
-        save()
-    }
-
     protected fun getInt(key: String, defaultValue: Int = 0): Int {
         return properties.getProperty(key)?.toIntOrNull() ?: defaultValue
     }
 
-    protected fun putInt(key: String, value: Int) {
-        properties.setProperty(key, value.toString())
-        save()
-    }
-
     protected fun getLong(key: String, defaultValue: Long = 0L): Long {
         return properties.getProperty(key)?.toLongOrNull() ?: defaultValue
-    }
-
-    protected fun putLong(key: String, value: Long) {
-        properties.setProperty(key, value.toString())
-        save()
-    }
-
-    protected fun removeKey(key: String) {
-        if (properties.containsKey(key)) {
-            properties.remove(key)
-            save()
-        }
     }
 
     /**

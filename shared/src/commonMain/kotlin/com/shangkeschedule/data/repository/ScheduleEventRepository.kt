@@ -86,26 +86,6 @@ class ScheduleEventRepository(
     }
 
     /**
-     * 更新一条日程。不存在时回退为插入。
-     */
-    suspend fun updateEvent(event: ScheduleEvent) {
-        val updated = event.copy(
-            title = event.title.take(300),
-            category = ScheduleCategory.fromKey(event.category).key,
-            location = event.location?.take(200)?.ifBlank { null },
-            note = event.note?.take(500)?.ifBlank { null },
-            updatedAt = Clock.System.now().toEpochMilliseconds()
-        )
-        database.withWriteTransaction {
-            if (scheduleEventDao.exists(updated.id)) {
-                scheduleEventDao.update(updated)
-            } else {
-                scheduleEventDao.insertAll(listOf(updated))
-            }
-        }
-    }
-
-    /**
      * 设置日程的完成状态（仅「待办」分类的日程在今日页使用）。
      */
     suspend fun setDone(eventId: String, done: Boolean) {

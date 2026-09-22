@@ -425,7 +425,7 @@ fun ScheduleGrid(
                                             Modifier.pointerInput(item, state.gridWidthPx) {
                                                 detectDragGestures(
                                                     onDragStart = {
-                                                        state.activeMoveIntent = CourseMoveIntent(item.parentBlock, item.parentBlock.day, item.startSection, item.endSection - item.startSection)
+                                                        state.activeMoveIntent = CourseMoveIntent(item.parentBlock, item.startSection, item.endSection - item.startSection)
                                                         state.bodyDragOffsetX = 0f; state.bodyDragOffsetY = 0f
                                                     },
                                                     onDragEnd = {

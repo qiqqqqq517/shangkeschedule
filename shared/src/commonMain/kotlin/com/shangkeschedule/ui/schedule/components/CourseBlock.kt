@@ -39,11 +39,9 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
-import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.AppTypeGrid
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow

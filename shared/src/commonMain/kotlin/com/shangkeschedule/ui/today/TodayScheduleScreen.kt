@@ -2450,7 +2450,6 @@ private val SoftAccentAlt800 = Color(0xFF4A4760)
 private val SoftAccentWarm50 = Color(0xFFFBF7F2)
 private val SoftAccentWarm500 = Color(0xFFD9A97E)
 private val SoftAccentWarm700 = Color(0xFF9A7550)
-private val SoftAccentWarm400 = Color(0xFFE0BB96)
 
 /**
  * 时间轴卡片配色（偶数行 = 系统蓝系，奇数行 = 系统橙系）。
@@ -2535,7 +2534,6 @@ private val Ios26AccentAlt800 = Color(0xFF1B1B4B)
 private val Ios26AccentWarm50 = Color(0xFFFFF6EE)
 private val Ios26AccentWarm500 = Color(0xFFFF9500)
 private val Ios26AccentWarm700 = Color(0xFFB36800)
-private val Ios26AccentWarm400 = Color(0xFFD6866A)
 
 /**
  * 时间轴卡片配色（偶数行 = 系统蓝系，奇数行 = 系统橙系）。

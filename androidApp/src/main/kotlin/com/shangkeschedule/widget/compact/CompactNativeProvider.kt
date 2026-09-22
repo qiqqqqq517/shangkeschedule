@@ -1,11 +1,8 @@
 package com.shangkeschedule.widget.compact
 
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
 import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.ScheduledWidgetProvider
-import com.shangkeschedule.widget.updateAllWidgets
 
 /**
  * 今日课程（紧凑版）原生小组件接收器

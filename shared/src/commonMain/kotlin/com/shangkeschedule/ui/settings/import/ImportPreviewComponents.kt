@@ -27,13 +27,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -330,49 +328,6 @@ private fun ImportEntryEditDialog(
             )
         }
     )
-}
-
-/**
- * 导入为新课表表单：课表名输入 + 导入按钮（各导入二级页共用）。
- */
-@Composable
-internal fun ImportNewTableForm(
-    isLoading: Boolean,
-    defaultName: String = "",
-    onImport: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var tableName by remember { mutableStateOf(defaultName) }
-
-    Column(modifier = modifier) {
-        AppTextField(
-            value = tableName,
-            onValueChange = { tableName = it },
-            label = stringResource(Res.string.import_preview_new_table_label),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { onImport(tableName) },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isLoading) {
-                Row {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.padding(start = 8.dp))
-                    Text(stringResource(Res.string.import_status_processing))
-                }
-            } else {
-                Text(stringResource(Res.string.import_preview_action_import_new))
-            }
-        }
-    }
 }
 
 /**

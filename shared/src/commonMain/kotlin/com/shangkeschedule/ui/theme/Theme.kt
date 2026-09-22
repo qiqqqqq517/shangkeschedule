@@ -119,11 +119,12 @@ fun ShangKeScheduleTheme(
     //
     // primary / primarySoft / 渐变按 ColorScheme 实际主色同步，避免组件层
     // appColors().primary 与 M3 colorScheme.primary 同屏分裂。
-    val styledTokens = when {
-        isClaude -> appColorTokens(darkTheme, themePreset)
-        isSoft -> softAppColorTokens(darkTheme)
-        else -> iosAppColorTokens(darkTheme)
-    }
+    // A1/P2：统一取 token 入口 —— 一律走 appColorTokens(isDark, preset) 这**一条**路径（规范 R4）。
+    // 原先是三套写法：书卷走 appColorTokens()、柔绘直调 softAppColorTokens()、通透直调 iosAppColorTokens()。
+    // 已核对等价：appColorTokens 的分派（AppStyle.kt）正是转调这两个函数，而
+    // `xxxAppColorTokens(isDark) = if (isDark) xxxDarkAppColorTokens() else xxxLightAppColorTokens()`
+    // 与分派结果逐项相同 ⇒ 本改为**行为等价、视觉零变化**。
+    val styledTokens = appColorTokens(darkTheme, themePreset)
     val syncedTokens = styledTokens.copy(
         primary = colorScheme.primary,
         primarySoft = colorScheme.primaryContainer,

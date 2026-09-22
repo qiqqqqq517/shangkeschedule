@@ -130,14 +130,6 @@ object WorkManagerHelper {
         Log.d("WidgetWorkManager", "WebDAV 自动同步任务已取消")
     }
 
-    fun cancelAllWork(context: Context) {
-        Log.d("WidgetWorkManager", "正在取消所有小组件定期任务...")
-        WorkManager.getInstance(context).cancelUniqueWork(UI_UPDATE_WORK_NAME)
-        WorkManager.getInstance(context).cancelUniqueWork(FULL_DATA_SYNC_WORK_NAME)
-        WorkManager.getInstance(context).cancelUniqueWork(DAILY_ROLLOVER_WORK_NAME)
-        cancelWebDavAutoSync(context)
-    }
-
     /**
      * 某类小组件的最后实例被移除（onDisabled）时调用：仅当**全部**小组件类型都归零
      * 才取消组件专属任务（UI 更新 + 全量同步），避免删一种组件连累其它组件停更。

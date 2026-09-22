@@ -95,14 +95,19 @@ python scripts/check_theme_leak.py --fail                 # 绝对门禁（只�
 
 四项检查对应 R1–R4：
 
-| 检查 | 对应规则 | 当前基线（2026-09-23，P1 立规时） |
-| --- | --- | --- |
-| C1 组件层主题泄漏 | R1 | **A 类分支 50 处 / 11 文件**（目标 0）；另 B 类身份直引 17 处（提示，需人工判定） |
-| C2 色调映射单射性 | R3 | 书卷 10 ✅ / 通透 8 ❌ / 柔绘 9 ❌ |
-| C3 token 显式覆盖 | R2 | 缺 `outline`,`outlineVariant`：书卷 light+dark、通透 light+dark（柔绘已合规） |
-| C4 `primary` 单源 | R4 | ❌ 1 处（`Theme.kt:128`） |
+| 检查 | 对应规则 | 当前基线（P2 后，2026-09-23） | P1 立规时 |
+| --- | --- | --- | --- |
+| C1 组件层主题泄漏 | R1 | **A 类分支 46 处 / 11 文件**（目标 0） | 50 |
+| C2 色调映射单射性 | R3 | 书卷 10 ✅ / 通透 8 ❌ / 柔绘 9 ❌ | 同 |
+| C3 token 显式覆盖 | R2 | 缺 `outline`,`outlineVariant`：书卷 light+dark、通透 light+dark（柔绘已合规） | 同 |
+| C4 `primary` 单源 | R4 | ❌ 1 处（`Theme.kt:128`） | 同 |
+| **硬指标合计** | — | **53** | 57 |
 
-**硬指标违规合计 57**（= 50 + 2 + 4 + 1）。完整清单：`build_qa/design_review/A1-P1-违规清单.md`。
+另：B 类身份直引 17 处（提示项，需人工判定是"取数据"还是"漏 token"）。
+
+> **棘轮已在工作**：P2 补齐 `settingsRowTitle` / `settingsRowTitleWeight` / `settingsRowMinHeight`
+> 三个 token 后，`SettingsScreen` 的 4 处分支消失 ⇒ C1 50→46、合计 57→53，基线随之下降并锁定。
+> 完整清单：`build_qa/design_review/A1-P1-违规清单.md`（随时可重跑刷新）。
 
 ### 3.1 棘轮（ratchet）语义
 

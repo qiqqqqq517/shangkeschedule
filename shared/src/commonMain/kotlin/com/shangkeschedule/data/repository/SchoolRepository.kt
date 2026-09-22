@@ -115,15 +115,6 @@ class SchoolRepository(
         }
     }
 
-    /**
-     * 辅助方法：通过 ID 获取单个学校对象
-     */
-    suspend fun getSchoolById(id: String): School? {
-        return withContext(Dispatchers.IO) {
-            val index = loadIndex()
-            return@withContext index?.schools?.find { it.id == id }
-        }
-    }
 }
 
 

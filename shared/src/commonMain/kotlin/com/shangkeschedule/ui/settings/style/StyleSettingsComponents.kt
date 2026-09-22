@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,27 +24,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,7 +51,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.shangkeschedule.ui.components.AppAlertDialog
@@ -101,8 +92,6 @@ import shangkeschedule.shared.generated.resources.action_reset
 import shangkeschedule.shared.generated.resources.action_reset_style
 import shangkeschedule.shared.generated.resources.border_type_dashed
 import shangkeschedule.shared.generated.resources.border_type_solid
-import shangkeschedule.shared.generated.resources.check_24px
-import shangkeschedule.shared.generated.resources.check_circle_24px
 import shangkeschedule.shared.generated.resources.desc_wallpaper_set
 import shangkeschedule.shared.generated.resources.desc_wallpaper_unset
 import shangkeschedule.shared.generated.resources.dialog_reset_message
@@ -132,8 +121,6 @@ import shangkeschedule.shared.generated.resources.label_text_align_center_v
 import shangkeschedule.shared.generated.resources.label_time_column_width
 import shangkeschedule.shared.generated.resources.label_wallpaper
 import shangkeschedule.shared.generated.resources.placeholder_input_value
-import shangkeschedule.shared.generated.resources.preview_dark_mode
-import shangkeschedule.shared.generated.resources.preview_light_mode
 import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.status_not_set
 import shangkeschedule.shared.generated.resources.style_category_course_block
@@ -287,18 +274,6 @@ fun ColorSchemeSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ColorPreviewBox(color: Color, isLightModeUI: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = appSpacing().pageHorizontal).clip(appShapes().chip).background(color), contentAlignment = Alignment.Center) {
-        Text(
-            text = if (isLightModeUI) stringResource(Res.string.preview_light_mode) else stringResource(Res.string.preview_dark_mode),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (isLightModeUI) lightColorScheme().onSurface else Color.White
-        )
     }
 }
 

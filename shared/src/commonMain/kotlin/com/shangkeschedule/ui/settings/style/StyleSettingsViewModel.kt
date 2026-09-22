@@ -157,16 +157,6 @@ class StyleSettingsViewModel(
         styleRepository.resetAllStyleSettingsExceptWallpaper()
     }
 
-    /**
-     * 彻底重置所有 (包括壁纸)
-     */
-    fun resetEverything() = viewModelScope.launch(Dispatchers.IO) {
-        // 先调用移除壁纸逻辑清理物理文件
-        removeWallpaper()
-        // 再重置数据库所有项
-        styleRepository.resetAllStyleSettings()
-    }
-
     // --- 尺寸与边距 API ---
     fun updateSectionHeight(height: Float) = viewModelScope.launch { styleRepository.setSectionHeight(height) }
     fun updateTimeColumnWidth(width: Float) = viewModelScope.launch { styleRepository.setTimeColumnWidth(width) }

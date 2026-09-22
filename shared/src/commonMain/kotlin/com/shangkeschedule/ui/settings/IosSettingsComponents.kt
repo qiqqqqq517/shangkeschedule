@@ -39,12 +39,9 @@ import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.iosGroupBg
 import com.shangkeschedule.ui.theme.iosGlassRim
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.chevron_right_24px
-import shangkeschedule.shared.generated.resources.hero_subtitle
 
 // ============================================================================
 // 通透主题（iOS 26）设置页组件
@@ -395,10 +392,3 @@ fun IosSwitchTrailing(
     )
 }
 
-/** 页头默认使用的应用名（供各页面复用，避免重复 stringResource 调用点）。 */
-@Composable
-fun iosHeaderTitle(): String = stringResource(Res.string.app_name)
-
-/** 页头默认使用的副标题。 */
-@Composable
-fun iosHeaderSubtitle(): String = stringResource(Res.string.hero_subtitle)

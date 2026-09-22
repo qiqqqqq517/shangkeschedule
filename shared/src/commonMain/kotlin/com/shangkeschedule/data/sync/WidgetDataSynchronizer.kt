@@ -9,6 +9,7 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.data.time.startOfWeek
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,12 +36,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Single
@@ -240,7 +239,7 @@ class WidgetDataSynchronizer(
 
         val timeSlotMap = timeSlots.associateBy { it.number }
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val alignedSemesterStartDate = getStartDayOfWeek(semesterStartDate, firstDayOfWeekInt)
+        val alignedSemesterStartDate = startOfWeek(semesterStartDate, firstDayOfWeekInt)
 
         val widgetCourses = mutableListOf<WidgetCourse>()
         val startSyncDate = if (today < alignedSemesterStartDate) alignedSemesterStartDate else today
@@ -248,7 +247,7 @@ class WidgetDataSynchronizer(
         for (i in 0 until widgetSyncDays) {
             val date = startSyncDate.plus(i, DateTimeUnit.DAY)
             val dateString = date.toString()
-            val alignedDate = getStartDayOfWeek(date, firstDayOfWeekInt)
+            val alignedDate = startOfWeek(date, firstDayOfWeekInt)
             val diffDays = alignedSemesterStartDate.daysUntil(alignedDate)
             val weekNumber = diffDays / 7 + 1
             val dayOfWeek = date.dayOfWeek.isoDayNumber
@@ -287,15 +286,4 @@ class WidgetDataSynchronizer(
         widgetRepository.replaceSnapshotIfChanged(widgetCourses, widgetSettings)
     }
 
-    /**
-     * 根据设定的每周起始日（如周一或周日），向前推算并对齐给定日期所在周的起始日。
-     */
-    private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
-        val targetFirstDay = DayOfWeek(firstDayOfWeekInt.coerceIn(1, 7))
-        var current = date
-        while (current.dayOfWeek != targetFirstDay) {
-            current = current.minus(1, DateTimeUnit.DAY)
-        }
-        return current
-    }
 }

@@ -39,26 +39,16 @@
     <string name="title_today_courses">今日课程</string>
     <string name="today_todos_section">今日待办</string>
     <string name="todo_count_format">%1$d 项</string>
-    <string name="title_tomorrow_courses">明日课程</string>
     <string name="text_courses_count">共 %1$s 节</string>
-    <string name="action_week_view">周视图</string>
     <!-- Claude 主题 · 今日课表页（对齐设计包 claude-schedule-page.design/pages/今日日程.html） -->
-    <string name="today_claude_date_format">%1$d月%2$d日 %3$s</string>
-    <string name="today_claude_week_range">%1$d月%2$d日 – %3$d月%4$d日</string>
-    <string name="today_claude_week_prev">上一周</string>    <string name="today_claude_week_next">下一周</string>
-    <string name="today_claude_remaining">剩余 %1$s 节</string>
     <string name="today_claude_tomorrow_format">明日 · %1$d月%2$d日</string>
     <string name="today_claude_view_all">查看全部</string>
     <string name="today_claude_status_done">已结束</string>
     <string name="today_claude_status_live">进行中</string>
     <string name="today_claude_status_upcoming">未开始</string>
-    <string name="today_claude_badge_required">必修</string>
-    <string name="today_claude_badge_elective">选修</string>
-    <string name="today_claude_badge_lab">实验</string>
     <string name="today_claude_meta_time">上课时间</string>
     <string name="today_claude_meta_room">上课地点</string>
     <string name="today_claude_meta_teacher">授课教师</string>
-    <string name="today_claude_meta_weeks">上课周次</string>
     <string name="today_claude_meta_credit">学分</string>
 
     <string name="today_claude_next_label">下一节课</string>
@@ -70,18 +60,11 @@
     <string name="today_claude_countdown_label">分钟后开始</string>
     <string name="today_claude_sheet_close">关闭</string>
     <string name="today_claude_sheet_edit">编辑课程</string>
-    <string name="today_ios_date_format">%1$d月%2$d日 %3$s</string>
-    <string name="today_ios_week_range">%1$d月%2$d日 – %3$d月%4$d日</string>
-    <string name="today_ios_week_prev">上一周</string>    <string name="today_ios_week_next">下一周</string>
-    <string name="today_ios_remaining">剩余 %1$s 节</string>
     <string name="today_ios_tomorrow_format">明日 · %1$d月%2$d日</string>
     <string name="today_ios_view_all">查看全部</string>
     <string name="today_ios_status_done">已结束</string>
     <string name="today_ios_status_live">进行中</string>
     <string name="today_ios_status_upcoming">未开始</string>
-    <string name="today_ios_badge_required">必修</string>
-    <string name="today_ios_badge_elective">选修</string>
-    <string name="today_ios_badge_lab">实验</string>
     <string name="today_ios_meta_time">上课时间</string>
     <string name="today_ios_meta_room">上课地点</string>
     <string name="today_ios_meta_teacher">授课教师</string>
@@ -96,26 +79,17 @@
     <string name="today_ios_countdown_label">分钟后开始</string>
     <string name="today_ios_sheet_close">关闭</string>
     <string name="today_ios_sheet_edit">编辑课程</string>
-    <string name="settings_group_course">课程设置</string>
-    <string name="settings_group_tools">工具</string>
-    <string name="settings_group_other">其他</string>
     <string name="settings_group_timetable">课表</string>
     <string name="settings_group_courses">课程</string>
     <string name="settings_group_preference">偏好</string>
     <string name="settings_group_about">关于</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="text_no_courses_this_week">本周没有课程</string>
-    <string name="label_crush_course">TA的课</string>
-    <string name="text_course_in_progress">正在上课</string>
-    <string name="text_courses_finished">今日课程已结束</string>
-    <string name="text_countdown_start">%1$s 分钟后开始</string>
-    <string name="text_countdown_remaining">还剩 %1$s 分钟</string>
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>
     <string name="title_semester_not_set">请设置开学日期</string>
     <string name="date_format_year_month_day">%1$s年%2$s月%3$s日</string>
 
     <!-- 日程页 -->
-    <string name="title_agenda">日程</string>
     <string name="agenda_today_badge">今天</string>
     <string name="agenda_day_title_format">%1$d月%2$d日 %3$s</string>
     <string name="agenda_lunar_format">农历%1$s</string>
@@ -183,7 +157,6 @@
     <string name="toast_name_empty">课程名称不能为空</string>
     <string name="label_teacher">教师</string>
     <string name="label_position">地点</string>
-    <string name="label_course_time">上课时间</string>
     <string name="label_day_of_week">星期</string>
     <string name="label_start_section">开始节次</string>
     <string name="label_end_section">结束节次</string>
@@ -191,20 +164,13 @@
     <string name="label_course_weeks">上课周次</string>
     <string name="action_single_week">单周</string>
     <string name="action_double_week">双周</string>
-    <string name="label_course_color">课程颜色</string>
-    <string name="button_select_color">选择颜色</string>
     <string name="snackbar_add_course_within_semester">请在教学周期间添加或调整课程</string>
     <string name="snackbar_course_move_failed">调课失败，请重试</string>
     <string name="label_section_range_suffix">节</string>
     <string name="title_select_time">选择上课时间</string>
-    <string name="button_select_weeks">选择周数</string>
     <string name="text_weeks_selected">已选: %1$s</string>
     <string name="title_select_weeks">选择上课周次</string>
     <string name="title_select_color">选择课程颜色</string>
-    <string name="a11y_color_selected">已选择</string>
-    <string name="label_custom_time_range">自定义时间段</string>
-    <string name="label_select_custom_time">选择自定义时间</string>
-    <string name="toast_custom_time_empty">起始时间或结束时间不能为空</string>
     <string name="label_custom_time">自定义时间</string>
     <string name="label_start_time">开始时间</string>
     <string name="label_end_time">结束时间</string>
@@ -214,18 +180,12 @@
     <string name="label_is_lab">实验课</string>
 
     <!-- 课程相关 -->
-    <string name="course_time_description">时间: 第%1$s-%2$s节 (%3$s-%4$s)</string>
     <string name="course_section_range">第%1$s-%2$s节</string>
-    <string name="course_position_prefix">地点: %1$s</string>
     <string name="course_teacher_prefix">老师: %1$s</string>
-    <string name="title_course_overlap">重叠课程列表</string>
-    <string name="label_courses_overlap">%1$d门重叠</string>
-    <string name="course_time_sections_count">(%1$s节)</string>
     <string name="title_select_week">选择周次</string>
     <string name="title_current_week">第 %1$s 周</string>
     <string name="title_vacation">假期中</string>
     <string name="status_semester_ended">学期已结束 %1$d 天</string>
-    <string name="status_week_calc_error">周次计算错误</string>
 
     <!-- 时间与星期格式 -->
     <string-array name="week_days_short_names">
@@ -249,32 +209,13 @@
     <string name="format_week_display">%1$d周</string>
 
     <!-- 通知与闹钟 -->
-    <string name="notification_channel_desc_course_alert">上课提醒通知</string>
-    <string name="notification_title_course_alert">上课提醒</string>
     <string name="item_auto_mode">上课自动模式</string>
     <string name="text_auto_mode_dependency">依赖于「课程提醒」的开启</string>
     <string name="toast_enable_reminder_first">请先开启「课程提醒」</string>
     <string name="alarm_option_none">不提醒</string>
     <string name="alarm_option_on_time">准时提醒</string>
-    <string name="notification_live_status_preparing">准备上课</string>
-    <string name="notification_unknown_course">未知课程</string>
-    <string name="notification_unknown_position">地点未知</string>
 
     <!-- 小组件相关 -->
-    <string name="widget_name_tiny">超小课程2x1</string>
-    <string name="widget_name_compact">紧凑课程2x2</string>
-    <string name="widget_name_double_days">近日课程4x2</string>
-    <string name="widget_name_list_vertical">垂直列表课表4xN</string>
-    <string name="widget_tomorrow_course_preview">明日预告</string>
-    <string name="widget_no_courses_tomorrow">明天没有课程</string>
-    <string name="widget_today_courses_finished">今日课程已结束</string>
-    <string name="widget_vacation_expecting">期待新学期</string>
-    <string name="widget_remaining_courses_format_today">今日还有 %1$d 节课</string>
-    <string name="widget_remaining_courses_format_tomorrow">明天有 %1$d 节课</string>
-    <string name="widget_title_today">今天</string>
-    <string name="widget_title_tomorrow">明天</string>
-    <string name="widget_course_remaining_count">剩余 %1$d 节</string>
-    <string name="widget_course_total_count">共有 %1$d 节</string>
 
     <!-- 通知设置 -->
     <string name="title_course_notification_settings">课程提醒设置</string>
@@ -293,24 +234,18 @@
     <string name="status_unauthorized">未授权</string>
     <string name="item_background_and_autostart">后台运行和自启</string>
     <string name="item_ignore_battery_optimization">忽略电池优化</string>
-    <string name="section_title_skip_dates">跳过日期功能</string>
     <string name="text_skip_dates_experimental">实验性的功能，不保证一定有用</string>
     <string name="item_update_holiday_info">更新节假日信息</string>
     <string name="update_holiday_info_hint">可能不稳定(一般情况下只有年末才公布下一年的节假日信息)</string>
     <string name="item_clear_skipped_dates">清空跳过日期</string>
     <string name="item_view_skipped_dates">查看跳过的日期</string>
-    <string name="skipped_dates_count_format">%1$d 个日期</string>
     <string name="skipped_dates_none">无</string>
-    <string name="toast_holidays_update_success">节假日信息更新成功！</string>
-    <string name="toast_update_failed">更新失败：%1$s</string>
     <string name="toast_clear_success">已清空所有跳过日期！</string>
     <string name="toast_clear_failed">清空失败：%1$s</string>
     <string name="dialog_title_auto_mode_selection">上课自动模式选择</string>
     <string name="auto_mode_dnd_permission_warning">（缺少勿扰权限，启用勿扰/静音可能无效）</string>
     <string name="dialog_title_set_remind_time">设置提前提醒时间</string>
     <string name="label_minutes_input">分钟数</string>
-    <string name="error_input_empty">请输入分钟数</string>
-    <string name="error_input_range">请输入 0 到 60 之间的数字</string>
     <string name="dialog_title_exact_alarm_permission">需要精确闹钟权限</string>
     <string name="dialog_text_exact_alarm_permission">为了确保提醒能在准确时间送达，请授予精确闹钟权限。</string>
     <string name="action_go_to_settings">去设置</string>
@@ -322,7 +257,6 @@
     <string name="auto_mode_dnd">勿扰模式 (DND)</string>
     <string name="auto_mode_silent">静音模式 (SILENT)</string>
     <string name="dialog_title_view_skipped_dates">跳过的提醒日期</string>
-    <string name="text_no_skipped_dates">没有设置跳过的日期。</string>
     <string name="action_close">关闭</string>
     <string name="toast_notification_permission_denied">通知权限被拒绝，无法接收课程提醒。</string>
     <string name="item_compat_wearable_sync">兼容穿戴设备同步通知</string>
@@ -331,15 +265,10 @@
     <string name="desc_dynamic_island">Android 16 实时更新：在状态栏常驻显示当前/下一节课状态，实时刷新剩余时间与上课进度</string>
 
     <!-- 设置选项 -->
-    <string name="title_schedule_settings">课程表设置</string>
-    <string name="section_title_general_settings">通用设置</string>
     <string name="item_show_non_current_week">显示非本周课程</string>
-    <string name="desc_show_non_current_week">在课表中展示当前周次以外的课程</string>
     <string name="item_show_weekends">是否显示周末</string>
-    <string name="desc_show_weekends">开启后，课程表中将显示周末的课程安排</string>
     <string name="item_set_start_date">设置开学日期</string>
     <string name="desc_set_start_date">选择学期第一周(教务系统参考的第一周)的周一</string>
-    <string name="desc_semester_settings">开学日期、总周数与当前周数</string>
     <string name="status_not_set">未设置</string>
     <string name="item_total_weeks">本学期总周数</string>
     <string name="desc_total_weeks">设置学期总共持续多少周</string>
@@ -354,15 +283,9 @@
     <string name="day_of_week_sunday">周日</string>
     <string name="item_schedule_tweak">课程调动</string>
     <string name="desc_schedule_tweak">一键将指定日期的所有课程调整到新日期</string>
-    <string name="section_title_advanced_features">高级功能</string>
     <string name="item_course_conversion">课表导入/导出</string>
-    <string name="desc_course_conversion">支持文件、教务导入及同步功能</string>
-    <string name="desc_notification_settings">管理您的课程提醒通知</string>
-    <string name="desc_manage_course_tables">管理多份课程表，可切换、删除</string>
     <string name="item_time_slot_customization">自定义时间段</string>
-    <string name="desc_time_slot_customization">编辑您的课程时间段设置</string>
     <string name="item_more_options">更多</string>
-    <string name="desc_more_options">提供我们的更多信息</string>
     <string name="a11y_more_options">更多选项</string>
     <string name="dialog_title_select_total_weeks">选择总周数</string>
     <string name="dialog_title_manual_set_week">手动设置当前周数</string>
@@ -377,7 +300,6 @@
     <string name="dialog_title_add_table">添加新课表</string>
     <string name="a11y_add_new_table">添加新课表</string>
     <string name="label_table_name">课表名称</string>
-    <string name="text_no_tables_hint">暂无课表，点击右下角按钮添加。</string>
     <string name="toast_switch_table_success">已切换到课表: %1$s</string>
     <string name="toast_add_table_success">课表 \'%1$s\' 已添加</string>
     <string name="dialog_title_edit_table">编辑课表名称</string>
@@ -385,9 +307,7 @@
     <string name="dialog_text_confirm_delete">您确定要删除课表 \'%1$s\' 吗？此操作无法撤销。</string>
     <string name="toast_delete_table_success">%1$s 已删除</string>
     <string name="toast_delete_last_table_failed">不能删除最后一个课表</string>
-    <string name="a11y_current_table">当前课表</string>
     <string name="item_course_management">课程管理</string>
-    <string name="desc_course_management">按名称查看和编辑所有课程</string>
 
     <!-- 管理课程 -->
     <string name="title_selected_items_count">已选择 %1$d 项</string>
@@ -395,7 +315,6 @@
     <string name="a11y_cancel_selection">取消多选</string>
     <string name="a11y_exit_selection_mode">退出选择模式</string>
     <string name="a11y_enter_selection_mode">进入选择模式</string>
-    <string name="a11y_not_selected">未选中</string>
     <string name="label_weeks_format">周次: %1$s</string>
 
     <!-- 时间段管理 -->
@@ -439,7 +358,6 @@
     <string name="action_delete">删除</string>
     <string name="title_auto_switch_scheme">自动切换作息</string>
     <string name="desc_auto_switch_scheme">根据日期自动切换夏令时/冬令时作息方案</string>
-    <string name="action_edit_scheme_dates">生效日期</string>
     <string name="dialog_title_scheme_dates">设置生效日期</string>
     <string name="label_start_month_day">开始日期</string>
     <string name="label_end_month_day">结束日期</string>
@@ -456,8 +374,6 @@
     <!-- 课表导入/导出 -->
     <string name="title_conversion">课表导入/导出</string>
     <string name="section_file_conversion">文件导入/导出</string>
-    <string name="item_import_course_file">课程文件导入</string>
-    <string name="desc_import_json">导入json文件</string>
     <string name="item_export_course_file">课程文件导出</string>
     <string name="desc_export_json_with_config">导出携带时间段配置的json课程文件</string>
     <string name="item_export_ics_file">日历文件导出</string>
@@ -466,11 +382,7 @@
     <string name="item_school_system_import">教务系统导入</string>
     <string name="desc_school_import_quick">从教务系统导入课程，方便快捷</string>
     <string name="item_import_crush_schedule">一键导入 crush 课表</string>
-    <string name="desc_import_crush_schedule">导入TA的课表，与本人课表分开存储展示</string>
-    <string name="item_delete_crush_schedule">删除 crush 课表</string>
-    <string name="desc_delete_crush_schedule">清空已导入的 crush 课表数据</string>
     <string name="item_couple_schedule">情侣课表</string>
-    <string name="desc_couple_schedule">开启后同时展示本人和 crush 的课表</string>
     <string name="item_self_course_color">本人课表颜色</string>
     <string name="desc_self_course_color">选择本人课程的展示颜色</string>
     <string name="item_crush_course_color">crush 课表颜色</string>
@@ -479,24 +391,13 @@
     <string name="dialog_title_select_export_table">选择要导出的课表</string>
     <string name="dialog_title_ics_export_settings">日历导出设置</string>
     <string name="label_select_alarm_time">选择提醒时间：</string>
-    <string name="a11y_import">导入</string>
-    <string name="a11y_export">导出</string>
-    <string name="a11y_details">详情</string>
-    <string name="snackbar_cannot_open_file">无法打开文件。</string>
-    <string name="snackbar_file_selection_canceled">文件选择已取消。</string>
-    <string name="snackbar_cannot_save_file">无法保存文件。</string>
     <string name="snackbar_file_save_canceled">文件保存已取消。</string>
     <string name="dialog_title_file_saved">文件已保存</string>
     <string name="dialog_text_file_saved_share_prompt">文件已成功导出到您的下载目录，您想分享它吗？</string>
-    <string name="snackbar_file_copy_failed_for_share">文件复制失败，无法分享。</string>
     <string name="action_share">分享</string>
-    <string name="toast_import_success">课表导入成功！</string>
-    <string name="toast_ics_export_success">日历文件导出成功！</string>
     <string name="error_export_table_not_found">导出失败：找不到课表</string>
     <string name="error_export_failed">导出失败：%1$s</string>
-    <string name="error_import_failed">导入失败：%1$s</string>
     <string name="error_ics_export_data_failed">日历文件导出失败：获取数据失败</string>
-    <string name="error_ics_export_failed">日历文件导出失败：%1$s</string>
     <string name="section_sync">同步</string>
     <string name="item_sync_to_system_calendar">同步到系统日历</string>
     <string name="desc_sync_to_system_calendar">将当前课表一键同步至手机系统日历</string>
@@ -507,33 +408,15 @@
     <string name="title_more_options">更多</string>
     <string name="item_developer_options">开发者选项</string>
     <string name="a11y_app_icon">应用图标</string>
-    <string name="a11y_navigate">跳转</string>
-    <string name="a11y_acknowledgment">鸣谢</string>
     <string name="label_special_thanks">特别鸣谢</string>
     <string name="text_acknowledgment_body">衷心感谢为本应用软件和教务适配代码仓库的开发和维护做出贡献的每一位开发者。您的奉献是应用持续更新和完善的动力！</string>
     <string name="item_github_repo">本项目GitHub仓库</string>
     <string name="item_official_website">上课官网</string>
     <string name="item_open_source_licenses">查看开源许可证</string>
     <string name="title_open_source_licenses">开源许可证</string>
-    <string name="item_update_repo">更新教务适配仓库</string>
-    <string name="desc_update_repo">同步最新的教务系统适配脚本</string>
-    <string name="item_contributors">贡献者列表</string>
     <string name="label_version_prefix">版本: %1$s</string>
-    <string name="default_app_name">未知应用</string>
-    <string name="item_check_software_update">检查软件更新</string>
     <string name="item_language_settings">语言设置</string>
     <string name="language_follow_system">跟随系统</string>
-    <string name="dialog_checking_update">正在检查更新...</string>
-    <string name="tip_please_wait">正在连接服务器，请稍候。</string>
-    <string name="dialog_new_version_found">发现新版本 %1$s</string>
-    <string name="dialog_current_version_latest">当前版本已是最新</string>
-    <string name="dialog_update_check_failed">更新检查失败</string>
-    <string name="label_error_message">错误信息：%1$s</string>
-    <string name="btn_download_update">下载更新</string>
-    <string name="btn_update_now">立即更新</string>
-    <string name="tip_non_mandatory_update">提示：强制更新不会显示此取消按钮。</string>
-    <string name="dialog_select_update_channel">选择更新渠道</string>
-    <string name="a11y_selected">已选中</string>
     <string name="item_start_screen_settings">启动页面设置</string>
     <string name="dialog_select_start_screen">选择启动时显示的页面</string>
 
@@ -583,12 +466,10 @@
     <string name="a11y_load">加载</string>
     <string name="a11y_enter_url">输入网址</string>
     <string name="action_refresh">刷新</string>
-    <string name="a11y_refresh">刷新</string>
     <string name="action_switch_to_phone_mode">切换到手机模式</string>
     <string name="action_switch_to_desktop_mode">切换到电脑模式</string>
     <string name="toast_switched_to_desktop">已切换到电脑模式</string>
     <string name="toast_switched_to_phone">已切换到手机模式</string>
-    <string name="toast_url_empty_enter_first">URL为空，请先输入网址。</string>
     <string name="item_devtools_debug">DevTools 网页调试</string>
     <string name="a11y_devtools">DevTools</string>
     <string name="toast_devtools_enabled_format">DevTools 网页调试 %1$s。</string>
@@ -601,37 +482,12 @@
     <string name="toast_executing_import_script">正在执行导入脚本...</string>
     <string name="toast_import_script_not_found">导入脚本文件不存在: %1$s</string>
     <string name="toast_load_import_script_failed">加载导入脚本失败: %1$s</string>
-    <string name="toast_no_import_script">该适配器没有导入脚本</string>
-    <string name="toast_import_script_finished">导入脚本执行完毕，返回课表页面。</string>
-    <string name="dialog_ssl_error_title">SSL 证书错误</string>
-    <string name="dialog_ssl_error_message">SSL证书验证失败，这可能意味着连接不安全。是否继续浏览？</string>
-    <string name="action_continue_browsing">继续浏览</string>
-    <string name="toast_ssl_error_cancelled">SSL证书验证失败，已取消连接。</string>
-    <string name="toast_web_load_error_format">网页加载错误: %1$s</string>
 
     <!-- 贡献者列表 -->
-    <string name="title_contribution_list">贡献列表</string>
-    <string name="tab_adapter_development">教务适配</string>
-    <string name="tab_app_development">软件开发</string>
-    <string name="text_no_contributors">当前类别暂无贡献者信息。</string>
     <string name="text_loading_failed">加载失败: %1$s</string>
     <string name="action_retry">重试</string>
-    <string name="label_github">GitHub</string>
-    <string name="a11y_back_to_previous">返回上一页</string>
-    <string name="a11y_contributor_avatar">贡献者头像: %1$s</string>
 
     <!-- 教务适配仓库 -->
-    <string name="title_update_repo_screen">更新教务适配仓库</string>
-    <string name="label_select_repo">选择仓库</string>
-    <string name="text_select_repo_hint">请选择仓库</string>
-    <string name="action_update">更新</string>
-    <string name="action_updating">更新中...</string>
-    <string name="label_repo_url">仓库 URL</string>
-    <string name="label_repo_branch">分支 (Branch)</string>
-    <string name="label_private_repo_credentials">私有仓库凭证 (Username/Token)</string>
-    <string name="label_username_or_token_key">用户名或 Token Key</string>
-    <string name="label_password_or_token_value">密码或 Token Value</string>
-    <string name="title_update_log">更新日志</string>
 
     <!-- 色彩编辑器 -->
     <string name="color_picker_title_edit">颜色调节</string>
@@ -646,17 +502,12 @@
 
     <!-- 个性化配置 -->
     <string name="item_personalization">个性化配置</string>
-    <string name="desc_personalization">调整课表格子高度、圆角、间距及透明度</string>
     <string name="style_category_interface">界面显示</string>
     <string name="style_category_grid_size">网格尺寸</string>
     <string name="style_category_course_block">课程块配置</string>
     <string name="style_category_color_scheme">颜色方案 (点击圆形编辑)</string>
-    <string name="label_ui_style_preset">课表界面风格</string>
     <string name="label_view_mode_week">周视图</string>
     <string name="label_view_mode_list">列表视图</string>
-    <string name="ui_style_preset_original">原版（自由选择）</string>
-    <string name="ui_style_preset_sleepy">Sleepy 参考风格</string>
-    <string name="ui_style_preset_timetable">Timetable 参考风格</string>
     <string name="label_wallpaper">课表背景壁纸</string>
     <string name="desc_wallpaper_set">已设置 (长按可清除)</string>
     <string name="desc_wallpaper_unset">未设置 (点击选择图片)</string>
@@ -682,8 +533,6 @@
     <string name="dialog_reset_colors_message">将把课程颜色池恢复为当前主题预设的配色，你手动调整过的颜色会被覆盖。</string>
     <string name="title_light_color_pool">浅色模式颜色池</string>
     <string name="title_dark_color_pool">深色模式颜色池</string>
-    <string name="preview_light_mode">浅色模式预览\n固定深色文字</string>
-    <string name="preview_dark_mode">深色模式预览\n固定浅色文字</string>
     <string name="action_reset_style">恢复默认样式设置</string>
     <string name="dialog_reset_title">重置样式</string>
     <string name="dialog_reset_message">确定要将所有样式设置恢复为默认值吗？此操作不可撤销。</string>
@@ -700,8 +549,6 @@
     <string name="label_schedule_mode_24h">24小时时间轴模式</string>
 
     <!-- 快捷操作 -->
-    <string name="item_quick_actions">快捷操作</string>
-    <string name="desc_quick_actions">包含调课、课程临时变动等功能</string>
     <string name="label_quick_action_category_schedule">课表调整</string>
     <string name="item_quick_delete">快速删除课程</string>
     <string name="quick_delete_subtitle">按周次、星期或特定日期批量清理课表</string>
@@ -712,7 +559,6 @@
     <string name="hint_no_selection">请选择周次、星期或日期</string>
     <string name="hint_affected_count">预计从课表中移除 %1$d 节课程记录</string>
     <string name="dialog_delete_confirm_msg">此操作不可撤销。受影响的课程记录将从选定的时间点中抹除，但课程的基础信息仍会保留。</string>
-    <string name="btn_add_date">添加日期</string>
     <string name="quick_delete_filter_weeks_days_hint">设置重复周次与星期 (可选)</string>
     <string name="quick_delete_filter_date_range_hint">设置特定日期范围 (可选)</string>
     <string name="quick_delete_label_days_prefix">星期: %1$s</string>
@@ -725,7 +571,6 @@
     <string name="theme_follow_system">跟随系统</string>
     <string name="theme_light">浅色模式</string>
     <string name="theme_dark">深色模式</string>
-    <string name="theme_settings_title">主题设置</string>
     <string name="item_appearance_settings">外观与样式</string>
     <string name="item_theme_settings">主题</string>
     <string name="item_schedule_style_settings">自定义课表页</string>
@@ -772,12 +617,6 @@
     <string name="anim_style_gentle_desc">克制精致，淡入微移，安静高级</string>
     <string name="anim_style_snappy">灵动跟手</string>
     <string name="anim_style_snappy_desc">短促干脆，反馈强、跟手</string>
-    <string name="touch_feedback_ripple">涟漪式</string>
-    <string name="touch_feedback_ripple_desc">从触点扩散的柔和圆形涟漪，精致克制</string>
-    <string name="touch_feedback_halo">光晕式</string>
-    <string name="touch_feedback_halo_desc">触点周围的柔光扩散，梦幻玻璃感</string>
-    <string name="touch_feedback_none">关闭</string>
-    <string name="touch_feedback_none_desc">无触摸视觉反馈</string>
     <string name="anim_group_course_cell">课程格反馈</string>
     <string name="anim_group_course_cell_desc">课程块点按时的缩放与微抬起</string>
     <string name="anim_group_week_pager">周翻页过渡</string>
@@ -818,13 +657,8 @@
     <string name="next_card_mode_hide">课程结束后消失</string>
     <string name="next_card_mode_hide_desc">今日课程结束后，卡片直接隐藏</string>
     <string name="next_card_label_agenda">下一日程</string>
-    <string name="next_card_minutes_until">%1$s 分钟后</string>
     <string name="next_card_today_ended">今日课程已结束，自由探索吧</string>
     <string name="anim_settings_more_placeholder">更多动效分组（后续版本推出）</string>
-    <string name="desc_appearance_settings">主题风格、深色模式与课表外观微调</string>
-    <string name="theme_preset_classic">经典</string>
-    <string name="theme_preset_cloud">云舒</string>
-    <string name="theme_preset_clean">利落</string>
     <string name="theme_preset_ios">通透</string>
     <string name="theme_preset_soft">柔绘</string>
     <string name="theme_preset_claude">Shujuan</string>
@@ -867,22 +701,14 @@
     <string name="error_stream_open_failed">无法打开数据流</string>
     <string name="backup_err_connect_failed">连接失败，请检查配置或网络</string>
     <string name="backup_err_upload_failed">文件上传失败</string>
-    <string name="backup_err_download_failed">下载备份失败</string>
     <string name="backup_err_local_export_failed">本地导出失败</string>
     <string name="backup_err_restore_failed_prefix">还原失败: %1$s</string>
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
-    <string name="desc_more_settings">包含课表显示、学期设置等低频设置项</string>
-    <string name="section_title_quick_notify">快捷与通知</string>
     <string name="section_title_couple_schedule">情侣课表</string>
     <string name="section_title_semester_settings">学期设置</string>
     <string name="title_semester_settings">学期设置</string>
-    <string name="section_title_display_settings">课表显示</string>
-    <string name="title_more_settings">更多设置</string>
-    <string name="desc_quick_settings">高频操作，优先显示</string>
-    <string name="title_secondary_settings">更多设置入口</string>
-    <string name="title_core_functions">核心功能</string>
     <string name="item_contact_author">Contact Author</string>
     <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
     <string name="contact_author_email">hhixingchen520@163.com</string>
@@ -948,14 +774,9 @@
     <string name="webview_semester_prompt_title">请设置开学日期</string>
     <string name="webview_semester_prompt_message">已导入新课表，但尚未设置开学日期。设置开学日期后才能正确显示当前周数与课表高亮。</string>
     <string name="webview_semester_prompt_later">稍后再说</string>
-    <string name="couple_delete_message">确定要删除情侣课表吗？此操作不可恢复。</string>
     <string name="appearance_switch_title">切换主题</string>
     <string name="appearance_switch_message">切换到「%1$s」将重置当前的个性化配置（圆角、间距、配色等），是否继续？</string>
     <string name="appearance_switch_confirm">确认切换</string>
-    <string name="conversion_crush_title">一键导入 crush 课表</string>
-    <string name="conversion_crush_choose_method">请选择导入方式：</string>
-    <string name="conversion_crush_from_system">从教务系统导入</string>
-    <string name="conversion_crush_from_file">从日历/JSON 文件导入</string>
     <string name="import_cat_text_paste">文本粘贴导入</string>
     <string name="import_status_processing">处理中…</string>
     <string name="conversion_file_import_desc">Excel / JSON / 文本文件，分类导入</string>
@@ -966,9 +787,7 @@
     <string name="wb_table_cancelled">课表选择已取消。</string>
     <string name="wb_table_cancelled_or_unset">课表选择已取消或未设置。</string>
     <string name="wb_import_success">课程导入成功！课表已更新。</string>
-    <string name="wb_crush_import_success">crush 课表导入成功！</string>
     <string name="wb_import_failed_fmt">课程导入失败: %1$s</string>
-    <string name="wb_crush_import_failed_fmt">crush 课表导入失败: %1$s</string>
     <string name="wb_config_import_no_table">配置导入失败：未选择目标课表。</string>
     <string name="item_auto_sync_adapter">自动同步教务系统</string>
     <string name="desc_auto_sync_adapter">手动拉取最新教务适配，让课表抓取保持可用</string>
@@ -994,8 +813,6 @@
     <string name="tivm_import_failed_fmt">导入失败: %1$s</string>
     <string name="tivm_error_parse_first">请先解析并预览</string>
     <string name="tivm_error_table_name_empty">请输入课表名称</string>
-    <string name="cvm_crush_deleted">crush 课表已删除</string>
-    <string name="cvm_crush_delete_failed_fmt">删除 crush 课表失败: %1$s</string>
     <string name="wb_default_confirm">确定</string>
 
     <!-- 风格预览演示数据 i18n（UI 迭代第 7 轮） -->
@@ -1050,12 +867,10 @@
     <string name="semester_count_short_format">%1$d 个学期</string>
     <string name="status_current_semester">当前学期</string>
     <string name="courses_count_format">%1$d 门课程</string>
-    <string name="weeks_count_format">%1$d 周</string>
     <string name="week_progress_format">第 %1$d 周 / 共 %2$d 周</string>
     <string name="no_semester_configured">未设置开学日期</string>
     <string name="action_view_timetable">查看课表</string>
     <string name="action_semester_settings">学期设置</string>
-    <string name="section_bottom_actions">操作</string>
     <string name="semester_progress_label">学期进度</string>
     <string name="progress_percent_format">已过 %1$d%%</string>
     <string name="school_year_format">%1$d-%2$d 学年</string>
@@ -1113,7 +928,6 @@
     <string name="couple_overlay_disabled_solo">当前正在单独显示情侣课表，此开关自动失效</string>
     <string name="couple_solo_banner">正在单独显示情侣课表</string>
     <string name="couple_solo_back">返回本人课表</string>
-    <string name="couple_manage_import_school">教务导入</string>
     <string name="couple_manage_import_school_desc">从教务系统导入 TA 的课表，导入时可选择目标课表</string>
     <string name="couple_manage_import_file">文件导入</string>
     <string name="couple_manage_import_file_desc">支持 Excel / JSON / 文本文件，导入时可选择目标课表</string>

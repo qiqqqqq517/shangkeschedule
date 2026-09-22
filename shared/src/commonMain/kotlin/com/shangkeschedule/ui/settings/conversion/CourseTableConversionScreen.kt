@@ -4,10 +4,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appSpacing
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,26 +52,21 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
-import shangkeschedule.shared.generated.resources.a11y_details
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.desc_export_ics_with_alarm
 import shangkeschedule.shared.generated.resources.desc_export_json_with_config
-import shangkeschedule.shared.generated.resources.desc_import_json
 import shangkeschedule.shared.generated.resources.desc_school_import_quick
 import shangkeschedule.shared.generated.resources.desc_sync_to_system_calendar
 import shangkeschedule.shared.generated.resources.item_backup_restore
 import shangkeschedule.shared.generated.resources.item_export_course_file
 import shangkeschedule.shared.generated.resources.item_export_ics_file
-import shangkeschedule.shared.generated.resources.item_import_course_file
 import shangkeschedule.shared.generated.resources.item_school_system_import
 import shangkeschedule.shared.generated.resources.item_sync_to_system_calendar
 import shangkeschedule.shared.generated.resources.section_file_conversion
 import shangkeschedule.shared.generated.resources.section_school_import
 import shangkeschedule.shared.generated.resources.section_sync
 import shangkeschedule.shared.generated.resources.snackbar_file_save_canceled
-import shangkeschedule.shared.generated.resources.snackbar_file_selection_canceled
 import shangkeschedule.shared.generated.resources.title_conversion
 import kotlin.time.Clock
 

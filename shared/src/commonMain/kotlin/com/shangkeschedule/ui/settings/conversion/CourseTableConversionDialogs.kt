@@ -12,10 +12,6 @@ import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.conversion_crush_choose_method
-import shangkeschedule.shared.generated.resources.conversion_crush_from_file
-import shangkeschedule.shared.generated.resources.conversion_crush_from_system
-import shangkeschedule.shared.generated.resources.conversion_crush_title
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_next_step
 import shangkeschedule.shared.generated.resources.alarm_option_none

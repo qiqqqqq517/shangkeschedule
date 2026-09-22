@@ -6,7 +6,6 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TodoItem
-import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode

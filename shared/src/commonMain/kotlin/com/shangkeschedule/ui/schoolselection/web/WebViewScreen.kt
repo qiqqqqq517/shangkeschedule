@@ -23,15 +23,12 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -80,7 +77,6 @@ import shangkeschedule.shared.generated.resources.a11y_devtools
 import shangkeschedule.shared.generated.resources.a11y_enter_url
 import shangkeschedule.shared.generated.resources.a11y_load
 import shangkeschedule.shared.generated.resources.a11y_more_options
-import shangkeschedule.shared.generated.resources.a11y_refresh
 import shangkeschedule.shared.generated.resources.action_execute_import
 import shangkeschedule.shared.generated.resources.action_navigate_to_timetable
 import shangkeschedule.shared.generated.resources.action_refresh

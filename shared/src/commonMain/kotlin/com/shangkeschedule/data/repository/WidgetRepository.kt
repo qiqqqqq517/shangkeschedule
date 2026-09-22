@@ -6,18 +6,15 @@ import com.shangkeschedule.data.db.widget.WidgetAppSettingsDao
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.db.widget.WidgetCourseDao
 import com.shangkeschedule.data.db.widget.WidgetDatabase
-import kotlinx.coroutines.channels.Channel
+import com.shangkeschedule.data.time.startOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
@@ -32,9 +29,6 @@ class WidgetRepository(
     private val widgetAppSettingsDao: WidgetAppSettingsDao
 ) {
 
-    private val _dataUpdatedChannel = Channel<Unit>(Channel.CONFLATED)
-    val dataUpdatedFlow: Flow<Unit> = _dataUpdatedChannel.receiveAsFlow()
-
     /**
      * 获取指定日期范围内的 Widget 课程。
      */
@@ -47,7 +41,6 @@ class WidgetRepository(
      */
     suspend fun insertAll(courses: List<WidgetCourse>) {
         widgetCourseDao.insertAll(courses)
-        _dataUpdatedChannel.trySend(Unit)
     }
 
     /**
@@ -55,7 +48,6 @@ class WidgetRepository(
      */
     suspend fun deleteAll() {
         widgetCourseDao.deleteAll()
-        _dataUpdatedChannel.trySend(Unit)
     }
 
     /**
@@ -69,7 +61,6 @@ class WidgetRepository(
             }
             widgetAppSettingsDao.insertOrUpdate(settings)
         }
-        _dataUpdatedChannel.trySend(Unit)
     }
 
     /**
@@ -90,31 +81,10 @@ class WidgetRepository(
     }
 
     /**
-     * 原子替换全部 Widget 课程：清空与写入在同一个数据库事务内完成。
-     */
-    suspend fun replaceAllCourses(courses: List<WidgetCourse>) {
-        widgetDatabase.withWriteTransaction {
-            widgetCourseDao.deleteAll()
-            if (courses.isNotEmpty()) {
-                widgetCourseDao.insertAll(courses)
-            }
-        }
-        _dataUpdatedChannel.trySend(Unit)
-    }
-
-    /**
      * 插入或更新小组件设置。
      */
     suspend fun insertOrUpdateAppSettings(settings: WidgetAppSettings) {
         widgetAppSettingsDao.insertOrUpdate(settings)
-        _dataUpdatedChannel.trySend(Unit)
-    }
-
-    /**
-     * 获取小组件设置的数据流。
-     */
-    fun getAppSettingsFlow(): Flow<WidgetAppSettings?> {
-        return widgetAppSettingsDao.getAppSettings()
     }
 
     /**
@@ -146,8 +116,8 @@ class WidgetRepository(
             val startDate = LocalDate.parse(semesterStartDateStr)
             val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
-            val alignedStartDate = getStartDayOfWeek(startDate, firstDayOfWeekInt)
-            val alignedToday = getStartDayOfWeek(today, firstDayOfWeekInt)
+            val alignedStartDate = startOfWeek(startDate, firstDayOfWeekInt)
+            val alignedToday = startOfWeek(today, firstDayOfWeekInt)
 
             if (alignedToday < alignedStartDate) return null
 
@@ -164,16 +134,4 @@ class WidgetRepository(
 
     private fun firstDayOfWeekOrMonday(value: Int?): Int =
         value?.takeIf { it in 1..7 } ?: DayOfWeek.MONDAY.isoDayNumber
-
-    /**
-     * 计算指定日期所在周的起始日期。
-     */
-    private fun getStartDayOfWeek(date: LocalDate, firstDayOfWeekInt: Int): LocalDate {
-        val targetFirstDay = DayOfWeek(firstDayOfWeekInt.coerceIn(1, 7))
-        var current = date
-        while (current.dayOfWeek != targetFirstDay) {
-            current = current.minus(1, DateTimeUnit.DAY)
-        }
-        return current
-    }
 }

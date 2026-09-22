@@ -1,11 +1,8 @@
 package com.shangkeschedule.widget.tiny
 
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
 import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.ScheduledWidgetProvider
-import com.shangkeschedule.widget.updateAllWidgets
 
 class TinyNativeProvider : ScheduledWidgetProvider() {
 

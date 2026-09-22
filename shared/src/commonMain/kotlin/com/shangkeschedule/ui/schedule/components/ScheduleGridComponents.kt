@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.schedule.components
+package com.shangkeschedule.ui.schedule.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,11 +47,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
-import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.AppTypeGrid
@@ -84,7 +81,6 @@ interface ISingleSchedulable {
  */
 data class CourseMoveIntent(
     val parentBlock: MergedCourseBlock,     // 原始被拖拽的块
-    val initialDay: Int,                   // 拖拽前是周几 (1..7)
     val initialStartSection: Float,        // 拖拽前的起始节次/时间
     val duration: Float                    // 课程跨越的时间/节次长度 (end - start)
 )

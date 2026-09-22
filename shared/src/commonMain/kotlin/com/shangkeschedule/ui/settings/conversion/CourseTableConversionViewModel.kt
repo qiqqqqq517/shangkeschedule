@@ -2,8 +2,6 @@ package com.shangkeschedule.ui.settings.conversion
 
 import org.jetbrains.compose.resources.getString
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.cvm_crush_delete_failed_fmt
-import shangkeschedule.shared.generated.resources.cvm_crush_deleted
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,15 +12,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import okio.BufferedSource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.error_export_failed
 import shangkeschedule.shared.generated.resources.error_export_table_not_found
 import shangkeschedule.shared.generated.resources.error_ics_export_data_failed
-import shangkeschedule.shared.generated.resources.error_import_failed
 import shangkeschedule.shared.generated.resources.error_sync_calendar_failed
-import shangkeschedule.shared.generated.resources.toast_import_success
 import shangkeschedule.shared.generated.resources.toast_sync_calendar_success
 import shangkeschedule.shared.generated.resources.*
 
@@ -42,13 +36,6 @@ class CourseTableConversionViewModel(
     // UI 事件通道：用于向前端发送一次性副作用事件（如拉起文件选择器、弹出提示消息等）
     private val _events = Channel<ConversionEvent>()
     val events = _events.receiveAsFlow()
-
-    /**
-     * 点击导入按钮：显示导入课表选择对话框
-     */
-    fun onImportClick() {
-        _uiState.value = _uiState.value.copy(showImportTableDialog = true)
-    }
 
     /**
      * 点击导出 JSON 按钮：显示导出选择对话框并指定类型为 JSON
@@ -125,28 +112,6 @@ class CourseTableConversionViewModel(
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 dismissDialog()
-            }
-        }
-    }
-
-    /**
-     * 处理文件导入逻辑：通过 Okio 的 BufferedSource 读取文件文本并解析入库
-     */
-    fun handleFileImport(tableId: String, source: BufferedSource) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val jsonString = source.readUtf8()
-                val importModel = CourseImportExport.json.decodeFromString<CourseImportExport.CourseTableImportModel>(jsonString)
-                courseConversionRepository.importCourseTableFromJson(tableId, importModel)
-
-                val message = getString(Res.string.toast_import_success)
-                _events.send(ConversionEvent.ShowMessage(message))
-            } catch (_: Exception) {
-                val message = getString(Res.string.error_import_failed)
-                _events.send(ConversionEvent.ShowMessage(message))
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }

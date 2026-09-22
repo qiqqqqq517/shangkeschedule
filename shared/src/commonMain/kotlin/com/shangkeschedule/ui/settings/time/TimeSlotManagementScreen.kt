@@ -65,6 +65,7 @@ import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.repository.DEFAULT_TIME_SLOTS
+import com.shangkeschedule.data.time.daysInMonth
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
@@ -104,7 +105,6 @@ import shangkeschedule.shared.generated.resources.a11y_delete_time_slot
 import shangkeschedule.shared.generated.resources.a11y_save_all_settings
 import shangkeschedule.shared.generated.resources.action_add
 import shangkeschedule.shared.generated.resources.action_cancel
-import shangkeschedule.shared.generated.resources.action_delete
 import shangkeschedule.shared.generated.resources.action_new_scheme
 import shangkeschedule.shared.generated.resources.action_save_changes
 import shangkeschedule.shared.generated.resources.add_24px
@@ -152,7 +152,6 @@ import shangkeschedule.shared.generated.resources.toast_slot_removed_unsaved
 import shangkeschedule.shared.generated.resources.toast_time_conflict
 import shangkeschedule.shared.generated.resources.a11y_edit_scheme_dates
 import shangkeschedule.shared.generated.resources.action_clear_dates
-import shangkeschedule.shared.generated.resources.action_edit_scheme_dates
 import shangkeschedule.shared.generated.resources.desc_auto_switch_scheme
 import shangkeschedule.shared.generated.resources.dialog_title_scheme_dates
 import shangkeschedule.shared.generated.resources.label_day
@@ -466,7 +465,6 @@ fun TimeSlotManagementScreen(
                                 if (originalEnd != endTime) {
                                     val breakMin = localDefaultBreakDuration.coerceAtLeast(0)
                                     val classMin = localDefaultClassDuration.coerceAtLeast(1)
-                                    val dayEnd = LocalTime(23, 59)
                                     var lastEnd = parseLocalTimeSafely(endTime)
                                     for (i in targetIdx + 1 until updatedList.size) {
                                         val newStart = plusMinutesClamped(lastEnd, breakMin)
@@ -1567,13 +1565,6 @@ private fun parseMonthDayParts(value: String): Pair<Int, Int> {
     val month = parts.getOrNull(0)?.toIntOrNull() ?: 3
     val day = parts.getOrNull(1)?.toIntOrNull() ?: 1
     return month to day
-}
-
-private fun daysInMonth(month: Int): Int = when (month) {
-    1, 3, 5, 7, 8, 10, 12 -> 31
-    4, 6, 9, 11 -> 30
-    2 -> 29
-    else -> 0
 }
 
 private fun isValidMonthDay(month: Int, day: Int): Boolean {

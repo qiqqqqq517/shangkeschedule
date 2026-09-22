@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -146,14 +145,6 @@ class ManageCourseTablesViewModel(
         viewModelScope.launch {
             courseTableRepository.createNewCourseTable(newTableName)
         }
-    }
-
-    /**
-     * 为指定本人课表创建配对情侣课表（幂等：已存在时返回既有表）。
-     * 旧 fire-and-forget 版本保留给无需结果反馈的调用方；带提示的场景用 [createCoupleTableForNow]。
-     */
-    fun createCoupleTableFor(selfTableId: String) {
-        viewModelScope.launch { createCoupleTableForNow(selfTableId) }
     }
 
     /**

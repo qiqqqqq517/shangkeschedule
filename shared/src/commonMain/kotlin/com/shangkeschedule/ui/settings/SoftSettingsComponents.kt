@@ -39,15 +39,11 @@ import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softGlow
-import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.softTexture
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.chevron_right_24px
-import shangkeschedule.shared.generated.resources.hero_subtitle
 
 // ============================================================================
 // 柔绘主题设置页组件
@@ -371,22 +367,3 @@ fun SoftSettingCell(
     }
 }
 
-/** 柔绘设置行尾部开关：沿用全局 AppSwitch（形态由主题的 success 色承载）。 */
-@Composable
-fun SoftSwitchTrailing(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    com.shangkeschedule.ui.components.AppSwitch(
-        checked = checked,
-        onCheckedChange = onCheckedChange
-    )
-}
-
-/** 页头默认应用名。 */
-@Composable
-fun softHeaderTitle(): String = stringResource(Res.string.app_name)
-
-/** 页头默认副标题。 */
-@Composable
-fun softHeaderSubtitle(): String = stringResource(Res.string.hero_subtitle)

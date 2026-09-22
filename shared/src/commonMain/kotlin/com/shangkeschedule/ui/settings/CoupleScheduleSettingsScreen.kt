@@ -79,7 +79,6 @@ import shangkeschedule.shared.generated.resources.desc_crush_course_color
 import shangkeschedule.shared.generated.resources.desc_delete_couple_table
 import shangkeschedule.shared.generated.resources.couple_show_time_ranges
 import shangkeschedule.shared.generated.resources.couple_show_time_ranges_desc
-import shangkeschedule.shared.generated.resources.desc_import_crush_schedule
 import shangkeschedule.shared.generated.resources.desc_self_course_color
 import shangkeschedule.shared.generated.resources.delete_couple_table
 import shangkeschedule.shared.generated.resources.item_crush_course_color

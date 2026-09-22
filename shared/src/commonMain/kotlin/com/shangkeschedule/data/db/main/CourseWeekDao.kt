@@ -5,19 +5,12 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
-import kotlinx.coroutines.flow.Flow
 
 /**
  * Room 数据访问对象 (DAO)，用于操作课程周数 (CourseWeek) 关联数据表。
  */
 @Dao
 interface CourseWeekDao {
-    /**
-     * 获取指定课程的所有周数。
-     */
-    @Query("SELECT * FROM course_weeks WHERE courseId = :courseId ORDER BY weekNumber ASC")
-    fun getWeeksByCourseId(courseId: String): Flow<List<CourseWeek>>
-
     /**
      * 批量插入课程周数。
      */

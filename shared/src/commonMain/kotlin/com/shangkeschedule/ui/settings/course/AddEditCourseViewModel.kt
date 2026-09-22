@@ -285,15 +285,6 @@ class AddEditCourseViewModel(
         }
     }
 
-    /**
-     * 主动排序
-     */
-    fun requestSort() {
-        _uiState.update { state ->
-            state.copy(schemes = state.schemes.sortedWith(schemeComparator()))
-        }
-    }
-
     fun onSave() {
         viewModelScope.launch {
             val state = uiState.value

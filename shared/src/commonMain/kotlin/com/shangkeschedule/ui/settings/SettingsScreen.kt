@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,22 +20,17 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,12 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -62,13 +53,10 @@ import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
-import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppSwitch
-import com.shangkeschedule.ui.components.GradientHeroCard
 import com.shangkeschedule.ui.components.IconChip
-import com.shangkeschedule.ui.components.DatePickerModal
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.theme.AccentTone
 import dev.chrisbanes.haze.HazeTint
@@ -78,13 +66,10 @@ import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.StringResource
@@ -93,58 +78,26 @@ import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.hero_subtitle
-import shangkeschedule.shared.generated.resources.desc_couple_schedule
-import shangkeschedule.shared.generated.resources.desc_crush_course_color
-import shangkeschedule.shared.generated.resources.desc_self_course_color
 import shangkeschedule.shared.generated.resources.item_couple_schedule
-import shangkeschedule.shared.generated.resources.item_crush_course_color
-import shangkeschedule.shared.generated.resources.item_self_course_color
 import shangkeschedule.shared.generated.resources.check_24px
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.chevron_right_24px
-import shangkeschedule.shared.generated.resources.date_format_year_month_day
 import shangkeschedule.shared.generated.resources.day_of_week_monday
 import shangkeschedule.shared.generated.resources.day_of_week_sunday
-import shangkeschedule.shared.generated.resources.desc_course_conversion
-import shangkeschedule.shared.generated.resources.desc_course_management
-import shangkeschedule.shared.generated.resources.desc_current_week_manual
-import shangkeschedule.shared.generated.resources.desc_first_day_of_week
-import shangkeschedule.shared.generated.resources.desc_manage_course_tables
-import shangkeschedule.shared.generated.resources.desc_more_options
-import shangkeschedule.shared.generated.resources.desc_notification_settings
-import shangkeschedule.shared.generated.resources.desc_appearance_settings
-import shangkeschedule.shared.generated.resources.desc_personalization
-import shangkeschedule.shared.generated.resources.desc_quick_actions
-import shangkeschedule.shared.generated.resources.desc_semester_settings
-import shangkeschedule.shared.generated.resources.desc_show_non_current_week
-import shangkeschedule.shared.generated.resources.desc_show_weekends
-import shangkeschedule.shared.generated.resources.desc_theme_settings
-import shangkeschedule.shared.generated.resources.desc_time_slot_customization
-import shangkeschedule.shared.generated.resources.desc_total_weeks
-import shangkeschedule.shared.generated.resources.desc_update_repo
 import shangkeschedule.shared.generated.resources.dialog_title_manual_set_week
-import shangkeschedule.shared.generated.resources.dialog_title_select_total_weeks
 import shangkeschedule.shared.generated.resources.dialog_title_set_first_day_of_week
 import shangkeschedule.shared.generated.resources.item_course_conversion
 import shangkeschedule.shared.generated.resources.item_course_management
-import shangkeschedule.shared.generated.resources.item_current_week
-import shangkeschedule.shared.generated.resources.item_first_day_of_week
 import shangkeschedule.shared.generated.resources.item_more_options
 import shangkeschedule.shared.generated.resources.item_appearance_settings
-import shangkeschedule.shared.generated.resources.item_personalization
-import shangkeschedule.shared.generated.resources.item_quick_actions
-import shangkeschedule.shared.generated.resources.item_set_start_date
 import shangkeschedule.shared.generated.resources.item_show_non_current_week
 import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
-import shangkeschedule.shared.generated.resources.item_total_weeks
-import shangkeschedule.shared.generated.resources.theme_settings_title
 import shangkeschedule.shared.generated.resources.calendar_today_24px
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.favorite_24px
 import shangkeschedule.shared.generated.resources.palette_24px
-import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.school_24px
 import shangkeschedule.shared.generated.resources.class_24px
 import shangkeschedule.shared.generated.resources.edit_24px
@@ -153,26 +106,16 @@ import shangkeschedule.shared.generated.resources.more_horiz_24px
 import shangkeschedule.shared.generated.resources.notifications_24px
 import shangkeschedule.shared.generated.resources.filter_list_24px
 import shangkeschedule.shared.generated.resources.view_week_24px
-import shangkeschedule.shared.generated.resources.settings_group_course
-import shangkeschedule.shared.generated.resources.settings_group_tools
-import shangkeschedule.shared.generated.resources.settings_group_other
 import shangkeschedule.shared.generated.resources.settings_group_timetable
 import shangkeschedule.shared.generated.resources.settings_group_courses
 import shangkeschedule.shared.generated.resources.settings_group_preference
 import shangkeschedule.shared.generated.resources.settings_group_about
 import shangkeschedule.shared.generated.resources.item_backup_restore
-import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.cloud_24px
-import shangkeschedule.shared.generated.resources.section_title_advanced_features
-import shangkeschedule.shared.generated.resources.section_title_general_settings
 import shangkeschedule.shared.generated.resources.status_current_week_format
-import shangkeschedule.shared.generated.resources.status_not_set
-import shangkeschedule.shared.generated.resources.status_set_start_date_first
-import shangkeschedule.shared.generated.resources.status_total_weeks_format
 import shangkeschedule.shared.generated.resources.title_course_notification_settings
 import shangkeschedule.shared.generated.resources.title_manage_course_tables
 import shangkeschedule.shared.generated.resources.nav_settings
-import shangkeschedule.shared.generated.resources.title_schedule_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 
 // 页面节奏对齐全局 token（v2 规范 §2：pageHorizontal=16 / cardGap=12）
@@ -547,16 +490,19 @@ internal fun SettingItem(
         )
     }
 ) {
-    val isClaudePreset = LocalThemePreset.current == AppThemePreset.CLAUDE
+    // A1/P2：原先这里是 `val isClaudePreset = LocalThemePreset.current == AppThemePreset.CLAUDE`
+    // 加三处 `if (isClaudePreset)`（15sp / Medium / 48dp）。根因是 token 缺失而非"需要分支"：
+    // `rowTitle` 描述的是**页面行标题**（书卷 18sp），设置行是另一个角色。补 `settingsRowTitle` /
+    // `settingsRowTitleWeight` / `settingsRowMinHeight` 三个 token 后，分支自然消失（规范 R1/R2）。
     val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
-        fontSize = if (isClaudePreset) 15.sp else appType().rowTitle,
-        fontWeight = if (isClaudePreset) FontWeight.Medium else FontWeight.SemiBold,
+        fontSize = appType().settingsRowTitle,
+        fontWeight = appType().settingsRowTitleWeight,
         color = appColors().textPrimary
     )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = if (isClaudePreset) 48.dp else appSpacing().rowMinHeight)
+            .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -898,37 +844,47 @@ private fun SettingsEntryTone.toIosTone(): IosCellTone = when (this) {
 
 // ---- 三主题分组渲染器：同一份数据，各自换组件 ----
 
-private fun LazyListScope.claudeSettingsItems(
+/**
+ * 设置分组渲染骨架：分组标题 + 分组容器 + 逐条 cell。
+ *
+ * 三套主题的差异只有「用哪组组件」与「语义色调怎么映射」，遍历、分隔线、
+ * 开关尾部、导航回调完全一致；收口后新增设置条目只需改 [buildSettingsSections]。
+ */
+private fun LazyListScope.settingsItems(
+    keyPrefix: String,
     sections: List<SettingsSection>,
-    onNavigate: (Destination) -> Unit
+    onNavigate: (Destination) -> Unit,
+    groupLabel: @Composable (label: String) -> Unit,
+    group: @Composable (content: @Composable ColumnScope.() -> Unit) -> Unit,
+    cell: @Composable (
+        title: String,
+        icon: ImageVector,
+        tone: SettingsEntryTone,
+        showDivider: Boolean,
+        onClick: (() -> Unit)?,
+        trailing: (@Composable () -> Unit)?
+    ) -> Unit
 ) {
     sections.forEachIndexed { sectionIndex, section ->
-        item(key = "claude-settings-$sectionIndex") {
+        item(key = "$keyPrefix-settings-$sectionIndex") {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 640.dp)
             ) {
-                ClaudeGroupLabel(stringResource(section.labelRes))
-                ClaudeInsetGroup {
+                groupLabel(stringResource(section.labelRes))
+                group {
                     section.entries.forEachIndexed { entryIndex, entry ->
                         val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
                             { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
                         }
-                        ClaudeListItem(
-                            title = stringResource(entry.titleRes),
-                            icon = vectorResource(entry.iconRes),
-                            tone = entry.tone.toClaudeTone(),
-                            showDivider = entryIndex > 0,
-                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
-                            trailing = toggleTrailing ?: {
-                                Icon(
-                                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                                    contentDescription = null,
-                                    tint = appColors().textSecondary.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                        cell(
+                            stringResource(entry.titleRes),
+                            vectorResource(entry.iconRes),
+                            entry.tone,
+                            entryIndex > 0,
+                            entry.destination?.let { d -> { onNavigate(d) } },
+                            toggleTrailing
                         )
                     }
                 }
@@ -936,67 +892,66 @@ private fun LazyListScope.claudeSettingsItems(
         }
     }
 }
+
+private fun LazyListScope.claudeSettingsItems(
+    sections: List<SettingsSection>,
+    onNavigate: (Destination) -> Unit
+) = settingsItems(
+    keyPrefix = "claude",
+    sections = sections,
+    onNavigate = onNavigate,
+    groupLabel = { ClaudeGroupLabel(it) },
+    group = { content -> ClaudeInsetGroup { content() } },
+    cell = { title, icon, tone, showDivider, onClick, trailing ->
+        ClaudeListItem(
+            title = title,
+            icon = icon,
+            tone = tone.toClaudeTone(),
+            showDivider = showDivider,
+            onClick = onClick,
+            trailing = trailing
+        )
+    }
+)
 
 private fun LazyListScope.softSettingsItems(
     sections: List<SettingsSection>,
     onNavigate: (Destination) -> Unit
-) {
-    sections.forEachIndexed { sectionIndex, section ->
-        item(key = "soft-settings-$sectionIndex") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 640.dp)
-            ) {
-                SoftGroupLabel(stringResource(section.labelRes))
-                SoftSettingsGroup {
-                    section.entries.forEachIndexed { entryIndex, entry ->
-                        val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
-                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
-                        }
-                        SoftSettingCell(
-                            title = stringResource(entry.titleRes),
-                            icon = vectorResource(entry.iconRes),
-                            tone = entry.tone.toSoftTone(),
-                            showDivider = entryIndex > 0,
-                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
-                            trailing = toggleTrailing
-                        )
-                    }
-                }
-            }
-        }
+) = settingsItems(
+    keyPrefix = "soft",
+    sections = sections,
+    onNavigate = onNavigate,
+    groupLabel = { SoftGroupLabel(it) },
+    group = { content -> SoftSettingsGroup { content() } },
+    cell = { title, icon, tone, showDivider, onClick, trailing ->
+        SoftSettingCell(
+            title = title,
+            icon = icon,
+            tone = tone.toSoftTone(),
+            showDivider = showDivider,
+            onClick = onClick,
+            trailing = trailing
+        )
     }
-}
+)
 
 private fun LazyListScope.iosSettingsItems(
     sections: List<SettingsSection>,
     onNavigate: (Destination) -> Unit
-) {
-    sections.forEachIndexed { sectionIndex, section ->
-        item(key = "ios-settings-$sectionIndex") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 640.dp)
-            ) {
-                IosGroupLabel(stringResource(section.labelRes))
-                IosSettingsGroup {
-                    section.entries.forEachIndexed { entryIndex, entry ->
-                        val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
-                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
-                        }
-                        IosSettingCell(
-                            title = stringResource(entry.titleRes),
-                            icon = vectorResource(entry.iconRes),
-                            tone = entry.tone.toIosTone(),
-                            showDivider = entryIndex > 0,
-                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
-                            trailing = toggleTrailing
-                        )
-                    }
-                }
-            }
-        }
+) = settingsItems(
+    keyPrefix = "ios",
+    sections = sections,
+    onNavigate = onNavigate,
+    groupLabel = { IosGroupLabel(it) },
+    group = { content -> IosSettingsGroup { content() } },
+    cell = { title, icon, tone, showDivider, onClick, trailing ->
+        IosSettingCell(
+            title = title,
+            icon = icon,
+            tone = tone.toIosTone(),
+            showDivider = showDivider,
+            onClick = onClick,
+            trailing = trailing
+        )
     }
-}
+)

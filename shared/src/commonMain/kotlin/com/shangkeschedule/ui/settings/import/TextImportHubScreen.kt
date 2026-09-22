@@ -23,7 +23,6 @@ import shangkeschedule.shared.generated.resources.import_cat_ics
 import shangkeschedule.shared.generated.resources.import_cat_json
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState

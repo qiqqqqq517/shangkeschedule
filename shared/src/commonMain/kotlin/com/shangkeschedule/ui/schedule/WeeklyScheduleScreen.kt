@@ -39,8 +39,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -51,12 +49,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -75,7 +71,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -88,7 +83,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.shangkeschedule.Destination
@@ -114,7 +108,6 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
-import com.shangkeschedule.ui.schedule.components.scaleAlpha
 import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.appShapes
@@ -126,7 +119,6 @@ import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.appColorTokens
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.softFeatherRim

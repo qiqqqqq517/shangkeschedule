@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,9 +44,7 @@ import shangkeschedule.shared.generated.resources.desc_current_week_manual
 import shangkeschedule.shared.generated.resources.desc_first_day_of_week
 import shangkeschedule.shared.generated.resources.desc_set_start_date
 import shangkeschedule.shared.generated.resources.desc_total_weeks
-import shangkeschedule.shared.generated.resources.dialog_title_manual_set_week
 import shangkeschedule.shared.generated.resources.dialog_title_select_total_weeks
-import shangkeschedule.shared.generated.resources.dialog_title_set_first_day_of_week
 import shangkeschedule.shared.generated.resources.item_current_week
 import shangkeschedule.shared.generated.resources.item_first_day_of_week
 import shangkeschedule.shared.generated.resources.item_set_start_date

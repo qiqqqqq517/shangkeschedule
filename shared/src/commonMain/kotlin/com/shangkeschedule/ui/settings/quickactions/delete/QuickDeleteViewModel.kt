@@ -17,21 +17,12 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.until
-import org.jetbrains.compose.resources.StringResource
+import com.shangkeschedule.ui.settings.quickactions.UiTextRes
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
-import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.error_op_failed
 import shangkeschedule.shared.generated.resources.quick_delete_success
-
-/**
- * 带有格式化参数的资源字符串包装类，避免硬编码
- */
-data class UiTextRes(
-    val resource: StringResource,
-    val args: List<Any> = emptyList()
-)
 
 /**
  * 预览项包装类：明确这门课属于哪一周，用于 UI 平铺显示

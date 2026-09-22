@@ -8,7 +8,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -278,6 +277,8 @@ internal val softSpacingTokens = AppSpacingTokens(
     listGap = 26.dp,
     cardInner = 18.dp,
     rowMinHeight = 52.dp,
+    // A1/P2：设置列表行高度独立成 token（柔绘与通透一致 52dp）
+    settingsRowMinHeight = 52.dp,
     touchMin = 48.dp,
     chipIcon = 46.dp,
     fab = 58.dp,
@@ -293,6 +294,9 @@ internal val softTypeTokens = AppTypeTokens(
     badge = 11.sp,
     pageTitle = 21.sp,
     rowTitle = 16.sp,
+    // A1/P2：设置项行标题独立成 token（柔绘与通透一致 16sp / SemiBold）
+    settingsRowTitle = 16.sp,
+    settingsRowTitleWeight = FontWeight.SemiBold,
     body = 16.sp,
     caption = 13.sp,
     hint = 11.sp
@@ -301,10 +305,6 @@ internal val softTypeTokens = AppTypeTokens(
 // ============================================================================
 // 柔绘材质：晕染底 / 薄涂卡 / 羽化描边 / 软模糊投影 / 漫射光斑 / 手绘纹理
 // ============================================================================
-
-/** 柔绘主色（供组件层直接取用做晕染，不依赖 ColorScheme 同步）。 */
-val SoftAccent = SoftPrimaryLight
-val SoftAccentDeep = SoftPrimaryDeepLight
 
 /**
  * 柔和晕染渐变：多层低饱和径向色团 + 一层线性过渡。

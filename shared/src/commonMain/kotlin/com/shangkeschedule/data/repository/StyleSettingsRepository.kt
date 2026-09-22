@@ -340,13 +340,6 @@ class StyleSettingsRepository(
         }
     }
 
-    /** 重置所有样式设置为默认值 */
-    suspend fun resetAllStyleSettings() {
-        dataStore.updateData {
-            ScheduleGridStyleProto()
-        }
-    }
-
     /**
      * 一键应用某个完整视觉预设。
      *

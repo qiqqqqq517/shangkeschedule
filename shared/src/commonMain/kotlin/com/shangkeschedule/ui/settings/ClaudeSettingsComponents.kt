@@ -1,9 +1,7 @@
 package com.shangkeschedule.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -20,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,17 +31,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.claudeGroupBg
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.chevron_right_24px
-import shangkeschedule.shared.generated.resources.hero_subtitle
 
 // ============================================================================
 // Claude / 书卷 主题设置页组件
@@ -247,14 +239,7 @@ fun ClaudeListItem(
     detail: String? = null,
     showDivider: Boolean = false,
     onClick: (() -> Unit)? = null,
-    trailing: @Composable () -> Unit = {
-        Icon(
-            imageVector = vectorResource(Res.drawable.chevron_right_24px),
-            contentDescription = null,
-            tint = appColors().textSecondary.copy(alpha = 0.7f),
-            modifier = Modifier.size(16.dp)
-        )
-    }
+    trailing: (@Composable () -> Unit)? = null
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showDivider) {
@@ -307,18 +292,17 @@ fun ClaudeListItem(
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
-            trailing()
+            if (trailing != null) {
+                trailing()
+            } else {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                    contentDescription = null,
+                    tint = appColors().textSecondary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
 
-/**
- * 书卷主题开关行尾部：使用 AppSwitch 保持全局一致。
- */
-@Composable
-fun ClaudeSwitchTrailing(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    AppSwitch(checked = checked, onCheckedChange = onCheckedChange)
-}

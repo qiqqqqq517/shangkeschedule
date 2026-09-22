@@ -1,10 +1,8 @@
 package com.shangkeschedule.widget.double_days
 
-import android.appwidget.AppWidgetManager
 import android.content.Context
 import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.ScheduledWidgetProvider
-import com.shangkeschedule.widget.updateAllWidgets
 
 class DoubleDaysNativeProvider : ScheduledWidgetProvider() {
 
