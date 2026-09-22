@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.65.8</b></span>
-        <span>versionCode <b class="mono" data-version-code>260</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.66.2</b></span>
+        <span>versionCode <b class="mono" data-version-code>263</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3662">v3.66.2 · 界面细节修复与瘦身</a></li>
         <li><a href="#v3660">v3.66.0 · WebDAV 自动同步</a></li>
         <li><a href="#v3658">v3.65.8 · 课表表头与小组件字号优化</a></li>
         <li><a href="#v3656">v3.65.6 · 桌面小组件显示优化</a></li>
@@ -127,6 +128,26 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3662">
+        <div><span class="tl-ver">v3.66.2</span><span class="tl-date">2026-09-23</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li>今日页课程卡不再用描边胶囊显示「课程类型 / 学时」——描边胶囊与筛选按钮同形，容易被误读成可点控件；改为普通文字信息行。</li>
+            <li>设置页「学期设置」4 项与「更多设置 → 起始页」的当前值后面补上箭头，一眼能看出可以点。</li>
+            <li>设置行的高度与标题字号改由主题令牌驱动（书卷 48dp / 15sp，通透与柔绘 52dp / 17sp·16sp），三套主题观感与修复前完全一致。</li>
+          </ul>
+          <h3><span class="tl-tag tag-fix">瘦身</span></h3>
+          <ul>
+            <li>清理从未接入界面的「检查更新」脚手架、与 ICS 导出重复的导出器，以及一批无人引用的仓库 / DAO / UI 方法。</li>
+            <li>清理无引用字符串：Android 侧 470×4 条、共享侧 188 条（4 种语言统一为 847 键），并补上 <code>touch_feedback_*</code> 只存在于默认语言的本地化缺口。</li>
+            <li>三套逐行同构的设置分组渲染器、两份重复的日期计算、三个约 90% 相同的预览宿主各收口为单一实现。</li>
+            <li>效果：arm64-v8a 安装包 5,784,492 B → <b>5,747,472 B</b>（−36.2 KB，约 −0.64%）。</li>
+          </ul>
+          <p>本版一并覆盖未单独发版的 v3.66.1。当前版本 versionCode 263，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3660">
         <div><span class="tl-ver">v3.66.0</span><span class="tl-date">2026-09-23</span></div>
