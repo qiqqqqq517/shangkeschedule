@@ -79,7 +79,8 @@ class CourseInstanceListViewModel(
         CourseInstanceUiState(
             isSelectionMode = isSelection,
             selectedCourseIds = selectedIds,
-            courseColorMaps = currentStyle.courseColorMaps
+            courseColorMaps = currentStyle.courseColorMaps,
+            courseBlockAlpha = currentStyle.courseBlockAlphaFloat
         )
     }.stateIn(
         scope = viewModelScope,
@@ -143,5 +144,6 @@ class CourseInstanceListViewModel(
 data class CourseInstanceUiState(
     val isSelectionMode: Boolean = false,
     val selectedCourseIds: Set<String> = emptySet(),
-    val courseColorMaps: List<DualColor> = emptyList()
+    val courseColorMaps: List<DualColor> = emptyList(),
+    val courseBlockAlpha: Float = 1f
 )

@@ -38,8 +38,9 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppSelectableCard
-import com.shangkeschedule.ui.schedule.components.adaptiveTextColor
+import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
@@ -185,6 +186,7 @@ fun CourseInstanceListScreen(
                     courseWithWeeks = courseWithWeeks,
                     isSelected = selectedCourseIds.contains(courseWithWeeks.course.id),
                     colorMaps = uiState.courseColorMaps,
+                    blockAlpha = uiState.courseBlockAlpha,
                     onCourseClick = { courseId ->
                         if (isSelectionMode) {
                             viewModel.toggleCourseSelection(courseId)
@@ -224,6 +226,7 @@ fun CourseInstanceCard(
     courseWithWeeks: CourseWithWeeks,
     isSelected: Boolean,
     colorMaps: List<DualColor>,
+    blockAlpha: Float,
     onCourseClick: (courseId: String) -> Unit,
     onCourseLongClick: (courseId: String) -> Unit
 ) {
@@ -232,24 +235,22 @@ fun CourseInstanceCard(
 
     val isDarkTheme = LocalIsDarkTheme.current
 
-    // 如果索引不存在，则取列表第一项；如果列表为空，则使用 MaterialTheme 的 SurfaceVariant 颜色兜底
-    val fallbackColor = DualColor(
-        light = MaterialTheme.colorScheme.surfaceVariant,
-        dark = MaterialTheme.colorScheme.surfaceVariant
+    val courseColorDual = colorMaps.getOrNull(course.colorInt)
+        ?: colorMaps.firstOrNull()
+    val courseColors = resolveCourseBlockColors(
+        themePreset = LocalThemePreset.current,
+        isDarkTheme = isDarkTheme,
+        colorPair = courseColorDual,
+        blockAlpha = blockAlpha,
+        fallbackContent = MaterialTheme.colorScheme.onSurface
     )
-    val courseColorDual = colorMaps.getOrNull(course.colorInt) ?: colorMaps.firstOrNull() ?: fallbackColor
-
-    // 根据主题获取课程背景色
-    val courseBackgroundColor = if (isDarkTheme) courseColorDual.dark else courseColorDual.light
+    val courseBackgroundColor = courseColors.background
 
     val weekDays = stringArrayResource(Res.array.week_days_full_names)
     val dayName = weekDays.getOrElse(course.day - 1) { "?" }
 
     // 卡片颜色：始终使用课程颜色作为背景；文字色按底色明暗自适应（保证深色课程底上的可读性）
-    val contentColor = adaptiveTextColor(
-        background = courseBackgroundColor,
-        fallback = MaterialTheme.colorScheme.onSurface
-    )
+    val contentColor = courseColors.content
 
     AppSelectableCard(
         selected = isSelected,
