@@ -1399,10 +1399,9 @@ private fun TodayTimelineCard(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TodayNotePill(
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TodayFactText(
                     label = stringResource(style.noteType),
-                    style = style,
                     value = stringResource(
                         if (model.course.isLab) {
                             style.typeLab
@@ -1411,9 +1410,8 @@ private fun TodayTimelineCard(
                         }
                     )
                 )
-                TodayNotePill(
+                TodayFactText(
                     label = stringResource(style.noteHours),
-                    style = style,
                     value = sectionCount.toString()
                 )
             }
@@ -1421,9 +1419,18 @@ private fun TodayTimelineCard(
     }
 }
 
-/** 信息胶囊：设计稿 .note-pill（bg-100 底 + border-200 描边 + 标签加粗 + 值常规）。 */
+/**
+ * 课程事实文本：`标签：值`（标签 SemiBold、值常规），**无底色、无描边**。
+ *
+ * ⚠️ 由来（设计走查 E1 · P0）：原实现是 `bg-100 底 + border-200 描边` 的胶囊
+ * （`TodayNotePill`），与全站筛选 chip 同形 ⇒ 静态信息被读成"可点控件"，
+ * 且浅灰描边 + 浅灰字观感接近 disabled 禁态。静态信息不应使用可点控件的外形，
+ * 故退为纯文字事实行，并把字号从 10.5sp 提到 11.5sp 以保证无底色时的可读性。
+ *
+ * 说明：节数已由卡片右上角徽章给出，此处的 [noteHours] 与之重复（见走查 E2，待办）。
+ */
 @Composable
-private fun TodayNotePill(label: String, value: String, style: TodayCardStyle) {
+private fun TodayFactText(label: String, value: String) {
     val colors = appColors()
     Text(
         text = buildAnnotatedString {
@@ -1434,20 +1441,12 @@ private fun TodayNotePill(label: String, value: String, style: TodayCardStyle) {
             append(value)
         },
         style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 10.5.sp,
+            fontSize = 11.5.sp,
             fontWeight = FontWeight.Medium,
-            lineHeight = 13.sp
+            lineHeight = 15.sp
         ),
-        color = colors.textSecondary.copy(alpha = 0.85f),
-        maxLines = 1,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(colors.pageBg)
-            .then(
-                if (style.softMaterial) Modifier.softFeatherRim(CircleShape)
-                else Modifier.border(1.dp, colors.divider, CircleShape)
-            )
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+        color = colors.textSecondary.copy(alpha = 0.9f),
+        maxLines = 1
     )
 }
 

@@ -159,7 +159,7 @@ fun SemesterSettingsScreen(
                             it.day.toString()
                         )
                     } ?: stringResource(Res.string.status_not_set)
-                    Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium)
+                    SettingValueTrailing(formattedDate)
                 }
                 SectionDivider()
                 SettingItem(
@@ -167,9 +167,8 @@ fun SemesterSettingsScreen(
                     subtitle = stringResource(Res.string.desc_total_weeks),
                     onClick = { showTotalWeeksDialog = true }
                 ) {
-                    Text(
-                        text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
-                        style = MaterialTheme.typography.bodyMedium
+                    SettingValueTrailing(
+                        stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks)
                     )
                 }
                 SectionDivider()
@@ -183,7 +182,7 @@ fun SemesterSettingsScreen(
                         displayCurrentWeek == null -> stringResource(Res.string.title_vacation)
                         else -> stringResource(Res.string.status_current_week_format, displayCurrentWeek)
                     }
-                    Text(text = weekStatusText, style = MaterialTheme.typography.bodyMedium)
+                    SettingValueTrailing(weekStatusText)
                 }
                 SectionDivider()
                 SettingItem(
@@ -196,7 +195,7 @@ fun SemesterSettingsScreen(
                         DayOfWeek.SUNDAY.isoDayNumber -> stringResource(Res.string.day_of_week_sunday)
                         else -> stringResource(Res.string.day_of_week_monday)
                     }
-                    Text(text = dayText, style = MaterialTheme.typography.bodyMedium)
+                    SettingValueTrailing(dayText)
                 }
             }
         }

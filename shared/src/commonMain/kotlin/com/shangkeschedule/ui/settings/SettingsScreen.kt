@@ -588,6 +588,39 @@ internal fun SettingItem(
 }
 
 /**
+ * 可点设置项右侧的「当前值 + chevron」。
+ *
+ * ⚠️ 由来（设计走查 E1）：[SettingItem] 的 [trailingContent] 默认就是 chevron，
+ * 但需要「顺带显示当前值」的行往往直接覆盖成 `Text(value)`，**连带把 chevron 丢掉** ⇒
+ * 行内只剩一段纯文本，看不出可点（学期设置 4 行、更多设置「起始页」等）。
+ * 这里把「值 + chevron」固化成一个组件，避免再次漏掉可点暗示。
+ *
+ * 值统一用 textSecondary：与左侧 16sp SemiBold 标题拉开层级，
+ * 避免标题与值同字重同颜色造成"分不清哪个是标签、哪个是值"。
+ */
+@Composable
+internal fun SettingValueTrailing(
+    value: String,
+    style: TextStyle = MaterialTheme.typography.bodyMedium
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = value,
+            style = style,
+            color = appColors().textSecondary
+        )
+        Icon(
+            vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = appColors().textSecondary
+        )
+    }
+}
+
+/**
  * 手动周数选择器对话框
  */
 @Composable

@@ -41,6 +41,7 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
+import com.shangkeschedule.ui.settings.SettingValueTrailing
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -199,10 +200,8 @@ fun MoreOptionsScreen(
                     leadingIcon = vectorResource(Res.drawable.home_24px),
                     onClick = { showStartScreenDialog = true },
                     trailingContent = {
-                        Text(
-                            text = stringResource(uiState.appSettings.startScreen.labelRes),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
+                        SettingValueTrailing(
+                            stringResource(uiState.appSettings.startScreen.labelRes)
                         )
                     }
                 )
