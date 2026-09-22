@@ -1,4 +1,4 @@
-// 广西生态工程职业技术学院 专用适配脚本
+﻿// 广西生态工程职业技术学院 专用适配脚本
 // ===== 站点事实（2026-09-22 实测）=====
 //   登录：https://cas.gxstzy.cn/lyuapServer/login （统一身份认证，CAS 单点登录）
 //   教务系统：https://jwgl.gxstzy.cn/ （综合教务管理系统，非标准正方）
@@ -82,6 +82,16 @@
         return list;
     }
 
+    // 时间格式补零："8:00" -> "08:00"
+    function padTime(t) {
+        if (!t) return '00:00';
+        var parts = String(t).split(':');
+        if (parts.length !== 2) return t;
+        var h = parts[0].padStart(2, '0');
+        var m = parts[1].padStart(2, '0');
+        return h + ':' + m;
+    }
+
     // 从页面 jcsjszList 读取节次时间
     function getTimeSlotsFromPage() {
         try {
@@ -89,8 +99,8 @@
                 return kbjc.jcsjszList.map(function (s) {
                     return {
                         number: parseInt(s.jc, 10),
-                        startTime: s.kssj,
-                        endTime: s.jssj
+                        startTime: padTime(s.kssj),
+                        endTime: padTime(s.jssj)
                     };
                 }).filter(function (t) { return !isNaN(t.number); });
             }
