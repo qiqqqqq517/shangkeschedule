@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.66.2</b></span>
-        <span>versionCode <b class="mono" data-version-code>263</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.66.4</b></span>
+        <span>versionCode <b class="mono" data-version-code>265</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3664">v3.66.4 · 桌面小组件全量优化</a></li>
         <li><a href="#v3662">v3.66.2 · 界面细节修复与瘦身</a></li>
         <li><a href="#v3660">v3.66.0 · WebDAV 自动同步</a></li>
         <li><a href="#v3658">v3.65.8 · 课表表头与小组件字号优化</a></li>
@@ -128,6 +129,31 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3664">
+        <div><span class="tl-ver">v3.66.4</span><span class="tl-date">2026-09-23</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复 · 桌面小组件</span></h3>
+          <ul>
+            <li>修复个别课表数据会让小组件整块停止刷新的问题：课程颜色索引异常时取值越界会中断渲染，现已改为安全取值并回落到主题兜底色。</li>
+            <li>修复「超小课程」组件剩余节数偏大：被跳过的课也被计入了剩余数（当天 4 节、第 3 节被跳过时显示 3，实际只剩 2）。</li>
+            <li>修复「超小课程」组件可能显示的不是下一节课：改为按上课时间排序后取最近一节，不再依赖数据表的固有顺序。</li>
+            <li>修复数据读取偶发变慢时组件误显示「假期中 / 期待新学期」：改为保留上一次的正确内容，不再跳成假期状态。</li>
+          </ul>
+          <h3><span class="tl-tag tag-ui">外观 · 适配</span></h3>
+          <ul>
+            <li>「垂直列表课表 4×N」改为按实际高度显示课程条数，不再固定最多 3 条——拉高组件即可显示更多节课。</li>
+            <li>小组件首次加载的「正在加载课程…」文案支持中英繁三语（此前只显示简体中文）。</li>
+          </ul>
+          <h3><span class="tl-tag tag-fix">性能 · 工程</span></h3>
+          <ul>
+            <li>消除同一时刻对全部小组件的重复刷新（系统广播与后台定时任务原先会叠加触发），降低耗电与桌面卡顿。</li>
+            <li>小组件刷新移出主线程，减少桌面滑动时的掉帧。</li>
+            <li>清理主题中三档长期零引用的透明度令牌与两处无用 import；为小组件的数据筛选与取色逻辑补充 11 项自动化测试，防止上述问题回归。</li>
+          </ul>
+          <p>本版一并覆盖未单独发版的 v3.66.3（内部清理，不影响界面）。当前版本 versionCode 265，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3662">
         <div><span class="tl-ver">v3.66.2</span><span class="tl-date">2026-09-23</span></div>
