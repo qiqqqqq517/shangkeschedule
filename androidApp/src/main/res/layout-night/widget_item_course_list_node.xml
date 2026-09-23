@@ -12,12 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <!-- 色条 30dp → match_parent + 上下 2dp 外边距（2026-09-23，与日间版同因，见 layout/ 同名文件注释）。 -->
         <ImageView
             android:id="@+id/course_indicator_dark"
             android:layout_width="4dp"
-            android:layout_height="30dp"
+            android:layout_height="match_parent"
             android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
             android:src="@drawable/widget_indicator_shape" />
 
         <LinearLayout
@@ -100,7 +102,7 @@
                 android:includeFontPadding="false"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/widget_text_hint"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="10sp"
                 tools:text="张建国 教授" />
         </LinearLayout>

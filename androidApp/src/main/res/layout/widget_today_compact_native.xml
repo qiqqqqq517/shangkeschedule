@@ -70,7 +70,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="2dp"
             android:includeFontPadding="false"
-            android:textColor="@color/widget_text_hint"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="10sp"
             tools:text="剩余 3 节" />
 

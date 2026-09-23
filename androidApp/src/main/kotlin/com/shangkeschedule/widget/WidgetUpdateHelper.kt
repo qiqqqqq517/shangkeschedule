@@ -4,7 +4,10 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
 import androidx.datastore.core.DataStore
+import com.shangkeschedule.R
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.model.toProto
@@ -174,6 +177,11 @@ private suspend fun performUpdate(context: Context) {
             Triple(ListVerticalNativeProvider::class.java, WidgetKind.LIST_VERTICAL, ListVerticalNativeRenderer::render)
         )
 
+        // 4.5 实测 ListVertical 条目高度（每次刷新测一次，4 个规格共用）。
+        //     仅 ListVertical 消费该值，其余规格的条数是固定档位。
+        val density = context.resources.displayMetrics.density
+        val listRowHeightPx = measureListRowHeightPx(context)
+
         // 5. 统一分发更新
         nativeConfigs.forEachIndexed { index, (providerClass, kind, renderFunc) ->
             val componentName = ComponentName(context, providerClass)
@@ -189,7 +197,7 @@ private suspend fun performUpdate(context: Context) {
                         val remoteViews = renderFunc(
                             context,
                             snapshot,
-                            resolveMaxCourseCount(kind, appWidgetManager, widgetId)
+                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, listRowHeightPx, density)
                         )
                         appWidgetManager.updateAppWidget(widgetId, remoteViews)
                         Log.d("WidgetUpdateHelper", "成功刷新组件 $widgetId (${providerClass.simpleName})")
@@ -205,40 +213,75 @@ private suspend fun performUpdate(context: Context) {
     }
 }
 
-/** ListVertical 头部（周次 / 日期行 + 上边距）占用的高度。 */
-private const val LIST_HEADER_DP = 24
+/** 实测失败时的兜底条目高度（dp），偏大取值以保证「宁可少显示、不可裁切」。 */
+private const val LIST_ROW_FALLBACK_DP = 52
 
-/** ListVertical 单条课程行的高度（含内边距与分割线）。 */
-private const val LIST_ROW_DP = 36
+/** 测量条目高度时使用的参考宽度（dp）——所有文本均单行 + ellipsize，故高度与宽度无关。 */
+private const val LIST_MEASURE_WIDTH_DP = 250
 
-/** ListVertical 单次渲染的条数上限，避免异常尺寸下构造过大的 RemoteViews。 */
-private const val LIST_MAX_ROWS = 12
+/**
+ * 实测 ListVertical 条目（`widget_item_course_list_node`）在当前配置下的高度，单位 px。
+ *
+ * 背景（v3.66.5 修复）：v3.66.4 用常量 `LIST_ROW_DP = 36` 估算条数，而该条目实际占位约 49dp
+ * （课程名 13sp + 地点 10sp + 教师 10sp + 2dp/1dp 间隔 + paddingVertical 3dp×2）⇒ 条数偏高约 36%，
+ * 4×N 被拉高后列表溢出、末条被静默裁切（LinearLayout 不滚动，超出部分直接不可见）。
+ *
+ * 固定常量无法适配 fontScale / 字体 / 语言差异，故改为**实测**：在 App 进程 inflate 条目布局并测量。
+ * 渲染发生在 App 侧，不违反 RemoteViews「不能自绘」的限制。测量失败时回落 [LIST_ROW_FALLBACK_DP]。
+ */
+private fun measureListRowHeightPx(context: Context): Int = runCatching {
+    val density = context.resources.displayMetrics.density
+    val view = LayoutInflater.from(context)
+        .inflate(R.layout.widget_item_course_list_node, null, false)
+    val widthPx = (LIST_MEASURE_WIDTH_DP * density).toInt().coerceAtLeast(1)
+    view.measure(
+        View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+    )
+    val measured = view.measuredHeight
+    if (measured > 0) measured else (LIST_ROW_FALLBACK_DP * density).toInt()
+}.getOrElse { (LIST_ROW_FALLBACK_DP * context.resources.displayMetrics.density).toInt() }
 
 /**
  * 按**组件类型**分别计算可容纳的课程条数。
  *
- * 修复（v3.66.3）：原实现是四种规格共用同一套 `minHeight` 阈值并硬顶 3 条。而
- * `shangkeschedule_list_vertical_widget.xml` 声明了 `minResizeHeight="70dp"`，设计意图是
- * 「4×N，能撑多少显示多少」——硬顶 3 条直接废掉了 N；Tiny 更是拿到该值后完全不使用。
+ * 历史：
+ * - v3.66.3 之前：四种规格共用一套 `minHeight` 阈值并硬顶 3 条，废掉了 ListVertical 的「4×N」。
+ * - v3.66.4：改为按类型分别计算，但 ListVertical 用了偏小的行高常量（36dp），条数偏高 ⇒ 溢出。
+ * - v3.66.5（本次）：行高改为**实测**；高度基准改用 `MAX_HEIGHT`；并扣除卡片 padding 与头部占位。
+ *
+ * `OPTION_APPWIDGET_MIN_HEIGHT` 是可缩放的**下界**，代表不了当前可用高度，故改用
+ * `OPTION_APPWIDGET_MAX_HEIGHT`（当前高度上界）；缺失时回落 MIN，再回落 110dp。
  */
 private fun resolveMaxCourseCount(
     kind: WidgetKind,
     appWidgetManager: AppWidgetManager,
-    widgetId: Int
+    widgetId: Int,
+    listRowHeightPx: Int,
+    density: Float
 ): Int {
-    val minHeight = appWidgetManager.getAppWidgetOptions(widgetId)
-        .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+    val options = appWidgetManager.getAppWidgetOptions(widgetId)
+    val heightDp = options.getInt(
+        AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,
+        options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+    )
 
     return when (kind) {
         // 单节课展示，不消费条数上限
         WidgetKind.TINY -> 1
         WidgetKind.COMPACT, WidgetKind.DOUBLE_DAYS -> when {
-            minHeight < 90 -> 1
-            minHeight < 150 -> 2
+            heightDp < 90 -> 1
+            heightDp < 150 -> 2
             else -> 3
         }
-        // 4×N 列表按实际高度动态推算
-        WidgetKind.LIST_VERTICAL ->
-            ((minHeight - LIST_HEADER_DP) / LIST_ROW_DP).coerceIn(1, LIST_MAX_ROWS)
+        // 4×N：可用高度 = 组件高度 − 卡片 padding 与头部占位；向下取整，宁可少显示不可裁切。
+        // 公式与边界由 WidgetListCapacity 持有并单测覆盖（v3.66.4 的「算多导致裁切」事故即在此防回归）。
+        WidgetKind.LIST_VERTICAL -> WidgetListCapacity.rowsFor(
+            heightDp = heightDp,
+            chromeDp = WidgetListCapacity.CHROME_DP,
+            rowHeightPx = listRowHeightPx,
+            density = density,
+            maxRows = WidgetListCapacity.MAX_ROWS
+        )
     }
 }

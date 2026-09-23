@@ -10,8 +10,14 @@
     <color name="loading_text_color">#FF000000</color>
     <color name="widget_bg">#FEF7FF</color> # 小组件最底层的圆角卡片背景色
     <color name="widget_text_primary">#2C3E50</color> # 主文字颜色：用于课程名、日期标题、假期大标题
-    <color name="widget_text_secondary">#5D6D7E</color> # 次要文字颜色：用于周次、教师名、上课地点
-    <color name="widget_text_hint">#808B96</color> # 提示文字颜色：用于无课提示、底部的统计页脚
+    <color name="widget_text_secondary">#5D6D7E</color> # 次要文字颜色：用于周次、教师名、上课地点、底部统计、无课提示
+    <!--
+      第三级「提示文字」已移除（2026-09-23，对比度缺陷修复）。
+      原值 #808B96 在卡底 #FEF7FF 上实测仅 3.30:1，而它用在 10sp/11sp 上（不适用大字号豁免），
+      不达 WCAG 2.2 AA 的 4.5:1；深色档 #8E8E93 反而 5.70:1 合格 —— 属浅色独有缺陷。
+      结论：本背景上无法再放一级「更浅且达标」的文字色，故取消该层级，全部并入
+      widget_text_secondary（5.05:1 ✅），层级改由字号/字重表达（见 docs/widget-display-optimization.md §2.2 B6 / §4.6）。
+    -->
     <color name="widget_divider">#EAECEE</color> # 分割线颜色：用于垂直分割线和课程间的水平线
-    <color name="widget_course_fallback">#F2F4F4</color> # 课程指示条兜底色：数据异常时的默认灰色
+    <color name="widget_course_fallback">#5D6D7E</color> # 课程指示条兜底色：原 #F2F4F4 在卡底上仅 1.05:1（等于看不见），改取次要文字色（5.05:1）
 </resources>

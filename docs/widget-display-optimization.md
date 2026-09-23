@@ -1,8 +1,20 @@
 # 桌面小组件显示优化方案
 
-> 状态：**提案（本轮只出方案，不含实现）** ｜ 适用版本：v3.66.4(265) 之后
+> 状态：**P0 已实施**（v3.66.5 / versionCode 266）；P1（widget token 组 + 三主题联动）、P2、P3 待排期
+> 适用版本：v3.66.4(265) 之后
 > 约束依据：`docs/design-system.md`（R1–R6）、RemoteViews 能力边界（§9）
 > 本文所有「现状值」均已在源码中逐项核对（见 §1 的出处列），所有对比度数值均由脚本实算（§附录 A）。
+>
+> **P0 实施记录（v3.66.5，2026-09-23）**
+> - §2.2 B2 浅色提示文字 AA 失败 → 取消第三级文字色，`widget_text_hint` 并入 `widget_text_secondary`（5.05:1）。
+> - §2.2 B3 取色兜底不可见 → `widget_course_fallback` 由 `#F2F4F4`/`#3A3A3C`（1.05/1.64:1）改取次要文字色（5.05/8.05:1）。
+> - §1.6 4×N 行高常量偏小 → **改为运行时实测条目高度**（不再依赖需标定的常量），高度基准由
+>   `MIN_HEIGHT` 改 `MAX_HEIGHT`，并扣除卡片 padding 与头部占位；公式独立为
+>   `WidgetListCapacity` 并由 8 个单测锁死「宁可少显示、不可多算」。
+> - §1.7 条目 B 色条对齐 → 固定 `30dp` 改 `match_parent` + 上下 2dp 外边距（与条目 A 一致）。
+> - §4.4 `minResizeHeight` 70dp 冲突 → 提至 **88dp**（39dp 占位 + 49dp 一条的下限）。
+> - §6.6-2 对比度门禁 → 新增 `scripts/check_widget_contrast.py` 并**接入 pre-commit**（绝对式，0 违规）。
+>   注：方案原文写的是 `tools/`，但该目录在 `.gitignore` 内不入库，实际落在 `scripts/`（与 `check_theme_leak.py` 同处）。
 
 ---
 

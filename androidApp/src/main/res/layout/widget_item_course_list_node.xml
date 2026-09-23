@@ -12,12 +12,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <!--
+          色条高度 30dp → match_parent + 上下 2dp 外边距（2026-09-23）。
+          原为固定 30dp + centerVertical，而右侧文字列高约 47dp、时间列约 28dp，
+          三者在 wrap_content 的 RelativeLayout 里居中 ⇒ 色条比文字块上下各短约 8.5dp，
+          视觉上「色条没对齐文字」。改为与条目 A（widget_item_course_common.xml）同一写法。
+        -->
         <ImageView
             android:id="@+id/course_indicator"
             android:layout_width="4dp"
-            android:layout_height="30dp"
+            android:layout_height="match_parent"
             android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
             android:src="@drawable/widget_indicator_shape" />
 
         <LinearLayout
@@ -100,7 +107,7 @@
                 android:includeFontPadding="false"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/widget_text_hint"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="10sp"
                 tools:text="张建国 教授" />
         </LinearLayout>

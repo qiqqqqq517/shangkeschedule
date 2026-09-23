@@ -56,7 +56,7 @@
                     android:layout_marginTop="0dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="@color/widget_text_hint"
+                    android:textColor="@color/widget_text_secondary"
                     android:includeFontPadding="false"
                     android:textSize="11sp"
                     tools:text="实验楼 402" />

@@ -68,7 +68,7 @@
                             android:id="@+id/tv_today_footer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_hint"
+                            android:textColor="@color/widget_text_secondary"
                             android:includeFontPadding="false"
                             android:textSize="10sp"
                             tools:text="剩余 2 节" />
@@ -96,7 +96,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/text_no_course"
-                        android:textColor="@color/widget_text_hint"
+                        android:textColor="@color/widget_text_secondary"
                         android:includeFontPadding="false"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -149,7 +149,7 @@
                             android:id="@+id/tv_tomorrow_footer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_hint"
+                            android:textColor="@color/widget_text_secondary"
                             android:includeFontPadding="false"
                             android:textSize="10sp"
                             tools:text="共有 4 节" />
@@ -177,7 +177,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/text_no_course"
-                        android:textColor="@color/widget_text_hint"
+                        android:textColor="@color/widget_text_secondary"
                         android:includeFontPadding="false"
                         android:textSize="11sp" />
                 </LinearLayout>

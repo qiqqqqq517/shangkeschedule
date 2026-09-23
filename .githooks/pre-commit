@@ -41,4 +41,23 @@ if [ "$STATUS" -ne 0 ]; then
   echo "  本次跳过  ：git commit --no-verify" >&2
   exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# 小组件配色对比度门禁（**绝对式**：0 违规，非棘轮）
+#
+# 背景：小组件自带一套独立色表（androidApp/.../values{,-night}/colors.xml），
+#       不参与 App 主题 token 体系，上面的 check_theme_leak.py 覆盖不到它。
+# 规则：文本 ≥4.5:1、有意义的非文本 UI ≥3:1（WCAG 2.2 AA），且不得出现已废弃色名。
+# 依据：docs/widget-display-optimization.md §6.6 / §8 V1–V2、V15
+# ---------------------------------------------------------------------------
+"$PY" scripts/check_widget_contrast.py --quiet
+WSTATUS=$?
+
+if [ "$WSTATUS" -ne 0 ]; then
+  echo "" >&2
+  echo "[widget-contrast] 提交被拦截：小组件配色不满足 WCAG 2.2 AA（见上方明细）。" >&2
+  echo "  看完整报告：python scripts/check_widget_contrast.py" >&2
+  echo "  本次跳过  ：git commit --no-verify" >&2
+  exit 1
+fi
 exit 0

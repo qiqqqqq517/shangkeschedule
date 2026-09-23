@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- updatePeriodMillis=0：周期刷新统一交给 WorkManager（详见 shangkeschedule_tiny_widget.xml 说明）。 -->
+<!--
+  minResizeHeight 70dp → 88dp（2026-09-23）。
+  70dp 高度下：卡片 padding 8dp×2 + 头部 ≈16.8dp + 头部下间距 6dp = 38.8dp 占位，
+  仅剩 31.2dp < 单条条目高度（实测 ≈49dp）⇒ 连 1 条都放不下，必然裁切。
+  88dp ≈ 39dp 占位 + 49dp 一条，是「至少完整显示 1 节课」的下限。
+  若后续改为「小尺寸单行摘要」形态（见 docs/widget-display-optimization.md §4.4），可再调低。
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/widget_loading_placeholder"
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="250dp"
-    android:minResizeHeight="70dp"
+    android:minResizeHeight="88dp"
     android:updatePeriodMillis="0"
     android:resizeMode="vertical"
     android:widgetCategory="home_screen"

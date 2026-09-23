@@ -73,7 +73,7 @@
             android:ellipsize="end"
             android:includeFontPadding="false"
             android:maxLines="1"
-            android:textColor="@color/widget_text_hint"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="10sp"
             tools:text="张老师" />
     </LinearLayout>
