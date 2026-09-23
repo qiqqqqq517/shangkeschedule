@@ -14,6 +14,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="正在加载课程..."
+        android:text="@string/widget_loading"
         android:textColor="@color/loading_text_color"  />
 </LinearLayout>

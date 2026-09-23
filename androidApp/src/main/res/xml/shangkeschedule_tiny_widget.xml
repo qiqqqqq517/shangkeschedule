@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  updatePeriodMillis=0（v3.66.3）：原先为 1800000（系统允许的最小值 30 分钟），与
+  WorkManagerHelper 的 15 分钟 WidgetUiUpdateWorker 构成双驱动——系统会为 4 个 receiver
+  各发一次广播，而每次回调都渲染全部 4 种组件，即同一份数据被重复渲染 16 次。
+  周期刷新统一交给 WorkManager（一次调用即渲染全部组件，粒度正确）。
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="40dp"
     android:targetCellWidth="2"
     android:targetCellHeight="1"
-    android:updatePeriodMillis="1800000"
+    android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_loading_placeholder"
     android:previewImage="@drawable/widget_preview_tiny"
     android:resizeMode="horizontal|vertical"

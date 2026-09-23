@@ -95,7 +95,7 @@
                         android:id="@+id/empty_today"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="无课程"
+                        android:text="@string/text_no_course"
                         android:textColor="@color/widget_text_hint"
                         android:includeFontPadding="false"
                         android:textSize="11sp" />
@@ -176,7 +176,7 @@
                         android:id="@+id/empty_tomorrow"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="无课程"
+                        android:text="@string/text_no_course"
                         android:textColor="@color/widget_text_hint"
                         android:includeFontPadding="false"
                         android:textSize="11sp" />

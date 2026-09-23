@@ -1,14 +1,14 @@
 package com.shangkeschedule.widget.list_vertical
 
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
-import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
-import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.WidgetCourseProto
+import com.shangkeschedule.widget.WidgetCourseSelection
+import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.bindWidgetClickIntent
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -19,19 +19,12 @@ object ListVerticalNativeRenderer {
 
         resetWidgetState(rv)
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        rv.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+        bindWidgetClickIntent(context, rv)
 
         val now = LocalTime.now()
+        val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        val allCourses = snapshot.courses
         val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
 
         if (currentWeek == null) {
@@ -46,33 +39,30 @@ object ListVerticalNativeRenderer {
         val todayStr = today.toString()
         val tomorrowStr = tomorrow.toString()
 
-        val todayRemaining = allCourses.filter {
-            (it.date == todayStr || it.date.isBlank()) && !it.is_skipped && try { LocalTime.parse(it.end_time) > now } catch (_: Exception) { true }
-        }.sortedBy { it.start_time }
-
-        val tomorrowCourses = allCourses.filter {
-            it.date == tomorrowStr && !it.is_skipped
-        }.sortedBy { it.start_time }
+        val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
+        val tomorrowCourses = WidgetCourseSelection.tomorrow(snapshot.courses, tomorrowStr)
 
         val weekDaysArray = context.resources.getStringArray(R.array.week_days_full_names)
         val dayOfWeekStr = weekDaysArray[today.dayOfWeek.value - 1]
 
         when {
             todayRemaining.isNotEmpty() -> {
-                val weekText = context.getString(R.string.title_current_week, currentWeek.toString())
+                // 与 Compact / DoubleDays 统一使用 status_current_week_format（第 %1$d 周），
+                // 弃用语义重复的 title_current_week（第 %1$s 周）——v3.66.3
+                val weekText = context.getString(R.string.status_current_week_format, currentWeek)
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_today, todayRemaining.size))
-                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot, todayRemaining.size)
+                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot)
             }
             tomorrowCourses.isNotEmpty() -> {
                 rv.setTextViewText(R.id.tv_header_title, context.getString(R.string.widget_tomorrow_course_preview))
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_tomorrow, tomorrowCourses.size))
-                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot, tomorrowCourses.size)
+                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot)
             }
             else -> {
-                val hasCoursesToday = allCourses.any { it.date == todayStr || it.date.isBlank() }
+                val hasCoursesToday = WidgetCourseSelection.allToday(snapshot.courses, todayStr).isNotEmpty()
                 val tip = if (!hasCoursesToday) context.getString(R.string.text_no_courses_today) else context.getString(R.string.widget_today_courses_finished)
-                val weekText = context.getString(R.string.title_current_week, currentWeek.toString())
+                val weekText = context.getString(R.string.status_current_week_format, currentWeek)
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 showInnerStatus(rv, tip)
                 rv.setTextViewText(R.id.tv_header_count_summary, "")
@@ -93,8 +83,7 @@ object ListVerticalNativeRenderer {
         context: Context,
         rv: RemoteViews,
         courses: List<WidgetCourseProto>,
-        snapshot: WidgetSnapshot,
-        totalCount: Int
+        snapshot: WidgetSnapshot
     ) {
         rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
 
@@ -113,17 +102,14 @@ object ListVerticalNativeRenderer {
                 itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
             }
 
-            val style = snapshot.style
-            val colorInt = course.color_int
-            if (style != null && colorInt < style.course_color_maps.size) {
-                val colorPair = style.course_color_maps[colorInt]
-                itemRv.setInt(R.id.course_indicator, "setColorFilter",
-                    colorPair.light_color.toInt()
-                )
-                itemRv.setInt(R.id.course_indicator_dark, "setColorFilter",
-                    colorPair.dark_color.toInt()
-                )
-            }
+            // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
+            itemRv.applyCourseColor(
+                context,
+                lightViewId = R.id.course_indicator,
+                darkViewId = R.id.course_indicator_dark,
+                maps = snapshot.style?.course_color_maps,
+                colorInt = course.color_int
+            )
 
             rv.addView(R.id.container_courses, itemRv)
 

@@ -1,13 +1,13 @@
 package com.shangkeschedule.widget.tiny
 
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
-import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
+import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.bindWidgetClickIntent
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -20,20 +20,13 @@ object TinyNativeRenderer {
         resetWidgetState(rv)
 
         // 设置点击跳转
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        rv.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+        bindWidgetClickIntent(context, rv)
 
         // 数据准备
-        val allCourses = snapshot.courses
         val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
         val now = LocalTime.now()
+        val nowMinutes = now.hour * 60 + now.minute
         val todayStr = LocalDate.now().toString()
-
-        // 状态渲染逻辑
 
         // 情况 A：假期处理
         if (currentWeek == null) {
@@ -41,13 +34,10 @@ object TinyNativeRenderer {
             return rv
         }
 
-        // 情况 B：开学期间数据过滤
-        val todayAllCourses = allCourses.filter { it.date == todayStr || it.date.isBlank() }
-        val nextCourse = todayAllCourses.firstOrNull {
-            !it.is_skipped && try {
-                LocalTime.parse(it.end_time) > now
-            } catch (_: Exception) { true }
-        }
+        // 情况 B：开学期间数据过滤（排序与过滤统一走 WidgetCourseSelection，与其余三个组件一致）
+        val todayAll = WidgetCourseSelection.allToday(snapshot.courses, todayStr)
+        val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
+        val nextCourse = todayRemaining.firstOrNull()
 
         if (nextCourse != null) {
             // 有课显示逻辑
@@ -61,22 +51,22 @@ object TinyNativeRenderer {
             rv.setTextViewText(R.id.tv_course_time, timeText)
             rv.setTextViewText(R.id.tv_course_position, nextCourse.position)
 
-            // 剩余课程数统计 (基于原始列表索引)
-            val nextCourseIndex = todayAllCourses.indexOf(nextCourse)
-            val remainingCount = todayAllCourses.size - nextCourseIndex
-            rv.setTextViewText(R.id.tv_remaining_count, remainingCount.toString())
+            // 剩余课程数：直接取已过滤列表条数。
+            // 旧实现为 `todayAllCourses.size - indexOf(nextCourse)`，而该列表含已跳过的课，
+            // 只要下一节课之后存在被跳过的课，计数就会偏大（4 节中第 3 节被跳过 → 显示 3、实际 2）。
+            rv.setTextViewText(R.id.tv_remaining_count, todayRemaining.size.toString())
 
-            // 颜色渲染
-            val style = snapshot.style
-            val colorInt = nextCourse.color_int
-            if (style != null && colorInt < style.course_color_maps.size) {
-                val colorPair = style.course_color_maps[colorInt]
-                rv.setInt(R.id.bubble_bg_image, "setColorFilter", colorPair.light_color.toInt())
-                rv.setInt(R.id.bubble_bg_image_dark, "setColorFilter", colorPair.dark_color.toInt())
-            }
+            // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
+            rv.applyCourseColor(
+                context,
+                lightViewId = R.id.bubble_bg_image,
+                darkViewId = R.id.bubble_bg_image_dark,
+                maps = snapshot.style?.course_color_maps,
+                colorInt = nextCourse.color_int
+            )
         } else {
             // 无课状态
-            val tip = if (todayAllCourses.isEmpty()) {
+            val tip = if (todayAll.isEmpty()) {
                 context.getString(R.string.text_no_courses_today)
             } else {
                 context.getString(R.string.widget_today_courses_finished)

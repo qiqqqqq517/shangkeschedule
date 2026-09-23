@@ -1,14 +1,14 @@
 package com.shangkeschedule.widget.double_days
 
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
-import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
+import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.bindWidgetClickIntent
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -23,14 +23,7 @@ object DoubleDaysNativeRenderer {
         resetWidgetState(rv)
 
         // 点击跳转逻辑
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        rv.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+        bindWidgetClickIntent(context, rv)
 
         // 全局状态判断
         val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
@@ -48,15 +41,12 @@ object DoubleDaysNativeRenderer {
         rv.setTextViewText(R.id.tv_current_week, context.getString(R.string.status_current_week_format, currentWeek))
 
         val now = LocalTime.now()
+        val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        val allCourses = snapshot.courses
 
         // 渲染左侧：今日
-        val todayCourses = allCourses.filter { it.date == today.toString() || it.date.isBlank() }
-        val remainingToday = todayCourses.filter {
-            !it.is_skipped && try { LocalTime.parse(it.end_time) > now } catch (_: Exception) { true }
-        }.sortedBy { it.start_time }
+        val remainingToday = WidgetCourseSelection.remainingToday(snapshot.courses, today.toString(), nowMinutes)
 
         renderColumn(
             context, rv,
@@ -67,8 +57,7 @@ object DoubleDaysNativeRenderer {
         )
 
         // 渲染右侧：明日
-        val tomorrowCourses = allCourses.filter { it.date == tomorrow.toString() }
-        val effectiveTomorrow = tomorrowCourses.filter { (!it.is_skipped) }.sortedBy { it.start_time }
+        val effectiveTomorrow = WidgetCourseSelection.tomorrow(snapshot.courses, tomorrow.toString())
 
         renderColumn(
             context, rv,
@@ -143,17 +132,14 @@ object DoubleDaysNativeRenderer {
                     itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
                 }
 
-                val style = snapshot.style
-                val colorInt = course.color_int
-                if (style != null && colorInt < style.course_color_maps.size) {
-                    val colorPair = style.course_color_maps[colorInt]
-                    itemRv.setInt(R.id.course_indicator, "setColorFilter",
-                        colorPair.light_color.toInt()
-                    )
-                    itemRv.setInt(R.id.course_indicator_dark, "setColorFilter",
-                        colorPair.dark_color.toInt()
-                    )
-                }
+                // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
+                itemRv.applyCourseColor(
+                    context,
+                    lightViewId = R.id.course_indicator,
+                    darkViewId = R.id.course_indicator_dark,
+                    maps = snapshot.style?.course_color_maps,
+                    colorInt = course.color_int
+                )
 
                 rootRv.addView(containerId, itemRv)
 

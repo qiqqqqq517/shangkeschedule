@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis=0：周期刷新统一交给 WorkManager（详见 shangkeschedule_tiny_widget.xml 说明）。 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="110dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:updatePeriodMillis="1800000"
+    android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_loading_placeholder"
     android:previewImage="@drawable/widget_preview_compact"
     android:resizeMode="horizontal|vertical"

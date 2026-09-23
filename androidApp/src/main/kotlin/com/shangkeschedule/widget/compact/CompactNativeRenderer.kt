@@ -1,14 +1,14 @@
 package com.shangkeschedule.widget.compact
 
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
-import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
-import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.WidgetCourseProto
+import com.shangkeschedule.widget.WidgetCourseSelection
+import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.bindWidgetClickIntent
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -23,20 +23,13 @@ object CompactNativeRenderer {
         resetWidgetState(rv)
 
         // 设置点击跳转
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        rv.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+        bindWidgetClickIntent(context, rv)
 
         // 数据准备
         val now = LocalTime.now()
+        val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        val allCourses = snapshot.courses
         val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
 
         // 头部基础信息渲染
@@ -61,11 +54,8 @@ object CompactNativeRenderer {
         val todayStr = today.toString()
         val tomorrowStr = tomorrow.toString()
 
-        val todayRemaining = allCourses.filter {
-            (it.date == todayStr || it.date.isBlank()) && !it.is_skipped && try { LocalTime.parse(it.end_time) > now } catch (e: Exception) { true }
-        }.sortedBy { it.start_time }
-
-        val tomorrowCourses = allCourses.filter { it.date == tomorrowStr && !it.is_skipped }.sortedBy { it.start_time }
+        val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
+        val tomorrowCourses = WidgetCourseSelection.tomorrow(snapshot.courses, tomorrowStr)
 
         // 决定渲染路径
         when {
@@ -94,7 +84,7 @@ object CompactNativeRenderer {
             }
             else -> {
                 // 状态 3：今明无课
-                val hasCoursesToday = allCourses.any { it.date == todayStr || it.date.isBlank() }
+                val hasCoursesToday = WidgetCourseSelection.allToday(snapshot.courses, todayStr).isNotEmpty()
                 val tip = if (!hasCoursesToday) {
                     context.getString(R.string.text_no_courses_today)
                 } else {
@@ -147,18 +137,14 @@ object CompactNativeRenderer {
                 itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
             }
 
-            // 颜色处理
-            val style = snapshot.style
-            val colorInt = course.color_int
-            if (style != null && colorInt < style.course_color_maps.size) {
-                val colorPair = style.course_color_maps[colorInt]
-                itemRv.setInt(R.id.course_indicator, "setColorFilter",
-                    colorPair.light_color.toInt()
-                )
-                itemRv.setInt(R.id.course_indicator_dark, "setColorFilter",
-                    colorPair.dark_color.toInt()
-                )
-            }
+            // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
+            itemRv.applyCourseColor(
+                context,
+                lightViewId = R.id.course_indicator,
+                darkViewId = R.id.course_indicator_dark,
+                maps = snapshot.style?.course_color_maps,
+                colorInt = course.color_int
+            )
 
             rv.addView(R.id.container_courses, itemRv)
 
