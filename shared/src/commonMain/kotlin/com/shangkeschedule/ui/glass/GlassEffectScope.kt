@@ -136,8 +136,14 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
 
     override val shape: Shape get() = currentShape
 
-    /** 按需从当前形状解析；不支持圆角解析的形状返回 null（折射会据此跳过）。 */
-    override val cornerRadii: FloatArray? get() = resolveCornerRadii()
+    /** 按需从当前形状解析（每次 apply / applyForLayer 内只解析一次）；不支持圆角解析的形状返回 null。 */
+    override val cornerRadii: FloatArray? get() {
+        if (!cornerRadiiResolved) {
+            cornerRadiiCache = resolveCornerRadii()
+            cornerRadiiResolved = true
+        }
+        return cornerRadiiCache
+    }
 
     private val shaders = mutableMapOf<String, LiquidShader?>()
 
@@ -146,9 +152,41 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
     /** 记录模式：非 null 时效果函数只采集描述符、不真正构建链（applyForLayer 专用）。 */
     private var recording: MutableList<GlassEffectDescriptor>? = null
 
-    /** 上次成功构建的描述符快照与链对象——参数不变即复用（安全去重缓存）。 */
-    private var lastDescriptors: List<GlassEffectDescriptor>? = null
+    /** 上次成功构建的链对象（[applyForLayer] 去重缓存命中时复用）。 */
     private var lastChainEffect: RenderEffect? = null
+
+    /**
+     * v3.69.0 PF2：描述符记录缓冲**双份轮转**，消除每帧 `ArrayList(4)` 分配。
+     *
+     * 原实现每帧新建 `ArrayList` 并把引用存入 `lastDescriptors`——快照天然安全，
+     * 但每帧一次分配（底栏 3 个玻璃面 × 60fps ⇒ 约 180 次/秒）。改为两份固定容量缓冲：
+     * `target` 为本帧写入，`snapshot` 为上次快照；内容一致即复用上次链，不一致才重建
+     * 并把 `target` 内容复制进 `snapshot`、随后交换角色。
+     *
+     * ⚠️ 快照必须是**内容副本**而非同一对象：下一帧 `target.clear()` 不得影响快照，
+     * 故用两份轮转，而不是复用同一份。
+     */
+    private val descriptorBufferA = ArrayList<GlassEffectDescriptor>(4)
+    private val descriptorBufferB = ArrayList<GlassEffectDescriptor>(4)
+    private var bufferAActive = true
+    private var hasDescriptorSnapshot = false
+
+    /**
+     * v3.69.0 PF2：cornerRadii 解析缓存。
+     *
+     * 原实现 `cornerRadii` 是 `get() = resolveCornerRadii()`，每次访问都新建 4 元素
+     * `FloatArray`；`glassLens` 单次调用至少访问两次（记录路径 + 构建路径）。
+     * 改为每次 `apply` / `applyForLayer` 内只解析一次——形状与尺寸在这期间不变，
+     * 语义等价。缓存数组在失效时被**替换引用**、内容从不就地改写，
+     * 因此 Lens 描述符持有旧引用依旧安全。
+     */
+    private var cornerRadiiCache: FloatArray? = null
+    private var cornerRadiiResolved = false
+
+    private fun invalidateCornerRadiiCache() {
+        cornerRadiiResolved = false
+        cornerRadiiCache = null
+    }
 
     /** 供效果函数在记录模式下短路：返回 true 表示描述符已采集、调用方直接返回。 */
     internal fun record(desc: GlassEffectDescriptor): Boolean {
@@ -206,6 +244,7 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         currentShape = shape
         padding = 0f
         renderEffect = null
+        invalidateCornerRadiiCache()
         effects()
     }
 
@@ -236,19 +275,23 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         padding = 0f
         renderEffect = null
         _paddingEnabled = false
+        invalidateCornerRadiiCache()
         try {
-            val descriptors = ArrayList<GlassEffectDescriptor>(4)
-            recording = descriptors
+            // v3.69.0 PF2：双缓冲轮转（target 写入 / snapshot 比对），稳态下零分配
+            val target = if (bufferAActive) descriptorBufferA else descriptorBufferB
+            val snapshot = if (bufferAActive) descriptorBufferB else descriptorBufferA
+            target.clear()
+            recording = target
             try {
                 effects()
             } finally {
                 recording = null
             }
-            if (descriptors == lastDescriptors) {
+            if (hasDescriptorSnapshot && target == snapshot) {
                 renderEffect = lastChainEffect
             } else {
                 renderEffect = null
-                for (desc in descriptors) {
+                for (desc in target) {
                     when (desc) {
                         is GlassEffectDescriptor.Blur ->
                             buildBlur(desc.radius, desc.edgeTreatment)
@@ -264,8 +307,12 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
                             )
                     }
                 }
-                lastDescriptors = descriptors
+                // 快照只保留内容副本：复制后交换角色，下一帧原快照成为写入缓冲
+                snapshot.clear()
+                snapshot.addAll(target)
+                hasDescriptorSnapshot = true
                 lastChainEffect = renderEffect
+                bufferAActive = !bufferAActive
             }
         } finally {
             _paddingEnabled = true
@@ -282,8 +329,13 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
         renderEffect = null
         shaders.clear()
         recording = null
-        lastDescriptors = null
+        // v3.69.0 PF2：快照失效（否则 reset 后会误命中上一份链）
+        descriptorBufferA.clear()
+        descriptorBufferB.clear()
+        hasDescriptorSnapshot = false
+        bufferAActive = true
         lastChainEffect = null
+        invalidateCornerRadiiCache()
     }
 }
 
