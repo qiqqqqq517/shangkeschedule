@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.66.5</b></span>
-        <span>versionCode <b class="mono" data-version-code>266</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.67.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>267</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3670">v3.67.0 · 新增大连理工大学课表导入</a></li>
         <li><a href="#v3665">v3.66.5 · 桌面小组件可读性修复</a></li>
         <li><a href="#v3664">v3.66.4 · 桌面小组件全量优化</a></li>
         <li><a href="#v3662">v3.66.2 · 界面细节修复与瘦身</a></li>
@@ -130,6 +131,23 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3670">
+        <div><span class="tl-ver">v3.67.0</span><span class="tl-date">2026-09-24</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增大连理工大学（DLUT）专属教务适配</h3>
+          <ul>
+            <li>内置学校索引中「大连理工大学」由通用解析切换为专用适配器，支持新版本科教务（<code>jxgl.dlut.edu.cn</code>）学生端课表，统一身份认证登录后一键导入；适配器已在真实账号下全流程实测（23 条课程 / 12 节作息，与教务页面逐条核对一致）。</li>
+            <li>旧教务入口（<code>teach.dlut.edu.cn</code>）现为教务处官网、不再提供课表，本版起直达新版学生端课表页。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-feat">工程</span>学校索引版本标识防漂移</h3>
+          <ul>
+            <li>学校索引（<code>school_index.pb</code>）的版本标识改为对源数据行尾归一化后哈希，消除不同开发机 / 检出设置下产生的假性版本漂移，内置与热更新两条渠道的索引一致性判断更可靠。</li>
+          </ul>
+          <p>当前版本 versionCode 267，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3665">
         <div><span class="tl-ver">v3.66.5</span><span class="tl-date">2026-09-24</span></div>
