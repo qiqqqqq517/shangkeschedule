@@ -65,9 +65,9 @@ manual-ahu�
 ecnu华东师范大学hdsfdx"	kingosoft*�
 ecnu_01青果教务系统"kingosoft.js*http://www.idc.ecnu.edu.cn/2-自动导入自 timetable，类型: kingosoft:auto-import�
 ustc中国科学技术大学zgkxjsdx"USTC*�
-ustc_01正方教务系统"ustc.js*https://jw.ustc.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
-dlut大连理工大学dllgdx"qiangzhi*�
-dlut_01强智教务系统"qiangzhi.js*http://teach.dlut.edu.cn/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+ustc_01正方教务系统"ustc.js*https://jw.ustc.edu.cn/21自动导入自 timetable，类型: zhengfang_new:auto-import�
+dlut大连理工大学dllgdx"DLUT*�
+dlut_01强智教务系统"dlut.js*4http://jxgl.dlut.edu.cn/student/for-std/course-table2R新版本科教务（jxgl.dlut.edu.cn）课表导入，需统一身份认证登录:auto-import�
 cqu重庆大学cqdx"CQU*p
 cqu_01URP教务系统"cqu.js*http://jw.cqu.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 tzc台州学院tzxy"	zhengfang*�

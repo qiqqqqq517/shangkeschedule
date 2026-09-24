@@ -128,8 +128,8 @@
  {
   "id": "dlut",
   "name": "大连理工大学",
-  "type": "qiangzhi",
-  "url": "http://teach.dlut.edu.cn/"
+  "type": "dlut",
+  "url": "http://jxgl.dlut.edu.cn/student/for-std/course-table"
  },
  {
   "id": "cqu",
