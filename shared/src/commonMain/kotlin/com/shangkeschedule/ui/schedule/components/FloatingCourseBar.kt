@@ -161,21 +161,27 @@ fun FloatingCourseBar(
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
+                // AC3（v3.69.0）：IconButton 命中区提到 48dp，可见圆底仍为 36dp
                 IconButton(
                     onClick = onCancelClick,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(
-                            color = titleColor.copy(alpha = 0.12f),
-                            shape = CircleShape
-                        )
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(
-                        imageVector = vectorResource(Res.drawable.close_24px),
-                        contentDescription = stringResource(Res.string.action_cancel),
-                        tint = titleColor,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = titleColor.copy(alpha = 0.12f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.close_24px),
+                            contentDescription = stringResource(Res.string.action_cancel),
+                            tint = titleColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 }
             }

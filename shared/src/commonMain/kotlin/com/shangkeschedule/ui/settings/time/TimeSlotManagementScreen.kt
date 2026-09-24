@@ -965,21 +965,27 @@ fun TimeSlotItem(
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            // 36dp 圆角删除钮
+            // 36dp 圆角删除钮（AC3 v3.69.0：外层命中区提到 48dp，可见圆角底仍为 36dp）
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(colors.inputBg)
+                    .size(48.dp)
                     .clickable(onClick = onDeleteClick),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = vectorResource(Res.drawable.delete_24px),
-                    contentDescription = a11yDeleteTimeSlot,
-                    tint = colors.textSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.inputBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = vectorResource(Res.drawable.delete_24px),
+                        contentDescription = a11yDeleteTimeSlot,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
