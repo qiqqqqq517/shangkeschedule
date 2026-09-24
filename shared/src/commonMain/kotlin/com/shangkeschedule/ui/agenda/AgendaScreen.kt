@@ -384,6 +384,12 @@ private fun AgendaContent(
                 modifier = Modifier.padding(top = 64.dp)
             )
         } else {
+            // PF3（v3.69.0）：分组结果缓存 —— 原写法每次重组都执行 groupBy + toSortedMap。
+            // ⚠️ 必须放在 LazyColumn **外**：LazyListScope 不是 @Composable 作用域，
+            // 在其 content 内调 remember 会编译失败。
+            val grouped = remember(state.entries) {
+                state.entries.groupBy(::entryGroup).toSortedMap()
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
@@ -394,7 +400,6 @@ private fun AgendaContent(
                 ),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                val grouped = state.entries.groupBy(::entryGroup).toSortedMap()
                 grouped.forEach { (group, entries) ->
                     item(key = "group_$group") {
                         AgendaGroupHeader(group = group, count = entries.size)
@@ -545,10 +550,10 @@ private fun AgendaDatePanel(
                 modifier = Modifier
                     .clip(shapes.capsule)
                     .background(tokens.inputBg)
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                    .padding(horizontal = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { onShiftMonth(-1) }, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = { onShiftMonth(-1) }, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.chevron_right_24px),
                         contentDescription = stringResource(Res.string.a11y_agenda_prev_month),
@@ -564,7 +569,7 @@ private fun AgendaDatePanel(
                         .height(16.dp)
                         .background(tokens.divider)
                 )
-                IconButton(onClick = { onShiftMonth(1) }, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = { onShiftMonth(1) }, modifier = Modifier.size(48.dp)) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.chevron_right_24px),
                         contentDescription = stringResource(Res.string.a11y_agenda_next_month),
@@ -1013,7 +1018,7 @@ private fun AgendaMonthPickerSheet(
             ) {
                 IconButton(
                     onClick = { year -= 1 },
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.chevron_right_24px),
@@ -1034,7 +1039,7 @@ private fun AgendaMonthPickerSheet(
                 )
                 IconButton(
                     onClick = { year += 1 },
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = vectorResource(Res.drawable.chevron_right_24px),
@@ -1150,20 +1155,27 @@ private fun AgendaDayHeader(
             color = tokens.textPrimary
         )
         Spacer(modifier = Modifier.weight(1f))
+        // AC3（v3.69.0）：命中区提到 48dp（WCAG 2.5.5），可见圆底仍为 40dp —— 视觉不变、热区变大
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(tokens.primarySoft)
+                .size(48.dp)
                 .clickable { onCreate() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = vectorResource(Res.drawable.add_24px),
-                contentDescription = stringResource(Res.string.a11y_agenda_add),
-                tint = tokens.primary,
-                modifier = Modifier.size(22.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(tokens.primarySoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.add_24px),
+                    contentDescription = stringResource(Res.string.a11y_agenda_add),
+                    tint = tokens.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
     }
 }

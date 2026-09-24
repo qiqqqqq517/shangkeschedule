@@ -1112,6 +1112,10 @@ private fun ScheduleListView(
     // v3.26.0 C+.17 列表块入场错峰：按「天序 + 天内序」递增延迟
     // （在 LazyColumn 外读取 LocalAppMotion：LazyListScope 不是 composable 作用域）
     val listEntranceMotion = LocalAppMotion.current
+    // PF3（v3.69.0）：按星期预分组并缓存 —— 原写法每个星期几都对全量课程做一次
+    // filter（7 次 O(n)）且随重组重复执行；改为一次 groupBy，仅在 pageCourses 变化时重算。
+    // ⚠️ 必须放在 LazyColumn **外**：LazyListScope 不是 @Composable 作用域（同上条注释）。
+    val coursesByDay = remember(pageCourses) { pageCourses.groupBy { it.day } }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1129,7 +1133,7 @@ private fun ScheduleListView(
             }
         }
         orderedDays.forEach { day ->
-            val dayBlocks = pageCourses.filter { it.day == day }
+            val dayBlocks = coursesByDay[day].orEmpty()
             if (dayBlocks.isEmpty()) return@forEach
 
             val dayOffset = (day - firstDay + 7) % 7
