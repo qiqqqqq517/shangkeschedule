@@ -72,6 +72,12 @@
   "url": "http://eamis.nankai.edu.cn/"
  },
  {
+  "id": "nankai_yjs",
+  "name": "南开大学 - 研究生",
+  "type": "allogene",
+  "url": "https://yjs.nankai.edu.cn/py/page/student/grkcb.htm"
+ },
+ {
   "id": "tju",
   "name": "天津大学",
   "type": "urp",
@@ -7329,7 +7335,7 @@
   "id": "u_c62a83b7",
   "name": "河南科技学院",
   "type": "kingosoft_new",
-  "url": "http://jwgl.hist.edu.cn/cas/login.action"
+  "url": "http://jwgl.hist.edu.cn/caslogin"
  },
  {
   "id": "u_1c48bb56",

@@ -1,4 +1,4 @@
-auto-674a17599890989a�
+auto-b5f8727fb437059d�
 GENERAL_ZHENGFANG正方教务系统（通用）zfjwxt"	zhengfang*�
 GENERAL_ZHENGFANG正方教务系统"zhengfang.js2N适用于所有正方教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_URPURP教务系统（通用）urpjwxt"urp*�
@@ -47,7 +47,11 @@ manual-ahu�
 jlu吉林大学jldx"JLU*~
 jlu_01青果教务系统"	JLU_01.js*http://uims.jlu.edu.cn/2-自动导入自 timetable，类型: kingosoft:auto-import�
 nankai南开大学nkdx"qiangzhi*�
-	nankai_01强智教务系统"qiangzhi.js*http://eamis.nankai.edu.cn/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+	nankai_01强智教务系统"qiangzhi.js*http://eamis.nankai.edu.cn/2,自动导入自 timetable，类型: qiangzhi:auto-import�
+nankai_yjs_pg南开大学nkdx"
+NANKAI_YJS*�
+nankai_yjs_pg_01'研究生信息管理系统（校内）"nankai_yjs.js*3https://yjs.nankai.edu.cn/py/page/student/grkcb.htm2J校内直连；登录后进入「培养 → 我的课表」再执行导入:manual-multi-entry*�
+nankai_yjs_pg_02.研究生信息管理系统（校外 WebVPN）"nankai_yjs.js*https://webvpn.nankai.edu.cn/2i校外需先登录 WebVPN，打开「研究生信息管理系统」并进入「培养 → 我的课表」:manual-multi-entry�
 tju天津大学tjdx"urp*q
 tju_01URP教务系统"urp.js*http://eam.tju.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 sdu山东大学sddx"	zhengfang*�
@@ -2330,10 +2334,10 @@ u_00c94bce青岛工学院qdgxy"	zhengfang*�
 u_00c94bce_01正方教务系统"zhengfang.js*2http://jw.qit.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_e204a01d青岛滨海学院qdbhxy"	zhengfang*�
-u_e204a01d_01正方教务系统"zhengfang.js*6http://jwgl.qdbhu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_e204a01d_01正方教务系统"zhengfang.js*6http://jwgl.qdbhu.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_a1f45f92青岛理工大学qdlgdx"QUT*�
-u_a1f45f92_01正方教务系统"qut.js*5https://jxgl.qut.edu.cn/jwglxt/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_a1f45f92青岛理工大学qdlgdx"QUT*�
+u_a1f45f92_01正方教务系统"qut.js*5https://jxgl.qut.edu.cn/jwglxt/xtgl/login_slogin.html2Q正方教务系统（jxgl.qut.edu.cn）课表导入，需在教务系统内登录:auto-import�
 
 u_a26f5e57青岛理工大学琴岛学院
 qdlgdxqdxy"	zhengfang*�
@@ -3980,10 +3984,10 @@ u_9553a526河南经贸职业学院hnjmzyxy"	kingosoft*�
 
 u_cc755e89湖南铁道职业技术学院
 hntdzyjsxy"	kingosoft*�
-u_cc755e89_01青果教务系统"kingosoft.js*ihttps://cas.hnrpc.com/cas/login?service=https://xgxt.hnrpc.com/zftal-xgxt-web/teacher/xtgl/index/check.zf21自动导入自 timetable，类型: kingosoft_new:auto-import�
+u_cc755e89_01青果教务系统"kingosoft.js*ihttps://cas.hnrpc.com/cas/login?service=https://xgxt.hnrpc.com/zftal-xgxt-web/teacher/xtgl/index/check.zf21自动导入自 timetable，类型: kingosoft_new:auto-import�
 
-u_c62a83b7河南科技学院hnkjxy"	kingosoft*�
-u_c62a83b7_01青果教务系统"kingosoft.js*(http://jwgl.hist.edu.cn/cas/login.action21自动导入自 timetable，类型: kingosoft_new:auto-import�
+u_c62a83b7河南科技学院hnkjxy"HIST*�
+u_c62a83b7_01青果教务系统"hist.js* http://jwgl.hist.edu.cn/caslogin2j青果教学综合管理服务平台个人课表导入，需统一身份认证（auth.hist.edu.cn）登录:auto-import�
 
 u_1c48bb56哈尔滨学院hebxy"	kingosoft*�
 u_1c48bb56_01青果教务系统"kingosoft.js*http://jwmis.hrbu.edu.cn/21自动导入自 timetable，类型: kingosoft_new:auto-import�
