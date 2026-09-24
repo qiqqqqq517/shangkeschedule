@@ -290,6 +290,15 @@ internal val iosTypeTokens = AppTypeTokens(
     hint = 11.sp
 )
 
+// A1/V2（v3.69.0）：顶栏玻璃材质（原 AppTopAppBar.kt 里 `if (isSoft) … else …` 的非柔绘分支）
+internal val iosNavBarTokens = AppNavBarTokens(
+    glassBlurRadius = 20.dp,
+    glassTintAlpha = 0.62f,
+    titleFontWeight = FontWeight.SemiBold,
+    titleLetterSpacing = (-0.41).sp,
+    bottomEdge = NavBarBottomEdge.HAIRLINE
+)
+
 // ============================================================================
 // 通透分组卡（inset grouped）材质
 //

@@ -24,8 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shangkeschedule.ui.theme.LocalIsSoftTheme
+import com.shangkeschedule.ui.theme.NavBarBottomEdge
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appNavBar
 import com.shangkeschedule.ui.theme.softFeatherRim
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
@@ -95,7 +96,9 @@ private fun AppNavigationBar(
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     val tokens = appColors()
-    val isSoft = LocalIsSoftTheme.current
+    // A1/V2（v3.69.0）：顶栏玻璃材质（模糊半径 / 色调 alpha / 标题字重字距 / 下缘形态）
+    // 全部改由 `AppNavBarTokens` 提供，本组件不再做主题身份判断。
+    val navBar = appNavBar()
     // v3.43.0（《交互动效审查》P2「顶栏滚动折叠」）：玻璃导航栏此前**直接丢弃**
     // scrollBehavior（该参数只在 M3 分支生效），因此「通透」这套自带玻璃顶栏的形态
     // 永远不折叠。现在按 collapsedFraction 插值：栏高 48→36dp、标题 17→15sp、
@@ -107,9 +110,9 @@ private fun AppNavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .hazeEffect(hazeState) {
-                blurRadius = if (isSoft) 22.dp else 20.dp
+                blurRadius = navBar.glassBlurRadius
                 noiseFactor = 0f
-                tints = listOf(HazeTint(tokens.navBarBg.copy(alpha = if (isSoft) 0.58f else 0.62f)))
+                tints = listOf(HazeTint(tokens.navBarBg.copy(alpha = navBar.glassTintAlpha)))
                 fallbackTint = HazeTint(tokens.navBarBg)
                 backgroundColor = Color.Transparent
             }
@@ -132,34 +135,37 @@ private fun AppNavigationBar(
                 ProvideTextStyle(
                     MaterialTheme.typography.titleMedium.copy(
                         fontSize = barTitleSize,
-                        // 柔绘字重降一档（Medium），配合低对比配色更柔
-                        fontWeight = if (isSoft) FontWeight.Medium else FontWeight.SemiBold,
-                        letterSpacing = if (isSoft) (-0.1).sp else (-0.41).sp
+                        fontWeight = navBar.titleFontWeight,
+                        letterSpacing = navBar.titleLetterSpacing
                     )
                 ) { title() }
             }
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
-        if (isSoft) {
-            // 柔绘下缘：羽化渐变（由极淡到透明），无硬线
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .softFeatherRim(
-                        androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
-                    )
-            )
-        } else {
-            // iOS 导航栏的 `.hairline`（1px 高度 + separator 半透明色）
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(0.5.dp)
-                    .background(tokens.divider.copy(alpha = 1f - 0.55f * collapsedFraction))
-            )
+        when (navBar.bottomEdge) {
+            NavBarBottomEdge.FEATHERED -> {
+                // 柔绘下缘：羽化渐变（由极淡到透明），无硬线
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .softFeatherRim(
+                            androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                        )
+                )
+            }
+
+            NavBarBottomEdge.HAIRLINE -> {
+                // iOS 导航栏的 `.hairline`（1px 高度 + separator 半透明色）
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(tokens.divider.copy(alpha = 1f - 0.55f * collapsedFraction))
+                )
+            }
         }
     }
 }

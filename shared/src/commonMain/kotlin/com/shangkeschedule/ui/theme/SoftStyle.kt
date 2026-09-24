@@ -302,6 +302,17 @@ internal val softTypeTokens = AppTypeTokens(
     hint = 11.sp
 )
 
+// A1/V2（v3.69.0）：顶栏玻璃材质 —— 柔绘更虚化（22dp）、底色更淡（0.58）、
+// 字重降一档（Medium）与字距收紧（-0.1sp），配合低对比配色更柔。
+// 取值与原先 `AppTopAppBar.kt` 的 isSoft 分支逐项一致，观感不变。
+internal val softNavBarTokens = AppNavBarTokens(
+    glassBlurRadius = 22.dp,
+    glassTintAlpha = 0.58f,
+    titleFontWeight = FontWeight.Medium,
+    titleLetterSpacing = (-0.1).sp,
+    bottomEdge = NavBarBottomEdge.FEATHERED
+)
+
 // ============================================================================
 // 柔绘材质：晕染底 / 薄涂卡 / 羽化描边 / 软模糊投影 / 漫射光斑 / 手绘纹理
 // ============================================================================

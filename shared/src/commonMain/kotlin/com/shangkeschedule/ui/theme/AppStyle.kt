@@ -422,6 +422,56 @@ fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
     else -> iosTypeTokens
 }
 
+/**
+ * 顶栏材质 tokens：玻璃顶栏（`AppNavigationBar`）在柔绘下的四处参数差异 ——
+ * 模糊半径、玻璃色调 alpha、标题字重、标题字距。
+ *
+ * A1 / V2（v3.69.0）：原先由 `AppTopAppBar.kt` 用 `LocalIsSoftTheme.current` 就地
+ * `if (isSoft) 22.dp else 20.dp` 表达，属「组件层按主题身份分支」（清单 V2 判定口诀）。
+ * 这四项描述的是**顶栏玻璃材质**这一个角色，故独立成组，与 [AppSpacingTokens] 中
+ * `settingsRowMinHeight` 的补齐方式同构。
+ *
+ * ⚠️ 与用户可调的 `LocalGlassBlurRadius` 不是一回事：后者是用户在「个性化显示」里设的
+ * 全局雾度，顶栏用的是固定值，不可混用。
+ *
+ * ⚠️ 顶栏**下缘**原为「柔绘羽化渐变 vs 其余发丝线」的结构分支，一并收口为
+ * [NavBarBottomEdge] 枚举 —— 组件按角色渲染两种形态，不再判断主题身份。
+ */
+data class AppNavBarTokens(
+    val glassBlurRadius: Dp,
+    val glassTintAlpha: Float,
+    val titleFontWeight: FontWeight,
+    val titleLetterSpacing: TextUnit,
+    val bottomEdge: NavBarBottomEdge
+)
+
+/**
+ * 顶栏下缘形态：柔绘为羽化渐变（无硬线），其余为 iOS `.hairline` 发丝线。
+ *
+ * 这两者是**两种不同的组件结构**，不是参数差异，故用枚举表达「角色」而非数值。
+ */
+enum class NavBarBottomEdge {
+    /** 羽化渐变：由极淡到透明，10dp 高。 */
+    FEATHERED,
+
+    /** 发丝线：0.5dp 高 + 分隔线色。 */
+    HAIRLINE
+}
+
+/** CompositionLocal：顶栏材质 tokens（默认 = 通透 / iOS 26 玻璃顶栏）。 */
+val LocalAppNavBarTokens = staticCompositionLocalOf { iosNavBarTokens }
+
+/** 组件层快捷访问顶栏材质 tokens。 */
+@Composable
+fun appNavBar(): AppNavBarTokens = LocalAppNavBarTokens.current
+
+/** 按主题预设取顶栏材质 tokens：柔绘走更虚化的玻璃 + 轻一档字重，书卷与通透同值（书卷不用玻璃顶栏）。 */
+fun appNavBarTokens(preset: AppThemePreset): AppNavBarTokens = when (preset) {
+    AppThemePreset.SOFT -> softNavBarTokens
+    AppThemePreset.CLAUDE -> claudeNavBarTokens
+    else -> iosNavBarTokens
+}
+
 /** CompositionLocal：当前是否柔绘主题（供材质层做形态判定）。 */
 val LocalIsSoftTheme = staticCompositionLocalOf { false }
 

@@ -298,6 +298,17 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
     hint = 12.sp
 )
 
+// A1/V2（v3.69.0）：顶栏玻璃材质 —— **书卷不使用玻璃顶栏**（大标题由内容区
+// ClaudePageHeader 承担），此处仅为满足「每套主题显式赋值」的规范 R2 提供兜底值，
+// 与通透一致；改动不应影响书卷观感。
+val claudeNavBarTokens: AppNavBarTokens = AppNavBarTokens(
+    glassBlurRadius = 20.dp,
+    glassTintAlpha = 0.62f,
+    titleFontWeight = FontWeight.SemiBold,
+    titleLetterSpacing = (-0.41).sp,
+    bottomEdge = NavBarBottomEdge.HAIRLINE
+)
+
 /**
  * 书卷主题分组卡底色：浅色暖米 #f3efe4、深色 #2f2e2c，对齐设计包 .group-card。
  */

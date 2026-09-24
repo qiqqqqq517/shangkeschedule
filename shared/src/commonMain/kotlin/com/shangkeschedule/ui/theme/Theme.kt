@@ -138,6 +138,8 @@ fun ShangKeScheduleTheme(
     val shapeTokens = appShapeTokens(themePreset)
     val spacingTokens = appSpacingTokens(themePreset)
     val typeTokens = appTypeTokens(themePreset)
+    // A1/V2：顶栏玻璃材质（v3.69.0 新增角色组）
+    val navBarTokens = appNavBarTokens(themePreset)
 
     // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
     val typography = when {
@@ -190,6 +192,7 @@ fun ShangKeScheduleTheme(
         LocalAppShapeTokens provides shapeTokens,
         LocalAppSpacingTokens provides spacingTokens,
         LocalAppTypeTokens provides typeTokens,
+        LocalAppNavBarTokens provides navBarTokens,
         LocalIsSoftTheme provides isSoft,
         LocalIndication provides indication
     ) {
