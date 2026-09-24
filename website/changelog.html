@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3680">v3.68.0 · 新增河南科技学院、南开大学研究生课表导入</a></li>
         <li><a href="#v3670">v3.67.0 · 新增大连理工大学课表导入</a></li>
         <li><a href="#v3665">v3.66.5 · 桌面小组件可读性修复</a></li>
         <li><a href="#v3664">v3.66.4 · 桌面小组件全量优化</a></li>
@@ -131,6 +132,24 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3680">
+        <div><span class="tl-ver">v3.68.0</span><span class="tl-date">2026-09-24</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增河南科技学院、南开大学研究生课表导入</h3>
+          <ul>
+            <li>新增河南科技学院课表导入：教学综合管理服务平台（青果 Kingosoft）需经 <code>auth.hist.edu.cn</code> 统一身份认证登录，登录后一键导入本学期个人课表（含单双周、连堂合并）。适配器已在真实账号下全流程实测（35 条课程，与教务页面逐条核对一致）。</li>
+            <li>新增南开大学研究生课表导入：对接研究生信息管理系统（allogene 平台）「培养 → 我的课表」，提供校内直连与校外 WebVPN 两个入口；校外入口需先登录 WebVPN，再打开「研究生信息管理系统」。适配器已在真实账号下实测（校内 / 校外两条路径均通过）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>青岛理工大学课表导入失败</h3>
+          <ul>
+            <li>适配脚本把课表接口写成了 <code>http://</code> 绝对地址，而入口页是 <code>https://</code>，WebView 按混合内容拦截，请求根本发不出去，导入必然失败。现改为同源相对地址。</li>
+            <li>同时改为只挂载导入入口（不再注入即执行），并优先读取页面上的学年学期，避免重复导入与选错学期。</li>
+          </ul>
+          <p>当前版本 versionCode 268，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3670">
         <div><span class="tl-ver">v3.67.0</span><span class="tl-date">2026-09-24</span></div>
