@@ -1,4 +1,4 @@
-auto-bff906cf0a7f77ad�
+auto-674a17599890989a�
 GENERAL_ZHENGFANG正方教务系统（通用）zfjwxt"	zhengfang*�
 GENERAL_ZHENGFANG正方教务系统"zhengfang.js2N适用于所有正方教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_URPURP教务系统（通用）urpjwxt"urp*�
