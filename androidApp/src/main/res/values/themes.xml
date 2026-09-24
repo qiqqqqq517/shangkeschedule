@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.shangkeschedule" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowBackground">?android:attr/colorBackground</item>
+        <!-- PF4（v3.69.0）：原为 ?android:attr/colorBackground（近纯白），深色用户冷启动会闪白；
+             改为按 values / values-night 分档的启动色，并由 MyApplication 按用户 themeMode
+             同步 AppCompatDelegate 夜间模式，保证与 Compose 的 darkTheme 口径一致。 -->
+        <item name="android:windowBackground">@color/launch_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowAnimationStyle">@style/Animation.App.Activity</item>
     </style>

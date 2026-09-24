@@ -7,6 +7,12 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!--
+      PF4（v3.69.0）：冷启动首帧背景。原用 ?android:attr/colorBackground（近纯白），
+      App 内选了深色而系统仍为浅色时首帧会闪白；改为与 App 浅色背景同色系的浅灰，
+      配合 MyApplication 按用户 themeMode 同步 AppCompatDelegate 夜间模式后取深色档。
+    -->
+    <color name="launch_background">#F5F6F8</color>
     <color name="loading_text_color">#FF000000</color>
     <color name="widget_bg">#FEF7FF</color> # 小组件最底层的圆角卡片背景色
     <color name="widget_text_primary">#2C3E50</color> # 主文字颜色：用于课程名、日期标题、假期大标题

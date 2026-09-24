@@ -7,6 +7,7 @@ import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.RefreshRateMode
@@ -109,6 +110,18 @@ class AppSettingsRepository(
         val dbFirstTableId = courseTableDao.getFirstTableOnce()?.id ?: ""
         return AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
     }
+
+    /**
+     * PF4（v3.69.0）：只读取「深浅模式」一个键，供启动期同步系统夜间模式使用。
+     *
+     * 单独拆出来是因为调用方在 `Application.onCreate`（androidMain 的
+     * `syncNightModeFromStoredThemeMode`），此时只关心这一个键，不必等完整的
+     * [AppSettingsModel] 组合流（它会连带 Room 查询）。
+     */
+    suspend fun currentThemeMode(): AppThemeMode =
+        dataStore.data.first()[AppSettingsModel.KEY_THEME_MODE]
+            ?.let { AppThemeMode.fromString(it) }
+            ?: AppThemeMode.FOLLOW_SYSTEM
 
     /**
      * 更新应用设置。

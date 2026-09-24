@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- PF4（v3.69.0）：冷启动首帧背景（深色档），与 widget_bg 深色一致 -->
+    <color name="launch_background">#141218</color>
     <color name="loading_text_color">#FFFFFFFF</color>
     <color name="widget_bg">#141218</color> # 深色背景：使用深灰色，避免纯黑拖影
     <color name="widget_text_primary">#F2F2F7</color> # 主文字：在深色背景下改为接近纯白的亮灰色
