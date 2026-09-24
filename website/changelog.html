@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3681">v3.68.1 · 修复青岛理工大学课表周次解析</a></li>
         <li><a href="#v3680">v3.68.0 · 新增河南科技学院、南开大学研究生课表导入</a></li>
         <li><a href="#v3670">v3.67.0 · 新增大连理工大学课表导入</a></li>
         <li><a href="#v3665">v3.66.5 · 桌面小组件可读性修复</a></li>
@@ -132,6 +133,18 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3681">
+        <div><span class="tl-ver">v3.68.1</span><span class="tl-date">2026-09-24</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>青岛理工大学课表周次解析</h3>
+          <ul>
+            <li>修复多段周次解析错误：教务返回形如「5-11周(单),12-19周」时，脚本误把整段按单周过滤，导致第二段整周丢失偶数周（如大学体育少 4 周）。现改为按逗号分段、每段独立判断单/双周。</li>
+            <li>已在真实账号下端到端实测：21 条原始课表 → 20 门课程，周次 / 节次 / 教师 / 地点逐条核对一致。</li>
+          </ul>
+          <p>当前版本 versionCode 269，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3680">
         <div><span class="tl-ver">v3.68.0</span><span class="tl-date">2026-09-24</span></div>

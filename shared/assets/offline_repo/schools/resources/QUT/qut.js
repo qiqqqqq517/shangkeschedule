@@ -66,24 +66,30 @@
         return /用户登录/.test(document.title || '');
     }
 
-    // "1-8,10-16周" / "7~17(单)周" / "3周"
+    // "1-8,10-16周" / "7~17(单)周" / "3周" / "5-11周(单),12-19周"
+    // 注意：单/双周标注只修饰紧跟它的那一段，必须按逗号分段独立判断，
+    // 否则 "5-11周(单),12-19周" 的第二段会被误按单周过滤而丢周。
     function parseWeeks(text) {
         var s = clean(text);
-        var odd = /[（(]\s*单\s*[）)]/.test(s);
-        var even = /[（(]\s*双\s*[）)]/.test(s);
         var set = {};
-        var re = /(\d+)\s*(?:[-~—－]\s*(\d+))?\s*周/g;
-        var m;
-        while ((m = re.exec(s)) !== null) {
-            var a = parseInt(m[1], 10);
-            var b = m[2] ? parseInt(m[2], 10) : a;
-            if (isNaN(a) || a < 1) continue;
-            if (isNaN(b) || b < a) b = a;
-            if (b > 40) b = 40;
-            for (var w = a; w <= b; w++) {
-                if (odd && w % 2 === 0) continue;
-                if (even && w % 2 === 1) continue;
-                set[w] = true;
+        var segs = s.split(/[,，;；]/);
+        for (var si = 0; si < segs.length; si++) {
+            var seg = segs[si];
+            var odd = /[（(]\s*单\s*[）)]/.test(seg);
+            var even = /[（(]\s*双\s*[）)]/.test(seg);
+            var re = /(\d+)\s*(?:[-~—－]\s*(\d+))?\s*周/g;
+            var m;
+            while ((m = re.exec(seg)) !== null) {
+                var a = parseInt(m[1], 10);
+                var b = m[2] ? parseInt(m[2], 10) : a;
+                if (isNaN(a) || a < 1) continue;
+                if (isNaN(b) || b < a) b = a;
+                if (b > 40) b = 40;
+                for (var w = a; w <= b; w++) {
+                    if (odd && w % 2 === 0) continue;
+                    if (even && w % 2 === 1) continue;
+                    set[w] = true;
+                }
             }
         }
         return Object.keys(set).map(Number).sort(function (x, y) { return x - y; });
