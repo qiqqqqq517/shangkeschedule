@@ -43,6 +43,10 @@ import com.shangkeschedule.ui.theme.AppTypeGrid
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appCourseBlock
+import com.shangkeschedule.ui.theme.CourseBlockBorder
+import com.shangkeschedule.ui.theme.CourseBlockPalette
+import com.shangkeschedule.ui.theme.CourseBlockShadow
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
 
@@ -61,19 +65,17 @@ private data class CourseBlockPresetRender(
 
 @Composable
 private fun buildPresetRenderSpec(
-    themePreset: AppThemePreset,
-    isDarkTheme: Boolean,
     colors: CourseBlockColors,
     style: ScheduleGridStyleComposed
 ): CourseBlockPresetRender {
-    // 云舒（SLEEPY）主题已删除，其专属投影分支不再存在；isStripStylePreset = 通透（iOS 26）
-    val isStripStylePreset = themePreset == AppThemePreset.IOS
-    // 柔绘（SOFT）：色条、文字色与通透同口径（不参与下面 blockBackgroundColor 的粒度拆分）；
-    // 材质差异走「软模糊投影 + 羽化描边 + 细柔和色条」，在材质层单独处理。
-    val isSoftPreset = themePreset == AppThemePreset.SOFT
+    // A1/V2 第二批（v3.69.0）：「淡底 + 深色条」取色口径与「软模糊投影」两处身份分支
+    // 收口为课程块角色 token（原为 themePreset == IOS / SOFT 的相等判断）。
+    val blockLook = appCourseBlock()
+    // 云舒（SLEEPY）主题已删除，其专属投影分支不再存在。
+    // 色条口径：通透（iOS 26）与柔绘共用「淡底 + 深色条」；书卷走实色块。
+    val usesStripPalette = blockLook.palette == CourseBlockPalette.STRIP
 
-    // 色条主题与柔绘共用「淡底 + 深色条」取色口径（透通为 isStripStylePreset，
-    val usesStripPalette = isStripStylePreset || isSoftPreset
+    // 色条主题与柔绘共用「淡底 + 深色条」取色口径
     val blockBackgroundColor = colors.background
     val stripColor = colors.accent
     val textColor = colors.content
@@ -83,12 +85,13 @@ private fun buildPresetRenderSpec(
     // 柔绘改为常驻一层极淡软模糊投影（elevation 6dp）——低对比界面上课程块需要一点"离地感"
     // 才能与晕染底分开，但投影 alpha 极低，不会形成硬边落影。
     // 悬浮态由 floatingShadowModifier 单独抬升。
-    val sleepyShadowModifier = if (isSoftPreset) {
+    // （软投影强度随块大小由调用方给，不进 token —— 见 AppCourseBlockTokens 注释）
+    val sleepyShadowModifier = if (blockLook.shadow == CourseBlockShadow.SOFT_BLUR) {
         Modifier.softShadow(shape = shape, elevation = 6.dp)
     } else {
         Modifier
     }
-    val timetableStartPadding = if (usesStripPalette) 4.dp else 0.dp
+    val timetableStartPadding = blockLook.stripStartPadding
     // 非当前周降级遮罩：0.618 为书卷主题有意的黄金比例设计值（豁免），通透沿用同一档位。
     val demotedOverlayAlpha = 0.618f
 
@@ -133,8 +136,6 @@ fun CourseBlock(
         hasWallpaper = style.backgroundImagePath.isNotEmpty()
     )
     val presetRender = buildPresetRenderSpec(
-        themePreset = themePreset,
-        isDarkTheme = isDarkTheme,
         colors = blockColors,
         style = style
     )
@@ -175,11 +176,12 @@ fun CourseBlock(
     val borderWidth = if (isFloating) 2.dp else 1.dp
     val borderAlpha = if (isFloating) 1.0f else style.courseBlockAlpha
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
-    val isSoftTheme = themePreset == AppThemePreset.SOFT
-
+    // A1/V2 第二批（v3.69.0）：「柔绘不画任何实色硬边描边」是**描边策略**差异，
+    // 收口为课程块角色 token（原为 themePreset == AppThemePreset.SOFT 的身份布尔）。
     // 柔绘：课程块**没有任何 1dp/2dp 实色描边**（含用户在课表样式里选的实线/虚线描边）——
     // 「无锐利硬边缘」是柔绘的硬约束；层级改由软模糊投影 + 羽化描边表达。
-    val borderModifier = if (isSoftTheme) {
+    val blockLook = appCourseBlock()
+    val borderModifier = if (blockLook.border == CourseBlockBorder.NONE) {
         Modifier
     } else when (style.borderType) {
         BorderTypeProto.BORDER_TYPE_SOLID -> {
@@ -208,7 +210,7 @@ fun CourseBlock(
     // 选中捏起时，增加三维物理阴影（柔绘改用软模糊投影，投影边缘完全化开）
     val floatingShadowModifier = when {
         !isFloating -> Modifier
-        isSoftTheme -> Modifier.softShadow(shape = shape, elevation = 12.dp)
+        blockLook.shadow == CourseBlockShadow.SOFT_BLUR -> Modifier.softShadow(shape = shape, elevation = 12.dp)
         else -> Modifier.shadow(elevation = 8.dp, shape = shape, clip = false)
     }
 
@@ -222,7 +224,7 @@ fun CourseBlock(
             .then(borderModifier)
             .clip(shape)
             .background(color = presetRender.blockBackgroundColor)
-            .then(if (isSoftTheme) Modifier.softFeatherRim(shape) else Modifier)
+            .then(if (blockLook.featherRim) Modifier.softFeatherRim(shape) else Modifier)
     ) {
         // 左侧色条：宽 4dp，贯穿整个块高度
         if (presetRender.timetableStartPadding > 0.dp) {

@@ -77,14 +77,14 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.CourseTable
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
-import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.appGroupCard
+import com.shangkeschedule.ui.theme.GroupCardStyle
 import com.shangkeschedule.ui.theme.claudeReadingSerif
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.softSurface
@@ -794,32 +794,35 @@ private fun SemesterCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
-    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
-    // 书卷 14dp / 通透 iOS 26 16dp / 柔绘 24dp 虚化圆角，均来自 [appShapes] 分发
+    // A1/V2 第二批（v3.69.0）：形状 / 底色 / 描边色 / 表面材质 / 投影强度五处主题分支
+    // 收口为「分组卡」角色 token（原为 isClaude / isSoft 两个身份布尔）。
+    val card = appGroupCard()
+    val isPaper = card.style == GroupCardStyle.PAPER_GROUPED
+    val isSoftCard = card.style == GroupCardStyle.SOFT_TEXTURE
+    // 书卷 14dp 收口 / 通透 iOS 26 16dp / 柔绘 24dp 虚化圆角，均来自 [appShapes] 分发
     // （柔绘的 appShapes().card 已是 24dp「虚化圆角」，无需像书卷那样覆盖）
-    val shape = if (isClaude) RoundedCornerShape(14.dp) else appShapes().card
-    val bg = containerColor ?: when {
-        isClaude -> claudeGroupBg()
+    val shape = if (isPaper) RoundedCornerShape(14.dp) else appShapes().card
+    val bg = containerColor ?: when (card.style) {
+        GroupCardStyle.PAPER_GROUPED -> claudeGroupBg()
         else -> tokens.cardBg
     }
     // 当前学期高亮描边随选中状态淡入淡出（其余状态回落到常规描边色）
     val cardMotion = LocalAppMotion.current
     val animatedBorderColor by animateColorAsState(
-        if (highlightBorder) tokens.primary else (if (isClaude) claudeGroupBorder() else tokens.divider),
+        if (highlightBorder) tokens.primary else (if (isPaper) claudeGroupBorder() else tokens.divider),
         animationSpec = tween(cardMotion.tokens.colorDurationMs),
         label = "semesterCardBorder"
     )
     // 柔绘：薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边）+ 手绘柔绘纹理（学期卡是大卡面）；
     // 底色沿用上面已算好的 bg（含「当前学期卡」的 cardBgElevated 覆盖）
-    val surfaceModifier = if (isSoft) {
+    val surfaceModifier = if (isSoftCard) {
         Modifier
             .softSurface(shape = shape, containerColor = bg, elevation = 10.dp)
             .softTexture(shape)
     } else {
         Modifier
             .shadow(
-                elevation = (if (isClaude) 1 else 2).dp,
+                elevation = card.shadowElevation,
                 shape = shape,
                 clip = false,
                 ambientColor = tokens.shadow,
@@ -847,9 +850,9 @@ private fun SemesterCard(
                 when {
                     // 柔绘：无实色描边（含当前学期高亮）——高亮由主色薄涂底表达；
                     // 羽化描边环已由 softSurface 内含，此处不再重复叠加（与 AppCard 收口一致）
-                    isSoft -> Modifier
-                    highlightBorder -> Modifier.border(1.dp, animatedBorderColor, shape)
-                    isClaude -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
+                    isSoftCard -> Modifier
+                    highlightBorder -> Modifier.border(card.highlightBorderWidth, animatedBorderColor, shape)
+                    isPaper -> Modifier.border(0.5.dp, claudeGroupBorder(), shape)
                     // 通透（iOS 26）：白卡 + 玻璃高光内描边
                     else -> Modifier.iosGlassRim(shape)
                 }
@@ -875,7 +878,13 @@ private fun CurrentSemesterCard(
 
     SemesterCard(
         modifier = Modifier.fillMaxWidth(),
-        containerColor = if (LocalThemePreset.current == AppThemePreset.SOFT) colors.primarySoft else colors.cardBgElevated,
+        // A1/V2 第二批（v3.69.0）：「当前学期卡」底色的主题分支改按角色判定
+        // ——柔绘的高亮用主色薄涂底（它不画描边），书卷 / 通透用抬升卡底 + 1dp 主色描边。
+        containerColor = if (appGroupCard().style == GroupCardStyle.SOFT_TEXTURE) {
+            colors.primarySoft
+        } else {
+            colors.cardBgElevated
+        },
         highlightBorder = true,
         onLongClick = onRename
     ) {

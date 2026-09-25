@@ -314,6 +314,86 @@ internal val softNavBarTokens = AppNavBarTokens(
 )
 
 // ============================================================================
+// A1/V2 第二批（v3.69.0）：参数型主题分支的显式赋值（规范 R2）
+//
+// 全部取「原先 isSoft 为真时的分支」——逐项与改前一致，观感零变化。
+// ============================================================================
+
+/** 分区标题：柔绘 13sp Medium + 松字距 0.05sp（低对比配色用字重而非色差建立层级）。 */
+internal val softSectionHeaderTokens = AppSectionHeaderTokens(
+    textSize = 13.sp,
+    textWeight = FontWeight.Medium,
+    letterSpacing = 0.05.sp
+)
+
+/** 底部毛玻璃面板：柔绘遮罩更浅 26% / 模糊更弱 14dp / 噪点 0.06 / 涂色更实 0.90。 */
+internal val softBottomSheetTokens = AppBottomSheetTokens(
+    scrimAlpha = 0.26f,
+    blurRadius = 14.dp,
+    noiseFactor = 0.06f,
+    tintAlpha = 0.90f
+)
+
+/** 开关：柔绘轨道降饱和（success 72% / inputBg 78%）+ 羽化描边环。 */
+internal val softSwitchTokens = AppSwitchTokens(
+    trackAlpha = 0.72f,
+    uncheckedAlpha = 0.78f,
+    featherRim = true
+)
+
+/** 分段控件：柔绘容器底压淡一档（0.78）+ 软模糊投影羽化胶囊。 */
+internal val softSegmentedTokens = AppSegmentedTokens(
+    containerAlpha = 0.78f,
+    pillStyle = SegmentedPillStyle.SOFT_FEATHER
+)
+
+/**
+ * 课表网格高亮：柔绘今天列 0.28 / 当前节次 0.26 淡底，
+ * 当前节次换虚化圆角薄涂块 + 内侧渐变竖条 + 羽化环。
+ *
+ * ⚠️ [useRoundedHighlight] 只作用于**当前节次**（时间轴）；表头「今天列」是通栏色块，
+ * 不加圆角 —— 表头列紧邻、羽化环会在列缝留下竖向亮带。
+ */
+internal val softScheduleHighlightTokens = AppScheduleHighlightTokens(
+    todayColumnAlpha = 0.28f,
+    activeSectionAlpha = 0.26f,
+    useRoundedHighlight = true,
+    useInnerBar = true,
+    featherRim = true
+)
+
+/** 悬浮胶囊：柔绘薄涂卡底 + 软模糊投影 + 柔光 + 羽化环；文字色回落语义色。 */
+internal val softFloatingTokens = AppFloatingTokens(
+    surface = FloatingSurfaceStyle.SOFT_FEATHER,
+    contentFallbackToSemantic = true
+)
+
+/** 分组卡：柔绘薄涂卡 + 手绘肌理 + 10dp 软投影；无实色描边（高亮由薄涂底表达）。 */
+internal val softGroupCardTokens = AppGroupCardTokens(
+    style = GroupCardStyle.SOFT_TEXTURE,
+    shadowElevation = 2.dp,
+    highlightBorderWidth = 0.dp
+)
+
+/** 周次切换：柔绘走整屏换气，时长 2× 且必须线性（sin 单峰曲线外不再套缓动）。 */
+internal val softWeekPagerTokens = AppWeekPagerTokens(
+    sheen = WeekPagerSheen.BREATHE,
+    durationScale = 2f,
+    linearEasing = true
+)
+
+/** 课程块：柔绘软模糊投影 8dp + 羽化描边环，元信息分隔线减淡到 0.5dp / 10%。 */
+internal val softCourseBlockTokens = AppCourseBlockTokens(
+    shadow = CourseBlockShadow.SOFT_BLUR,
+    border = CourseBlockBorder.NONE,
+    palette = CourseBlockPalette.STRIP,
+    stripStartPadding = 4.dp,
+    featherRim = true,
+    metaDividerThickness = 0.5.dp,
+    metaDividerAlpha = 0.10f
+)
+
+// ============================================================================
 // 柔绘材质：晕染底 / 薄涂卡 / 羽化描边 / 软模糊投影 / 漫射光斑 / 手绘纹理
 // ============================================================================
 

@@ -71,7 +71,10 @@ import com.shangkeschedule.ui.theme.appSurface
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.LocalThemePreset
-import com.shangkeschedule.ui.theme.LocalIsSoftTheme
+import com.shangkeschedule.ui.theme.appBottomSheet
+import com.shangkeschedule.ui.theme.appSectionHeader
+import com.shangkeschedule.ui.theme.appGroupCard
+import com.shangkeschedule.ui.theme.GroupCardStyle
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.data.model.AppThemePreset
 
@@ -91,33 +94,17 @@ fun AppSectionHeader(
     text: String,
     modifier: Modifier = Modifier
 ) {
-    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // A1/V2 第二批（v3.69.0）：三套主题的字重/字距差异收口为角色 token，
+    // 组件不再判断主题身份（原为 if (isClaude) … else if (isSoft) … else …）。
+    val header = appSectionHeader()
     Text(
         text = text,
-        style = if (isClaude) {
-            MaterialTheme.typography.labelLarge.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.01).em
-            )
-        } else if (isSoft) {
-            // 柔绘：13sp Medium + 松字距——柔绘字号阶梯比通透略轻（字重降一档），
-            // 低对比配色下用字重而非色差来建立分区层级。
-            MaterialTheme.typography.labelLarge.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.05.sp
-            )
-        } else {
-            // 通透（iOS 26）：13sp SemiBold + SF 字阶绝对字距
-            MaterialTheme.typography.labelLarge.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.08).sp
-            )
-        },
-        fontWeight = if (isSoft) FontWeight.Medium else FontWeight.SemiBold,
+        style = MaterialTheme.typography.labelLarge.copy(
+            fontSize = header.textSize,
+            fontWeight = header.textWeight,
+            letterSpacing = header.letterSpacing
+        ),
+        fontWeight = header.textWeight,
         color = appColors().primary,
         modifier = modifier.padding(start = 4.dp, bottom = 8.dp)
     )
@@ -560,14 +547,16 @@ fun AppSelectableCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
-    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
+    // A1/V2 第二批（v3.69.0）：「书卷用暖米分组底 / 其余用卡底」改按「分组卡」角色判定
+    // （原为 LocalThemePreset.current == AppThemePreset.CLAUDE 的身份布尔）。
+    val useGroupBg = appGroupCard().style == GroupCardStyle.PAPER_GROUPED
     // 底色优先级：显式底色 > 选中（主色薄涂） > 书卷暖米分组底 > 卡底；
     // 材质 / 边缘 / 选中描边全部交给统一表面渲染入口 appSurface 按主题分派
     // （柔绘：羽化描边环由 softSurface 内含，此前在此又叠了一遍 → 已收口）。
     val bg = when {
         containerColor != null -> containerColor
         selected -> tokens.primarySoft
-        isClaude -> claudeGroupBg()
+        useGroupBg -> claudeGroupBg()
         else -> tokens.cardBg
     }
     Column(
@@ -606,7 +595,9 @@ fun AppGlassBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val tokens = appColors()
-    val isSoft = LocalIsSoftTheme.current
+    // A1/V2 第二批（v3.69.0）：柔绘的遮罩/模糊/噪点/涂色四处参数差异收口为角色 token
+    // （原为 LocalIsSoftTheme.current + 四处 if (isSoft)）。
+    val sheetLook = appBottomSheet()
     // v3.43.0（《交互动效审查》P0-2）：面板动效接入全局令牌并纳入「底部面板」分组。
     // M3 ModalBottomSheet 的内部 spec 不可配，故在 sheet surface 的 modifier 上叠一层
     // 主题化淡入 + 自下微移（书卷 24dp 滑入，柔绘 / 通透 0dp 纯淡入）——与 M3 自身的升起
@@ -628,7 +619,7 @@ fun AppGlassBottomSheet(
     }
     // 柔绘：薄涂面板 —— 遮罩更浅（26% vs M3 默认 32%）、背板模糊更弱、涂色更实（0.90 vs 0.86），
     // 拖拽把手颜色由 outlineVariant 角色自动变为柔绘淡边，无需单独改写
-    val scrim = if (isSoft) Color.Black.copy(alpha = 0.26f) else BottomSheetDefaults.ScrimColor
+    val scrim = sheetLook.scrimAlpha?.let { Color.Black.copy(alpha = it) } ?: BottomSheetDefaults.ScrimColor
     if (hazeState == null) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
@@ -653,9 +644,9 @@ fun AppGlassBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .hazeEffect(hazeState) {
-                        blurRadius = if (isSoft) 14.dp else 20.dp
-                        noiseFactor = if (isSoft) 0.06f else 0.12f
-                        tints = listOf(HazeTint(tokens.cardBg.copy(alpha = if (isSoft) 0.90f else 0.86f)))
+                        blurRadius = sheetLook.blurRadius
+                        noiseFactor = sheetLook.noiseFactor
+                        tints = listOf(HazeTint(tokens.cardBg.copy(alpha = sheetLook.tintAlpha)))
                         fallbackTint = HazeTint(tokens.cardBg)
                         backgroundColor = Color.Transparent
                     },

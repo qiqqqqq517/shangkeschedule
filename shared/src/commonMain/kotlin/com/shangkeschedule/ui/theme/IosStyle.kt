@@ -300,6 +300,81 @@ internal val iosNavBarTokens = AppNavBarTokens(
 )
 
 // ============================================================================
+// A1/V2 第二批（v3.69.0）：参数型主题分支的显式赋值（规范 R2）
+//
+// 全部取「原先 isSoft / isClaude 为假时的分支」——即通透自己的那份取值，
+// 逐项与改前一致，观感零变化。
+// ============================================================================
+
+/** 分区标题：通透（iOS 26）13sp SemiBold + SF 绝对字距 -0.08sp。 */
+internal val iosSectionHeaderTokens = AppSectionHeaderTokens(
+    textSize = 13.sp,
+    textWeight = FontWeight.SemiBold,
+    letterSpacing = (-0.08).sp
+)
+
+/** 底部毛玻璃面板：通透走 M3 默认遮罩 + 20dp 模糊 / 0.12 噪点 / 0.86 涂色。 */
+internal val iosBottomSheetTokens = AppBottomSheetTokens(
+    scrimAlpha = null,
+    blurRadius = 20.dp,
+    noiseFactor = 0.12f,
+    tintAlpha = 0.86f
+)
+
+/** 开关：通透直接用 success / inputBg 原色（系数 1），无外层装饰。 */
+internal val iosSwitchTokens = AppSwitchTokens(
+    trackAlpha = 1f,
+    uncheckedAlpha = 1f,
+    featherRim = false
+)
+
+/** 分段控件：通透容器底全不透明 + 轻投影胶囊。 */
+internal val iosSegmentedTokens = AppSegmentedTokens(
+    containerAlpha = 1f,
+    pillStyle = SegmentedPillStyle.ELEVATED
+)
+
+/** 课表网格高亮：通透 0.4 淡底、直角通栏、无内侧竖条、无羽化环。 */
+internal val iosScheduleHighlightTokens = AppScheduleHighlightTokens(
+    todayColumnAlpha = 0.4f,
+    activeSectionAlpha = 0.4f,
+    useRoundedHighlight = false,
+    useInnerBar = false,
+    featherRim = false
+)
+
+/** 悬浮胶囊：通透本体透明，玻璃底由下垫 LiquidGlass 承担；文字色沿用调用方 contentColor。 */
+internal val iosFloatingTokens = AppFloatingTokens(
+    surface = FloatingSurfaceStyle.GLASS_UNDERLAY,
+    contentFallbackToSemantic = false
+)
+
+/** 分组卡：通透白卡 + 2dp 轻投影 + 玻璃高光内描边；高亮描边 1dp。 */
+internal val iosGroupCardTokens = AppGroupCardTokens(
+    style = GroupCardStyle.GLASS_CARD,
+    shadowElevation = 2.dp,
+    highlightBorderWidth = 1.dp
+)
+
+/** 周次切换：通透走斜向扫光，时长 1× 且用主题 entranceEasing。 */
+internal val iosWeekPagerTokens = AppWeekPagerTokens(
+    sheen = WeekPagerSheen.DIRECTIONAL,
+    durationScale = 1f,
+    linearEasing = false
+)
+
+/** 课程块：通透不加投影（靠材质与留白分层），元信息分隔线 1dp / 15%。 */
+internal val iosCourseBlockTokens = AppCourseBlockTokens(
+    shadow = CourseBlockShadow.NONE,
+    border = CourseBlockBorder.SOLID_ALLOWED,
+    palette = CourseBlockPalette.STRIP,
+    stripStartPadding = 4.dp,
+    featherRim = false,
+    metaDividerThickness = 1.dp,
+    metaDividerAlpha = 0.15f
+)
+
+// ============================================================================
 // 通透分组卡（inset grouped）材质
 //
 // iOS 26 的「Inset Grouped List」是 App 的主题语言：白色（深色下 #1C1C1E）圆角卡片

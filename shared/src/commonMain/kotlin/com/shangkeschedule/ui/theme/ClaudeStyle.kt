@@ -11,7 +11,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import shangkeschedule.shared.generated.resources.Lora_Variable
@@ -307,6 +309,81 @@ val claudeNavBarTokens: AppNavBarTokens = AppNavBarTokens(
     titleFontWeight = FontWeight.SemiBold,
     titleLetterSpacing = (-0.41).sp,
     bottomEdge = NavBarBottomEdge.HAIRLINE
+)
+
+// ============================================================================
+// A1/V2 第二批（v3.69.0）：参数型主题分支的显式赋值（规范 R2）
+//
+// 全部取「原先 isClaude 为真 / 非柔绘为假时的分支」——即书卷自己那份取值，
+// 逐项与改前一致，观感零变化。
+// ============================================================================
+
+/** 分区标题：书卷 13sp SemiBold + 收口字距 -0.01em（设计系统 labelLarge 变体）。 */
+val claudeSectionHeaderTokens: AppSectionHeaderTokens = AppSectionHeaderTokens(
+    textSize = 13.sp,
+    textWeight = FontWeight.SemiBold,
+    letterSpacing = (-0.01).em
+)
+
+/** 底部毛玻璃面板：书卷走 M3 默认遮罩 + 20dp 模糊 / 0.12 噪点 / 0.86 涂色。 */
+val claudeBottomSheetTokens: AppBottomSheetTokens = AppBottomSheetTokens(
+    scrimAlpha = null,
+    blurRadius = 20.dp,
+    noiseFactor = 0.12f,
+    tintAlpha = 0.86f
+)
+
+/** 开关：书卷用 success / inputBg 原色（系数 1），无外层装饰。 */
+val claudeSwitchTokens: AppSwitchTokens = AppSwitchTokens(
+    trackAlpha = 1f,
+    uncheckedAlpha = 1f,
+    featherRim = false
+)
+
+/** 分段控件：书卷容器底全不透明 + 轻投影胶囊。 */
+val claudeSegmentedTokens: AppSegmentedTokens = AppSegmentedTokens(
+    containerAlpha = 1f,
+    pillStyle = SegmentedPillStyle.ELEVATED
+)
+
+/** 课表网格高亮：书卷 0.4 淡底、直角通栏、无内侧竖条、无羽化环。 */
+val claudeScheduleHighlightTokens: AppScheduleHighlightTokens = AppScheduleHighlightTokens(
+    todayColumnAlpha = 0.4f,
+    activeSectionAlpha = 0.4f,
+    useRoundedHighlight = false,
+    useInnerBar = false,
+    featherRim = false
+)
+
+/** 悬浮胶囊：书卷不透明暖米分组底 + 0.5dp 实色描边；文字色回落语义色。 */
+val claudeFloatingTokens: AppFloatingTokens = AppFloatingTokens(
+    surface = FloatingSurfaceStyle.OPAQUE_GROUPED,
+    contentFallbackToSemantic = true
+)
+
+/** 分组卡：书卷暖米分组底 + 14dp 收口 + 1dp 极轻投影 + 0.5dp 实色描边。 */
+val claudeGroupCardTokens: AppGroupCardTokens = AppGroupCardTokens(
+    style = GroupCardStyle.PAPER_GROUPED,
+    shadowElevation = 1.dp,
+    highlightBorderWidth = 1.dp
+)
+
+/** 周次切换：书卷与通透同为斜向扫光（纸面语言亦接受镜面反光），时长 1×。 */
+val claudeWeekPagerTokens: AppWeekPagerTokens = AppWeekPagerTokens(
+    sheen = WeekPagerSheen.DIRECTIONAL,
+    durationScale = 1f,
+    linearEasing = false
+)
+
+/** 课程块：书卷不加投影（靠材质与留白分层），元信息分隔线 1dp / 15%。 */
+val claudeCourseBlockTokens: AppCourseBlockTokens = AppCourseBlockTokens(
+    shadow = CourseBlockShadow.NONE,
+    border = CourseBlockBorder.SOLID_ALLOWED,
+    palette = CourseBlockPalette.SOLID,
+    stripStartPadding = 0.dp,
+    featherRim = false,
+    metaDividerThickness = 1.dp,
+    metaDividerAlpha = 0.15f
 )
 
 /**

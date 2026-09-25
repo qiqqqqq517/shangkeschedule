@@ -476,6 +476,380 @@ fun appNavBarTokens(preset: AppThemePreset): AppNavBarTokens = when (preset) {
 val LocalIsSoftTheme = staticCompositionLocalOf { false }
 
 // ============================================================================
+// A1 / V2 第二批（v3.69.0）：组件层「参数型」主题分支收口
+//
+// 与 [AppNavBarTokens] 同构：把「同一组件在不同主题下取不同参数」的分支，
+// 提升为按角色命名的 token 组，组件只读 token、不再判断主题身份。
+//
+// 三条边界（照抄清单判定口诀，避免误收口）：
+//   · 结构型差异（两种不同组件）→ 用枚举表达角色，不用数值 token；
+//   · 组件族并存（SettingsScreen 的三套 UserRow）→ 属 V3 去重，补 token 无效；
+//   · 用户可调项（LocalGlassBlurRadius / fontScale 等）→ 不是主题 token，不得混入。
+// ============================================================================
+
+/**
+ * 分区标题材质 tokens（[AppSectionHeader]）：书卷 / 柔绘 / 通透三套字重与字距。
+ *
+ * 原先由 `AppBasicComponents.kt` 就地 `if (isClaude) … else if (isSoft) … else …`
+ * 表达「同一行文本在三主题下取不同字重与字距」，属参数型分支。
+ *
+ * ⚠️ 字号三套**都是 13sp**，看起来"没有差异"——但字重与字距确实分歧
+ * （柔绘 Medium 松字距 / 书卷与通透 SemiBold 紧字距，且紧的程度不同），
+ * 故字号一并纳入 token，保证「每套主题显式赋值」的规范 R2 成立。
+ */
+data class AppSectionHeaderTokens(
+    val textSize: TextUnit,
+    val textWeight: FontWeight,
+    val letterSpacing: TextUnit
+)
+
+/** CompositionLocal：分区标题材质 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppSectionHeaderTokens = staticCompositionLocalOf { iosSectionHeaderTokens }
+
+/** 组件层快捷访问分区标题材质 tokens。 */
+@Composable
+fun appSectionHeader(): AppSectionHeaderTokens = LocalAppSectionHeaderTokens.current
+
+/** 按主题预设取分区标题材质 tokens。 */
+fun appSectionHeaderTokens(preset: AppThemePreset): AppSectionHeaderTokens = when (preset) {
+    AppThemePreset.SOFT -> softSectionHeaderTokens
+    AppThemePreset.CLAUDE -> claudeSectionHeaderTokens
+    else -> iosSectionHeaderTokens
+}
+
+/**
+ * 底部毛玻璃面板 tokens（[AppGlassBottomSheet]）：遮罩浓度、背板模糊、噪点、涂色 alpha。
+ *
+ * 原先由 `AppBasicComponents.kt` 用 `LocalIsSoftTheme.current` 表达四处参数差异
+ * （柔绘：遮罩更浅 26% / 模糊更弱 14dp / 噪点更低 0.06 / 涂色更实 0.90），
+ * 其余主题走 M3 默认遮罩 + 20dp / 0.12 / 0.86。
+ *
+ * [scrimAlpha] 为 null 表示"交给 M3 默认值"——书卷与通透沿用
+ * `BottomSheetDefaults.ScrimColor`，不用数值强行统一（口径不同，不得折叠）。
+ */
+data class AppBottomSheetTokens(
+    val scrimAlpha: Float?,
+    val blurRadius: Dp,
+    val noiseFactor: Float,
+    val tintAlpha: Float
+)
+
+/** CompositionLocal：底部面板材质 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppBottomSheetTokens = staticCompositionLocalOf { iosBottomSheetTokens }
+
+/** 组件层快捷访问底部面板材质 tokens。 */
+@Composable
+fun appBottomSheet(): AppBottomSheetTokens = LocalAppBottomSheetTokens.current
+
+/** 按主题预设取底部面板材质 tokens。 */
+fun appBottomSheetTokens(preset: AppThemePreset): AppBottomSheetTokens = when (preset) {
+    AppThemePreset.SOFT -> softBottomSheetTokens
+    AppThemePreset.CLAUDE -> claudeBottomSheetTokens
+    else -> iosBottomSheetTokens
+}
+
+/**
+ * 开关 tokens（[AppSwitch]]）：轨道 / 图标的选中与未选中色、外层圆角形态。
+ *
+ * 柔绘把 success 与 inputBg 各压一档（[trackAlpha] 0.72 / [uncheckedAlpha] 0.78），
+ * 并改用羽化描边环替代实色边；其余主题压色系数为 1（即原色）、无外层装饰。
+ *
+ * 之所以存"压色系数"而不是直接存四个 Color：底座色本身随深浅色切换
+ * （`iosLightAppColorTokens()` / `iosDarkAppColorTokens()`），若把 Color 固化进
+ * 本 token 就会丢掉深浅联动。系数 × `appColors()` 的运行时取值，深浅自动跟随。
+ */
+data class AppSwitchTokens(
+    val trackAlpha: Float,
+    val uncheckedAlpha: Float,
+    val featherRim: Boolean
+)
+
+/** CompositionLocal：开关 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppSwitchTokens = staticCompositionLocalOf { iosSwitchTokens }
+
+/** 组件层快捷访问开关 tokens。 */
+@Composable
+fun appSwitch(): AppSwitchTokens = LocalAppSwitchTokens.current
+
+/** 按主题预设取开关 tokens。 */
+fun appSwitchTokens(preset: AppThemePreset): AppSwitchTokens = when (preset) {
+    AppThemePreset.SOFT -> softSwitchTokens
+    AppThemePreset.CLAUDE -> claudeSwitchTokens
+    else -> iosSwitchTokens
+}
+
+/**
+ * 分段控件 tokens（[AppSegmentedControl]）：容器底 + 选中胶囊材质形态。
+ *
+ * [containerAlpha] 为容器的 `inputBg` 涂色 alpha（柔绘 0.78，其余 1.0）；
+ * [pillStyle] 用枚举表达「软模糊投影 + 羽化环」与「轻投影」两种**结构不同的胶囊**
+ * ——这是两种组件结构，不是数值差异。
+ */
+data class AppSegmentedTokens(
+    val containerAlpha: Float,
+    val pillStyle: SegmentedPillStyle
+)
+
+/** 分段控件选中胶囊的材质形态。 */
+enum class SegmentedPillStyle {
+    /** 柔绘：软模糊投影 + 羽化描边环（无硬边 elevation 投影）。 */
+    SOFT_FEATHER,
+
+    /** 通透 / 书卷：轻投影 + 圆形裁剪 + 卡底色。 */
+    ELEVATED
+}
+
+/** CompositionLocal：分段控件 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppSegmentedTokens = staticCompositionLocalOf { iosSegmentedTokens }
+
+/** 组件层快捷访问分段控件 tokens。 */
+@Composable
+fun appSegmented(): AppSegmentedTokens = LocalAppSegmentedTokens.current
+
+/** 按主题预设取分段控件 tokens。 */
+fun appSegmentedTokens(preset: AppThemePreset): AppSegmentedTokens = when (preset) {
+    AppThemePreset.SOFT -> softSegmentedTokens
+    AppThemePreset.CLAUDE -> claudeSegmentedTokens
+    else -> iosSegmentedTokens
+}
+
+/**
+ * 课表网格高亮 tokens：今天列 / 当前节次的淡底浓度、圆角块形态、内侧竖条开关。
+ *
+ * 收口 `ScheduleGridComponents.kt` 的 5 处 `isSoft` 分支。柔绘：淡底压到
+ * 0.28 / 0.26，并把直角通栏换成虚化圆角薄涂块 + 内侧渐变竖条（不依赖描边的定位锚点）。
+ *
+ * [useRoundedHighlight] / [useInnerBar] 均为结构开关：柔绘下"今天列"是通栏色块
+ * （不加圆角，避免列缝留竖向亮带），而"当前节次"才换圆角块——两者取值不同，
+ * 故分开成两个字段而不是共用一个布尔。
+ */
+data class AppScheduleHighlightTokens(
+    val todayColumnAlpha: Float,
+    val activeSectionAlpha: Float,
+    val useRoundedHighlight: Boolean,
+    val useInnerBar: Boolean,
+    val featherRim: Boolean
+)
+
+/** CompositionLocal：课表网格高亮 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppScheduleHighlightTokens = staticCompositionLocalOf { iosScheduleHighlightTokens }
+
+/** 组件层快捷访问课表网格高亮 tokens。 */
+@Composable
+fun appScheduleHighlight(): AppScheduleHighlightTokens = LocalAppScheduleHighlightTokens.current
+
+/** 按主题预设取课表网格高亮 tokens。 */
+fun appScheduleHighlightTokens(preset: AppThemePreset): AppScheduleHighlightTokens = when (preset) {
+    AppThemePreset.SOFT -> softScheduleHighlightTokens
+    AppThemePreset.CLAUDE -> claudeScheduleHighlightTokens
+    else -> iosScheduleHighlightTokens
+}
+
+/**
+ * 悬浮胶囊 tokens（[FloatingCourseBar] 等页内悬浮件）：**结构型**角色。
+ *
+ * 三种悬浮件不是"同一组件的不同参数"，而是**三种不同的表面语言**：
+ *   · 书卷：不透明暖米分组底 + 0.5dp 实色描边（纸面语言，不用玻璃、不用模糊）；
+ *   · 柔绘：卡底薄涂 + 软模糊投影 + 漫射柔光 + 羽化描边（无实色边、无锐利硬边）；
+ *   · 通透：本体透明，玻璃底由下垫 `LiquidGlass` 层承担。
+ *
+ * 故用枚举表达角色而非数值 token（清单判定口诀：结构差异用枚举）——
+ * 组件改为 `when (floating.surface)` 分派三种绘制，不再判断主题身份。
+ *
+ * [contentFallbackToSemantic]：书卷与柔绘的文字色回落到语义色（页面内卡片件口径），
+ * 只有通透沿用调用方传入的 contentColor（玻璃件口径）。这是**色彩来源口径**的差异，
+ * 不是颜色值差异，故保留为布尔角色标记。
+ */
+data class AppFloatingTokens(
+    val surface: FloatingSurfaceStyle,
+    val contentFallbackToSemantic: Boolean
+)
+
+/** 悬浮件表面语言（三种不同结构）。 */
+enum class FloatingSurfaceStyle {
+    /** 书卷：不透明分组底 + 实色描边。 */
+    OPAQUE_GROUPED,
+
+    /** 柔绘：薄涂卡底 + 软模糊投影 + 柔光 + 羽化环。 */
+    SOFT_FEATHER,
+
+    /** 通透：本体透明，玻璃底由下垫 LiquidGlass 承担。 */
+    GLASS_UNDERLAY
+}
+
+/** CompositionLocal：悬浮胶囊 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppFloatingTokens = staticCompositionLocalOf { iosFloatingTokens }
+
+/** 组件层快捷访问悬浮胶囊 tokens。 */
+@Composable
+fun appFloating(): AppFloatingTokens = LocalAppFloatingTokens.current
+
+/**
+ * 分组卡 tokens（[SemesterCard] 一类「大卡面 + 可选高亮描边」容器）：**结构型**角色。
+ *
+ * 收口 `ManageCourseTablesScreen.kt` 的 5 处 isClaude / isSoft 分支
+ * （形状、底色、描边色、表面材质、投影强度）。三种卡片是**三种表面语言**，
+ * 故用枚举表达角色，数值只保留「同一语言内的参数」：
+ *
+ * | 角色 | 形状 | 底色 | 表面 | 常规描边 | 投影 |
+ * | --- | --- | --- | --- | --- | --- |
+ * | SOFT_TEXTURE（柔绘） | appShapes().card（24dp 虚化） | cardBg | softSurface（可选手绘肌理） | 无（高亮由薄涂底表达） | 调用方给 |
+ * | PAPER_GROUPED（书卷） | 14dp 收口 | 暖米分组底 | 极轻投影 + 裁切 + 底色 | 0.5dp 实色 | shadowElevation |
+ * | GLASS_CARD（通透） | appShapes().card（16dp） | 白卡 | 轻投影 + 裁切 + 底色 | iosGlassRim 玻璃高光 | shadowElevation |
+ *
+ * ⚠️ 柔绘档的软投影强度**不进 token**：它随卡片大小由调用方给
+ * （学期大卡 10dp、整宽按钮 6dp），是卡片自身属性而非跨主题差异。
+ */
+data class AppGroupCardTokens(
+    val style: GroupCardStyle,
+    val shadowElevation: Dp,
+    /** 高亮态描边宽度（柔绘为 0 —— 它用薄涂底而非描边表达高亮）。 */
+    val highlightBorderWidth: Dp
+)
+
+/** 分组卡表面语言（三种不同结构）。 */
+enum class GroupCardStyle {
+    /** 柔绘：薄涂卡 + 软模糊投影 + 漫射柔光 + 羽化描边 + 手绘肌理，无实色描边。 */
+    SOFT_TEXTURE,
+
+    /** 书卷：暖米分组底 + 14dp 收口圆角 + 0.5dp 实色描边（纸面语言）。 */
+    PAPER_GROUPED,
+
+    /** 通透：白卡 + 玻璃高光内描边（iOS 26 inset grouped）。 */
+    GLASS_CARD
+}
+
+/** CompositionLocal：分组卡 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppGroupCardTokens = staticCompositionLocalOf { iosGroupCardTokens }
+
+/** 组件层快捷访问分组卡 tokens。 */
+@Composable
+fun appGroupCard(): AppGroupCardTokens = LocalAppGroupCardTokens.current
+
+/** 按主题预设取分组卡 tokens。 */
+fun appGroupCardTokens(preset: AppThemePreset): AppGroupCardTokens = when (preset) {
+    AppThemePreset.SOFT -> softGroupCardTokens
+    AppThemePreset.CLAUDE -> claudeGroupCardTokens
+    else -> iosGroupCardTokens
+}
+
+/**
+ * 周次切换过渡 tokens（[WeeklyScheduleScreen] 切周扫光）：**结构型**角色。
+ *
+ * 柔绘与其余主题是**两种不同的过渡**，不是同一过渡的不同参数：
+ *   · BREATHE（柔绘）：整屏换气 —— sin 曲线一次明度起伏，无方向、无边界；
+ *     斜向扫光是镜面/玻璃语言（明确方向 + 明确边界 + 瞬时高亮），落在雾面薄涂底上
+ *     会切出一条可见"锋面"，与柔绘「化开」的材质定义直接对立。
+ *   · DIRECTIONAL（通透 / 书卷）：Apple HIG 风格收窄光带横扫。
+ *
+ * [durationScale] 柔绘为 2（换气仍比扫光长一档，但跟随「动效速度」而非写死 600ms）；
+ * [linearEasing] 柔绘必须线性 —— sin(π·f) 本身已是单峰曲线，外面再套 ease-in-out
+ * 会把亮度峰值压进中段极窄区间，观感变成"停顿—突亮—停顿"三段。
+ */
+data class AppWeekPagerTokens(
+    val sheen: WeekPagerSheen,
+    val durationScale: Float,
+    val linearEasing: Boolean
+)
+
+/** 周次切换的过渡形态（两种不同结构）。 */
+enum class WeekPagerSheen {
+    /** 整屏换气：无方向、无边界的明度起伏。 */
+    BREATHE,
+
+    /** 斜向扫光：收窄光带自左向右横扫。 */
+    DIRECTIONAL
+}
+
+/** CompositionLocal：周次切换过渡 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppWeekPagerTokens = staticCompositionLocalOf { iosWeekPagerTokens }
+
+/** 组件层快捷访问周次切换过渡 tokens。 */
+@Composable
+fun appWeekPager(): AppWeekPagerTokens = LocalAppWeekPagerTokens.current
+
+/** 按主题预设取周次切换过渡 tokens。 */
+fun appWeekPagerTokens(preset: AppThemePreset): AppWeekPagerTokens = when (preset) {
+    AppThemePreset.SOFT -> softWeekPagerTokens
+    AppThemePreset.CLAUDE -> claudeWeekPagerTokens
+    else -> iosWeekPagerTokens
+}
+
+/**
+ * 课程块装饰 tokens（网格课程块 [CourseBlock] 与列表课程块）：**结构 + 参数**混合角色。
+ *
+ * 收口 `CourseBlock.kt` / `WeeklyScheduleScreen.kt` 的 5 处身份分支。
+ * 投影语言、描边策略、取色口径是**三种结构差异**，用枚举；
+ * 分隔线粗细与浓度是同一语言内的参数，用数值。
+ *
+ * ⚠️ 软投影强度**不进 token**：它随块大小由调用方给（网格 6dp、列表 8dp）。
+ */
+data class AppCourseBlockTokens(
+    val shadow: CourseBlockShadow,
+    val border: CourseBlockBorder,
+    val palette: CourseBlockPalette,
+    /** 色条口径下的时间文字起始内缩（色条占用左侧空间）。 */
+    val stripStartPadding: Dp,
+    /** 列表块：是否叠羽化描边环（柔绘）。 */
+    val featherRim: Boolean,
+    val metaDividerThickness: Dp,
+    val metaDividerAlpha: Float
+)
+
+/** 课程块投影语言（两种不同结构）。 */
+enum class CourseBlockShadow {
+    /** 柔绘：软模糊投影，替代 elevation 硬边投影。 */
+    SOFT_BLUR,
+
+    /** 通透 / 书卷：不加投影，靠材质与留白分层。 */
+    NONE
+}
+
+/**
+ * 课程块描边策略：柔绘**完全不画** 1dp/2dp 实色描边（含用户在课表样式里选的实线/虚线）——
+ * 「无锐利硬边缘」是柔绘的硬约束，层级改由软模糊投影 + 羽化描边表达。
+ */
+enum class CourseBlockBorder {
+    /** 允许实色 / 虚线描边（通透 / 书卷）。 */
+    SOLID_ALLOWED,
+
+    /** 禁止任何实色硬边描边（柔绘）。 */
+    NONE
+}
+
+/**
+ * 课程块取色口径：通透（色条样式）与柔绘共用「淡底 + 深色条」；书卷走实色块。
+ */
+enum class CourseBlockPalette {
+    /** 淡底 + 左侧深色条（通透 / 柔绘）。 */
+    STRIP,
+
+    /** 整块实色（书卷）。 */
+    SOLID
+}
+
+/** CompositionLocal：课程块装饰 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppCourseBlockTokens = staticCompositionLocalOf { iosCourseBlockTokens }
+
+/** 组件层快捷访问课程块装饰 tokens。 */
+@Composable
+fun appCourseBlock(): AppCourseBlockTokens = LocalAppCourseBlockTokens.current
+
+/** 按主题预设取课程块装饰 tokens。 */
+fun appCourseBlockTokens(preset: AppThemePreset): AppCourseBlockTokens = when (preset) {
+    AppThemePreset.SOFT -> softCourseBlockTokens
+    AppThemePreset.CLAUDE -> claudeCourseBlockTokens
+    else -> iosCourseBlockTokens
+}
+
+/** 按主题预设取悬浮胶囊 tokens。 */
+fun appFloatingTokens(preset: AppThemePreset): AppFloatingTokens = when (preset) {
+    AppThemePreset.SOFT -> softFloatingTokens
+    AppThemePreset.CLAUDE -> claudeFloatingTokens
+    else -> iosFloatingTokens
+}
+
+// ============================================================================
 // 统一表面渲染模式（三主题共用一套调度）
 //
 // 全站所有「卡片 / 面板 / 列表块」类表面统一从这里生成材质与边缘，由

@@ -33,11 +33,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.shangkeschedule.data.db.main.CourseWithWeeks
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.LocalAppMotion
-import com.shangkeschedule.ui.theme.LocalThemePreset
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appFloating
+import com.shangkeschedule.ui.theme.FloatingSurfaceStyle
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 import com.shangkeschedule.ui.theme.LiquidGlass
@@ -91,12 +91,13 @@ fun FloatingCourseBar(
         modifier = modifier.zIndex(10f)
     ) {
         floatingCourse?.let { cw ->
-            val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-            val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+            // A1/V2 第二批（v3.69.0）：三种表面语言 + 文字色口径收口为角色 token
+            // （原为 isClaude / isSoft 两个身份布尔）。
             // 书卷：不透明分组底 + 实色描边；通透（iOS 26）：与底栏胶囊同源的 Liquid Glass；
             // 柔绘：薄涂主色淡底 + 软模糊投影 + 漫射柔光 + 羽化描边（无实色描边、无锐利硬边缘）
-            val surfaceModifier = when {
-                isClaude -> Modifier
+            val floating = appFloating()
+            val surfaceModifier = when (floating.surface) {
+                FloatingSurfaceStyle.OPAQUE_GROUPED -> Modifier
                     .shadow(
                         elevation = 8.dp,
                         shape = CircleShape,
@@ -107,22 +108,22 @@ fun FloatingCourseBar(
                     .clip(CircleShape)
                     .background(claudeGroupBg())
                     .border(0.5.dp, claudeGroupBorder(), CircleShape)
-                isSoft -> Modifier
+                FloatingSurfaceStyle.SOFT_FEATHER -> Modifier
                     .softShadow(shape = CircleShape, elevation = 10.dp)
                     .clip(CircleShape)
                     .background(appColors().cardBg)
                     .softGlow(CircleShape)
                     .softFeatherRim(CircleShape)
-                else -> Modifier
+                FloatingSurfaceStyle.GLASS_UNDERLAY -> Modifier
                     // 通透（iOS 26）：玻璃底由下方 LiquidGlass 下垫层承担，Row 本体保持透明
             }
             // 柔绘：悬浮条是页面内的卡片件，文字色回落到语义色（与书卷同口径）；
             // 柔绘低对比配色下，自定义 contentColor（壁纸模式）不保证在薄涂底上的可读性。
-            val titleColor = if (isClaude || isSoft) appColors().textPrimary else contentColor
-            val accentColor = if (isClaude || isSoft) appColors().primary else contentColor
+            val titleColor = if (floating.contentFallbackToSemantic) appColors().textPrimary else contentColor
+            val accentColor = if (floating.contentFallbackToSemantic) appColors().primary else contentColor
             Box {
                 // 通透（iOS 26）：Liquid Glass 下垫层（效果经背板子节点的 UI 树 graphicsLayer 应用）
-                if (!isClaude && !isSoft) {
+                if (floating.surface == FloatingSurfaceStyle.GLASS_UNDERLAY) {
                     LiquidGlass(
                         modifier = Modifier.matchParentSize(),
                         glassBackdrop = null,

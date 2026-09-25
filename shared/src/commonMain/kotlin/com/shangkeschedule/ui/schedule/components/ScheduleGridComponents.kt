@@ -54,8 +54,8 @@ import com.shangkeschedule.data.time.currentTimeFlow
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.theme.AppTypeGrid
 import com.shangkeschedule.ui.theme.LocalAppMotion
-import com.shangkeschedule.ui.theme.LocalIsSoftTheme
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appScheduleHighlight
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.softFeatherRim
 import kotlin.math.roundToInt
@@ -179,7 +179,9 @@ fun DayHeader(
     subTextColor: Color,
     strokeWidthPx: Float
 ) {
-    val isSoft = LocalIsSoftTheme.current
+    // A1/V2 第二批（v3.69.0）：今天列淡底浓度 + 圆角形态收口为角色 token
+    // （原为 LocalIsSoftTheme.current + if (isSoft)）。
+    val highlight = appScheduleHighlight()
     BoxWithConstraints(Modifier.fillMaxWidth().height(style.dayHeaderHeight)) {
         val shouldShowDate = !style.hideDateUnderDay && maxHeight >= 42.dp
 
@@ -254,7 +256,7 @@ fun DayHeader(
                                 // 「今天」靠更薄的涂色表达，不额外加描边（表头列是通栏色块，
                                 // 羽化环会在列缝处留下一条竖向亮带）。
                                 if (isToday) {
-                                    appColors().primarySoft.copy(alpha = if (isSoft) 0.28f else 0.4f)
+                                    appColors().primarySoft.copy(alpha = highlight.todayColumnAlpha)
                                 } else {
                                     Color.Transparent
                                 }
@@ -334,10 +336,11 @@ fun TimeColumn(
     }
 
     // 当前节次高亮：主色淡底（通透 / iOS 26 与书卷共用同一语义）
-    // 柔绘：主色淡底再压一档（0.4 → 0.26）+ 16dp 虚化圆角 + 羽化描边环，
+    // 柔绘：主色淡底再压一档 + 虚化圆角 + 羽化描边环，
     // 并把原来 2dp 的主色左侧竖条换成「内侧竖条（无外描边）」——柔绘不允许实色硬边描边。
-    val isSoft = LocalIsSoftTheme.current
-    val activeSectionBackground = appColors().primarySoft.copy(alpha = if (isSoft) 0.26f else 0.4f)
+    // A1/V2 第二批（v3.69.0）：上述差异收口为 AppScheduleHighlightTokens。
+    val highlight = appScheduleHighlight()
+    val activeSectionBackground = appColors().primarySoft.copy(alpha = highlight.activeSectionAlpha)
     val activeLeftBorderColor = MaterialTheme.colorScheme.primary
     val motion = LocalAppMotion.current
 
@@ -376,7 +379,7 @@ fun TimeColumn(
                     // 柔绘：当前节次淡底块换成 10dp（appShapes().chipSmall）虚化圆角薄涂块；
                     // 其它主题保持直角通栏淡底（未选中时不加任何图层装饰）
                     .then(
-                        if (isSoft && isCurrentHourActive) {
+                        if (highlight.useRoundedHighlight && isCurrentHourActive) {
                             Modifier.clip(appShapes().chipSmall)
                         } else {
                             Modifier
@@ -387,7 +390,7 @@ fun TimeColumn(
                         // 当前节次左缘主色指示条：原有区块样式里没有这条竖条（节次高亮只靠主色淡底），
                         // 这里只在柔绘下新增一根「内侧渐变竖条」——因为柔绘把淡底换成了圆角薄涂块，
                         // 需要一个不依赖描边的定位锚点。
-                        if (isSoft && isCurrentHourActive) {
+                        if (highlight.useInnerBar && isCurrentHourActive) {
                             Modifier.drawBehind {
                                 val barWidth = 3.dp.toPx()
                                 drawRect(
@@ -404,7 +407,7 @@ fun TimeColumn(
                             Modifier
                         }
                     )
-                    .then(if (isSoft) Modifier.softFeatherRim(appShapes().chipSmall) else Modifier)
+                    .then(if (highlight.featherRim) Modifier.softFeatherRim(appShapes().chipSmall) else Modifier)
                     .drawBehind {
                         if (!style.hideGridLines) {
                             drawLine(lineColor, Offset(size.width, 0f), Offset(size.width, size.height), strokeWidthPx)

@@ -140,6 +140,16 @@ fun ShangKeScheduleTheme(
     val typeTokens = appTypeTokens(themePreset)
     // A1/V2：顶栏玻璃材质（v3.69.0 新增角色组）
     val navBarTokens = appNavBarTokens(themePreset)
+    // A1/V2 第二批（v3.69.0）：参数型主题分支收口 —— 五个角色组
+    val sectionHeaderTokens = appSectionHeaderTokens(themePreset)
+    val bottomSheetTokens = appBottomSheetTokens(themePreset)
+    val switchTokens = appSwitchTokens(themePreset)
+    val segmentedTokens = appSegmentedTokens(themePreset)
+    val scheduleHighlightTokens = appScheduleHighlightTokens(themePreset)
+    val floatingTokens = appFloatingTokens(themePreset)
+    val groupCardTokens = appGroupCardTokens(themePreset)
+    val weekPagerTokens = appWeekPagerTokens(themePreset)
+    val courseBlockTokens = appCourseBlockTokens(themePreset)
 
     // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
     val typography = when {
@@ -193,6 +203,15 @@ fun ShangKeScheduleTheme(
         LocalAppSpacingTokens provides spacingTokens,
         LocalAppTypeTokens provides typeTokens,
         LocalAppNavBarTokens provides navBarTokens,
+        LocalAppSectionHeaderTokens provides sectionHeaderTokens,
+        LocalAppBottomSheetTokens provides bottomSheetTokens,
+        LocalAppSwitchTokens provides switchTokens,
+        LocalAppSegmentedTokens provides segmentedTokens,
+        LocalAppScheduleHighlightTokens provides scheduleHighlightTokens,
+        LocalAppFloatingTokens provides floatingTokens,
+        LocalAppGroupCardTokens provides groupCardTokens,
+        LocalAppWeekPagerTokens provides weekPagerTokens,
+        LocalAppCourseBlockTokens provides courseBlockTokens,
         LocalIsSoftTheme provides isSoft,
         LocalIndication provides indication
     ) {

@@ -74,7 +74,9 @@ import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.AppColorTokens
 import com.shangkeschedule.ui.theme.AppSemanticColors
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.appSegmented
+import com.shangkeschedule.ui.theme.appSwitch
+import com.shangkeschedule.ui.theme.SegmentedPillStyle
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.data.model.AppThemePreset
@@ -261,16 +263,27 @@ fun AppSwitch(
     enabled: Boolean = true
 ) {
     val tokens = appColors()
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
-    // 柔绘：轨道色降饱和（success 0x7BAE8C 再压一档 → 72%，避免低对比界面上开关"跳"出来），
-    // 未选中轨道同样压淡一档；并加羽化描边环替代任何实色描边。
+    // A1/V2 第二批（v3.69.0）：柔绘的轨道降饱和 + 羽化环收口为角色 token
+    // （原为 LocalThemePreset.current == AppThemePreset.SOFT + 四处 if (isSoft)）。
+    val switchLook = appSwitch()
+    // 柔绘：轨道色降饱和（success 0x7BAE8C 再压一档），未选中轨道同样压淡一档；
+    // 并加羽化描边环替代任何实色描边。
     // 柔绘圆角：M3 开关轨道本身是全高胶囊，这里只把外层按 appShapes().capsule 收敛，
     // 使左右端与柔绘整体圆角阶梯一致。
-    val softTrackAlpha = 0.72f
+    val checkedTrack = if (switchLook.trackAlpha >= 1f) {
+        tokens.success
+    } else {
+        tokens.success.copy(alpha = switchLook.trackAlpha)
+    }
+    val uncheckedTrack = if (switchLook.uncheckedAlpha >= 1f) {
+        tokens.inputBg
+    } else {
+        tokens.inputBg.copy(alpha = switchLook.uncheckedAlpha)
+    }
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
-        modifier = if (isSoft) {
+        modifier = if (switchLook.featherRim) {
             modifier.softFeatherRim(appShapes().capsule)
         } else {
             modifier
@@ -278,13 +291,13 @@ fun AppSwitch(
         enabled = enabled,
         colors = SwitchDefaults.colors(
             checkedThumbColor = Color.White,
-            checkedTrackColor = if (isSoft) tokens.success.copy(alpha = softTrackAlpha) else tokens.success,
+            checkedTrackColor = checkedTrack,
             checkedBorderColor = Color.Transparent,
-            checkedIconColor = if (isSoft) tokens.success.copy(alpha = softTrackAlpha) else tokens.success,
+            checkedIconColor = checkedTrack,
             uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = if (isSoft) tokens.inputBg.copy(alpha = 0.78f) else tokens.inputBg,
+            uncheckedTrackColor = uncheckedTrack,
             uncheckedBorderColor = Color.Transparent,
-            uncheckedIconColor = if (isSoft) tokens.inputBg.copy(alpha = 0.78f) else tokens.inputBg
+            uncheckedIconColor = uncheckedTrack
         )
     )
 }
@@ -421,10 +434,16 @@ fun AppSegmentedControl(
     modifier: Modifier = Modifier
 ) {
     val tokens = appColors()
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
+    // A1/V2 第二批（v3.69.0）：容器涂色浓度 + 胶囊材质形态收口为角色 token
+    // （原为 LocalThemePreset.current == AppThemePreset.SOFT + if (isSoft)）。
+    val segLook = appSegmented()
     val motion = LocalAppMotion.current
     // 柔绘：容器底压淡一档（低对比）
-    val softContainer = tokens.inputBg.copy(alpha = 0.78f)
+    val softContainer = if (segLook.containerAlpha >= 1f) {
+        tokens.inputBg
+    } else {
+        tokens.inputBg.copy(alpha = segLook.containerAlpha)
+    }
     val density = LocalDensity.current
 
     // v3.43.0：选中胶囊由「各选项瞬切底色」改为**共享胶囊滑动**——
@@ -452,7 +471,7 @@ fun AppSegmentedControl(
     val pillMeasured = pillWidth > 0.dp && pillHeight > 0.dp
 
     // 胶囊材质：柔绘用软模糊投影 + 羽化环（无硬边 elevation 投影），其余主题用轻投影
-    val pillSurface = if (isSoft) {
+    val pillSurface = if (segLook.pillStyle == SegmentedPillStyle.SOFT_FEATHER) {
         Modifier
             .softShadow(shape = CircleShape, elevation = 4.dp)
             .clip(CircleShape)
@@ -477,7 +496,7 @@ fun AppSegmentedControl(
         modifier = modifier
             .fillMaxWidth()
             .clip(CircleShape)
-            .background(if (isSoft) softContainer else tokens.inputBg)
+            .background(softContainer)
     ) {
         if (pillMeasured) {
             Box(

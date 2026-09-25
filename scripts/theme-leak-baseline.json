@@ -1,12 +1,12 @@
 {
   "_comment": "A1 主题系统收口 · 棘轮基线。只允许下降；上升即为回归，pre-commit 会拦截。",
-  "updated": "2026-09-25",
+  "updated": "2026-09-26",
   "counts": {
-    "c1_branch": 45,
+    "c1_branch": 25,
     "c2_collapse": 2,
     "c3_missing": 4,
     "c4_patch": 1,
-    "total": 52,
-    "c1_identity": 17
+    "total": 32,
+    "c1_identity": 15
   }
 }

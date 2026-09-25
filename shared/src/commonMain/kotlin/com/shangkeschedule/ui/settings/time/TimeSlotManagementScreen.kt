@@ -63,7 +63,6 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.repository.DEFAULT_TIME_SLOTS
 import com.shangkeschedule.data.time.daysInMonth
 import com.shangkeschedule.ui.components.AppTopAppBar
@@ -77,7 +76,8 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
-import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.appGroupCard
+import com.shangkeschedule.ui.theme.GroupCardStyle
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -1000,29 +1000,35 @@ private fun RestoreDefaultButton(
     onClick: () -> Unit
 ) {
     val colors = appColors()
-    val isClaude = LocalThemePreset.current == AppThemePreset.CLAUDE
-    val isSoft = LocalThemePreset.current == AppThemePreset.SOFT
-    val shape = if (isClaude) {
+    // A1/V2 第二批（v3.69.0）：「整宽卡片钮」复用「分组卡」角色 token
+    // （原为 isClaude / isSoft 两个身份布尔）。
+    val card = appGroupCard()
+    val shape = if (card.style == GroupCardStyle.PAPER_GROUPED) {
         RoundedCornerShape(14.dp)
     } else {
         appShapes().card
     }
     // 柔绘：整钮换成薄涂卡材质（软模糊投影 + 漫射柔光 + 羽化描边），
     // 取代「clip + background + 0.5dp 实色描边」——无锐利硬边缘。
-    val containerModifier = if (isSoft) {
-        Modifier.softSurface(shape = shape, containerColor = colors.cardBgElevated, elevation = 6.dp)
-    } else {
-        Modifier
-            .clip(shape)
-            .background(colors.cardBgElevated)
-            .then(
-                if (isClaude) {
-                    Modifier.border(0.5.dp, colors.divider, shape)
-                } else {
-                    // 通透（iOS 26）：玻璃高光内描边 + 发丝分隔线
-                    Modifier.iosGlassRim(shape).border(0.5.dp, colors.divider, shape)
-                }
-            )
+    // 软投影强度随卡片大小由调用方给（此处 6dp），不进 token（见 AppGroupCardTokens 注释）。
+    val containerModifier = when (card.style) {
+        GroupCardStyle.SOFT_TEXTURE -> {
+            Modifier.softSurface(shape = shape, containerColor = colors.cardBgElevated, elevation = 6.dp)
+        }
+        GroupCardStyle.PAPER_GROUPED -> {
+            Modifier
+                .clip(shape)
+                .background(colors.cardBgElevated)
+                .border(0.5.dp, colors.divider, shape)
+        }
+        GroupCardStyle.GLASS_CARD -> {
+            // 通透（iOS 26）：玻璃高光内描边 + 发丝分隔线
+            Modifier
+                .clip(shape)
+                .background(colors.cardBgElevated)
+                .iosGlassRim(shape)
+                .border(0.5.dp, colors.divider, shape)
+        }
     }
     Box(
         modifier = Modifier
