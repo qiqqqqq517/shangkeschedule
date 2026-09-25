@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
-import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCard
@@ -64,8 +62,10 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
-import com.shangkeschedule.ui.theme.LocalThemePreset
+import com.shangkeschedule.ui.theme.SettingsEntryTone
+import com.shangkeschedule.ui.theme.SettingsTopBar
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSettingsPage
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import kotlinx.datetime.DayOfWeek
@@ -131,11 +131,11 @@ fun SettingsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val themePreset = LocalThemePreset.current
-    val isIosPreset = themePreset == AppThemePreset.IOS
-    val isSoftPreset = themePreset == AppThemePreset.SOFT
-    val isClaudePreset = themePreset == AppThemePreset.CLAUDE
-    // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，三主题各自渲染，
+    // v3.69.0（V3 去重）：页骨架差异（有无顶栏 / 宽屏是否居中）改由
+    // [appSettingsPage] 提供 —— 原先这里声明 isIos/isSoft/isClaude 三个身份布尔，
+    // 再在 7 处按身份分派；设置页组件族合一后，身份判断全部消失。
+    val page = appSettingsPage()
+    // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，一套组件渲染，
     // 新增设置项不再需要同步改三处（历史上已出现 tone 映射漂移）
     val settingsSections = buildSettingsSections(uiState, viewModel)
     // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
@@ -159,18 +159,16 @@ fun SettingsScreen(
         onTabSelected = { dest -> onNavigate(dest) }
     ) { navPadding ->
         Scaffold(
-            // 书卷主题没有 TopAppBar 吸收滚动量：若仍挂 exitUntilCollapsed 的 nestedScroll 连接，
-            // 滚动会被整段吞掉（列表完全无法滑动），故仅在存在顶栏的主题下挂载。
-            modifier = if (isClaudePreset || isSoftPreset) {
+            // 无顶栏的主题（书卷 / 柔绘）没有 TopAppBar 吸收滚动量：若仍挂
+            // exitUntilCollapsed 的 nestedScroll 连接，滚动会被整段吞掉
+            // （列表完全无法滑动），故仅在存在顶栏的主题下挂载。
+            modifier = if (page.topBar == SettingsTopBar.NONE) {
                 Modifier
             } else {
                 Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
             },
             topBar = {
-                if (isClaudePreset || isSoftPreset) {
-                    // 书卷：大标题由内容区 ClaudePageHeader 承担
-                    // 柔绘：大标题由内容区 SoftPageHeader 承担（同为 4 组分组列表结构）
-                } else if (isIosPreset) {
+                if (page.topBar == SettingsTopBar.LEADING_LARGE) {
                     // iOS 风格：左对齐大标题（对齐设计稿 .nav-bar__title）
                     TopAppBar(
                         title = {
@@ -196,23 +194,16 @@ fun SettingsScreen(
                             backgroundColor = Color.Transparent
                         }
                     )
-                } else {
-                    CenterAlignedTopAppBar(
-                        title = { Text(stringResource(Res.string.nav_settings)) },
-                        scrollBehavior = scrollBehavior,
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent
-                        ),
-                        modifier = Modifier.hazeEffect(hazeState) {
-                            blurRadius = 16.dp
-                            noiseFactor = 0.1f
-                            tints = listOf(HazeTint(glassTint))
-                            fallbackTint = HazeTint(glassFallback)
-                            backgroundColor = Color.Transparent
-                        }
-                    )
                 }
+                // [SettingsTopBar.NONE]：书卷 / 柔绘不渲染顶栏。
+                //
+                // ⚠️ v3.69.0 实测：原注释写「大标题由内容区 ClaudePageHeader /
+                // SoftPageHeader 承担」，但这两个组件**在全仓库仅定义处出现、从未被调用**
+                // ⇒ 书卷与柔绘的设置页实际上没有页面标题。属既有缺陷（疑似漏接），
+                // 本轮不擅自补标题（视觉变化需确认），已记入工作日志待决策。
+                //
+                // 原 else 分支的 CenterAlignedTopAppBar 是死代码（三主题已被身份布尔
+                // 全覆盖，永远走不到），随身份布尔一并删除。
             }
         ) { innerPadding ->
             LazyColumn(
@@ -221,71 +212,31 @@ fun SettingsScreen(
                     .hazeSource(hazeState)
                     .padding(horizontal = appSpacing().pageHorizontal),
                 verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
-                // iOS 主题：宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
-                horizontalAlignment = if (isIosPreset || isSoftPreset) Alignment.CenterHorizontally else Alignment.Start,
+                // 宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
+                horizontalAlignment = if (page.centerContent) Alignment.CenterHorizontally else Alignment.Start,
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     bottom = navPadding.calculateBottomPadding() + 16.dp
                 )
             ) {
-                if (isClaudePreset) {
-                    // ===== 书卷主题：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                                .padding(top = 12.dp)
-                        ) {
-                            ClaudeUserRow(
-                                name = profileName,
-                                school = profileSubtitle,
-                                avatarPath = uiState.appSettings.profileAvatarPath,
-                                onClick = { onNavigate(Destination.ProfileInfo) }
-                            )
-                        }
+                // ===== 身份卡 + 数据驱动分组列表（v3.69.0 三份复制合一）=====
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 640.dp)
+                            .padding(top = 12.dp)
+                    ) {
+                        AppSettingsUserRow(
+                            name = profileName,
+                            school = profileSubtitle,
+                            avatarPath = uiState.appSettings.profileAvatarPath,
+                            onClick = { onNavigate(Destination.ProfileInfo) }
+                        )
                     }
-                    claudeSettingsItems(settingsSections, onNavigate)
-                } else if (isSoftPreset) {
-                    // ===== 柔绘主题：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
-                    // 材质：24dp 虚化圆角 + 薄涂底 + 漫射柔光 + 手绘纹理 + 软模糊投影。
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                                .padding(top = 12.dp)
-                        ) {
-                            SoftUserRow(
-                                name = profileName,
-                                school = profileSubtitle,
-                                avatarPath = uiState.appSettings.profileAvatarPath,
-                                onClick = { onNavigate(Destination.ProfileInfo) }
-                            )
-                        }
-                    }
-                    softSettingsItems(settingsSections, onNavigate)
-                } else if (isIosPreset) {
-                    // ===== 通透主题（iOS 26）：个人身份卡 + 数据驱动分组列表（v3.54.0 收口三份复制）=====
-                    // 材质：白卡 + 玻璃高光内描边 + SF 系统字体。
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp)
-                                .padding(top = 12.dp)
-                        ) {
-                            IosUserRow(
-                                name = profileName,
-                                school = profileSubtitle,
-                                avatarPath = uiState.appSettings.profileAvatarPath,
-                                onClick = { onNavigate(Destination.ProfileInfo) }
-                            )
-                        }
-                    }
-                    iosSettingsItems(settingsSections, onNavigate)
-                } // 非 iOS 主题布局结束
+                }
+                appSettingsItems(settingsSections, onNavigate)
             }
         }
     }
@@ -719,12 +670,12 @@ internal fun NumberPickerDialog(
 
 // ==================== 设置主页数据驱动模型（v3.54.0） ====================
 
-/**
- * 设置条目语义色调：三主题共用一份语义，各自映射为专属 tone。
- * 历史上三份复制已出现映射漂移（课程管理在书卷是 MATCHA、通透是 GREEN，其余条目
- * 也靠人工对齐）；收口后新增条目只需选一个语义色调。
- */
-private enum class SettingsEntryTone { PURPLE, ORANGE, RED, OLIVE, MATCHA, PINK, GREEN, GRAY, AMBER, BROWN }
+//
+// v3.69.0（V3 去重）：[SettingsEntryTone] 已上移到 `ui/theme/SettingsTone.kt`。
+// 原先「语义角色 → 三套视觉枚举」的映射由本文件的 toClaudeTone/toSoftTone/toIosTone
+// 三张表承担，且柔绘、通透各有一处折叠（10 → 9 / 10 → 8）；上移后色表归主题层持有，
+// 组件只认语义角色，三张表与三套视觉枚举一并删除。
+//
 
 /** 开关类条目的 trailing 状态包。 */
 private data class SettingsEntryToggle(
@@ -801,48 +752,11 @@ private fun buildSettingsSections(
     )
 )
 
-// ---- 三主题语义色调映射（与 v3.53.5 各主题原取值逐条一致） ----
-
-private fun SettingsEntryTone.toClaudeTone(): ClaudeCellTone = when (this) {
-    SettingsEntryTone.PURPLE -> ClaudeCellTone.PURPLE
-    SettingsEntryTone.ORANGE -> ClaudeCellTone.ORANGE
-    SettingsEntryTone.RED -> ClaudeCellTone.RED
-    SettingsEntryTone.OLIVE -> ClaudeCellTone.OLIVE
-    SettingsEntryTone.MATCHA -> ClaudeCellTone.MATCHA
-    SettingsEntryTone.PINK -> ClaudeCellTone.PINK
-    SettingsEntryTone.GREEN -> ClaudeCellTone.GREEN
-    SettingsEntryTone.GRAY -> ClaudeCellTone.GRAY
-    SettingsEntryTone.AMBER -> ClaudeCellTone.AMBER
-    SettingsEntryTone.BROWN -> ClaudeCellTone.BROWN
-}
-
-private fun SettingsEntryTone.toSoftTone(): SoftCellTone = when (this) {
-    SettingsEntryTone.PURPLE -> SoftCellTone.LILAC
-    SettingsEntryTone.ORANGE -> SoftCellTone.APRICOT
-    SettingsEntryTone.RED -> SoftCellTone.CLAY
-    SettingsEntryTone.OLIVE -> SoftCellTone.SAGE
-    SettingsEntryTone.MATCHA -> SoftCellTone.FERN
-    SettingsEntryTone.PINK -> SoftCellTone.ROSE
-    SettingsEntryTone.GREEN -> SoftCellTone.SAGE
-    SettingsEntryTone.GRAY -> SoftCellTone.STEEL
-    SettingsEntryTone.AMBER -> SoftCellTone.SAND
-    SettingsEntryTone.BROWN -> SoftCellTone.COCOA
-}
-
-private fun SettingsEntryTone.toIosTone(): IosCellTone = when (this) {
-    SettingsEntryTone.PURPLE -> IosCellTone.PURPLE
-    SettingsEntryTone.ORANGE -> IosCellTone.ORANGE
-    SettingsEntryTone.RED -> IosCellTone.RED
-    SettingsEntryTone.OLIVE -> IosCellTone.TEAL
-    SettingsEntryTone.MATCHA -> IosCellTone.GREEN
-    SettingsEntryTone.PINK -> IosCellTone.PINK
-    SettingsEntryTone.GREEN -> IosCellTone.GREEN
-    SettingsEntryTone.GRAY -> IosCellTone.GRAY
-    SettingsEntryTone.AMBER -> IosCellTone.YELLOW
-    SettingsEntryTone.BROWN -> IosCellTone.GRAY
-}
-
-// ---- 三主题分组渲染器：同一份数据，各自换组件 ----
+// ---- 三主题分组渲染器：同一份数据，一套组件 ----
+//
+// v3.69.0（V3 去重）：原 `claudeSettingsItems` / `softSettingsItems` / `iosSettingsItems`
+// 三份包装各传一套组件与一张 tone 映射表；组件合一 + 色表归主题层后，三份包装退化为
+// 同一份 —— 下面的 [appSettingsItems] 是唯一入口，内部全部走统一的 App* 组件。
 
 /**
  * 设置分组渲染骨架：分组标题 + 分组容器 + 逐条 cell。
@@ -850,41 +764,30 @@ private fun SettingsEntryTone.toIosTone(): IosCellTone = when (this) {
  * 三套主题的差异只有「用哪组组件」与「语义色调怎么映射」，遍历、分隔线、
  * 开关尾部、导航回调完全一致；收口后新增设置条目只需改 [buildSettingsSections]。
  */
-private fun LazyListScope.settingsItems(
-    keyPrefix: String,
+private fun LazyListScope.appSettingsItems(
     sections: List<SettingsSection>,
-    onNavigate: (Destination) -> Unit,
-    groupLabel: @Composable (label: String) -> Unit,
-    group: @Composable (content: @Composable ColumnScope.() -> Unit) -> Unit,
-    cell: @Composable (
-        title: String,
-        icon: ImageVector,
-        tone: SettingsEntryTone,
-        showDivider: Boolean,
-        onClick: (() -> Unit)?,
-        trailing: (@Composable () -> Unit)?
-    ) -> Unit
+    onNavigate: (Destination) -> Unit
 ) {
     sections.forEachIndexed { sectionIndex, section ->
-        item(key = "$keyPrefix-settings-$sectionIndex") {
+        item(key = "settings-$sectionIndex") {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 640.dp)
             ) {
-                groupLabel(stringResource(section.labelRes))
-                group {
+                AppGroupLabel(stringResource(section.labelRes))
+                AppSettingsGroup {
                     section.entries.forEachIndexed { entryIndex, entry ->
                         val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
                             { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
                         }
-                        cell(
-                            stringResource(entry.titleRes),
-                            vectorResource(entry.iconRes),
-                            entry.tone,
-                            entryIndex > 0,
-                            entry.destination?.let { d -> { onNavigate(d) } },
-                            toggleTrailing
+                        AppSettingRow(
+                            title = stringResource(entry.titleRes),
+                            icon = vectorResource(entry.iconRes),
+                            tone = entry.tone,
+                            showDivider = entryIndex > 0,
+                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
+                            trailing = toggleTrailing
                         )
                     }
                 }
@@ -893,65 +796,3 @@ private fun LazyListScope.settingsItems(
     }
 }
 
-private fun LazyListScope.claudeSettingsItems(
-    sections: List<SettingsSection>,
-    onNavigate: (Destination) -> Unit
-) = settingsItems(
-    keyPrefix = "claude",
-    sections = sections,
-    onNavigate = onNavigate,
-    groupLabel = { ClaudeGroupLabel(it) },
-    group = { content -> ClaudeInsetGroup { content() } },
-    cell = { title, icon, tone, showDivider, onClick, trailing ->
-        ClaudeListItem(
-            title = title,
-            icon = icon,
-            tone = tone.toClaudeTone(),
-            showDivider = showDivider,
-            onClick = onClick,
-            trailing = trailing
-        )
-    }
-)
-
-private fun LazyListScope.softSettingsItems(
-    sections: List<SettingsSection>,
-    onNavigate: (Destination) -> Unit
-) = settingsItems(
-    keyPrefix = "soft",
-    sections = sections,
-    onNavigate = onNavigate,
-    groupLabel = { SoftGroupLabel(it) },
-    group = { content -> SoftSettingsGroup { content() } },
-    cell = { title, icon, tone, showDivider, onClick, trailing ->
-        SoftSettingCell(
-            title = title,
-            icon = icon,
-            tone = tone.toSoftTone(),
-            showDivider = showDivider,
-            onClick = onClick,
-            trailing = trailing
-        )
-    }
-)
-
-private fun LazyListScope.iosSettingsItems(
-    sections: List<SettingsSection>,
-    onNavigate: (Destination) -> Unit
-) = settingsItems(
-    keyPrefix = "ios",
-    sections = sections,
-    onNavigate = onNavigate,
-    groupLabel = { IosGroupLabel(it) },
-    group = { content -> IosSettingsGroup { content() } },
-    cell = { title, icon, tone, showDivider, onClick, trailing ->
-        IosSettingCell(
-            title = title,
-            icon = icon,
-            tone = tone.toIosTone(),
-            showDivider = showDivider,
-            onClick = onClick,
-            trailing = trailing
-        )
-    }
-)

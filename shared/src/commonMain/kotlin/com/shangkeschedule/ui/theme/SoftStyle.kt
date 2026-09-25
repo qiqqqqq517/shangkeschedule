@@ -394,6 +394,68 @@ internal val softCourseBlockTokens = AppCourseBlockTokens(
 )
 
 // ============================================================================
+// A1 / V3（v3.69.0）：设置页组件族合一后的柔绘参数
+// 逐条取自原 SoftSettingCell / SoftSettingsGroup / SoftGroupLabel / SoftUserRow。
+// cornerRadius 为 0.dp：SOFT_BLUR 材质统一取 appShapes().card，不需要独立半径。
+// ============================================================================
+
+internal val softSettingsRowTokens = AppSettingsRowTokens(
+    rowHeight = SettingsRowHeight.MIN_ROW_MIN_HEIGHT,
+    dividerInset = 62.dp,
+    dividerColor = SettingsDividerColor.DIVIDER_TOKEN,
+    paddingHorizontal = 18.dp,
+    paddingVertical = 10.dp,
+    iconBoxSize = 30.dp,
+    iconBoxRadius = 10.dp,
+    iconMaterial = SettingsIconMaterial.SOFT_FEATHER,
+    iconGap = 14.dp,
+    titleSize = 16.sp,
+    titleWeight = FontWeight.Normal,
+    titleLetterSpacing = (-0.05).sp,
+    detailSize = 14.sp,
+    chevronSize = 15.dp,
+    chevronAlpha = 0.5f,
+    trailingSlot = SettingsTrailingSlot.FIXED_56X32
+)
+
+internal val softSettingsGroupTokens = AppSettingsGroupTokens(
+    material = SettingsSurfaceMaterial.SOFT_BLUR,
+    cornerRadius = 0.dp,
+    glassRim = false,
+    texture = true,
+    elevation = 10.dp
+)
+
+internal val softSettingsLabelTokens = AppSettingsLabelTokens(
+    fontSize = 13.sp,
+    fontWeight = FontWeight.Medium,
+    letterSpacing = 0.4.sp,
+    uppercase = false,
+    color = SettingsLabelColor.SECONDARY,
+    startPadding = 6.dp
+)
+
+internal val softSettingsUserRowTokens = AppSettingsUserRowTokens(
+    material = SettingsSurfaceMaterial.SOFT_BLUR,
+    cornerRadius = 0.dp,
+    elevation = 8.dp,
+    paddingHorizontal = 18.dp,
+    paddingVertical = 18.dp,
+    avatarStyle = SettingsAvatarStyle.SOFT_GLOW_GRADIENT,
+    avatarInitialColor = SettingsAvatarInitialColor.WHITE,
+    avatarInitialWeight = FontWeight.SemiBold,
+    nameSize = 17.sp,
+    nameWeight = FontWeight.Medium,
+    chevronSize = 15.dp,
+    chevronAlpha = 0.5f
+)
+
+internal val softSettingsPageTokens = AppSettingsPageTokens(
+    topBar = SettingsTopBar.NONE,
+    centerContent = true
+)
+
+// ============================================================================
 // 柔绘材质：晕染底 / 薄涂卡 / 羽化描边 / 软模糊投影 / 漫射光斑 / 手绘纹理
 // ============================================================================
 

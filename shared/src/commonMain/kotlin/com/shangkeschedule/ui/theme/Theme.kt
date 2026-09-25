@@ -125,8 +125,12 @@ fun ShangKeScheduleTheme(
     // `xxxAppColorTokens(isDark) = if (isDark) xxxDarkAppColorTokens() else xxxLightAppColorTokens()`
     // 与分派结果逐项相同 ⇒ 本改为**行为等价、视觉零变化**。
     val styledTokens = appColorTokens(darkTheme, themePreset)
+    // A1/C4（v3.69.0）：`primary` 不再被 ColorScheme 反向覆盖 —— 四套 token 的 primary 与
+    // 各自 ColorScheme.primary 已逐项核对相等（书卷 ClaudeBrand500 / ClaudeDarkBrand500、
+    // 通透 IosBlueLight / IosBlueDark、柔绘 SoftPrimaryLight / #9AA3DC），原
+    // `primary = colorScheme.primary` 是恒等覆盖，删除后 token 成为 primary 的**唯一来源**
+    // （规范 R4 单源），视觉零变化。
     val syncedTokens = styledTokens.copy(
-        primary = colorScheme.primary,
         primarySoft = colorScheme.primaryContainer,
         gradientStart = colorScheme.primary,
         gradientEnd = colorScheme.primary.copy(alpha = 0.82f),
@@ -150,6 +154,12 @@ fun ShangKeScheduleTheme(
     val groupCardTokens = appGroupCardTokens(themePreset)
     val weekPagerTokens = appWeekPagerTokens(themePreset)
     val courseBlockTokens = appCourseBlockTokens(themePreset)
+    // A1/V3（v3.69.0）：设置页组件族合一后的五组差异参数
+    val settingsRowTokens = appSettingsRowTokens(themePreset)
+    val settingsGroupTokens = appSettingsGroupTokens(themePreset)
+    val settingsLabelTokens = appSettingsLabelTokens(themePreset)
+    val settingsUserRowTokens = appSettingsUserRowTokens(themePreset)
+    val settingsPageTokens = appSettingsPageTokens(themePreset)
 
     // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
     val typography = when {
@@ -212,6 +222,11 @@ fun ShangKeScheduleTheme(
         LocalAppGroupCardTokens provides groupCardTokens,
         LocalAppWeekPagerTokens provides weekPagerTokens,
         LocalAppCourseBlockTokens provides courseBlockTokens,
+        LocalAppSettingsRowTokens provides settingsRowTokens,
+        LocalAppSettingsGroupTokens provides settingsGroupTokens,
+        LocalAppSettingsLabelTokens provides settingsLabelTokens,
+        LocalAppSettingsUserRowTokens provides settingsUserRowTokens,
+        LocalAppSettingsPageTokens provides settingsPageTokens,
         LocalIsSoftTheme provides isSoft,
         LocalIndication provides indication
     ) {

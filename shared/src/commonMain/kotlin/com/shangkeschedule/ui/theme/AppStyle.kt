@@ -34,6 +34,17 @@ data class AppSemanticColors(
     val bg: Color
 )
 
+/**
+ * Material 3 基线描边色 —— 与 [AppColorTokens.outline] / [AppColorTokens.outlineVariant]
+ * 的 data class 默认值**逐位相同**。
+ *
+ * 存在理由：C3「token 显式覆盖」要求每套主题都写出 outline / outlineVariant，不得依赖
+ * data class 默认值（否则调整默认值会静默影响所有未声明的主题）。沿用 Material 基线的
+ * 主题（书卷 / 通透）引用这两个常量显式声明，取值与不传时完全一致 —— 视觉零变化。
+ */
+internal val MaterialBaselineOutline: Color = Color(0xFF79747E)
+internal val MaterialBaselineOutlineVariant: Color = Color(0xFFCAC4D0)
+
 data class AppColorTokens(
     // 页面与容器
     val pageBg: Color,
@@ -847,6 +858,224 @@ fun appFloatingTokens(preset: AppThemePreset): AppFloatingTokens = when (preset)
     AppThemePreset.SOFT -> softFloatingTokens
     AppThemePreset.CLAUDE -> claudeFloatingTokens
     else -> iosFloatingTokens
+}
+
+// ============================================================================
+// A1 / V3（v3.69.0）：设置页组件族去重 —— 三套组件族合一后的差异参数
+//
+// 背景：设置页原本是**三套组件族并存**（Claude/Ios/Soft × {UserRow, GroupLabel,
+// SettingsGroup, SettingCell} 共 ~1079 行近乎 1:1 重复）。补 token 无法解决——
+// 因为差异不在「同一组件取不同参数」，而在「有三个同名不同姓的组件」。
+//
+// V3 的做法：先删到只剩**一套组件**，差异才退化成参数，此时才能用 token 表达。
+// 以下五组即合一后残留的参数差异，取值与三份原实现逐条对应（像素回归以此为准）。
+// ============================================================================
+
+/**
+ * 设置页表面材质角色：分组卡与身份行共用同一套画法语言。
+ *
+ * 三者是**三种不同的材质**（不是同一材质的三个数值），故用枚举表达。
+ */
+enum class SettingsSurfaceMaterial {
+    /** 书卷：暖米实底 + 收口圆角，无投影无描边 —— 像一整块纸。 */
+    PAPER,
+
+    /** 通透：卡片底 + 主题卡圆角，无描边 —— 分组卡另由 glassRim 叠玻璃高光。 */
+    CARD,
+
+    /** 柔绘：softSurface 软模糊投影 + 薄涂底 —— 分组卡另叠手绘肌理。 */
+    SOFT_BLUR
+}
+
+/** 设置列表行的高度策略：书卷是历史固定 48dp，通透 / 柔绘走 52dp 最小行高。 */
+enum class SettingsRowHeight {
+    /** 固定 48dp（书卷）。 */
+    FIXED_48,
+
+    /** `defaultMinSize(minHeight = appSpacing().rowMinHeight)`（通透 / 柔绘，52dp）。 */
+    MIN_ROW_MIN_HEIGHT
+}
+
+/** 设置行分隔线取色：书卷是硬编码的极淡压黑/压白，其余走主题 divider 角色。 */
+enum class SettingsDividerColor {
+    /** 硬编码压黑 / 压白（书卷）。 */
+    SCRIM,
+
+    /** `appColors().divider`（通透 / 柔绘）。 */
+    DIVIDER_TOKEN
+}
+
+/** 设置行图标徽章材质：三种画法（淡彩底 / 实色底白图标 / 晕染底 + 羽化描边）。 */
+enum class SettingsIconMaterial {
+    /** 淡彩底 + 同色系图标（书卷）。 */
+    FLAT,
+
+    /** 实色底 + 白图标（通透，iOS 系统色徽章）。 */
+    SOLID,
+
+    /** 同色薄涂底 + 同色图标 + 羽化描边（柔绘，避免实色块破坏低对比）。 */
+    SOFT_FEATHER
+}
+
+/** 设置行尾部插槽：书卷直接内联，通透 / 柔绘用固定 56×32dp 盒（保证开关行与导航行等高）。 */
+enum class SettingsTrailingSlot {
+    /** 内联：无插槽，尾部内容直接排在行内（书卷）。 */
+    INLINE,
+
+    /** 固定 56dp × 32dp 盒，右对齐、内容居中（通透 / 柔绘）。 */
+    FIXED_56X32
+}
+
+/** 分组标签取色：书卷走主色（琥珀），其余走次级文本色。 */
+enum class SettingsLabelColor { PRIMARY, SECONDARY }
+
+/** 身份行头像画法：实色 / 系统色渐变 / 柔绘晕染渐变（带柔光）。 */
+enum class SettingsAvatarStyle { SOLID, SYSTEM_GRADIENT, SOFT_GLOW_GRADIENT }
+
+/** 身份行头像首字色：书卷走主色，通透 / 柔绘走白色（压在渐变底上）。 */
+enum class SettingsAvatarInitialColor { PRIMARY, WHITE }
+
+/** 设置页顶栏形态：决定大标题由谁承担，以及是否挂载折叠滚动。 */
+enum class SettingsTopBar {
+    /** 无顶栏：不挂 exitUntilCollapsed 的 nestedScroll（书卷 / 柔绘）。 */
+    NONE,
+
+    /** 左对齐大标题顶栏（通透，对齐 iOS 设置 App）。 */
+    LEADING_LARGE
+}
+
+/** 设置列表行 tokens（原 ClaudeListItem / IosSettingCell / SoftSettingCell 的差异参数）。 */
+data class AppSettingsRowTokens(
+    val rowHeight: SettingsRowHeight,
+    val dividerInset: Dp,
+    val dividerColor: SettingsDividerColor,
+    val paddingHorizontal: Dp,
+    val paddingVertical: Dp,
+    val iconBoxSize: Dp,
+    val iconBoxRadius: Dp,
+    val iconMaterial: SettingsIconMaterial,
+    val iconGap: Dp,
+    val titleSize: TextUnit,
+    val titleWeight: FontWeight,
+    val titleLetterSpacing: TextUnit,
+    val detailSize: TextUnit,
+    val chevronSize: Dp,
+    val chevronAlpha: Float,
+    val trailingSlot: SettingsTrailingSlot
+)
+
+/** 设置分组卡 tokens（原 ClaudeInsetGroup / IosSettingsGroup / SoftSettingsGroup）。 */
+data class AppSettingsGroupTokens(
+    val material: SettingsSurfaceMaterial,
+    val cornerRadius: Dp,
+    /** 通透分组卡叠 iosGlassRim 玻璃高光内描边。 */
+    val glassRim: Boolean,
+    /** 柔绘分组卡叠手绘肌理。 */
+    val texture: Boolean,
+    /** 柔绘软投影强度（其余材质忽略）。 */
+    val elevation: Dp
+)
+
+/** 分组标签 tokens（原 ClaudeGroupLabel / IosGroupLabel / SoftGroupLabel）。 */
+data class AppSettingsLabelTokens(
+    val fontSize: TextUnit,
+    val fontWeight: FontWeight,
+    val letterSpacing: TextUnit,
+    val uppercase: Boolean,
+    val color: SettingsLabelColor,
+    val startPadding: Dp
+)
+
+/** 身份行 tokens（原 ClaudeUserRow / IosUserRow / SoftUserRow）。 */
+data class AppSettingsUserRowTokens(
+    val material: SettingsSurfaceMaterial,
+    val cornerRadius: Dp,
+    val elevation: Dp,
+    val paddingHorizontal: Dp,
+    val paddingVertical: Dp,
+    val avatarStyle: SettingsAvatarStyle,
+    val avatarInitialColor: SettingsAvatarInitialColor,
+    val avatarInitialWeight: FontWeight,
+    val nameSize: TextUnit,
+    val nameWeight: FontWeight,
+    val chevronSize: Dp,
+    val chevronAlpha: Float
+)
+
+/** 设置页骨架 tokens：顶栏形态 + 宽屏是否居中。 */
+data class AppSettingsPageTokens(
+    val topBar: SettingsTopBar,
+    val centerContent: Boolean
+)
+
+/** CompositionLocal：设置列表行 tokens（默认 = 通透）。 */
+val LocalAppSettingsRowTokens = staticCompositionLocalOf { iosSettingsRowTokens }
+
+/** 组件层快捷访问设置列表行 tokens。 */
+@Composable
+fun appSettingsRow(): AppSettingsRowTokens = LocalAppSettingsRowTokens.current
+
+/** 按主题预设取设置列表行 tokens。 */
+fun appSettingsRowTokens(preset: AppThemePreset): AppSettingsRowTokens = when (preset) {
+    AppThemePreset.SOFT -> softSettingsRowTokens
+    AppThemePreset.CLAUDE -> claudeSettingsRowTokens
+    else -> iosSettingsRowTokens
+}
+
+/** CompositionLocal：设置分组卡 tokens（默认 = 通透）。 */
+val LocalAppSettingsGroupTokens = staticCompositionLocalOf { iosSettingsGroupTokens }
+
+/** 组件层快捷访问设置分组卡 tokens。 */
+@Composable
+fun appSettingsGroup(): AppSettingsGroupTokens = LocalAppSettingsGroupTokens.current
+
+/** 按主题预设取设置分组卡 tokens。 */
+fun appSettingsGroupTokens(preset: AppThemePreset): AppSettingsGroupTokens = when (preset) {
+    AppThemePreset.SOFT -> softSettingsGroupTokens
+    AppThemePreset.CLAUDE -> claudeSettingsGroupTokens
+    else -> iosSettingsGroupTokens
+}
+
+/** CompositionLocal：分组标签 tokens（默认 = 通透）。 */
+val LocalAppSettingsLabelTokens = staticCompositionLocalOf { iosSettingsLabelTokens }
+
+/** 组件层快捷访问分组标签 tokens。 */
+@Composable
+fun appSettingsLabel(): AppSettingsLabelTokens = LocalAppSettingsLabelTokens.current
+
+/** 按主题预设取分组标签 tokens。 */
+fun appSettingsLabelTokens(preset: AppThemePreset): AppSettingsLabelTokens = when (preset) {
+    AppThemePreset.SOFT -> softSettingsLabelTokens
+    AppThemePreset.CLAUDE -> claudeSettingsLabelTokens
+    else -> iosSettingsLabelTokens
+}
+
+/** CompositionLocal：身份行 tokens（默认 = 通透）。 */
+val LocalAppSettingsUserRowTokens = staticCompositionLocalOf { iosSettingsUserRowTokens }
+
+/** 组件层快捷访问身份行 tokens。 */
+@Composable
+fun appSettingsUserRow(): AppSettingsUserRowTokens = LocalAppSettingsUserRowTokens.current
+
+/** 按主题预设取身份行 tokens。 */
+fun appSettingsUserRowTokens(preset: AppThemePreset): AppSettingsUserRowTokens = when (preset) {
+    AppThemePreset.SOFT -> softSettingsUserRowTokens
+    AppThemePreset.CLAUDE -> claudeSettingsUserRowTokens
+    else -> iosSettingsUserRowTokens
+}
+
+/** CompositionLocal：设置页骨架 tokens（默认 = 通透）。 */
+val LocalAppSettingsPageTokens = staticCompositionLocalOf { iosSettingsPageTokens }
+
+/** 组件层快捷访问设置页骨架 tokens。 */
+@Composable
+fun appSettingsPage(): AppSettingsPageTokens = LocalAppSettingsPageTokens.current
+
+/** 按主题预设取设置页骨架 tokens。 */
+fun appSettingsPageTokens(preset: AppThemePreset): AppSettingsPageTokens = when (preset) {
+    AppThemePreset.SOFT -> softSettingsPageTokens
+    AppThemePreset.CLAUDE -> claudeSettingsPageTokens
+    else -> iosSettingsPageTokens
 }
 
 // ============================================================================

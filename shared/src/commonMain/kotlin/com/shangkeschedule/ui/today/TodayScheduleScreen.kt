@@ -215,10 +215,9 @@ fun TodayScheduleScreen(
     // 书卷 / 通透两套主题的今日页都自带页头（书卷：日期 eyebrow + 大标题 + 图标钮；
     // 通透：周次胶囊 + 日期大字），因此都不叠加 M3 CenterAlignedTopAppBar；
     // 右下角待办 FAB 在两套主题下同样隐藏，待办改由「日程」页访问。
+    // v3.69.0：此处原另有 isClaude/isIos/isSoft 三个身份布尔，实测声明后**从未被读取**
+    // （页内差异全部经今日页的皮肤注入），属死代码，已删除。
     val themePreset = LocalThemePreset.current
-    val isClaudePreset = themePreset == AppThemePreset.CLAUDE
-    val isIosPreset = themePreset == AppThemePreset.IOS
-    val isSoftPreset = themePreset == AppThemePreset.SOFT
 
     // 下拉刷新状态（v3.43.0 ·《交互动效审查》P2）：列表已是 DB Flow 驱动，刷新 = 立刻重读一次
     var refreshing by remember { mutableStateOf(false) }
@@ -534,11 +533,33 @@ private fun todayClaudePalette(peach: Boolean): TodayTimelinePalette {
 }
 
 /**
+ * 今日页卡面**材质角色**（v3.69.0 收口：原 `softMaterial: Boolean` 升级为枚举）。
+ *
+ * 旧的布尔写法回答的是「是不是柔绘」——一个主题身份问题；新增主题只能被迫在
+ * true/false 里二选一，且「通透的玻璃描边」只能再挂第二个布尔
+ * （`timelineRimGlass`），两个布尔组合出四种状态、实际只用到三种。
+ * 改为枚举后描述的是「这张卡用什么材质」——新增主题从三档里选一档（或新增一档），
+ * 描边与投影的取值随之确定，不再出现身份判断。
+ *
+ * 三档取值与改前三套拷贝逐位对应（书卷 PAPER / 柔绘 SOFT / 通透 GLASS）。
+ */
+private enum class TodayCardMaterial {
+    /** 书卷：纸感 —— Material 实投影 + 实色 1dp 描边。 */
+    PAPER,
+
+    /** 柔绘：软投影 softShadow + 羽化描边 softFeatherRim。 */
+    SOFT,
+
+    /** 通透：投影同纸感，时间轴卡描边走玻璃高光内描边 iosGlassRim。 */
+    GLASS,
+}
+
+/**
  * 今日页三主题差异参数（v3.56.0 部件统一）。
  *
  * 今日页骨架与全部卡面部件只有一套实现（Today* 系列共享函数）；书卷/柔绘/通透
- * 的渲染差异全部收敛为本类的显式字段：点缀色梯、材质开关（柔绘 softShadow /
- * softFeatherRim）、通透玻璃描边、事件语义色、字体、文案资源与时间轴调色板。
+ * 的渲染差异全部收敛为本类的显式字段：点缀色梯、材质角色（[material]）、
+ * 事件语义色、字体、文案资源与时间轴调色板。
  * 任何字段的取值都与旧三份拷贝逐位对应——像素回归以此为准。
  */
 private class TodayCardStyle(
@@ -548,10 +569,8 @@ private class TodayCardStyle(
     val accent500: Color,
     val accent700: Color,
     val accent800: Color,
-    /** 柔绘材质：阴影走 softShadow、描边走 softFeatherRim（其余主题 shadow/border）。 */
-    val softMaterial: Boolean,
-    /** 通透专属：时间轴卡描边走 iosGlassRim（玻璃高光内描边）。 */
-    val timelineRimGlass: Boolean,
+    /** 卡面材质角色：投影与描边的取法由它决定（见 [TodayCardMaterial]）。 */
+    val material: TodayCardMaterial,
     /** 事件分类色走主题语义色（柔绘），否则沿用 Material 500 历史值（书卷/通透）。 */
     val semanticEventColors: Boolean,
     /** 时间轴卡形状走 appShapes().heroCard（柔绘/通透），否则 20dp 圆角（书卷）。 */
@@ -623,8 +642,7 @@ private object ClaudeTodaySkin : TodaySkin {
                 accent500 = ClaudeLilac500,
                 accent700 = ClaudeLilac700,
                 accent800 = ClaudeLilac800,
-                softMaterial = false,
-                timelineRimGlass = false,
+                material = TodayCardMaterial.PAPER,
                 semanticEventColors = false,
                 timelineCardHeroShape = false,
                 titleFont = styleFont,
@@ -675,8 +693,7 @@ private object SoftTodaySkin : TodaySkin {
                 accent500 = SoftAccentAlt500,
                 accent700 = SoftAccentAlt700,
                 accent800 = SoftAccentAlt800,
-                softMaterial = true,
-                timelineRimGlass = false,
+                material = TodayCardMaterial.SOFT,
                 semanticEventColors = true,
                 timelineCardHeroShape = true,
                 titleFont = styleFont,
@@ -727,8 +744,7 @@ private object Ios26TodaySkin : TodaySkin {
                 accent500 = Ios26AccentAlt500,
                 accent700 = Ios26AccentAlt700,
                 accent800 = Ios26AccentAlt800,
-                softMaterial = false,
-                timelineRimGlass = true,
+                material = TodayCardMaterial.GLASS,
                 semanticEventColors = false,
                 timelineCardHeroShape = true,
                 titleFont = styleFont,
@@ -1320,7 +1336,7 @@ private fun TodayTimelineCard(
                 translationY = cardMotion.translationYPx
             )
             .then(
-                if (style.softMaterial) Modifier.softShadow(shape = shape, elevation = 8.dp)
+                if (style.material == TodayCardMaterial.SOFT) Modifier.softShadow(shape = shape, elevation = 8.dp)
                 else Modifier.shadow(
                     elevation = 1.dp,
                     shape = shape,
@@ -1332,10 +1348,10 @@ private fun TodayTimelineCard(
             .clip(shape)
             .background(Brush.linearGradient(palette.gradient))
             .then(
-                when {
-                    style.timelineRimGlass -> Modifier.iosGlassRim(shape)
-                    style.softMaterial -> Modifier.softFeatherRim(shape)
-                    else -> Modifier.border(1.dp, palette.border, shape)
+                when (style.material) {
+                    TodayCardMaterial.GLASS -> Modifier.iosGlassRim(shape)
+                    TodayCardMaterial.SOFT -> Modifier.softFeatherRim(shape)
+                    TodayCardMaterial.PAPER -> Modifier.border(1.dp, palette.border, shape)
                 }
             )
             .clickable(
@@ -1631,7 +1647,7 @@ private fun TodayNextClassCard(
             .fillMaxWidth()
             .graphicsLayer { alpha = nextCardAlpha }
             .then(
-                if (style.softMaterial) Modifier.softShadow(shape = shape, elevation = 8.dp)
+                if (style.material == TodayCardMaterial.SOFT) Modifier.softShadow(shape = shape, elevation = 8.dp)
                 else Modifier.shadow(
                     elevation = 8.dp,
                     shape = shape,
@@ -1642,7 +1658,7 @@ private fun TodayNextClassCard(
             )
             .clip(shape)
             .background(Brush.linearGradient(gradient))
-            .then(if (style.softMaterial) Modifier.softFeatherRim(shape) else Modifier.border(1.dp, border, shape))
+            .then(if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(shape) else Modifier.border(1.dp, border, shape))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
     ) {
@@ -1793,7 +1809,7 @@ private fun TodayTomorrowCard(
             .clip(appShapes().card)
             .background(colors.cardBg)
             .then(
-                if (style.softMaterial) Modifier.softFeatherRim(appShapes().card)
+                if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(appShapes().card)
                 else Modifier.border(1.dp, colors.divider, appShapes().card)
             )
     ) {
@@ -1989,7 +2005,7 @@ private fun TodayEventRow(
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .then(
-                if (style.softMaterial) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
+                if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
                 else Modifier.border(1.dp, colors.divider, RoundedCornerShape(12.dp))
             )
                 .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -2120,7 +2136,7 @@ private fun TodayTodoRow(
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
                 .then(
-                    if (style.softMaterial) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
+                    if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
                     else Modifier.border(1.dp, colors.divider, RoundedCornerShape(12.dp))
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -2269,7 +2285,7 @@ private fun TodayCourseDetailSheet(
                     .fillMaxWidth()
                     .clip(appShapes().chip)
                     .then(
-                        if (style.softMaterial) Modifier.softFeatherRim(appShapes().chip)
+                        if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(appShapes().chip)
                         else Modifier.border(1.dp, colors.divider, appShapes().chip)
                     )
             ) {

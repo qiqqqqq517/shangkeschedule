@@ -130,6 +130,9 @@ internal fun iosLightAppColorTokens(): AppColorTokens = AppColorTokens(
     cardBgElevated = IosSecondaryGroupedBgLight,
     inputBg = IosFillLight,                        // systemFill 12%
     divider = IosSeparatorLight,
+    // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
+    outline = MaterialBaselineOutline,
+    outlineVariant = MaterialBaselineOutlineVariant,
     // 文本
     textPrimary = IosLabelLight,
     textSecondary = Color(0xFF8E8E93),             // systemGray（secondaryLabel 实色档）
@@ -176,6 +179,9 @@ internal fun iosDarkAppColorTokens(): AppColorTokens = run {
         cardBgElevated = IosTertiaryGroupedBgDark, // #2C2C2E
         inputBg = IosFillDark,
         divider = IosSeparatorDark,
+        // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
+        outline = MaterialBaselineOutline,
+        outlineVariant = MaterialBaselineOutlineVariant,
         // 文本
         textPrimary = IosLabelDark,
         textSecondary = Color(0xFF98989D),         // systemGray (dark)
@@ -372,6 +378,68 @@ internal val iosCourseBlockTokens = AppCourseBlockTokens(
     featherRim = false,
     metaDividerThickness = 1.dp,
     metaDividerAlpha = 0.15f
+)
+
+// ============================================================================
+// A1 / V3（v3.69.0）：设置页组件族合一后的通透参数
+// 逐条取自原 IosSettingCell / IosSettingsGroup / IosGroupLabel / IosUserRow。
+// cornerRadius 为 0.dp：CARD 材质统一取 appShapes().card，不需要独立半径。
+// ============================================================================
+
+internal val iosSettingsRowTokens = AppSettingsRowTokens(
+    rowHeight = SettingsRowHeight.MIN_ROW_MIN_HEIGHT,
+    dividerInset = 58.dp,
+    dividerColor = SettingsDividerColor.DIVIDER_TOKEN,
+    paddingHorizontal = 16.dp,
+    paddingVertical = 10.dp,
+    iconBoxSize = 28.dp,
+    iconBoxRadius = 7.dp,
+    iconMaterial = SettingsIconMaterial.SOLID,
+    iconGap = 14.dp,
+    titleSize = 17.sp,
+    titleWeight = FontWeight.Normal,
+    titleLetterSpacing = (-0.41).sp,
+    detailSize = 15.sp,
+    chevronSize = 15.dp,
+    chevronAlpha = 0.6f,
+    trailingSlot = SettingsTrailingSlot.FIXED_56X32
+)
+
+internal val iosSettingsGroupTokens = AppSettingsGroupTokens(
+    material = SettingsSurfaceMaterial.CARD,
+    cornerRadius = 0.dp,
+    glassRim = true,
+    texture = false,
+    elevation = 0.dp
+)
+
+internal val iosSettingsLabelTokens = AppSettingsLabelTokens(
+    fontSize = 13.sp,
+    fontWeight = FontWeight.SemiBold,
+    letterSpacing = 0.6.sp,
+    uppercase = true,
+    color = SettingsLabelColor.SECONDARY,
+    startPadding = 4.dp
+)
+
+internal val iosSettingsUserRowTokens = AppSettingsUserRowTokens(
+    material = SettingsSurfaceMaterial.CARD,
+    cornerRadius = 0.dp,
+    elevation = 0.dp,
+    paddingHorizontal = 16.dp,
+    paddingVertical = 18.dp,
+    avatarStyle = SettingsAvatarStyle.SYSTEM_GRADIENT,
+    avatarInitialColor = SettingsAvatarInitialColor.WHITE,
+    avatarInitialWeight = FontWeight.Bold,
+    nameSize = 18.sp,
+    nameWeight = FontWeight.SemiBold,
+    chevronSize = 15.dp,
+    chevronAlpha = 0.6f
+)
+
+internal val iosSettingsPageTokens = AppSettingsPageTokens(
+    topBar = SettingsTopBar.LEADING_LARGE,
+    centerContent = true
 )
 
 // ============================================================================

@@ -150,6 +150,9 @@ fun claudeLightAppColorTokens(): AppColorTokens = AppColorTokens(
     cardBgElevated = ClaudeBg50,              // bg-50 #ffffff（浮起卡）
     inputBg = ClaudeBg300,                    // bg-300 #ede9de（输入/嵌入底）
     divider = ClaudeBorder300,                // border-300 #dad9d4
+    // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
+    outline = MaterialBaselineOutline,
+    outlineVariant = MaterialBaselineOutlineVariant,
     // 文本 —— text 阶梯三级
     textPrimary = ClaudeText800,              // text-800 #3d3929
     textSecondary = ClaudeText500,            // text-500 #6e6d68
@@ -200,6 +203,9 @@ fun claudeDarkAppColorTokens(): AppColorTokens = run {
         cardBgElevated = ClaudeDarkBg300,     // bg-300 (dark) #30302e
         inputBg = ClaudeDarkBg400,            // bg-400 (dark) #3e3e38（比卡片亮一档，与浅色 bg-300 输入底对称）
         divider = ClaudeDarkBorder300,        // border-300 (dark) #3e3e38
+        // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
+        outline = MaterialBaselineOutline,
+        outlineVariant = MaterialBaselineOutlineVariant,
         // 文本 —— text 阶梯（深色 800 为近白）
         textPrimary = ClaudeDarkText800,      // text-800 (dark) #f1f1ef
         textSecondary = ClaudeDarkText500,    // text-500 (dark) #b7b5a9
@@ -384,6 +390,67 @@ val claudeCourseBlockTokens: AppCourseBlockTokens = AppCourseBlockTokens(
     featherRim = false,
     metaDividerThickness = 1.dp,
     metaDividerAlpha = 0.15f
+)
+
+// ============================================================================
+// A1 / V3（v3.69.0）：设置页组件族合一后的书卷参数
+// 逐条取自原 ClaudeListItem / ClaudeInsetGroup / ClaudeGroupLabel / ClaudeUserRow。
+// ============================================================================
+
+internal val claudeSettingsRowTokens = AppSettingsRowTokens(
+    rowHeight = SettingsRowHeight.FIXED_48,
+    dividerInset = 54.dp,
+    dividerColor = SettingsDividerColor.SCRIM,
+    paddingHorizontal = 14.dp,
+    paddingVertical = 0.dp,
+    iconBoxSize = 28.dp,
+    iconBoxRadius = 8.dp,
+    iconMaterial = SettingsIconMaterial.FLAT,
+    iconGap = 12.dp,
+    titleSize = 15.sp,
+    titleWeight = FontWeight.Medium,
+    titleLetterSpacing = 0.sp,
+    detailSize = 14.sp,
+    chevronSize = 16.dp,
+    chevronAlpha = 0.7f,
+    trailingSlot = SettingsTrailingSlot.INLINE
+)
+
+internal val claudeSettingsGroupTokens = AppSettingsGroupTokens(
+    material = SettingsSurfaceMaterial.PAPER,
+    cornerRadius = 14.dp,
+    glassRim = false,
+    texture = false,
+    elevation = 0.dp
+)
+
+internal val claudeSettingsLabelTokens = AppSettingsLabelTokens(
+    fontSize = 12.sp,
+    fontWeight = FontWeight.SemiBold,
+    letterSpacing = 0.8.sp,
+    uppercase = false,
+    color = SettingsLabelColor.PRIMARY,
+    startPadding = 2.dp
+)
+
+internal val claudeSettingsUserRowTokens = AppSettingsUserRowTokens(
+    material = SettingsSurfaceMaterial.PAPER,
+    cornerRadius = 14.dp,
+    elevation = 0.dp,
+    paddingHorizontal = 16.dp,
+    paddingVertical = 18.dp,
+    avatarStyle = SettingsAvatarStyle.SOLID,
+    avatarInitialColor = SettingsAvatarInitialColor.PRIMARY,
+    avatarInitialWeight = FontWeight.SemiBold,
+    nameSize = 17.sp,
+    nameWeight = FontWeight.SemiBold,
+    chevronSize = 16.dp,
+    chevronAlpha = 0.7f
+)
+
+internal val claudeSettingsPageTokens = AppSettingsPageTokens(
+    topBar = SettingsTopBar.NONE,
+    centerContent = false
 )
 
 /**

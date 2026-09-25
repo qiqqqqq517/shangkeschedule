@@ -7,7 +7,7 @@
 
 const SITE = {
   name: '上课',
-  version: '3.69.0',
+  version: '3.69.1',
   versionCode: '275',
   /* 主分发渠道：夸克网盘分享。改分享链接只需改这里 */
   quark: 'https://pan.quark.cn/s/02947cbc1d4e',
