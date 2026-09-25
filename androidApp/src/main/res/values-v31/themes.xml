@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PF4（v3.69.0）：API 31+ 的系统启动窗口（Android 12 SplashScreen API）。
+
+  背景：实测把 `android:windowBackground` 设为纯色后，冷启动首帧底色**不随之改变**
+  （实验：浅色档临时置为 #FF00FF，首帧仍为 #FEF7FF）—— 说明 Android 12+ 的启动窗口
+  不走 windowBackground，必须显式声明 `windowSplashScreenBackground`。
+
+  因 v31 目录会整体覆盖 values/ 的同名 style，此处必须重复列出全部条目。
+-->
+<resources>
+    <style name="Theme.shangkeschedule" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/launch_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/Animation.App.Activity</item>
+        <!-- 系统启动窗口底色：随系统深浅分档（values / values-night 的 launch_background） -->
+        <item name="android:windowSplashScreenBackground">@color/launch_background</item>
+    </style>
+</resources>
