@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.67.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>267</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.69.2</b></span>
+        <span>versionCode <b class="mono" data-version-code>277</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3692">v3.69.2 · 无障碍语义补齐</a></li>
+        <li><a href="#v3691">v3.69.1 · 主题系统收口完工</a></li>
         <li><a href="#v3681">v3.68.1 · 修复青岛理工大学课表周次解析</a></li>
         <li><a href="#v3680">v3.68.0 · 新增河南科技学院、南开大学研究生课表导入</a></li>
         <li><a href="#v3670">v3.67.0 · 新增大连理工大学课表导入</a></li>
@@ -133,6 +135,33 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3692">
+        <div><span class="tl-ver">v3.69.2</span><span class="tl-date">2026-09-26</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">无障碍</span>读屏语义补齐</h3>
+          <ul>
+            <li>修复 8 处读屏「读不出来」的操作控件：课程列表的返回 / 退出多选按钮此前只读「未加标签的按钮」；待办与日程的完成勾选框完全读不出可勾选与是否已勾选（现播报「复选框，已勾选 / 未勾选」）；设置页与课程颜色页的色块此前读「未加标签，可点击」（现播报「单选按钮，已选中 / 未选中」）。</li>
+            <li>设置页分组标题、日程页「全天 / 上午 / 下午 / 晚间」标题现在支持读屏**按标题跳转**，长列表不再是一条平铺条目。</li>
+            <li>外观页毛玻璃预览区不再对读屏暴露 —— 它只是效果演示，此前会把里面的示例课程名当成真实内容读出来。</li>
+            <li>说明：界面上的装饰性图标（如与文字并列的图标）保持不播报，这是有意为之，避免读屏重复朗读同一内容。</li>
+          </ul>
+          <p>当前版本 versionCode 277，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v3691">
+        <div><span class="tl-ver">v3.69.1</span><span class="tl-date">2026-09-26</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-refactor">重构</span>主题系统收口完工</h3>
+          <ul>
+            <li>设置页三套近乎重复的界面实现（约 1071 行）合并为一份，三套主题的差异改由统一的设计变量描述，消除「改一处要改三遍」的隐患。</li>
+            <li>今日页卡片材质由两个主题开关改为「纸感 / 软投影 / 玻璃」三种材质描述，<b>视觉无变化</b>。</li>
+            <li>本次为纯内部重构，界面与交互与 v3.69.0 一致。</li>
+          </ul>
+          <p>当前版本 versionCode 276，支持 arm64-v8a / armeabi-v7a / x86_64。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3681">
         <div><span class="tl-ver">v3.68.1</span><span class="tl-date">2026-09-24</span></div>
