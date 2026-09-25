@@ -44,6 +44,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -78,6 +79,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -1190,7 +1194,12 @@ private fun AgendaGroupHeader(group: Int, count: Int) {
         else -> stringResource(Res.string.agenda_group_evening)
     }
     Row(
-        modifier = Modifier.padding(top = 6.dp),
+        // AC2（v3.69.2）：「全天 / 上午 / 下午 / 晚间」分组标题，声明 heading 让
+        // TalkBack 支持按标题跳转；mergeDescendants 把图标与计数并入同一节点，
+        // 避免读成「图标」「上午」「3」三个碎片。
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .semantics(mergeDescendants = true) { heading() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -1322,11 +1331,17 @@ private fun AgendaEntryRow(
                     .padding(appSpacing().cardInner)
             ) {
                 if (canToggleDone) {
+                    // AC2（v3.69.2）：外层 Row 的 combinedClickable 负责整行点击/长按，
+                    // 这里单独声明复选框角色与状态，否则 TalkBack 读不出「已完成 / 未完成」。
                     AppCheckboxIndicator(
                         checked = entry.done,
                         modifier = Modifier
                             .align(Alignment.Top)
-                            .clickable { onToggleDone() }
+                            .toggleable(
+                                value = entry.done,
+                                role = Role.Checkbox,
+                                onValueChange = { onToggleDone() }
+                            )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -404,7 +406,14 @@ internal fun ColorSwatch(
                 color = if (selected) MaterialTheme.colorScheme.primary else dualColor.dark.copy(alpha = 0.5f),
                 shape = MaterialTheme.shapes.small
             )
-            .clickable { onClick() },
+            // AC2（v3.69.2）：色块没有文字，此前 TalkBack 读「未加标签，可点击」，
+            // 既不知可切换也不知是否已选。selectable + Role.RadioButton 由框架播报
+            // 「单选按钮，已选中 / 未选中」；选中态的勾是纯装饰，保持无描述。
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (selected) {

@@ -49,6 +49,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -87,6 +91,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.a11y_edit
 import shangkeschedule.shared.generated.resources.action_confirm
 import shangkeschedule.shared.generated.resources.action_reset
 import shangkeschedule.shared.generated.resources.action_reset_style
@@ -269,7 +274,21 @@ fun ColorSchemeSection(
         Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             colors.forEachIndexed { index, color ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(color).clickable { onEditColor(index) })
+                    // AC2（v3.69.2）：色块可点击打开取色器，但块内没有文字 ——
+                    // TalkBack 此前读到「未加标签，可点击」。补「编辑 + 序号」描述与按钮角色，
+                    // 序号与下方可见的编号标签一致，用户才能知道自己点的是第几个颜色。
+                    val editLabel = stringResource(Res.string.a11y_edit)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .semantics {
+                                contentDescription = "$editLabel ${index + 1}"
+                                role = Role.Button
+                            }
+                            .clickable { onEditColor(index) }
+                    )
                     Text("${index + 1}", style = MaterialTheme.typography.labelSmall, color = contentColor.copy(0.6f), modifier = Modifier.padding(top = 4.dp))
                 }
             }

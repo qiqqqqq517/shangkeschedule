@@ -17,11 +17,15 @@
 ## 命令
 
 ```bash
-python tools/verify_soft_jank.py                    # 采集 6 场景，落盘 JSON + Markdown
-python tools/verify_soft_jank.py --themes 柔绘       # 只测柔绘
-python tools/verify_soft_jank.py --save-baseline     # 把本轮结果固化为回归基线
-python tools/verify_soft_jank.py --check-baseline    # 与基线比对，有回归则退出码 1
+python scripts/perf_jank.py                    # 采集 6 场景，落盘 JSON + Markdown
+python scripts/perf_jank.py --scenes 柔绘-课表   # 只采指定场景
+python scripts/perf_jank.py --save-baseline     # 把本轮结果固化为回归基线
+python scripts/perf_jank.py --check-baseline    # 与基线比对，有回归则退出码 1
 ```
+
+> **脚本位置（2026-09-26 迁移）**：原 `tools/verify_soft_jank.py` 功能完整，但 `tools/`
+> 被 `.gitignore` 忽略 ⇒ 脚本不随仓库分发、换机即失。现迁到 `scripts/perf_jank.py` 并
+> 改为自包含（不再依赖 `tools/verify_three_themes`）。
 
 产物落在 `build_qa/soft_jank/`：
 
@@ -51,7 +55,14 @@ python tools/verify_soft_jank.py --check-baseline    # 与基线比对，有回�
 
 ## 已知限制
 
-- **需要真机**：`adb devices` 有设备才能采集；无设备时只能维护脚本与文档，基线数值待补。
-- **`tools/` 被 `.gitignore` 忽略**（第 62 行），采集脚本不随仓库分发，仅在本机可用；
-  换机开发需另行移植，基线 JSON 也因此未入库。
+- **需要真机**，且**必须开启「USB 调试（安全设置）」**：`adb shell input tap/swipe` 需要
+  `INJECT_EVENTS` 权限，MIUI 等 ROM 默认关闭，表现为
+  `SecurityException: Injecting input events requires ... INJECT_EVENTS permission`。
+  未开启时脚本在自检阶段直接以退出码 2 结束，**不会产出看似正常实则全 0 的数据**。
+- **场景切换是半自动的**：脚本会提示在设备上切好「主题 + 页面」再回车采集，而不是遍历
+  UI 树自动点击。原因是自动点击依赖界面文案，文案一改就静默点错地方、采到错误场景的
+  数据。牺牲一点便利，换取「采的确实是这个场景」。
 - `gfxinfo` 是采样统计，单次波动较大；建议同一版本跑两轮取较优值再 `--save-baseline`。
+- **基线数值待补**：截至 2026-09-26 尚未在开启注入权限的设备上跑过完整 6 场景，
+  `build_qa/soft_jank/baseline.json` 仍为空缺（`build_qa/` 亦被 gitignore）。
+  历史参考值只有工作日志里那次「柔绘·课表 6.31% / p99 117ms」（v3.43.0）。

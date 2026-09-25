@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -66,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -1894,9 +1896,16 @@ private fun EventTitleRow(event: ScheduleEvent, onToggleDone: (String, Boolean) 
     val isTodo = ScheduleCategory.fromKey(event.category) == ScheduleCategory.TODO
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (isTodo) {
+            // AC2（v3.69.2）：此前只有 clickable，语义树里是「可点击但无标签、无状态」的节点 ——
+            // TalkBack 既读不出这是复选框，也读不出是否已勾选。toggleable + Role.Checkbox
+            // 让状态由框架播报（"已勾选 / 未勾选"），视觉与手势行为不变。
             AppCheckboxIndicator(
                 checked = event.done,
-                modifier = Modifier.clickable { onToggleDone(event.id, !event.done) }
+                modifier = Modifier.toggleable(
+                    value = event.done,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggleDone(event.id, it) }
+                )
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -2143,12 +2152,17 @@ private fun TodayTodoRow(
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // AC2（v3.69.2）：同 EventTitleRow，补全复选框的角色与状态语义。
                     AppCheckboxIndicator(
                         checked = todo.done,
-                        modifier = Modifier.clickable {
-                            haptics.tick()
-                            onToggle(todo.id, !todo.done)
-                        }
+                        modifier = Modifier.toggleable(
+                            value = todo.done,
+                            role = Role.Checkbox,
+                            onValueChange = {
+                                haptics.tick()
+                                onToggle(todo.id, it)
+                            }
+                        )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(

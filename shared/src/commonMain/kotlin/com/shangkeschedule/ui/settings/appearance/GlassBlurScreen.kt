@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.components.AppSwitch
@@ -408,7 +409,12 @@ private fun GlassBlurPreview() {
     Surface(
         shape = appShapes().card,
         color = tokens.pageBg,
-        modifier = Modifier.fillMaxWidth()
+        // AC2（v3.69.2）：整块预览是「效果展示」，不是可操作控件。
+        // 此前 TalkBack 会逐个读出 Demo 课程名 / Demo 底栏文字，与真实界面内容混淆。
+        // 预览对无障碍服务整体隐藏，滑杆本身（真实控件）语义不受影响。
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {}
     ) {
         Box(
             modifier = Modifier

@@ -46,6 +46,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+//FIX:本文件使用 Res.string.a11y_back 却漏导入生成属性，导致当前 HEAD 编译失败
+import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_delete
 import shangkeschedule.shared.generated.resources.confirm_delete
 import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete_courses
@@ -128,9 +130,13 @@ fun CourseInstanceListScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = if (isSelectionMode) viewModel::toggleSelectionMode else onNavigateBack) {
+                        // AC2（v3.69.2）：该按钮只有图标、没有文字，TalkBack 此前读「未加标签的按钮」。
+                        // 同文件其余 IconButton 均已带 contentDescription，此处是唯一遗漏。
                         Icon(
                             if (isSelectionMode) vectorResource(Res.drawable.close_24px) else vectorResource(Res.drawable.arrow_back_24px),
-                            contentDescription = null
+                            contentDescription = stringResource(
+                                if (isSelectionMode) Res.string.a11y_exit_selection_mode else Res.string.a11y_back
+                            )
                         )
                     }
                 },

@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.settings.course
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.data.model.DualColor
@@ -129,12 +134,19 @@ fun ColorIndicatorSection(
     val displayColor = colorMaps.getOrNull(colorIndex)?.let {
         if (isDark) it.dark else it.light
     } ?: appColors().divider
+    // AC2（v3.69.2）：色条是「打开颜色选择器」的入口，只有 16dp 宽、无文字，
+    // 此前 TalkBack 读到的是「未加标签，可点击」。补描述 + 按钮角色。
+    val openPickerLabel = stringResource(Res.string.title_select_color)
 
     Box(
         modifier = Modifier
             .fillMaxHeight()
             .width(16.dp)
             .background(displayColor)
+            .semantics {
+                contentDescription = openPickerLabel
+                role = Role.Button
+            }
             .clickable(onClick = onClick)
     )
 }
@@ -314,7 +326,13 @@ fun ColorPickerBottomSheet(
                         modifier = Modifier
                             .aspectRatio(1f)
                             .clip(CircleShape)
-                            .clickable { tempSelectedIndex = index }
+                            // AC2（v3.69.2）：与设置页 ColorSwatch 同一处理 —— 色块无文字，
+                            // selectable 让 TalkBack 播报「单选按钮，已选中 / 未选中」。
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { tempSelectedIndex = index }
+                            )
                             .then(
                                 if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
                                 else Modifier

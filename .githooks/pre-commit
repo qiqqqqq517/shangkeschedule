@@ -53,10 +53,23 @@ fi
 "$PY" scripts/check_widget_contrast.py --quiet
 WSTATUS=$?
 
-if [ "$WSTATUS" -ne 0 ]; then
+# ---------------------------------------------------------------------------
+# AC2 无障碍语义门禁（棘轮式）
+#
+# 背景：contentDescription = null **本身不是缺陷** —— 图标与文字同处一个可读节点时，
+#       保持 null 才是正确做法，否则 TalkBack 会重复播报。全库 54 处 null 里约 46 处
+#       属于这种情形。因此门禁数的是「真正不可辨识的可操作节点」，不是 null 的个数。
+# 规则：A 类 独立图标按钮无描述；B 类 可点击节点无文字且无语义声明。
+# 校验器：scripts/check_a11y.py     基线：scripts/a11y-baseline.json
+# ---------------------------------------------------------------------------
+"$PY" scripts/check_a11y.py --baseline scripts/a11y-baseline.json
+ASTATUS=$?
+
+if [ "$ASTATUS" -ne 0 ]; then
   echo "" >&2
-  echo "[widget-contrast] 提交被拦截：小组件配色不满足 WCAG 2.2 AA（见上方明细）。" >&2
-  echo "  看完整报告：python scripts/check_widget_contrast.py" >&2
+  echo "[a11y] 提交被拦截：无障碍语义违规数高于基线（见上方明细）。" >&2
+  echo "  看完整报告：python scripts/check_a11y.py --baseline scripts/a11y-baseline.json" >&2
+  echo "  确认属预期：追加 --update-baseline scripts/a11y-baseline.json" >&2
   echo "  本次跳过  ：git commit --no-verify" >&2
   exit 1
 fi

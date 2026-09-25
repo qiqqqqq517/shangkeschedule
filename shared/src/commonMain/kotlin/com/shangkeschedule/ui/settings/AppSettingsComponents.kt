@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,7 +108,11 @@ fun AppGroupLabel(text: String, modifier: Modifier = Modifier) {
             SettingsLabelColor.PRIMARY -> colors.primary
             SettingsLabelColor.SECONDARY -> colors.textSecondary
         },
-        modifier = modifier.padding(start = t.startPadding, top = 2.dp, bottom = 8.dp)
+        // AC2（v3.69.2）：分组标题声明为 heading，TalkBack 才支持「按标题跳转」——
+        // 否则设置页十几组条目在语音导航下是一条平铺长列表，无法按区块浏览。
+        modifier = modifier
+            .padding(start = t.startPadding, top = 2.dp, bottom = 8.dp)
+            .semantics { heading() }
     )
 }
 
