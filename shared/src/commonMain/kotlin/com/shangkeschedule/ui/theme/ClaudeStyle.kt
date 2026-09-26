@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
-import shangkeschedule.shared.generated.resources.Lora_Variable
-import shangkeschedule.shared.generated.resources.Newsreader_Variable
+import shangkeschedule.shared.generated.resources.Lora_Regular
+import shangkeschedule.shared.generated.resources.Newsreader_SemiBold
 import shangkeschedule.shared.generated.resources.Poppins_Bold
 import shangkeschedule.shared.generated.resources.Poppins_Medium
 import shangkeschedule.shared.generated.resources.Poppins_Regular
@@ -503,11 +503,15 @@ fun claudeGroupBorder(): Color = if (LocalIsDarkTheme.current) Color(0x14FFFFFF)
  * - UI（headlineMedium 以下）= Poppins，卡片标题 18sp/600、正文 14–15sp、辅助 12–13sp
  * - 阅读正文 bodyLarge = Lora 阅读衬线 16sp
  *
- * 变量字体（Newsreader / Lora）按设计系统说明用显式 FontWeight 加载：CMP 会把声明的字重
- * 交给平台字体引擎（Android Typeface weight / Skia wght 轴），若某平台未应用 wght 轴，
- * 只会退化成该字体文件默认实例的字重（观感略轻），不会运行时报错。
- * Geist Mono（等宽）本版未接入：需要等宽的地方目前都用系统等宽，接入会额外增加字体加载面，
- * 按设计系统说明「可选」处理，后续需要时再补 FontFamily。
+ * 字体文件已按本主题实际用到的字重做了子集化 + 变量轴固定（v3.71.0 体积优化）：
+ * - Newsreader 原为 wght 200–800 / opsz 6–72 双轴变量字体，本主题只在 600 档使用，
+ *   故固定实例为 wght=600 / opsz=18（即 fvar 默认光学尺寸），文件更名 Newsreader-SemiBold.ttf；
+ * - Lora 原为 wght 400–700 变量字体，本主题只在 400 档使用，固定实例为 wght=400，
+ *   更名 Lora-Regular.ttf；
+ * - 全部字体按「拉丁 + 拉丁扩展 + 希腊 + 常用标点/箭头/数学/几何/圈号」区间取子集，
+ *   中文仍走系统字体 fallback（原字体本身不含 CJK，子集化不影响中文渲染）；
+ * - Geist Mono（等宽）本版未接入且无任何代码引用，已删除以免打包死重。
+ * 固定实例的字重与 CMP 声明一致，避免「平台未应用 wght 轴则退化为默认字重」的观感漂移。
  */
 /**
  * UI 无衬线字族（Poppins 四档静态字重）——供 Claude 主题页面自定义排版直接复用。
@@ -520,16 +524,16 @@ fun claudeUiSans(): FontFamily = FontFamily(
     Font(Res.font.Poppins_Bold, FontWeight.Bold)
 )
 
-/** 展示衬线字族（Newsreader 变量字体，标题统一 600 档）。 */
+/** 展示衬线字族（Newsreader 固定 600 档实例，标题统一 600）。 */
 @Composable
 fun claudeDisplaySerif(): FontFamily = FontFamily(
-    Font(Res.font.Newsreader_Variable, FontWeight.SemiBold)
+    Font(Res.font.Newsreader_SemiBold, FontWeight.SemiBold)
 )
 
-/** 阅读衬线字族（Lora 变量字体，正文 400 档）。 */
+/** 阅读衬线字族（Lora 固定 400 档实例，正文 400）。 */
 @Composable
 fun claudeReadingSerif(): FontFamily = FontFamily(
-    Font(Res.font.Lora_Variable, FontWeight.Normal)
+    Font(Res.font.Lora_Regular, FontWeight.Normal)
 )
 
 @Composable

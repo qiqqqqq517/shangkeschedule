@@ -2,6 +2,7 @@ package com.shangkeschedule.data.api.webdav
 
 import io.ktor.client.*
 import io.ktor.client.plugins.*
+import com.shangkeschedule.tool.HttpClientFactory
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BasicAuthCredentials
 import io.ktor.client.plugins.auth.providers.basic
@@ -22,7 +23,10 @@ class WebDavClient(
 ) {
 
     private val client by lazy {
-        HttpClient {
+        HttpClientFactory.create(
+            connectTimeout = 15_000,
+            request = 30_000
+        ) {
             install(Auth) {
                 basic {
                     credentials {
@@ -33,10 +37,6 @@ class WebDavClient(
                     // 改为等待 401 挑战后再发送（WebDAV 标准交互，功能不受影响）。
                     sendWithoutRequest { false }
                 }
-            }
-            install(HttpTimeout) {
-                requestTimeoutMillis = 30000
-                connectTimeoutMillis = 15000
             }
         }
     }

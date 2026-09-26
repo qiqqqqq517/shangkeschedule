@@ -2,6 +2,7 @@ package com.shangkeschedule.data.api.date
 
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.tool.AppLog
+import com.shangkeschedule.tool.HttpClientFactory
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -36,12 +37,11 @@ data class HolidayInfo(
 object ApiDateImporter {
     private const val BASE_URL = "https://timor.tech/api/holiday/year"
 
-    private val client = HttpClient {
-        install(Logging) {
-            level = LogLevel.INFO
-            logger = Logger.DEFAULT
-        }
-
+    private val client = HttpClientFactory.create(
+        enableLogging = true,
+        connectTimeout = 15_000,
+        request = 15_000
+    ) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -52,11 +52,6 @@ object ApiDateImporter {
         defaultRequest {
             url(BASE_URL)
             header("User-Agent", "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36")
-        }
-
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000
-            connectTimeoutMillis = 15000
         }
     }
 

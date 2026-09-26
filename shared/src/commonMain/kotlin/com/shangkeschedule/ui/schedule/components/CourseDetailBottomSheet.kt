@@ -42,18 +42,21 @@ import shangkeschedule.shared.generated.resources.label_credit
 import shangkeschedule.shared.generated.resources.label_is_lab
 import shangkeschedule.shared.generated.resources.label_remark
 import shangkeschedule.shared.generated.resources.label_section_range_suffix
-import shangkeschedule.shared.generated.resources.today_ios_meta_room
-import shangkeschedule.shared.generated.resources.today_ios_meta_teacher
-import shangkeschedule.shared.generated.resources.today_ios_meta_time
-import shangkeschedule.shared.generated.resources.today_ios_meta_weeks
-import shangkeschedule.shared.generated.resources.today_ios_sheet_close
-import shangkeschedule.shared.generated.resources.today_ios_sheet_edit
+import shangkeschedule.shared.generated.resources.today_meta_room
+import shangkeschedule.shared.generated.resources.today_meta_teacher
+import shangkeschedule.shared.generated.resources.today_meta_time
+import shangkeschedule.shared.generated.resources.today_meta_weeks
+import shangkeschedule.shared.generated.resources.today_sheet_close
+import shangkeschedule.shared.generated.resources.today_sheet_edit
 import shangkeschedule.shared.generated.resources.week_days_full_names
 
 /**
  * 课程详情弹窗：与「今日日程」详情弹层的视觉语言对齐 ——
  * 顶部小节标题 + 大标题，圆角容器内 label/value 分隔行，底部「关闭/编辑课程」双按钮。
  * 仅承载课程字段展示与编辑入口，不改变任何数据与业务逻辑。
+ *
+ * [weekNumber] 与 [onTweakOccurrenceClick] 同时提供时，在底部按钮上方展示
+ * 「调整本次课程」全宽次级入口（单次课程调整，仅本周生效）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,16 +78,16 @@ fun CourseDetailBottomSheet(
         weekDaysFullNames.getOrNull(course.day - 1) ?: ""
     }
 
-    val labelTime = stringResource(Res.string.today_ios_meta_time)
-    val labelRoom = stringResource(Res.string.today_ios_meta_room)
-    val labelTeacher = stringResource(Res.string.today_ios_meta_teacher)
-    val labelWeeks = stringResource(Res.string.today_ios_meta_weeks)
+    val labelTime = stringResource(Res.string.today_meta_time)
+    val labelRoom = stringResource(Res.string.today_meta_room)
+    val labelTeacher = stringResource(Res.string.today_meta_teacher)
+    val labelWeeks = stringResource(Res.string.today_meta_weeks)
     val labelCredit = stringResource(Res.string.label_credit)
     val labelAssessment = stringResource(Res.string.label_assessment_method)
     val labelRemark = stringResource(Res.string.label_remark)
     val labelIsLab = stringResource(Res.string.label_is_lab)
-    val textClose = stringResource(Res.string.today_ios_sheet_close)
-    val textEdit = stringResource(Res.string.today_ios_sheet_edit)
+    val textClose = stringResource(Res.string.today_sheet_close)
+    val textEdit = stringResource(Res.string.today_sheet_edit)
 
     val sectionSuffix = stringResource(Res.string.label_section_range_suffix)
     val timeStr = if (course.isCustomTime) {

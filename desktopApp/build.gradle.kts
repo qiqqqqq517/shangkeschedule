@@ -44,7 +44,10 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "shangke"
-            packageVersion = "2.12.0"
+            // v3.71.0：与 androidApp 的 versionName 对齐（此前停在 2.12.0，落后 1.58 个主版本）。
+            // 注意 tools/publish_new_version.py 只回写 androidApp 的 versionCode/versionName，
+            // 不会同步此处，故每次发布需手动跟随。
+            packageVersion = "3.70.5"
         }
     }
 }

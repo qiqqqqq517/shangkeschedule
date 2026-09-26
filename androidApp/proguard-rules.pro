@@ -64,7 +64,12 @@
 
 # 数据模型与数据库
 -dontwarn androidx.sqlite.**
+# androidx.sqlite 通过 JNI 加载 bundled 原生库，驱动类需保留（库级 keep，体积可忽略）
 -keep class androidx.sqlite.** { *; }
--keep class com.shangkeschedule.shared.** { *; }
--keep class com.shangkeschedule.data.db.** { *; }
--keep class com.shangkeschedule.data.model.** { *; }
+# Room3 Entity / Dao / Database：仅保留被注解的必要类，不再整包 keep
+-keep @androidx.room3.Entity class * { *; }
+-keep @androidx.room3.Dao interface * { *; }
+-keep @androidx.room3.Database class * { *; }
+# KSP 生成的实现类（Room 通过反射/构造器回调，需保留实现与成员）
+-keep class * extends androidx.room3.RoomDatabase { *; }
+-keep class * implements androidx.room3.Dao { *; }

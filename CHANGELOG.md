@@ -8,6 +8,27 @@
 ## 最新版本
 
 
+### v3.71.0（2026-09-26）· 体积与性能专项：Release APK 瘦身约 525 KB，解析提速
+
+> 本版同时包含并发会话的「单次课程调整（occurrence override）」功能（DB 13→14），详见工作日志同版本记录。
+
+**体积 · Release APK（arm64-v8a）5,784,716 → 5,247,221 B，-537,495 B（约 -525 KB / -9.3%）**
+- 字体子集化：6 个字体 1,296,060 → 280,644 B（-1,015,416 B）。Poppins 四档去除未用字形；Newsreader 固定 wght 600、Lora 固定 wght 400 后子集化（可变字重轴被 pin，避免默认实例重解压放大）；删除全仓零引用的 GeistMono。全部实际使用字符零丢失。
+- R8 keep 规则收敛：删除 `-keep com.shangkeschedule.shared.**`（该规则使整个 shared 模块免裁剪，R8 形同虚设），改为注解驱动的 Entity / DAO / Database / RoomDatabase 精准保留；合并重复的序列化与 Protobuf 规则。
+
+**性能**
+- 解析器正则预编译：`UniversalScheduleParser` 30 处、`ExcelScheduleParser` 17 处函数内 `Regex(...)` 全部上提为 object 级常量，消除逐行 / 逐格循环内的重复编译。
+- Room `@Query` Flow 补 `distinctUntilChanged`（课表列表 / 课程+周次 / 配对表），避免任意被观察表失效都触发下游全量重组。
+- 今日页改用 `collectAsStateWithLifecycle`，页面不可见时停止收集（此前为全仓唯一例外）。
+- 新增统一 `HttpClientFactory`：超时集中单点可调、日志默认关闭（鉴权头不进日志）；Android 引擎由 CIO 换为 OkHttp（HTTP/2、连接池、系统代理 / TLS / DNS 走平台原生栈）。
+
+**构建与维护**
+- KSP 对齐 2.3.12；修复 `libs.versions.toml` 的 TOML 结构损坏（`[libraries]` 表头被删导致配置阶段失败）。
+- `compose.ui.tooling.preview` 由 `implementation` 降为 `debugImplementation`；桌面 `packageVersion` 与 Android 版本对齐。
+- `ZipUtils` 的 Android / JVM 重复实现合并到共享源集（iOS 保留自身实现）。
+- 修复既有构建卫生隐患：删除 `composeResources` 下的文件不会自动从 APK 移除（残留目录导致已删字体继续随包发布）。
+
+
 ### v3.70.1（2026-09-26）· 导入提示不再重复、不再互相顶掉
 
 **修复 · 导入结果提示**

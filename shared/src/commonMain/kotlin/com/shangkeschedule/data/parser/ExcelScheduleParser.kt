@@ -24,6 +24,23 @@ import kotlin.random.Random
  * 旧版二进制 .xls 不在本解析器范围内（需在 Office/WPS 中另存为 .xlsx）。
  */
 object ExcelScheduleParser {
+    // ========== 预编译正则 ==========
+    // 原实现把 Regex 写在函数体/逐行逐格循环里，大 xlsx 会放大成万级重复编译。
+    private val RE_SHEET_PATH = Regex("""/xl/worksheets/sheet\d+\.xml$""")
+    private val RE_SHEET_NUM = Regex("""sheet(\d+)\.xml$""")
+    private val RE_SI = Regex("""<si(?:\s[^>]*)?>(.*?)</si>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_T = Regex("""<t(?:\s[^>]*)?>(.*?)</t>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_SHEET_DATA = Regex("""<sheetData(?:\s[^>]*)?>(.*?)</sheetData>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_ROW = Regex("""<row(?:\s[^>]*)?>(.*?)</row>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_ROW_INDEX = Regex("""\br="(\d+)"""")
+    private val RE_CELL = Regex("""<c\b([^>]*?)(/>|>(.*?)</c>)""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_CELL_REF = Regex("""\br="([A-Z]+)(\d+)"""")
+    private val RE_CELL_TYPE = Regex("""\bt="([a-z]+)"""")
+    private val RE_V = Regex("""<v(?:\s[^>]*)?>(.*?)</v>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    private val RE_TRAILING_ZERO = Regex("""^\d+\.0+$""")
+    private val RE_HEX_ENTITY = Regex("""&#x([0-9a-fA-F]+);""")
+    private val RE_DEC_ENTITY = Regex("""&#(\d+);""")
+
 
     //FIX:xlsx 的 r="0"/超大行列引用若不做上限校验，会触发索引越界或一次性分配海量空行导致 OOM
     private const val MAX_SHEET_ROWS = 20_000
@@ -62,8 +79,8 @@ object ExcelScheduleParser {
                     ?: emptyList()
 
                 val sheetEntry = entries
-                    .filter { Regex("""/xl/worksheets/sheet\d+\.xml$""").containsMatchIn(it.toString()) }
-                    .minByOrNull { Regex("""sheet(\d+)\.xml$""").find(it.toString())?.groupValues?.get(1)?.toIntOrNull() ?: 999 }
+                    .filter { RE_SHEET_PATH.containsMatchIn(it.toString()) }
+                    .minByOrNull { RE_SHEET_NUM.find(it.toString())?.groupValues?.get(1)?.toIntOrNull() ?: 999 }
                     ?: throw IllegalArgumentException("xlsx 中未找到工作表")
 
                 return parseSheetXml(zipFs.read(sheetEntry) { readUtf8Capped(MAX_XML_BYTES) }, sharedStrings)
@@ -114,12 +131,12 @@ object ExcelScheduleParser {
      */
     private fun readSharedStrings(xml: String): List<String> {
         val result = mutableListOf<String>()
-        Regex("""<si(?:\s[^>]*)?>(.*?)</si>""", setOf(RegexOption.DOT_MATCHES_ALL))
+        RE_SI
             .findAll(xml)
             .forEach { siMatch ->
                 val inner = siMatch.groupValues[1]
                 val sb = StringBuilder()
-                Regex("""<t(?:\s[^>]*)?>(.*?)</t>""", setOf(RegexOption.DOT_MATCHES_ALL))
+                RE_T
                     .findAll(inner)
                     .forEach { tMatch -> sb.append(tMatch.groupValues[1]) }
                 result.add(unescapeXml(sb.toString()))
@@ -131,46 +148,46 @@ object ExcelScheduleParser {
 
     private fun parseSheetXml(xml: String, sharedStrings: List<String>): List<List<String>> {
         // 提取 <sheetData> 主体（防止 <sheetData/> 自闭合空表）
-        val sheetData = Regex("""<sheetData(?:\s[^>]*)?>(.*?)</sheetData>""", setOf(RegexOption.DOT_MATCHES_ALL))
+        val sheetData = RE_SHEET_DATA
             .find(xml)?.groupValues?.get(1)
             ?: ""
 
         val grid = mutableListOf<MutableList<String>>()
         var autoRow = 0
 
-        val rowRegex = Regex("""<row(?:\s[^>]*)?>(.*?)</row>""", setOf(RegexOption.DOT_MATCHES_ALL))
+        val rowRegex = RE_ROW
 
         for (rowMatch in rowRegex.findAll(sheetData)) {
             autoRow++
             val rowXml = rowMatch.groupValues[1]
-            val rowIndex = rowMatch.groupValues[0].let { r -> Regex("""\br="(\d+)"""").find(r)?.groupValues?.get(1)?.toIntOrNull() } ?: autoRow
+            val rowIndex = rowMatch.groupValues[0].let { r -> RE_ROW_INDEX.find(r)?.groupValues?.get(1)?.toIntOrNull() } ?: autoRow
             if (rowIndex !in 1..MAX_SHEET_ROWS) continue
 
             val cells = mutableMapOf<Int, String>()
             var autoCol = 0
 
-            val cellRegex = Regex("""<c\b([^>]*?)(/>|>(.*?)</c>)""", setOf(RegexOption.DOT_MATCHES_ALL))
+            val cellRegex = RE_CELL
             for (cellMatch in cellRegex.findAll(rowXml)) {
                 autoCol++
                 val attrs = cellMatch.groupValues[1]
                 val inner = cellMatch.groupValues[3]
 
-                val ref = Regex("""\br="([A-Z]+)(\d+)"""").find(attrs)
+                val ref = RE_CELL_REF.find(attrs)
                 val refCol = ref?.groupValues?.get(1)?.let { columnLettersToIndex(it) }
                 //FIX:显式列引用非法时不能退回 autoCol，否则会静默错位；仅无 r 属性时才按顺序推断
                 if (ref != null && (refCol == null || refCol !in 0 until MAX_SHEET_COLS)) continue
                 val colIndex = refCol ?: (autoCol - 1)
                 if (colIndex !in 0 until MAX_SHEET_COLS) continue
 
-                val type = Regex("""\bt="([a-z]+)"""").find(attrs)?.groupValues?.get(1)
+                val type = RE_CELL_TYPE.find(attrs)?.groupValues?.get(1)
                 val value = when (type) {
-                    "s" -> inner.let { i -> Regex("""<v(?:\s[^>]*)?>(.*?)</v>""", setOf(RegexOption.DOT_MATCHES_ALL)).find(i)?.groupValues?.get(1) }
+                    "s" -> inner.let { i -> RE_V.find(i)?.groupValues?.get(1) }
                         ?.trim()?.toIntOrNull()?.let { idx -> sharedStrings.getOrNull(idx) } ?: ""
-                    "inlineStr" -> Regex("""<t(?:\s[^>]*)?>(.*?)</t>""", setOf(RegexOption.DOT_MATCHES_ALL))
+                    "inlineStr" -> RE_T
                         .findAll(inner).joinToString("") { it.groupValues[1] }
-                    "str", "e" -> Regex("""<v(?:\s[^>]*)?>(.*?)</v>""", setOf(RegexOption.DOT_MATCHES_ALL))
+                    "str", "e" -> RE_V
                         .find(inner)?.groupValues?.get(1) ?: ""
-                    else -> Regex("""<v(?:\s[^>]*)?>(.*?)</v>""", setOf(RegexOption.DOT_MATCHES_ALL))
+                    else -> RE_V
                         .find(inner)?.groupValues?.get(1) ?: ""
                 }
 
@@ -208,17 +225,17 @@ object ExcelScheduleParser {
     /** 数值清洗："1.0" → "1"，"3.5" 保持，其余原样 */
     private fun normalizeValue(v: String): String {
         val t = v.trim()
-        return if (Regex("""^\d+\.0+$""").matches(t)) t.substringBefore('.') else t
+        return if (RE_TRAILING_ZERO.matches(t)) t.substringBefore('.') else t
     }
 
     private fun unescapeXml(s: String): String {
         if (!s.contains('&')) return s
         var out = s
         // 数字实体（含 &#10; 换行）
-        Regex("""&#x([0-9a-fA-F]+);""").findAll(out).toList().forEach { m ->
+        RE_HEX_ENTITY.findAll(out).toList().forEach { m ->
             m.groupValues[1].toIntOrNull(16)?.let { out = out.replace(m.value, it.toChar().toString()) }
         }
-        Regex("""&#(\d+);""").findAll(out).toList().forEach { m ->
+        RE_DEC_ENTITY.findAll(out).toList().forEach { m ->
             m.groupValues[1].toIntOrNull()?.let { out = out.replace(m.value, it.toChar().toString()) }
         }
         return out

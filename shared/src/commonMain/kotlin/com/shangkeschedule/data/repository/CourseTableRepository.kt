@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -80,22 +81,24 @@ class CourseTableRepository(
             appSettingsRepository.insertOrUpdateCourseConfig(defaultConfig)
             timeSlotRepository.insertAll(defaultTimeSlotsForNewTable)
         }
-
-        println("数据库初始化数据已完成写入")
     }
 
     /**
      * 获取所有课表，返回一个数据流。
+     *
+     * Room 的 @Query Flow 在**任意**被观察表失效时都会重新发射（即使结果逐值相同），
+     * 这里补 distinctUntilChanged 拦截等值重复发射，避免下游 ViewModel / 重组白跑。
+     * 实体均为纯 data class（String/Int/Long/Boolean/List，无数组字段），结构相等安全。
      */
     fun getAllCourseTables(): Flow<List<CourseTable>> {
-        return courseTableDao.getAllCourseTables()
+        return courseTableDao.getAllCourseTables().distinctUntilChanged()
     }
 
     /**
      * 获取指定课表ID的完整课程（包含周数）。
      */
     fun getCoursesWithWeeksByTableId(tableId: String): Flow<List<CourseWithWeeks>> {
-        return courseDao.getCoursesWithWeeksByTableId(tableId)
+        return courseDao.getCoursesWithWeeksByTableId(tableId).distinctUntilChanged()
     }
 
     /** 按 ID 获取课表实体（一次性）。 */
@@ -113,7 +116,7 @@ class CourseTableRepository(
      * 情侣课表是独立的 CourseTable（isCouple=true），拥有自己的课程、作息与学期配置。
      */
     fun getCoupleTableFor(selfTableId: String): Flow<CourseTable?> {
-        return courseTableDao.getCoupleTableByPairedId(selfTableId)
+        return courseTableDao.getCoupleTableByPairedId(selfTableId).distinctUntilChanged()
     }
 
     /**

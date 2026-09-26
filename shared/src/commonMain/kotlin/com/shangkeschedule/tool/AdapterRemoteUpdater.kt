@@ -2,7 +2,6 @@ package com.shangkeschedule.tool
 
 import com.shangkeschedule.ui.components.ToastManager
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsChannel
@@ -110,13 +109,11 @@ class AdapterRemoteUpdater(
      * 显式设置超时，确保 Worker 不可达时快速失败、后台同步协程不会长时间挂起。
      */
     private val httpClient: HttpClient by lazy {
-        HttpClient {
-            install(HttpTimeout) {
-                connectTimeoutMillis = 10_000
-                requestTimeoutMillis = 20_000
-                socketTimeoutMillis = 20_000
-            }
-        }
+        HttpClientFactory.create(
+            connectTimeout = 10_000,
+            request = 20_000,
+            socket = 20_000
+        )
     }
 
     private val repoDir: Path get() = filesDir / "repo"

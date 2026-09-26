@@ -40,47 +40,27 @@
     <string name="today_todos_section">Today\'s To-dos</string>
     <string name="todo_count_format">%1$d items</string>
     <string name="text_courses_count">%1$s classes</string>
-    <!-- Claude theme · Today page (mirrors claude-schedule-page.design/pages/今日日程.html) -->
-    <!--FIX:调用方传入 month/day 两个 Int，原 %1$s 只显示月份且丢弃day，改为与其余语言一致的 %1$d/%2$d-->
-    <string name="today_claude_tomorrow_format">Tomorrow · %1$d/%2$d</string>
-    <string name="today_claude_view_all">View all</string>
-    <string name="today_claude_status_done">Finished</string>
-    <string name="today_claude_status_live">In progress</string>
-    <string name="today_claude_status_upcoming">Upcoming</string>
-    <string name="today_claude_meta_time">Time</string>
-    <string name="today_claude_meta_room">Location</string>
-    <string name="today_claude_meta_teacher">Teacher</string>
-    <string name="today_claude_meta_credit">Credits</string>
+    <!-- Today page common strings (shared by all themes) -->
+    <string name="today_tomorrow_format">Tomorrow · %1$d/%2$d</string>
+    <string name="today_view_all">View all</string>
+    <string name="today_status_done">Finished</string>
+    <string name="today_status_live">In progress</string>
+    <string name="today_status_upcoming">Upcoming</string>
+    <string name="today_meta_time">Time</string>
+    <string name="today_meta_room">Location</string>
+    <string name="today_meta_teacher">Teacher</string>
+    <string name="today_meta_credit">Credits</string>
+    <string name="today_meta_weeks">Weeks</string>
 
-    <string name="today_claude_next_label">Next class</string>
-    <string name="today_claude_note_type">Type</string>
-    <string name="today_claude_note_hours">Hours</string>
-    <string name="today_claude_type_theory">Theory</string>
-    <string name="today_claude_type_lab">Lab</string>
-    <string name="today_claude_sections_format">%1$s sections</string>
-    <string name="today_claude_countdown_label">min to start</string>
-    <string name="today_claude_sheet_close">Close</string>
-    <string name="today_claude_sheet_edit">Edit course</string>
-    <!--FIX:同 Claude 条目，英文下明日的“日”被丢弃，补齐第二个占位符-->
-    <string name="today_ios_tomorrow_format">Tomorrow · %1$d/%2$d</string>
-    <string name="today_ios_view_all">View all</string>
-    <string name="today_ios_status_done">Finished</string>
-    <string name="today_ios_status_live">In progress</string>
-    <string name="today_ios_status_upcoming">Upcoming</string>
-    <string name="today_ios_meta_time">Time</string>
-    <string name="today_ios_meta_room">Location</string>
-    <string name="today_ios_meta_teacher">Teacher</string>
-    <string name="today_ios_meta_weeks">Weeks</string>
-    <string name="today_ios_meta_credit">Credits</string>
-    <string name="today_ios_next_label">Next class</string>
-    <string name="today_ios_note_type">Type</string>
-    <string name="today_ios_note_hours">Hours</string>
-    <string name="today_ios_type_theory">Theory</string>
-    <string name="today_ios_type_lab">Lab</string>
-    <string name="today_ios_sections_format">%1$s sections</string>
-    <string name="today_ios_countdown_label">min to start</string>
-    <string name="today_ios_sheet_close">Close</string>
-    <string name="today_ios_sheet_edit">Edit course</string>
+    <string name="today_next_label">Next class</string>
+    <string name="today_note_type">Type</string>
+    <string name="today_note_hours">Hours</string>
+    <string name="today_type_theory">Theory</string>
+    <string name="today_type_lab">Lab</string>
+    <string name="today_sections_format">%1$s sections</string>
+    <string name="today_countdown_label">min to start</string>
+    <string name="today_sheet_close">Close</string>
+    <string name="today_sheet_edit">Edit course</string>
     <string name="settings_group_timetable">Timetable</string>
     <string name="settings_group_courses">Courses</string>
     <string name="settings_group_preference">Preferences</string>

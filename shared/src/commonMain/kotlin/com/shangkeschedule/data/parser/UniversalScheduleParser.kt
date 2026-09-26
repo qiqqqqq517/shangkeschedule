@@ -16,6 +16,36 @@ import kotlinx.serialization.json.jsonPrimitive
  * 所有结果统一为 CourseTableImportModel，保留 remark 字段以便自动提取学分/考核方式/实验课。
  */
 object UniversalScheduleParser {
+    // ========== 预编译正则 ==========
+    // 原实现把这些 Regex 写在函数体内，逐次调用/逐行循环都会重新编译 Pattern；
+    // 提到 object 级只编译一次，行为完全等价。
+    private val RE_ICS_DESC_SECTIONS = Regex("第\\s*(\\d+)\\s*[-~至]\\s*(\\d+)\\s*节")
+    private val RE_WHITESPACE = Regex("\\s+")
+    private val RE_RRULE_INTERVAL = Regex("INTERVAL=(\\d+)")
+    private val RE_RRULE_COUNT = Regex("COUNT=(\\d+)")
+    private val RE_RRULE_UNTIL = Regex("UNTIL=(\\d{8})T(\\d{6})Z?")
+    private val RE_HTML_ROW = Regex("""(?is)<tr[^>]*>(.*?)</tr>""")
+    private val RE_HTML_CELL = Regex("""(?is)<t[dh][^>]*>(.*?)</t[dh]>""")
+    private val RE_HTML_TAG = Regex("""<[^>]+>""")
+    private val RE_INT_RANGE_DASH = Regex("""(\d+)\s*[-~至到]\s*(\d+)""")
+    private val RE_DIGITS_CAPTURE = Regex("""(\d+)""")
+    private val RE_DAY_HEADER_CN = Regex("""^(?:星期|周|礼拜)?\s*([一二三四五六日天])$""")
+    private val RE_SECTION_LABEL_RANGE = Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节?""")
+    private val RE_SECTION_LABEL_ADJACENT = Regex("""第\s*(\d{1,2})\s+(\d{1,2})\s*节""")
+    private val RE_SECTION_LABEL_SINGLE = Regex("""第\s*(\d{1,2})\s*节""")
+    private val RE_SECTION_LABEL_CN = Regex("""第([一二三四五六七八九十]+)节""")
+    private val RE_DIGIT_DASH_DIGIT = Regex("""\d\s*[-~]\s*\d""")
+    private val RE_PRACTICE_PREFIX = Regex("""^实践(?:课程|环节|课)?[:：]\s*(.+)$""")
+    private val RE_CREDIT_SUFFIX = Regex("""^(.*?)\s*[（(]([^()（）]*学分[^()（）]*)[)）]\s*$""")
+    private val RE_CREDIT_VALUE = Regex("""([0-9]+(?:\.[0-9]+)?)\s*学分""")
+    private val RE_WEEK_SECTION_TOKEN = Regex("""^(\d{1,2})\s*[-~]\s*(\d{1,2})\s*[（(]\s*([^()（）]*)\s*[)）]$""")
+    private val RE_WEEK_RANGE = Regex("""(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*周""")
+    private val RE_CN_BRACKET = Regex("""【[^】]*】""")
+    private val RE_SECTION_RANGE_LABEL = Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节""")
+    private val RE_TOKEN_SPLIT = Regex("""[\s,，、|]+""")
+    private val RE_ROOM_HINT = Regex("""(楼|室|馆|厅|栋|层|教[\-A-Z0-9]|#|栋)""")
+    private val RE_DIGITS_ALL = Regex("""\d+""")
+
 
     fun parseAuto(content: String): ParseResult {
         val trimmed = content.trim()
@@ -179,7 +209,7 @@ object UniversalScheduleParser {
                 // DESCRIPTION（WakeUp 导出格式：第1行节次、第2行地点、第3行教师）
                 val desc = icsUnescape(ev["DESCRIPTION"] ?: "")
                 val descLines = desc.lines().map { it.trim() }.filter { it.isNotBlank() }
-                val descSections = Regex("第\\s*(\\d+)\\s*[-~至]\\s*(\\d+)\\s*节").find(desc)
+                val descSections = RE_ICS_DESC_SECTIONS.find(desc)
 
                 val day = parseIcsDay(startStr)
 
@@ -200,7 +230,7 @@ object UniversalScheduleParser {
                 var teacher = if (descLines.size >= 3) descLines[2] else ""
                 if (position.isBlank()) {
                     val loc = icsUnescape(ev["LOCATION"] ?: "")
-                    val lp = loc.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+                    val lp = loc.trim().split(RE_WHITESPACE).filter { it.isNotBlank() }
                     if (lp.size >= 2) {
                         position = lp.dropLast(1).joinToString(" ")
                         if (teacher.isBlank()) teacher = lp.last()
@@ -307,8 +337,8 @@ object UniversalScheduleParser {
      */
     private fun parseIcsWeeks(rrule: String?, startStr: String, hasBase: Boolean, baseDays: Int): List<Int> {
         val rr = rrule ?: ""
-        val interval = Regex("INTERVAL=(\\d+)").find(rr)?.groupValues?.get(1)?.toIntOrNull() ?: 1
-        val count = Regex("COUNT=(\\d+)").find(rr)?.groupValues?.get(1)?.toIntOrNull()
+        val interval = RE_RRULE_INTERVAL.find(rr)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+        val count = RE_RRULE_COUNT.find(rr)?.groupValues?.get(1)?.toIntOrNull()
 
         val dateStr = startStr.substringBefore('T').replace("-", "")
         val startWeek = if (hasBase && dateStr.length == 8) {
@@ -320,7 +350,7 @@ object UniversalScheduleParser {
             return (0 until count).map { startWeek + it * interval }
         }
 
-        val untilM = Regex("UNTIL=(\\d{8})T(\\d{6})Z?").find(rr)?.groupValues
+        val untilM = RE_RRULE_UNTIL.find(rr)?.groupValues
         if (untilM != null && hasBase) {
             val ud = icsDaysFromYmd(untilM[1].substring(0, 4).toInt(), untilM[1].substring(4, 6).toInt(), untilM[1].substring(6, 8).toInt())
             val uh = untilM[2].substring(0, 2).toIntOrNull() ?: 0
@@ -412,15 +442,15 @@ object UniversalScheduleParser {
 
     private fun parseHtmlTable(content: String): ParseResult {
         return try {
-            val rows = Regex("""(?is)<tr[^>]*>(.*?)</tr>""")
+            val rows = RE_HTML_ROW
                 .findAll(content).map { it.groupValues[1] }.toList()
 
             if (rows.isEmpty()) return ParseResult.Error("未找到HTML表格行")
 
             val courses = mutableListOf<ImportCourseJsonModel>()
             for (row in rows) {
-                val cells = Regex("""(?is)<t[dh][^>]*>(.*?)</t[dh]>""")
-                    .findAll(row).map { it.groupValues[1].replace(Regex("<[^>]+>"), "").trim() }.toList()
+                val cells = RE_HTML_CELL
+                    .findAll(row).map { it.groupValues[1].replace(RE_HTML_TAG, "").trim() }.toList()
 
                 if (cells.size < 3) continue
                 val name = cells.getOrElse(0) { "" }
@@ -492,7 +522,7 @@ object UniversalScheduleParser {
     private fun splitCourseLine(line: String): List<String> {
         val strong = line.split("\t", ",", "|", "，", "、", "  ").map { it.trim() }.filter { it.isNotBlank() }
         if (strong.size >= 3) return strong
-        val single = line.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }
+        val single = line.trim().split(RE_WHITESPACE).map { it.trim() }.filter { it.isNotBlank() }
         return if (single.size > strong.size) single else strong
     }
 
@@ -517,10 +547,10 @@ object UniversalScheduleParser {
 
     private fun parseSectionRange(s: String): Pair<Int?, Int?> {
         if (s.isBlank()) return null to null
-        Regex("""(\d+)\s*[-~至到]\s*(\d+)""").find(s)?.let {
+        RE_INT_RANGE_DASH.find(s)?.let {
             return it.groupValues[1].toInt() to it.groupValues[2].toInt()
         }
-        Regex("""(\d+)""").find(s)?.let {
+        RE_DIGITS_CAPTURE.find(s)?.let {
             val n = it.groupValues[1].toInt()
             return n to n
         }
@@ -532,11 +562,11 @@ object UniversalScheduleParser {
         val weeks = mutableSetOf<Int>()
         s.split(",", "，", "、", ";", " ").forEach { seg ->
             val trimmed = seg.trim()
-            Regex("""(\d+)\s*[-~至到]\s*(\d+)""").find(trimmed)?.let {
+            RE_INT_RANGE_DASH.find(trimmed)?.let {
                 val start = it.groupValues[1].toInt()
                 val end = it.groupValues[2].toInt()
                 for (w in minOf(start, end)..maxOf(start, end)) weeks.add(w)
-            } ?: Regex("""(\d+)""").find(trimmed)?.let {
+            } ?: RE_DIGITS_CAPTURE.find(trimmed)?.let {
                 weeks.add(it.groupValues[1].toInt())
             }
         }
@@ -608,7 +638,7 @@ object UniversalScheduleParser {
     private fun dayOfHeaderStrict(s: String): Int? {
         val t = s.trim()
         if (t.isEmpty() || t.length > 5) return null
-        Regex("""^(?:星期|周|礼拜)?\s*([一二三四五六日天])$""").find(t)?.let { m ->
+        RE_DAY_HEADER_CN.find(t)?.let { m ->
             return cnDayMap[m.groupValues[1].toString()] ?: 0
         }
         val lower = t.lowercase()
@@ -619,20 +649,20 @@ object UniversalScheduleParser {
     private fun parseSectionLabel(text: String): Pair<Int, Int>? {
         val t = text.trim()
         // 阿拉伯数字区间/相邻：1-2节、第1~2节、第11 12节
-        Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节?""").find(t)?.let {
+        RE_SECTION_LABEL_RANGE.find(t)?.let {
             val a = it.groupValues[1].toInt()
             val b = it.groupValues[2].toInt()
             return minOf(a, b) to maxOf(a, b)
         }
-        Regex("""第\s*(\d{1,2})\s+(\d{1,2})\s*节""").find(t)?.let {
+        RE_SECTION_LABEL_ADJACENT.find(t)?.let {
             return it.groupValues[1].toInt() to it.groupValues[2].toInt()
         }
-        Regex("""第\s*(\d{1,2})\s*节""").find(t)?.let {
+        RE_SECTION_LABEL_SINGLE.find(t)?.let {
             val n = it.groupValues[1].toInt()
             return n to n
         }
         // 中文数字：第一二节、第九十节、第十一十二节
-        Regex("""第([一二三四五六七八九十]+)节""").find(t)?.let {
+        RE_SECTION_LABEL_CN.find(t)?.let {
             val nums = chineseSectionNumbers(it.groupValues[1])
             if (nums.isNotEmpty()) return nums.first() to nums.last()
         }
@@ -671,7 +701,7 @@ object UniversalScheduleParser {
         val text = line.trim()
         if (text.isBlank()) return null
         // 行内节次标签（如「第一节」），不是课程
-        if (!text.contains('◇') && text.length <= 8 && text.contains('节') && !text.contains(Regex("""\d\s*[-~]\s*\d"""))) return null
+        if (!text.contains('◇') && text.length <= 8 && text.contains('节') && !text.contains(RE_DIGIT_DASH_DIGIT)) return null
 
         return if (text.contains('◇')) parseDiamondCourse(text, day, fallbackSections)
         else parseLooseCourse(text, day, fallbackSections)
@@ -688,16 +718,16 @@ object UniversalScheduleParser {
         var name = segs[0]
         var remark: String? = null
         // 实践课程: 前缀剥离
-        Regex("""^实践(?:课程|环节|课)?[:：]\s*(.+)$""").find(name)?.let { m ->
+        RE_PRACTICE_PREFIX.find(name)?.let { m ->
             remark = "实践课程"
             name = m.groupValues[1].trim()
         }
 
         var credit: String? = null
         // 名称(56学时,3.5学分) → 名称 + 学分
-        Regex("""^(.*?)\s*[（(]([^()（）]*学分[^()（）]*)[)）]\s*$""").find(name)?.let { m ->
+        RE_CREDIT_SUFFIX.find(name)?.let { m ->
             name = m.groupValues[1].trim()
-            credit = Regex("""([0-9]+(?:\.[0-9]+)?)\s*学分""").find(m.groupValues[2])?.groupValues?.get(1)
+            credit = RE_CREDIT_VALUE.find(m.groupValues[2])?.groupValues?.get(1)
         }
         if (name.isBlank()) return null
 
@@ -705,7 +735,7 @@ object UniversalScheduleParser {
         var sections: Pair<Int, Int>? = fallbackSections
 
         // 周次(节次)：1-12(1,2) / 1-16(单) / 1-16(双)
-        val wkSec = Regex("""^(\d{1,2})\s*[-~]\s*(\d{1,2})\s*[（(]\s*([^()（）]*)\s*[)）]$""")
+        val wkSec = RE_WEEK_SECTION_TOKEN
             .find(segs.getOrElse(1) { "" })
         if (wkSec != null) {
             val a = wkSec.groupValues[1].toInt()
@@ -716,7 +746,7 @@ object UniversalScheduleParser {
             parseSectionToken(token)?.let { sections = it }
         } else {
             // 退路：任意「a-b周」片段（实践课程 13-14周 等）
-            Regex("""(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*周""").find(text)?.let { m ->
+            RE_WEEK_RANGE.find(text)?.let { m ->
                 val a = m.groupValues[1].toInt()
                 val b = m.groupValues[2].toInt()
                 weeks = (minOf(a, b)..maxOf(a, b)).toList()
@@ -726,7 +756,7 @@ object UniversalScheduleParser {
         var position = ""
         var teacher = ""
         if (segs.size >= 3) {
-            position = segs[2].replace(Regex("""【[^】]*】"""), "").trim()
+            position = segs[2].replace(RE_CN_BRACKET, "").trim()
             teacher = segs.getOrElse(3) { "" }.trim()
         } else if (segs.size == 2) {
             // 实践课程形态：名称◇教师(2周)/13-14周
@@ -751,7 +781,7 @@ object UniversalScheduleParser {
         var working = text
 
         var weeks: List<Int> = emptyList()
-        Regex("""(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*周""").find(working)?.let { m ->
+        RE_WEEK_RANGE.find(working)?.let { m ->
             val a = m.groupValues[1].toInt()
             val b = m.groupValues[2].toInt()
             weeks = (minOf(a, b)..maxOf(a, b)).toList()
@@ -759,18 +789,18 @@ object UniversalScheduleParser {
         }
 
         var sections: Pair<Int, Int>? = fallbackSections
-        Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节""").find(working)?.let { m ->
+        RE_SECTION_RANGE_LABEL.find(working)?.let { m ->
             val a = m.groupValues[1].toInt()
             val b = m.groupValues[2].toInt()
             sections = minOf(a, b) to maxOf(a, b)
             working = working.replace(m.value, " ")
         }
 
-        val tokens = working.split(Regex("""[\s,，、|]+""")).filter { it.isNotBlank() }
+        val tokens = working.split(RE_TOKEN_SPLIT).filter { it.isNotBlank() }
         val name = tokens.firstOrNull() ?: return null
         if (name.length > 30) return null
 
-        val roomHint = Regex("""(楼|室|馆|厅|栋|层|教[\-A-Z0-9]|#|栋)""")
+        val roomHint = RE_ROOM_HINT
         val position = tokens.drop(1).firstOrNull { roomHint.containsMatchIn(it) } ?: ""
         val teacher = tokens.drop(1).filter { it != position }.joinToString(" ")
 
@@ -794,7 +824,7 @@ object UniversalScheduleParser {
 
     /** 节次 token 解析：1,2 → 1..2；3 → 3..3；单/双 → null（仅用于周次过滤） */
     private fun parseSectionToken(token: String): Pair<Int, Int>? {
-        val digits = Regex("""\d+""").findAll(token).map { it.value.toInt() }.toList()
+        val digits = RE_DIGITS_ALL.findAll(token).map { it.value.toInt() }.toList()
         return when {
             digits.size >= 2 -> minOf(digits.first(), digits.last()) to maxOf(digits.first(), digits.last())
             digits.size == 1 -> digits[0] to digits[0]

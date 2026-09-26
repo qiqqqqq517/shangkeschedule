@@ -31,8 +31,8 @@ android {
         applicationId = "com.shangkeschedule"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 287
-        versionName = "3.70.5"
+        versionCode = 288
+        versionName = "3.71.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -70,6 +70,10 @@ android {
     splits {
         abi {
             isEnable = true
+            // 注意（v3.71.0 实测纠正审计「死字符串」结论）：AGP 9.3.1 下
+            // splits.abi 生效的是本 exclude 列表 —— 一旦把 mips/mips64/armeabi 从这里删掉，
+            // assembleRelease 会真的多产出 mips/mips64/armeabi 三个无用 APK（各 5.67MB），
+            // 而 include() 并不会把它们挡回去。故这三项是「承重」而非死代码，必须保留。
             exclude("mips", "mips64", "armeabi", "riscv64", "x86")
             isUniversalApk = false
             include("armeabi-v7a", "arm64-v8a", "x86_64")
@@ -98,7 +102,9 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.compose.animation)
-    implementation(libs.compose.ui.tooling.preview)
+    // v3.71.0：androidApp 源码零 @Preview（全仓唯一的 @Preview 在 :shared commonMain），
+    // 故本依赖无需进 release 编译类路径，降为 debug 作用域；release 侧本就会被 R8 裁空。
+    debugImplementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.components.resources)
     implementation(libs.androidx.datastore.core)
     implementation(libs.kotlinx.serialization.json)

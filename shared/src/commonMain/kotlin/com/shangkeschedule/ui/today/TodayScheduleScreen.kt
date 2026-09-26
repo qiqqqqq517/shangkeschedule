@@ -42,7 +42,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.animation.AnimatedContent
@@ -162,44 +162,26 @@ import shangkeschedule.shared.generated.resources.agenda_category_todo
 import shangkeschedule.shared.generated.resources.agenda_count_format
 
 import shangkeschedule.shared.generated.resources.schedule_24px
-import shangkeschedule.shared.generated.resources.today_ios_countdown_label
-import shangkeschedule.shared.generated.resources.today_ios_meta_credit
-import shangkeschedule.shared.generated.resources.today_ios_meta_room
-import shangkeschedule.shared.generated.resources.today_ios_meta_teacher
-import shangkeschedule.shared.generated.resources.today_ios_meta_time
-import shangkeschedule.shared.generated.resources.today_ios_next_label
-import shangkeschedule.shared.generated.resources.today_ios_note_hours
-import shangkeschedule.shared.generated.resources.today_ios_note_type
-import shangkeschedule.shared.generated.resources.today_ios_sections_format
-import shangkeschedule.shared.generated.resources.today_ios_sheet_close
-import shangkeschedule.shared.generated.resources.today_ios_sheet_edit
-import shangkeschedule.shared.generated.resources.today_ios_status_done
-import shangkeschedule.shared.generated.resources.today_ios_status_live
-import shangkeschedule.shared.generated.resources.today_ios_status_upcoming
-import shangkeschedule.shared.generated.resources.today_ios_tomorrow_format
-import shangkeschedule.shared.generated.resources.today_ios_type_lab
-import shangkeschedule.shared.generated.resources.today_ios_type_theory
-import shangkeschedule.shared.generated.resources.today_ios_view_all
-import shangkeschedule.shared.generated.resources.today_claude_countdown_label
-import shangkeschedule.shared.generated.resources.today_claude_meta_credit
-import shangkeschedule.shared.generated.resources.today_claude_meta_room
-import shangkeschedule.shared.generated.resources.today_claude_meta_teacher
-import shangkeschedule.shared.generated.resources.today_claude_meta_time
-import shangkeschedule.shared.generated.resources.today_claude_next_label
+import shangkeschedule.shared.generated.resources.today_countdown_label
+import shangkeschedule.shared.generated.resources.today_meta_credit
+import shangkeschedule.shared.generated.resources.today_meta_room
+import shangkeschedule.shared.generated.resources.today_meta_teacher
+import shangkeschedule.shared.generated.resources.today_meta_time
+import shangkeschedule.shared.generated.resources.today_next_label
 import shangkeschedule.shared.generated.resources.next_card_label_agenda
 import shangkeschedule.shared.generated.resources.next_card_today_ended
-import shangkeschedule.shared.generated.resources.today_claude_note_hours
-import shangkeschedule.shared.generated.resources.today_claude_note_type
-import shangkeschedule.shared.generated.resources.today_claude_sections_format
-import shangkeschedule.shared.generated.resources.today_claude_sheet_close
-import shangkeschedule.shared.generated.resources.today_claude_sheet_edit
-import shangkeschedule.shared.generated.resources.today_claude_status_done
-import shangkeschedule.shared.generated.resources.today_claude_status_live
-import shangkeschedule.shared.generated.resources.today_claude_status_upcoming
-import shangkeschedule.shared.generated.resources.today_claude_tomorrow_format
-import shangkeschedule.shared.generated.resources.today_claude_type_lab
-import shangkeschedule.shared.generated.resources.today_claude_type_theory
-import shangkeschedule.shared.generated.resources.today_claude_view_all
+import shangkeschedule.shared.generated.resources.today_note_hours
+import shangkeschedule.shared.generated.resources.today_note_type
+import shangkeschedule.shared.generated.resources.today_sections_format
+import shangkeschedule.shared.generated.resources.today_sheet_close
+import shangkeschedule.shared.generated.resources.today_sheet_edit
+import shangkeschedule.shared.generated.resources.today_status_done
+import shangkeschedule.shared.generated.resources.today_status_live
+import shangkeschedule.shared.generated.resources.today_status_upcoming
+import shangkeschedule.shared.generated.resources.today_tomorrow_format
+import shangkeschedule.shared.generated.resources.today_type_lab
+import shangkeschedule.shared.generated.resources.today_type_theory
+import shangkeschedule.shared.generated.resources.today_view_all
 import shangkeschedule.shared.generated.resources.today_todos_section
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
@@ -215,8 +197,8 @@ fun TodayScheduleScreen(
     onBack: () -> Unit,
     viewModel: TodayScheduleViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val gridStyle by viewModel.gridStyle.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val gridStyle by viewModel.gridStyle.collectAsStateWithLifecycle()
     val isDark = LocalIsDarkTheme.current
     // 书卷 / 通透两套主题的今日页都自带页头（书卷：日期 eyebrow + 大标题 + 图标钮；
     // 通透：周次胶囊 + 日期大字），因此都不叠加 M3 CenterAlignedTopAppBar；
@@ -587,7 +569,7 @@ private class TodayCardStyle(
     /** 时间轴调色板（palettePeach 用于奇数行；三主题字段同构、取值不同）。 */
     val palettePlain: TodayTimelinePalette,
     val palettePeach: TodayTimelinePalette,
-    // —— 文案资源（书卷一套 today_claude_*，柔绘/通透共用 today_ios_*）——
+    // —— 文案资源（书卷一套 today_*，柔绘/通透共用 today_*）——
     val statusLive: StringResource,
     val statusDone: StringResource,
     val statusUpcoming: StringResource,
@@ -634,7 +616,7 @@ private interface TodaySkin {
     fun viewAllText(): String
 }
 
-/** 书卷（CLAUDE）：暖紫点缀梯 + 纸感实边框 + 衬线标题 + today_claude_* 文案。 */
+/** 书卷（CLAUDE）：暖紫点缀梯 + 纸感实边框 + 衬线标题 + today_* 文案。 */
 private object ClaudeTodaySkin : TodaySkin {
     @Composable
     override fun cardStyle(): TodayCardStyle {
@@ -655,34 +637,34 @@ private object ClaudeTodaySkin : TodaySkin {
                 sectionLabelFont = styleFont,
                 palettePlain = palettePlain,
                 palettePeach = palettePeach,
-                statusLive = Res.string.today_claude_status_live,
-                statusDone = Res.string.today_claude_status_done,
-                statusUpcoming = Res.string.today_claude_status_upcoming,
-                metaTime = Res.string.today_claude_meta_time,
-                metaRoom = Res.string.today_claude_meta_room,
-                metaTeacher = Res.string.today_claude_meta_teacher,
-                metaCredit = Res.string.today_claude_meta_credit,
-                sheetClose = Res.string.today_claude_sheet_close,
-                sheetEdit = Res.string.today_claude_sheet_edit,
-                countdownLabel = Res.string.today_claude_countdown_label,
-                sectionsFormat = Res.string.today_claude_sections_format,
-                noteType = Res.string.today_claude_note_type,
-                noteHours = Res.string.today_claude_note_hours,
-                typeLab = Res.string.today_claude_type_lab,
-                typeTheory = Res.string.today_claude_type_theory,
+                statusLive = Res.string.today_status_live,
+                statusDone = Res.string.today_status_done,
+                statusUpcoming = Res.string.today_status_upcoming,
+                metaTime = Res.string.today_meta_time,
+                metaRoom = Res.string.today_meta_room,
+                metaTeacher = Res.string.today_meta_teacher,
+                metaCredit = Res.string.today_meta_credit,
+                sheetClose = Res.string.today_sheet_close,
+                sheetEdit = Res.string.today_sheet_edit,
+                countdownLabel = Res.string.today_countdown_label,
+                sectionsFormat = Res.string.today_sections_format,
+                noteType = Res.string.today_note_type,
+                noteHours = Res.string.today_note_hours,
+                typeLab = Res.string.today_type_lab,
+                typeTheory = Res.string.today_type_theory,
             )
         }
     }
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_claude_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
 
     @Composable
-    override fun nextLabelText(): String = stringResource(Res.string.today_claude_next_label)
+    override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
 
     @Composable
-    override fun viewAllText(): String = stringResource(Res.string.today_claude_view_all)
+    override fun viewAllText(): String = stringResource(Res.string.today_view_all)
 }
 
 /** 柔绘（SOFT）：马卡龙点缀梯 + softShadow/softFeatherRim 材质 + 语义事件色；文案与通透共用。 */
@@ -706,34 +688,34 @@ private object SoftTodaySkin : TodaySkin {
                 sectionLabelFont = styleFont,
                 palettePlain = palettePlain,
                 palettePeach = palettePeach,
-                statusLive = Res.string.today_ios_status_live,
-                statusDone = Res.string.today_ios_status_done,
-                statusUpcoming = Res.string.today_ios_status_upcoming,
-                metaTime = Res.string.today_ios_meta_time,
-                metaRoom = Res.string.today_ios_meta_room,
-                metaTeacher = Res.string.today_ios_meta_teacher,
-                metaCredit = Res.string.today_ios_meta_credit,
-                sheetClose = Res.string.today_ios_sheet_close,
-                sheetEdit = Res.string.today_ios_sheet_edit,
-                countdownLabel = Res.string.today_ios_countdown_label,
-                sectionsFormat = Res.string.today_ios_sections_format,
-                noteType = Res.string.today_ios_note_type,
-                noteHours = Res.string.today_ios_note_hours,
-                typeLab = Res.string.today_ios_type_lab,
-                typeTheory = Res.string.today_ios_type_theory,
+                statusLive = Res.string.today_status_live,
+                statusDone = Res.string.today_status_done,
+                statusUpcoming = Res.string.today_status_upcoming,
+                metaTime = Res.string.today_meta_time,
+                metaRoom = Res.string.today_meta_room,
+                metaTeacher = Res.string.today_meta_teacher,
+                metaCredit = Res.string.today_meta_credit,
+                sheetClose = Res.string.today_sheet_close,
+                sheetEdit = Res.string.today_sheet_edit,
+                countdownLabel = Res.string.today_countdown_label,
+                sectionsFormat = Res.string.today_sections_format,
+                noteType = Res.string.today_note_type,
+                noteHours = Res.string.today_note_hours,
+                typeLab = Res.string.today_type_lab,
+                typeTheory = Res.string.today_type_theory,
             )
         }
     }
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_ios_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
 
     @Composable
-    override fun nextLabelText(): String = stringResource(Res.string.today_ios_next_label)
+    override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
 
     @Composable
-    override fun viewAllText(): String = stringResource(Res.string.today_ios_view_all)
+    override fun viewAllText(): String = stringResource(Res.string.today_view_all)
 }
 
 /** 通透（IOS26）：系统蓝点缀梯 + 玻璃高光内描边（iosGlassRim）+ heroCard 卡形。 */
@@ -757,34 +739,34 @@ private object Ios26TodaySkin : TodaySkin {
                 sectionLabelFont = styleFont,
                 palettePlain = palettePlain,
                 palettePeach = palettePeach,
-                statusLive = Res.string.today_ios_status_live,
-                statusDone = Res.string.today_ios_status_done,
-                statusUpcoming = Res.string.today_ios_status_upcoming,
-                metaTime = Res.string.today_ios_meta_time,
-                metaRoom = Res.string.today_ios_meta_room,
-                metaTeacher = Res.string.today_ios_meta_teacher,
-                metaCredit = Res.string.today_ios_meta_credit,
-                sheetClose = Res.string.today_ios_sheet_close,
-                sheetEdit = Res.string.today_ios_sheet_edit,
-                countdownLabel = Res.string.today_ios_countdown_label,
-                sectionsFormat = Res.string.today_ios_sections_format,
-                noteType = Res.string.today_ios_note_type,
-                noteHours = Res.string.today_ios_note_hours,
-                typeLab = Res.string.today_ios_type_lab,
-                typeTheory = Res.string.today_ios_type_theory,
+                statusLive = Res.string.today_status_live,
+                statusDone = Res.string.today_status_done,
+                statusUpcoming = Res.string.today_status_upcoming,
+                metaTime = Res.string.today_meta_time,
+                metaRoom = Res.string.today_meta_room,
+                metaTeacher = Res.string.today_meta_teacher,
+                metaCredit = Res.string.today_meta_credit,
+                sheetClose = Res.string.today_sheet_close,
+                sheetEdit = Res.string.today_sheet_edit,
+                countdownLabel = Res.string.today_countdown_label,
+                sectionsFormat = Res.string.today_sections_format,
+                noteType = Res.string.today_note_type,
+                noteHours = Res.string.today_note_hours,
+                typeLab = Res.string.today_type_lab,
+                typeTheory = Res.string.today_type_theory,
             )
         }
     }
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_ios_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
 
     @Composable
-    override fun nextLabelText(): String = stringResource(Res.string.today_ios_next_label)
+    override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
 
     @Composable
-    override fun viewAllText(): String = stringResource(Res.string.today_ios_view_all)
+    override fun viewAllText(): String = stringResource(Res.string.today_view_all)
 }
 
 /**

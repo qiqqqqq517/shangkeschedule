@@ -5,10 +5,8 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import com.shangkeschedule.tool.HttpClientFactory
 import com.shangkeschedule.tool.readAtMostBytes
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.headers
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -31,23 +29,21 @@ import java.util.Collections
  */
 class WebViewRequestInterceptor {
     companion object {
-        private val ktorClientNoRedirects = HttpClient(CIO) {
-            followRedirects = false
-            install(HttpTimeout) {
-                connectTimeoutMillis = 30_000
-                requestTimeoutMillis = 60_000
-                socketTimeoutMillis = 60_000
-            }
-        }
+        // 拦截器直接代理 WebView 的请求，超时按「教务系统首字节慢」放宽到 60s；
+        // 主框架不能自动跟随 3xx（WebView 解析不了 3xx，必须自己转成 JS 跳转），子资源可以。
+        private val ktorClientNoRedirects = HttpClientFactory.create(
+            followRedirects = false,
+            connectTimeout = 30_000,
+            request = 60_000,
+            socket = 60_000
+        )
 
-        private val ktorClientWithRedirects = HttpClient(CIO) {
-            followRedirects = true
-            install(HttpTimeout) {
-                connectTimeoutMillis = 30_000
-                requestTimeoutMillis = 60_000
-                socketTimeoutMillis = 60_000
-            }
-        }
+        private val ktorClientWithRedirects = HttpClientFactory.create(
+            followRedirects = true,
+            connectTimeout = 30_000,
+            request = 60_000,
+            socket = 60_000
+        )
 
         /** POST 体注册表容量上限（正常表单提交远小于此，仅作内存防护） */
         private const val POST_REGISTRY_MAX = 16

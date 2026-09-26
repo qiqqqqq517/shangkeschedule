@@ -49,6 +49,22 @@ kotlin {
     }
 
     sourceSets {
+        // ------------------------------------------------------------------
+        // android 与 jvm 目标的共享源集
+        //
+        // Android 与桌面 JVM 两端都能用 JDK 的 java.util.zip 等 JVM API，此前 ZipUtils
+        // 的 actual 实现被逐字节复制了两份（androidMain + jvmMain）。这里建一个同时被
+        // 两端 dependsOn 的中间源集，只留一份实现。
+        //
+        // 关键约束：只把 androidMain / jvmMain 接到这里，**不**接入 native/apple/ios 层级
+        // —— iOS 用的是 Kotlin/Native，没有 java.util.zip，仍由 iosMain 自己的 actual 提供。
+        // ------------------------------------------------------------------
+        val jvmCommonMain = create("jvmCommonMain") {
+            dependsOn(commonMain.get())
+        }
+        androidMain.get().dependsOn(jvmCommonMain)
+        jvmMain.get().dependsOn(jvmCommonMain)
+
         commonMain {
             dependencies {
                 // Compose Multiplatform 核心 UI 库
@@ -108,11 +124,15 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
-            implementation(libs.ktor.client.cio)
+            // Ktor 引擎按平台选择（统一在 HttpClientFactory 里使用无引擎重载，具体引擎由这里决定）：
+            // Android 用 OkHttp——它是 Ktor 官方推荐的 Android 引擎，HTTP/2、连接池、系统代理/
+            // TLS/DNS 全部走平台原生栈；CIO 是纯 Kotlin 实现，在 Android 上不享受这些集成。
+            implementation(libs.ktor.client.okhttp)
         }
 
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
+            // 桌面端用 CIO：无需额外原生依赖，且桌面（含 macOS/Windows/Linux）行为一致。
             implementation(libs.ktor.client.cio)
         }
 
@@ -169,9 +189,22 @@ val packSchoolsZip = tasks.register<Zip>("packSchoolsZip") {
     group = "build"
     description = "将离线适配资源打包为 composeResources ZIP 资源文件。"
 
-    from(layout.projectDirectory.dir("assets/offline_repo"))
+    from(layout.projectDirectory.dir("assets/offline_repo")) {
+        // 排除文档/模板文件，不进正式包
+        exclude("**/ADAPTER_GUIDE.md")
+        exclude("**/schools_template.json")
+        exclude("**/*.md")
+    }
+    // 输出到 composeResources 的 files/ 目录：运行时以 Res.readBytes("files/offline_schools.zip")
+    // 读取，资源路径必须保持，因此不能改到自定义资源根目录。
+    // 该 zip 未纳入 git 跟踪（生成物），每次资源编译都会重打。
     destinationDirectory.set(layout.projectDirectory.dir("src/commonMain/composeResources/files"))
     archiveFileName.set("offline_schools.zip")
+    // 显式压缩，避免默认仅 STORED/低压缩导致安装包偏大
+    entryCompression = ZipEntryCompression.DEFLATED
+    // 关闭时间戳、固定条目顺序：产物可复现，避免每次构建都判定为变更而重打
+    setPreserveFileTimestamps(false)
+    setReproducibleFileOrder(true)
 }
 
 // 绑定生成 Task 至 Compose Resources 编译生命周期
