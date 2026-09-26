@@ -11,6 +11,7 @@ import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.RefreshRateMode
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.ui.schedule.ScheduleViewMode
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
@@ -37,6 +38,8 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
+
+private const val TAG = "AppSettingsRepository"
 
 /**
  * 应用配置领域仓库
@@ -350,7 +353,7 @@ class AppSettingsRepository(
             val diffWeeks = (diffDays / 7).toInt()
             diffWeeks + 1
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "计算目标日期周次失败", e)
             null
         }
     }

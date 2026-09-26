@@ -14,6 +14,7 @@ import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
@@ -52,6 +53,8 @@ import org.koin.core.annotation.KoinViewModel
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private const val TAG = "WeeklyScheduleViewModel"
 
 /**
  * 课表展示块：封装单次或冲突课程
@@ -834,7 +837,7 @@ class WeeklyScheduleViewModel (
                     courseTableRepository.upsertCourse(finalClonedCourse, listOf(targetWeek))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "跨周复制课程失败", e)
                 // 落库失败必须让用户感知（v3.54.0）：否则 UI 已按拖拽位置更新，
                 // 下次流重算课程会「弹回」原位而无任何提示
                 _gestureSaveFailed.tryEmit(Unit)
@@ -928,7 +931,7 @@ class WeeklyScheduleViewModel (
                     courseTableRepository.upsertCourse(finalClonedCourse, listOf(currentWeek))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "课程移动到目标周失败", e)
                 _gestureSaveFailed.tryEmit(Unit)
             } finally {
                 onComplete()

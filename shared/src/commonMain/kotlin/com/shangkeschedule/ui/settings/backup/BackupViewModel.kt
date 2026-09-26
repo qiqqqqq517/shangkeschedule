@@ -8,6 +8,7 @@ import com.shangkeschedule.data.repository.AppBackupPackage
 import com.shangkeschedule.data.repository.BackupMeta
 import com.shangkeschedule.data.repository.BackupModule
 import com.shangkeschedule.data.repository.BackupRepository
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.tool.ZipUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -329,7 +330,7 @@ class BackupViewModel(
             _uiState.update { it.copy(isBusy = false, testResult = TestResult.Success) }
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "本地导出失败", e)
             val exportFailMsg = getString(Res.string.backup_err_local_export_failed)
             _uiState.update { it.copy(isBusy = false, testResult = TestResult.Error(exportFailMsg)) }
             false
@@ -432,7 +433,7 @@ class BackupViewModel(
             try {
                 FileSystem.SYSTEM.delete(tempZipPath)
             } catch (cleanupError: Exception) {
-                cleanupError.printStackTrace()
+                AppLog.w(TAG, "删除临时备份文件失败", cleanupError)
             }
         }
     }
@@ -443,6 +444,9 @@ private const val MAX_BACKUP_ENTRY_BYTES = 32L * 1024 * 1024
 
 /** 一次导入允许累计解压的上限。 */
 private const val MAX_BACKUP_TOTAL_BYTES = 128L * 1024 * 1024
+
+/** 日志模块标签。 */
+private const val TAG = "BackupViewModel"
 
 /** 分块读取块大小。 */
 private const val BACKUP_READ_CHUNK_BYTES = 64L * 1024

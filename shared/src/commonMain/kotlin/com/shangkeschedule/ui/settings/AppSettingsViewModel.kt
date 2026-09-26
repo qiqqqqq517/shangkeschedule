@@ -12,6 +12,7 @@ import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.ui.glass.GlassRefractionSettings
 import com.shangkeschedule.ui.theme.MotionSpeed
 import com.shangkeschedule.ui.theme.AnimationGroup
@@ -41,6 +42,8 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private const val TAG = "AppSettingsViewModel"
 
 /**
  * 界面原子状态类：包含设置页渲染所需的全部数据包
@@ -384,7 +387,7 @@ class SettingsViewModel(
                     if (fileSystem.exists(oldPath)) fileSystem.delete(oldPath)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "保存头像失败", e)
             }
         }
     }
@@ -402,7 +405,7 @@ class SettingsViewModel(
                 }
                 appSettingsRepository.updateProfileAvatarPath("")
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "移除头像失败", e)
             }
         }
     }

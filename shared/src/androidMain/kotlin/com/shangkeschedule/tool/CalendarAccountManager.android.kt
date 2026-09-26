@@ -23,6 +23,8 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.course_teacher_prefix
 
+private const val TAG = "CalendarAccountManager"
+
 actual object CalendarAccountManager : KoinComponent {
 
     private const val ACCOUNT_TYPE = CalendarContract.ACCOUNT_TYPE_LOCAL
@@ -68,7 +70,7 @@ actual object CalendarAccountManager : KoinComponent {
             val resultUri = contentResolver.insert(uri, values)
             resultUri?.let { ContentUris.parseId(it) } ?: -1L
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "创建本地日历账户失败", e)
             -1L
         }
     }
@@ -142,7 +144,7 @@ actual object CalendarAccountManager : KoinComponent {
                 }
                 true
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "同步课表到系统日历失败", e)
                 false
             }
         }

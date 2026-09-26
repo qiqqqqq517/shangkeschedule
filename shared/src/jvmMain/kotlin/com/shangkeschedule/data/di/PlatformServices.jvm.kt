@@ -1,5 +1,6 @@
 package com.shangkeschedule.data.di
 
+import com.shangkeschedule.tool.DesktopAppDirs
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.annotation.Single
@@ -8,32 +9,8 @@ import java.io.File
 @Single
 class JvmAppStorage : AppStorage {
 
-    private val appRootDir: File by lazy {
-        val userHome = System.getProperty("user.home")
-        val folderName = "shangkeschedule"
-
-        // 结合 OperatingSystem 枚举进行类型安全的匹配
-        val dir = when (OperatingSystem.current) {
-            OperatingSystem.WINDOWS -> {
-                val appData = System.getenv("APPDATA") ?: "$userHome/AppData/Roaming"
-                File(appData, folderName)
-            }
-            OperatingSystem.MACOS -> {
-                File(userHome, "Library/Application Support/$folderName")
-            }
-            OperatingSystem.LINUX -> {
-                val configHome = System.getenv("XDG_CONFIG_HOME") ?: "$userHome/.config"
-                File(configHome, folderName)
-            }
-            OperatingSystem.UNKNOWN -> {
-                // 异常/极罕见系统兜底路径
-                File(userHome, ".$folderName")
-            }
-        }
-
-        if (!dir.exists()) dir.mkdirs()
-        dir
-    }
+    // 目录规则与桌面端其它组件（密钥库等）共用一份实现，避免多处硬编码导致目录漂移
+    private val appRootDir: File get() = DesktopAppDirs.root
 
     override val filesDir: Path
         get() {

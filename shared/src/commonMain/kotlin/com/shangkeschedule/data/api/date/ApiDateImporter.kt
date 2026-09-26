@@ -1,6 +1,7 @@
 package com.shangkeschedule.data.api.date
 
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.tool.AppLog
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+private const val TAG = "ApiDateImporter"
 
 @Serializable
 data class ApiResponse(
@@ -77,8 +80,7 @@ object ApiDateImporter {
 
             println("成功导入并合并了 ${holidayDates.size} 个假期日期（现共 ${mergedSkippedDates.size} 个跳过日期）。")
         } catch (e: Exception) {
-            println("数据导入失败: ${e.message}")
-            e.printStackTrace()
+            AppLog.e(TAG, "假期数据导入失败: ${e.message}", e)
         }
     }
 

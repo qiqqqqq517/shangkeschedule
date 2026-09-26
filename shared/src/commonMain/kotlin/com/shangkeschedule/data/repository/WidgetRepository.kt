@@ -7,6 +7,7 @@ import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.db.widget.WidgetCourseDao
 import com.shangkeschedule.data.db.widget.WidgetDatabase
 import com.shangkeschedule.data.time.startOfWeek
+import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -18,6 +19,8 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
+
+private const val TAG = "WidgetRepository"
 
 /**
  * Widget 数据仓库，负责处理与 Widget 数据库相关的所有数据操作。
@@ -127,7 +130,7 @@ class WidgetRepository(
 
             if (calculatedWeek in 1..totalWeeks) calculatedWeek else null
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "解析学期起始日期失败", e)
             null
         }
     }

@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.webkit.MimeTypeMap
 
+private const val TAG = "FileManager"
+
 class AndroidFileManager(
     private val onPickImage: () -> Unit,
     private val onImportFile: (List<String>) -> Unit,
@@ -182,7 +184,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                     BitmapFactory.decodeStream(stream)?.asImageBitmap()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "解码所选图片失败", e)
                 null
             }
             withContext(Dispatchers.Main) {
@@ -206,7 +208,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
             val bytes = try {
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "读取导入文件失败", e)
                 null
             }
             val fileName = queryDisplayName(context, uri)
@@ -234,7 +236,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                 }
                 true
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLog.e(TAG, "写出导出文件失败", e)
                 false
             }
             pendingExportBytes = null

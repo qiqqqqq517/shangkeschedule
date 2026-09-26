@@ -22,6 +22,7 @@ import com.shangkeschedule.data.model.schedule_style.BorderTypeProto
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
@@ -46,6 +47,8 @@ import org.koin.core.annotation.Named
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private const val TAG = "StyleSettingsViewModel"
 
 @OptIn(ExperimentalUuidApi::class)
 @KoinViewModel
@@ -124,7 +127,7 @@ class StyleSettingsViewModel(
 
             styleRepository.setBackgroundImagePath(newFile.toString())
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "保存壁纸失败", e)
         }
     }
 
@@ -145,7 +148,7 @@ class StyleSettingsViewModel(
             }
             styleRepository.setBackgroundImagePath("")
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "移除壁纸失败", e)
         }
     }
 

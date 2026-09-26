@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.shangkeschedule.data.model.SchoolHistoryModel
+import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,8 @@ import school_index.School
 import school_index.SchoolIndex
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
+
+private const val TAG = "SchoolRepository"
 
 /**
  * 学校数据仓库。
@@ -80,7 +83,7 @@ class SchoolRepository(
                     cacheKey = currentKey
                     decoded
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    AppLog.e(TAG, "学校索引解码失败", e)
                     null
                 }
             }

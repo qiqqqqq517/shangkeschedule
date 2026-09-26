@@ -7,8 +7,11 @@ import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
-import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.addCourseRows
+import com.shangkeschedule.widget.bindCourseRowBody
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -25,7 +28,7 @@ object ListVerticalNativeRenderer {
         val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
+        val currentWeek = snapshot.currentWeekOrNull()
 
         if (currentWeek == null) {
             showFullStatus(
@@ -60,8 +63,7 @@ object ListVerticalNativeRenderer {
                 renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot)
             }
             else -> {
-                val hasCoursesToday = WidgetCourseSelection.allToday(snapshot.courses, todayStr).isNotEmpty()
-                val tip = if (!hasCoursesToday) context.getString(R.string.text_no_courses_today) else context.getString(R.string.widget_today_courses_finished)
+                val tip = todayEmptyTip(context, snapshot.courses, todayStr)
                 val weekText = context.getString(R.string.status_current_week_format, currentWeek)
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 showInnerStatus(rv, tip)
@@ -87,34 +89,14 @@ object ListVerticalNativeRenderer {
     ) {
         rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
 
-        courses.forEachIndexed { index, course ->
-            val itemRv = RemoteViews(context.packageName, R.layout.widget_item_course_list_node)
-
-            itemRv.setTextViewText(R.id.tv_course_name, course.name)
-            itemRv.setTextViewText(R.id.tv_course_position, course.position)
-            itemRv.setTextViewText(R.id.tv_course_start_time, course.start_time.take(5))
-            itemRv.setTextViewText(R.id.tv_course_end_time, course.end_time.take(5))
-
-            if (course.teacher.isNotBlank()) {
-                itemRv.setViewVisibility(R.id.tv_course_teacher, View.VISIBLE)
-                itemRv.setTextViewText(R.id.tv_course_teacher, course.teacher)
-            } else {
-                itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
-            }
-
-            // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
-            itemRv.applyCourseColor(
-                context,
-                lightViewId = R.id.course_indicator,
-                darkViewId = R.id.course_indicator_dark,
-                maps = snapshot.style?.course_color_maps,
-                colorInt = course.color_int
-            )
-
-            rv.addView(R.id.container_courses, itemRv)
-
-            if (index < courses.size - 1) {
-                rv.addView(R.id.container_courses, RemoteViews(context.packageName, R.layout.widget_divider_horizontal))
+        // 行内容与分隔线统一走 WidgetCourseRows；仅行布局不同
+        addCourseRows(rv, R.id.container_courses, context, courses) { course ->
+            RemoteViews(context.packageName, R.layout.widget_item_course_list_node).apply {
+                setTextViewText(R.id.tv_course_name, course.name)
+                setTextViewText(R.id.tv_course_position, course.position)
+                setTextViewText(R.id.tv_course_start_time, course.start_time.take(5))
+                setTextViewText(R.id.tv_course_end_time, course.end_time.take(5))
+                bindCourseRowBody(context, course, snapshot)
             }
         }
     }

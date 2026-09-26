@@ -38,6 +38,20 @@ abstract class ScheduledWidgetProvider : AppWidgetProvider() {
         refreshInBackground(context, WidgetRefreshReason.REQUIRED)
     }
 
+    /**
+     * 四个 Provider 此前逐字重复「首个组件添加 → 排期后台刷新」「最后一个移除 → 取消排期」，
+     * 现统一收敛到基类（v3.69.5）。
+     */
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WorkManagerHelper.schedulePeriodicWork(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WorkManagerHelper.onWidgetDisabled(context)
+    }
+
     private fun refreshInBackground(context: Context, reason: WidgetRefreshReason) {
         val pendingResult = goAsync()
         scope.launch {

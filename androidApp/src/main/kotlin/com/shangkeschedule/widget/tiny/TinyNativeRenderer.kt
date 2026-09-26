@@ -8,6 +8,8 @@ import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.applyCourseColor
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -23,7 +25,7 @@ object TinyNativeRenderer {
         bindWidgetClickIntent(context, rv)
 
         // 数据准备
-        val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
+        val currentWeek = snapshot.currentWeekOrNull()
         val now = LocalTime.now()
         val nowMinutes = now.hour * 60 + now.minute
         val todayStr = LocalDate.now().toString()
@@ -35,7 +37,6 @@ object TinyNativeRenderer {
         }
 
         // 情况 B：开学期间数据过滤（排序与过滤统一走 WidgetCourseSelection，与其余三个组件一致）
-        val todayAll = WidgetCourseSelection.allToday(snapshot.courses, todayStr)
         val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
         val nextCourse = todayRemaining.firstOrNull()
 
@@ -66,12 +67,7 @@ object TinyNativeRenderer {
             )
         } else {
             // 无课状态
-            val tip = if (todayAll.isEmpty()) {
-                context.getString(R.string.text_no_courses_today)
-            } else {
-                context.getString(R.string.widget_today_courses_finished)
-            }
-            showStatus(rv, tip)
+            showStatus(rv, todayEmptyTip(context, snapshot.courses, todayStr))
         }
 
         return rv

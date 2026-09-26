@@ -1,21 +1,10 @@
 package com.shangkeschedule.widget.double_days
 
-import android.content.Context
-import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.ScheduledWidgetProvider
 
-class DoubleDaysNativeProvider : ScheduledWidgetProvider() {
-
-    override fun onEnabled(context: Context) {
-        super.onEnabled(context)
-        // 启用更新计划任务表
-        WorkManagerHelper.schedulePeriodicWork(context)
-
-    }
-
-    // 移除最后一个小组件时清除任务表
-    override fun onDisabled(context: Context) {
-        super.onDisabled(context)
-        WorkManagerHelper.onWidgetDisabled(context)
-    }
-}
+/**
+ * 今日 / 明日双栏原生小组件接收器（渲染见 [DoubleDaysNativeRenderer]）。
+ *
+ * 后台排期（首个添加 / 最后一个移除）由基类 [ScheduledWidgetProvider] 统一处理（v3.69.5 去重）。
+ */
+class DoubleDaysNativeProvider : ScheduledWidgetProvider()

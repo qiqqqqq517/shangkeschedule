@@ -7,8 +7,11 @@ import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
-import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.commonCourseRow
+import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -30,7 +33,7 @@ object CompactNativeRenderer {
         val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
+        val currentWeek = snapshot.currentWeekOrNull()
 
         // 头部基础信息渲染
         val dateFormatter = DateTimeFormatter.ofPattern("E", Locale.getDefault())
@@ -84,13 +87,7 @@ object CompactNativeRenderer {
             }
             else -> {
                 // 状态 3：今明无课
-                val hasCoursesToday = WidgetCourseSelection.allToday(snapshot.courses, todayStr).isNotEmpty()
-                val tip = if (!hasCoursesToday) {
-                    context.getString(R.string.text_no_courses_today)
-                } else {
-                    context.getString(R.string.widget_today_courses_finished)
-                }
-                showStatus(rv, context, tip, "", isFullCover = false)
+                showStatus(rv, context, todayEmptyTip(context, snapshot.courses, todayStr), "", isFullCover = false)
             }
         }
 
@@ -124,34 +121,7 @@ object CompactNativeRenderer {
         rv.setViewVisibility(R.id.container_status, View.GONE)
         rv.setViewVisibility(R.id.tv_footer, View.VISIBLE)
 
-        courses.forEachIndexed { index, course ->
-            val itemRv = RemoteViews(context.packageName, R.layout.widget_item_course_common)
-            itemRv.setTextViewText(R.id.tv_course_name, course.name)
-            itemRv.setTextViewText(R.id.tv_course_position, course.position)
-            itemRv.setTextViewText(R.id.tv_course_time, "${course.start_time.take(5)}-${course.end_time.take(5)}")
-
-            if (!(course.teacher.isBlank())) {
-                itemRv.setViewVisibility(R.id.tv_course_teacher, View.VISIBLE)
-                itemRv.setTextViewText(R.id.tv_course_teacher, course.teacher)
-            } else {
-                itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
-            }
-
-            // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
-            itemRv.applyCourseColor(
-                context,
-                lightViewId = R.id.course_indicator,
-                darkViewId = R.id.course_indicator_dark,
-                maps = snapshot.style?.course_color_maps,
-                colorInt = course.color_int
-            )
-
-            rv.addView(R.id.container_courses, itemRv)
-
-            if (index < courses.size - 1) {
-                rv.addView(R.id.container_courses, RemoteViews(context.packageName, R.layout.widget_divider_horizontal))
-            }
-        }
+        addCourseRows(rv, R.id.container_courses, context, courses) { commonCourseRow(context, it, snapshot) }
 
         val footerRes = if (isTomorrow) R.string.widget_course_total_count else R.string.widget_course_remaining_count
         rv.setTextViewText(R.id.tv_footer, context.getString(footerRes, totalCount))

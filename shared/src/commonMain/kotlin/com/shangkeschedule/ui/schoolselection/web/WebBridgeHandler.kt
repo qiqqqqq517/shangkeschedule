@@ -22,6 +22,7 @@ import org.jetbrains.compose.resources.getString
 
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,10 @@ class WebBridgeHandler(
 ) {
     private val json = CourseImportExport.json
     private var importTableId: String? = null
+
+    private companion object {
+        const val TAG = "WebBridgeHandler"
+    }
 
     /**
      * 设置当前导入的目标课表 ID。
@@ -90,7 +95,7 @@ class WebBridgeHandler(
                 "notifyTaskCompletion" -> notifyTaskCompletion()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "桥接消息处理失败", e)
         }
     }
 
@@ -329,7 +334,7 @@ class WebBridgeHandler(
         return try {
             bridgeJson.decodeFromString<T>(payloadJson)
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLog.e(TAG, "桥接 payload 解析失败", e)
             null
         }
     }

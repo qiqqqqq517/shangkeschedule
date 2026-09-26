@@ -7,8 +7,10 @@ import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
-import com.shangkeschedule.widget.applyCourseColor
+import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.commonCourseRow
+import com.shangkeschedule.widget.currentWeekOrNull
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -26,7 +28,7 @@ object DoubleDaysNativeRenderer {
         bindWidgetClickIntent(context, rv)
 
         // 全局状态判断
-        val currentWeek = if (snapshot.current_week <= 0) null else snapshot.current_week
+        val currentWeek = snapshot.currentWeekOrNull()
 
         if (currentWeek == null) {
             rv.setViewVisibility(R.id.inner_content_card, View.GONE)
@@ -116,38 +118,8 @@ object DoubleDaysNativeRenderer {
             val countRes = if (isToday) R.string.widget_course_remaining_count else R.string.widget_course_total_count
             rootRv.setTextViewText(footerId, context.getString(countRes, totalCount))
 
-            // 循环渲染所有课程
-            displayCourses.forEachIndexed { index, course ->
-                val itemRv = RemoteViews(context.packageName, R.layout.widget_item_course_common)
-                itemRv.setTextViewText(R.id.tv_course_name, course.name)
-                itemRv.setTextViewText(R.id.tv_course_position, course.position)
-
-                val timeRange = "${course.start_time.take(5)}-${course.end_time.take(5)}"
-                itemRv.setTextViewText(R.id.tv_course_time, timeRange)
-
-                if (course.teacher.isNotBlank()) {
-                    itemRv.setViewVisibility(R.id.tv_course_teacher, View.VISIBLE)
-                    itemRv.setTextViewText(R.id.tv_course_teacher, course.teacher)
-                } else {
-                    itemRv.setViewVisibility(R.id.tv_course_teacher, View.GONE)
-                }
-
-                // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
-                itemRv.applyCourseColor(
-                    context,
-                    lightViewId = R.id.course_indicator,
-                    darkViewId = R.id.course_indicator_dark,
-                    maps = snapshot.style?.course_color_maps,
-                    colorInt = course.color_int
-                )
-
-                rootRv.addView(containerId, itemRv)
-
-                // 无限显示逻辑：只要不是最后一项，就添加横向分割线
-                if (index < displayCourses.size - 1) {
-                    rootRv.addView(containerId, RemoteViews(context.packageName, R.layout.widget_divider_horizontal))
-                }
-            }
+            // 循环渲染所有课程（行内容与分隔线统一走 WidgetCourseRows）
+            addCourseRows(rootRv, containerId, context, displayCourses) { commonCourseRow(context, it, snapshot) }
         }
     }
 }
