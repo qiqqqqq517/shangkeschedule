@@ -74,6 +74,8 @@ def main():
     ap.add_argument("--remote", default="origin")
     ap.add_argument("--branch", default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--use-proxy", action="store_true",
+                    help="走 git 配置里的代理（默认直连：本机 7897 代理已损坏）")
     args = ap.parse_args()
 
     helper = find_helper()
@@ -105,7 +107,14 @@ def main():
 
     branch = args.branch or run(["git", "rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
     push_url = f"https://{user}:{tok}@{host}/{path}.git"
-    r = run(["git", "push", push_url, branch])
+    git_args = ["git"]
+    if not args.use_proxy:
+        # 默认**绕过代理直连**：本机 http.proxy=127.0.0.1:7897 已损坏 ——
+        # 经它访问 GitHub 报 schannel handshake 失败（连 ls-remote 都失败），
+        # 而直连完全正常（实测 api.github.com 直连 200）。见 2026-09-26 实测。
+        git_args += ["-c", "http.proxy=", "-c", "https.proxy="]
+    git_args += ["push", push_url, branch]
+    r = run(git_args)
     out = (r.stdout + r.stderr).replace(tok, "***")
     for line in out.splitlines():
         print("  " + line)
