@@ -298,7 +298,7 @@
     <string name="label_current">Current</string>
     
     <!-- Manage Course Tables -->
-    <string name="title_manage_course_tables">Manage schedules</string>
+    <string name="title_manage_course_tables">My schedules</string>
     <string name="dialog_title_add_table">Add new schedule</string>
     <string name="a11y_add_new_table">Add new schedule</string>
     <string name="label_table_name">Schedule name</string>

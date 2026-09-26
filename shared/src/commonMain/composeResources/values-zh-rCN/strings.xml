@@ -296,7 +296,7 @@
     <string name="label_current">当前</string>
 
     <!-- 管理课表 -->
-    <string name="title_manage_course_tables">管理课表</string>
+    <string name="title_manage_course_tables">我的课表</string>
     <string name="dialog_title_add_table">添加新课表</string>
     <string name="a11y_add_new_table">添加新课表</string>
     <string name="label_table_name">课表名称</string>

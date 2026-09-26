@@ -296,7 +296,7 @@
     <string name="label_current">目前</string>
     
     <!-- 管理課表 -->
-    <string name="title_manage_course_tables">管理課表</string>
+    <string name="title_manage_course_tables">我的課表</string>
     <string name="dialog_title_add_table">新增課表</string>
     <string name="a11y_add_new_table">新增課表</string>
     <string name="label_table_name">課表名稱</string>
