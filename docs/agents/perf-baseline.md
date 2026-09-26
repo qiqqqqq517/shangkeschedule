@@ -14,6 +14,35 @@
 负载固定为：每页上滑 / 下滑各 8 次（`SWIPE_PAIRS = 8`，`SWIPE_DY = 1100`，`SWIPE_MS = 160`），
 采集 `adb shell dumpsys gfxinfo com.shangkeschedule`。
 
+## 实测记录
+
+### 2026-09-26 · 冷启动（首次采到真实数据）
+
+设备：`JFKJRC89T87XXOJJ`，装 **v3.69.4 debug 包**（arm64-v8a），`am force-stop` 后 `am start -W`：
+
+| 次数 | TotalTime | WaitTime |
+|---|---|---|
+| 1 | 1127 ms | 1135 ms |
+| 2 | 1127 ms | 1133 ms |
+| 3 | 1092 ms | 1097 ms |
+
+**基线 ≈ 1.09–1.13 s，三次波动 < 4%，稳定性好。**
+
+⚠️ 这是 **debug 包**的数值（无 R8 优化）、装 release 会因签名不符被拒（设备原包为 debug 签名；
+卸载重装会丢课表数据）。因此**绝对值偏悲观，不可与 release 指标直接比较**，
+但用于「改动前后同包对比」完全有效 —— 这正是 PF6 的用途。
+
+### 滚动负载基线：**仍无法采集**
+
+`adb shell input swipe` 报 `SecurityException: ... INJECT_EVENTS`，无法施加滚动负载。
+此前记录「本机设备 UI 自动化不可用」依然成立。
+
+⚠️ **踩坑：探测权限不能用 `input tap`**。
+本次 `input tap 1 1` 静默通过、不报任何错误，据此以为权限已开启，
+结果 16 次 swipe 全部失败、只采到启动期间的 24 帧（58% 卡顿的假数据）。
+**tap 与 swipe 的权限检查行为不同**，探测必须用与实际负载相同的 `input swipe`。
+`scripts/perf_jank.py` 的 preflight 已按此修正。
+
 ## 命令
 
 ```bash

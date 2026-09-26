@@ -100,11 +100,15 @@ def preflight():
         return False
     log(f"[preflight] adb = {ADB}")
 
-    # 注入能力探测：对当前界面发一次 tap，看是否被 INJECT_EVENTS 拒绝
-    probe = adb("shell", "input", "tap", "1", "1")
+    # 注入能力探测：必须用 **swipe**，不能用 tap。
+    # 2026-09-26 实测教训：同一台设备上 `input tap 1 1` 可静默通过（不报错），
+    # 而 `input swipe` 报 SecurityException: INJECT_EVENTS。用 tap 探测会误判
+    # 「权限可用」，随后施加负载全部失败、采出「只有启动帧」的无效数据。
+    probe = adb("shell", "input", "swipe", "540", "1500", "540", "1200", "100")
     if "INJECT_EVENTS" in probe or "SecurityException" in probe:
         log("[preflight] ❌ 输入注入被拒绝（INJECT_EVENTS）——无法施加滚动负载")
         log("             开启：开发者选项 → USB 调试（安全设置），然后重插 USB")
+        log(f"             原始报错：{probe.strip().splitlines()[0] if probe.strip() else '(空)'}")
         return False
     log("[preflight] ✅ 设备在线，输入注入可用")
     return True
