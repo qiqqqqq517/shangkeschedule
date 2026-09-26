@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.70.5</b></span>
-        <span>versionCode <b class="mono" data-version-code>287</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.71.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>288</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3710">v3.71.0 · 体积与性能专项：APK 瘦身约 542 KB，解析提速</a></li>
         <li><a href="#v3705">v3.70.5 · 全局 UI/交互视觉优化</a></li>
         <li><a href="#v3701">v3.70.1 · 导入提示不再重复、不再互相顶掉</a></li>
         <li><a href="#v3700">v3.70.0 · 教务适配的可观测性与弹窗接管</a></li>
@@ -142,6 +143,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3710">
+        <div><span class="tl-ver">v3.71.0</span><span class="tl-date">2026-09-26</span></div>
+        <div class="tl-body">
+          <p><strong>体积与性能专项</strong>：Release APK（arm64-v8a）从 5,784,716 B 降到 5,229,985 B，<strong>-554,731 B（约 -542 KB / -9.6%）</strong>，解析与列表刷新同步提速。</p>
+          <ul>
+            <li><strong>字体子集化</strong>：6 个字体 1,296,060 → 280,644 B（-1,015,416 B）。Poppins 四档去除未用字形；Newsreader 固定 wght 600、Lora 固定 wght 400 后子集化（避免默认实例重解压放大）；删除全仓零引用的 GeistMono。实际使用字符零丢失。</li>
+            <li><strong>R8 裁剪收敛</strong>：删除使整个 shared 模块免裁剪的 keep 规则，改为注解驱动的 Entity / DAO / Database 精准保留；合并重复的序列化与 Protobuf 规则。</li>
+            <li><strong>解析器正则预编译</strong>：UniversalScheduleParser 30 处、ExcelScheduleParser 17 处函数内 Regex 上提为常量，消除逐行 / 逐格循环内的重复编译。</li>
+            <li><strong>列表与生命周期</strong>：Room @Query Flow 补 distinctUntilChanged（课表列表 / 课程+周次 / 配对表）；今日页改用 collectAsStateWithLifecycle。</li>
+            <li><strong>网络层统一</strong>：新增统一 HttpClientFactory（超时集中可调、日志默认关闭），Android 引擎由 CIO 换为 OkHttp。</li>
+            <li><strong>构建与维护</strong>：KSP 对齐 2.3.12 并修复 libs.versions.toml 结构损坏；tooling.preview 降为 debugImplementation；修复「删除 composeResources 文件不会随包移除」的既有隐患。</li>
+          </ul>
+          <p class="mono">versionCode 288 / versionName 3.71.0（本版同时包含「单次课程调整」occurrence override 功能，数据库 13→14）</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3705">
         <div><span class="tl-ver">v3.70.5</span><span class="tl-date">2026-09-26</span></div>
