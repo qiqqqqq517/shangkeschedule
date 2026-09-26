@@ -8,11 +8,11 @@
 ## 最新版本
 
 
-### v3.71.0（2026-09-26）· 体积与性能专项：Release APK 瘦身约 525 KB，解析提速
+### v3.71.0（2026-09-26）· 体积与性能专项：Release APK 瘦身约 542 KB，解析提速
 
 > 本版同时包含并发会话的「单次课程调整（occurrence override）」功能（DB 13→14），详见工作日志同版本记录。
 
-**体积 · Release APK（arm64-v8a）5,784,716 → 5,247,221 B，-537,495 B（约 -525 KB / -9.3%）**
+**体积 · Release APK（arm64-v8a）5,784,716 → 5,229,985 B，-554,731 B（约 -542 KB / -9.6%）**
 - 字体子集化：6 个字体 1,296,060 → 280,644 B（-1,015,416 B）。Poppins 四档去除未用字形；Newsreader 固定 wght 600、Lora 固定 wght 400 后子集化（可变字重轴被 pin，避免默认实例重解压放大）；删除全仓零引用的 GeistMono。全部实际使用字符零丢失。
 - R8 keep 规则收敛：删除 `-keep com.shangkeschedule.shared.**`（该规则使整个 shared 模块免裁剪，R8 形同虚设），改为注解驱动的 Entity / DAO / Database / RoomDatabase 精准保留；合并重复的序列化与 Protobuf 规则。
 
