@@ -1,5 +1,6 @@
 package com.shangkeschedule.data.parser
 
+import okio.BufferedSource
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -28,6 +29,10 @@ object ExcelScheduleParser {
     private const val MAX_SHEET_ROWS = 20_000
     private const val MAX_SHEET_COLS = 1_000
 
+    //FIX:单个内部 XML（sharedStrings.xml / sheetN.xml）解压后超过上限即中止，防 zip 炸弹式 xlsx 占满内存
+    private const val MAX_XML_BYTES = 64L * 1024 * 1024
+    private const val XML_READ_CHUNK_BYTES = 64L * 1024
+
     /** ZIP 魔数判断（xlsx 本质是 ZIP 容器） */
     fun isZipBytes(bytes: ByteArray): Boolean =
         bytes.size >= 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
@@ -53,7 +58,7 @@ object ExcelScheduleParser {
 
                 val sharedStrings = entries
                     .firstOrNull { it.toString().endsWith("xl/sharedStrings.xml") }
-                    ?.let { readSharedStrings(zipFs.read(it) { readUtf8() }) }
+                    ?.let { readSharedStrings(zipFs.read(it) { readUtf8Capped(MAX_XML_BYTES) }) }
                     ?: emptyList()
 
                 val sheetEntry = entries
@@ -61,13 +66,31 @@ object ExcelScheduleParser {
                     .minByOrNull { Regex("""sheet(\d+)\.xml$""").find(it.toString())?.groupValues?.get(1)?.toIntOrNull() ?: 999 }
                     ?: throw IllegalArgumentException("xlsx 中未找到工作表")
 
-                return parseSheetXml(zipFs.read(sheetEntry) { readUtf8() }, sharedStrings)
+                return parseSheetXml(zipFs.read(sheetEntry) { readUtf8Capped(MAX_XML_BYTES) }, sharedStrings)
             } finally {
                 zipFs.close()
             }
         } finally {
             runCatching { fs.delete(tempPath) }
         }
+    }
+
+    /**
+     * 分块读取内部 XML，并对解压后总长设限。
+     * FIX: 原实现直接 readUtf8()，损坏或恶意 xlsx 可用超大条目一次性耗尽内存。
+     */
+    private fun BufferedSource.readUtf8Capped(maxBytes: Long): String {
+        val buffer = okio.Buffer()
+        var total = 0L
+        while (true) {
+            val bytesRead = read(buffer, XML_READ_CHUNK_BYTES)
+            if (bytesRead == -1L) break
+            total += bytesRead
+            if (total > maxBytes) {
+                throw IllegalArgumentException("xlsx 内部 XML 过大，已中止解析")
+            }
+        }
+        return buffer.readUtf8()
     }
 
     // ========== Zip 内部遍历 ==========

@@ -36,6 +36,11 @@
     
     <!-- Notifications and Alarms -->
     <string name="notification_title_course_alert">Class reminder</string>
+    <string name="notification_channel_permission_notice">Permission notices</string>
+    <string name="notification_title_exact_alarm_missing">Exact reminders unavailable</string>
+    <string name="notification_text_exact_alarm_missing">The "Alarms &amp; reminders" permission is off, so class reminders may be delayed by minutes. Tap to enable it.</string>
+    <string name="notification_title_dnd_missing">Auto Do Not Disturb unavailable</string>
+    <string name="notification_text_dnd_missing">The "Do Not Disturb access" permission is off, so auto DND/silent during class will not work. Tap to enable it.</string>
     <string name="notification_live_status_preparing">Pre-class</string>
     <string name="notification_unknown_course">Unknown Course</string>
     <string name="notification_unknown_position">Unknown Location</string>

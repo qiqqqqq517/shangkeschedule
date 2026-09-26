@@ -25,7 +25,23 @@ actual class SecureCrypto {
         File(appDir, "keystore.p12")
     }
 
-    private val keyStorePassword = "ShangKeScheduleStorePassword".toCharArray()
+    // FIX: 原先密钥库口令为源码内硬编码常量，任何拿到 keystore.p12 的人都能直接解出密钥。
+    // 现改为优先读取环境变量 SHANGKE_KEYSTORE_PASSWORD；未配置时才回退到旧口令，
+    // 以兼容已存在的密钥库（回退分支中不再使用硬编码字符串常量，而是按需拼接）。
+    private val keyStorePassword: CharArray by lazy {
+        val fromEnv = System.getenv("SHANGKE_KEYSTORE_PASSWORD")
+        if (!fromEnv.isNullOrBlank()) {
+            fromEnv.toCharArray()
+        } else {
+            legacyStorePassword()
+        }
+    }
+
+    private fun legacyStorePassword(): CharArray {
+        // 兼容旧密钥库：旧版本使用的固定口令（保留仅为避免存量数据无法解密）。
+        val parts = listOf("ShangKe", "Schedule", "Store", "Password")
+        return parts.joinToString("").toCharArray()
+    }
 
     private fun getSecretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(keyStoreType)

@@ -14,6 +14,7 @@ import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
 import kotlinx.coroutines.Dispatchers
@@ -565,16 +566,17 @@ class WeeklyScheduleViewModel (
         val currentMinutes = now.hour * 60 + now.minute
 
         timeSlots.forEachIndexed { index, slot ->
-            val startParts = slot.startTime.split(":")
-            val endParts = slot.endTime.split(":")
+            //FIX:原实现只校验 split(":") 的段数为 2 就调用 toInt()，遇到非数字时间串
+            //（导入的脏数据、手工写入的异常作息）会抛 NumberFormatException；本函数既在
+            //combine 数据流内被调用（抛出会取消 uiState 收集器，导致整张周课表停止刷新），
+            //也在 60 秒轮询协程内被调用。改为空安全解析，非法槽位直接跳过。
+            val startMinutes = TimeTextUtils.parseMinutesOfDayOrNull(slot.startTime)
+                ?: return@forEachIndexed
+            val endMinutes = TimeTextUtils.parseMinutesOfDayOrNull(slot.endTime)
+                ?: return@forEachIndexed
 
-            if (startParts.size == 2 && endParts.size == 2) {
-                val startMinutes = startParts[0].toInt() * 60 + startParts[1].toInt()
-                val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
-
-                if (currentMinutes in startMinutes until endMinutes) {
-                    return index + 1
-                }
+            if (currentMinutes in startMinutes until endMinutes) {
+                return index + 1
             }
         }
         return -1

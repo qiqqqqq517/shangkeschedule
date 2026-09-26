@@ -28,7 +28,10 @@ class WebDavClient(
                     credentials {
                         BasicAuthCredentials(username = config.username, password = config.password)
                     }
-                    sendWithoutRequest { true }
+                    // FIX: 原先 sendWithoutRequest { true } 会在首个请求就预置 Basic 凭据，
+                    // 若服务端返回 3xx 跳转到其他主机，凭据存在被一并带出的风险。
+                    // 改为等待 401 挑战后再发送（WebDAV 标准交互，功能不受影响）。
+                    sendWithoutRequest { false }
                 }
             }
             install(HttpTimeout) {

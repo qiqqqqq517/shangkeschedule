@@ -10,4 +10,10 @@
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>
 -->
+    <!--
+      FIX: WebDAV 凭据所在的 DataStore 不参与自动备份。
+      密文本身由 AndroidKeyStore 的设备绑定密钥保护，但服务器地址与用户名
+      没有上传到云端的必要；换机恢复后重新填写即可。
+    -->
+    <exclude domain="file" path="datastore/api_config.preferences_pb" />
 </full-backup-content>

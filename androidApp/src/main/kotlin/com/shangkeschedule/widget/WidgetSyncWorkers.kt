@@ -39,8 +39,10 @@ class FullDataSyncWorker(
             widgetDataSynchronizer.syncNow()
             return Result.success()
         } catch (e: Exception) {
-            Log.e("WidgetSync", "FullDataSyncWorker 全量同步失败", e)
-            return Result.failure()
+            // FIX: 原先返回 Result.failure()，一次瞬时 IO/数据库抖动就会让本次同步彻底放弃，
+            // 而该 Worker 是周期任务（返回 retry 会按退避策略重试，不会失控重排）。
+            Log.e("WidgetSync", "FullDataSyncWorker 全量同步失败，将按退避策略重试", e)
+            return Result.retry()
         }
     }
 }

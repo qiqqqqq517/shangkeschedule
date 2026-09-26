@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.schedule.components
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
@@ -13,7 +14,12 @@ import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 /**
  * 【Presentation Layer Model】
  * 将原始 Float/Long 值的 ScheduleGridStyle 转换为 Compose 强类型 Dp/Color 的包装对象。
+ *
+ * FIX: 补 @Immutable 稳定性标记。此前未标注，Compose 会将其视为不稳定参数，
+ * 导致大课表网格在任意父级重组时整棵子树重建。本类型所有字段均由
+ * [toComposedStyle] 一次性构造后不再修改，满足 @Immutable 契约。
  */
+@Immutable
 data class ScheduleGridStyleComposed(
     // Grid 尺寸 (Dp)
     val timeColumnWidth: Dp,

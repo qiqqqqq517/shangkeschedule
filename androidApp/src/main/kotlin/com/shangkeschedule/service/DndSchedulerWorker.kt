@@ -75,7 +75,12 @@ class DndSchedulerWorker(
         }
 
         if (!notificationManager.isNotificationPolicyAccessGranted) {
-            Log.w(TAG, "勿扰模式权限未授予")
+            // FIX: 权限被回收时不再只写日志（用户无感知、功能静默失效）。
+            // 保留后续调度：用户补授权限后无需重排即可恢复生效。
+            Log.w(TAG, "勿扰模式权限未授予，已提示用户")
+            PermissionNoticeNotifier.notifyDndMissing(applicationContext)
+        } else {
+            PermissionNoticeNotifier.clear(applicationContext, PermissionNoticeNotifier.NOTICE_ID_DND)
         }
 
         val shouldBeModeOn = isCurrentlyInDndTime()
@@ -159,11 +164,13 @@ class DndSchedulerWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Log.w(TAG, "无法设置精确闹钟：缺少权限")
-                return
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // FIX: 缺权限时不能直接 return（自动勿扰彻底不生效且无提示）。
+            // 降级为可待机触发的非精确闹钟，并给出可点击的权限提示。
+            PermissionNoticeNotifier.notifyExactAlarmMissing(applicationContext)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent)
+            Log.w(TAG, "缺少精确闹钟权限，模式闹钟已降级为非精确闹钟 (ID: $requestCode)")
+            return
         }
 
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent)

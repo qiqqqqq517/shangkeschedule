@@ -5,15 +5,14 @@
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
+        <!--
+          FIX: 排除 WebDAV 凭据文件（datastore/api_config.preferences_pb），
+          其余课程数据仍参与云备份，保证换机可恢复课表。
         -->
+        <exclude domain="file" path="datastore/api_config.preferences_pb" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- FIX: 设备间迁移同样排除凭据文件。 -->
+        <exclude domain="file" path="datastore/api_config.preferences_pb" />
     </device-transfer>
-    -->
 </data-extraction-rules>

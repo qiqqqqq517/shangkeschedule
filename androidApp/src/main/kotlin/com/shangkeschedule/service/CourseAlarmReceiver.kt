@@ -142,17 +142,28 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             val audioManager = context.getSystemService<AudioManager>()
             val notificationManager = context.getSystemService<NotificationManager>()
             if (audioManager == null || notificationManager == null) return
-            if (!notificationManager.isNotificationPolicyAccessGranted) return
             when (modeType) {
                 AutoControlMode.DND -> {
+                    // FIX: 勿扰切换才需要「勿扰访问」权限；缺失时提示用户而非静默 return
+                    if (!notificationManager.isNotificationPolicyAccessGranted) {
+                        Log.w(TAG, "勿扰访问权限未授予，已提示用户")
+                        PermissionNoticeNotifier.notifyDndMissing(context)
+                        return
+                    }
                     notificationManager.setInterruptionFilter(
                         if (enableMode) NotificationManager.INTERRUPTION_FILTER_PRIORITY
                         else NotificationManager.INTERRUPTION_FILTER_ALL
                     )
                 }
                 AutoControlMode.SILENT -> {
-                    audioManager.ringerMode = if (enableMode) AudioManager.RINGER_MODE_SILENT
-                    else AudioManager.RINGER_MODE_NORMAL
+                    // FIX: 铃声模式切换不需要「勿扰访问」权限，原先被上面的权限判断一并拦截，
+                    // 导致未授权用户的「上课静音」静默失效。个别 OEM 可能仍抛 SecurityException。
+                    try {
+                        audioManager.ringerMode = if (enableMode) AudioManager.RINGER_MODE_SILENT
+                        else AudioManager.RINGER_MODE_NORMAL
+                    } catch (e: SecurityException) {
+                        Log.w(TAG, "静音模式切换被系统拒绝", e)
+                    }
                 }
             }
         }

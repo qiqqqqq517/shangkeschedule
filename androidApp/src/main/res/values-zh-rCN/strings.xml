@@ -36,6 +36,11 @@
 
     <!-- 通知与闹钟 -->
     <string name="notification_title_course_alert">上课提醒</string>
+    <string name="notification_channel_permission_notice">权限提醒</string>
+    <string name="notification_title_exact_alarm_missing">无法设置精确提醒</string>
+    <string name="notification_text_exact_alarm_missing">系统未授予「闹钟和提醒」权限，课程提醒可能延迟数分钟。点击前往开启。</string>
+    <string name="notification_title_dnd_missing">无法自动切换勿扰</string>
+    <string name="notification_text_dnd_missing">系统未授予「勿扰访问」权限，上课自动勿扰/静音不生效。点击前往开启。</string>
     <string name="notification_live_status_preparing">准备上课</string>
     <string name="notification_unknown_course">未知课程</string>
     <string name="notification_unknown_position">地点未知</string>

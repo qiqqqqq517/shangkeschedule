@@ -345,11 +345,11 @@ class BackupViewModel(
     suspend fun importFromLocalZip(source: BufferedSource): Boolean = withContext(Dispatchers.IO) {
         _uiState.update { it.copy(isBusy = true, testResult = TestResult.Idle) }
 
-        try {
-            val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
-            val randomSuffix = Random.nextLong(100000, 999999)
-            val tempZipPath = tempDir / "backup_import_$randomSuffix.zip"
+        // 临时包路径必须在 try 外声明：Kotlin 的 finally 看不到 try 块内声明的变量
+        val tempZipPath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY /
+            "backup_import_${Random.nextLong(100000, 999999)}.zip"
 
+        try {
             // 将输入流转存为本地临时压缩包文件以便读取 ZipFS
             FileSystem.SYSTEM.sink(tempZipPath).buffer().use { sink ->
                 sink.writeAll(source)
@@ -358,10 +358,14 @@ class BackupViewModel(
             var meta: BackupMeta? = null
             val payloadMap = mutableMapOf<String, ByteArray>()
 
+            // 提前取出，供解压上限校验复用
+            val corruptedMsg = getString(Res.string.backup_err_corrupted)
+
             // 使用 Okio ZipFileSystem 读取解压，并在删除临时文件前关闭文件系统
             val zipFs = FileSystem.SYSTEM.openZip(tempZipPath)
             try {
                 val filesInZip = zipFs.list("/".toPath())
+                var totalPayloadBytes = 0L
                 for (filePath in filesInZip) {
                     val fileName = filePath.name
                     when {
@@ -371,7 +375,25 @@ class BackupViewModel(
                         }
                         fileName.endsWith(".cbor") -> {
                             val key = fileName.removeSuffix(".cbor")
-                            val bytes = zipFs.read(filePath) { readByteArray() }
+                            // FIX: 分块读取并对单条/累计解压大小设限，
+                            // 避免损坏或恶意备份包用超大条目一次性耗尽内存（zip 炸弹）
+                            val bytes = zipFs.read(filePath) {
+                                val chunkBuffer = okio.Buffer()
+                                var entryBytes = 0L
+                                while (true) {
+                                    val read = read(chunkBuffer, BACKUP_READ_CHUNK_BYTES)
+                                    if (read == -1L) break
+                                    entryBytes += read
+                                    if (entryBytes > MAX_BACKUP_ENTRY_BYTES) {
+                                        throw Exception(corruptedMsg)
+                                    }
+                                }
+                                chunkBuffer.readByteArray()
+                            }
+                            totalPayloadBytes += bytes.size
+                            if (totalPayloadBytes > MAX_BACKUP_TOTAL_BYTES) {
+                                throw Exception(corruptedMsg)
+                            }
                             payloadMap[key] = bytes
                         }
                     }
@@ -380,10 +402,6 @@ class BackupViewModel(
                 zipFs.close()
             }
 
-            // 清理临时文件（必须在 zipFs 关闭后执行）
-            FileSystem.SYSTEM.delete(tempZipPath)
-
-            val corruptedMsg = getString(Res.string.backup_err_corrupted)
             val finalMeta = meta ?: throw Exception(corruptedMsg)
 
             if (payloadMap.isEmpty()) {
@@ -408,6 +426,23 @@ class BackupViewModel(
                 )
             }
             false
+        } finally {
+            // FIX: 无论成功、失败还是中途抛异常，都必须删除临时压缩包。
+            // 原先只在正常路径 delete，异常时会在 SYSTEM_TEMPORARY_DIRECTORY 残留备份明文副本。
+            try {
+                FileSystem.SYSTEM.delete(tempZipPath)
+            } catch (cleanupError: Exception) {
+                cleanupError.printStackTrace()
+            }
         }
     }
 }
+
+/** 单条备份条目允许解压的上限。 */
+private const val MAX_BACKUP_ENTRY_BYTES = 32L * 1024 * 1024
+
+/** 一次导入允许累计解压的上限。 */
+private const val MAX_BACKUP_TOTAL_BYTES = 128L * 1024 * 1024
+
+/** 分块读取块大小。 */
+private const val BACKUP_READ_CHUNK_BYTES = 64L * 1024

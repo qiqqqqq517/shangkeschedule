@@ -98,11 +98,6 @@ class CourseNotificationWorker(
         position: String,
         teacher: String
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            Log.w(TAG, "缺少精确闹钟权限，无法设置提醒")
-            return
-        }
-
         val intent = Intent(applicationContext, CourseAlarmReceiver::class.java).apply {
             this.action = "com.shangkeschedule.ACTION_COURSE_REMIND"
             putExtra(CourseAlarmReceiver.EXTRA_ALARM_SLOT_ID, requestCode)
@@ -119,6 +114,15 @@ class CourseNotificationWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // FIX: 缺权限时不再直接放弃提醒（用户既收不到提醒也不知原因）。
+            // 降级为可待机触发的非精确闹钟 + 可点击的权限提示通知。
+            PermissionNoticeNotifier.notifyExactAlarmMissing(applicationContext)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            return
+        }
+
+        PermissionNoticeNotifier.clear(applicationContext, PermissionNoticeNotifier.NOTICE_ID_EXACT_ALARM)
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
     }
 
