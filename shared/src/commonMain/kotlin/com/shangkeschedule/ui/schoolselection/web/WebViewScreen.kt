@@ -197,14 +197,38 @@ fun WebViewScreen(
 
     PlatformBackHandler(enabled = true, onBack = handleBackAction)
 
-    // 加载超时看门狗（P1-5）：发起加载 30s 后仍未完成（onPageFinished 未触发）则提示失败，
-    // 避免校园网不稳 / 页面假死时用户面对空白页 + 永久卡住的进度条。
+    // 加载超时看门狗（P1-5；2026-09-26 修复误报）：
+    //
+    // 原实现是**绝对超时** —— 发起加载后 30s，只要进度没到 100% 就判「加载失败」。
+    // 但教务系统首页重定向多、校园网慢，30s 内到不了 100% 是常态，于是**误报**：
+    // 页面其实还在正常加载，用户却看到「加载失败 + 重试」（且 loadErrorDescription
+    // 为空、没有具体原因，正是这个空描述暴露了它来自看门狗而非真实错误）。
+    // 又因 watchdogNonce 只在「搜索」与「重试」两处递增，看门狗是一次性的，
+    // 用户在导入页停留时同样会被误伤。
+    //
+    // 现改为**进度停滞判定**：只要进度仍在变化就持续等待（慢加载不再误报）；
+    // 仅当进度连续 stallMs 纹丝不动才判失败 —— 既消除误报，又比原来的 30s
+    // 更快发现真正卡死的页面。
     LaunchedEffect(watchdogNonce) {
         if (webViewLoadFailed) return@LaunchedEffect
-        delay(30_000)
-        if (!webViewLoadFailed && loadingProgress < 1.0f) {
-            webViewLoadFailed = true
-            loadErrorDescription = ""
+        val pollMs = 500L
+        val stallMs = 15_000L
+        var lastProgress = loadingProgress
+        var stalledMs = 0L
+        while (true) {
+            delay(pollMs)
+            if (webViewLoadFailed || loadingProgress >= 1f) return@LaunchedEffect
+            if (loadingProgress != lastProgress) {
+                lastProgress = loadingProgress
+                stalledMs = 0L
+            } else {
+                stalledMs += pollMs
+                if (stalledMs >= stallMs) {
+                    webViewLoadFailed = true
+                    loadErrorDescription = ""
+                    return@LaunchedEffect
+                }
+            }
         }
     }
 
