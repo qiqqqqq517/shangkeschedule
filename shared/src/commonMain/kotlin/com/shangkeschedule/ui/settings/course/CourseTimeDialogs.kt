@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.launch
@@ -47,6 +48,9 @@ import shangkeschedule.shared.generated.resources.toast_end_time_must_be_later
 import shangkeschedule.shared.generated.resources.toast_time_invalid
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.*
+
+/** 自定义时间无法解析时的回落基准：08:00。 */
+private const val DEFAULT_TIME_MINUTES = 8 * 60
 
 /**
  * 节次时间选择底部弹窗 (节次模式)
@@ -159,8 +163,9 @@ fun CustomTimeRangePickerBottomSheet(
     val endTimeLabel = stringResource(Res.string.label_end_time)
     val endTimeInvalidText = stringResource(Res.string.toast_end_time_must_be_later)
 
-    fun parse(t: String) = t.split(":").let {
-        (it.getOrNull(0)?.toIntOrNull() ?: 8) to (it.getOrNull(1)?.toIntOrNull() ?: 0)
+    fun parse(t: String): Pair<Int, Int> {
+        val total = TimeTextUtils.parseMinutesOfDayOrNull(t) ?: DEFAULT_TIME_MINUTES
+        return (total / 60).coerceIn(0, 23) to (total % 60).coerceIn(0, 59)
     }
 
     val (startH, startM) = parse(initialStartTime)

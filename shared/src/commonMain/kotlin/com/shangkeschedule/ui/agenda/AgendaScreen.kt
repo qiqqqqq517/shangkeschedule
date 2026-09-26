@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.ScheduleCategory
@@ -206,6 +207,9 @@ private const val GROUP_EVENING = 3
 private const val STATUS_FINISHED = 0
 private const val STATUS_ONGOING = 1
 private const val STATUS_UPCOMING = 2
+
+/** 时间选择器在输入无法解析时的回落基准：12:00。 */
+private const val DEFAULT_PICKER_MINUTES = 12 * 60
 
 private enum class DateTimeTarget { START, END }
 
@@ -1829,12 +1833,12 @@ private fun AgendaTimePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    val parsed = initialTime.split(":")
+    val parsedMinutes = TimeTextUtils.parseMinutesOfDayOrNull(initialTime)
     var hour by remember {
-        mutableIntStateOf((parsed.getOrNull(0)?.toIntOrNull() ?: 12).coerceIn(0, 23))
+        mutableIntStateOf(((parsedMinutes ?: DEFAULT_PICKER_MINUTES) / 60).coerceIn(0, 23))
     }
     var minute by remember {
-        mutableIntStateOf((parsed.getOrNull(1)?.toIntOrNull() ?: 0).coerceIn(0, 59))
+        mutableIntStateOf(((parsedMinutes ?: DEFAULT_PICKER_MINUTES) % 60).coerceIn(0, 59))
     }
     val hours = remember { (0..23).map { it.toString().padStart(2, '0') } }
     val minutes = remember { (0..59).map { it.toString().padStart(2, '0') } }
@@ -1915,13 +1919,7 @@ private fun entryStatus(
     }
 }
 
-private fun parseMinutes(time: String?): Int? {
-    if (time.isNullOrBlank()) return null
-    val parts = time.split(":")
-    val hour = parts.getOrNull(0)?.toIntOrNull() ?: return null
-    val minute = parts.getOrNull(1)?.toIntOrNull() ?: return null
-    return hour * 60 + minute
-}
+private fun parseMinutes(time: String?): Int? = TimeTextUtils.parseMinutesOfDayOrNull(time)
 
 private fun currentMinutesOfDay(): Int {
     val time = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
