@@ -100,6 +100,7 @@ import com.shangkeschedule.ui.components.TelegramMenu
 import com.shangkeschedule.ui.components.TelegramMenuDivider
 import com.shangkeschedule.ui.components.TelegramMenuItem
 import com.shangkeschedule.ui.components.rememberFabPressedScale
+import com.shangkeschedule.ui.schedule.components.AddScheduleGuide
 import com.shangkeschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.shangkeschedule.ui.schedule.components.FloatingCourseBar
 import com.shangkeschedule.ui.schedule.components.ScheduleGrid
@@ -1132,15 +1133,17 @@ private fun ScheduleListView(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // 整周无课时显示空态占位（v3.54.0）：与今日页/日程页空态同语言
-        // IA5（v3.69.5）：空态附「课表导入/导出」入口 —— 把「这周没课」变成
-        // 「知道去哪儿把课加进来」，首启用户不必自己找入口。
+        // IA5（方案 B · 增强空态）：由「一句话 + 一个按钮」升级为「三步引导 +
+        // 主入口 + 其他添加方式」。主入口只指教务系统导入（覆盖面最广），
+        // 文件导入与手动添加收在展开项里 —— 四条路径平铺首屏正是"不知道点哪个"的
+        // 来源。触发条件是**课表为空**而非"首次启动"，故无需首启 flag、对老用户零干扰。
         if (pageCourses.isEmpty()) {
             item(key = "empty-week") {
-                AppEmptyState(
-                    hint = stringResource(Res.string.text_no_courses_this_week),
+                AddScheduleGuide(
                     modifier = Modifier.padding(top = 48.dp),
-                    actionLabel = stringResource(Res.string.item_course_conversion),
-                    onAction = { onNavigate(Destination.CourseTableConversion) }
+                    onSchoolImport = { onNavigate(Destination.SchoolSelectionListScreen) },
+                    onFileImport = { onNavigate(Destination.FileImportHub) },
+                    onManualAdd = { onNavigate(Destination.AddEditCourse()) }
                 )
             }
         }

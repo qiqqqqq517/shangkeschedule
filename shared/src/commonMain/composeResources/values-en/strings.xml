@@ -954,4 +954,8 @@
     <string name="couple_need_create_first">Create the couple schedule first</string>
     <string name="toast_couple_create_failed">Creation failed, please retry</string>
     <string name="timeslot_editing_vs_active_hint">Auto-switch on: "%1$s" is active today, you are editing "%2$s" — saving will not change today's schedule</string>
+    <string name="ia5_step_select_school">Pick a school</string>
+    <string name="ia5_step_login">Sign in</string>
+    <string name="ia5_step_done">Import done</string>
+    <string name="ia5_other_ways">Other ways</string>
 </resources>

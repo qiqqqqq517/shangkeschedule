@@ -953,4 +953,8 @@
     <string name="couple_need_create_first">請先建立情侶課表</string>
     <string name="toast_couple_create_failed">建立失敗，請重試</string>
     <string name="timeslot_editing_vs_active_hint">自動切換開啟：今日實際生效「%1$s」，你正在編輯「%2$s」，儲存後不會立即改變今日課表</string>
+    <string name="ia5_step_select_school">選擇學校</string>
+    <string name="ia5_step_login">登入教務</string>
+    <string name="ia5_step_done">完成匯入</string>
+    <string name="ia5_other_ways">其他新增方式</string>
 </resources>
