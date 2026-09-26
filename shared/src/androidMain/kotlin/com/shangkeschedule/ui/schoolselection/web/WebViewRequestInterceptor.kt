@@ -5,6 +5,7 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import com.shangkeschedule.tool.readAtMostBytes
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -468,7 +469,13 @@ class WebViewRequestInterceptor {
                 // 要么标注成 GBK/ISO-8859-1 等非 UTF-8 值。若未显式声明 charset，国产 ROM WebView 会回退
                 // 到系统默认 GBK，把 UTF-8 中文解成乱码（本会话见过的 {"flag1":2,"msgContent":"..乱码.."}）。
                 //FIX:toInputStream() 包装的通道未关闭会泄漏 HTTP 资源，读完必须显式 use 关闭
-                val rawBytes = response.bodyAsChannel().toInputStream().use { it.readBytes() }
+                //FIX(v3.69.6):改带上限读取。上面的 Content-Length 保护只覆盖诚实声明的响应，
+                //分块传输（chunked）无该头时会无上限读入堆导致 OOM；超限同样交还原生栈。
+                val rawBytes = response.bodyAsChannel().toInputStream().use { it.readAtMostBytes(MAX_INTERCEPT_BYTES) }
+                if (rawBytes == null) {
+                    Log.w("WebViewInterceptor", "SKIP oversized undeclared-body url=$url")
+                    return@runBlocking null
+                }
                 if (isMainFrame) {
                     val preview = rawBytes.take(8).joinToString(" ") { "%02x".format(it) }
                     Log.i("WebViewInterceptor", "MAIN $url CT=$contentTypeHeader enc=$encoding mime=$mimeType len=${rawBytes.size} first8=$preview")

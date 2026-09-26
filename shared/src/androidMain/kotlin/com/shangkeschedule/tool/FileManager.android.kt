@@ -30,6 +30,15 @@ import android.webkit.MimeTypeMap
 
 private const val TAG = "FileManager"
 
+/**
+ * 单次导入可读取的文件大小上限。
+ *
+ * 课表导入文件（xlsx / ics / json / 文本）正常在数 MB 以内；上限用于挡住误选超大文件
+ * （视频、安装包、磁盘镜像）时 `readBytes()` 整包读入堆导致的 OOM。超限与「未选择文件」
+ * 同样回调 null，界面走既有的失败提示，并额外记录一条日志便于定位。
+ */
+private const val MAX_IMPORT_BYTES = 32L * 1024 * 1024
+
 class AndroidFileManager(
     private val onPickImage: () -> Unit,
     private val onImportFile: (List<String>) -> Unit,
@@ -206,7 +215,13 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
         }
         scope.launch(Dispatchers.IO) {
             val bytes = try {
-                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val read = stream.readAtMostBytes(MAX_IMPORT_BYTES)
+                    if (read == null) {
+                        AppLog.w(TAG, "导入文件超过上限 ${MAX_IMPORT_BYTES} 字节，已放弃读取")
+                    }
+                    read
+                }
             } catch (e: Exception) {
                 AppLog.e(TAG, "读取导入文件失败", e)
                 null

@@ -5,14 +5,17 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsBytes
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okio.Buffer
 import okio.ByteString.Companion.toByteString
 import okio.FileSystem
 import okio.Path
@@ -80,6 +83,21 @@ class AdapterRemoteUpdater(
         const val INDEX_RELATIVE_PATH = "index/school_index.pb"
         const val SECRET_HEADER = "X-App-Secret"
         const val TEMP_SUFFIX = ".shangke-tmp"
+
+        /**
+         * 单个远端文件（清单与适配脚本共用）可读取的字节上限。
+         *
+         * 适配脚本与学校索引正常在数十 KB 量级；网关被替换、配置错误或中间人篡改时
+         * 可能返回超大响应，`bodyAsBytes()` 会把整包无上限读进堆导致 OOM。
+         * 超限即放弃本次同步（静默回退内置适配资源，业务不受影响）。
+         */
+        const val MAX_ADAPTER_BYTES = 8L * 1024 * 1024
+
+        /** 单轮同步允许处理的清单条目上限，防止被替换的清单塞入海量条目使后台空转下载。 */
+        const val MAX_MANIFEST_ENTRIES = 5_000
+
+        /** 带上限读取响应体时的分块大小。 */
+        const val READ_CHUNK_BYTES = 16 * 1024
     }
 
     private val json = Json {
@@ -128,6 +146,10 @@ class AdapterRemoteUpdater(
 
         if (manifest.files.isEmpty()) {
             return AdapterSyncResult.Failed("empty-manifest")
+        }
+
+        if (manifest.files.size > MAX_MANIFEST_ENTRIES) {
+            return AdapterSyncResult.Failed("manifest-too-large")
         }
 
         var updated = 0
@@ -194,17 +216,22 @@ class AdapterRemoteUpdater(
         return true
     }
 
-    /** 双保险：断言归一化后的目标仍落在 repo 目录内。 */
+    /** 双保险：断言归一化后的目标仍落在 repo 目录内（必须带路径分隔符，避免 repo 与 repo_x 前缀混淆）。 */
     private fun confinedToRepo(path: Path): Path? {
         val normalized = path.normalized()
         val repo = repoDir.normalized()
-        return if (normalized.toString().startsWith(repo.toString())) normalized else null
+        val normalizedPath = normalized.toString()
+        val repoPath = repo.toString()
+        return if (normalizedPath == repoPath || normalizedPath.startsWith("$repoPath/")) normalized else null
     }
 
     /** 本地文件已是目标版本时跳过下载（内容一致才跳过，被篡改会自动重下）。 */
     private fun localHashMatches(path: Path, expectedSha256: String): Boolean {
         if (!fileSystem.exists(path)) return false
         return try {
+            // 超大本地文件直接判为不匹配（触发重下），避免整包读入堆
+            val size = fileSystem.metadata(path).size
+            if (size != null && size > MAX_ADAPTER_BYTES) return false
             val bytes = fileSystem.read(path) { readByteArray() }
             bytes.toByteString().sha256().hex().equals(expectedSha256, ignoreCase = true)
         } catch (_: Exception) {
@@ -220,7 +247,25 @@ class AdapterRemoteUpdater(
         if (response.status != HttpStatusCode.OK) {
             throw IllegalStateException("unexpected status ${response.status.value}")
         }
-        return response.bodyAsBytes()
+        // 先看声明长度快速拒绝，再在读取时逐块计数兜底（分块传输不带 Content-Length）
+        val declaredLength = response.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+        if (declaredLength != null && declaredLength > MAX_ADAPTER_BYTES) {
+            throw IllegalStateException("declared size $declaredLength exceeds limit")
+        }
+        val channel = response.bodyAsChannel()
+        val buffer = Buffer()
+        val chunk = ByteArray(READ_CHUNK_BYTES)
+        var total = 0L
+        while (!channel.isClosedForRead) {
+            val read = channel.readAvailable(chunk)
+            if (read <= 0) break
+            total += read
+            if (total > MAX_ADAPTER_BYTES) {
+                throw IllegalStateException("response exceeds $MAX_ADAPTER_BYTES bytes")
+            }
+            buffer.write(chunk, 0, read)
+        }
+        return buffer.readByteArray()
     }
 
     /** 先写临时文件再原子替换，避免中途失败导致适配脚本损坏。 */
