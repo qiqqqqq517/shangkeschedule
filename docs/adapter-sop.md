@@ -102,7 +102,7 @@
 
 - 目录：`<学校代码>/`（**大写**，与索引 `resource_folder` 一致，如 `AHU`、`UESTC`）；
 - 脚本：`<名称小写>.js`（如 `ahu.js`；同校多版本可拆多个文件，但注意阶段二「多 JS 取字典序第一个」的坑）；
-- 一份脚本**必须同时落到两处**（内容逐字节一致，见 4.4）。
+- 一份脚本**必须同时落到两处**（内容一致；跨仓库比较按 LF 归一化哈希，见 4.4）。
 
 ### 3.2 运行环境与入口契约
 
@@ -218,16 +218,33 @@ python tools/build_schools.py
 - 「未被任何学校引用的适配器文件（孤儿）」警告必须处理：要么接线、要么删除——**改孤儿文件对用户完全无效**；
 - 需要 CI 化把关时可加 `--strict`（存在孤儿即退出 1）。
 
-### 4.4 双落点复制（人工纪律，无工具兜底）
+### 4.4 双落点复制与校验（`scripts/check_adapters.py`）
 
-同一份产物要同时存在于两处，内容**逐字节一致**（哈希核对）：
+同一份产物要同时存在于两处，**内容一致**：
 
 | 产物 | 主仓库（离线内置源） | 私有仓库工作副本（热更新源） |
 |---|---|---|
 | 适配脚本 | `shared/assets/offline_repo/schools/resources/<CODE>/<js>` | `.adapter_private/adapters/<CODE>/<js>` |
 | 学校索引 | `shared/assets/offline_repo/index/school_index.pb`（build_schools.py 生成） | `.adapter_private/index/school_index.pb`（**从左侧拷贝**） |
 
-> ⚠️ 历史教训：两处 `school_index.pb` 曾出现不同步（私有仓库侧滞后 5 天），导致热更新用户与离线用户看到的学校集合不一致。**每次 `build_schools.py` 之后必须立刻拷贝到私有仓库侧**，阶段四发布前再核对一次哈希。
+**比较口径是 LF 归一化后的 sha256，不是原始字节**：
+
+```powershell
+python scripts/check_adapters.py            # 全量体检 + 双落点核对
+python scripts/check_adapters.py --strict   # 提示项也判失败（CI 用）
+```
+
+> ⚠️ 为什么不能逐字节比：主仓库工作副本是 CRLF、私有仓库是 LF，同一份文件会因行尾被误报成
+> 不一致（历史案例：`DLUT/dlut.js` —— 493 行 CRLF 22681 B ↔ 493 行 LF 22188 B，LF 归一化后
+> 内容完全相同）。私有仓库 `school_index.pb` 的 `version_id` 早已改成 LF 归一化内容哈希
+> （commit `b9c49b7`），本脚本与它保持同一口径。
+
+脚本还会一并报出：双落点缺失（only-public / only-private）、内容不一致、**行尾差异**
+（原始字节不同但归一化后一致，INFO、不计入失败）、入口契约缺失、`node --check` 语法错误、
+未被 bridge 分支保护的裸 `alert/confirm/prompt`、有网络请求却全文无 `.catch`、危险 API
+（`eval` / `new Function` / `document.write` / `innerHTML=`）、以及未被内置索引引用的孤儿脚本。
+
+> ⚠️ 历史教训：两处 `school_index.pb` 曾出现不同步（私有仓库侧滞后 5 天），导致热更新用户与离线用户看到的学校集合不一致。**每次 `build_schools.py` 之后必须立刻拷贝到私有仓库侧**，阶段四发布前再跑一次 `check_adapters.py` 核对。
 
 ### 4.5 重建离线 zip（仅发版前需要）
 

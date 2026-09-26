@@ -68,6 +68,20 @@ data class SaveTimeSlotsPayload(
     val timeSlotsJsonString: String
 )
 
+/**
+ * 适配脚本错误上报。
+ *
+ * [kind] 取值：`adapter`（适配脚本自行抛出/Promise 拒绝）、`error`（window 未捕获异常）、
+ * `unhandledrejection`（未处理的 Promise 拒绝）、`noEntry`（自动启动探测未找到入口）。
+ * `noEntry` 的 [message] 只作为去重键，真正的用户文案由 Native 侧按语言给出。
+ */
+@Serializable
+data class ReportErrorPayload(
+    val kind: String = "",
+    val message: String = "",
+    val stack: String = ""
+)
+
 // =========================================================================
 // Helper 工具函数
 // =========================================================================
@@ -137,6 +151,64 @@ val JS_BRIDGE_INIT = """
 
         postRawMessage(msg);
     }
+
+    /**
+     * 适配脚本 / 页面脚本的全局兜底错误上报。
+     *
+     * 背景：195 个内置适配脚本里有 130 个含网络请求却全文没有 .catch，
+     * 脚本一旦抛错就彻底静默——用户只看到"点了执行导入没反应"。
+     * 这里把未捕获异常与未处理的 Promise 拒绝统一回传 Native，
+     * 由 Native 侧给出本地化提示并复位导入运行状态。
+     */
+    var reportedErrorKeys = {};
+    var reportedErrorCount = 0;
+    window.__shangkeScriptErrorReported = false;
+
+    function reportScriptError(kind, message, stack) {
+        try {
+            var text = String(message == null ? '' : message);
+            var key = kind + '|' + text;
+            // 同一段错误只报一次；页面自身脚本风暴式抛错时最多报 5 条，避免刷屏
+            if (reportedErrorKeys[key]) return;
+            if (reportedErrorCount >= 5) return;
+            reportedErrorKeys[key] = true;
+            reportedErrorCount++;
+            window.__shangkeScriptErrorReported = true;
+            postMessageToNative('reportAdapterError', {
+                kind: kind,
+                message: text,
+                stack: String(stack == null ? '' : stack)
+            });
+        } catch (ignored) {
+            // 上报失败时不再抛出，避免递归触发 error 事件
+        }
+    }
+
+    // 适配脚本显式抛出的错误（含其返回 Promise 的拒绝）
+    window.__shangkeReportScriptError = function(error) {
+        reportScriptError('adapter', (error && error.message) || error, (error && error.stack) || '');
+    };
+
+    // 自动启动探测未找到入口：让 Native 侧复位「执行导入」并给出多语言提示
+    window.__shangkeReportNoEntry = function(message) {
+        reportScriptError('noEntry', message, '');
+    };
+
+    window.addEventListener('error', function(event) {
+        // 过滤资源加载失败（img / script 404 之类），它们没有可读的错误信息
+        if (!event || !event.message) return;
+        var location = event.filename ? (event.filename + ':' + event.lineno) : '';
+        reportScriptError('error', event.message, (event.error && event.error.stack) || location);
+    });
+
+    window.addEventListener('unhandledrejection', function(event) {
+        var reason = event && event.reason;
+        reportScriptError(
+            'unhandledrejection',
+            (reason && reason.message) || reason || 'Unhandled promise rejection',
+            (reason && reason.stack) || ''
+        );
+    });
 
     /**
      * Native 异步逻辑完成后的响应全局入口
@@ -304,7 +376,13 @@ val JS_IMPORT_AUTOSTART = """
     }
 
     function reportError(error) {
-        notify('导入失败：' + (error && error.message ? error.message : error));
+        // 优先走 Native 错误上报：Native 侧负责多语言文案并复位「执行导入」的运行状态；
+        // 页面未注入新版 Bridge 时回退到原生 Toast。
+        if (typeof window.__shangkeReportScriptError === 'function') {
+            window.__shangkeReportScriptError(error);
+        } else {
+            notify('导入失败：' + (error && error.message ? error.message : error));
+        }
     }
 
     var entry = null;
@@ -355,7 +433,14 @@ val JS_IMPORT_AUTOSTART = """
         // 注意：切勿改为"扩大入口名单后直接调用"——那会让已自启动的适配器并发跑两遍。
         setTimeout(function () {
             if (window.__shangkeImportTriggered) return; // 适配器已自行启动，静默
-            notify('未找到导入入口，请确认已打开课表页面后重试，或改用文本导入。');
+            if (window.__shangkeScriptErrorReported) return; // 脚本已经报过错，不重复提示
+            var noEntryMessage = '未找到导入入口，请确认已打开课表页面后重试，或改用文本导入。';
+            if (typeof window.__shangkeReportNoEntry === 'function') {
+                // 交给 Native：既能复位「执行导入」按钮，又能按当前语言给出提示
+                window.__shangkeReportNoEntry(noEntryMessage);
+            } else {
+                notify(noEntryMessage);
+            }
         }, 1500);
         return;
     }

@@ -787,6 +787,9 @@
     <string name="wb_table_cancelled_or_unset">Timetable selection canceled or not set.</string>
     <string name="wb_import_success_fmt">Courses imported! %1$d courses added.</string>
     <string name="wb_import_timeout">Import not responding: the adapter script did not start in time. Make sure you are logged in and on the timetable page, then retry.</string>
+    <string name="wb_adapter_error_fmt">Adapter script error: %1$s</string>
+    <string name="wb_adapter_no_entry">No import entry found: open the timetable page and retry, or use text import instead.</string>
+    <string name="wb_native_dialog_title">Notice</string>
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
     <string name="wb_config_import_no_table">Config import failed: no target timetable selected.</string>
     <string name="item_auto_sync_adapter">Auto-sync school system</string>

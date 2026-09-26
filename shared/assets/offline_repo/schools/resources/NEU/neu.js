@@ -43,7 +43,15 @@ async function showCustomSemesterDialog() {
         confirmBtn.onclick = () => {
             const start = parseInt(startYearInput.value, 10);
             const end = parseInt(endYearInput.value, 10);
-            if (isNaN(start) || isNaN(end)) { alert('请输入有效年份'); return; }
+            if (isNaN(start) || isNaN(end)) {
+                // 应用内用轻提示：裸 alert 会弹系统对话框并阻塞 WebView；浏览器调试时保留原生 alert
+                if (window.shangkeBridge && window.shangkeBridge.showToast) {
+                    window.shangkeBridge.showToast('请输入有效年份');
+                } else {
+                    alert('请输入有效年份');
+                }
+                return;
+            }
             const semesterNum = termSelect.value === 'fall' ? '1' : '2';
             const semesterCode = `${start}-${end}-${semesterNum}`;
             cleanup();

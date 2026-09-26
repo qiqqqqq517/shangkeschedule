@@ -212,7 +212,7 @@ actual fun PlatformWebView(
                         }
                     }
 
-                    webChromeClient = delegate.wrapWebChromeClient(baseChromeClient) { progressInt ->
+                    webChromeClient = delegate.wrapWebChromeClient(baseChromeClient, bridgeHandler) { progressInt ->
                         currentOnProgressChange(progressInt.toFloat())
                     }
 

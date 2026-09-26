@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.schoolselection.web
 
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.wb_adapter_error_fmt
+import shangkeschedule.shared.generated.resources.wb_adapter_no_entry
 import shangkeschedule.shared.generated.resources.wb_default_confirm
 import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_config_import_no_table
@@ -11,6 +13,7 @@ import shangkeschedule.shared.generated.resources.wb_import_success_fmt
 import shangkeschedule.shared.generated.resources.wb_import_timeout
 import shangkeschedule.shared.generated.resources.wb_list_invalid
 import shangkeschedule.shared.generated.resources.wb_list_json_invalid_fmt
+import shangkeschedule.shared.generated.resources.wb_native_dialog_title
 import shangkeschedule.shared.generated.resources.wb_preset_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_preset_import_success
 import shangkeschedule.shared.generated.resources.wb_show_alert_queue_full
@@ -148,6 +151,10 @@ class WebBridgeHandler(
 
                 "savePresetTimeSlots" -> parsePayload<SaveTimeSlotsPayload>(message.payload)?.let {
                     savePresetTimeSlots(it.timeSlotsJsonString, callbackId)
+                }
+
+                "reportAdapterError" -> parsePayload<ReportErrorPayload>(message.payload)?.let {
+                    reportAdapterError(it)
                 }
 
                 "notifyTaskCompletion" -> notifyTaskCompletion()
@@ -401,6 +408,74 @@ class WebBridgeHandler(
             updateImportState(ImportRunState.Idle)
         }
         onTaskCompleted()
+    }
+
+    /**
+     * 处理适配脚本 / 页面的错误上报。
+     *
+     * 只有在一次导入确实运行中时才提示用户并复位按钮；用户单纯浏览教务页面时，
+     * 页面自身的报错只写日志，避免刷屏。
+     */
+    private fun reportAdapterError(payload: ReportErrorPayload) {
+        coroutineScope.launch(Dispatchers.Main) {
+            val text = if (payload.kind == "noEntry") {
+                getString(Res.string.wb_adapter_no_entry)
+            } else {
+                getString(Res.string.wb_adapter_error_fmt, payload.message)
+            }
+
+            AppLog.w(
+                TAG,
+                "适配脚本错误上报 kind=${payload.kind} message=${payload.message} stack=${payload.stack}"
+            )
+
+            if (importState is ImportRunState.Running) {
+                ToastManager.show(text)
+                updateImportState(ImportRunState.Failed(text))
+            }
+        }
+    }
+
+    /**
+     * 以应用内弹窗替换 WebView 原生 `confirm()` 对话框。
+     *
+     * `confirm()` 有同步返回值，调用方（`WebChromeClient.onJsConfirm`）必须在
+     * [onResult] 里恢复 `JsResult`，否则页面拿到的结果与用户操作相反。
+     */
+    fun showNativeConfirm(contentText: String, onResult: (Boolean) -> Unit) {
+        coroutineScope.launch(Dispatchers.Main) {
+            val data = AlertDialogData(
+                title = getString(Res.string.wb_native_dialog_title),
+                content = contentText,
+                confirmText = getString(Res.string.wb_default_confirm)
+            )
+            val sendResult = uiEventChannel.trySend(WebUiEvent.ShowAlert(data, onResult, nextEventId++))
+            if (sendResult.isFailure) onResult(false)
+        }
+    }
+
+    /**
+     * 以应用内弹窗替换 WebView 原生 `prompt()` 对话框；用户取消时 [onResult] 收到 null。
+     */
+    fun showNativePrompt(tipText: String, defaultText: String, onResult: (String?) -> Unit) {
+        coroutineScope.launch(Dispatchers.Main) {
+            val data = PromptDialogData(
+                title = getString(Res.string.wb_native_dialog_title),
+                tip = tipText,
+                defaultText = defaultText,
+                validatorJsFunction = null
+            )
+            val errorFlow = MutableSharedFlow<String?>(extraBufferCapacity = 1)
+            val onCancel: () -> Unit = { onResult(null) }
+            val onRequestValidation: (String, () -> Unit) -> Unit = { input, onSuccess ->
+                onResult(input)
+                onSuccess()
+            }
+            val sendResult = uiEventChannel.trySend(
+                WebUiEvent.ShowPrompt(data, onRequestValidation, errorFlow.asSharedFlow(), onCancel, nextEventId++)
+            )
+            if (sendResult.isFailure) onResult(null)
+        }
     }
 
     private inline fun <reified T> parsePayload(payloadJson: String?): T? {

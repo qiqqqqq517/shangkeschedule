@@ -7,6 +7,8 @@ import android.os.Message
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -15,6 +17,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+
+import com.shangkeschedule.ui.components.ToastManager
 
 /**
  * WebView 代理配置与客户端包装类
@@ -172,13 +176,57 @@ class WebCompatDelegate(private val webView: WebView) {
         """.trimIndent(), null)
     }
 
-    fun wrapWebChromeClient(original: WebChromeClient, onProgress: (Int) -> Unit): WebChromeClient {
+    fun wrapWebChromeClient(
+        original: WebChromeClient,
+        bridgeHandler: WebBridgeHandler,
+        onProgress: (Int) -> Unit
+    ): WebChromeClient {
         return object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 onProgress(newProgress)
                 original.onProgressChanged(view, newProgress)
             }
             override fun onReceivedTitle(v: WebView?, t: String?) = original.onReceivedTitle(v, t)
+
+            /**
+             * alert() 没有返回值，直接转成应用内轻提示并立即放行脚本。
+             * 内置适配脚本里有 21 处调用 alert()，交给系统对话框会阻塞 WebView 的 JS 线程，
+             * 而且样式与应用完全不一致。
+             */
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                message?.let { ToastManager.show(it) }
+                result?.confirm()
+                return true
+            }
+
+            /**
+             * confirm() 有同步返回值，必须等用户做完选择才能 confirm()/cancel()，
+             * 否则页面拿到的结果与用户操作相反。这里走应用内弹窗并在回调里恢复 JS 语义。
+             */
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                if (result == null) return false
+                bridgeHandler.showNativeConfirm(message.orEmpty()) { confirmed ->
+                    if (confirmed) result.confirm() else result.cancel()
+                }
+                return true
+            }
+
+            /**
+             * prompt() 同理，还要把用户输入回传给页面（4 个适配脚本依赖其同步返回值）。
+             */
+            override fun onJsPrompt(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: JsPromptResult?
+            ): Boolean {
+                if (result == null) return false
+                bridgeHandler.showNativePrompt(message.orEmpty(), defaultValue.orEmpty()) { input ->
+                    if (input == null) result.cancel() else result.confirm(input)
+                }
+                return true
+            }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 consoleMessage?.let {
