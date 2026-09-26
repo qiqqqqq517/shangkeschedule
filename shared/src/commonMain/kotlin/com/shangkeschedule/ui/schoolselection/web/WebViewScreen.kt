@@ -481,7 +481,8 @@ fun WebViewScreen(
 
                             webViewController.executeScript(buildImportScript(tableId, jsCode))
 
-                            ToastManager.show(toastExecutingImport)
+                            // 不再发 toast：底部状态条已经用同一句「正在执行导入脚本…」常驻显示，
+                            // 两条同文案提示会互相覆盖（ToastManager 是 CONFLATED 语义）
                         }
                     }
                 )

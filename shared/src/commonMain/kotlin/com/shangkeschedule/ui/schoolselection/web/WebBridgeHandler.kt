@@ -6,7 +6,6 @@ import shangkeschedule.shared.generated.resources.wb_adapter_no_entry
 import shangkeschedule.shared.generated.resources.wb_default_confirm
 import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_config_import_no_table
-import shangkeschedule.shared.generated.resources.wb_config_import_success
 import shangkeschedule.shared.generated.resources.wb_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_import_no_table
 import shangkeschedule.shared.generated.resources.wb_import_success_fmt
@@ -15,7 +14,6 @@ import shangkeschedule.shared.generated.resources.wb_list_invalid
 import shangkeschedule.shared.generated.resources.wb_list_json_invalid_fmt
 import shangkeschedule.shared.generated.resources.wb_native_dialog_title
 import shangkeschedule.shared.generated.resources.wb_preset_import_failed_fmt
-import shangkeschedule.shared.generated.resources.wb_preset_import_success
 import shangkeschedule.shared.generated.resources.wb_show_alert_queue_full
 import shangkeschedule.shared.generated.resources.wb_show_list_queue_full
 import shangkeschedule.shared.generated.resources.wb_show_prompt_queue_full
@@ -63,6 +61,28 @@ class WebBridgeHandler(
      */
     private var importWatchdogJob: Job? = null
 
+    /**
+     * 提示账本：一次导入会话内只给用户一条结果提示。
+     *
+     * 背景：适配脚本自己会弹「导入成功：N 条课程安排」，App 侧也会弹
+     * 「课程导入成功！共导入 N 门课。」；而 ToastManager 是 CONFLATED 语义
+     * （`ToastManager.kt` 直接 `_event.value = ...` 覆盖，不排队），两条连发
+     * 只会互相顶掉，用户看到哪条取决于时序。现在结果提示统一由 App 给出，
+     * 脚本侧的重复提示在注入 JS 里被静默（见 `shouldSuppressAdapterToast`）。
+     */
+    private var importedCoursesTotal = 0
+
+    /** 本次会话是否至少成功落库过一批数据（决定要不要给结果提示）。 */
+    private var importSaveSucceeded = false
+
+    private var importFailureNotified = false
+
+    /**
+     * 成功提示的防抖任务。非 null 表示「这批落库的结果还没报给用户」——
+     * 收尾（`notifyTaskCompletion`）时据此决定要不要补一条最终总账。
+     */
+    private var importSuccessToastJob: Job? = null
+
     private companion object {
         const val TAG = "WebBridgeHandler"
 
@@ -71,6 +91,13 @@ class WebBridgeHandler(
          * toast（即一条桥接消息），因此零消息超时只可能是脚本整体没跑起来。
          */
         const val IMPORT_IDLE_TIMEOUT_MS = 30_000L
+
+        /**
+         * 成功提示防抖窗口。8 个适配脚本会分多批调用 saveImportedCourses
+         * （BUPT / CQCST / CUST / HUAT / hbeu / NIIT / XIYI / zhengfang），
+         * 逐批提示只会互相覆盖、还只显示最后一批的数字，这里等总门数收敛。
+         */
+        const val IMPORT_SUCCESS_DEBOUNCE_MS = 1_000L
     }
 
     /**
@@ -85,9 +112,23 @@ class WebBridgeHandler(
             cancelImportWatchdog()
             updateImportState(ImportRunState.Idle)
         } else {
+            resetImportSession()
             updateImportState(ImportRunState.Running)
             armImportWatchdog()
         }
+    }
+
+    /**
+     * 开始一次新导入：清空上一次会话的提示账本。
+     *
+     * 没有这一步时，第二次导入会被上一次的「已提示过」拦住，用户再也看不到结果提示。
+     */
+    private fun resetImportSession() {
+        importSuccessToastJob?.cancel()
+        importSuccessToastJob = null
+        importedCoursesTotal = 0
+        importSaveSucceeded = false
+        importFailureNotified = false
     }
 
     private fun updateImportState(state: ImportRunState) {
@@ -103,14 +144,45 @@ class WebBridgeHandler(
             // 此时刻意保留 importTableId：脚本可能只是启动很慢，晚到的
             // saveImportedCourses 仍应能正常落库，不能被判成「未选择课表」。
             val timeoutMessage = getString(Res.string.wb_import_timeout)
+            notifyImportFailure(timeoutMessage)
             updateImportState(ImportRunState.Failed(timeoutMessage))
-            ToastManager.show(timeoutMessage)
         }
     }
 
     private fun cancelImportWatchdog() {
         importWatchdogJob?.cancel()
         importWatchdogJob = null
+    }
+
+    /**
+     * 一次导入会话内最多给出一条失败提示。
+     *
+     * 失败可能来自多个来源（脚本抛错上报 / 落库异常 / 无响应超时 / 未选课表），
+     * 而 ToastManager 是 CONFLATED 语义（新消息直接覆盖旧消息，不排队），连发只会
+     * 互相覆盖。这里只放行第一条，后续失败仍写日志，避免用户看到提示闪烁。
+     */
+    private fun notifyImportFailure(message: String) {
+        if (importFailureNotified) {
+            AppLog.w(TAG, "导入失败提示已发过，后续失败仅记录：$message")
+            return
+        }
+        importFailureNotified = true
+        ToastManager.show(message)
+    }
+
+    /**
+     * 结果提示防抖：适配脚本可能分多批落库，等总门数收敛后再报一次总账。
+     *
+     * 后到的批次会重新计时并再报一次（ToastManager 是 CONFLATED 语义，旧文案被覆盖），
+     * 因此用户最终看到的门数始终是累计值，不会停在某一批的分批数字上。
+     */
+    private fun scheduleImportSuccessToast() {
+        importSuccessToastJob?.cancel()
+        importSuccessToastJob = coroutineScope.launch(Dispatchers.Main) {
+            delay(IMPORT_SUCCESS_DEBOUNCE_MS)
+            importSuccessToastJob = null
+            ToastManager.show(getString(Res.string.wb_import_success_fmt, importedCoursesTotal))
+        }
     }
 
     /**
@@ -306,7 +378,7 @@ class WebBridgeHandler(
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
                     val noTableMessage = getString(Res.string.wb_import_no_table)
-                    ToastManager.show(noTableMessage)
+                    notifyImportFailure(noTableMessage)
                     updateImportState(ImportRunState.Failed(noTableMessage))
                     if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled))
                 }
@@ -321,12 +393,15 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess { importedCount ->
-                    ToastManager.show(getString(Res.string.wb_import_success_fmt, importedCount))
-                    updateImportState(ImportRunState.Succeeded(importedCount))
+                    importedCoursesTotal += importedCount
+                    importSaveSucceeded = true
+                    // 分批落库时状态先按累计门数更新，用户提示等防抖收敛后再发一条总账
+                    updateImportState(ImportRunState.Succeeded(importedCoursesTotal))
+                    scheduleImportSuccessToast()
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
                     val failureMessage = getString(Res.string.wb_import_failed_fmt, e.message ?: "")
-                    ToastManager.show(failureMessage)
+                    notifyImportFailure(failureMessage)
                     updateImportState(ImportRunState.Failed(failureMessage))
                     if (callbackId != null) rejectJsPromise(callbackId, failureMessage)
                 }
@@ -342,7 +417,7 @@ class WebBridgeHandler(
             val tableId = importTableId
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
-                    ToastManager.show(getString(Res.string.wb_config_import_no_table))
+                    notifyImportFailure(getString(Res.string.wb_config_import_no_table))
                     if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled_or_unset))
                 }
                 return@launch
@@ -355,11 +430,14 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show(getString(Res.string.wb_config_import_success))
+                    // 配置/时间段与课程落库同属一次会话的结果，不再单独发提示：
+                    // 三条成功 toast 连发只会互相覆盖（ToastManager 是 CONFLATED 语义），
+                    // 统一由课程落库那条「共导入 N 门课」代表整次导入的结果。
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show(getString(Res.string.wb_config_import_failed_fmt, e.message ?: ""))
-                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_config_import_failed_fmt, e.message ?: ""))
+                    val failureMessage = getString(Res.string.wb_config_import_failed_fmt, e.message ?: "")
+                    notifyImportFailure(failureMessage)
+                    if (callbackId != null) rejectJsPromise(callbackId, failureMessage)
                 }
             }
         }
@@ -373,7 +451,7 @@ class WebBridgeHandler(
             val tableId = importTableId
             if (tableId == null) {
                 coroutineScope.launch(Dispatchers.Main) {
-                    ToastManager.show(getString(Res.string.wb_import_no_table))
+                    notifyImportFailure(getString(Res.string.wb_import_no_table))
                     if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_table_cancelled))
                 }
                 return@launch
@@ -386,11 +464,12 @@ class WebBridgeHandler(
 
             coroutineScope.launch(Dispatchers.Main) {
                 result.onSuccess {
-                    ToastManager.show(getString(Res.string.wb_preset_import_success))
+                    // 同 saveCourseConfig：成功提示合并到课程落库那一条
                     if (callbackId != null) resolveJsPromise(callbackId, "true")
                 }.onFailure { e ->
-                    ToastManager.show(getString(Res.string.wb_preset_import_failed_fmt, e.message ?: ""))
-                    if (callbackId != null) rejectJsPromise(callbackId, getString(Res.string.wb_preset_import_failed_fmt, e.message ?: ""))
+                    val failureMessage = getString(Res.string.wb_preset_import_failed_fmt, e.message ?: "")
+                    notifyImportFailure(failureMessage)
+                    if (callbackId != null) rejectJsPromise(callbackId, failureMessage)
                 }
             }
         }
@@ -402,12 +481,22 @@ class WebBridgeHandler(
     fun notifyTaskCompletion() {
         importTableId = null
         cancelImportWatchdog()
-        // 脚本没回传成功态就直接收尾时，Running 会把按钮永久卡死，这里复位；
-        // 已拿到成功/失败结果时保留该状态，供用户在离开页面前仍有据可查。
-        if (importState == ImportRunState.Running) {
-            updateImportState(ImportRunState.Idle)
+        // 收尾时拿到的是最终总门数：若防抖还没到点，就由这里补上最终总账，
+        // 这样不发成功 toast 的适配脚本（195 个里 130 个）也能得到一条带门数的提示。
+        val pendingSuccessToast = importSuccessToastJob != null
+        importSuccessToastJob?.cancel()
+        importSuccessToastJob = null
+        coroutineScope.launch(Dispatchers.Main) {
+            if (pendingSuccessToast && importSaveSucceeded) {
+                ToastManager.show(getString(Res.string.wb_import_success_fmt, importedCoursesTotal))
+            }
+            // 脚本没回传成功态就直接收尾时，Running 会把按钮永久卡死，这里复位；
+            // 已拿到成功/失败结果时保留该状态，供用户在离开页面前仍有据可查。
+            if (importState == ImportRunState.Running) {
+                updateImportState(ImportRunState.Idle)
+            }
+            onTaskCompleted()
         }
-        onTaskCompleted()
     }
 
     /**
@@ -430,7 +519,8 @@ class WebBridgeHandler(
             )
 
             if (importState is ImportRunState.Running) {
-                ToastManager.show(text)
+                // 一次会话只报第一条失败，避免与脚本自己的 catch 提示互相覆盖
+                notifyImportFailure(text)
                 updateImportState(ImportRunState.Failed(text))
             }
         }

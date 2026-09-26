@@ -285,12 +285,43 @@ val JS_BRIDGE_INIT = """
         }
     };
 
+    /**
+     * 导入会话内的适配脚本提示去重。
+     *
+     * 195 个内置适配脚本自己会弹「导入成功：N 条课程安排」「正在获取课表数据…」这类
+     * 提示，与 Native 侧的结果提示、底部「正在执行导入脚本…」状态条语义完全重复；
+     * 而 ToastManager 是 CONFLATED 语义（新消息直接覆盖旧消息），两条一起发只会
+     * 互相顶掉，用户看到哪条取决于时序。这里统一静默「成功」「进行中」两类语义，
+     * 把结果提示的话语权收到 Native 侧 —— 一处改动覆盖全部适配脚本。
+     *
+     * 错误类信息一律原样放行：脚本的报错（「未能获取课表数据…」「未找到课表表格」）
+     * 比 Native 的通用文案更有信息量，静默掉反而让用户无从排查。
+     */
+    function shouldSuppressAdapterToast(message) {
+        if (!window.__shangkeImportActive) return false;
+        var text = String(message == null ? '' : message);
+        if (!text) return false;
+        // 先判错误语义：带失败/异常字样的提示绝不静默
+        if (/失败|錯誤|错误|出错|出錯|未能|无法|無法|异常|異常|重试|重試/.test(text)) return false;
+        // 成功类：导入/匯入 + 成功/完成，或 成功/完成 + 导入/匯入/添加/写入
+        if (/(导入|匯入)/.test(text) && /(成功|完成)/.test(text)) return true;
+        if (/(成功|完成)/.test(text) && /(导入|匯入|添加|新增|写入|寫入)/.test(text)) return true;
+        // 配套数据的成功提示（作息时间 / 学期配置的保存、同步、设置）由课程落库那条统一代表
+        if (/(成功|完成)/.test(text) && /(保存|儲存|同步|设置|設定|作息|学期|學期|时间段|時間段)/.test(text)) return true;
+        // 进行中 / 启动类：与底部常驻状态条重复
+        if (/正在|请稍候|請稍候|请等待|請等待|加载中|載入中|处理中|處理中|启动|啟動|开始|開始/.test(text)) return true;
+        return false;
+    }
+
     // 2. 单向/同步调用的 JS 接口
     var shangkeBridge = {
         showToast: function(message) {
+            if (shouldSuppressAdapterToast(message)) return;
             postMessageToNative('showToast', { message: message });
         },
         notifyTaskCompletion: function() {
+            // 会话结束：脚本后续自发提示（用户继续在教务页操作）恢复正常显示
+            window.__shangkeImportActive = false;
             postMessageToNative('notifyTaskCompletion');
         }
     };
@@ -434,6 +465,8 @@ val JS_IMPORT_AUTOSTART = """
         setTimeout(function () {
             if (window.__shangkeImportTriggered) return; // 适配器已自行启动，静默
             if (window.__shangkeScriptErrorReported) return; // 脚本已经报过错，不重复提示
+            // 导入实际没跑起来：结束会话态，否则之后教务页自身的提示会被静默
+            window.__shangkeImportActive = false;
             var noEntryMessage = '未找到导入入口，请确认已打开课表页面后重试，或改用文本导入。';
             if (typeof window.__shangkeReportNoEntry === 'function') {
                 // 交给 Native：既能复位「执行导入」按钮，又能按当前语言给出提示
@@ -543,6 +576,8 @@ fun buildImportScript(tableId: String, adapterJsCode: String): String {
     return """
     window.currentTableId = $safeTableId;
     window.__shangkeImportTriggered = false;
+    // 导入会话开始：期间的「成功」「进行中」类适配脚本提示由 shouldSuppressAdapterToast 静默
+    window.__shangkeImportActive = true;
     window.__shangkeWindowKeysBefore = Object.keys(window);
     $adapterJsCode
     ;$JS_IMPORT_AUTOSTART
