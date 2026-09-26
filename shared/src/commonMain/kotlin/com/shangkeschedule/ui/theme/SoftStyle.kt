@@ -157,6 +157,8 @@ internal fun softLightAppColorTokens(): AppColorTokens = AppColorTokens(
     cardBgElevated = SoftCardElevatedLight,
     inputBg = SoftInputBgLight,
     divider = Color(0x1F4A4756),               // 低对比分隔线：12% 正文色，不用实色
+    // hairline 级：同一色调浓度减半（0x1F ≈ 0.12 → 0x0F ≈ 0.06）
+    dividerSoft = Color(0x0F4A4756),
     textPrimary = SoftTextPrimaryLight,
     textSecondary = SoftTextSecondaryLight,
     textOnPrimary = Color(0xFFFFFFFF),
@@ -202,6 +204,7 @@ internal fun softDarkAppColorTokens(): AppColorTokens = run {
         cardBgElevated = SoftCardElevatedDark,
         inputBg = SoftInputBgDark,
         divider = Color(0x1FE8E5EE),
+        dividerSoft = Color(0x0FE8E5EE),
         textPrimary = SoftTextPrimaryDark,
         textSecondary = SoftTextSecondaryDark,
         textOnPrimary = Color(0xFF23252F),
@@ -243,13 +246,16 @@ fun softAppColorTokens(isDark: Boolean): AppColorTokens =
 // 柔绘形状 / 间距 / 字阶 tokens
 //
 // 圆角整体比通透放大一档：虚化圆角是柔绘的身份特征（24 / 28 / 16 / 12）。
-// 间距走「干净留白」：卡距 18 / 分区间距 26 / 卡内 18。
+// 间距走**全局统一网格**（批 1）：与书卷、通透逐项同值（16 / 24 / 16 / 56 / 52）。
 // ⚠️ 横向页边距与行高的取值规则（对齐书卷 / 通透的既有约定，勿随意放大）：
 //   · pageHorizontal = 20dp，与书卷、通透**完全一致** —— 用户明确要求「每个导航条
 //     一样宽」，三套主题的行宽必须逐像素相同，横向内边距不能各自为政；
-//   · rowMinHeight = 52dp，与通透一致（书卷的设置行是 48dp 的历史硬编码）——
-//     用户在「柔绘完全参照通透的适配」的前提下，行高应与通透对齐；
-//     留白感由纵向 cardGap / listGap / cardInner 承担，不靠抬高行高实现。
+// ⚠️ **2026-09-26 批 1 更正（原注释已作废）**：此处原写「留白感由纵向 cardGap /
+//   listGap / cardInner 承担，不靠抬高行高实现」，即柔绘靠**更大间距**表达宽松。
+//   现三主题间距统一取值（cardGap 18→16 / listGap 26→24 / cardInner 18→16），
+//   ⇒ 柔绘的宽松感改由**材质层**承担：更大圆角阶梯（24 / 28）+ 软模糊投影 +
+//   羽化描边环 + 轻一档字重。这是「统骨架、留个性」的既定取舍，不要再靠调大
+//   间距找回宽松感。
 // 字阶比通透略轻（字重降一档），配合低对比配色更柔。
 // ============================================================================
 
@@ -273,17 +279,28 @@ internal val softShapeTokens = AppShapeTokens(
 
 internal val softSpacingTokens = AppSpacingTokens(
     pageHorizontal = 20.dp,
-    cardGap = 18.dp,
-    listGap = 26.dp,
-    cardInner = 18.dp,
-    rowMinHeight = 52.dp,
+    // 批 1：18 → 16，与书卷 / 通透统一（宽松感改由圆角 + 软投影承担，见文件头注释）
+    cardGap = 16.dp,
+    // 批 1：26 → 24
+    listGap = 24.dp,
+    // 批 1：18 → 16
+    cardInner = 16.dp,
+    // 批 1：52 → 56，与统一网格一致
+    rowMinHeight = 56.dp,
     // A1/P2：设置列表行高度独立成 token（柔绘与通透一致 52dp）
     settingsRowMinHeight = 52.dp,
     touchMin = 48.dp,
-    chipIcon = 46.dp,
-    fab = 58.dp,
+    // 批 1：46 → 44，与书卷 / 通透统一
+    chipIcon = 44.dp,
+    // 批 1：58 → 56，与书卷 / 通透统一
+    fab = 56.dp,
     navBarHorizontal = 16.dp,
-    navBarBottom = 12.dp
+    navBarBottom = 12.dp,
+    // 留白节奏（批 1 新增）
+    pageTop = 8.dp,
+    sectionGap = 24.dp,
+    sectionTitleGap = 8.dp,
+    contentBottom = 32.dp
 )
 
 internal val softTypeTokens = AppTypeTokens(
@@ -299,7 +316,28 @@ internal val softTypeTokens = AppTypeTokens(
     settingsRowTitleWeight = FontWeight.SemiBold,
     body = 16.sp,
     caption = 13.sp,
-    hint = 11.sp
+    hint = 11.sp,
+    // 字重语义（批 1 新增）：柔绘整体轻一档 —— 标题 Medium（而非 SemiBold）、
+    // 正文 Normal、辅助 Medium。这是柔绘「低对比柔和」的既定身份，不做跨主题统一。
+    titleWeight = FontWeight.Medium,
+    bodyWeight = FontWeight.Normal,
+    captionWeight = FontWeight.Medium
+)
+
+/** 柔绘图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24，与书卷 / 通透同值。 */
+internal val softIconTokens = AppIconTokens(
+    small = 16.dp,
+    medium = 20.dp,
+    large = 24.dp
+)
+
+/** 柔绘页头 tokens（批 1 新增）：21sp Medium + 轻字距，副标题 13sp。 */
+internal val softPageHeaderTokens = AppPageHeaderTokens(
+    titleSize = 21.sp,
+    titleWeight = FontWeight.Medium,
+    titleLetterSpacing = (-0.1).sp,
+    subtitleSize = 13.sp,
+    bottomGap = 16.dp
 )
 
 // A1/V2（v3.69.0）：顶栏玻璃材质 —— 柔绘更虚化（22dp）、底色更淡（0.58）、

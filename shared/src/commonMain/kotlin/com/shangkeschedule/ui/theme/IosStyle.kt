@@ -130,6 +130,8 @@ internal fun iosLightAppColorTokens(): AppColorTokens = AppColorTokens(
     cardBgElevated = IosSecondaryGroupedBgLight,
     inputBg = IosFillLight,                        // systemFill 12%
     divider = IosSeparatorLight,
+    // hairline 级：iOS separator 的同一色调，浓度减半（0x49 ≈ 0.29 → 0x24 ≈ 0.14）
+    dividerSoft = Color(0x243C3C43),
     // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
     outline = MaterialBaselineOutline,
     outlineVariant = MaterialBaselineOutlineVariant,
@@ -179,6 +181,7 @@ internal fun iosDarkAppColorTokens(): AppColorTokens = run {
         cardBgElevated = IosTertiaryGroupedBgDark, // #2C2C2E
         inputBg = IosFillDark,
         divider = IosSeparatorDark,
+        dividerSoft = Color(0x4D545458),
         // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
         outline = MaterialBaselineOutline,
         outlineVariant = MaterialBaselineOutlineVariant,
@@ -253,20 +256,31 @@ internal val iosShapeTokens = AppShapeTokens(
     )
 )
 
-/** 通透间距 tokens（8pt 网格）。 */
+/**
+ * 通透间距 tokens（8pt 网格）。
+ *
+ * 全局 UI 优化批 1：三主题间距取值**统一**（`pageHorizontal` 20 / `cardGap` 16 /
+ * `listGap` 24 / `cardInner` 16 / `rowMinHeight` 56 / `settingsRowMinHeight` 52）。
+ * 通透此处 `rowMinHeight` 52 → 56（+4dp 呼吸感），其余不变。
+ */
 internal val iosSpacingTokens = AppSpacingTokens(
     pageHorizontal = 20.dp,
     cardGap = 16.dp,
     listGap = 24.dp,
     cardInner = 16.dp,
-    rowMinHeight = 52.dp,
+    rowMinHeight = 56.dp,
     // A1/P2：设置列表行高度独立成 token（通透与普通行同高）
     settingsRowMinHeight = 52.dp,
     touchMin = 48.dp,
     chipIcon = 44.dp,
     fab = 56.dp,
     navBarHorizontal = 16.dp,
-    navBarBottom = 12.dp
+    navBarBottom = 12.dp,
+    // 留白节奏（批 1 新增）
+    pageTop = 8.dp,
+    sectionGap = 24.dp,
+    sectionTitleGap = 8.dp,
+    contentBottom = 32.dp
 )
 
 /**
@@ -293,7 +307,27 @@ internal val iosTypeTokens = AppTypeTokens(
     settingsRowTitleWeight = FontWeight.SemiBold,
     body = 17.sp,
     caption = 13.sp,
-    hint = 11.sp
+    hint = 11.sp,
+    // 字重语义（批 1 新增）：标题 SemiBold（SF Display 口径）、正文 Normal、辅助 Medium
+    titleWeight = FontWeight.SemiBold,
+    bodyWeight = FontWeight.Normal,
+    captionWeight = FontWeight.Medium
+)
+
+/** 通透图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24，与 `touchMin` 命中区解耦。 */
+internal val iosIconTokens = AppIconTokens(
+    small = 16.dp,
+    medium = 20.dp,
+    large = 24.dp
+)
+
+/** 通透页头 tokens（批 1 新增）：22sp SemiBold + SF 字距，副标题 Footnote 13sp。 */
+internal val iosPageHeaderTokens = AppPageHeaderTokens(
+    titleSize = 22.sp,
+    titleWeight = FontWeight.SemiBold,
+    titleLetterSpacing = (-0.41).sp,
+    subtitleSize = 13.sp,
+    bottomGap = 16.dp
 )
 
 // A1/V2（v3.69.0）：顶栏玻璃材质（原 AppTopAppBar.kt 里 `if (isSoft) … else …` 的非柔绘分支）

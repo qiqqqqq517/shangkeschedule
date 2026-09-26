@@ -160,6 +160,9 @@ fun ShangKeScheduleTheme(
     val settingsLabelTokens = appSettingsLabelTokens(themePreset)
     val settingsUserRowTokens = appSettingsUserRowTokens(themePreset)
     val settingsPageTokens = appSettingsPageTokens(themePreset)
+    // 全局 UI 优化批 1（v3.71.0）：图标尺寸与页头材质两组
+    val iconTokens = appIconTokens(themePreset)
+    val pageHeaderTokens = appPageHeaderTokens(themePreset)
 
     // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
     val typography = when {
@@ -227,6 +230,8 @@ fun ShangKeScheduleTheme(
         LocalAppSettingsLabelTokens provides settingsLabelTokens,
         LocalAppSettingsUserRowTokens provides settingsUserRowTokens,
         LocalAppSettingsPageTokens provides settingsPageTokens,
+        LocalAppIconTokens provides iconTokens,
+        LocalAppPageHeaderTokens provides pageHeaderTokens,
         LocalIsSoftTheme provides isSoft,
         LocalIndication provides indication
     ) {

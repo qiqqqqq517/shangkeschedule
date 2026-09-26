@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +51,14 @@ data class AppColorTokens(
     val cardBgElevated: Color,
     val inputBg: Color,
     val divider: Color,
+    /**
+     * 极淡分隔线（hairline 级）：分组内分隔、色板点描边等「需要极弱存在感」的场合。
+     *
+     * 取代此前散落的 `Color(0x14FFFFFF)` / `Color(0x0F000000)` 压黑压白硬编码。
+     * 与 [divider] 的分工：`divider` 是**结构性**分隔（页面级、列表行间），
+     * `dividerSoft` 是**装饰性**弱化线，浓度约为前者的一半。
+     */
+    val dividerSoft: Color,
     // 文本
     val textPrimary: Color,
     val textSecondary: Color,
@@ -124,6 +131,7 @@ private fun lightAppColorTokens() = AppColorTokens(
     cardBgElevated = Color(0xFFFFFFFF),
     inputBg = Color(0xFFE9EBF2),
     divider = Color(0xFFECEDF3),
+    dividerSoft = Color(0x0F000000),
     textPrimary = Color(0xFF191B22),
     textSecondary = Color(0xFF8A8F99),
     textOnPrimary = Color.White,
@@ -171,6 +179,7 @@ private fun darkAppColorTokens() = run {
         cardBgElevated = cardBgElevated,
         inputBg = Color(0xFF262A33),
         divider = Color(0xFF262A32),
+        dividerSoft = Color(0x14FFFFFF),
         textPrimary = textPrimary,
         textSecondary = Color(0xFF8B909B),
         textOnPrimary = Color.White,
@@ -265,6 +274,16 @@ object AppTypeGrid {
 object AppAlpha {
     /** 半透明：降级内容 / 弱化遮罩。 */
     const val dimmed = 0.5f
+
+    /**
+     * 发丝级：分隔线、色板点描边等「要看见但几乎不存在」的场合。
+     * 与 [AppColorTokens.dividerSoft] 的分工：本值是**运行时对已有色再降浓度**的系数，
+     * 用于调用方手头只有 `divider` 的场合；有 token 时优先用 token。
+     */
+    const val hairline = 0.12f
+
+    /** 最低可见：羽化描边环、极淡薄涂底。低于此值在多数屏幕上不可辨识。 */
+    const val subtle = 0.06f
 }
 
 /**
@@ -353,7 +372,22 @@ data class AppSpacingTokens(
     val chipIcon: Dp,
     val fab: Dp,
     val navBarHorizontal: Dp,
-    val navBarBottom: Dp
+    val navBarBottom: Dp,
+    // ---- 留白节奏（全局 UI 优化批 1 新增）----
+    /**
+     * 页面内容区顶部留白（状态栏之下、页头之上）。
+     * 取代此前各页自写的 `statusBarsPadding() + padding(vertical = 12.dp)` 一类魔法值。
+     */
+    val pageTop: Dp,
+    /** 分区（section）之间的纵向间距 —— 取代散落的 `listGap` 误用与裸 24/20/26dp。 */
+    val sectionGap: Dp,
+    /** 分区标题与其下方第一张卡片之间的间距。 */
+    val sectionTitleGap: Dp,
+    /**
+     * 列表内容底部的额外安全留白（底栏之上）。
+     * 取代 `TodayScheduleScreen` 的 `bottomInset + 100.dp` 魔法值。
+     */
+    val contentBottom: Dp
 )
 
 /**
@@ -380,7 +414,17 @@ data class AppTypeTokens(
     val settingsRowTitleWeight: FontWeight,
     val body: TextUnit,
     val caption: TextUnit,
-    val hint: TextUnit
+    val hint: TextUnit,
+    // ---- 字重语义（全局 UI 优化批 1 新增）----
+    /**
+     * 标题字重。三主题各自不同（书卷衬线 SemiBold / 柔绘 Medium / 通透 SemiBold），
+     * 此前散落为组件层的 `FontWeight.SemiBold` / `Bold` 硬编码，现按语义收口为 token。
+     */
+    val titleWeight: FontWeight,
+    /** 正文字重（常规 Normal）。 */
+    val bodyWeight: FontWeight,
+    /** 辅助文字字重（比正文略重一档，保证小字号下的可读性）。 */
+    val captionWeight: FontWeight
 )
 
 // ============================================================================
@@ -431,6 +475,77 @@ fun appTypeTokens(preset: AppThemePreset): AppTypeTokens = when (preset) {
     AppThemePreset.CLAUDE -> claudeTypeTokens
     AppThemePreset.SOFT -> softTypeTokens
     else -> iosTypeTokens
+}
+
+// ============================================================================
+// 全局 UI 优化批 1（v3.71.0）：图标尺寸与页头材质两组新 token
+//
+// 两组都是「参数型差异」——按 [判定口诀] 走 V2 范式：三套 Style 显式赋值、
+// 组件只读 token，不得在组件层判断主题身份。
+// ============================================================================
+
+/**
+ * 图标尺寸 tokens：全站图标渲染尺寸收敛为三档。
+ *
+ * 背景：此前图标尺寸散落为 13 / 18 / 22 / 24dp 等多种非标值（同一语义的图标
+ * 在不同页面大小不同），且未按网格取值。现统一为 small 16 / medium 20 / large 24，
+ * 与 `touchMin = 48dp` 的最小触控区解耦（尺寸归尺寸，命中区归命中区）。
+ */
+data class AppIconTokens(
+    /** 行内前置小图标、元信息图标。 */
+    val small: Dp,
+    /** 列表行主图标、顶栏操作图标。 */
+    val medium: Dp,
+    /** 页面级强调图标、空状态插图图标。 */
+    val large: Dp
+)
+
+/** CompositionLocal：图标尺寸 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppIconTokens = staticCompositionLocalOf { iosIconTokens }
+
+/** 组件层快捷访问图标尺寸 tokens。 */
+@Composable
+fun appIconSize(): AppIconTokens = LocalAppIconTokens.current
+
+/** 按主题预设取图标尺寸 tokens。 */
+fun appIconTokens(preset: AppThemePreset): AppIconTokens = when (preset) {
+    AppThemePreset.CLAUDE -> claudeIconTokens
+    AppThemePreset.SOFT -> softIconTokens
+    else -> iosIconTokens
+}
+
+/**
+ * 页面页头 tokens（[AppPageHeader]）：四个主页面统一页头后的参数差异。
+ *
+ * 背景（全局 UI 优化批 2）：四个主页面此前页头形态各不相同 —— 今日页无标题且靠
+ * `padding(horizontal = 84.dp)` 硬编码避让、课表页顶栏塞 4 个控件、日程页用
+ * `hero`(34sp) 当月份标题、我的页仅通透有吸顶标题（书卷/柔绘无标题）。
+ * 统一为同一组件后，差异退化为参数，由本 token 组承载。
+ *
+ * ⚠️ [titleSize] 三主题取值不同是**既定主题身份**（书卷衬线 28sp / 柔绘 21sp /
+ * 通透 22sp），不做跨主题统一；统一的是**台阶语义**（都用 `pageTitle` 角色）。
+ */
+data class AppPageHeaderTokens(
+    val titleSize: TextUnit,
+    val titleWeight: FontWeight,
+    val titleLetterSpacing: TextUnit,
+    val subtitleSize: TextUnit,
+    /** 页头与其下方内容区的间距。 */
+    val bottomGap: Dp
+)
+
+/** CompositionLocal：页头 tokens（默认 = 通透 / iOS 26）。 */
+val LocalAppPageHeaderTokens = staticCompositionLocalOf { iosPageHeaderTokens }
+
+/** 组件层快捷访问页头 tokens。 */
+@Composable
+fun appPageHeader(): AppPageHeaderTokens = LocalAppPageHeaderTokens.current
+
+/** 按主题预设取页头 tokens。 */
+fun appPageHeaderTokens(preset: AppThemePreset): AppPageHeaderTokens = when (preset) {
+    AppThemePreset.CLAUDE -> claudePageHeaderTokens
+    AppThemePreset.SOFT -> softPageHeaderTokens
+    else -> iosPageHeaderTokens
 }
 
 /**
@@ -1084,8 +1199,12 @@ fun appSettingsPageTokens(preset: AppThemePreset): AppSettingsPageTokens = when 
 // 全站所有「卡片 / 面板 / 列表块」类表面统一从这里生成材质与边缘，由
 // [LocalThemePreset] 在**唯一一处**分派到对应主题的渲染实现：
 //   · 柔绘 SOFT   → softSurface（软模糊投影 + 漫射柔光 + 羽化描边；必要时叠手绘肌理）
-//   · 书卷 CLAUDE → 极轻投影 + 收口 14dp 圆角 + 暖米分组底 + 0.5dp 实色描边
-//   · 通透 IOS    → 极轻投影 + 白卡 + iosGlassRim 玻璃高光内描边
+//   · 书卷 CLAUDE → 收口 14dp 圆角 + 暖米分组底 + 0.5dp 实色描边
+//   · 通透 IOS    → 白卡 + iosGlassRim 玻璃高光内描边
+//
+// ⚠️ 全局 UI 优化批 1（v3.71.0）：书卷 / 通透路径**不再加投影**（原为 1dp 硬边投影）。
+// 卡片分层改由 `cardBg ≠ pageBg` 的底色差承担（规范 R7「投影只归悬浮层 / 拖拽态 / 柔绘材质」）；
+// 柔绘的软模糊投影是**材质本体**（softSurface 内部），不受此约束。
 //
 // 之所以集中到一处：此前每个调用点各自 if/else 拼材质，三套主题的渲染路径散落各处、
 // 边界互相渗漏（典型：柔绘卡片在 softSurface 之外又被重复叠一遍羽化描边）。
@@ -1098,7 +1217,7 @@ fun appSettingsPageTokens(preset: AppThemePreset): AppSettingsPageTokens = when 
  *
  * @param shape 主题无关的基准形状（通透直接采用；书卷收口 14dp、柔绘取 appShapes().card）
  * @param containerColor 显式底色；为 null 时按主题取默认容器色（书卷暖米分组底 / 其余卡底）
- * @param elevation 柔绘软投影强度；书卷 / 通透恒为极轻投影
+ * @param elevation 柔绘软投影强度；书卷 / 通透**忽略**（无投影，规范 R7）
  * @param texture 柔绘是否叠手绘肌理（仅默认分组卡，避免干扰其上文字）
  * @param selected 选中态：书卷 / 通透改用主色描边表达，柔绘由底色承担
  */
@@ -1124,14 +1243,11 @@ fun Modifier.appSurface(
     val isClaude = preset == AppThemePreset.CLAUDE
     val resolvedShape: Shape = if (isClaude) RoundedCornerShape(14.dp) else shape
     val bg = containerColor ?: if (isClaude) claudeGroupBg() else tokens.cardBg
+    // 全局 UI 优化批 1：删除静态卡片的 1dp 硬边投影。
+    // 卡片分层已由 `cardBg ≠ pageBg` 的底色差承担（三主题 ΔL* ≈ 4.4 / 3.2 / 2.7，
+    // 删描边后仍成立），再叠一层硬边投影属「多余装饰」—— 投影从此只归
+    // 悬浮层（FAB / 菜单 / 底部面板）、拖拽态与柔绘 softSurface 的软模糊投影。
     val surface = this
-        .shadow(
-            elevation = 1.dp,
-            shape = resolvedShape,
-            clip = false,
-            ambientColor = tokens.shadow,
-            spotColor = tokens.shadow
-        )
         .clip(resolvedShape)
         .background(bg)
     return when {

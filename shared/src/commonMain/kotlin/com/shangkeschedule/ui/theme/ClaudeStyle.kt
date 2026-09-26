@@ -150,6 +150,9 @@ fun claudeLightAppColorTokens(): AppColorTokens = AppColorTokens(
     cardBgElevated = ClaudeBg50,              // bg-50 #ffffff（浮起卡）
     inputBg = ClaudeBg300,                    // bg-300 #ede9de（输入/嵌入底）
     divider = ClaudeBorder300,                // border-300 #dad9d4
+    // 与 `SettingsDividerColor.SCRIM` 的既有硬编码逐位一致（保证书卷像素零变化）：
+    // 浅色 6% 压黑 / 深色 8% 压白
+    dividerSoft = Color(0x0F000000),
     // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
     outline = MaterialBaselineOutline,
     outlineVariant = MaterialBaselineOutlineVariant,
@@ -203,6 +206,7 @@ fun claudeDarkAppColorTokens(): AppColorTokens = run {
         cardBgElevated = ClaudeDarkBg300,     // bg-300 (dark) #30302e
         inputBg = ClaudeDarkBg400,            // bg-400 (dark) #3e3e38（比卡片亮一档，与浅色 bg-300 输入底对称）
         divider = ClaudeDarkBorder300,        // border-300 (dark) #3e3e38
+        dividerSoft = Color(0x14FFFFFF),
         // A1/C3：M3 描边角色显式声明（沿用 Material 基线，与 data class 默认值逐位相同）
         outline = MaterialBaselineOutline,
         outlineVariant = MaterialBaselineOutlineVariant,
@@ -267,23 +271,30 @@ val claudeShapeTokens: AppShapeTokens = AppShapeTokens(
 )
 
 /**
- * CLAUDE 间距 tokens：更宽松的页边距与卡片内边距（20/12/20/16），
- * 行高 56dp、触控 48dp、图标 chip 44dp。
+ * CLAUDE 间距 tokens。
+ *
+ * 全局 UI 优化批 1：三主题间距取值**统一** —— `cardGap` 12 → 16、`listGap` 20 → 24、
+ * `settingsRowMinHeight` 48 → 52（书卷原本最紧，统一后与其他主题同呼吸节奏）。
+ * 书卷的「宽松感」改由衬线字阶与大字号承担，不再靠压小间距实现。
  */
 val claudeSpacingTokens: AppSpacingTokens = AppSpacingTokens(
     pageHorizontal = 20.dp,
-    cardGap = 12.dp,
-    listGap = 20.dp,
+    cardGap = 16.dp,
+    listGap = 24.dp,
     cardInner = 16.dp,
     rowMinHeight = 56.dp,
-    // A1/P2：设置列表行 48dp —— 此前是 SettingsScreen 里 `if (isClaudePreset) 48.dp` 的历史硬编码，
-    // 现成为显式 token（书卷设置行比普通行矮 8dp）
-    settingsRowMinHeight = 48.dp,
+    // A1/P2：设置列表行独立成 token —— 批 1 与通透 / 柔绘统一为 52dp
+    settingsRowMinHeight = 52.dp,
     touchMin = 48.dp,
     chipIcon = 44.dp,
     fab = 56.dp,
     navBarHorizontal = 16.dp,
-    navBarBottom = 12.dp
+    navBarBottom = 12.dp,
+    // 留白节奏（批 1 新增）
+    pageTop = 8.dp,
+    sectionGap = 24.dp,
+    sectionTitleGap = 8.dp,
+    contentBottom = 32.dp
 )
 
 /**
@@ -303,7 +314,27 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
     settingsRowTitleWeight = FontWeight.Medium,
     body = 15.sp,
     caption = 13.sp,
-    hint = 12.sp
+    hint = 12.sp,
+    // 字重语义（批 1 新增）：标题 SemiBold（衬线标题需有分量）、正文 Normal、辅助 Medium
+    titleWeight = FontWeight.SemiBold,
+    bodyWeight = FontWeight.Normal,
+    captionWeight = FontWeight.Medium
+)
+
+/** 书卷图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24。 */
+val claudeIconTokens: AppIconTokens = AppIconTokens(
+    small = 16.dp,
+    medium = 20.dp,
+    large = 24.dp
+)
+
+/** 书卷页头 tokens（批 1 新增）：28sp SemiBold 衬线大标题，字距归零（衬线不适用负字距）。 */
+val claudePageHeaderTokens: AppPageHeaderTokens = AppPageHeaderTokens(
+    titleSize = 28.sp,
+    titleWeight = FontWeight.SemiBold,
+    titleLetterSpacing = 0.sp,
+    subtitleSize = 13.sp,
+    bottomGap = 16.dp
 )
 
 // A1/V2（v3.69.0）：顶栏玻璃材质 —— **书卷不使用玻璃顶栏**（大标题由内容区
