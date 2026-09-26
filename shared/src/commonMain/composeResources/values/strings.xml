@@ -786,7 +786,8 @@
     <string name="wb_import_no_table">导入失败：未选择课表。</string>
     <string name="wb_table_cancelled">课表选择已取消。</string>
     <string name="wb_table_cancelled_or_unset">课表选择已取消或未设置。</string>
-    <string name="wb_import_success">课程导入成功！课表已更新。</string>
+    <string name="wb_import_success_fmt">课程导入成功！共导入 %1$d 门课。</string>
+    <string name="wb_import_timeout">导入无响应：适配脚本未在限定时间内启动，请确认已登录教务并打开课表页面后重试。</string>
     <string name="wb_import_failed_fmt">课程导入失败: %1$s</string>
     <string name="wb_config_import_no_table">配置导入失败：未选择目标课表。</string>
     <string name="item_auto_sync_adapter">自动同步教务系统</string>

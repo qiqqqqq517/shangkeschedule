@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -149,6 +151,10 @@ fun WebViewScreen(
     var isEditingUrl by remember { mutableStateOf(startedEmpty) }
     var isDevToolsEnabled by remember { mutableStateOf(false) }
     var showCourseTablePicker by remember { mutableStateOf(false) }
+    // 一次导入的运行状态：Running 期间禁用「执行导入」，避免重复注入脚本造成并发落库
+    var importRunState by remember { mutableStateOf<ImportRunState>(ImportRunState.Idle) }
+    // 已通过前置校验并读入内存的适配脚本源码，选定课表后直接注入，不再二次读盘
+    var pendingAdapterJsCode by remember { mutableStateOf<String?>(null) }
     val webViewController = rememberWebViewController()
 
     val coroutineScope = rememberCoroutineScope()
@@ -172,7 +178,8 @@ fun WebViewScreen(
             },
             evaluateJs = { script, callback ->
                 webViewController.evaluateJavascript(script, callback)
-            }
+            },
+            onImportStateChanged = { importRunState = it }
         )
     }
 
@@ -361,13 +368,26 @@ fun WebViewScreen(
                     ) {
                         Button(
                             onClick = {
-                                if (assetJsPath != null) {
-                                    showCourseTablePicker = true
-                                } else {
+                                val jsPath = assetJsPath
+                                if (jsPath == null) {
                                     ToastManager.show(toastNoManualImport)
+                                } else {
+                                    // 前置校验：先确认适配脚本确实读得到，再让用户去选课表，
+                                    // 避免「选完课表才发现脚本不存在」的倒置体验
+                                    val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
+                                    if (!viewModel.fileSystem.exists(jsFilePath)) {
+                                        ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+                                    } else {
+                                        try {
+                                            pendingAdapterJsCode = viewModel.fileSystem.read(jsFilePath) { readUtf8() }
+                                            showCourseTablePicker = true
+                                        } catch (e: Exception) {
+                                            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
+                                        }
+                                    }
                                 }
                             },
-                            enabled = assetJsPath != null,
+                            enabled = assetJsPath != null && importRunState !is ImportRunState.Running,
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(Res.string.action_execute_import))
@@ -420,30 +440,48 @@ fun WebViewScreen(
             }
 
 
+            if (importRunState is ImportRunState.Running) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = appSpacing().pageHorizontal, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = toastExecutingImport,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
+                        color = appColors().textSecondary
+                    )
+                }
+            }
+
             if (showCourseTablePicker && assetJsPath != null) {
                 CourseTablePickerDialog(
                     title = stringResource(Res.string.dialog_title_select_table_for_import),
-                    onDismissRequest = { showCourseTablePicker = false },
+                    onDismissRequest = {
+                        showCourseTablePicker = false
+                        pendingAdapterJsCode = null
+                    },
                     onTableSelected = { selectedTable ->
                         showCourseTablePicker = false
                         val tableId = selectedTable.id
+                        val jsCode = pendingAdapterJsCode
+                        pendingAdapterJsCode = null
 
-                        try {
-                            val fileSystem = viewModel.fileSystem
-                            val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / assetJsPath
+                        if (jsCode != null) {
+                            bridgeHandler.setImportTableId(tableId)
 
-                            if (fileSystem.exists(jsFilePath)) {
-                                val jsCode = fileSystem.read(jsFilePath) { readUtf8() }
-                                bridgeHandler.setImportTableId(tableId)
+                            webViewController.executeScript(buildImportScript(tableId, jsCode))
 
-                                webViewController.executeScript(buildImportScript(tableId, jsCode))
-
-                                ToastManager.show(toastExecutingImport)
-                            } else {
-                                ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
-                            }
-                        } catch (e: Exception) {
-                            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
+                            ToastManager.show(toastExecutingImport)
                         }
                     }
                 )

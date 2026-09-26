@@ -784,7 +784,8 @@
     <string name="wb_import_no_table">匯入失敗：未選擇課表。</string>
     <string name="wb_table_cancelled">課表選擇已取消。</string>
     <string name="wb_table_cancelled_or_unset">課表選擇已取消或未設定。</string>
-    <string name="wb_import_success">課程匯入成功！課表已更新。</string>
+    <string name="wb_import_success_fmt">課程匯入成功！共匯入 %1$d 門課。</string>
+    <string name="wb_import_timeout">匯入無回應：適配指令碼未在限定時間內啟動，請確認已登入教務並開啟課表頁面後重試。</string>
     <string name="wb_import_failed_fmt">課程匯入失敗: %1$s</string>
     <string name="wb_config_import_no_table">設定匯入失敗：未選擇目標課表。</string>
     <string name="item_auto_sync_adapter">自動同步教務系統</string>

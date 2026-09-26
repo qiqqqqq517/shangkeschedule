@@ -15,7 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,51 +32,71 @@ import shangkeschedule.shared.generated.resources.*
 
 /**
  * 宿主：监听 Bridge 事件，负责显示 JS 触发的 Compose 弹窗。
+ *
+ * 事件按 FIFO 排队依次呈现：同一时刻只渲染队首弹窗，前一个关闭后再显示下一个。
+ * 此前实现是「后来的事件直接覆盖前一个」，会把排在前面那个弹窗连同它的 JS Promise
+ * 一起丢掉——适配脚本若 await 那个 Promise 就会永久挂起，导入流程卡死。
  */
 @Composable
 fun WebDialogHost(
     uiEvents: Flow<WebUiEvent>
 ) {
-    var currentEvent by remember { mutableStateOf<WebUiEvent?>(null) }
+    val pendingEvents = remember { mutableStateListOf<WebUiEvent>() }
 
     LaunchedEffect(uiEvents) {
         uiEvents.collect { event ->
-            currentEvent = event
+            pendingEvents.add(event)
         }
     }
 
-    when (val event = currentEvent) {
-        is WebUiEvent.ShowAlert -> {
-            AlertHost(event.data, onConfirm = {
-                event.callback(true)
-                currentEvent = null
-            }, onDismiss = {
-                event.callback(false)
-                currentEvent = null
-            })
-        }
-        is WebUiEvent.ShowPrompt -> {
-            PromptHost(
-                event.data,
-                onRequestValidation = { input ->
-                    event.onRequestValidation(input) {
-                        currentEvent = null
-                    }
-                },
-                errorFlow = event.errorFeedbackFlow,
-                onCancel = {
-                    event.onCancel()
-                    currentEvent = null
+    val currentEvent = pendingEvents.firstOrNull()
+    if (currentEvent != null) {
+        // key(eventId)：连续两个同类弹窗之间隔离 rememberSaveable 状态，
+        // 否则后一个弹窗会带着前一个残留的输入框文本/选中项出现。
+        key(currentEvent.eventId) {
+            // 用「身份比对」出队，而不是无条件 removeAt(0)：
+            // 弹窗存在同时触发 onConfirm 与 onDismiss 的可能（按钮 + 点击遮罩/返回键），
+            // 无条件出队会连下一个排队弹窗一起吃掉。
+            val eventToClose = currentEvent
+            val closeCurrent: () -> Unit = {
+                if (pendingEvents.firstOrNull() === eventToClose) {
+                    pendingEvents.removeAt(0)
                 }
-            )
+            }
+
+            when (currentEvent) {
+                is WebUiEvent.ShowAlert -> {
+                    AlertHost(currentEvent.data, onConfirm = {
+                        currentEvent.callback(true)
+                        closeCurrent()
+                    }, onDismiss = {
+                        currentEvent.callback(false)
+                        closeCurrent()
+                    })
+                }
+                is WebUiEvent.ShowPrompt -> {
+                    PromptHost(
+                        currentEvent.data,
+                        onRequestValidation = { input ->
+                            currentEvent.onRequestValidation(input) {
+                                closeCurrent()
+                            }
+                        },
+                        errorFlow = currentEvent.errorFeedbackFlow,
+                        onCancel = {
+                            currentEvent.onCancel()
+                            closeCurrent()
+                        }
+                    )
+                }
+                is WebUiEvent.ShowSingleSelection -> {
+                    SingleSelectionHost(currentEvent.data, onResult = { index ->
+                        currentEvent.callback(index)
+                        closeCurrent()
+                    })
+                }
+            }
         }
-        is WebUiEvent.ShowSingleSelection -> {
-            SingleSelectionHost(event.data, onResult = { index ->
-                event.callback(index)
-                currentEvent = null
-            })
-        }
-        null -> Unit
     }
 }
 
