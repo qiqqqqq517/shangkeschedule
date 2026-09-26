@@ -49,6 +49,7 @@ import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.ui.components.AlphabetIndexerList
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppLoading
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppTextField
@@ -223,23 +224,11 @@ private fun SchoolContent(
         }
         // 索引加载失败：与「无结果」空态区分，提供重试（v3.54.0）
         loadFailed -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                AppEmptyState(hint = stringResource(Res.string.error_load_failed))
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onRetry,
-                    shape = appShapes().capsule,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = appColors().primary,
-                        contentColor = appColors().textOnPrimary
-                    )
-                ) {
-                    Text(stringResource(Res.string.action_retry))
-                }
-            }
+            AppErrorState(
+                hint = stringResource(Res.string.error_load_failed),
+                fillScreen = true,
+                onRetry = onRetry
+            )
         }
         filteredSchools.isEmpty() && !isLoading -> {
             // 统一空状态：淡灰胶囊 + 辅助文案

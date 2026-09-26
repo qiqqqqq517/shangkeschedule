@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.schoolselection.list
 
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -170,27 +172,15 @@ fun AdapterSelectionScreen(
                 }
                 // 加载失败：给错误提示与重试按钮，不再与「无适配器」空态混同（v3.54.0）
                 loadFailed -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Text(text = stringResource(Res.string.error_load_failed))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { retryKey++ },
-                            shape = appShapes().capsule,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = appColors().primary,
-                                contentColor = appColors().textOnPrimary
-                            )
-                        ) {
-                            Text(stringResource(Res.string.action_retry))
-                        }
-                    }
+                    AppErrorState(
+                        hint = stringResource(Res.string.error_load_failed),
+                        modifier = Modifier.align(Alignment.Center),
+                        onRetry = { retryKey++ }
+                    )
                 }
                 adapters.isEmpty() -> {
-                    Text(
-                        text = stringResource(Res.string.text_no_adapter_for_category_school, categoryDisplayName),
+                    AppEmptyState(
+                        hint = stringResource(Res.string.text_no_adapter_for_category_school, categoryDisplayName),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

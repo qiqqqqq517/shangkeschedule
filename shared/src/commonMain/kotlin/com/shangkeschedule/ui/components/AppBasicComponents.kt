@@ -23,11 +23,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +62,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_retry
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -139,6 +145,61 @@ fun AppEmptyState(
                 style = MaterialTheme.typography.bodyMedium,
                 color = appColors().textSecondary
             )
+        }
+    }
+}
+
+/**
+ * 错误状态：与空态同一视觉语言（胶囊底 + 辅助文案），其下可挂一个重试入口。
+ *
+ * X2（v3.69.3）三态一致性：此前「加载失败」在两地各写了一遍 ——
+ * `SchoolSelectionListScreen` 借用 [AppEmptyState] 再拼一个按钮，
+ * `AdapterSelectionScreen` 用裸 [Text] 再拼一个按钮。结构重复、外观还不一致
+ * （一处有胶囊底、一处没有），重试按钮的样式也各写各的。
+ * 收敛后三态各有所属：空 → [AppEmptyState]，加载 → [AppLoading]，错误 → 本组件。
+ *
+ * [onRetry] 为 null 时不渲染按钮，用于「没有重试路径」的纯提示场景。
+ */
+@Composable
+fun AppErrorState(
+    hint: String,
+    modifier: Modifier = Modifier,
+    fillScreen: Boolean = false,
+    onRetry: (() -> Unit)? = null
+) {
+    val retryLabel = stringResource(Res.string.action_retry)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (fillScreen) Modifier.fillMaxSize() else Modifier),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .then(rememberContentEnterMotion())
+                .clip(appShapes().card)
+                .background(appColors().inputBg.copy(alpha = 0.55f))
+                .padding(horizontal = 28.dp, vertical = 22.dp)
+        ) {
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = appColors().textSecondary
+            )
+        }
+        if (onRetry != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onRetry,
+                shape = appShapes().capsule,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = appColors().primary,
+                    contentColor = appColors().textOnPrimary
+                )
+            ) {
+                Text(retryLabel)
+            }
         }
     }
 }

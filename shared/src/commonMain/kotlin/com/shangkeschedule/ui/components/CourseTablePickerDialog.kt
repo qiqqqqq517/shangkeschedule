@@ -135,10 +135,9 @@ fun CourseTablePickerDialog(
         text = {
             Column {
                 if (courseTables.isEmpty()) {
-                    Text(
-                        text = stringResource(Res.string.text_no_course_tables),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    // X2（v3.69.3）：此处原为内联裸 Text，与全站空态组件（胶囊底 + 辅助文案）
+                    // 语言不一致，收敛到 AppEmptyState。
+                    AppEmptyState(hint = stringResource(Res.string.text_no_course_tables))
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
