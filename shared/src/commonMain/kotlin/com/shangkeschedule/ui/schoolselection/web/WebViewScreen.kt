@@ -142,9 +142,6 @@ fun WebViewScreen(
     var inputUrl by remember { mutableStateOf(if (startedEmpty) "" else (initialUrl ?: "")) }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var pageTitle by remember { mutableStateOf(if (startedEmpty) titleEnterUrl else titleLoading) }
-    // WebView 加载失败反馈（P1-4）：webViewLoadFailed 为 true 时覆盖全屏错误页
-    var webViewLoadFailed by remember { mutableStateOf(false) }
-    var loadErrorDescription by remember { mutableStateOf("") }
     // 加载看门狗计数器：每次发起加载（onSearch / 重试 / 初始）时 +1，重新计时
 
     var expanded by remember { mutableStateOf(false) }
@@ -209,8 +206,6 @@ fun WebViewScreen(
             currentUrl = formattedUrl
             isEditingUrl = false
             pageTitle = titleLoading
-            webViewLoadFailed = false
-            loadErrorDescription = ""
         }
     }
 
@@ -412,10 +407,7 @@ fun WebViewScreen(
                 onProgressChange = { loadingProgress = it },
                 onTitleChange = { pageTitle = it },
                 onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) },
-                onWebViewLoadError = { description ->
-                    webViewLoadFailed = true
-                    loadErrorDescription = description
-                }
+                onWebViewLoadError = { }
             )
 
             if (loadingProgress < 1.0f) {
@@ -427,55 +419,6 @@ fun WebViewScreen(
                 )
             }
 
-            // WebView 加载失败全屏错误页（P1-4）：网络不可用 / 4xx5xx / SSL 错误时给出出口（重试/返回）
-            if (webViewLoadFailed && !isEditingUrl) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = if (loadErrorDescription.isBlank()) {
-                            stringResource(Res.string.webview_load_error_generic)
-                        } else {
-                            stringResource(Res.string.webview_load_error_fmt, loadErrorDescription)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = stringResource(Res.string.webview_load_error_detail),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = appColors().textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                webViewLoadFailed = false
-                                loadErrorDescription = ""
-                                onBack()
-                            }
-                        ) {
-                            Text(stringResource(Res.string.a11y_back))
-                        }
-                        Button(
-                            onClick = {
-                                webViewLoadFailed = false
-                                loadErrorDescription = ""
-                                loadingProgress = 0f
-                                webViewController.reload()
-                            }
-                        ) {
-                            Text(stringResource(Res.string.webview_load_error_retry))
-                        }
-                    }
-                }
-            }
 
             if (showCourseTablePicker && assetJsPath != null) {
                 CourseTablePickerDialog(
