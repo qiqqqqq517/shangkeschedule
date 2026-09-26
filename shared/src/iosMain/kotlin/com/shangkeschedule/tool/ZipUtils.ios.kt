@@ -8,6 +8,7 @@ package com.shangkeschedule.tool
  */
 actual object ZipUtils {
     actual fun createZip(entries: Map<String, ByteArray>): ByteArray {
-        throw NotImplementedError("ZipUtils.createZip is not yet implemented for iOS platform.")
+        //FIX:NotImplementedError 属于 Error，BackupViewModel 的 catch(Exception) 无法捕获，iOS 导出备份会直接崩溃
+        throw UnsupportedOperationException("ZipUtils.createZip is not yet implemented for iOS platform.")
     }
 }

@@ -467,7 +467,8 @@ class WebViewRequestInterceptor {
                 // 部分教务系统（如湖北职院强智 jwgl）返回的是 UTF-8 字节，但响应头要么不带 charset、
                 // 要么标注成 GBK/ISO-8859-1 等非 UTF-8 值。若未显式声明 charset，国产 ROM WebView 会回退
                 // 到系统默认 GBK，把 UTF-8 中文解成乱码（本会话见过的 {"flag1":2,"msgContent":"..乱码.."}）。
-                val rawBytes = response.bodyAsChannel().toInputStream().readBytes()
+                //FIX:toInputStream() 包装的通道未关闭会泄漏 HTTP 资源，读完必须显式 use 关闭
+                val rawBytes = response.bodyAsChannel().toInputStream().use { it.readBytes() }
                 if (isMainFrame) {
                     val preview = rawBytes.take(8).joinToString(" ") { "%02x".format(it) }
                     Log.i("WebViewInterceptor", "MAIN $url CT=$contentTypeHeader enc=$encoding mime=$mimeType len=${rawBytes.size} first8=$preview")

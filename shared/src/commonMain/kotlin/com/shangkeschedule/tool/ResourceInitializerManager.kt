@@ -75,18 +75,19 @@ class ResourceInitializerManager(
             }
 
             try {
-                val zipFileSystem = fileSystem.openZip(tempZipFile)
+                //FIX:openZip 返回的文件系统持有压缩包句柄，原实现从不关闭会导致句柄泄漏并可能阻塞 tempZipFile 删除
+                fileSystem.openZip(tempZipFile).use { zipFileSystem ->
+                    if (fileSystem.exists(targetRepoDir)) {
+                        fileSystem.deleteRecursively(targetRepoDir)
+                    }
+                    fileSystem.createDirectories(targetRepoDir)
 
-                if (fileSystem.exists(targetRepoDir)) {
-                    fileSystem.deleteRecursively(targetRepoDir)
-                }
-                fileSystem.createDirectories(targetRepoDir)
+                    unzipDirectory(zipFileSystem, "/".toPath(), targetRepoDir)
 
-                unzipDirectory(zipFileSystem, "/".toPath(), targetRepoDir)
-
-                // 记录本次解压对应的版本，供下次启动对比
-                fileSystem.write(versionMarker) {
-                    writeUtf8(currentVersion)
+                    // 记录本次解压对应的版本，供下次启动对比
+                    fileSystem.write(versionMarker) {
+                        writeUtf8(currentVersion)
+                    }
                 }
             } finally {
                 fileSystem.delete(tempZipFile)
@@ -122,7 +123,10 @@ class ResourceInitializerManager(
         for (entry in entries) {
             val destinationPath = targetDir / entry.name
 
-            if (!destinationPath.toString().startsWith(targetDir.toString())) {
+            val targetRoot = targetDir.toString()
+            val destination = destinationPath.toString()
+            //FIX:原 startsWith 前缀校验会把 repo_evil 误认成 repo 内路径，必须要求等于根目录或带路径分隔符
+            if (destination != targetRoot && !destination.startsWith("$targetRoot/")) {
                 throw IllegalArgumentException("Illegal zip path: ${entry.name}")
             }
 

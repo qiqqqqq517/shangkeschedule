@@ -41,7 +41,8 @@
     <string name="todo_count_format">%1$d items</string>
     <string name="text_courses_count">%1$s classes</string>
     <!-- Claude theme · Today page (mirrors claude-schedule-page.design/pages/今日日程.html) -->
-    <string name="today_claude_tomorrow_format">Tomorrow · %1$s</string>
+    <!--FIX:调用方传入 month/day 两个 Int，原 %1$s 只显示月份且丢弃day，改为与其余语言一致的 %1$d/%2$d-->
+    <string name="today_claude_tomorrow_format">Tomorrow · %1$d/%2$d</string>
     <string name="today_claude_view_all">View all</string>
     <string name="today_claude_status_done">Finished</string>
     <string name="today_claude_status_live">In progress</string>
@@ -60,7 +61,8 @@
     <string name="today_claude_countdown_label">min to start</string>
     <string name="today_claude_sheet_close">Close</string>
     <string name="today_claude_sheet_edit">Edit course</string>
-    <string name="today_ios_tomorrow_format">Tomorrow · %1$s</string>
+    <!--FIX:同 Claude 条目，英文下明日的“日”被丢弃，补齐第二个占位符-->
+    <string name="today_ios_tomorrow_format">Tomorrow · %1$d/%2$d</string>
     <string name="today_ios_view_all">View all</string>
     <string name="today_ios_status_done">Finished</string>
     <string name="today_ios_status_live">In progress</string>

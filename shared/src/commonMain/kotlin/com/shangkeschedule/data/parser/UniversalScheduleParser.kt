@@ -245,6 +245,11 @@ object UniversalScheduleParser {
                     if (lines[i].trim() == "BEGIN:VALARM") {
                         i++
                         while (i < lines.size && lines[i].trim() != "END:VALARM") i++
+                        //FIX:VALARM 未闭合时 i 会等于 lines.size，原实现紧接着访问 lines[i] 会下标越界
+                        if (i >= lines.size) break
+                        //FIX:跳过 END:VALARM，避免把 "END" 当作事件字段写进 event
+                        i++
+                        continue
                     }
                     val colonIdx = lines[i].indexOf(':')
                     if (colonIdx > 0) {

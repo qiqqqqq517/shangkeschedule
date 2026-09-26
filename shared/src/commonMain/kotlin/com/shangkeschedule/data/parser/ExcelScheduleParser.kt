@@ -24,6 +24,10 @@ import kotlin.random.Random
  */
 object ExcelScheduleParser {
 
+    //FIX:xlsx 的 r="0"/超大行列引用若不做上限校验，会触发索引越界或一次性分配海量空行导致 OOM
+    private const val MAX_SHEET_ROWS = 20_000
+    private const val MAX_SHEET_COLS = 1_000
+
     /** ZIP 魔数判断（xlsx 本质是 ZIP 容器） */
     fun isZipBytes(bytes: ByteArray): Boolean =
         bytes.size >= 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
@@ -117,6 +121,7 @@ object ExcelScheduleParser {
             autoRow++
             val rowXml = rowMatch.groupValues[1]
             val rowIndex = rowMatch.groupValues[0].let { r -> Regex("""\br="(\d+)"""").find(r)?.groupValues?.get(1)?.toIntOrNull() } ?: autoRow
+            if (rowIndex !in 1..MAX_SHEET_ROWS) continue
 
             val cells = mutableMapOf<Int, String>()
             var autoCol = 0
@@ -128,7 +133,11 @@ object ExcelScheduleParser {
                 val inner = cellMatch.groupValues[3]
 
                 val ref = Regex("""\br="([A-Z]+)(\d+)"""").find(attrs)
-                val colIndex = ref?.groupValues?.get(1)?.let { columnLettersToIndex(it) } ?: (autoCol - 1)
+                val refCol = ref?.groupValues?.get(1)?.let { columnLettersToIndex(it) }
+                //FIX:显式列引用非法时不能退回 autoCol，否则会静默错位；仅无 r 属性时才按顺序推断
+                if (ref != null && (refCol == null || refCol !in 0 until MAX_SHEET_COLS)) continue
+                val colIndex = refCol ?: (autoCol - 1)
+                if (colIndex !in 0 until MAX_SHEET_COLS) continue
 
                 val type = Regex("""\bt="([a-z]+)"""").find(attrs)?.groupValues?.get(1)
                 val value = when (type) {
@@ -165,6 +174,7 @@ object ExcelScheduleParser {
     // ========== 工具 ==========
 
     private fun columnLettersToIndex(letters: String): Int {
+        if (letters.length > 4) return -1
         var index = 0
         for (c in letters.uppercase()) {
             index = index * 26 + (c - 'A' + 1)
