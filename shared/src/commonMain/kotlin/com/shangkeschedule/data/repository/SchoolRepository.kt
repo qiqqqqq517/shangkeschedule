@@ -58,7 +58,7 @@ class SchoolRepository(
         val internalPath = filesDir / "repo/index/school_index.pb"
 
         if (!fileSystem.exists(internalPath)) {
-            println("错误：Protobuf 索引文件未找到: $internalPath")
+            AppLog.e(TAG, "Protobuf 索引文件未找到: $internalPath")
             return null
         }
 
