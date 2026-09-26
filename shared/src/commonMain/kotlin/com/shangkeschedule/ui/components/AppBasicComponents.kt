@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -638,11 +639,18 @@ fun AppSelectableCard(
         useGroupBg -> claudeGroupBg()
         else -> tokens.cardBg
     }
+    // 批4（v3.70.5）：选中/取消的底色切换从二值跳变改为渐变，时长读 statusFadeMs
+    // （reduceMotion 下由 AppMotion 统一降为 260ms 溶解，无需此处额外门控）。
+    val animatedBg by animateColorAsState(
+        targetValue = bg,
+        animationSpec = tween(LocalAppMotion.current.tokens.statusFadeMs),
+        label = "selectableCardBg"
+    )
     Column(
         modifier = modifier
             .appSurface(
                 shape = shape,
-                containerColor = bg,
+                containerColor = animatedBg,
                 elevation = 8.dp,
                 selected = selected
             )

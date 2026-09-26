@@ -304,6 +304,10 @@ fun AppSwitch(
 
 /**
  * iOS 风格单选指示器：空心圆环，选中时内部填充主色圆点。
+ *
+ * 批4（v3.70.5）：选中态从二值跳变改为渐变——圆环色与内圆点缩放均读
+ * [AppMotion.tokens.statusFadeMs]（状态渐变 token；reduceMotion 下自动降为
+ * 260ms 无位移溶解，无需此处额外门控）。
  */
 @Composable
 fun AppRadioIndicator(
@@ -311,22 +315,36 @@ fun AppRadioIndicator(
     modifier: Modifier = Modifier
 ) {
     val tokens = appColors()
+    val statusMs = LocalAppMotion.current.tokens.statusFadeMs
+    val ringColor by animateColorAsState(
+        targetValue = if (selected) tokens.primary else tokens.divider,
+        animationSpec = tween(statusMs),
+        label = "radioRingColor"
+    )
+    val dotScale by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = tween(statusMs),
+        label = "radioDotScale"
+    )
     Box(
         modifier = modifier
             .size(22.dp)
             .clip(CircleShape)
-            .border(2.dp, if (selected) tokens.primary else tokens.divider, CircleShape)
+            .border(2.dp, ringColor, CircleShape)
             .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .background(tokens.primary)
-            )
-        }
+        // 圆点常驻组合、仅缩放 0↔1：避免 if(selected) 分支切换带来的组合闪烁。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = dotScale
+                    scaleY = dotScale
+                }
+                .clip(CircleShape)
+                .background(tokens.primary)
+        )
     }
 }
 
@@ -339,22 +357,44 @@ fun AppCheckboxIndicator(
     modifier: Modifier = Modifier
 ) {
     val tokens = appColors()
+    // 批4（v3.70.5）：底色 / 边框 / 对勾从二值跳变改为渐变，时长读 statusFadeMs
+    // （reduceMotion 下由 AppMotion 统一降为 260ms 溶解，无需此处额外门控）。
+    val statusMs = LocalAppMotion.current.tokens.statusFadeMs
+    val boxColor by animateColorAsState(
+        targetValue = if (checked) tokens.primary else tokens.inputBg,
+        animationSpec = tween(statusMs),
+        label = "checkboxBoxColor"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (checked) tokens.primary else tokens.divider,
+        animationSpec = tween(statusMs),
+        label = "checkboxBorderColor"
+    )
+    val checkScale by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = tween(statusMs),
+        label = "checkboxCheckScale"
+    )
     Box(
         modifier = modifier
             .size(22.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(if (checked) tokens.primary else tokens.inputBg)
-            .border(1.5.dp, if (checked) tokens.primary else tokens.divider, RoundedCornerShape(6.dp)),
+            .background(boxColor)
+            .border(1.5.dp, borderColor, RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center
     ) {
-        if (checked) {
-            Icon(
-                imageVector = vectorResource(Res.drawable.check_24px),
-                contentDescription = null,
-                tint = tokens.textOnPrimary,
-                modifier = Modifier.size(16.dp)
-            )
-        }
+        // 对勾常驻组合、仅缩放 0↔1：与 AppRadioIndicator 圆点同一处理。
+        Icon(
+            imageVector = vectorResource(Res.drawable.check_24px),
+            contentDescription = null,
+            tint = tokens.textOnPrimary,
+            modifier = Modifier
+                .size(16.dp)
+                .graphicsLayer {
+                    scaleX = checkScale
+                    scaleY = checkScale
+                }
+        )
     }
 }
 
