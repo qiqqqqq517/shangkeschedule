@@ -38,7 +38,11 @@
   - 本机 `JAVA_HOME` 环境变量是坏的，每条 Gradle 命令前必须显式设为本机 JBR：`C:\Program Files\Android\Android Studio\jbr`。
   - 若构建整体 `UP-TO-DATE`，**必须核对产物 mtime 晚于 `HEAD` 提交时间**才能认定产物含本次改动；否则加 `--rerun-tasks` 重打。
 - **发布前必须逐包校验三条**（任一不过即不得发布）：① `aapt2 dump badging` 的 `versionCode`/`versionName` 与本次版本一致；② `native-code` 每包**只有单一 ABI**；③ `apksigner verify --print-certs` 的 V2 证书 SHA-256 = `4ae49d8c97d881c7c249115b833f932c70f9b429624e88e68807e8fc2232475f`（三包一致且与历史一致）。工具在 `D:\Android\SDK\build-tools\37.0.0\`。
-- **上传方式**：本机**未安装 `gh`**，一律走 GitHub REST API（令牌用 `git credential fill` 从凭据管理器取，账号 `qiqqqqq517`）：**先建草稿** → 上传全部资产（`state=uploaded`）→ `PATCH draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。不得改用 CI，也不得绕过校验在网页手工上传。
+- **上传方式**：本机**未安装 `gh`**，一律走 GitHub REST API（账号 `qiqqqqq517`）：**先建草稿** → 上传全部资产（`state=uploaded`）→ `PATCH draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。不得改用 CI，也不得绕过校验在网页手工上传。
+  ⚠️ **令牌获取不要依赖 `git credential fill`**：本机凭据链不可靠（`~/.gitconfig` 曾被写入空值
+  `credential.helper =` 或多行写法错误的 helper，导致报
+  `could not read Password ... terminal prompts disabled`，而凭据其实一直存在 Windows 凭据管理器里）。
+  可靠做法是直接调用 wincred helper 定位凭据 —— 见 `scripts/push_via_wincred.py`（推送同用此脚本）。
 - **官网同步（每次发版必做，单独提交）**：`website/changelog.html` 补时间线条目 + 页头版本号、`website/assets/js/site.js` 的 `SITE.version`/`versionCode`、`website/sitemap.xml` 的 `/changelog` lastmod；提交信息 `docs(website): 同步 vX.Y.Z 更新日志 vX.Y.Z`。
 - **推送 origin 的已知故障**：可能报 `schannel: failed to receive handshake`。**不要**清空代理直连（报 `Connection was reset`）、**不要**切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`）；正确做法是等约 20 秒后用 `git ls-remote --heads origin main` 探活，恢复后原样重推。`gitee` 镜像每次同步推送。
 - 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）；CI 侧不再需要签名密钥。
