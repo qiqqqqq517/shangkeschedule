@@ -96,6 +96,7 @@ import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.db.main.ScheduleCategory
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
+import com.shangkeschedule.ui.components.AppPageHeader
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppDangerDialog
@@ -114,6 +115,7 @@ import com.shangkeschedule.ui.theme.rememberStatusFadeAlpha
 import com.shangkeschedule.ui.components.rememberAppHaptics
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import dev.chrisbanes.haze.HazeState
@@ -132,6 +134,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.nav_schedule
 import shangkeschedule.shared.generated.resources.a11y_agenda_add
 import shangkeschedule.shared.generated.resources.a11y_agenda_collapse_month
 import shangkeschedule.shared.generated.resources.a11y_agenda_expand_month
@@ -526,89 +529,92 @@ private fun AgendaDatePanel(
                 }
             }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 月份标题：点击直接选月份
-            Row(
-                modifier = Modifier
-                    .clip(shapes.chipSmall)
-                    .clickable { onOpenMonthPicker() }
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = monthNames.getOrNull(state.month.month - 1).orEmpty(),
-                    fontSize = appType().hero,
-                    fontWeight = FontWeight.Bold,
-                    color = tokens.textPrimary
-                )
-                Icon(
-                    imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
-                    contentDescription = stringResource(Res.string.agenda_select_month),
-                    tint = tokens.textSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(
-                modifier = Modifier
-                    .clip(shapes.capsule)
-                    .background(tokens.inputBg)
-                    .padding(horizontal = 2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { onShiftMonth(-1) }, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                        contentDescription = stringResource(Res.string.a11y_agenda_prev_month),
-                        tint = tokens.textSecondary,
+        // 全局 UI 优化批 2：页头统一为 AppPageHeader —— 页面名「日程」成为最大层级，
+        // 月份与翻月胶囊下沉到副标题行（父容器 Column 已处理 statusBarsPadding，此处勿重复）
+        AppPageHeader(
+            modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
+            title = stringResource(Res.string.nav_schedule),
+            leading = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 月份标题：点击直接选月份
+                    Row(
                         modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer { rotationZ = 180f }
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(16.dp)
-                        .background(tokens.divider)
-                )
-                IconButton(onClick = { onShiftMonth(1) }, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                        contentDescription = stringResource(Res.string.a11y_agenda_next_month),
-                        tint = tokens.textSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(
-                        imageVector = vectorResource(Res.drawable.more_vert_24px),
-                        contentDescription = stringResource(Res.string.item_more_options),
-                        tint = tokens.textSecondary
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.agenda_back_to_today)) },
-                        onClick = {
-                            menuExpanded = false
-                            onGoToToday()
+                            .clip(shapes.chipSmall)
+                            .clickable { onOpenMonthPicker() }
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = monthNames.getOrNull(state.month.month - 1).orEmpty(),
+                            // 批 2：原 `hero`(34/30/34sp) → `sectionTitle`(17/18/16sp)。
+                            // 月份是**次级信息**，页面名才是最大层级（规范 R9 台阶语义）
+                            fontSize = appType().sectionTitle,
+                            fontWeight = appType().titleWeight,
+                            color = tokens.textPrimary
+                        )
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
+                            contentDescription = stringResource(Res.string.agenda_select_month),
+                            tint = tokens.textSecondary,
+                            modifier = Modifier.size(appIconSize().medium)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
+                    Row(
+                        modifier = Modifier
+                            .clip(shapes.capsule)
+                            .background(tokens.inputBg)
+                            .padding(horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { onShiftMonth(-1) }, modifier = Modifier.size(appSpacing().touchMin)) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                                contentDescription = stringResource(Res.string.a11y_agenda_prev_month),
+                                tint = tokens.textSecondary,
+                                modifier = Modifier
+                                    .size(appIconSize().medium)
+                                    .graphicsLayer { rotationZ = 180f }
+                            )
                         }
-                    )
+                        // 批 2（规范 R7）：删掉 prev / next 之间的 1dp 竖分隔线 ——
+                        // 两个 IconButton 之间已有间距，竖线属纯装饰
+                        IconButton(onClick = { onShiftMonth(1) }, modifier = Modifier.size(appSpacing().touchMin)) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.chevron_right_24px),
+                                contentDescription = stringResource(Res.string.a11y_agenda_next_month),
+                                tint = tokens.textSecondary,
+                                modifier = Modifier.size(appIconSize().medium)
+                            )
+                        }
+                    }
+                }
+            },
+            actions = {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.more_vert_24px),
+                            contentDescription = stringResource(Res.string.item_more_options),
+                            tint = tokens.textSecondary,
+                            modifier = Modifier.size(appIconSize().large)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.agenda_back_to_today)) },
+                            onClick = {
+                                menuExpanded = false
+                                onGoToToday()
+                            }
+                        )
+                    }
                 }
             }
-        }
+        )
 
         // 日期滚轴 ⇄ 整月日历
         AnimatedContent(

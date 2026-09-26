@@ -1063,24 +1063,31 @@ private fun WeekPagerGlassSheen(
                         // 深色档**不叠白**：暖炭薄涂底上一层白蒙版会被读成"打闪"，
                         // 改为极淡的压暗；浅色档提亮幅度也从 0.03 降到 0.018
                         // （柔绘底色本身已接近白，白上加白的容忍度更低）。
+                        //
+                        // 批 2（规范 R7 · 装饰降级优先于删除）：换气幅度 ×0.7
+                        // （0.020/0.018 → 0.014/0.0126）—— 换气是柔绘的材质语言，
+                        // 不断崖删除，只把它压到"几乎察觉不到但仍存在"的程度。
                         val breathe = sin(fraction * Math.PI).toFloat()
                         val breatheColor = if (isDark) {
-                            Color.Black.copy(alpha = 0.020f * breathe)
+                            Color.Black.copy(alpha = 0.014f * breathe)
                         } else {
-                            Color.White.copy(alpha = 0.018f * breathe)
+                            Color.White.copy(alpha = 0.0126f * breathe)
                         }
                         drawRect(color = breatheColor)
                     } else {
-                        // Apple HIG 风格：收窄光带（屏幕宽 28%）、降低峰值透明度（0.07），
-                        // 效果克制如镜面反光，而非扫光特效
-                        val bandWidth = size.width * 0.28f
+                        // Apple HIG 风格：收窄光带 + 低峰值透明度，效果克制如镜面反光，
+                        // 而非扫光特效。
+                        //
+                        // 批 2（规范 R7 · 装饰降级优先于删除）：光带宽度 ×0.7
+                        // （屏宽 28% → 20%）、峰值 alpha ×0.6（0.07 → 0.042）
+                        val bandWidth = size.width * 0.20f
                         val travel = size.width + bandWidth * 2f
                         val x = -bandWidth + travel * fraction
                         drawRect(
                             brush = Brush.linearGradient(
                                 colorStops = arrayOf(
                                     0f to Color.Transparent,
-                                    0.5f to Color.White.copy(alpha = 0.07f),
+                                    0.5f to Color.White.copy(alpha = 0.042f),
                                     1f to Color.Transparent
                                 ),
                                 start = Offset(x, 0f),

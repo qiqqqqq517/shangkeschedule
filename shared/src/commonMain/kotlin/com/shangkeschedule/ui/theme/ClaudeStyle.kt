@@ -333,7 +333,7 @@ val claudePageHeaderTokens: AppPageHeaderTokens = AppPageHeaderTokens(
     titleSize = 28.sp,
     titleWeight = FontWeight.SemiBold,
     titleLetterSpacing = 0.sp,
-    subtitleSize = 13.sp,
+    subtitleSize = 18.sp,
     bottomGap = 16.dp
 )
 

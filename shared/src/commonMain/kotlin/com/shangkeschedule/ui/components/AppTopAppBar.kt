@@ -2,17 +2,21 @@
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -22,11 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.ui.theme.NavBarBottomEdge
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appNavBar
+import com.shangkeschedule.ui.theme.appPageHeader
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.softFeatherRim
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
@@ -75,6 +83,102 @@ fun AppTopAppBar(
             scrollBehavior = scrollBehavior,
             windowInsets = windowInsets
         )
+    }
+}
+
+/**
+ * 页面页头（全局 UI 优化批 2，v3.71.0）：四个主页面共用的统一页头。
+ *
+ * 背景：此前四个主页面的页头形态**各不相同** —— 今日页无标题且靠
+ * `padding(horizontal = 84.dp)` 硬编码避让居中日期；课表页顶栏塞 4 个控件；
+ * 日程页用 `hero`(34sp) 当月份标题；我的页**仅通透有吸顶标题**（书卷 / 柔绘无标题，
+ * A1 遗留缺陷）。统一为同一组件后，差异退化为参数，由 `AppPageHeaderTokens` 承载。
+ *
+ * 骨架（三主题位置与信息位逐项一致）：
+ * ```
+ * [statusBarsPadding + pageTop]
+ * 左：页面标题（titleSize / titleWeight，textPrimary）        右：actions（≤2 枚）
+ * [sectionTitleGap]
+ * 下：副标题行（subtitleSize，textSecondary）＋ 可选 leading（周次胶囊 / 月份）
+ * [bottomGap]
+ * ```
+ *
+ * ⚠️ 本组件**不承担横向页边距**：调用方容器已带 `appSpacing().pageHorizontal`
+ * （今日页父容器即如此）—— 此前 `TodayHeader` 又叠了 4dp，导致页头比卡片内缩 4dp 的错位，
+ * 统一后自然消失。
+ *
+ * ⚠️ 本组件**也不自动加 `statusBarsPadding()`**：各页归属不同 —— 今日页父容器没有
+ * （需调用方传 `Modifier.statusBarsPadding()`），日程页父容器 `Column` 已经加过
+ * （再加会双份）。由调用方按实际情况传入。
+ *
+ * @param title 页面标题（页面名，用于定位，不是内容）
+ * @param subtitle 副标题（日期 / 月份一类的次级信息）；为 null 则不渲染副标题行
+ * @param leading 副标题行左侧的可点控件（周次胶囊 / 翻月胶囊）；为 null 则只渲染副标题
+ */
+@Composable
+fun AppPageHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    val colors = appColors()
+    val spacing = appSpacing()
+    val type = appType()
+    val header = appPageHeader()
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = spacing.pageTop)
+            .padding(bottom = header.bottomGap)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = header.titleSize,
+                    fontWeight = header.titleWeight,
+                    letterSpacing = header.titleLetterSpacing
+                ),
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions
+            )
+        }
+        if (subtitle != null || leading != null) {
+            Spacer(modifier = Modifier.height(spacing.sectionTitleGap))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (leading != null) {
+                    leading()
+                    if (subtitle != null) Spacer(modifier = Modifier.width(spacing.sectionTitleGap))
+                }
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = header.subtitleSize,
+                            fontWeight = type.captionWeight
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
 

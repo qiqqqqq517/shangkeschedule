@@ -321,12 +321,12 @@ internal val iosIconTokens = AppIconTokens(
     large = 24.dp
 )
 
-/** 通透页头 tokens（批 1 新增）：22sp SemiBold + SF 字距，副标题 Footnote 13sp。 */
+/** 通透页头 tokens（批 1 新增）：22sp SemiBold + SF 字距，副标题 17sp（承接原日期大字的层级）。 */
 internal val iosPageHeaderTokens = AppPageHeaderTokens(
     titleSize = 22.sp,
     titleWeight = FontWeight.SemiBold,
     titleLetterSpacing = (-0.41).sp,
-    subtitleSize = 13.sp,
+    subtitleSize = 17.sp,
     bottomGap = 16.dp
 )
 

@@ -98,6 +98,7 @@ import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
+import com.shangkeschedule.ui.components.AppPageHeader
 import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
@@ -105,7 +106,9 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
 import com.shangkeschedule.ui.theme.iosGlassRim
@@ -144,6 +147,7 @@ import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.status_semester_ended
 import shangkeschedule.shared.generated.resources.text_courses_count
 import shangkeschedule.shared.generated.resources.text_no_courses_today
+import shangkeschedule.shared.generated.resources.nav_today
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
 import shangkeschedule.shared.generated.resources.title_today_courses
@@ -818,15 +822,23 @@ private fun TodayThemeContent(
     LazyColumn(
         state = scrollState,
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = bottomInset + 100.dp)
+        // 批 2：魔法值走 token（cardGap / contentBottom）
+        verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
+        contentPadding = PaddingValues(bottom = bottomInset + appSpacing().contentBottom)
     ) {
         item {
-            TodayHeader(
-                weekIndex = state.weekIndex,
-                status = state.status,
-                statusText = statusText,
-                dateText = dateText,
+            // 全局 UI 优化批 2：四个主页面页头统一为 AppPageHeader
+            val weekLabel = if (state.status == TodayStatus.Normal) {
+                stringResource(Res.string.title_current_week, state.weekIndex.toString())
+            } else {
+                statusText
+            }
+            AppPageHeader(
+                // 今日页父容器未处理状态栏，需在此显式补（日程页父容器已加，勿重复）
+                modifier = Modifier.statusBarsPadding(),
+                title = stringResource(Res.string.nav_today),
+                subtitle = dateText,
+                leading = { TodayWeekPill(label = weekLabel) }
             )
         }
 
@@ -1004,62 +1016,34 @@ private fun todayMinutesUntil(model: CourseDisplayModel, now: LocalTime): Int? {
 }
 
 
-/** 页头：周次胶囊置于左侧 + 日期居中大字，同一行。 */
+/**
+ * 周次胶囊：页头副标题行左侧的标签。
+ *
+ * 全局 UI 优化批 2：从原 `TodayHeader` 中抽出 —— 原页头是自绘 Box（周次胶囊靠左 +
+ * 日期居中，靠 `padding(horizontal = 84.dp)` 硬编码避让，且比卡片额外内缩 4dp），
+ * 现改为统一 `AppPageHeader` + 本胶囊，避让魔法值与错位一并消失。
+ */
 @Composable
-private fun TodayHeader(
-    weekIndex: Int,
-    status: TodayStatus,
-    statusText: String,
-    dateText: String,
-) {
+private fun TodayWeekPill(label: String) {
     val colors = appColors()
-    val weekLabel = if (status == TodayStatus.Normal) {
-        stringResource(Res.string.title_current_week, weekIndex.toString())
-    } else {
-        statusText
-    }
+    val type = appType()
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 4.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.primarySoft)
+            .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
-        // 周次胶囊：方形块，靠左
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .clip(RoundedCornerShape(8.dp))
-                .background(colors.primarySoft)
-                .padding(horizontal = 12.dp, vertical = 5.dp)
-        ) {
-            Text(
-                text = weekLabel,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.02.em,
-                    lineHeight = 16.sp
-                ),
-                color = colors.primary,
-                maxLines = 1
-            )
-        }
-        // 日期：行内居中大字
         Text(
-            text = dateText,
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 24.sp,
-                letterSpacing = (-0.01).em
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = type.caption,
+                // 批 2：字重改读 token（原硬编码 SemiBold → captionWeight），规范 R9
+                fontWeight = type.captionWeight,
+                letterSpacing = 0.02.em,
+                lineHeight = 16.sp
             ),
-            color = colors.textPrimary,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-                .padding(horizontal = 84.dp)
+            color = colors.primary,
+            maxLines = 1
         )
     }
 }
@@ -1296,7 +1280,8 @@ private fun TodayTimelineItem(
                     .size(10.dp)
                     .clip(CircleShape)
                     .background(dotColor)
-                    .border(2.5.dp, palette.dot, CircleShape)
+                    // 批 2（规范 R7 · 删除类 3）：描边宽度归入网格统一为 1dp（原 2.5dp）
+                    .border(1.dp, palette.dot, CircleShape)
             )
         }
 
@@ -1337,15 +1322,11 @@ private fun TodayTimelineCard(
                 scaleY = cardMotion.scale,
                 translationY = cardMotion.translationYPx
             )
+            // 批 2（规范 R7）：静态卡片不再叠硬边投影 —— 分层由底色/渐变与材质边缘承担，
+            // 投影只归悬浮层、拖拽态与柔绘 softShadow（材质本体）。
             .then(
                 if (style.material == TodayCardMaterial.SOFT) Modifier.softShadow(shape = shape, elevation = 8.dp)
-                else Modifier.shadow(
-                    elevation = 1.dp,
-                    shape = shape,
-                    clip = false,
-                    ambientColor = colors.shadow,
-                    spotColor = colors.shadow
-                )
+                else Modifier
             )
             .clip(shape)
             .background(Brush.linearGradient(palette.gradient))
@@ -1479,7 +1460,8 @@ private fun TodayMetaRow(
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            modifier = Modifier.size(13.dp),
+            // 批 2（规范 R9）：非标 13dp → 图标三档之 small(16dp)
+            modifier = Modifier.size(appIconSize().small),
             tint = tint.copy(alpha = 0.85f)
         )
         Spacer(modifier = Modifier.width(5.dp))
@@ -1648,15 +1630,11 @@ private fun TodayNextClassCard(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { alpha = nextCardAlpha }
+            // 批 2（规范 R7）：删掉 8dp 彩色投影 —— 渐变底 + 大圆角已足够分层，
+            // 彩色投影属「多余装饰」且会在柔绘以外的主题上形成硬边光晕。
             .then(
                 if (style.material == TodayCardMaterial.SOFT) Modifier.softShadow(shape = shape, elevation = 8.dp)
-                else Modifier.shadow(
-                    elevation = 8.dp,
-                    shape = shape,
-                    clip = false,
-                    ambientColor = style.accent500.copy(alpha = 0.25f),
-                    spotColor = style.accent500.copy(alpha = 0.25f)
-                )
+                else Modifier
             )
             .clip(shape)
             .background(Brush.linearGradient(gradient))
@@ -1734,7 +1712,8 @@ private fun TodayNextClassCard(
                         Icon(
                             painter = painterResource(Res.drawable.schedule_24px),
                             contentDescription = null,
-                            modifier = Modifier.size(13.dp),
+                            // 批 2（规范 R9）：非标 13dp → 图标三档之 small(16dp)
+                            modifier = Modifier.size(appIconSize().small),
                             tint = nameColor
                         )
                         Spacer(modifier = Modifier.width(5.dp))
@@ -1810,9 +1789,11 @@ private fun TodayTomorrowCard(
             .height(IntrinsicSize.Min)
             .clip(appShapes().card)
             .background(colors.cardBg)
+            // 批 2（规范 R7 · 删除类 1）：卡片外圈 divider 描边属「重复表达」——
+            // 已有 `cardBg ≠ pageBg` 底色分层，描边只是再画一遍边界。
             .then(
                 if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(appShapes().card)
-                else Modifier.border(1.dp, colors.divider, appShapes().card)
+                else Modifier
             )
     ) {
         Box(
@@ -2013,9 +1994,10 @@ private fun TodayEventRow(
                 .alpha(rememberStatusFadeAlpha(event.done, 0.5f).value)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
+                // 批 2（规范 R7）：删卡片外圈 divider 描边，分层交给底色
                 .then(
                 if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
-                else Modifier.border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                else Modifier
             )
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
@@ -2144,9 +2126,10 @@ private fun TodayTodoRow(
                 .alpha(rememberStatusFadeAlpha(todo.done, 0.5f).value)
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.cardBg)
+                // 批 2（规范 R7）：删卡片外圈 divider 描边，分层交给底色
                 .then(
                     if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
-                    else Modifier.border(1.dp, colors.divider, RoundedCornerShape(12.dp))
+                    else Modifier
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
@@ -2298,9 +2281,10 @@ private fun TodayCourseDetailSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(appShapes().chip)
+                    // 批 2（规范 R7）：删 chip 外圈 divider 描边
                     .then(
                         if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(appShapes().chip)
-                        else Modifier.border(1.dp, colors.divider, appShapes().chip)
+                        else Modifier
                     )
             ) {
                 TodayDetailRow(

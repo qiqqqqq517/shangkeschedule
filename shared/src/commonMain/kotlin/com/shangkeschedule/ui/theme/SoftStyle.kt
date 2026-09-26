@@ -331,12 +331,12 @@ internal val softIconTokens = AppIconTokens(
     large = 24.dp
 )
 
-/** 柔绘页头 tokens（批 1 新增）：21sp Medium + 轻字距，副标题 13sp。 */
+/** 柔绘页头 tokens（批 1 新增）：21sp Medium + 轻字距，副标题 16sp。 */
 internal val softPageHeaderTokens = AppPageHeaderTokens(
     titleSize = 21.sp,
     titleWeight = FontWeight.Medium,
     titleLetterSpacing = (-0.1).sp,
-    subtitleSize = 13.sp,
+    subtitleSize = 16.sp,
     bottomGap = 16.dp
 )
 

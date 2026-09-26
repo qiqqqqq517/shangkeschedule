@@ -29,9 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -59,13 +56,9 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.IconChip
 import com.shangkeschedule.ui.components.NativeNumberPicker
 import com.shangkeschedule.ui.theme.AccentTone
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.SettingsEntryTone
-import com.shangkeschedule.ui.theme.SettingsTopBar
+import com.shangkeschedule.ui.components.AppPageHeader
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSettingsPage
 import com.shangkeschedule.ui.theme.appSpacing
@@ -131,7 +124,6 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel()
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // v3.69.0（V3 去重）：页骨架差异（有无顶栏 / 宽屏是否居中）改由
     // [appSettingsPage] 提供 —— 原先这里声明 isIos/isSoft/isClaude 三个身份布尔，
@@ -140,10 +132,9 @@ fun SettingsScreen(
     // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，一套组件渲染，
     // 新增设置项不再需要同步改三处（历史上已出现 tone 映射漂移）
     val settingsSections = buildSettingsSections(uiState, viewModel)
-    // 吸顶栏毛玻璃：内容作为 hazeSource，滚动时卡片从半透明玻璃栏后穿过（Telegram 形态）
-    val hazeState = rememberHazeState()
-    val glassTint = appColors().pageBg.copy(alpha = 0.72f)
-    val glassFallback = appColors().pageBg
+    // 批 2：页头统一为内容区 AppPageHeader 后，Scaffold 不再有吸顶玻璃栏
+    // ⇒ haze 三件套（rememberHazeState / glassTint / glassFallback）与
+    // `.hazeSource` 一并移除 —— 没有 hazeEffect 消费方时，source 只是白付的每帧开销。
 
     // v3.49.0：「我的」页顶部身份卡的展示文案（三套主题共用一份推导）
     // - 昵称：未设置在「我的信息」页填写时回落为应用名（观感与旧版「上课」卡一致）
@@ -161,57 +152,13 @@ fun SettingsScreen(
         onTabSelected = { dest -> onNavigate(dest) }
     ) { navPadding ->
         Scaffold(
-            // 无顶栏的主题（书卷 / 柔绘）没有 TopAppBar 吸收滚动量：若仍挂
-            // exitUntilCollapsed 的 nestedScroll 连接，滚动会被整段吞掉
-            // （列表完全无法滑动），故仅在存在顶栏的主题下挂载。
-            modifier = if (page.topBar == SettingsTopBar.NONE) {
-                Modifier
-            } else {
-                Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-            },
-            topBar = {
-                if (page.topBar == SettingsTopBar.LEADING_LARGE) {
-                    // iOS 风格：左对齐大标题（对齐设计稿 .nav-bar__title）
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = stringResource(Res.string.nav_settings),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = appColors().textPrimary
-                            )
-                        },
-                        scrollBehavior = scrollBehavior,
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent
-                        ),
-                        modifier = Modifier.hazeEffect(hazeState) {
-                            blurRadius = 16.dp
-                            noiseFactor = 0.1f
-                            tints = listOf(HazeTint(glassTint))
-                            fallbackTint = HazeTint(glassFallback)
-                            backgroundColor = Color.Transparent
-                        }
-                    )
-                }
-                // [SettingsTopBar.NONE]：书卷 / 柔绘不渲染顶栏。
-                //
-                // ⚠️ v3.69.0 实测：原注释写「大标题由内容区 ClaudePageHeader /
-                // SoftPageHeader 承担」，但这两个组件**在全仓库仅定义处出现、从未被调用**
-                // ⇒ 书卷与柔绘的设置页实际上没有页面标题。属既有缺陷（疑似漏接），
-                // 本轮不擅自补标题（视觉变化需确认），已记入工作日志待决策。
-                //
-                // 原 else 分支的 CenterAlignedTopAppBar 是死代码（三主题已被身份布尔
-                // 全覆盖，永远走不到），随身份布尔一并删除。
-            }
+            // 全局 UI 优化批 2：三主题统一为「内容区页头」，Scaffold 不再挂顶栏
+            // ⇒ 也随之不再需要 exitUntilCollapsed 的 nestedScroll 连接
+            // （原注释：无顶栏的主题挂上会把滚动整段吞掉，故此前只能条件挂载）
         ) { innerPadding ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .padding(horizontal = appSpacing().pageHorizontal),
                 verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
                 // 宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
@@ -222,7 +169,17 @@ fun SettingsScreen(
                     bottom = navPadding.calculateBottomPadding() + 16.dp
                 )
             ) {
-                // ===== 身份卡 + 数据驱动分组列表（v3.69.0 三份复制合一）=====
+                // ===== 页头（批 2）+ 身份卡 + 数据驱动分组列表（v3.69.0 三份复制合一）=====
+                //
+                // 页头：三主题统一 —— 此前**只有通透**有吸顶大标题，书卷 / 柔绘
+                // 完全没有页面标题（A1 遗留缺陷，原 ClaudePageHeader / SoftPageHeader
+                // 从未被调用）。现在四主页面共用同一个 AppPageHeader。
+                item {
+                    AppPageHeader(
+                        title = stringResource(Res.string.nav_settings),
+                        modifier = Modifier.widthIn(max = 640.dp)
+                    )
+                }
                 item {
                     Column(
                         modifier = Modifier
