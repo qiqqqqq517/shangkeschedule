@@ -119,21 +119,26 @@ fun AppSectionHeader(
 /**
  * 空状态：淡灰胶囊底 + 居中辅助文案（与 Today 空态同语言，v2 规范 §3）。
  * [fillScreen] = true 时撑满父容器并居中（整页空态）；false 时仅在本行内居中（局部空态）。
+ *
+ * [actionLabel] + [onAction] 成对提供时，在文案下方渲染一个可执行入口（IA5 空态闭环）——
+ * 把「这里没有数据」变成「知道下一步该做什么」。两者任一为 null 则不渲染按钮。
  */
 @Composable
 fun AppEmptyState(
     hint: String,
     modifier: Modifier = Modifier,
-    fillScreen: Boolean = false
+    fillScreen: Boolean = false,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .then(if (fillScreen) Modifier.fillMaxSize() else Modifier),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
             modifier = Modifier
                 .then(rememberContentEnterMotion())
                 .clip(appShapes().card)
@@ -145,6 +150,19 @@ fun AppEmptyState(
                 style = MaterialTheme.typography.bodyMedium,
                 color = appColors().textSecondary
             )
+        }
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onAction,
+                shape = appShapes().capsule,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = appColors().primary,
+                    contentColor = appColors().textOnPrimary
+                )
+            ) {
+                Text(actionLabel)
+            }
         }
     }
 }

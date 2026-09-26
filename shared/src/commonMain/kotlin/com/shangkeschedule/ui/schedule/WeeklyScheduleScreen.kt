@@ -148,6 +148,7 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back_to_current_week
+import shangkeschedule.shared.generated.resources.item_course_conversion
 import shangkeschedule.shared.generated.resources.text_no_courses_this_week
 import shangkeschedule.shared.generated.resources.snackbar_course_move_failed
 import shangkeschedule.shared.generated.resources.action_select_table
@@ -614,7 +615,8 @@ fun WeeklyScheduleScreen(
                                         sourceWeek = currentWeek
                                     )
                                 }
-                            }
+                            },
+                            onNavigate = onNavigate
                         )
                     } else {
                         val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
@@ -1106,7 +1108,8 @@ private fun ScheduleListView(
     composedStyle: ScheduleGridStyleComposed,
     bottomInset: Dp = 0.dp,
     onClickedBlock: (MergedCourseBlock) -> Unit,
-    onLongClickedBlock: (MergedCourseBlock) -> Unit
+    onLongClickedBlock: (MergedCourseBlock) -> Unit,
+    onNavigate: (Destination) -> Unit
 ) {
     val weekDays = stringArrayResource(Res.array.week_days_full_names)
     val dayCount = if (showWeekends) 7 else 5
@@ -1129,11 +1132,15 @@ private fun ScheduleListView(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // 整周无课时显示空态占位（v3.54.0）：与今日页/日程页空态同语言
+        // IA5（v3.69.5）：空态附「课表导入/导出」入口 —— 把「这周没课」变成
+        // 「知道去哪儿把课加进来」，首启用户不必自己找入口。
         if (pageCourses.isEmpty()) {
             item(key = "empty-week") {
                 AppEmptyState(
                     hint = stringResource(Res.string.text_no_courses_this_week),
-                    modifier = Modifier.padding(top = 48.dp)
+                    modifier = Modifier.padding(top = 48.dp),
+                    actionLabel = stringResource(Res.string.item_course_conversion),
+                    onAction = { onNavigate(Destination.CourseTableConversion) }
                 )
             }
         }
