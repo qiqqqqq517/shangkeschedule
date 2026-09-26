@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.69.2</b></span>
-        <span>versionCode <b class="mono" data-version-code>277</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.70.5</b></span>
+        <span>versionCode <b class="mono" data-version-code>287</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3705">v3.70.5 · 全局 UI/交互视觉优化</a></li>
         <li><a href="#v3701">v3.70.1 · 导入提示不再重复、不再互相顶掉</a></li>
         <li><a href="#v3700">v3.70.0 · 教务适配的可观测性与弹窗接管</a></li>
         <li><a href="#v3696">v3.69.6 · WebView 响应体内存防护</a></li>
@@ -141,6 +142,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3705">
+        <div><span class="tl-ver">v3.70.5</span><span class="tl-date">2026-09-26</span></div>
+        <div class="tl-body">
+          <p><strong>全局 UI/交互视觉优化</strong>：更轻盈、更简约、更舒适。只动「框架层」，课程颜色与功能、数据逻辑完全不变；三主题统骨架、留个性。</p>
+          <ul>
+            <li><strong>页头统一</strong>：今日 / 课表 / 日程 / 我的 四个主页面统一为内容区大标题页头，「我的」页在书卷、柔绘主题下首次出现标题；日程页月份标题降为常规区段层级。</li>
+            <li><strong>留白与节奏</strong>：三主题间距统一到 4dp 网格（柔绘收窄、书卷放宽到同一组取值），新增页头 / 区块 / 页尾留白 token。</li>
+            <li><strong>装饰减法</strong>：hairline 级分隔线 token 落地，删除设置行、管理课表、今日课程卡等处的外圈描边与硬边投影；课表斜向扫光减弱。</li>
+            <li><strong>字体与图标</strong>：字重三角色 + 图标三档尺寸（16/20/24dp）全站归档。</li>
+            <li><strong>交互反馈</strong>：单选、复选、可选中卡片的选中态从二值跳变改为渐变过渡，「减弱动态效果」下自动降级。</li>
+            <li><strong>修复</strong>：设置行高 token 与渲染互相矛盾的缺陷（三主题统一 52dp）。</li>
+          </ul>
+          <p class="mono">versionCode 287 / versionName 3.70.5（含未单独发布的 v3.70.2–v3.70.4 批次改动）</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3701">
         <div><span class="tl-ver">v3.70.1</span><span class="tl-date">2026-09-26</span></div>
