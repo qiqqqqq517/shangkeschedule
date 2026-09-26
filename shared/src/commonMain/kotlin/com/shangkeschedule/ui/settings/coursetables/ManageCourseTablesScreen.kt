@@ -700,7 +700,6 @@ private fun CompletedBadge() {
             .height(26.dp)
             .clip(appShapes().capsule)
             .background(colors.cardBgElevated)
-            .border(1.dp, colors.divider, appShapes().capsule)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -757,7 +756,6 @@ private fun HistoryStatusBadge(
             .height(26.dp)
             .clip(appShapes().capsule)
             .background(colors.cardBgElevated)
-            .border(1.dp, colors.divider, appShapes().capsule)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1095,7 +1093,7 @@ private fun HeroSecondaryButton(
             .height(42.dp)
             .clip(appShapes().chip)
             .background(MaterialTheme.colorScheme.secondary)
-            .border(1.dp, colors.divider, appShapes().chip)
+            // 批 3（规范 R7 删除类 1）：外圈 divider 描边属重复表达，分层交给底色
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
@@ -1602,7 +1600,7 @@ private fun GhostActionButton(
         modifier = modifier
             .height(36.dp)
             .clip(appShapes().chip)
-            .border(1.dp, colors.divider, appShapes().chip)
+            // 批 3（规范 R7 删除类 1）：外圈 divider 描边属重复表达，分层交给底色
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
@@ -1736,7 +1734,7 @@ private fun SemesterOptionItem(
             .fillMaxWidth()
             .clip(optionShape)
             .background(colors.inputBg)
-            .border(0.5.dp, colors.divider, optionShape)
+            // 批 3（规范 R7 删除类 1）：外圈 divider 描边属重复表达，分层交给底色
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,

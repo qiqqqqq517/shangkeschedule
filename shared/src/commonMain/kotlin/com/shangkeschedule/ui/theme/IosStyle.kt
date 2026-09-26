@@ -421,7 +421,6 @@ internal val iosCourseBlockTokens = AppCourseBlockTokens(
 // ============================================================================
 
 internal val iosSettingsRowTokens = AppSettingsRowTokens(
-    rowHeight = SettingsRowHeight.MIN_ROW_MIN_HEIGHT,
     dividerInset = 58.dp,
     dividerColor = SettingsDividerColor.DIVIDER_TOKEN,
     paddingHorizontal = 16.dp,

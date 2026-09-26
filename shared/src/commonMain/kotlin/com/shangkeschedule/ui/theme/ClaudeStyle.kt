@@ -429,7 +429,6 @@ val claudeCourseBlockTokens: AppCourseBlockTokens = AppCourseBlockTokens(
 // ============================================================================
 
 internal val claudeSettingsRowTokens = AppSettingsRowTokens(
-    rowHeight = SettingsRowHeight.FIXED_48,
     dividerInset = 54.dp,
     dividerColor = SettingsDividerColor.SCRIM,
     paddingHorizontal = 14.dp,

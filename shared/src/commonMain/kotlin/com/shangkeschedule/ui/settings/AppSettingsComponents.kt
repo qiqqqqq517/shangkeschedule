@@ -42,7 +42,6 @@ import com.shangkeschedule.ui.theme.SettingsDividerColor
 import com.shangkeschedule.ui.theme.SettingsEntryTone
 import com.shangkeschedule.ui.theme.SettingsIconMaterial
 import com.shangkeschedule.ui.theme.SettingsLabelColor
-import com.shangkeschedule.ui.theme.SettingsRowHeight
 import com.shangkeschedule.ui.theme.SettingsSurfaceMaterial
 import com.shangkeschedule.ui.theme.SettingsTrailingSlot
 import com.shangkeschedule.ui.theme.appColors
@@ -185,11 +184,10 @@ fun AppSettingRow(
             HorizontalDivider(
                 thickness = 0.5.dp,
                 color = when (r.dividerColor) {
-                    SettingsDividerColor.SCRIM -> if (LocalIsDarkTheme.current) {
-                        Color(0x14FFFFFF)
-                    } else {
-                        Color(0x0F000000)
-                    }
+                    // 批 3：原硬编码 `0x14FFFFFF` / `0x0F000000` → `dividerSoft` token。
+                    // 书卷的 dividerSoft 取值就是这两个常量本身 ⇒ **书卷像素零变化**，
+                    // 通透 / 柔绘的分隔线则顺势降到 hairline 级（规范 R7：分隔线属弱化装饰）。
+                    SettingsDividerColor.SCRIM -> colors.dividerSoft
                     SettingsDividerColor.DIVIDER_TOKEN -> colors.divider
                 },
                 modifier = Modifier.padding(start = r.dividerInset)
@@ -198,13 +196,11 @@ fun AppSettingRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    when (r.rowHeight) {
-                        SettingsRowHeight.FIXED_48 -> Modifier.height(48.dp)
-                        SettingsRowHeight.MIN_ROW_MIN_HEIGHT ->
-                            Modifier.defaultMinSize(minHeight = appSpacing().rowMinHeight)
-                    }
-                )
+                // 批 3：行高不再分档 —— 直接走 `settingsRowMinHeight`（三主题均为 52dp）。
+                // 原 `SettingsRowHeight` 两档的实际结果是书卷 48dp / 其余 `rowMinHeight`，
+                // 与 `AppSettingsRowTokens.settingsRowMinHeight`（三主题都写 52dp）**互相矛盾**
+                // ⇒ token 说一套、渲染做另一套。删除枚举后二者合一。
+                .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
                 .clickable(enabled = onClick != null) { onClick?.invoke() }
                 .padding(horizontal = r.paddingHorizontal, vertical = r.paddingVertical),
             verticalAlignment = Alignment.CenterVertically

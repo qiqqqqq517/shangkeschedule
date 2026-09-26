@@ -438,7 +438,6 @@ internal val softCourseBlockTokens = AppCourseBlockTokens(
 // ============================================================================
 
 internal val softSettingsRowTokens = AppSettingsRowTokens(
-    rowHeight = SettingsRowHeight.MIN_ROW_MIN_HEIGHT,
     dividerInset = 62.dp,
     dividerColor = SettingsDividerColor.DIVIDER_TOKEN,
     paddingHorizontal = 18.dp,

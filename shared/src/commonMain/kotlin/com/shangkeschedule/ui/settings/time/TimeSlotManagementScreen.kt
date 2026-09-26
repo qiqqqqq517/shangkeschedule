@@ -1022,12 +1022,14 @@ private fun RestoreDefaultButton(
                 .border(0.5.dp, colors.divider, shape)
         }
         GroupCardStyle.GLASS_CARD -> {
-            // 通透（iOS 26）：玻璃高光内描边 + 发丝分隔线
+            // 通透（iOS 26）：玻璃高光内描边
+            //
+            // 批 3（规范 R7）：删掉叠在 iosGlassRim 之上的 0.5dp divider 描边 ——
+            // 高光内描边已经承担了边缘表达，再画一条实色边是重复装饰。
             Modifier
                 .clip(shape)
                 .background(colors.cardBgElevated)
                 .iosGlassRim(shape)
-                .border(0.5.dp, colors.divider, shape)
         }
     }
     Box(

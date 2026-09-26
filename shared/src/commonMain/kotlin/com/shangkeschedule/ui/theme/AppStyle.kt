@@ -1002,14 +1002,10 @@ enum class SettingsSurfaceMaterial {
     SOFT_BLUR
 }
 
-/** 设置列表行的高度策略：书卷是历史固定 48dp，通透 / 柔绘走 52dp 最小行高。 */
-enum class SettingsRowHeight {
-    /** 固定 48dp（书卷）。 */
-    FIXED_48,
-
-    /** `defaultMinSize(minHeight = appSpacing().rowMinHeight)`（通透 / 柔绘，52dp）。 */
-    MIN_ROW_MIN_HEIGHT
-}
+// 批 3（v3.70.4）：`SettingsRowHeight` 枚举已删除 ——
+// 它表达的「书卷 48dp / 其余 rowMinHeight」与 `AppSettingsRowTokens.settingsRowMinHeight`
+// （三主题都写 52dp）互相矛盾（token 说一套、渲染做另一套）。设置行高现统一读
+// `appSpacing().settingsRowMinHeight`，单一事实来源（规范 R4）。
 
 /** 设置行分隔线取色：书卷是硬编码的极淡压黑/压白，其余走主题 divider 角色。 */
 enum class SettingsDividerColor {
@@ -1061,7 +1057,6 @@ enum class SettingsTopBar {
 
 /** 设置列表行 tokens（原 ClaudeListItem / IosSettingCell / SoftSettingCell 的差异参数）。 */
 data class AppSettingsRowTokens(
-    val rowHeight: SettingsRowHeight,
     val dividerInset: Dp,
     val dividerColor: SettingsDividerColor,
     val paddingHorizontal: Dp,

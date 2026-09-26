@@ -611,7 +611,8 @@ fun ColorPickerItem(
                     .size(28.dp)
                     .clip(CircleShape)
                     .background(currentColor)
-                    .border(1.dp, appColors().divider.copy(alpha = 0.2f), CircleShape)
+                    // 批 3：描边色改读 `dividerSoft` token（原 `divider.copy(alpha = 0.2f)` 就地降浓度）
+                    .border(1.dp, appColors().dividerSoft, CircleShape)
             )
         } else {
             Text(
