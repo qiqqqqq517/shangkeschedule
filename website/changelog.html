@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3712">v3.71.2 · 体积专项二：Release APK 再减 458 KB，安装包累计下降 8.8%</a></li>
         <li><a href="#v3710">v3.71.0 · 体积与性能专项：APK 瘦身约 542 KB，解析提速</a></li>
         <li><a href="#v3705">v3.70.5 · 全局 UI/交互视觉优化</a></li>
         <li><a href="#v3701">v3.70.1 · 导入提示不再重复、不再互相顶掉</a></li>
@@ -143,6 +144,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3712">
+        <div><span class="tl-ver">v3.71.2</span><span class="tl-date">2026-09-27</span></div>
+        <div class="tl-body">
+          <p><strong>体积专项二</strong>：Release APK（arm64-v8a）5,229,985 → <strong>4,771,312 B</strong>，<strong>-458,673 B（-8.77%）</strong>；相比体积专项前的 v3.70.5（5,784,716 B）累计减少 <strong>1,013,404 B（-17.5%）</strong>。本版为纯体积 / 构建卫生改进，不含数据库结构变更（数据库版本仍为 13）。</p>
+          <h3><span class="tl-tag tag-refactor">重构</span>离线适配资源包改单流容器</h3>
+          <ul>
+            <li>内置的 1700+ 学校适配包此前是 197 个文件各自 deflate，适配脚本之间的大量公共模板代码无法复用压缩字典。改为单入口顺序流容器（zip 内仅 <code>repo.skr</code>，新增 <code>OfflineRepoArchive</code> 读取实现与单元测试），压缩率提升约 25%：932,330 → 723,664 B。</li>
+            <li>实测 GPOS（字距/特性）表占 Newsreader 58%、占 Lora 39%，其中大量特性本主题用不到；改为只保留字距表 <code>kern</code>，并丢弃 DSIG/STAT 与多余 name 记录，字形覆盖实测零变化。</li>
+            <li>默认 <code>values</code> 与 <code>values-zh-rCN</code> 的 837 个 key 实测完全一致，合并为一份（同时修正默认语言包里残留的几处英文文案）。</li>
+            <li>小组件预览图与启动图标按「取最小且确实变小」重编码（体积约 -40%），并删除 2 个全仓无引用的图标资源。</li>
+            <li>删除 <code>-keep class org.koin.** { *; }</code>（单条规则即占 APK 170,590 B），Koin 的定义与注入全部由 koin-annotations 生成代码直接引用，无需整包保留。</li>
+          </ul>
+          <p class="mono">versionCode 290 / versionName 3.71.2（v3.71.1 未单独发布，本版合并两批瘦身改动；已通过真机冒烟验证）</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3710">
         <div><span class="tl-ver">v3.71.0</span><span class="tl-date">2026-09-26</span></div>
