@@ -24,8 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -39,7 +37,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,14 +57,12 @@ import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSectionHeader
+import com.shangkeschedule.ui.components.DateRangePickerModal
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -102,7 +97,6 @@ import shangkeschedule.shared.generated.resources.quick_delete_label_days_prefix
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_select_weeks
 import shangkeschedule.shared.generated.resources.week_days_full_names
-import kotlin.time.Instant
 
 /**
  * 快速删除界面：支持按“周次+星期”或“日期范围”筛选并批量清理课程。
@@ -329,6 +323,7 @@ fun QuickDeleteScreen(
     // 原生风格的日期范围选择对话框
     if (showDateRangePicker) {
         DateRangePickerModal(
+            title = stringResource(Res.string.quick_delete_dialog_select_date_title),
             onDismiss = { showDateRangePicker = false },
             onConfirm = { start, end ->
                 viewModel.setDateRange(start, end)
@@ -430,55 +425,6 @@ fun FilterBottomSheet(
 }
 
 /**
- * Material 3 风格的日期范围选择器。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DateRangePickerModal(
-    onDismiss: () -> Unit,
-    onConfirm: (LocalDate, LocalDate) -> Unit
-) {
-    val state = rememberDateRangePickerState()
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val start = state.selectedStartDateMillis?.toLocalDate()
-                    val end = state.selectedEndDateMillis?.toLocalDate()
-                    if (start != null && end != null) {
-                        onConfirm(start, end)
-                    }
-                },
-                enabled = state.selectedEndDateMillis != null
-            ) {
-                Text(
-                    stringResource(Res.string.action_confirm),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel), color = appColors().textSecondary)
-            }
-        }
-    ) {
-        DateRangePicker(
-            state = state,
-            modifier = Modifier.weight(1f),
-            title = {
-                Text(
-                    modifier = Modifier.padding(16.dp),
-                    text = stringResource(Res.string.quick_delete_dialog_select_date_title)
-                )
-            }
-        )
-    }
-}
-
-/**
  * 待删除课程的预览卡片，显示课程名称、具体周次和节次/时间信息。
  */
 @Composable
@@ -531,11 +477,3 @@ fun DeletePreviewCard(
         }
     }
 }
-
-/**
- * 将 DatePicker 的毫秒值转换为 kotlinx.datetime.LocalDate。
- */
-private fun Long.toLocalDate(): LocalDate =
-    Instant.fromEpochMilliseconds(this)
-        .toLocalDateTime(TimeZone.currentSystemDefault())
-        .date

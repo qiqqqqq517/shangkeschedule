@@ -56,8 +56,12 @@ object ApiDateImporter {
     }
 
     /**
-     * 从 API 获取跳过的日期（假期），并保存到 AppSettingsRepository 中。
-     * 与本地已记录的手工调休/停课日期做「合并」而非整体覆盖，避免冲掉用户手动维护的条目。
+     * 从 API 获取跳过的日期（假期），并合并进 AppSettingsRepository。
+     *
+     * 与本地已记录的手工调休 / 停课 / **用户手动设定的节假日**做并集而非整体覆盖。
+     * 合并本身在 `dataStore.edit` 内原子完成（见 `AppSettingsRepository.addSkippedDates`）：
+     * 旧实现是「读快照 → copy → 整模型写回」，既会连带重写 30+ 个无关键，
+     * 也会把期间用户手动添加的日期用这份旧快照回滚掉。
      */
     suspend fun importAndSaveSkippedDates(appSettingsRepository: AppSettingsRepository) {
         try {
@@ -68,12 +72,10 @@ object ApiDateImporter {
                 .map { it.date }
                 .toSet()
 
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            val mergedSkippedDates = currentSettings.skippedDates + holidayDates
-            val updatedSettings = currentSettings.copy(skippedDates = mergedSkippedDates)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.addSkippedDates(holidayDates)
 
-            println("成功导入并合并了 ${holidayDates.size} 个假期日期（现共 ${mergedSkippedDates.size} 个跳过日期）。")
+            val mergedCount = appSettingsRepository.getAppSettings().first().skippedDates.size
+            println("成功导入并合并了 ${holidayDates.size} 个假期日期（现共 $mergedCount 个跳过日期）。")
         } catch (e: Exception) {
             AppLog.e(TAG, "假期数据导入失败: ${e.message}", e)
         }

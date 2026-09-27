@@ -8,6 +8,7 @@ import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.tool.HolidayRange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,9 @@ sealed interface NotificationDialogType {
     data object EditRemindMinutes : NotificationDialogType
     data object AutoModeSelection : NotificationDialogType
     data object ClearConfirmation : NotificationDialogType
-    data object ViewSkippedDates : NotificationDialogType
+
+    /** 管理跳过日期：手动增删放假 / 停课日期。 */
+    data object ManageSkippedDates : NotificationDialogType
 
     /** 编辑早八闹钟的提前分钟数。 */
     data object EditMorningAlarmLead : NotificationDialogType
@@ -263,6 +266,46 @@ class NotificationSettingsViewModel(
                 dismissDialog()
             }
             onResult(result)
+        }
+    }
+
+    /**
+     * 手动新增一个跳过日期（放假 / 停课）。
+     *
+     * 与「联网更新节假日」共用同一份集合，写入即生效：设置变更经 DataStore Flow
+     * 传导到提醒排程、早八闹钟与小组件课表，无需额外触发同步。
+     */
+    fun addSkippedDate(date: LocalDate) {
+        viewModelScope.launch {
+            runCatching { appSettingsRepository.addSkippedDates(listOf(date.toString())) }
+            refreshMorningAlarmPreview()
+        }
+    }
+
+    /** 手动移除一个跳过日期。 */
+    fun removeSkippedDate(date: String) {
+        viewModelScope.launch {
+            runCatching { appSettingsRepository.removeSkippedDate(date) }
+            refreshMorningAlarmPreview()
+        }
+    }
+
+    /**
+     * 按区间批量新增跳过日期（寒假、国庆等连续假期）。
+     *
+     * @param onResult 回调 false 表示区间非法（结束早于开始，或超过
+     *                 [HolidayRange.MAX_DAYS] 天）而**未写入任何日期**。
+     */
+    fun addSkippedDateRange(start: LocalDate, end: LocalDate, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val dates = HolidayRange.expand(start, end)
+            if (dates == null) {
+                onResult(false)
+                return@launch
+            }
+            val result = runCatching { appSettingsRepository.addSkippedDates(dates) }
+            refreshMorningAlarmPreview()
+            onResult(result.isSuccess)
         }
     }
 }

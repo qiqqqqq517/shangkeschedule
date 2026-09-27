@@ -215,6 +215,29 @@ class AppSettingsRepository(
         dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_SKIPPED_DATES] = dates }
     }
 
+    /**
+     * 原子新增一批跳过日期（手动设定的节假日 / 停课）。
+     *
+     * 读改写全程在 `dataStore.edit` 内完成：手动添加与「联网更新节假日」
+     * 可能前后脚触发，若在编辑外先 `getAppSettings().first()` 取快照再整写，
+     * 两者会各自以旧快照覆盖对方（与本文件开头记录的读写竞态同源）。
+     */
+    suspend fun addSkippedDates(dates: Collection<String>) {
+        if (dates.isEmpty()) return
+        dataStore.edit { prefs ->
+            val current = prefs[AppSettingsModel.KEY_SKIPPED_DATES] ?: emptySet()
+            prefs[AppSettingsModel.KEY_SKIPPED_DATES] = current + dates
+        }
+    }
+
+    /** 原子移除一个跳过日期（手动取消某天的放假 / 停课标记）。 */
+    suspend fun removeSkippedDate(date: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[AppSettingsModel.KEY_SKIPPED_DATES] ?: emptySet()
+            prefs[AppSettingsModel.KEY_SKIPPED_DATES] = current - date
+        }
+    }
+
     /** 单独持久化自动模式开关。 */
     suspend fun updateAutoModeEnabled(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = enabled }

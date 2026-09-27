@@ -203,7 +203,7 @@
     <!-- 通知设置 -->
     <string name="title_course_notification_settings">课程提醒设置</string>
     <string name="section_title_general">常规</string>
-    <string name="section_title_advanced">高级</string>
+    <string name="section_title_skipped_dates">跳过日期</string>
     <string name="section_title_reminder">课程提醒</string>
     <string name="section_title_notification_display">通知显示</string>
     <string name="section_title_morning_alarm">早八闹钟</string>
@@ -231,11 +231,11 @@
     <string name="status_unauthorized">未授权</string>
     <string name="item_background_and_autostart">后台运行和自启</string>
     <string name="item_ignore_battery_optimization">忽略电池优化</string>
-    <string name="text_skip_dates_experimental">实验性的功能，不保证一定有用</string>
+    <string name="desc_skipped_dates">放假、停课的日子不排提醒，也不计入课程进度</string>
+    <string name="item_manage_skipped_dates">管理跳过日期</string>
     <string name="item_update_holiday_info">更新节假日信息</string>
-    <string name="update_holiday_info_hint">可能不稳定(一般情况下只有年末才公布下一年的节假日信息)</string>
+    <string name="update_holiday_info_hint">联网更新可能不稳定（一般只有年末才公布下一年的节假日信息）</string>
     <string name="item_clear_skipped_dates">清空跳过日期</string>
-    <string name="item_view_skipped_dates">查看跳过的日期</string>
     <string name="skipped_dates_none">无</string>
     <string name="toast_clear_success">已清空所有跳过日期！</string>
     <string name="toast_clear_failed">清空失败：%1$s</string>
@@ -254,7 +254,15 @@
     <string name="auto_mode_off">关闭</string>
     <string name="auto_mode_dnd">勿扰模式 (DND)</string>
     <string name="auto_mode_silent">静音模式 (SILENT)</string>
-    <string name="dialog_title_view_skipped_dates">跳过的提醒日期</string>
+    <string name="dialog_title_manage_skipped_dates">管理跳过日期</string>
+    <string name="dialog_desc_manage_skipped_dates">点按日期即可移除；放假、调休请自行添加</string>
+    <string name="dialog_title_add_date_range">选择日期区间</string>
+    <string name="action_add_single_date">添加日期</string>
+    <string name="action_add_date_range">添加区间</string>
+    <string name="toast_skip_date_added">已添加 %1$s</string>
+    <string name="toast_skip_date_removed">已移除 %1$s</string>
+    <string name="toast_skip_range_added">已添加所选区间</string>
+    <string name="toast_skip_range_invalid">区间无效：结束日期不能早于开始日期，且最长 366 天</string>
     <string name="action_close">关闭</string>
     <string name="toast_notification_permission_denied">通知权限被拒绝，无法接收课程提醒。</string>
     <string name="item_compat_wearable_sync">兼容穿戴设备同步通知</string>

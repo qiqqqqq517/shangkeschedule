@@ -19,36 +19,55 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppSectionHeader
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.desc_skipped_dates
 import shangkeschedule.shared.generated.resources.item_clear_skipped_dates
+import shangkeschedule.shared.generated.resources.item_manage_skipped_dates
 import shangkeschedule.shared.generated.resources.item_update_holiday_info
-import shangkeschedule.shared.generated.resources.item_view_skipped_dates
-import shangkeschedule.shared.generated.resources.section_title_advanced
+import shangkeschedule.shared.generated.resources.section_title_skipped_dates
 import shangkeschedule.shared.generated.resources.skipped_dates_none
-import shangkeschedule.shared.generated.resources.text_skip_dates_experimental
 import shangkeschedule.shared.generated.resources.update_holiday_info_hint
 
 /**
- * 高级设置卡片 UI 组件
+ * 「跳过日期（节假日）」设置卡片。
+ *
+ * 「管理跳过日期」的手动增删与「更新节假日信息」的联网合并写的是同一份
+ * `skippedDates` 集合，「清空跳过日期」则整体清空它。
  */
 @Composable
 fun AdvancedSettingsCard(
     uiState: NotificationSettingsUiState,
     onUpdateHolidays: () -> Unit,
     onClearSkippedDates: () -> Unit,
-    onViewSkippedDates: () -> Unit,
+    onManageSkippedDates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         // 统一分区头（labelLarge + 主色，v2 规范 §3）
-        AppSectionHeader(stringResource(Res.string.section_title_advanced))
+        AppSectionHeader(stringResource(Res.string.section_title_skipped_dates))
         Text(
-            text = stringResource(Res.string.text_skip_dates_experimental),
+            text = stringResource(Res.string.desc_skipped_dates),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().caption),
             color = appColors().textSecondary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         SectionCard {
+            SettingItem(
+                title = stringResource(Res.string.item_manage_skipped_dates),
+                onClick = onManageSkippedDates,
+                trailingContent = {
+                    // 跳过日期数量：Telegram 灰底白字胶囊徽标（v2 规范 §4.4）
+                    if (uiState.skippedDates.isNotEmpty()) {
+                        com.shangkeschedule.ui.components.AppBadge(count = uiState.skippedDates.size)
+                    } else {
+                        Text(
+                            text = stringResource(Res.string.skipped_dates_none),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            )
+            SectionDivider()
             SettingItem(
                 title = stringResource(Res.string.item_update_holiday_info),
                 onClick = onUpdateHolidays,
@@ -62,22 +81,6 @@ fun AdvancedSettingsCard(
             SettingItem(
                 title = stringResource(Res.string.item_clear_skipped_dates),
                 onClick = onClearSkippedDates
-            )
-            SectionDivider()
-            SettingItem(
-                title = stringResource(Res.string.item_view_skipped_dates),
-                onClick = onViewSkippedDates,
-                trailingContent = {
-                    // 跳过日期数量：Telegram 灰底白字胶囊徽标（v2 规范 §4.4）
-                    if (uiState.skippedDates.isNotEmpty()) {
-                        com.shangkeschedule.ui.components.AppBadge(count = uiState.skippedDates.size)
-                    } else {
-                        Text(
-                            text = stringResource(Res.string.skipped_dates_none),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
             )
         }
         Text(

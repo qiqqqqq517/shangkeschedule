@@ -70,7 +70,7 @@ fun NotificationSettingsScreen(
                     uiState = uiState,
                     onUpdateHolidays = { viewModel.updateHolidays() },
                     onClearSkippedDates = { viewModel.showDialog(NotificationDialogType.ClearConfirmation) },
-                    onViewSkippedDates = { viewModel.showDialog(NotificationDialogType.ViewSkippedDates) }
+                    onManageSkippedDates = { viewModel.showDialog(NotificationDialogType.ManageSkippedDates) }
                 )
             }
         }

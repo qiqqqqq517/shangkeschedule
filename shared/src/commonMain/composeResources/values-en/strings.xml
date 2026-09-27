@@ -203,7 +203,7 @@
     <!-- Notification Settings -->
     <string name="title_course_notification_settings">Course reminder settings</string>
     <string name="section_title_general">General</string>
-    <string name="section_title_advanced">Advanced</string>
+    <string name="section_title_skipped_dates">Skipped dates</string>
     <string name="section_title_reminder">Course reminders</string>
     <string name="section_title_notification_display">Notification display</string>
     <string name="section_title_morning_alarm">Morning alarm</string>
@@ -231,11 +231,11 @@
     <string name="status_unauthorized">Unauthorized</string>
     <string name="item_background_and_autostart">Background run &amp; Auto-start</string>
     <string name="item_ignore_battery_optimization">Ignore battery optimization</string>
-    <string name="text_skip_dates_experimental">Experimental feature, not guaranteed to work</string>
+    <string name="desc_skipped_dates">No reminders on holidays or cancelled classes, and they do not count towards course progress</string>
+    <string name="item_manage_skipped_dates">Manage skipped dates</string>
     <string name="item_update_holiday_info">Update holiday information</string>
-    <string name="update_holiday_info_hint">May be unstable (holiday info usually published at year-end)</string>
+    <string name="update_holiday_info_hint">Online update may be unstable (holiday info is usually published at year-end)</string>
     <string name="item_clear_skipped_dates">Clear skipped dates</string>
-    <string name="item_view_skipped_dates">View skipped dates</string>
     <string name="skipped_dates_none">None</string>
     <string name="toast_clear_success">All skipped dates cleared!</string>
     <string name="toast_clear_failed">Clear failed: %1$s</string>
@@ -254,7 +254,15 @@
     <string name="auto_mode_off">Off</string>
     <string name="auto_mode_dnd">Do not disturb (DND)</string>
     <string name="auto_mode_silent">Silent mode</string>
-    <string name="dialog_title_view_skipped_dates">Skipped reminder dates</string>
+    <string name="dialog_title_manage_skipped_dates">Manage skipped dates</string>
+    <string name="dialog_desc_manage_skipped_dates">Tap a date to remove it; add your own holidays or make-up days</string>
+    <string name="dialog_title_add_date_range">Select date range</string>
+    <string name="action_add_single_date">Add date</string>
+    <string name="action_add_date_range">Add range</string>
+    <string name="toast_skip_date_added">Added %1$s</string>
+    <string name="toast_skip_date_removed">Removed %1$s</string>
+    <string name="toast_skip_range_added">Range added</string>
+    <string name="toast_skip_range_invalid">Invalid range: the end must not be before the start, and at most 366 days</string>
     <string name="action_close">Close</string>
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
