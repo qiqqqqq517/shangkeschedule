@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.morning
 
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -6,8 +6,10 @@ import android.content.Intent
 import android.provider.AlarmClock
 import android.util.Log
 import androidx.core.content.edit
-import com.shangkeschedule.notification.MorningAlarmPlan
-import com.shangkeschedule.notification.MorningAlarmRegistry
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.registry.MorningAlarmRegistry
+import com.shangkeschedule.service.notification.alarm.ForegroundGate
+import com.shangkeschedule.service.notification.notify.MorningAlarmNotifier
 import kotlinx.datetime.LocalDateTime
 
 /**

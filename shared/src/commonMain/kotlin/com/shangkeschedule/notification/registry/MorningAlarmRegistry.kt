@@ -1,4 +1,4 @@
-package com.shangkeschedule.notification
+package com.shangkeschedule.notification.registry
 
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime

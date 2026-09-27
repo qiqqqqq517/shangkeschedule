@@ -64,12 +64,12 @@
             android:exported="false" />
 
         <receiver
-            android:name=".service.notification.ReminderAlarmReceiver"
+            android:name=".service.notification.receiver.ReminderAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name=".service.notification.AutoModeAlarmReceiver"
+            android:name=".service.notification.receiver.AutoModeAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
 

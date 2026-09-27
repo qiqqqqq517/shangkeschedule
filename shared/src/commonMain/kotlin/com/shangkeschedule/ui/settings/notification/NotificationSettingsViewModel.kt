@@ -7,7 +7,7 @@ import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
-import com.shangkeschedule.notification.MorningAlarmPlan
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow

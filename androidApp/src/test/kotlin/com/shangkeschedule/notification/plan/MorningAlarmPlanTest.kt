@@ -1,5 +1,6 @@
-package com.shangkeschedule.notification
+package com.shangkeschedule.notification.plan
 
+import com.shangkeschedule.notification.registry.MorningAlarmRegistry
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime

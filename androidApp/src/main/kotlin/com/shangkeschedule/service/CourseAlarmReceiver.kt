@@ -204,9 +204,9 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
                                 // 该 Worker 已并入 NotificationSyncWorker（统一排程入口）。
                                 // 本接收器仅作为升级过渡期兵底，新排程由 NotificationScheduler 负责。
                                 androidx.work.WorkManager.getInstance(ctx).enqueueUniqueWork(
-                                    com.shangkeschedule.service.notification.NotificationSyncWorker.UNIQUE_WORK_NAME,
+                                    com.shangkeschedule.service.notification.schedule.NotificationSyncWorker.UNIQUE_WORK_NAME,
                                     androidx.work.ExistingWorkPolicy.REPLACE,
-                                    androidx.work.OneTimeWorkRequestBuilder<com.shangkeschedule.service.notification.NotificationSyncWorker>().build()
+                                    androidx.work.OneTimeWorkRequestBuilder<com.shangkeschedule.service.notification.schedule.NotificationSyncWorker>().build()
                                 )
                             }
                         }

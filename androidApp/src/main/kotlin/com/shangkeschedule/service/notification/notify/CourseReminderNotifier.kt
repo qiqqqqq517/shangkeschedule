@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.notify
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -15,7 +15,8 @@ import androidx.core.content.ContextCompat
 import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
-import com.shangkeschedule.notification.NotificationIds
+import com.shangkeschedule.notification.identity.NotificationIds
+import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime

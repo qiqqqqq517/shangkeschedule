@@ -14,9 +14,9 @@ import android.util.Log
 import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
-import com.shangkeschedule.service.notification.LegacyAlarmMigrator
-import com.shangkeschedule.service.notification.MorningAlarmWriter
-import com.shangkeschedule.notification.MorningAlarmPlan
+import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
+import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit

@@ -36,7 +36,7 @@ class BootEventReceiver : BroadcastReceiver() {
 
                 // 0. 升级迁移（幂等）：清掉旧版请求码区间遗留的闹钟与通知，
                 //    避免新旧两套提醒同时在重启后触发
-                com.shangkeschedule.service.notification.LegacyAlarmMigrator
+                com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
                     .migrateIfNeeded(context.applicationContext)
 
                 // 1. 补排小组件周期任务（KEEP：若 WorkManager 已持久化的调度仍在，不会重复）

@@ -1,8 +1,8 @@
 import com.shangkeschedule.data.db.widget.WidgetCourse
-import com.shangkeschedule.notification.AlarmCodeBook
-import com.shangkeschedule.notification.MorningAlarmPlan
-import com.shangkeschedule.notification.NotificationIds
-import com.shangkeschedule.notification.ReminderEngine
+import com.shangkeschedule.notification.identity.AlarmCodeBook
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.identity.NotificationIds
+import com.shangkeschedule.notification.plan.ReminderEngine
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test

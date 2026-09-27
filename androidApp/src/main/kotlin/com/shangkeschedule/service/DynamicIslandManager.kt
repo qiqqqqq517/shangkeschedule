@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
-import com.shangkeschedule.notification.ReminderEngine
+import com.shangkeschedule.notification.plan.ReminderEngine
 import kotlinx.coroutines.flow.first
 import org.koin.core.annotation.Single
 import kotlinx.datetime.DateTimeUnit

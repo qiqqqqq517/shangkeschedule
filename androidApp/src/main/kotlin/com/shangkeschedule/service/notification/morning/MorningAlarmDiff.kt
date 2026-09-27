@@ -1,6 +1,6 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.morning
 
-import com.shangkeschedule.notification.MorningAlarmPlan
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
 
 /**
  * 早八闹钟「计划 ↔ 已写入注册簿」的纯逻辑差分。

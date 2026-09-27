@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.migrate
 
 import android.app.AlarmManager
 import android.app.NotificationManager

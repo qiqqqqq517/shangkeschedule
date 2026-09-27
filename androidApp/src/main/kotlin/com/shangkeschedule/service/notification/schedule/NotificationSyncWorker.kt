@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.schedule
 
 import android.content.Context
 import android.util.Log

@@ -1,10 +1,11 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.service.notification.control.AutoModeController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

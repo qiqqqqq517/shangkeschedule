@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.notify
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

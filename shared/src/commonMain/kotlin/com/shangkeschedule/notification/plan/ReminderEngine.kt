@@ -1,4 +1,4 @@
-package com.shangkeschedule.notification
+package com.shangkeschedule.notification.plan
 
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import kotlinx.datetime.DateTimeUnit

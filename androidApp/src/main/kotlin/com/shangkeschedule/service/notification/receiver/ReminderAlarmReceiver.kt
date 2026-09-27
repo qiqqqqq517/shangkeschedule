@@ -1,4 +1,4 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,6 +7,10 @@ import android.util.Log
 import androidx.core.content.getSystemService
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import com.shangkeschedule.service.notification.notify.CourseReminderNotifier
+import com.shangkeschedule.service.notification.notify.MorningAlarmNotifier
+import com.shangkeschedule.service.notification.notify.PostedNotificationRegistry
 import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

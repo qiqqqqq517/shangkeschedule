@@ -11,9 +11,9 @@ import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.repository.WidgetRepository
-import com.shangkeschedule.service.notification.ForegroundGate
-import com.shangkeschedule.service.notification.NotificationScheduler
-import com.shangkeschedule.service.notification.NotificationSyncWorker
+import com.shangkeschedule.service.notification.alarm.ForegroundGate
+import com.shangkeschedule.service.notification.schedule.NotificationScheduler
+import com.shangkeschedule.service.notification.schedule.NotificationSyncWorker
 import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CancellationException

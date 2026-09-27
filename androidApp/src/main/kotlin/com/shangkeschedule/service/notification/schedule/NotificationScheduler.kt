@@ -1,30 +1,30 @@
-package com.shangkeschedule.service.notification
+package com.shangkeschedule.service.notification.schedule
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
+import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
-import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
-import com.shangkeschedule.notification.AlarmCodeBook
-import com.shangkeschedule.notification.MorningAlarmPlan
-import com.shangkeschedule.notification.NotificationIds
-import com.shangkeschedule.notification.ReminderEngine
-import com.shangkeschedule.service.PermissionNoticeNotifier
-import com.shangkeschedule.R
+import com.shangkeschedule.notification.identity.NotificationIds
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.plan.ReminderEngine
+import com.shangkeschedule.service.notification.alarm.AlarmScheduler
+import com.shangkeschedule.service.notification.control.AutoModeController
+import com.shangkeschedule.service.notification.control.AutoModeStateProbe
+import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import com.shangkeschedule.service.notification.notify.NotificationChannels
+import com.shangkeschedule.service.notification.notify.PostedNotificationRegistry
+import com.shangkeschedule.service.notification.receiver.AutoModeAlarmReceiver
+import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
-import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
@@ -38,9 +38,12 @@ import kotlin.time.Clock
  *
  * 现在调用方只表达一个意图——「设置/课表变了，重新排一遍」，具体排什么由本类决定：
  *  1. [ReminderEngine] 算出课程提醒时刻与自动模式切换时刻；
- *  2. 闹钟请求码经 [AlarmCodeBook] 顺序分配，每轮**先全量注销再重挂**（无残留、无碰撞）；
+ *  2. 闹钟请求码经 [AlarmScheduler] 顺序分配，每轮**先全量注销再重挂**（无残留、无碰撞）；
  *  3. 已投递但已失效的提醒通知由 [PostedNotificationRegistry] 回收；
  *  4. 早八闹钟交给 [MorningAlarmWriter] 落到系统时钟（或降级）。
+ *
+ * 本类**只做编排**：算时刻、构造业务 Intent、决定排什么。
+ * 系统闹钟的挂载/注销与请求码编号全部下沉到 [AlarmScheduler]。
  *
  * ## 修复的旧缺陷
  *  - **通知永久残留**：旧 `cancelAllAlarms` 只取消闹钟、不取消通知；
@@ -56,9 +59,10 @@ class NotificationScheduler(
     private val widgetRepository: WidgetRepository
 ) {
 
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+    /** 系统闹钟层的唯一出口（请求码分配 + 挂/销）。 */
+    private val alarms = AlarmScheduler(context)
+
     private val registry = PostedNotificationRegistry(context)
-    private val alarmBook = AlarmCodeBook(base = ALARM_CODE_BASE, capacity = ALARM_SLOT_LIMIT)
 
     /**
      * 全量重排。
@@ -86,7 +90,7 @@ class NotificationScheduler(
 
         val effective = ReminderEngine.effectiveCourses(courses, settings.skippedDates)
 
-        cancelAllAlarms()
+        alarms.cancelAll()
         NotificationChannels.ensureAll(context)
 
         val reminderCount = if (settings.reminderEnabled) {
@@ -130,7 +134,7 @@ class NotificationScheduler(
         var scheduled = 0
 
         for (course in courses) {
-            if (alarmBook.size >= alarmBook.maxCodes) break
+            if (alarms.usedSlots >= alarms.totalSlots) break
             val date = runCatching { LocalDate.parse(course.date) }.getOrNull() ?: continue
             val (reminderDate, reminderTime) =
                 ReminderEngine.reminderDateTime(course, date, leadMinutes) ?: continue
@@ -138,9 +142,9 @@ class NotificationScheduler(
             if (triggerAt <= now) continue
 
             val key = NotificationIds.occurrenceKey(course)
-            val code = alarmBook.codeFor(key) ?: break
+            val code = alarms.codeFor(key) ?: break
             stillValidKeys += key
-            setExact(applicationIntent(course), code, triggerAt)
+            alarms.setExact(applicationIntent(course), code, triggerAt)
             scheduled++
         }
 
@@ -169,7 +173,7 @@ class NotificationScheduler(
     private fun scheduleAutoMode(courses: List<WidgetCourse>, now: LocalDateTime): Int {
         val transitions = ReminderEngine.autoModeTransitions(courses)
             .filter { LocalDateTime(it.date, it.time) > now }
-            .take(AUTO_MODE_SLOT_LIMIT)
+            .take(alarms.autoModeSlotLimit)
 
         transitions.forEachIndexed { index, transition ->
             val triggerAt = LocalDateTime(transition.date, transition.time)
@@ -181,7 +185,7 @@ class NotificationScheduler(
             val intent = Intent(context, AutoModeAlarmReceiver::class.java).apply {
                 this.action = action
             }
-            setExact(intent, AUTO_MODE_CODE_BASE + index, triggerAt)
+            alarms.setAutoMode(intent, index, triggerAt)
         }
         return transitions.size
     }
@@ -257,7 +261,6 @@ class NotificationScheduler(
             Log.d(TAG, "早八降级：无未来闹钟可排")
             return false
         }
-        val triggerAt = LocalDateTime(next.alarmDate, next.alarmTime)
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             action = ReminderAlarmReceiver.ACTION_MORNING_ALARM_FALLBACK
             putExtra(
@@ -267,83 +270,9 @@ class NotificationScheduler(
             putExtra(ReminderAlarmReceiver.EXTRA_MORNING_COURSE, next.courseName)
             putExtra(ReminderAlarmReceiver.EXTRA_MORNING_START, MorningAlarmPlan.formatTime(next.courseStart))
         }
-        setExact(intent, MORNING_FALLBACK_CODE, triggerAt)
-        Log.i(TAG, "早八降级闹钟已排：${next.alarmDate} $triggerAt")
+        alarms.setMorningFallback(intent, LocalDateTime(next.alarmDate, next.alarmTime))
+        Log.i(TAG, "早八降级闹钟已排：${next.alarmDate} ${next.alarmTime}")
         return true
-    }
-
-    // ---------------------------------------------------------------------
-    // 闹钟底层
-    // ---------------------------------------------------------------------
-
-    private fun setExact(intent: Intent, requestCode: Int, triggerAt: LocalDateTime) {
-        val am = alarmManager ?: return
-        val triggerMillis = triggerAt
-            .toInstant(TimeZone.currentSystemDefault())
-            .toEpochMilliseconds()
-        val pi = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
-            // 缺精确闹钟权限：降级为非精确（仍可触发）+ 提示用户开启，而不是静默放弃
-            PermissionNoticeNotifier.notifyExactAlarmMissing(context)
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pi)
-            return
-        }
-        PermissionNoticeNotifier.clear(context, PermissionNoticeNotifier.NOTICE_ID_EXACT_ALARM)
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pi)
-    }
-
-    /**
-     * 注销本应用排的全部闹钟。
-     *
-     * 课程提醒与自动模式各用**独立命名空间**，两侧一次扫完。
-     * 旧版课程提醒在 50010–50110、自动模式在 50001/50002，需两套取消逻辑；
-     * 且靠 `EXTRA_DND_ACTION` extras 区分语义，极易混淆。
-     */
-    private fun cancelAllAlarms() {
-        val am = alarmManager ?: return
-        alarmBook.reset()
-        for (offset in 0 until ALARM_SLOT_LIMIT) {
-            cancelByCode(am, applicationCancelIntent(), ALARM_CODE_BASE + offset)
-        }
-        for (offset in 0 until AUTO_MODE_SLOT_LIMIT) {
-            cancelByCode(am, autoModeCancelIntent(), AUTO_MODE_CODE_BASE + offset)
-        }
-        // 早八降级闹钟（系统无时钟应用时使用）
-        cancelByCode(am, morningFallbackCancelIntent(), MORNING_FALLBACK_CODE)
-    }
-
-    private fun applicationCancelIntent(): Intent =
-        Intent(context, ReminderAlarmReceiver::class.java).apply {
-            action = ReminderAlarmReceiver.ACTION_COURSE_REMINDER
-        }
-
-    private fun autoModeCancelIntent(): Intent =
-        Intent(context, AutoModeAlarmReceiver::class.java).apply {
-            action = AutoModeAlarmReceiver.ACTION_AUTO_MODE_START
-        }
-
-    private fun morningFallbackCancelIntent(): Intent =
-        Intent(context, ReminderAlarmReceiver::class.java).apply {
-            action = ReminderAlarmReceiver.ACTION_MORNING_ALARM_FALLBACK
-        }
-
-    private fun cancelByCode(am: AlarmManager, intent: Intent, requestCode: Int) {
-        val pi = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        pi?.let {
-            am.cancel(it)
-            it.cancel()
-        }
     }
 
     /** 排程概要。 */
@@ -360,44 +289,5 @@ class NotificationScheduler(
 
         /** 前瞻天数（与原 7 天窗口一致）。 */
         const val WINDOW_DAYS = 7
-
-        /** 提醒闹钟请求码基址（与旧 50010 区间完全隔离）。 */
-        private const val ALARM_CODE_BASE = 61_000
-
-        /** 提醒闹钟槽位上限（覆盖 7 天 × 每天 20+ 节的极端课表）。 */
-        private const val ALARM_SLOT_LIMIT = 200
-
-        /** 自动模式请求码基址与上限（独立命名空间，不再与课程提醒挤在一起）。 */
-        private const val AUTO_MODE_CODE_BASE = 63_000
-        private const val AUTO_MODE_SLOT_LIMIT = 60
-
-        /** 早八降级闹钟请求码（单一，只排最近一条）。 */
-        private const val MORNING_FALLBACK_CODE = 65_000
     }
 }
-
-/**
- * 当前模式是否处于「已开启」状态。
- *
- * 用于状态校准前的比对：勿扰/铃声切换会实际改变设备状态，
- * 不做差异判断就会在每次同步时反复设置（对用户可见的抖动）。
- */
-internal object AutoModeStateProbe {
-
-    fun isModeOn(context: Context, mode: AutoControlMode): Boolean {
-        return when (mode) {
-            AutoControlMode.DND -> {
-                val nm = context.getSystemService(android.app.NotificationManager::class.java)
-                nm?.currentInterruptionFilter ==
-                    android.app.NotificationManager.INTERRUPTION_FILTER_PRIORITY
-            }
-            AutoControlMode.SILENT -> {
-                val am = context.getSystemService(android.media.AudioManager::class.java)
-                am?.ringerMode == android.media.AudioManager.RINGER_MODE_SILENT
-            }
-        }
-    }
-}
-
-/** 供日志使用：把 [LocalTime] 格式化为 HH:mm。 */
-internal fun LocalTime.hhMm(): String = "%02d:%02d".format(hour, minute)
