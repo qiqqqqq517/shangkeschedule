@@ -873,6 +873,7 @@
     <string name="semester_archive_eyebrow">Semester archive</string>
     <string name="title_semester_management">Semesters</string>
     <string name="view_earlier_semesters">View earlier semesters</string>
+    <string name="hide_earlier_semesters">Hide earlier semesters</string>
     <string name="total_tables_count_format">%1$d semesters in total</string>
     <string name="semester_count_short_format">%1$d semesters</string>
     <string name="status_current_semester">Current semester</string>
@@ -886,6 +887,7 @@
     <string name="school_year_format">%1$d-%2$d school year</string>
     <string name="status_semester_completed">Completed</string>
     <string name="action_view">View</string>
+    <string name="action_copy">Copy</string>
     <string name="stat_courses_unit">courses</string>
     <string name="stat_teaching_weeks_unit">teaching weeks</string>
     <string name="eyebrow_new_semester">New semester</string>
@@ -898,6 +900,10 @@
     <string name="option_restore_backup_desc">Restore semester data from a local backup file</string>
     <string name="a11y_new_semester">New semester</string>
     <string name="text_no_semesters_hint">No semesters yet — use the options below to create your first one</string>
+    <string name="semester_copy_name_format">%1$s (copy)</string>
+    <string name="semester_copy_name_format_indexed">%1$s (copy %2$s)</string>
+    <string name="toast_copy_semester_success">Copied as a new semester: %1$s</string>
+    <string name="toast_copy_semester_failed">Copy failed, please try again</string>
     <!-- Time slot management page (redesign) -->
     <string name="auto_switch_item_title">Auto switch</string>
     <string name="hint_scheme_in_use">In use</string>

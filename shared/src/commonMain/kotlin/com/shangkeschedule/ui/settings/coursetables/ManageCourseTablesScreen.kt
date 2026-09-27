@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -112,6 +113,7 @@ import shangkeschedule.shared.generated.resources.a11y_new_semester
 import shangkeschedule.shared.generated.resources.a11y_save
 import shangkeschedule.shared.generated.resources.action_add
 import shangkeschedule.shared.generated.resources.action_cancel
+import shangkeschedule.shared.generated.resources.action_copy
 import shangkeschedule.shared.generated.resources.action_delete
 import shangkeschedule.shared.generated.resources.action_semester_settings
 import shangkeschedule.shared.generated.resources.action_view
@@ -124,6 +126,7 @@ import shangkeschedule.shared.generated.resources.calendar_today_24px
 import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.class_24px
 import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.content_copy_24px
 import shangkeschedule.shared.generated.resources.courses_count_format
 import shangkeschedule.shared.generated.resources.dialog_text_confirm_delete
 import shangkeschedule.shared.generated.resources.dialog_title_add_table
@@ -131,6 +134,7 @@ import shangkeschedule.shared.generated.resources.dialog_title_edit_table
 import shangkeschedule.shared.generated.resources.delete_24px
 import shangkeschedule.shared.generated.resources.edit_24px
 import shangkeschedule.shared.generated.resources.eyebrow_new_semester
+import shangkeschedule.shared.generated.resources.hide_earlier_semesters
 import shangkeschedule.shared.generated.resources.label_table_name
 import shangkeschedule.shared.generated.resources.no_semester_configured
 import shangkeschedule.shared.generated.resources.option_create_semester
@@ -143,6 +147,8 @@ import shangkeschedule.shared.generated.resources.progress_percent_format
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.school_year_format
 import shangkeschedule.shared.generated.resources.semester_archive_eyebrow
+import shangkeschedule.shared.generated.resources.semester_copy_name_format
+import shangkeschedule.shared.generated.resources.semester_copy_name_format_indexed
 import shangkeschedule.shared.generated.resources.semester_count_short_format
 import shangkeschedule.shared.generated.resources.semester_progress_label
 import shangkeschedule.shared.generated.resources.status_current_semester
@@ -154,6 +160,8 @@ import shangkeschedule.shared.generated.resources.text_no_semesters_hint
 import shangkeschedule.shared.generated.resources.title_add_semester_ways
 import shangkeschedule.shared.generated.resources.title_semester_management
 import shangkeschedule.shared.generated.resources.toast_add_table_success
+import shangkeschedule.shared.generated.resources.toast_copy_semester_failed
+import shangkeschedule.shared.generated.resources.toast_copy_semester_success
 import shangkeschedule.shared.generated.resources.toast_delete_last_table_failed
 import shangkeschedule.shared.generated.resources.toast_delete_table_success
 import shangkeschedule.shared.generated.resources.toast_edit_table_success
@@ -216,6 +224,7 @@ fun ManageCourseTablesScreen(
     val dialogTitleConfirmDelete = stringResource(Res.string.confirm_delete)
     val actionDelete = stringResource(Res.string.action_delete)
     val toastDeleteLastFailed = stringResource(Res.string.toast_delete_last_table_failed)
+    val toastCopyFailed = stringResource(Res.string.toast_copy_semester_failed)
 
     Scaffold(
         topBar = {
@@ -258,6 +267,27 @@ fun ManageCourseTablesScreen(
                 }
                 val goSelfTimetable: () -> Unit = { switchThen(null, Destination.CourseSchedule) }
                 val goSelfSemesterSettings: () -> Unit = { switchThen(null, Destination.SemesterSettings) }
+
+                // 「复制」新名称：源名 + 副本后缀；与现有学期重名时追加序号。
+                // 占位符用不可见哨兵字符（而非字面量），避免课表名本身含占位串被二次替换。
+                val nameToken = "\u0000"
+                val indexToken = "\u0001"
+                val copyNameFormat = stringResource(Res.string.semester_copy_name_format, nameToken)
+                val copyNameIndexedFormat =
+                    stringResource(Res.string.semester_copy_name_format_indexed, nameToken, indexToken)
+                val copyToastFormat = stringResource(Res.string.toast_copy_semester_success, nameToken)
+                val resolveCopyName: (CourseTable) -> String = { table ->
+                    copySemesterName(
+                        baseName = copyNameFormat.replace(nameToken, table.name),
+                        existingNames = uiState.courseTables.map { it.name }.toSet(),
+                        duplicatedName = { index ->
+                            copyNameIndexedFormat
+                                .replace(nameToken, table.name)
+                                .replace(indexToken, index.toString())
+                        }
+                    )
+                }
+
                 SemesterArchiveList(
                     uiState = uiState,
                     showAllGroups = showAllGroups,
@@ -286,6 +316,15 @@ fun ManageCourseTablesScreen(
                     onDeleteSemester = { table ->
                         tableToDelete = table
                         showDeleteConfirmDialog = true
+                    },
+                    onCopySemester = { table ->
+                        // 复制学期：课程 / 作息 / 学期配置整份带过来，停留在本页（列表实时重排）
+                        val newName = resolveCopyName(table)
+                        val msg = copyToastFormat.replace(nameToken, newName)
+                        coroutineScope.launch {
+                            val copied = viewModel.duplicateSemester(table.id, newName)
+                            ToastManager.show(if (copied) msg else toastCopyFailed)
+                        }
                     },
                     onViewCouple = { table ->
                         val msg = toastSwitchFormat.replace("PLACEHOLDER", table.name)
@@ -450,6 +489,7 @@ private fun SemesterArchiveList(
     onSwitchSemester: (CourseTable) -> Unit,
     onViewSemester: (CourseTable) -> Unit,
     onDeleteSemester: (CourseTable) -> Unit,
+    onCopySemester: (CourseTable) -> Unit,
     onViewCouple: (CourseTable) -> Unit,
     onDeleteCouple: (CourseTable) -> Unit,
     onAddCouple: (String) -> Unit,
@@ -466,7 +506,7 @@ private fun SemesterArchiveList(
         // 页头：eyebrow + 标题 + 新建按钮 + 概览行
         item(key = "header") {
             SemesterArchiveHeader(
-                totalCount = uiState.courseTables.size,
+                totalCount = uiState.semesterCount,
                 hasCurrent = uiState.currentSemester != null,
                 onNewSemester = onNewSemester
             )
@@ -539,15 +579,16 @@ private fun SemesterArchiveList(
                             onView = onViewSemester,
                             onRename = onRenameSemester,
                             onDelete = onDeleteSemester,
+                            onCopy = onCopySemester,
                             onViewCouple = onViewCouple,
                             onDeleteCouple = onDeleteCouple,
                             onAddCouple = onAddCouple
                         )
                     }
 
-                    // 更多学年折叠按钮
-                    if (!showAllGroups && uiState.historyGroups.size > 2) {
-                        MoreSemestersButton(onClick = onToggleShowAll)
+                    // 更多学年折叠按钮：展开态仍保留按钮（箭头翻转 180° + 文案切「收起更早的学期」）
+                    if (uiState.historyGroups.size > 2) {
+                        MoreSemestersButton(expanded = showAllGroups, onClick = onToggleShowAll)
                     }
                 }
             }
@@ -1127,6 +1168,7 @@ private fun HistoryYearGroup(
     onView: (CourseTable) -> Unit,
     onRename: (CourseTable) -> Unit,
     onDelete: (CourseTable) -> Unit,
+    onCopy: (CourseTable) -> Unit,
     onViewCouple: (CourseTable) -> Unit,
     onDeleteCouple: (CourseTable) -> Unit,
     onAddCouple: (String) -> Unit
@@ -1171,7 +1213,8 @@ private fun HistoryYearGroup(
                         onSwitch = { onSwitch(semesterInfo.table) },
                         onView = { onView(semesterInfo.table) },
                         onRename = { onRename(semesterInfo.table) },
-                        onDelete = { onDelete(semesterInfo.table) }
+                        onDelete = { onDelete(semesterInfo.table) },
+                        onCopy = { onCopy(semesterInfo.table) }
                     )
                 },
                 coupleCard = {
@@ -1196,7 +1239,8 @@ private fun HistorySemesterCard(
     onSwitch: () -> Unit,
     onView: () -> Unit,
     onRename: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onCopy: () -> Unit
 ) {
     val colors = appColors()
     // 指定当前学期的 Toast 文案需在组合上下文预构建（名字在卡片内已知）
@@ -1232,9 +1276,10 @@ private fun HistorySemesterCard(
                         color = colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        // 标题占满剩余宽度（右侧徽标已先测），名称靠左、徽标贴右；
+                        // 原「weight(1f, fill=false) + Spacer(weight(1f))」会让长名被截在半宽处
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.weight(1f))
                     SemesterStatusBadge(semesterInfo)
                 }
                 Text(
@@ -1284,7 +1329,7 @@ private fun HistorySemesterCard(
                 )
             }
 
-            // 操作行：查看 / 删除
+            // 操作行：查看 / 复制 / 删除
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1294,6 +1339,13 @@ private fun HistorySemesterCard(
                     icon = vectorResource(Res.drawable.visibility_24px),
                     danger = false,
                     onClick = onView,
+                    modifier = Modifier.weight(1f)
+                )
+                GhostActionButton(
+                    text = stringResource(Res.string.action_copy),
+                    icon = vectorResource(Res.drawable.content_copy_24px),
+                    danger = false,
+                    onClick = onCopy,
                     modifier = Modifier.weight(1f)
                 )
                 GhostActionButton(
@@ -1623,10 +1675,20 @@ private fun GhostActionButton(
     }
 }
 
-/** 「查看更早的学期」：44dp 虚线描边整宽按钮。 */
+/**
+ * 「查看更早的学期」/「收起更早的学期」：44dp 虚线描边整宽按钮。
+ *
+ * 展开态保留按钮：箭头翻转 180°、文案切到收起（对齐设计稿 .more-semesters-btn.expanded），
+ * 否则展开后无法再折回去。
+ */
 @Composable
-private fun MoreSemestersButton(onClick: () -> Unit) {
+private fun MoreSemestersButton(expanded: Boolean, onClick: () -> Unit) {
     val colors = appColors()
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(LocalAppMotion.current.tokens.colorDurationMs),
+        label = "moreSemestersArrow"
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1641,11 +1703,15 @@ private fun MoreSemestersButton(onClick: () -> Unit) {
             imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
             contentDescription = null,
             tint = colors.textSecondary,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier
+                .size(16.dp)
+                .rotate(arrowRotation)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = stringResource(Res.string.view_earlier_semesters),
+            text = stringResource(
+                if (expanded) Res.string.hide_earlier_semesters else Res.string.view_earlier_semesters
+            ),
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
             color = colors.textSecondary
         )

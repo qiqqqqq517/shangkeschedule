@@ -874,6 +874,7 @@
     <string name="semester_archive_eyebrow">學期檔案</string>
     <string name="title_semester_management">學期管理</string>
     <string name="view_earlier_semesters">查看更早的學期</string>
+    <string name="hide_earlier_semesters">收起更早的學期</string>
     <string name="total_tables_count_format">共 %1$d 個學期</string>
     <string name="semester_count_short_format">%1$d 個學期</string>
     <string name="status_current_semester">當前學期</string>
@@ -887,6 +888,7 @@
     <string name="school_year_format">%1$d-%2$d 學年</string>
     <string name="status_semester_completed">已完成</string>
     <string name="action_view">查看</string>
+    <string name="action_copy">複製</string>
     <string name="stat_courses_unit">門課程</string>
     <string name="stat_teaching_weeks_unit">教學週</string>
     <string name="eyebrow_new_semester">新建學期</string>
@@ -899,6 +901,10 @@
     <string name="option_restore_backup_desc">從本機備份檔案還原學期資料</string>
     <string name="a11y_new_semester">新建學期</string>
     <string name="text_no_semesters_hint">暫無學期，使用下方方式新增第一個學期</string>
+    <string name="semester_copy_name_format">%1$s（副本）</string>
+    <string name="semester_copy_name_format_indexed">%1$s（副本%2$s）</string>
+    <string name="toast_copy_semester_success">已複製為新學期：%1$s</string>
+    <string name="toast_copy_semester_failed">複製失敗，請重試</string>
     <!-- 時間段管理頁（新設計） -->
     <string name="auto_switch_item_title">自動切換</string>
     <string name="hint_scheme_in_use">當前使用</string>

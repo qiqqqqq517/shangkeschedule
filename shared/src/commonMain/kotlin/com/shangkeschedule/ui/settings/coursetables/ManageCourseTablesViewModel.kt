@@ -129,6 +129,7 @@ class ManageCourseTablesViewModel(
 
         return ManageCourseTablesUiState(
             courseTables = courseTables,
+            semesterCount = selfInfos.size,
             currentActiveTableId = activeTableId,
             currentSemester = current,
             currentWeek = currentWeek,
@@ -185,6 +186,26 @@ class ManageCourseTablesViewModel(
         } catch (e: kotlinx.coroutines.CancellationException) {
             // CancellationException 是 Exception 子类：吞掉会把「用户离开页面导致的正常取消」
             // 误报成「创建情侣课表失败」，且被取消的协程不再向上传播取消。
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 复制学期为新学期模板（课程 / 作息 / 学期配置整体带过来）。
+     *
+     * 挂起式：调用方需等写库完成再提示，避免页面弹出后 viewModelScope 被取消导致静默失败。
+     *
+     * @param sourceTableId 源课表（学期）ID
+     * @param newName 新名称（重名判定已由 UI 层完成）
+     * @return 新建成功返回 true
+     */
+    suspend fun duplicateSemester(sourceTableId: String, newName: String): Boolean {
+        return try {
+            courseTableRepository.duplicateCourseTable(sourceTableId, newName)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             false
@@ -254,6 +275,8 @@ data class YearGroup(
  */
 data class ManageCourseTablesUiState(
     val courseTables: List<CourseTable> = emptyList(),
+    /** 学期数（仅本人课表，不含情侣课表——情侣表附挂在本人卡右侧，不是独立学期）。 */
+    val semesterCount: Int = 0,
     val currentActiveTableId: String? = null,
     /** 当前学期（激活课表）信息。 */
     val currentSemester: SemesterInfo? = null,
@@ -264,3 +287,25 @@ data class ManageCourseTablesUiState(
     /** 历史学期学年分组（学年起始年倒序）。 */
     val historyGroups: List<YearGroup> = emptyList()
 )
+
+/**
+ * 生成「复制学期」的新名称。
+ *
+ * 不重名时直接用 [baseName]；否则从 2 开始依次向 [duplicatedName] 取候选，
+ * 直到不再与 [existingNames] 冲突。名称模板由调用方给出（UI 层持有 stringResource）。
+ *
+ * 抽成纯函数：把重名递推从可组合函数体里挪出来，可独立单测覆盖。
+ */
+fun copySemesterName(
+    baseName: String,
+    existingNames: Set<String>,
+    duplicatedName: (Int) -> String
+): String {
+    if (baseName !in existingNames) return baseName
+    var index = 2
+    while (true) {
+        val candidate = duplicatedName(index)
+        if (candidate !in existingNames) return candidate
+        index++
+    }
+}

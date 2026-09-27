@@ -208,6 +208,79 @@ class CourseTableRepository(
     }
 
     /**
+     * 复制课表为新学期模板（学期管理页「历史学期 → 复制」）。
+     *
+     * 整份带过来：学期配置（开学日期 / 总周数 / 每周起始日 / 生效作息方案）、
+     * **全部作息方案**的时间段与方案元信息、以及全部课程及其周次关联；
+     * 全部写入收在同一个真事务内，中途失败不会留下半张课表。
+     *
+     * 复制结果是**独立的本人课表**（`isCouple=false`、不继承配对关系），
+     * 因此不会与源课表产生任何联动；课程逐条换新 ID（直接复用原 ID 会主键冲突）。
+     *
+     * @param sourceTableId 源课表 ID
+     * @param newName 新课表名称
+     * @return 新课表 ID
+     * @throws IllegalArgumentException 源课表不存在
+     */
+    suspend fun duplicateCourseTable(sourceTableId: String, newName: String): String {
+        val newTableId = Uuid.random().toString()
+
+        database.withWriteTransaction {
+            val sourceTable = courseTableDao.getCourseTableById(sourceTableId)
+                ?: throw IllegalArgumentException("源课表不存在: $sourceTableId")
+
+            courseTableDao.insert(
+                CourseTable(
+                    id = newTableId,
+                    name = newName.ifBlank { sourceTable.name },
+                    createdAt = Clock.System.now().toEpochMilliseconds()
+                )
+            )
+
+            // 学期配置整份带过来；源表无配置时用默认值兜底
+            val sourceConfig = appSettingsRepository.getCourseTableConfigFlow(sourceTableId).first()
+            appSettingsRepository.insertOrUpdateCourseConfig(
+                (sourceConfig ?: CourseTableConfig(courseTableId = sourceTableId))
+                    .copy(courseTableId = newTableId)
+            )
+
+            // 全部作息方案的时间段；源表任何方案都没有 slots 时回落到出厂默认模板
+            val schemeIds = timeSlotRepository.getSchemeIdsByCourseTableId(sourceTableId).first()
+            val copiedSlots = schemeIds.flatMap { schemeId ->
+                timeSlotRepository.getTimeSlotsByCourseTableId(sourceTableId, schemeId).first()
+                    .map { it.copy(courseTableId = newTableId) }
+            }.ifEmpty {
+                DEFAULT_TIME_SLOTS.map { it.copy(courseTableId = newTableId) }
+            }
+            timeSlotRepository.insertAll(copiedSlots)
+
+            // 作息方案元信息（自动切换的生效日期范围）
+            timeSlotRepository.getSchemeMetasOnce(sourceTableId).forEach { meta ->
+                timeSlotRepository.upsertSchemeMeta(meta.copy(courseTableId = newTableId))
+            }
+
+            // 课程本体 + 周次关联：按索引对齐新旧 ID 一次性批量写入
+            val sourceCourses = courseDao.getCoursesWithWeeksByTableId(sourceTableId).first()
+            if (sourceCourses.isNotEmpty()) {
+                val newCourses = sourceCourses.map { item ->
+                    item.course.copy(id = Uuid.random().toString(), courseTableId = newTableId)
+                }
+                val newWeeks = sourceCourses.flatMapIndexed { index, item ->
+                    item.weeks.map { week ->
+                        CourseWeek(courseId = newCourses[index].id, weekNumber = week.weekNumber)
+                    }
+                }
+                courseDao.insertAll(newCourses)
+                if (newWeeks.isNotEmpty()) {
+                    courseWeekDao.insertAll(newWeeks)
+                }
+            }
+        }
+
+        return newTableId
+    }
+
+    /**
      * 更新一个课表。
      */
     suspend fun updateCourseTable(courseTable: CourseTable) {
