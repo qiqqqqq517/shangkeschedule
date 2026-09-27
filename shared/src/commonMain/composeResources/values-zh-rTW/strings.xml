@@ -206,6 +206,15 @@
     <string name="text_permission_importance_title">權限設定對於 Android 提醒非常重要</string>
     <string name="text_permission_importance_detail">為了確保提醒準時送達，你需要：\n1. 授予精確鬧鐘權限 (Android 12及以上)\n2. 開啟應用程式的自動啟動權限\n3. 關閉應用程式的電池最佳化功能\n4. 授予勿擾模式權限（用於自動模式切換）\n\n請在下方的設定項目中手動開啟這些權限。</string>
     <string name="item_course_reminder">課程提醒</string>
+    <string name="item_morning_alarm">早八鬧鐘</string>
+    <string name="desc_morning_alarm">依每天第一節課時間寫入系統鬧鐘，可在時鐘應用程式裡直接修改</string>
+    <string name="desc_morning_alarm_managed_in_clock">鬧鐘寫入後由系統時鐘管理；之後調整請直接在時鐘應用程式裡改</string>
+    <string name="item_morning_alarm_lead">提前提醒時間</string>
+    <string name="morning_alarm_preview_title">下一個鬧鐘</string>
+    <string name="morning_alarm_preview_format">%1$s %2$s · 第一節 %3$s %4$s</string>
+    <string name="morning_alarm_preview_none">近期沒有需要早起的課程</string>
+    <string name="action_open_system_alarm">開啟系統鬧鐘</string>
+    <string name="toast_morning_alarm_enable_reminder_first">請先開啟課程提醒</string>
     <string name="item_remind_time_before">提前提醒時間</string>
     <string name="remind_time_minutes_format">%1$s 分鐘</string>
     <string name="item_exact_alarm_permission">精確鬧鐘權限</string>

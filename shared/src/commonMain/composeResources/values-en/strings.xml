@@ -206,6 +206,15 @@
     <string name="text_permission_importance_title">Permissions are crucial for Android reminders.</string>
     <string name="text_permission_importance_detail">To ensure timely reminders, you need to:\n1. Grant exact alarm permission (Android 12+)\n2. Enable app auto-start\n3. Disable battery optimization\n4. Grant Do Not Disturb permission (for auto mode)\n\nPlease manually enable these permissions in the settings below.</string>
     <string name="item_course_reminder">Course reminders</string>
+    <string name="item_morning_alarm">Morning alarm</string>
+    <string name="desc_morning_alarm">Writes an alarm into your system clock app based on the first class each day; manage it there directly</string>
+    <string name="desc_morning_alarm_managed_in_clock">Once written, the alarm is managed by your system clock app; adjust it there from now on</string>
+    <string name="item_morning_alarm_lead">Lead time</string>
+    <string name="morning_alarm_preview_title">Next alarm</string>
+    <string name="morning_alarm_preview_format">%1$s %2$s · first class %3$s %4$s</string>
+    <string name="morning_alarm_preview_none">No early classes coming up</string>
+    <string name="action_open_system_alarm">Open system alarms</string>
+    <string name="toast_morning_alarm_enable_reminder_first">Turn on course reminders first</string>
     <string name="item_remind_time_before">Remind before</string>
     <string name="remind_time_minutes_format">%1$s minutes</string>
     <string name="item_exact_alarm_permission">Exact alarm permission</string>

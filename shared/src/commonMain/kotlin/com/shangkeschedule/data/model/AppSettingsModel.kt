@@ -107,6 +107,19 @@ data class AppSettingsModel(
      */
     val dynamicIslandEnabled: Boolean = false,
 
+    /**
+     * 每日「早八闹钟」开关。
+     * true ⇒ 按每天第一节课时间 − [morningAlarmLeadMinutes] 写入系统时钟应用，
+     * 用户可在系统闹钟页直接修改/停用。
+     */
+    val morningAlarmEnabled: Boolean = false,
+
+    /**
+     * 早八闹钟提前量（分钟），0–180 自由设置。
+     * **独立于** [remindBeforeMinutes]：「叫我起床」与「课前提醒」是两个不同的时间点需求。
+     */
+    val morningAlarmLeadMinutes: Int = 45,
+
     /** 是否显示非本周课程 */
     val showNonCurrentWeekCourses: Boolean = false,
 
@@ -243,6 +256,8 @@ data class AppSettingsModel(
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
         val KEY_DYNAMIC_ISLAND_ENABLED = booleanPreferencesKey("dynamic_island_enabled")
+        val KEY_MORNING_ALARM_ENABLED = booleanPreferencesKey("morning_alarm_enabled")
+        val KEY_MORNING_ALARM_LEAD_MINUTES = intPreferencesKey("morning_alarm_lead_minutes")
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
@@ -289,6 +304,8 @@ data class AppSettingsModel(
                 autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
                 compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
                 dynamicIslandEnabled = prefs[KEY_DYNAMIC_ISLAND_ENABLED] ?: d.dynamicIslandEnabled,
+                morningAlarmEnabled = prefs[KEY_MORNING_ALARM_ENABLED] ?: d.morningAlarmEnabled,
+                morningAlarmLeadMinutes = prefs[KEY_MORNING_ALARM_LEAD_MINUTES] ?: d.morningAlarmLeadMinutes,
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,

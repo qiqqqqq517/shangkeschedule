@@ -140,13 +140,17 @@ class WidgetDataSynchronizer(
             .launchIn(scope)
 
         // 2. 监听通知/自动化配置变更，同样触发同步通知（以便各平台调度 WorkManager/系统闹钟/DND 任务）
+        //
+        // 注意：这里必须包含**所有会改变调度结果的设置字段**，否则用户改了却不触发重排。
+        // v3.72.0 新增早八闹钟两字段（开关 + 提前量），遗漏会导致「改了提前量但闹钟不变」。
         appSettingsRepository.getAppSettings()
             .map { settings ->
-                Quadruple(
+                Quintuple(
                     settings.reminderEnabled to settings.remindBeforeMinutes,
                     settings.autoModeEnabled to settings.autoControlMode,
                     settings.compatWearableSync,
-                    settings.dynamicIslandEnabled
+                    settings.dynamicIslandEnabled,
+                    settings.morningAlarmEnabled to settings.morningAlarmLeadMinutes
                 )
             }
             .distinctUntilChanged()
@@ -169,6 +173,15 @@ class WidgetDataSynchronizer(
 
     /** 四元组辅助数据类，用于 combine 操作符传递多路数据 */
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+    /** 五元组：通知/自动化调度源键（课程提醒、自动模式、穿戴兼容、灵动岛、早八闹钟）。 */
+    private data class Quintuple<A, B, C, D, E>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+        val fifth: E
+    )
 
     /**
      * 手动触发一次性数据同步（挂起函数）。

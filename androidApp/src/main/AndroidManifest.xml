@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- 早八闹钟：normal 级权限，仅用于通过 AlarmClock Intent 写入系统时钟应用 -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
@@ -61,6 +63,19 @@
             android:enabled="true"
             android:exported="false" />
 
+        <receiver
+            android:name=".service.notification.ReminderAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".service.notification.AutoModeAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- 旧版课程/自动模式闹钟接收器：冻结保留一版做升级兵底。
+             升级安装后旧版已排下的闹钟会指向本类，待 LegacyAlarmMigrator 首次运行清理完毕。
+             下个大版本连同 LegacyAlarmMigrator 一并移除。 -->
         <receiver
             android:name=".service.CourseAlarmReceiver"
             android:enabled="true"

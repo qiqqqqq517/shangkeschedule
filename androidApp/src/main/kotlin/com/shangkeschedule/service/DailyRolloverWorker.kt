@@ -17,8 +17,8 @@ import org.koin.android.annotation.KoinWorker
  * 预挂的 7 天闹钟存量，遇到课程变动即失效。
  *
  * 本 Worker 与「打开 App」完全等效：调用 [WidgetDataSynchronizer.syncNow]，同步完成后
- * syncCompletedFlow 会驱动 SyncManager 重排 CourseNotificationWorker（未来 7 天提醒闹钟）、
- * DndSchedulerWorker、灵动岛并刷新全部小组件。执行完自续链接到次日零点（见
+ * syncCompletedFlow 会驱动 SyncManager 经 NotificationSyncWorker → NotificationScheduler
+ * 全量重排（课程提醒 + 自动勿扰 + 早八闹钟）并刷新全部小组件。执行完自续链接到次日零点（见
  * [WorkManagerHelper.scheduleDailyRollover]）；开机广播与 App 启动也会重新锚定，三重兜底。
  */
 @KoinWorker

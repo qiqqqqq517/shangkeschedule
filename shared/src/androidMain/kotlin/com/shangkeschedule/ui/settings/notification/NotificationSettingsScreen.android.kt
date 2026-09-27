@@ -118,6 +118,19 @@ actual fun PlatformGeneralSettingsSection(
             }
         },
         onRemindTimeClick = { viewModel.showDialog(NotificationDialogType.EditRemindMinutes) },
+        onMorningAlarmToggle = { isEnabled ->
+            // 早八闹钟是**独立**能力：调度器（syncMorningAlarm）只判 morningAlarmEnabled，
+            // 与课程提醒总开关无关。真机验证时曾误加「需先开课程提醒」门控，
+            // 导致只想早八起床、不要课前提醒的用户无法开启——已移除该耦合。
+            viewModel.updateMorningAlarmEnabled(isEnabled)
+        },
+        onMorningAlarmLeadClick = {
+            viewModel.showDialog(NotificationDialogType.EditMorningAlarmLead)
+        },
+        onOpenSystemAlarm = {
+            // 直达系统闹钟列表页，用户可在那里直接修改/停用本应用写入的闹钟
+            openSystemAlarmList(context)
+        },
         onAppSettingsClick = { openAppSettings(context) },
         onBatteryOptimizationClick = { openIgnoreBatteryOptimizationSettings(context) }
     )

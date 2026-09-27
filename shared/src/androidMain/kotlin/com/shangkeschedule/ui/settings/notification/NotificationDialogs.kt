@@ -107,6 +107,21 @@ fun NotificationDialogDispatcher(
             )
         }
 
+        is NotificationDialogType.EditMorningAlarmLead -> {
+            var tempInput by remember(uiState.morningAlarmLeadMinutes) {
+                mutableStateOf(uiState.morningAlarmLeadMinutes.toString())
+            }
+            EditRemindMinutesDialog(
+                currentMinutes = tempInput,
+                onMinutesChange = { tempInput = it.filter { c -> c.isDigit() } },
+                onConfirm = {
+                    val mins = tempInput.toIntOrNull() ?: 45
+                    viewModel.updateMorningAlarmLeadMinutes(mins)
+                },
+                onDismiss = { viewModel.dismissDialog() }
+            )
+        }
+
         is NotificationDialogType.ClearConfirmation -> {
             val successMsg = stringResource(Res.string.toast_clear_success)
 
@@ -205,6 +220,7 @@ fun AutoModeSelectionDialog(
         title = { Text(stringResource(Res.string.dialog_title_auto_mode_selection)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                // 仅在「勿扰」这条路线上提示缺权限；静音不需要该权限，不再误导
                 if (!hasDndPermission) {
                     Text(
                         text = stringResource(Res.string.auto_mode_dnd_permission_warning),
@@ -232,7 +248,13 @@ fun AutoModeSelectionDialog(
             AppDialogActions(
                 confirmText = stringResource(Res.string.action_confirm),
                 onConfirm = {
-                    if (selectedKey != "OFF" && !hasDndPermission) {
+                    // 只有「勿扰」模式需要「勿扰访问」权限；
+                    // 「静音」只改铃声模式（AudioManager.ringerMode），不需要该权限 ——
+                    // 旧实现此处对所有非 OFF 选项一律拦截，逼着只想静音的用户
+                    // 去开一个他并不需要的权限，属于实证缺陷。
+                    val needsDndPermission =
+                        selectedKey == AutoControlMode.DND && !hasDndPermission
+                    if (needsDndPermission) {
                         onDismiss()
                         onRequireDndPermission()
                     } else {

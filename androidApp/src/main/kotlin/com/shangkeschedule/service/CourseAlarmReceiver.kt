@@ -200,7 +200,14 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
                             DND_ACTION_START -> toggleMode(ctx, true, modeToUse)
                             DND_ACTION_END -> {
                                 toggleMode(ctx, false, modeToUse)
-                                DndSchedulerWorker.enqueueWork(ctx)
+                                // 旧实现此处调用 DndSchedulerWorker.enqueueWork(ctx)；
+                                // 该 Worker 已并入 NotificationSyncWorker（统一排程入口）。
+                                // 本接收器仅作为升级过渡期兵底，新排程由 NotificationScheduler 负责。
+                                androidx.work.WorkManager.getInstance(ctx).enqueueUniqueWork(
+                                    com.shangkeschedule.service.notification.NotificationSyncWorker.UNIQUE_WORK_NAME,
+                                    androidx.work.ExistingWorkPolicy.REPLACE,
+                                    androidx.work.OneTimeWorkRequestBuilder<com.shangkeschedule.service.notification.NotificationSyncWorker>().build()
+                                )
                             }
                         }
                     } else {

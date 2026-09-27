@@ -29,12 +29,20 @@ import shangkeschedule.shared.generated.resources.item_auto_mode
 import shangkeschedule.shared.generated.resources.item_background_and_autostart
 import shangkeschedule.shared.generated.resources.item_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.desc_dynamic_island
+import shangkeschedule.shared.generated.resources.desc_morning_alarm
+import shangkeschedule.shared.generated.resources.desc_morning_alarm_managed_in_clock
 import shangkeschedule.shared.generated.resources.item_course_reminder
 import shangkeschedule.shared.generated.resources.item_dynamic_island
 import shangkeschedule.shared.generated.resources.item_dnd_permission
 import shangkeschedule.shared.generated.resources.item_exact_alarm_permission
 import shangkeschedule.shared.generated.resources.item_ignore_battery_optimization
+import shangkeschedule.shared.generated.resources.item_morning_alarm
+import shangkeschedule.shared.generated.resources.item_morning_alarm_lead
 import shangkeschedule.shared.generated.resources.item_remind_time_before
+import shangkeschedule.shared.generated.resources.morning_alarm_preview_format
+import shangkeschedule.shared.generated.resources.morning_alarm_preview_none
+import shangkeschedule.shared.generated.resources.morning_alarm_preview_title
+import shangkeschedule.shared.generated.resources.action_open_system_alarm
 import shangkeschedule.shared.generated.resources.remind_time_minutes_format
 import shangkeschedule.shared.generated.resources.section_title_general
 import shangkeschedule.shared.generated.resources.status_authorized
@@ -57,6 +65,9 @@ fun GeneralSettingsCard(
     onCompatWearableToggle: (Boolean) -> Unit,
     onAutoModeClick: () -> Unit,
     onRemindTimeClick: () -> Unit,
+    onMorningAlarmToggle: (Boolean) -> Unit,
+    onMorningAlarmLeadClick: () -> Unit,
+    onOpenSystemAlarm: () -> Unit,
     onAppSettingsClick: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -150,6 +161,69 @@ fun GeneralSettingsCard(
                     )
                 }
             )
+            SectionDivider()
+            // 4.1 早八闹钟开关（写入系统时钟应用）
+            SettingItem(
+                title = stringResource(Res.string.item_morning_alarm),
+                subtitle = stringResource(Res.string.desc_morning_alarm),
+                trailingContent = {
+                    com.shangkeschedule.ui.components.AppSwitch(
+                        checked = uiState.morningAlarmEnabled,
+                        onCheckedChange = onMorningAlarmToggle
+                    )
+                }
+            )
+            if (uiState.morningAlarmEnabled) {
+                SectionDivider()
+                // 4.2 早八提前量（自由设置，独立于课程提醒的提前量）
+                SettingItem(
+                    title = stringResource(Res.string.item_morning_alarm_lead),
+                    onClick = onMorningAlarmLeadClick,
+                    trailingContent = {
+                        Text(
+                            text = stringResource(
+                                Res.string.remind_time_minutes_format,
+                                uiState.morningAlarmLeadMinutes
+                            ),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                )
+                SectionDivider()
+                // 4.3 下一个闹钟预览（点击直达系统闹钟页管理）
+                val preview = uiState.nextMorningAlarm
+                val previewText = if (preview == null) {
+                    stringResource(Res.string.morning_alarm_preview_none)
+                } else {
+                    stringResource(
+                        Res.string.morning_alarm_preview_format,
+                        weekdayLabel(preview.courseDate.dayOfWeek),
+                        formatHhMm(preview.alarmTime.hour, preview.alarmTime.minute),
+                        formatHhMm(preview.courseStart.hour, preview.courseStart.minute),
+                        preview.courseName
+                    )
+                }
+                SettingItem(
+                    title = stringResource(Res.string.morning_alarm_preview_title),
+                    subtitle = previewText,
+                    onClick = onOpenSystemAlarm,
+                    trailingContent = {
+                        Text(
+                            text = stringResource(Res.string.action_open_system_alarm),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                )
+                // 如实告知：闹钟本体在系统时钟里，本应用写入后不再回改
+                // （系统时钟普遍不支持按标签删除，避免重写造成重复堆积）
+                Text(
+                    text = stringResource(Res.string.desc_morning_alarm_managed_in_clock),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                    color = appColors().textSecondary,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
+            SectionDivider()
             // 5. 精确闹钟权限 (Android 12+)：直接跳转页面
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val statusText = if (uiState.exactAlarmStatus)
@@ -207,4 +281,22 @@ fun GeneralSettingsCard(
             onDismiss = { showExactAlarmDialog = false }
         )
     }
+}
+
+/** 周几的本地化短标签（预览文案用）。 */
+private fun weekdayLabel(dayOfWeek: kotlinx.datetime.DayOfWeek): String = when (dayOfWeek) {
+    kotlinx.datetime.DayOfWeek.MONDAY -> "周一"
+    kotlinx.datetime.DayOfWeek.TUESDAY -> "周二"
+    kotlinx.datetime.DayOfWeek.WEDNESDAY -> "周三"
+    kotlinx.datetime.DayOfWeek.THURSDAY -> "周四"
+    kotlinx.datetime.DayOfWeek.FRIDAY -> "周五"
+    kotlinx.datetime.DayOfWeek.SATURDAY -> "周六"
+    else -> "周日"
+}
+
+/** HH:mm 格式化（避免为预览专门引格式化器）。 */
+private fun formatHhMm(hour: Int, minute: Int): String {
+    val h = if (hour < 10) "0$hour" else hour.toString()
+    val m = if (minute < 10) "0$minute" else minute.toString()
+    return "$h:$m"
 }

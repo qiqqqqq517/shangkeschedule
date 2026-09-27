@@ -208,9 +208,10 @@ class DynamicIslandService : Service(), KoinComponent {
                     } else {
                         // 窗口兜底检查：已滑出「第一节课开始-lead → 最后一节课结束」则自停
                         val window = DynamicIslandManager.computeWindow(
-                            courses,
-                            settings.remindBeforeMinutes,
-                            now.toLocalDate()
+                            courses = courses,
+                            skippedDates = settings.skippedDates,
+                            leadMinutes = settings.remindBeforeMinutes,
+                            date = now.toLocalDate()
                         )
                         val nowMillis = System.currentTimeMillis()
                         if (window == null || nowMillis !in window.startMillis until window.endMillis) {

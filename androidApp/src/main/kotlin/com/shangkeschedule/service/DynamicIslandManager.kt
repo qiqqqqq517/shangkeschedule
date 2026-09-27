@@ -12,13 +12,18 @@ import androidx.core.content.ContextCompat
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.notification.ReminderEngine
 import kotlinx.coroutines.flow.first
 import org.koin.core.annotation.Single
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 /**
  * 状态栏「灵动岛」服务调度器（Android 端）。
@@ -88,27 +93,34 @@ class DynamicIslandManager(
     // ---------------------------------------------------------------------
 
     data class DynamicIslandWindow(
-        val date: LocalDate,
+        val date: java.time.LocalDate,
         val startMillis: Long,
         val endMillis: Long
     )
 
     /** 从今天起向后找最近一个「尚未结束」的显示窗口（widget 表预计算未来 7 天课程）。 */
     private suspend fun findNextWindow(leadMinutes: Int): DynamicIslandWindow? {
-        val today = LocalDate.now()
+        val today = Clock.System.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
         val courses = runCatching {
             widgetRepository
-                .getWidgetCoursesByDateRange(today.toString(), today.plusDays(6).toString())
+                .getWidgetCoursesByDateRange(today.toString(), today.plusDaysCompat(6).toString())
                 .first()
         }.getOrDefault(emptyList())
         val now = System.currentTimeMillis()
+        val skipped = runCatching { appSettingsRepository.getAppSettingsOnce().skippedDates }
+            .getOrDefault(emptySet())
         for (i in 0L..6L) {
-            val date = today.plusDays(i)
-            val window = computeWindow(courses, leadMinutes, date) ?: continue
+            val date = today.plusDaysCompat(i.toInt())
+            val window = computeWindow(courses, skipped, leadMinutes, java.time.LocalDate.parse(date.toString()))
+                ?: continue
             if (window.endMillis > now) return window
         }
         return null
     }
+
+    private fun LocalDate.plusDaysCompat(days: Int): LocalDate = plus(days, DateTimeUnit.DAY)
 
     companion object {
         const val ACTION_DYNAMIC_ISLAND_START = "com.shangkeschedule.ACTION_DYNAMIC_ISLAND_START"
@@ -118,39 +130,38 @@ class DynamicIslandManager(
         private const val REQUEST_CODE_STOP = 60002
         private const val TAG = "DynamicIslandManager"
 
-        private val ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE
-
         /**
          * 依据某天课程计算显示窗口：第一节课开始 − lead → 最后一节课结束。
          * 当天无有效课程时返回 null。
+         *
+         * 窗口计算已归一到 [ReminderEngine.islandWindow]（纯逻辑、可单测）；
+         * 本函数只做「java.time ↔ kotlinx-datetime」的边界转换，
+         * 保持 [DynamicIslandService] 服务本体（含 v3.57.1 自激循环修复）不改动。
          */
         fun computeWindow(
             courses: List<WidgetCourse>,
+            skippedDates: Set<String>,
             leadMinutes: Int,
-            date: LocalDate
+            date: java.time.LocalDate
         ): DynamicIslandWindow? {
-            val valid = courses
-                .filter { it.date == date.toString() }
-                .filter { !it.isSkipped && it.startTime.isNotBlank() && it.endTime.isNotBlank() }
-            if (valid.isEmpty()) return null
-            val firstStart = valid.minByOrNull { it.startTime }?.startTime?.let(::parseTime) ?: return null
-            val lastEnd = valid.maxByOrNull { it.endTime }?.endTime?.let(::parseTime) ?: return null
-            val zone = ZoneId.systemDefault()
-            val start = LocalDateTime.of(date, firstStart)
-                .minusMinutes(leadMinutes.toLong())
-                .atZone(zone).toInstant().toEpochMilli()
-            val end = LocalDateTime.of(date, lastEnd)
-                .atZone(zone).toInstant().toEpochMilli()
+            val kotlinxDate = runCatching { LocalDate.parse(date.toString()) }.getOrNull()
+                ?: return null
+            val window = ReminderEngine.islandWindow(courses, skippedDates, kotlinxDate, leadMinutes)
+                ?: return null
+            val zone = TimeZone.currentSystemDefault()
+            val start = LocalDateTime(window.date, window.start)
+                .toInstant(zone).toEpochMilliseconds()
+            val end = LocalDateTime(window.date, window.end)
+                .toInstant(zone).toEpochMilliseconds()
             return DynamicIslandWindow(date, start, end)
         }
 
-        fun parseTime(value: String): LocalTime? {
-            return runCatching { LocalTime.parse(value) }.getOrNull()
-                ?: runCatching {
-                    val parts = value.split(":")
-                    LocalTime.of(parts[0].toInt(), parts[1].toInt())
-                }.getOrNull()
-        }
+        /**
+         * 时间串解析：委托引擎（与提醒/自动模式同一套容错口径），
+         * 再转回 java.time 以兼容服务本体。
+         */
+        fun parseTime(value: String): java.time.LocalTime? =
+            ReminderEngine.parseTime(value)?.let { java.time.LocalTime.of(it.hour, it.minute) }
     }
 
     // ---------------------------------------------------------------------

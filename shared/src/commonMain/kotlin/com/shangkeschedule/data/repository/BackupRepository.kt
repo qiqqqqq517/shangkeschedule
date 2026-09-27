@@ -501,8 +501,10 @@ class BackupRepository(
         /**
          * 应用设置备份规范版本。
          * v2：新增个人信息（昵称/学校/学院/专业/年级/签名/头像）与 5 项此前未备份的设置。
+         * v3：新增早八闹钟（开关 + 提前量）；旧 v2 备份缺字段 ⇒ 解码为 null ⇒ 保留设备现值，
+         *     故恢复链路向前兼容，无需迁移旧数据。
          */
-        const val APP_SETTINGS_SCHEMA_VERSION = 2
+        const val APP_SETTINGS_SCHEMA_VERSION = 3
     }
 
     /**
@@ -550,7 +552,9 @@ class BackupRepository(
                 profileMajor = settings.profileMajor,
                 profileGrade = settings.profileGrade,
                 profileSignature = settings.profileSignature,
-                profileAvatarPath = settings.profileAvatarPath
+                profileAvatarPath = settings.profileAvatarPath,
+                morningAlarmEnabled = settings.morningAlarmEnabled,
+                morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
             )
             val envelope = AppSettingsBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
@@ -640,7 +644,11 @@ class BackupRepository(
                 profileMajor = bm.profileMajor ?: currentSettings.profileMajor,
                 profileGrade = bm.profileGrade ?: currentSettings.profileGrade,
                 profileSignature = bm.profileSignature ?: currentSettings.profileSignature,
-                profileAvatarPath = bm.profileAvatarPath ?: currentSettings.profileAvatarPath
+                profileAvatarPath = bm.profileAvatarPath ?: currentSettings.profileAvatarPath,
+                // v3 可空字段：旧备份 ⇒ null ⇒ 保留设备现值
+                morningAlarmEnabled = bm.morningAlarmEnabled ?: currentSettings.morningAlarmEnabled,
+                morningAlarmLeadMinutes = (bm.morningAlarmLeadMinutes ?: currentSettings.morningAlarmLeadMinutes)
+                    .coerceIn(0, 180)
             )
             appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
             Result.success(Unit)

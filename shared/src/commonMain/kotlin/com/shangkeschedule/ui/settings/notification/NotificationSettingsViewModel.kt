@@ -3,8 +3,11 @@ package com.shangkeschedule.ui.settings.notification
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.api.date.ApiDateImporter
+import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.notification.MorningAlarmPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +16,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import org.koin.core.annotation.KoinViewModel
 
 /**
@@ -24,6 +33,9 @@ sealed interface NotificationDialogType {
     data object AutoModeSelection : NotificationDialogType
     data object ClearConfirmation : NotificationDialogType
     data object ViewSkippedDates : NotificationDialogType
+
+    /** 编辑早八闹钟的提前分钟数。 */
+    data object EditMorningAlarmLead : NotificationDialogType
 }
 
 /**
@@ -38,6 +50,10 @@ sealed interface NotificationDialogType {
  * @property autoModeEnabled 自动模式（勿扰/静音）开关
  * @property autoControlMode 自动控制模式类型
  * @property compatWearableSync 穿戴设备兼容同步开关
+ * @property dynamicIslandEnabled 灵动岛（Android 16 实时更新）开关
+ * @property morningAlarmEnabled 早八闹钟开关
+ * @property morningAlarmLeadMinutes 早八闹钟提前分钟数
+ * @property nextMorningAlarm 下一个早八闹钟预览；null = 近期无需早起
  * @property activeDialog 当前展示的弹窗类型
  */
 data class NotificationSettingsUiState(
@@ -51,6 +67,9 @@ data class NotificationSettingsUiState(
     val autoControlMode: AutoControlMode = AutoControlMode.DND,
     val compatWearableSync: Boolean = false,
     val dynamicIslandEnabled: Boolean = false,
+    val morningAlarmEnabled: Boolean = false,
+    val morningAlarmLeadMinutes: Int = 45,
+    val nextMorningAlarm: MorningAlarmPlan.MorningAlarm? = null,
     val activeDialog: NotificationDialogType = NotificationDialogType.None
 )
 
@@ -58,10 +77,16 @@ data class NotificationSettingsUiState(
  * 通知设置 ViewModel
  *
  * 负责管理通知设置页面的 UI 状态及与配置存储库的数据持久化交互。
+ *
+ * 相对旧实现的两点重构：
+ *  1. 所有写操作改走 `AppSettingsRepository` 的**单字段原子更新**方法，
+ *     不再 `first()` 读→`copy()`→整写 30+ 键（既有读写竞态，又会连带重写无关设置）；
+ *  2. 新增早八闹钟的状态与「下一个闹钟」预览（读课程表算第一节课）。
  */
 @KoinViewModel
 class NotificationSettingsViewModel(
-    private val appSettingsRepository: AppSettingsRepository
+    private val appSettingsRepository: AppSettingsRepository,
+    private val widgetRepository: WidgetRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationSettingsUiState())
@@ -84,11 +109,46 @@ class NotificationSettingsViewModel(
                     autoModeEnabled = settings.autoModeEnabled,
                     autoControlMode = settings.autoControlMode,
                     compatWearableSync = settings.compatWearableSync,
-                    dynamicIslandEnabled = settings.dynamicIslandEnabled
+                    dynamicIslandEnabled = settings.dynamicIslandEnabled,
+                    morningAlarmEnabled = settings.morningAlarmEnabled,
+                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
                 )
+                refreshMorningAlarmPreview()
             }
         }
     }
+
+    /**
+     * 重算「下一个早八闹钟」预览。
+     *
+     * 读课程表里未来 7 天的课，取每天最早的一节按提前量回推，
+     * 展示最近的一条（或 null 表示近期无需早起）。
+     */
+    fun refreshMorningAlarmPreview() {
+        viewModelScope.launch {
+            val preview = runCatching {
+                withContext(Dispatchers.IO) {
+                    val state = _uiState.value
+                    val today = Clock.System.now()
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .date
+                    val courses: List<WidgetCourse> = widgetRepository
+                        .getWidgetCoursesByDateRange(today.toString(), today.plusDaysCompat(7).toString())
+                        .first()
+                    MorningAlarmPlan.plan(
+                        courses = courses,
+                        skippedDates = state.skippedDates,
+                        today = today,
+                        days = 7,
+                        leadMinutes = state.morningAlarmLeadMinutes
+                    ).firstOrNull()
+                }
+            }.getOrNull()
+            _uiState.value = _uiState.value.copy(nextMorningAlarm = preview)
+        }
+    }
+
+    private fun LocalDate.plusDaysCompat(days: Int): LocalDate = plus(days, DateTimeUnit.DAY)
 
     /**
      * 显示指定的弹窗
@@ -118,33 +178,35 @@ class NotificationSettingsViewModel(
         _uiState.value = _uiState.value.copy(dndPermissionStatus = hasPermission)
     }
 
-    /**
-     * 更新课程提醒开关状态
-     */
+    /** 更新课程提醒开关状态。 */
     fun updateReminderEnabled(isEnabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(reminderEnabled = isEnabled))
-        }
+        viewModelScope.launch { appSettingsRepository.updateReminderEnabled(isEnabled) }
     }
 
-    /**
-     * 更新穿戴设备兼容同步开关状态
-     */
+    /** 更新穿戴设备兼容同步开关状态。 */
     fun updateCompatWearableSync(isEnabled: Boolean) {
+        viewModelScope.launch { appSettingsRepository.updateCompatWearableSync(isEnabled) }
+    }
+
+    /** 更新状态栏「灵动岛」开关（Android 16 实时更新）。 */
+    fun updateDynamicIslandEnabled(isEnabled: Boolean) {
+        viewModelScope.launch { appSettingsRepository.updateDynamicIslandEnabled(isEnabled) }
+    }
+
+    /** 更新早八闹钟开关。 */
+    fun updateMorningAlarmEnabled(isEnabled: Boolean) {
         viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(compatWearableSync = isEnabled))
+            appSettingsRepository.updateMorningAlarmEnabled(isEnabled)
+            refreshMorningAlarmPreview()
         }
     }
 
-    /**
-     * 更新状态栏「灵动岛」开关（Android 16 实时更新）
-     */
-    fun updateDynamicIslandEnabled(isEnabled: Boolean) {
+    /** 保存早八闹钟提前分钟数并关闭弹窗。 */
+    fun updateMorningAlarmLeadMinutes(minutes: Int) {
         viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(dynamicIslandEnabled = isEnabled))
+            appSettingsRepository.updateMorningAlarmLeadMinutes(minutes)
+            refreshMorningAlarmPreview()
+            dismissDialog()
         }
     }
 
@@ -153,24 +215,18 @@ class NotificationSettingsViewModel(
      */
     fun updateRemindBeforeMinutes(minutes: Int) {
         viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(remindBeforeMinutes = minutes))
+            appSettingsRepository.updateRemindBeforeMinutes(minutes)
             dismissDialog()
         }
     }
 
     /**
-     * 更新自动模式开关状态及控制类型，更新完成后关闭弹窗
+     * 更新自动模式开关状态及控制类型，更新完成后关闭弹窗。
+     * 开关与模式一起原子写入（避免「已开启但模式仍是旧值」的中间态被调度器读到）。
      */
     fun updateAutoMode(isEnabled: Boolean, newControlMode: AutoControlMode) {
         viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettings().first()
-            appSettingsRepository.insertOrUpdateAppSettings(
-                currentSettings.copy(
-                    autoModeEnabled = isEnabled,
-                    autoControlMode = newControlMode
-                )
-            )
+            appSettingsRepository.updateAutoMode(isEnabled, newControlMode)
             dismissDialog()
         }
     }
@@ -189,6 +245,7 @@ class NotificationSettingsViewModel(
                 }
             }
             _uiState.value = _uiState.value.copy(isLoading = false)
+            refreshMorningAlarmPreview()
             onResult(result)
         }
     }
@@ -200,11 +257,11 @@ class NotificationSettingsViewModel(
      */
     fun clearSkippedDates(onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
-            val result = runCatching {
-                val currentSettings = appSettingsRepository.getAppSettings().first()
-                appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(skippedDates = emptySet()))
+            val result = runCatching { appSettingsRepository.updateSkippedDates(emptySet()) }
+            if (result.isSuccess) {
+                refreshMorningAlarmPreview()
+                dismissDialog()
             }
-            if (result.isSuccess) dismissDialog()
             onResult(result)
         }
     }

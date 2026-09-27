@@ -221,7 +221,12 @@ object CourseImportExport {
         val profileMajor: String? = null,
         val profileGrade: String? = null,
         val profileSignature: String? = null,
-        val profileAvatarPath: String? = null
+        val profileAvatarPath: String? = null,
+
+        // ---- v3 新增：早八闹钟（写入系统时钟应用）----
+        // 可空：旧备份缺字段 ⇒ 解码为 null ⇒ 恢复时保留设备现值
+        val morningAlarmEnabled: Boolean? = null,
+        val morningAlarmLeadMinutes: Int? = null
     )
 
     /**

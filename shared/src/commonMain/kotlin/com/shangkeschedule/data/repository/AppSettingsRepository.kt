@@ -9,6 +9,7 @@ import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.tool.AppLog
@@ -185,6 +186,79 @@ class AppSettingsRepository(
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_SCHEDULE_VIEW_MODE] = mode.value
         }
+    }
+
+    // ------------------------------------------------------------------
+    // 通知 / 自动化设置的单字段原子更新
+    //
+    // 背景：旧 NotificationSettingsViewModel 的每个开关都是
+    //   `getAppSettings().first()` → `copy(字段=值)` → `insertOrUpdateAppSettings(整模型)`
+    // 而 insertOrUpdateAppSettings 会一次性写回**全部 30+ 个键**。两个后果：
+    //  1. **读改写竞态**：两次并发开关操作会以各自陈旧快照互相覆盖；
+    //  2. **无关字段被重写**：通知页改动一个开关，会连带把主题/动画/情侣课表等
+    //     全部字段重写一遍（其中任一字段若在别处刚被修改，就会被这份陈旧快照回退）。
+    // 这里按「只写自己要改的键」的方式拆分，与既有 updateThemePreset 同属一个模式。
+    // ------------------------------------------------------------------
+
+    /** 单独持久化课程提醒总开关。 */
+    suspend fun updateReminderEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_REMINDER_ENABLED] = enabled }
+    }
+
+    /** 单独持久化提前提醒分钟数。 */
+    suspend fun updateRemindBeforeMinutes(minutes: Int) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_REMIND_BEFORE_MINUTES] = minutes }
+    }
+
+    /** 单独持久化跳过日期集合。 */
+    suspend fun updateSkippedDates(dates: Set<String>) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_SKIPPED_DATES] = dates }
+    }
+
+    /** 单独持久化自动模式开关。 */
+    suspend fun updateAutoModeEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = enabled }
+    }
+
+    /** 单独持久化自动控制模式（勿扰/静音）。 */
+    suspend fun updateAutoControlMode(mode: AutoControlMode) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_AUTO_CONTROL_MODE] = mode.value }
+    }
+
+    /**
+     * 一次性原子写入「自动模式开关 + 模式类型」。
+     * 两者总是一起被用户选择（下弹窗选模式即开启），拆成两次写入会出现
+     * 「已开启但模式还是旧值」的中间态，而调度器可能恰好读到该中间态。
+     */
+    suspend fun updateAutoMode(enabled: Boolean, mode: AutoControlMode) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = enabled
+            prefs[AppSettingsModel.KEY_AUTO_CONTROL_MODE] = mode.value
+        }
+    }
+
+    /** 单独持久化「兼容穿戴设备同步通知」开关。 */
+    suspend fun updateCompatWearableSync(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_COMPAT_WEARABLE_SYNC] = enabled }
+    }
+
+    /** 单独持久化「灵动岛」开关。 */
+    suspend fun updateDynamicIslandEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_DYNAMIC_ISLAND_ENABLED] = enabled }
+    }
+
+    /** 单独持久化早八闹钟开关。 */
+    suspend fun updateMorningAlarmEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] = enabled }
+    }
+
+    /**
+     * 单独持久化早八闹钟提前量；越界值收敛到 0–180（与 `MorningAlarmPlan` 同口径，
+     * 避免脏配置写进存储后每次计算都要额外防御）。
+     */
+    suspend fun updateMorningAlarmLeadMinutes(minutes: Int) {
+        val clamped = minutes.coerceIn(0, 180)
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] = clamped }
     }
 
     /**
