@@ -4,12 +4,11 @@ import android.content.Context
 import android.content.Intent
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
-import com.shangkeschedule.notification.identity.NotificationIds
 import com.shangkeschedule.notification.plan.ReminderEngine
+import com.shangkeschedule.notification.plan.ReminderPlan
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.notify.PostedNotificationRegistry
 import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 
 /**
@@ -51,28 +50,23 @@ internal class CourseReminderScheduler(
         leadMinutes: Int,
         now: LocalDateTime
     ): Int {
-        // 本轮仍需保留的通知（用于回收已失效的）
-        val stillValidKeys = mutableSetOf<String>()
-        var scheduled = 0
+        // 「选哪几节课、挂到哪一刻、用哪个码」在 ReminderPlan 里（纯逻辑，可单测）；
+        // 本方法只负责把决策结果落到系统闹钟 + 回收失效通知。
+        val entries = ReminderPlan.select(
+            courses = courses,
+            leadMinutes = leadMinutes,
+            now = now,
+            availableSlots = alarms.totalSlots - alarms.usedSlots,
+            codeOf = alarms::codeFor
+        )
 
-        for (course in courses) {
-            if (alarms.usedSlots >= alarms.totalSlots) break
-            val date = runCatching { LocalDate.parse(course.date) }.getOrNull() ?: continue
-            val (reminderDate, reminderTime) =
-                ReminderEngine.reminderDateTime(course, date, leadMinutes) ?: continue
-            val triggerAt = LocalDateTime(reminderDate, reminderTime)
-            if (triggerAt <= now) continue
-
-            val key = NotificationIds.occurrenceKey(course)
-            val code = alarms.codeFor(key) ?: break
-            stillValidKeys += key
-            alarms.setExact(applicationIntent(course), code, triggerAt)
-            scheduled++
+        for (entry in entries) {
+            alarms.setExact(applicationIntent(entry.course), entry.code, entry.triggerAt)
         }
 
         // 回收：已不在本轮计划里的提醒通知（课程被删/改期/已上完）
-        registry.pruneExcept(stillValidKeys)
-        return scheduled
+        registry.pruneExcept(entries.map { it.key }.toSet())
+        return entries.size
     }
 
     /** 课程提醒广播的 Intent（接收器 = [ReminderAlarmReceiver]）。 */

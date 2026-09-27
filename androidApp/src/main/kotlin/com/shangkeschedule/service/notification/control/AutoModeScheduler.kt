@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.notification.plan.AutoModePlan
 import com.shangkeschedule.notification.plan.ReminderEngine
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.receiver.AutoModeAlarmReceiver
@@ -40,13 +41,15 @@ internal class AutoModeScheduler(
     }
 
     private fun schedule(courses: List<WidgetCourse>, now: LocalDateTime): Int {
-        val transitions = ReminderEngine.autoModeTransitions(courses)
-            .filter { LocalDateTime(it.date, it.time) > now }
-            .take(alarms.autoModeSlotLimit)
+        // 「丢掉过期切换 + 按槽位上限截断编号」在 AutoModePlan 里（纯逻辑，可单测）
+        val entries = AutoModePlan.select(
+            transitions = ReminderEngine.autoModeTransitions(courses),
+            now = now,
+            slotLimit = alarms.autoModeSlotLimit
+        )
 
-        transitions.forEachIndexed { index, transition ->
-            val triggerAt = LocalDateTime(transition.date, transition.time)
-            val action = if (transition.enable) {
+        for (entry in entries) {
+            val action = if (entry.enable) {
                 AutoModeAlarmReceiver.ACTION_AUTO_MODE_START
             } else {
                 AutoModeAlarmReceiver.ACTION_AUTO_MODE_END
@@ -54,9 +57,9 @@ internal class AutoModeScheduler(
             val intent = Intent(context, AutoModeAlarmReceiver::class.java).apply {
                 this.action = action
             }
-            alarms.setAutoMode(intent, index, triggerAt)
+            alarms.setAutoMode(intent, entry.index, entry.triggerAt)
         }
-        return transitions.size
+        return entries.size
     }
 
     /**
