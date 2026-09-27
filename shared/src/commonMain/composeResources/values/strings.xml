@@ -192,7 +192,8 @@
 
     <!-- 通知与闹钟 -->
     <string name="item_auto_mode">上课自动模式</string>
-    <string name="text_auto_mode_dependency">依赖于「课程提醒」的开启</string>
+    <string name="desc_auto_mode">上课自动开启勿扰/静音，下课后自动恢复</string>
+    <string name="text_auto_mode_dependency">需先开启「课程提醒」</string>
     <string name="toast_enable_reminder_first">请先开启「课程提醒」</string>
     <string name="alarm_option_none">不提醒</string>
     <string name="alarm_option_on_time">准时提醒</string>
@@ -203,19 +204,24 @@
     <string name="title_course_notification_settings">课程提醒设置</string>
     <string name="section_title_general">常规</string>
     <string name="section_title_advanced">高级</string>
-    <string name="text_permission_importance_title">权限设置对于 Android 提醒非常重要</string>
-    <string name="text_permission_importance_detail">为了确保提醒按时送达，你需要：\n1. 授予精确闹钟权限 (Android 12及以上)\n2. 开启应用的自启动权限\n3. 关闭应用的电池优化功能\n4. 授予勿扰模式权限（用于自动模式切换）\n\n请在下方的设置项中手动开启这些权限。</string>
+    <string name="section_title_reminder">课程提醒</string>
+    <string name="section_title_notification_display">通知显示</string>
+    <string name="section_title_morning_alarm">早八闹钟</string>
+    <string name="section_title_permission_background">权限与后台</string>
+    <string name="text_permission_importance_title">提醒能否准时送达，取决于下面几项设置</string>
+    <string name="text_permission_importance_detail">点按各项即可跳转到对应的系统设置页面。</string>
     <string name="item_course_reminder">课程提醒</string>
+    <string name="desc_course_reminder">每节课前按下方提前量推送提醒通知；课程或时间变动后自动重排</string>
     <string name="item_morning_alarm">早八闹钟</string>
-    <string name="desc_morning_alarm">按每天第一节课时间写入系统闹钟，可在时钟应用里直接修改</string>
-    <string name="desc_morning_alarm_managed_in_clock">闹钟写入后由系统时钟管理；以后调整请直接在时钟应用里改</string>
-    <string name="item_morning_alarm_lead">提前提醒时间</string>
+    <string name="desc_morning_alarm">把最近一次早八时间写入系统时钟，之后每天自动往后顺延</string>
+    <string name="desc_morning_alarm_managed_in_clock">闹钟写入后由系统时钟管理：修改或删除都请到时钟应用里操作</string>
+    <string name="item_morning_alarm_lead">闹钟提前量</string>
     <string name="morning_alarm_preview_title">下一个闹钟</string>
     <string name="morning_alarm_preview_format">%1$s %2$s · 第一节 %3$s %4$s</string>
     <string name="morning_alarm_preview_none">近期没有需要早起的课程</string>
     <string name="action_open_system_alarm">打开系统闹钟</string>
     <string name="toast_morning_alarm_enable_reminder_first">请先开启课程提醒</string>
-    <string name="item_remind_time_before">提前提醒时间</string>
+    <string name="item_remind_time_before">课前提醒时间</string>
     <string name="remind_time_minutes_format">%1$s 分钟</string>
     <string name="item_exact_alarm_permission">精确闹钟权限</string>
     <string name="item_dnd_permission">勿扰模式权限</string>
@@ -235,7 +241,8 @@
     <string name="toast_clear_failed">清空失败：%1$s</string>
     <string name="dialog_title_auto_mode_selection">上课自动模式选择</string>
     <string name="auto_mode_dnd_permission_warning">（缺少勿扰权限，启用勿扰/静音可能无效）</string>
-    <string name="dialog_title_set_remind_time">设置提前提醒时间</string>
+    <string name="dialog_title_set_remind_time">设置课前提醒时间</string>
+    <string name="dialog_title_set_morning_alarm_lead">设置闹钟提前量</string>
     <string name="label_minutes_input">分钟数</string>
     <string name="dialog_title_exact_alarm_permission">需要精确闹钟权限</string>
     <string name="dialog_text_exact_alarm_permission">为了确保提醒能在准确时间送达，请授予精确闹钟权限。</string>

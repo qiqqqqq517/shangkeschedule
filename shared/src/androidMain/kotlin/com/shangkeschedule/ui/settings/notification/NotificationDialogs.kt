@@ -51,6 +51,7 @@ import shangkeschedule.shared.generated.resources.dialog_title_auto_mode_selecti
 import shangkeschedule.shared.generated.resources.dialog_title_clear_confirmation
 import shangkeschedule.shared.generated.resources.dialog_title_dnd_permission
 import shangkeschedule.shared.generated.resources.dialog_title_exact_alarm_permission
+import shangkeschedule.shared.generated.resources.dialog_title_set_morning_alarm_lead
 import shangkeschedule.shared.generated.resources.dialog_title_set_remind_time
 import shangkeschedule.shared.generated.resources.dialog_title_view_skipped_dates
 import shangkeschedule.shared.generated.resources.label_minutes_input
@@ -76,6 +77,7 @@ fun NotificationDialogDispatcher(
                 mutableStateOf(uiState.remindBeforeMinutes.toString())
             }
             EditRemindMinutesDialog(
+                dialogTitle = stringResource(Res.string.dialog_title_set_remind_time),
                 currentMinutes = tempInput,
                 onMinutesChange = { tempInput = it.filter { c -> c.isDigit() } },
                 onConfirm = {
@@ -112,6 +114,7 @@ fun NotificationDialogDispatcher(
                 mutableStateOf(uiState.morningAlarmLeadMinutes.toString())
             }
             EditRemindMinutesDialog(
+                dialogTitle = stringResource(Res.string.dialog_title_set_morning_alarm_lead),
                 currentMinutes = tempInput,
                 onMinutesChange = { tempInput = it.filter { c -> c.isDigit() } },
                 onConfirm = {
@@ -271,6 +274,7 @@ fun AutoModeSelectionDialog(
 
 @Composable
 fun EditRemindMinutesDialog(
+    dialogTitle: String,
     currentMinutes: String,
     onMinutesChange: (String) -> Unit,
     onConfirm: () -> Unit,
@@ -278,7 +282,7 @@ fun EditRemindMinutesDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.dialog_title_set_remind_time)) },
+        title = { Text(dialogTitle) },
         text = {
             // 统一柔和填充输入框
             AppTextField(
