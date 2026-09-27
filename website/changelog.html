@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.71.2</b></span>
-        <span>versionCode <b class="mono" data-version-code>290</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.72.3</b></span>
+        <span>versionCode <b class="mono" data-version-code>294</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3723">v3.72.3 · 通知子系统整体重写：每日早八闹钟、按课次稳定排程、可测试化</a></li>
         <li><a href="#v3712">v3.71.2 · 体积专项二：Release APK 再减 458 KB，安装包累计下降 8.8%</a></li>
         <li><a href="#v3710">v3.71.0 · 体积与性能专项：APK 瘦身约 542 KB，解析提速</a></li>
         <li><a href="#v3705">v3.70.5 · 全局 UI/交互视觉优化</a></li>
@@ -144,6 +145,46 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3723">
+        <div><span class="tl-ver">v3.72.3</span><span class="tl-date">2026-09-27</span></div>
+        <div class="tl-body">
+          <p><strong>通知子系统整体重写：每日早八闹钟、按课次稳定排程、可测试化。</strong>本版合并发布 <span class="mono">v3.72.0–v3.72.3</span>（v3.72.0 为功能主体，v3.72.1–v3.72.3 为其后的「按作用分类」重构与测试补齐）。课程提醒 / 上课自动勿扰静音 / 穿戴同步三块通知能力，从三套各自为政的调度收敛为单一编排入口。<strong>无数据库结构变更</strong>（数据库版本 13）；备份规范 v2 → v3（新增早八两字段，旧备份向前兼容）。</p>
+
+          <h3><span class="tl-tag tag-feat">新功能</span>每日早八闹钟</h3>
+          <ul>
+            <li>自动读取<strong>每天第一节课</strong>时间，按 0–180 分钟（默认 45）的提前量把闹钟<strong>写入系统时钟应用</strong>；写入后就是普通闹钟，可直接改时间 / 停用 / 删除，应用尊重你的改动。</li>
+            <li>设置页提供开关、提前量、下一闹钟预览（「周三 07:15 · 第一节 08:00 高等数学」）与「打开系统闹钟」直达入口。</li>
+            <li>系统无可用时钟应用时自动降级为应用内高优先级闹钟通知（闹钟铃声 + 震动），不会「开了开关却什么都收不到」。</li>
+            <li>真机实测（Xiaomi 22041216UC / MIUI V816 / Android 14）：09-28 第一节 14:00 大学物理实验 → 系统闹钟 <span class="mono">13:15 早八·09-28 13:15 大学物理实验（一）</span>；09-30 / 10-01 / 10-02 第一节均 07:50 → <span class="mono">07:05</span>。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>重写过程中逐项定位的实质缺陷</h3>
+          <ul>
+            <li><strong>通知互相顶替</strong>：旧实现拿闹钟槽位号（50010–50110）当通知 ID，而槽位是按未来课程列表序号分配的——课表一变，同一槽位就换了另一门课，提醒被原地覆盖。现改为由「课程 ID + 日期 + 上课时刻」派生的<strong>稳定通知 ID</strong>，同一次课幂等更新、不同次课并存不顶替。</li>
+            <li><strong>「关闭」按钮关错课</strong>：requestCode 与 identifier 现都绑到稳定通知 ID，「关闭」恒只关本条。</li>
+            <li><strong>已投递通知永不清理</strong>：旧代码只做 <span class="mono">AlarmManager.cancel()</span>、<strong>从不调用</strong> <span class="mono">NotificationManager.cancel()</span>，而提醒是常驻通知——课表越常改，状态栏堆积越多。现引入已投递通知登记簿，在重排 / 关总开关 / 课程消失三个时机统一回收。</li>
+            <li><strong>提醒永久残留在状态栏</strong>：两种模式都用 <span class="mono">setTimeoutAfter</span> 在<strong>上课时刻自动消失</strong>；非兼容模式上课前不许误划掉，兼容模式为可划掉的一次性提醒。</li>
+            <li><strong>纯静音被误要求勿扰权限</strong>：现在<strong>仅「勿扰」要求权限，静音直接放行</strong>。</li>
+            <li><strong>自动模式状态卡死</strong>：旧实现算完「是否处于勿扰时段」只写日志、从不应用；下课闹钟因重启丢失后勿扰会一直卡着。现每次重排都按「当前是否在上课」校准实际状态。</li>
+            <li><strong>调度混乱</strong>：自动勿扰原先借用课程提醒的 action 与请求码区间，现拆到专属接收器 + 专属 action + 独立命名空间。</li>
+            <li><strong>早八闹钟「开关已开、系统时钟里却没有闹钟」</strong>（真机定位）：拨开关只写设置库，写入交给后台任务，而写入依赖 <span class="mono">startActivity(ACTION_SET_ALARM)</span>，受 Android 10+ <strong>后台启动限制（BAL）</strong> 约束——被拦时 <span class="mono">startActivity</span> <strong>不抛异常、只是什么也没发生</strong>，旧实现按「有没有抛异常」判成功，于是把静默失败登记成「已写入」，登记簿一旦被污染就再也不补写。最有力的证据：开关为开、提前量 45，但登记簿在把应用调到前台之前<strong>从未建立过</strong>（= 从未成功写入过一条）；调到前台后系统时钟立即出现闹钟。现在：拨开关且应用在前台时<strong>就地内联重排</strong>（BAL 放行），后台仍交任务兜底；写入前还做<strong>前台门控</strong>，非前台一律不写、不登记，返回「延后」待下次前台时机补齐。</li>
+            <li><strong>早八闹钟响错日期</strong>（真机定位）：<span class="mono">ACTION_SET_ALARM</span> 只能表达「时:分」、<strong>没有日期语义</strong>，系统时钟按「下一次该时刻」建一次性闹钟。<span class="mono">deleteAfterUse</span> 下实测请求 09-28 13:15 / 09-29 09:45 / 09-30 07:05，三条<strong>全部落在 09-28</strong>，标签却写着 09-30 / 09-29。现改为<strong>只写「最近一次未过期」的早八闹钟</strong>、每日滚动补位，并校验该时刻确实是系统时钟能做到的那一次；登记簿升级到 <strong>v2</strong>（记录真实响铃时刻而非「intent 已发出」）。</li>
+            <li><strong>早八闹钟删不掉</strong>（真机实测）：<span class="mono">ACTION_DISMISS_ALARM</span> 在本机<strong>只把时钟界面调到前台、闹钟依然保留</strong>；且 <span class="mono">ACTION_SET_ALARM</span> <strong>非幂等</strong>（同刻同标签连发两次会留下两条）。因此不做无法生效的删除动作，由设置页如实例提示到系统闹钟页手动管理；从旧版本升级时旧登记簿一律作废重写，系统里可能残留旧错闹钟，需手动清理一次。</li>
+            <li>另修复：早八开关曾被错误耦合在课程提醒开关上；登记簿无界增长与「禁用时清空会造重复」；读库异常会清空全部提醒；设置页每个开关「读全量设置 → 改一个字段 → 整写 30+ 键」的并发覆盖与无关设置连带重写（现为单字段原子更新）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-refactor">内部</span>按作用分类重排 + 排程可测化</h3>
+          <ul>
+            <li>通知域 17 个文件按作用归入 10 个子包（<span class="mono">alarm/ control/ migrate/ morning/ notify/ receiver/ reminder/ schedule/</span>，共享层 <span class="mono">identity/ plan/ registry/</span>），<span class="mono">AlarmManager</span> 收敛为唯一出口 <span class="mono">AlarmScheduler</span>，编排入口 <span class="mono">NotificationScheduler</span> 从 403 行的「上帝类」瘦身到 112 行；课程提醒 / 自动模式 / 早八三个排程策略各自独立成类；顺带删除全仓零调用的死代码。<strong>纯结构调整、无行为变更</strong>（重构后真机日志与重构前逐字一致）。</li>
+            <li>把三个策略类里的「纯决策」抽到共享层（<span class="mono">ReminderPlan</span> / <span class="mono">AutoModePlan</span>），使原本零覆盖的排程分支获得单测。</li>
+            <li>测试覆盖从 0 到 <strong>95 项</strong>；测试过程中实际捕获并修复了「课间相邻课合并后残留冗余开启事件」的缺陷。权限仅新增 normal 级 <span class="mono">com.android.alarm.permission.SET_ALARM</span>。</li>
+            <li>正式包（R8 + 资源压缩）已真机冒烟：冷启正常、课表页完整渲染、无 FATAL。</li>
+          </ul>
+
+          <p class="mono">versionCode 294 / versionName 3.72.3（arm64-v8a / armeabi-v7a / x86_64，签名 SHA-256 4ae49d8c…2475f）</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3712">
         <div><span class="tl-ver">v3.71.2</span><span class="tl-date">2026-09-27</span></div>
