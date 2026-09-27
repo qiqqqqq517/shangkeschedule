@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.73.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>297</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.74.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>298</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3740">v3.74.0 · 学期管理补齐「复制学期」+ 计数 / 折叠 / 标题行修复</a></li>
         <li><a href="#v3730">v3.73.0 · 课程提醒设置页改版 + 跳过日期可自行设定</a></li>
         <li><a href="#v3723">v3.72.3 · 通知子系统整体重写：每日早八闹钟、按课次稳定排程、可测试化</a></li>
         <li><a href="#v3712">v3.71.2 · 体积专项二：Release APK 再减 458 KB，安装包累计下降 8.8%</a></li>
@@ -146,6 +147,33 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3740">
+        <div><span class="tl-ver">v3.74.0</span><span class="tl-date">2026-09-28</span></div>
+        <div class="tl-body">
+          <p><strong>学期管理补齐「复制学期」+ 计数 / 折叠 / 标题行修复。</strong>本版为单一迭代，改动集中在「我的课表（学期管理）」页：补齐设计稿里存在、而实现中整块缺失的<strong>「复制学期」</strong>能力，并修掉审计出的三处缺陷。<strong>无数据库结构变更</strong>（数据库版本 13），设置存储键无增减，旧版本升级无需迁移。</p>
+
+          <h3><span class="tl-tag tag-feat">新功能</span>复制学期</h3>
+          <ul>
+            <li>「学期管理 → 历史学期」卡片操作行由「查看 / 删除」补为<strong>「查看 / 复制 / 删除」</strong>：点「复制」即把该学期整份复制成一张新的独立学期，<strong>课程</strong>（教师、地点、节次 / 自定义时间、颜色、备注、学分、考核方式、实验课标记）、<strong>周次</strong>、<strong>作息时间段（含全部作息方案）</strong>、<strong>学期配置</strong>（开学日期 / 总周数 / 每周起始日）全部带过来，只需改日期和少数课程，不必从零新建。</li>
+            <li>复制出的学期默认叫「原学期名（副本）」，若该名称已存在则自动递增为「（副本2）」「（副本3）」……不会与现有学期撞名。</li>
+            <li>复制结果是<strong>独立的学期</strong>：不继承配对关系，与源学期、情侣课表互不影响；源学期没有课程、或没有作息数据时也能正常复制（作息回落出厂默认模板）。</li>
+            <li>复制全程在<strong>单个写事务</strong>内完成，中途失败不会留下「有课表没课程」的半成品。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>学期管理页三处缺陷</h3>
+          <ul>
+            <li><strong>页头「共 N 个学期」把情侣课表也算成了学期</strong>：情侣课表并非独立学期（它以并排卡片附挂在本人学期右侧），数字因此虚高。现已改为只统计本人学期。</li>
+            <li><strong>「查看更早的学期」展开后无法收起</strong>：旧实现只在收起态渲染该按钮，点开后按钮整块消失，没有回头路。现展开态保留按钮，箭头翻转 180°、文案切为「收起更早的学期」，可反复展开 / 收起。</li>
+            <li><strong>历史学期名过长时被提前截断</strong>：标题行原写法让标题最多只能占半宽，稍长的学期名（如「2024-2025学年 第一学期」+ 自定义后缀）就被省略号截断。现标题吃满剩余宽度、右侧状态徽标仍贴右，长名可用空间翻倍。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-refactor">构建</span>版本信息</h3>
+          <ul>
+            <li>versionCode <span class="mono">298</span> / versionName <span class="mono">3.74.0</span>；按 ABI 拆分：arm64-v8a / armeabi-v7a / x86_64。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3730">
         <div><span class="tl-ver">v3.73.0</span><span class="tl-date">2026-09-28</span></div>
