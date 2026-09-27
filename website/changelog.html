@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v3.72.3</b></span>
-        <span>versionCode <b class="mono" data-version-code>294</b></span>
+        <span>当前版本 <b class="mono" data-version>v3.73.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>297</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v3730">v3.73.0 · 课程提醒设置页改版 + 跳过日期可自行设定</a></li>
         <li><a href="#v3723">v3.72.3 · 通知子系统整体重写：每日早八闹钟、按课次稳定排程、可测试化</a></li>
         <li><a href="#v3712">v3.71.2 · 体积专项二：Release APK 再减 458 KB，安装包累计下降 8.8%</a></li>
         <li><a href="#v3710">v3.71.0 · 体积与性能专项：APK 瘦身约 542 KB，解析提速</a></li>
@@ -145,6 +146,38 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v3730">
+        <div><span class="tl-ver">v3.73.0</span><span class="tl-date">2026-09-28</span></div>
+        <div class="tl-body">
+          <p><strong>课程提醒设置页改版 + 跳过日期可自行设定。</strong>本版合并发布 <span class="mono">v3.72.4–v3.73.0</span>。设置页由「13 项挤在一张卡」重组为五个分区并逐条重写文案；「跳过日期」从只读查看改为<strong>可自行增删</strong>。<strong>无数据库结构变更</strong>（数据库版本 13），设置存储键无增减，旧版本升级无需迁移。</p>
+
+          <h3><span class="tl-tag tag-feat">新功能</span>跳过日期可自行设定</h3>
+          <ul>
+            <li>「课程提醒设置 → 跳过日期 → 管理跳过日期」中可<strong>单个日期添加</strong>（日期选择器）、<strong>按区间批量添加</strong>（选起止日期）、<strong>点按任意日期即移除</strong>，每次操作都有即时提示。</li>
+            <li>放假、调休、临时停课都能自己维护，不再只能依赖联网更新节假日。</li>
+            <li>区间合法性校验：起止日期颠倒、或区间超过 366 天会被拒绝并提示，不会写入设置。</li>
+            <li>入口右侧角标随跳过日期数量实时变化，并与课前提醒排程、早八闹钟「下一个闹钟」预览、今日页「假期中」判断保持一致。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观与文案</span>设置页分区重排</h3>
+          <ul>
+            <li>「课程提醒设置」页由一张 13 项长卡重组为<strong>五个分区</strong>（课程提醒 / 通知显示 / 早八闹钟 / 权限与后台 / 跳过日期），每个分区有标题与一句话说明「这一组管什么」，并修掉卡内重复分割线。</li>
+            <li>逐条重写开关说明与权限状态文案；权限状态用绿色「已授权」直读，不再整行灰字。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>两处设置写入问题</h3>
+          <ul>
+            <li><strong>手动添加的节假日会被联网更新回滚</strong>：旧实现是「读设置快照 → 改一个字段 → 整模型写回（一次写 30+ 个键）」，联网更新节假日时会按旧快照把用户刚手动添加的日期覆盖回去。现改为在存储事务内做<strong>原子并集 / 差集</strong>，同时不再连带重写主题、动画、情侣课表等无关设置。</li>
+            <li><strong>日期区间在 UTC 以西时区会偏一天</strong>：日期区间选择器改为按 UTC 折算选中日期，修掉「选 10-01 得到 09-30」的问题（快速删除页同步受益）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-refactor">构建</span>版本信息</h3>
+          <ul>
+            <li>versionCode <span class="mono">297</span> / versionName <span class="mono">3.73.0</span>；按 ABI 拆分：arm64-v8a / armeabi-v7a / x86_64。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v3723">
         <div><span class="tl-ver">v3.72.3</span><span class="tl-date">2026-09-27</span></div>
