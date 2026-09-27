@@ -1,4 +1,9 @@
+import java.io.BufferedOutputStream
+import java.io.FileOutputStream
+import java.io.OutputStream
 import java.util.Properties
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -184,27 +189,78 @@ wire {
     }
 }
 
-// 打包离线资源 Task
-val packSchoolsZip = tasks.register<Zip>("packSchoolsZip") {
-    group = "build"
-    description = "将离线适配资源打包为 composeResources ZIP 资源文件。"
+// ---------------------------------------------------------------------------
+// 打包离线资源 Task（单流容器）
+//
+// 容器格式必须与读取端 `shared/src/commonMain/.../tool/OfflineRepoArchive.kt` 逐字节对应：
+//   zip（唯一入口 repo.skr，DEFLATE level 9）内为顺序流：
+//     "SKR1" | u32LE 文件数 | 重复{ u32LE 路径字节数, 路径(UTF-8), u32LE 数据字节数, 数据 }
+//
+// 为什么把 197 个文件合成「一条 deflate 流」而不是逐文件压缩：适配脚本之间有大量公共
+// 模板代码，合并后压缩器可在整个仓库范围内复用字典，实测 932 KB(逐文件) → ~723 KB(-22%)。
+// 固定条目时间戳 + 按路径排序，保证产物可复现（内容不变则字节不变）。
+// ---------------------------------------------------------------------------
+val offlineRepoRoot = layout.projectDirectory.dir("assets/offline_repo").asFile
+val offlineRepoArchive = layout.projectDirectory
+    .file("src/commonMain/composeResources/files/offline_schools.zip").asFile
 
-    from(layout.projectDirectory.dir("assets/offline_repo")) {
-        // 排除文档/模板文件，不进正式包
-        exclude("**/ADAPTER_GUIDE.md")
-        exclude("**/schools_template.json")
-        exclude("**/*.md")
+val packSchoolsZip = tasks.register("packSchoolsZip") {
+    group = "build"
+    description = "将离线适配资源打包为单流压缩容器（composeResources/files/offline_schools.zip）。"
+
+    inputs.dir(offlineRepoRoot).withPropertyName("offlineRepo")
+    outputs.file(offlineRepoArchive)
+
+    // 任务动作内只使用下面捕获的普通 File 对象与自身 inputs/outputs（配置缓存要求）
+    val repoRoot = offlineRepoRoot
+    val archive = offlineRepoArchive
+
+    doLast {
+        // 与旧实现保持完全一致的排除规则：文档 / 模板不进正式包
+        fun isExcluded(relativePath: String): Boolean =
+            relativePath.endsWith(".md") || relativePath.endsWith("schools_template.json")
+
+        fun writeLeInt(out: OutputStream, value: Int) {
+            out.write(value and 0xFF)
+            out.write((value ushr 8) and 0xFF)
+            out.write((value ushr 16) and 0xFF)
+            out.write((value ushr 24) and 0xFF)
+        }
+
+        val entries = repoRoot.walkTopDown()
+            .filter { it.isFile }
+            .map { it to it.relativeTo(repoRoot).invariantSeparatorsPath }
+            .filter { (_, relativePath) -> !isExcluded(relativePath) }
+            .sortedBy { (_, relativePath) -> relativePath }
+            .toList()
+
+        archive.parentFile?.mkdirs()
+        var rawBytes = 0L
+        ZipOutputStream(BufferedOutputStream(FileOutputStream(archive))).use { zipOut ->
+            zipOut.setLevel(9)
+            val entry = ZipEntry("repo.skr")
+            // 2000-01-01T00:00:00Z：固定时间戳，避免每次构建都因时间戳不同而被判定为变更
+            entry.time = 946684800000L
+            zipOut.putNextEntry(entry)
+
+            zipOut.write(byteArrayOf(0x53, 0x4B, 0x52, 0x31)) // "SKR1"
+            writeLeInt(zipOut, entries.size)
+            for ((file, relativePath) in entries) {
+                val pathBytes = relativePath.toByteArray(Charsets.UTF_8)
+                val data = file.readBytes()
+                writeLeInt(zipOut, pathBytes.size)
+                zipOut.write(pathBytes)
+                writeLeInt(zipOut, data.size)
+                zipOut.write(data)
+                rawBytes += data.size
+            }
+            zipOut.closeEntry()
+        }
+
+        logger.lifecycle(
+            "离线适配包：${entries.size} 个文件 / 解包 $rawBytes 字节 → 容器 ${archive.length()} 字节"
+        )
     }
-    // 输出到 composeResources 的 files/ 目录：运行时以 Res.readBytes("files/offline_schools.zip")
-    // 读取，资源路径必须保持，因此不能改到自定义资源根目录。
-    // 该 zip 未纳入 git 跟踪（生成物），每次资源编译都会重打。
-    destinationDirectory.set(layout.projectDirectory.dir("src/commonMain/composeResources/files"))
-    archiveFileName.set("offline_schools.zip")
-    // 显式压缩，避免默认仅 STORED/低压缩导致安装包偏大
-    entryCompression = ZipEntryCompression.DEFLATED
-    // 关闭时间戳、固定条目顺序：产物可复现，避免每次构建都判定为变更而重打
-    setPreserveFileTimestamps(false)
-    setReproducibleFileOrder(true)
 }
 
 // 绑定生成 Task 至 Compose Resources 编译生命周期
@@ -294,4 +350,11 @@ kotlin.sourceSets.named("commonMain") {
 
 tasks.matching { it.name.startsWith("compileKotlin") || it.name.startsWith("ksp") }.configureEach {
     dependsOn(generateAdapterRemoteSecrets)
+}
+
+// 单测需要定位仓库根（离线资源包与 assets/offline_repo 在模块外），由 Gradle 注入系统属性，
+// 避免依赖测试进程的工作目录（AGP host 测试的工作目录不保证是模块目录）。
+val repositoryRootPath = rootProject.projectDir.absolutePath
+tasks.withType<Test>().configureEach {
+    systemProperty("shangke.repoRoot", repositoryRootPath)
 }

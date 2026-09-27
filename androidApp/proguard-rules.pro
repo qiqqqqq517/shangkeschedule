@@ -6,8 +6,12 @@
 -keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,AnnotationDefault,*Annotation*
 
 # 依赖注入 (Koin) ---
-# 保留 Koin 核心类及 DSL 相关
--keep class org.koin.** { *; }
+# v3.71.2（体积专项实测）：去掉原先的 `-keep class org.koin.** { *; }` 整包保留。
+# 实测该规则会拦住 R8 对未引用 Koin 代码的裁剪（koin-androidx-fragment、android.scope、
+# 未用到的 dsl 等），单条规则即占 APK 170,590 B（-3.45%）。
+# 安全性依据：Koin 的定义/注入全部由 koin-annotations 的 KSP 生成代码直接引用，属于
+# 可达代码；Koin 自身不经反射解析自身类，故不再需要整包 keep。
+# 已保留下方「按注解保留」规则（Module 类、@Single/@Factory 构造函数等）。
 
 # 保留 Koin Annotations 及其生成的模块 (KSP 路径)
 -keep class org.koin.ksp.generated.** { *; }

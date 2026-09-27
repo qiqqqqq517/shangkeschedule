@@ -312,6 +312,7 @@
     <string name="text_no_time_slots_hint">当前没有时间段。点击右上角 \'+\' 添加。</string>
     <string name="toast_slot_removed_unsaved">时间段已从列表移除，请点击保存以更新数据库</string>
     <string name="time_slot_section_number">第 %1$s 节</string>
+
     <string name="title_time_slot_list">节次列表</string>
     <string name="a11y_delete_time_slot">删除时间段</string>
     <string name="dialog_title_edit_time_slot">编辑时间段</string>
@@ -641,9 +642,9 @@
     <string name="next_card_label_agenda">下一日程</string>
     <string name="next_card_today_ended">今日课程已结束，自由探索吧</string>
     <string name="anim_settings_more_placeholder">更多动效分组（后续版本推出）</string>
+    <string name="theme_preset_claude">书卷</string>
     <string name="theme_preset_ios">通透</string>
     <string name="theme_preset_soft">柔绘</string>
-    <string name="theme_preset_claude">Shujuan</string>
     <string name="theme_style_section">主题风格</string>
     <string name="theme_style_desc">每个主题同时应用配色和课表样式</string>
     <string name="desc_theme_settings">自定义应用主题与配色</string>
@@ -688,13 +689,10 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
-    <string name="section_title_couple_schedule">情侣课表</string>
-    <string name="section_title_semester_settings">学期设置</string>
-    <string name="title_semester_settings">学期设置</string>
-    <string name="item_contact_author">Contact Author</string>
-    <string name="desc_contact_author">Feedback, feature requests, or your school academic system adaptation</string>
+    <string name="item_contact_author">联系作者反馈</string>
+    <string name="desc_contact_author">欢迎反馈问题、希望新增的功能，或请求适配你的教务系统</string>
     <string name="contact_author_email">hhixingchen520@163.com</string>
-    <string name="contact_author_hint">For academic system adaptation, please include: school name, academic system account, academic system password</string>
+    <string name="contact_author_hint">若适配教务系统，请随邮件附上：学校名称、教务系统账号、教务系统密码</string>
 
     <!-- 今日待办（创建/编辑统一由「日程」页承载，今日页只读展示） -->
 
@@ -825,6 +823,9 @@
     <string name="dialog_title_confirm_tweak">确认调课</string>
     <string name="dialog_text_confirm_tweak">确定执行调课吗？将影响 %1$d 门课程，此操作无法撤销。</string>
     <string name="dialog_text_confirm_delete_scheme">确定要删除作息方案「%1$s」吗？此操作无法撤销。</string>
+    <string name="section_title_couple_schedule">情侣课表</string>
+    <string name="section_title_semester_settings">学期设置</string>
+    <string name="title_semester_settings">学期设置</string>
     <string name="webview_load_error_generic">页面加载失败，请检查网络后重试</string>
     <string name="webview_load_error_fmt">加载失败：%1$s</string>
     <string name="webview_load_error_retry">重试</string>
