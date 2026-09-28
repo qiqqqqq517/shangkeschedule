@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.62.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>386</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.63.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>387</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4630">v4.63.0 · 课程编辑界面新增「只删本次」</a></li>
         <li><a href="#v4620">v4.62.0 · 课表内课程弹窗：先预览，再就地编辑</a></li>
         <li><a href="#v4610">v4.61.0 · 桌面小组件字号放大与排版收敛</a></li>
         <li><a href="#v4600">v4.60.0 · 全应用界面间距与布局统一接入主题 token</a></li>
@@ -150,6 +151,19 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4630">
+        <div><span class="tl-ver">v4.63.0</span><span class="tl-date">2026-09-28</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>只删这一次</h3>
+          <ul>
+            <li>在周课表里点击课程后先看到预览，点「编辑课程」进入编辑界面，其右上角（课程名同一行）多了一个圆形删除按钮（垃圾桶图标）。点它并确认后，只删除这门课在<b>当前这一周</b>的这一次课，该课程在其它周次的排课照常保留。</li>
+            <li>若这门课只剩被删的这一周，删除后整条课程记录一并移除，不会留下看不见的残留数据。</li>
+            <li>课程若本周本就没有安排（周课表中被弱化显示的非本周课程），不显示该按钮；标记为「克星」的课程保持只读，同样不显示。</li>
+            <li>点按钮后先弹出确认框（写明课程名与周次），确认后才执行；删除结果以底部提示反馈。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4620">
         <div><span class="tl-ver">v4.62.0</span><span class="tl-date">2026-09-28</span></div>
