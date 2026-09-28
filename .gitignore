@@ -97,3 +97,9 @@ repair-*.mjs
 ios-style-page.design/
 apple-style-page.design/
 _design_inbox/
+
+# 编辑器 / AI 工具会话缓存（本地残留，不入库）
+.mimosa/
+.rmv/
+.v2c/
+.trae-html-share-packages/
