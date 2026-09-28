@@ -1,7 +1,6 @@
 package com.shangkeschedule.widget.tiny
 
 import android.content.Context
-import android.content.res.Configuration
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -13,6 +12,8 @@ import com.shangkeschedule.widget.applyCourseColor
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.isSystemNight
+import com.shangkeschedule.widget.setWidgetCardBackground
 import com.shangkeschedule.widget.resolveBubbleTextColor
 import com.shangkeschedule.widget.resolveCourseColor
 import com.shangkeschedule.widget.todayEmptyTip
@@ -28,6 +29,7 @@ object TinyNativeRenderer {
         space: WidgetSpaceClass = WidgetSpaceClass.S
     ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_tiny_native)
+        rv.setWidgetCardBackground(R.id.inner_content_card)
 
         // 状态彻底重置
         resetWidgetState(rv)
@@ -83,15 +85,13 @@ object TinyNativeRenderer {
                 colorInt = nextCourse.color_int
             )
 
-            // 气泡数字前景色按气泡实际底色亮度二选一：固定主题文字色在部分课程色上
-            // 对比度不足（如深色琥珀 #FBC02D 配近白字仅 1.48:1），数字会糊在底上。
-            // light/dark 两套气泡 ID 只有一套会命中，但数字 TextView 只有一份 ID，
-            // 故按当前系统深浅取对应档的课程色计算（与 launcher 侧布局解析同一口径）。
+            // 气泡数字前景色按气泡实际底色亮度二选一（同上）。
+            // 宿主按**系统**深浅 inflate 可见的气泡（light/dark 两套 ID 只用一套），
+            // 故此处也必须取系统夜间位；取 App 进程配置会在「App 强制主题 ≠ 系统」
+            // 时选错档（见 isSystemNight）。
             val pair = resolveCourseColor(snapshot.style?.course_color_maps, nextCourse.color_int)
-            val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
             val fallback = context.getColor(R.color.widget_course_fallback)
-            val bubbleCourseColor = if (isNight) pair?.dark_color?.toInt() else pair?.light_color?.toInt()
+            val bubbleCourseColor = if (isSystemNight()) pair?.dark_color?.toInt() else pair?.light_color?.toInt()
             rv.setTextColor(R.id.tv_remaining_count, resolveBubbleTextColor(bubbleCourseColor, fallback))
         } else {
             // 无课状态

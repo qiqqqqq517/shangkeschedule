@@ -6,6 +6,7 @@ import com.shangkeschedule.data.di.SharedModule
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.syncNightModeFromStoredThemeMode
 import com.shangkeschedule.ui.glass.applyGlassNativeCrashFallback
+import com.shangkeschedule.widget.registerWidgetNightModeWatcher
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
@@ -52,5 +53,8 @@ class MyApplication : Application(), Configuration.Provider {
         runCatching {
             syncNightModeFromStoredThemeMode(koinApp.koin.get<AppSettingsRepository>())
         }
+
+        // 系统深浅色切换即时刷新小组件（运行时注册，manifest 收不到该广播）。
+        registerWidgetNightModeWatcher(this)
     }
 }
