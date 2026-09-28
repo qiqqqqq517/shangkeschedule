@@ -1,16 +1,20 @@
 package com.shangkeschedule.widget.compact
 
 import android.content.Context
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.commonCourseRow
+import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.headerSizeSp
 import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
 import java.time.LocalTime
@@ -19,7 +23,12 @@ import java.util.Locale
 
 object CompactNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
+    fun render(
+        context: Context,
+        snapshot: WidgetSnapshot,
+        maxCourseCount: Int,
+        space: WidgetSpaceClass = WidgetSpaceClass.S
+    ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_today_compact_native)
 
         // 状态彻底重置
@@ -27,6 +36,9 @@ object CompactNativeRenderer {
 
         // 设置点击跳转
         bindWidgetClickIntent(context, rv)
+
+        // 栏头按空间放大（v4.61.0）
+        rv.setTextViewTextSize(R.id.tv_header_title, TypedValue.COMPLEX_UNIT_SP, headerSizeSp(space))
 
         // 数据准备
         val now = LocalTime.now()
@@ -70,7 +82,8 @@ object CompactNativeRenderer {
                     todayRemaining.take(maxCourseCount),
                     snapshot,
                     todayRemaining.size,
-                    false
+                    false,
+                    space
                 )
             }
             tomorrowCourses.isNotEmpty() -> {
@@ -82,7 +95,8 @@ object CompactNativeRenderer {
                     tomorrowCourses.take(maxCourseCount),
                     snapshot,
                     tomorrowCourses.size,
-                    true
+                    true,
+                    space
                 )
             }
             else -> {
@@ -115,13 +129,14 @@ object CompactNativeRenderer {
         courses: List<WidgetCourseProto>,
         snapshot: WidgetSnapshot,
         totalCount: Int,
-        isTomorrow: Boolean
+        isTomorrow: Boolean,
+        space: WidgetSpaceClass
     ) {
         rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
         rv.setViewVisibility(R.id.container_status, View.GONE)
         rv.setViewVisibility(R.id.tv_footer, View.VISIBLE)
 
-        addCourseRows(rv, R.id.container_courses, context, courses) { commonCourseRow(context, it, snapshot) }
+        addCourseRows(rv, R.id.container_courses, context, courses) { commonCourseRow(context, it, snapshot, space) }
 
         val footerRes = if (isTomorrow) R.string.widget_course_total_count else R.string.widget_course_remaining_count
         rv.setTextViewText(R.id.tv_footer, context.getString(footerRes, totalCount))

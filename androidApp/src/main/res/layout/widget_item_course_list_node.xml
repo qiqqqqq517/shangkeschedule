@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 tools:text="14:00" />
 
@@ -57,8 +57,7 @@
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp"
-                android:textStyle="bold"
+                android:textSize="11sp"
                 tools:text="15:35" />
         </LinearLayout>
 
@@ -77,7 +76,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="设计模式原理" />
 
@@ -93,23 +92,8 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 tools:text="实验楼 B402" />
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="1dp" />
-
-            <TextView
-                android:id="@+id/tv_course_teacher"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:includeFontPadding="false"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp"
-                tools:text="张建国 教授" />
         </LinearLayout>
     </RelativeLayout>
 </LinearLayout>

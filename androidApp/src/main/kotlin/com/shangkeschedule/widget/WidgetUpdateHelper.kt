@@ -4,8 +4,10 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.TextView
 import androidx.datastore.core.DataStore
 import com.shangkeschedule.R
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -179,8 +181,14 @@ private suspend fun performUpdate(context: Context) {
 
         // 4.5 实测 ListVertical 条目高度（每次刷新测一次，4 个规格共用）。
         //     仅 ListVertical 消费该值，其余规格的条数是固定档位。
+        //     v4.61.0 起条目带放大字号渲染，测量必须用「空间档最大字号」（L 档），
+        //     否则条数算多溢出。
         val density = context.resources.displayMetrics.density
-        val listRowHeightPx = measureListRowHeightPx(context)
+        val listRowHeightPx = measureListRowHeightPx(
+            context,
+            nameSp = (ROW_NAME_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat(),
+            metaSp = (ROW_META_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat()
+        )
 
         // 5. 统一分发更新
         nativeConfigs.forEachIndexed { index, (providerClass, kind, renderFunc) ->
@@ -194,10 +202,13 @@ private suspend fun performUpdate(context: Context) {
 
                 ids.forEach { widgetId ->
                     try {
+                        // v4.61.0：按组件宽度定空间档，字号按空间放大（Tiny 内部强制 S 档）。
+                        val space = resolveSpaceClass(appWidgetManager, widgetId)
                         val remoteViews = renderFunc(
                             context,
                             snapshot,
-                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, listRowHeightPx, density)
+                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, listRowHeightPx, density),
+                            space
                         )
                         appWidgetManager.updateAppWidget(widgetId, remoteViews)
                         Log.d("WidgetUpdateHelper", "成功刷新组件 $widgetId (${providerClass.simpleName})")
@@ -228,11 +239,17 @@ private const val LIST_MEASURE_WIDTH_DP = 250
  *
  * 固定常量无法适配 fontScale / 字体 / 语言差异，故改为**实测**：在 App 进程 inflate 条目布局并测量。
  * 渲染发生在 App 侧，不违反 RemoteViews「不能自绘」的限制。测量失败时回落 [LIST_ROW_FALLBACK_DP]。
+ *
+ * v4.61.0：调用方传入「最大可能字号」（L 档 + 短名）后再测量，保证条数宁可少算不可多算。
  */
-private fun measureListRowHeightPx(context: Context): Int = runCatching {
+private fun measureListRowHeightPx(context: Context, nameSp: Float, metaSp: Float): Int = runCatching {
     val density = context.resources.displayMetrics.density
     val view = LayoutInflater.from(context)
         .inflate(R.layout.widget_item_course_list_node, null, false)
+    view.findViewById<TextView>(R.id.tv_course_name).setTextSize(TypedValue.COMPLEX_UNIT_SP, nameSp)
+    view.findViewById<TextView>(R.id.tv_course_position).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
+    view.findViewById<TextView>(R.id.tv_course_start_time).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
+    view.findViewById<TextView>(R.id.tv_course_end_time).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
     val widthPx = (LIST_MEASURE_WIDTH_DP * density).toInt().coerceAtLeast(1)
     view.measure(
         View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
@@ -241,6 +258,22 @@ private fun measureListRowHeightPx(context: Context): Int = runCatching {
     val measured = view.measuredHeight
     if (measured > 0) measured else (LIST_ROW_FALLBACK_DP * density).toInt()
 }.getOrElse { (LIST_ROW_FALLBACK_DP * context.resources.displayMetrics.density).toInt() }
+
+/**
+ * 按组件宽度定空间档（v4.61.0，字号按空间放大的依据）。
+ *
+ * 取 `OPTION_APPWIDGET_MIN_WIDTH`（下界）：实际宽度只会比它大，用下界定档保证不溢出；
+ * 取不到时回落 S 档（= 不放大，行为与 v4.60.0 一致）。
+ */
+private fun resolveSpaceClass(
+    appWidgetManager: AppWidgetManager,
+    widgetId: Int
+): WidgetSpaceClass {
+    val options = appWidgetManager.getAppWidgetOptions(widgetId)
+    val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1)
+    if (minWidthDp <= 0) return WidgetSpaceClass.S
+    return spaceClassFor(minWidthDp)
+}
 
 /**
  * 按**组件类型**分别计算可容纳的课程条数。

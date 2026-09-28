@@ -50,11 +50,11 @@
                             android:id="@+id/tv_today_date"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_secondary"
+                            android:textColor="@color/widget_text_primary"
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:textSize="11sp"
+                            android:textSize="12sp"
                             android:textStyle="bold"
                             tools:text="今日 1.07 周三" />
 
@@ -70,7 +70,7 @@
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_secondary"
                             android:includeFontPadding="false"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             tools:text="剩余 2 节" />
                     </LinearLayout>
 
@@ -131,11 +131,11 @@
                             android:id="@+id/tv_tomorrow_date"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_secondary"
+                            android:textColor="@color/widget_text_primary"
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:textSize="11sp"
+                            android:textSize="12sp"
                             android:textStyle="bold"
                             tools:text="明日 1.08 周四" />
 
@@ -151,7 +151,7 @@
                             android:layout_height="wrap_content"
                             android:textColor="@color/widget_text_secondary"
                             android:includeFontPadding="false"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             tools:text="共有 4 节" />
                     </LinearLayout>
 

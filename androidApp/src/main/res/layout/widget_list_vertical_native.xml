@@ -51,19 +51,11 @@
 
             <include layout="@layout/widget_item_course_list_node" />
 
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/widget_divider"
-                android:alpha="0.2" />
+            <include layout="@layout/widget_divider_horizontal" />
 
             <include layout="@layout/widget_item_course_list_node" />
 
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/widget_divider"
-                android:alpha="0.2" />
+            <include layout="@layout/widget_divider_horizontal" />
 
             <include layout="@layout/widget_item_course_list_node" />
         </LinearLayout>

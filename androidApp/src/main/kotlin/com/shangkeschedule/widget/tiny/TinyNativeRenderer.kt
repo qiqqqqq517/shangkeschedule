@@ -1,13 +1,16 @@
 package com.shangkeschedule.widget.tiny
 
 import android.content.Context
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.applyCourseColor
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
@@ -15,7 +18,12 @@ import java.time.LocalTime
 
 object TinyNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
+    fun render(
+        context: Context,
+        snapshot: WidgetSnapshot,
+        maxCourseCount: Int,
+        space: WidgetSpaceClass = WidgetSpaceClass.S
+    ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_tiny_native)
 
         // 状态彻底重置
@@ -47,6 +55,12 @@ object TinyNativeRenderer {
             rv.setViewVisibility(R.id.container_status, View.GONE)
 
             rv.setTextViewText(R.id.tv_course_name, nextCourse.name)
+            // Tiny 高仅 40dp 不参与空间放大，课程名统一 14sp（v4.61.0）
+            rv.setTextViewTextSize(
+                R.id.tv_course_name,
+                TypedValue.COMPLEX_UNIT_SP,
+                courseNameSizeSp(WidgetSpaceClass.S)
+            )
 
             val timeText = "${nextCourse.start_time.take(5)} - ${nextCourse.end_time.take(5)}"
             rv.setTextViewText(R.id.tv_course_time, timeText)

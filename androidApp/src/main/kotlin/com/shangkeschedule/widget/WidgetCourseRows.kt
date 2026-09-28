@@ -1,7 +1,7 @@
 package com.shangkeschedule.widget
 
 import android.content.Context
-import android.view.View
+import android.util.TypedValue
 import android.widget.RemoteViews
 import com.shangkeschedule.R
 
@@ -9,7 +9,7 @@ import com.shangkeschedule.R
  * 四个 Renderer 共用的「课程行构造 / 列表插入 + 分隔线 / 空态与周次判定」。
  *
  * 此前 Tiny / Compact / DoubleDays / ListVertical 各自逐字重复了这三段逻辑：
- * ① 课程行内的老师可见性与色条取色（三处逐字相同，仅行布局 ID 不同）；
+ * ① 课程行内的色条取色（三处逐字相同，仅行布局 ID 不同；v4.61.0 起教师不再显示）；
  * ② `forEachIndexed` 插入行 + 「非最后一项补横向分隔线」（三处逐字相同）；
  * ③ `current_week <= 0 → null` 与「今日无课 / 今日已结课」文案二选一（四处逐字相同）。
  * 这里收敛为单一实现（v3.69.5，同功能冗余清理，与 v3.66.3 的
@@ -34,21 +34,16 @@ internal fun todayEmptyTip(context: Context, courses: List<WidgetCourseProto>, t
     }
 
 /**
- * 课程行的公共部分：老师可见性 + 色条取色。
- * 三种行布局（common / list_node / 各尺寸自有布局）共用，调用方只负责各自的时间与名称字段。
+ * 课程行的公共部分：色条取色。
+ *
+ * v4.61.0 起不再显示教师（时间/地点/课程名优先，省出的约 13dp/行用于放大字号）；
+ * `teacher` 字段保留在 proto 内，零数据层改动。
  */
 internal fun RemoteViews.bindCourseRowBody(
     context: Context,
     course: WidgetCourseProto,
     snapshot: WidgetSnapshot
 ) {
-    if (course.teacher.isNotBlank()) {
-        setViewVisibility(R.id.tv_course_teacher, View.VISIBLE)
-        setTextViewText(R.id.tv_course_teacher, course.teacher)
-    } else {
-        setViewVisibility(R.id.tv_course_teacher, View.GONE)
-    }
-
     // 颜色渲染（取色越界 / 缺色时回落到 widget_course_fallback）
     applyCourseColor(
         context,
@@ -63,11 +58,17 @@ internal fun RemoteViews.bindCourseRowBody(
 internal fun commonCourseRow(
     context: Context,
     course: WidgetCourseProto,
-    snapshot: WidgetSnapshot
+    snapshot: WidgetSnapshot,
+    space: WidgetSpaceClass = WidgetSpaceClass.S
 ): RemoteViews = RemoteViews(context.packageName, R.layout.widget_item_course_common).apply {
     setTextViewText(R.id.tv_course_name, course.name)
     setTextViewText(R.id.tv_course_position, course.position)
     setTextViewText(R.id.tv_course_time, "${course.start_time.take(5)}-${course.end_time.take(5)}")
+    // 按空间放大 + 按字数自适应（v4.61.0，见 WidgetTextScale）
+    setTextViewTextSize(R.id.tv_course_name, TypedValue.COMPLEX_UNIT_SP, courseNameSizeSp(space))
+    val metaSp = rowMetaSizeSp(space)
+    setTextViewTextSize(R.id.tv_course_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    setTextViewTextSize(R.id.tv_course_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
     bindCourseRowBody(context, course, snapshot)
 }
 

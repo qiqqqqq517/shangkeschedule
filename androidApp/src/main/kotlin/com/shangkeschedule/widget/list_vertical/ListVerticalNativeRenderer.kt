@@ -1,23 +1,32 @@
 package com.shangkeschedule.widget.list_vertical
 
 import android.content.Context
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindCourseRowBody
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.rowMetaSizeSp
 import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
 import java.time.LocalTime
 
 object ListVerticalNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
+    fun render(
+        context: Context,
+        snapshot: WidgetSnapshot,
+        maxCourseCount: Int,
+        space: WidgetSpaceClass = WidgetSpaceClass.S
+    ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_list_vertical_native)
 
         resetWidgetState(rv)
@@ -55,12 +64,12 @@ object ListVerticalNativeRenderer {
                 val weekText = context.getString(R.string.status_current_week_format, currentWeek)
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_today, todayRemaining.size))
-                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot)
+                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot, space)
             }
             tomorrowCourses.isNotEmpty() -> {
                 rv.setTextViewText(R.id.tv_header_title, context.getString(R.string.widget_tomorrow_course_preview))
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_tomorrow, tomorrowCourses.size))
-                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot)
+                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot, space)
             }
             else -> {
                 val tip = todayEmptyTip(context, snapshot.courses, todayStr)
@@ -85,7 +94,8 @@ object ListVerticalNativeRenderer {
         context: Context,
         rv: RemoteViews,
         courses: List<WidgetCourseProto>,
-        snapshot: WidgetSnapshot
+        snapshot: WidgetSnapshot,
+        space: WidgetSpaceClass
     ) {
         rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
 
@@ -96,6 +106,12 @@ object ListVerticalNativeRenderer {
                 setTextViewText(R.id.tv_course_position, course.position)
                 setTextViewText(R.id.tv_course_start_time, course.start_time.take(5))
                 setTextViewText(R.id.tv_course_end_time, course.end_time.take(5))
+                // 按空间放大 + 按字数自适应（v4.61.0，见 WidgetTextScale）
+                setTextViewTextSize(R.id.tv_course_name, TypedValue.COMPLEX_UNIT_SP, courseNameSizeSp(space))
+                val metaSp = rowMetaSizeSp(space)
+                setTextViewTextSize(R.id.tv_course_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
+                setTextViewTextSize(R.id.tv_course_start_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
+                setTextViewTextSize(R.id.tv_course_end_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
                 bindCourseRowBody(context, course, snapshot)
             }
         }

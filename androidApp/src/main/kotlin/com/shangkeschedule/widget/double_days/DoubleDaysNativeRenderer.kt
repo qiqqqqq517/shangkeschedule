@@ -1,16 +1,19 @@
 package com.shangkeschedule.widget.double_days
 
 import android.content.Context
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.shangkeschedule.R
 import com.shangkeschedule.widget.WidgetCourseProto
 import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
+import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.commonCourseRow
 import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.headerSizeSp
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -18,7 +21,12 @@ import java.util.Locale
 
 object DoubleDaysNativeRenderer {
 
-    fun render(context: Context, snapshot: WidgetSnapshot, maxCourseCount: Int): RemoteViews {
+    fun render(
+        context: Context,
+        snapshot: WidgetSnapshot,
+        maxCourseCount: Int,
+        space: WidgetSpaceClass = WidgetSpaceClass.S
+    ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_double_days_native)
 
         // 状态彻底重置
@@ -55,7 +63,7 @@ object DoubleDaysNativeRenderer {
             R.id.container_today, R.id.tv_today_date, R.id.tv_today_footer,
             R.id.empty_today_container,
             today, remainingToday.take(maxCourseCount), remainingToday.size,
-            true, snapshot
+            true, snapshot, space
         )
 
         // 渲染右侧：明日
@@ -66,7 +74,7 @@ object DoubleDaysNativeRenderer {
             R.id.container_tomorrow, R.id.tv_tomorrow_date, R.id.tv_tomorrow_footer,
             R.id.empty_tomorrow_container,
             tomorrow, effectiveTomorrow.take(maxCourseCount), effectiveTomorrow.size,
-            false, snapshot
+            false, snapshot, space
         )
 
         return rv
@@ -92,9 +100,10 @@ object DoubleDaysNativeRenderer {
         displayCourses: List<WidgetCourseProto>,
         totalCount: Int,
         isToday: Boolean,
-        snapshot: WidgetSnapshot
+        snapshot: WidgetSnapshot,
+        space: WidgetSpaceClass
     ) {
-        // 设置日期标题
+        // 设置日期标题（含按空间放大，v4.61.0）
         val prefix = if (isToday) {
             context.getString(R.string.widget_title_today)
         } else {
@@ -102,6 +111,7 @@ object DoubleDaysNativeRenderer {
         }
         val datePattern = date.format(DateTimeFormatter.ofPattern("M.dd E", Locale.getDefault()))
         rootRv.setTextViewText(dateId, "$prefix $datePattern")
+        rootRv.setTextViewTextSize(dateId, TypedValue.COMPLEX_UNIT_SP, headerSizeSp(space))
 
         if (totalCount == 0) {
             rootRv.setViewVisibility(containerId, View.GONE)
@@ -119,7 +129,7 @@ object DoubleDaysNativeRenderer {
             rootRv.setTextViewText(footerId, context.getString(countRes, totalCount))
 
             // 循环渲染所有课程（行内容与分隔线统一走 WidgetCourseRows）
-            addCourseRows(rootRv, containerId, context, displayCourses) { commonCourseRow(context, it, snapshot) }
+            addCourseRows(rootRv, containerId, context, displayCourses) { commonCourseRow(context, it, snapshot, space) }
         }
     }
 }
