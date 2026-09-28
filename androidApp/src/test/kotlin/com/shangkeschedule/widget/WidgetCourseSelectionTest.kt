@@ -150,19 +150,21 @@ class WidgetCourseSelectionTest {
     }
 
     /**
-     * 回归（P0-1）：旧守卫为 `colorInt < maps.size`，不判负值 —— `maps[-1]` 会抛
-     * IndexOutOfBoundsException。此处必须返回 null（由调用方回落到兜底色），而非抛异常。
+     * 语义变更（v4.63.2，主题与小组件解耦）：序号回绕，不再回 null。
+     * 旧守卫为 `colorInt < maps.size`，不判负值 —— `maps[-1]` 会抛
+     * IndexOutOfBoundsException（P0-1 回归项）；现 floorMod 既不抛异常，
+     * 也不丢色（主题侧色板长度不一，越界是常态而非数据损坏）。
      */
     @Test
-    fun `resolveCourseColor 对负索引返回 null 而不是抛异常`() {
-        assertNull(resolveCourseColor(palette, -1))
-        assertNull(resolveCourseColor(palette, Int.MIN_VALUE))
+    fun `resolveCourseColor 对负索引回绕而不是抛异常`() {
+        assertEquals(palette[1], resolveCourseColor(palette, -1))
+        assertEquals(palette[Math.floorMod(Int.MIN_VALUE, 2)], resolveCourseColor(palette, Int.MIN_VALUE))
     }
 
     @Test
-    fun `resolveCourseColor 对越界索引与空色池返回 null`() {
-        assertNull(resolveCourseColor(palette, 2))
-        assertNull(resolveCourseColor(palette, Int.MAX_VALUE))
+    fun `resolveCourseColor 对越界索引回绕空色池返回 null`() {
+        assertEquals(palette[0], resolveCourseColor(palette, 2))
+        assertEquals(palette[Math.floorMod(Int.MAX_VALUE, 2)], resolveCourseColor(palette, Int.MAX_VALUE))
         assertNull(resolveCourseColor(emptyList(), 0))
         assertNull(resolveCourseColor(null, 0))
     }

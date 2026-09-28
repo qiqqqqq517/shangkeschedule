@@ -147,7 +147,11 @@ private suspend fun performUpdate(context: Context) {
             ScheduleGridStyle.DEFAULT.toProto()
         } else {
             currentStyle
-        }
+        }.copy(
+            // 小组件课程色与主题解耦（v4.63.2）：12 档固定色板覆盖主题色板，
+            // 主题切换不再改变组件外观（见 WidgetCoursePalette.kt）。
+            course_color_maps = widgetCoursePaletteProto()
+        )
 
         // 3. 构造数据快照 (Protobuf)
         val courseProtoList = dbCourses.map { course ->
