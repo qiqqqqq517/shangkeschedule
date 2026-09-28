@@ -91,6 +91,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- 应用升级即时刷新小组件：升级后桌面残留旧版渲染，打开 App 前推一次全量渲染。 -->
+        <receiver
+            android:name=".widget.WidgetPackageReplacedReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".widget.tiny.TinyNativeProvider"
             android:label="@string/widget_name_tiny"
