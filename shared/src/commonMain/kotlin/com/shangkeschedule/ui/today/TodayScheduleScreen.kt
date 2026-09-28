@@ -64,8 +64,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.shangkeschedule.ui.layout.appContentAlignment
-import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
@@ -188,8 +186,6 @@ import shangkeschedule.shared.generated.resources.today_view_all
 import shangkeschedule.shared.generated.resources.today_todos_section
 import shangkeschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
-import androidx.compose.foundation.layout.heightIn
-import com.shangkeschedule.ui.layout.appTypeScale
 
 private const val EMPTY_TIME_PLACEHOLDER = "--:--"
 private const val DEFAULT_DAYS_ZERO = "0"
@@ -368,9 +364,7 @@ fun TodayContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = appSpacing().pageHorizontal),
-        // 平板适配（v4.64.0）：宽屏（≥600dp）内容列限宽居中，窄屏 Start —— 与改动前一致
-        horizontalAlignment = appContentAlignment()
+            .padding(horizontal = appSpacing().pageHorizontal)
     ) {
         val weekDays = stringArrayResource(Res.array.week_days_full_names)
 
@@ -423,9 +417,6 @@ fun TodayContent(
             AppThemePreset.CLAUDE -> ClaudeTodaySkin
         }
         TodayThemeContent(
-            modifier = Modifier
-                .fillMaxHeight()
-                .appContentWidth(),
             skin = skin,
             state = state,
             gridStyle = gridStyle,
@@ -787,7 +778,6 @@ private object Ios26TodaySkin : TodaySkin {
 @Composable
 private fun TodayThemeContent(
     skin: TodaySkin,
-    modifier: Modifier = Modifier,
     state: TodayUiState.Success,
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
@@ -814,8 +804,7 @@ private fun TodayThemeContent(
 
     LazyColumn(
         state = scrollState,
-        // 平板适配（v4.64.0）：宽屏限宽（顺序必须是先 widthIn 再 fillMax，见 appContentWidth 注释）
-        modifier = modifier.appContentWidth().fillMaxHeight(),
+        modifier = Modifier.fillMaxSize(),
         // 批 2：魔法值走 token（cardGap / contentBottom）
         verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
         contentPadding = PaddingValues(bottom = bottomInset + appSpacing().contentBottom)
@@ -1652,8 +1641,7 @@ private fun TodayNextClassCard(
                     Text(
                         text = data.label,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            // 平板适配（v4.64.0）：10sp 分类 label 按宽度档放大
-                            fontSize = 10.sp * appTypeScale(),
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.08.em,
                             lineHeight = 12.sp
@@ -2195,9 +2183,7 @@ private fun TodayTodoRow(
 private fun TodayGhostButton(text: String, onClick: () -> Unit) {
     val colors = appColors()
     Row(
-        // 平板适配（v4.64.0）：幽灵按钮原约 32dp 高，抬到 48dp 触控下限
         modifier = Modifier
-            .heightIn(min = appSpacing().touchMin)
             .clip(appShapes().chip)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),

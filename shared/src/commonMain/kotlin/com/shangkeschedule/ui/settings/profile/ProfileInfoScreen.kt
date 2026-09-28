@@ -29,7 +29,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -78,7 +77,6 @@ import shangkeschedule.shared.generated.resources.profile_section_basic
 import shangkeschedule.shared.generated.resources.profile_section_school
 import shangkeschedule.shared.generated.resources.profile_signature
 import shangkeschedule.shared.generated.resources.profile_signature_hint
-import androidx.compose.foundation.layout.heightIn
 
 /**
  * 「我的信息」页（v3.49.0）。
@@ -211,8 +209,8 @@ fun ProfileInfoScreen(
             // ===== 顶部身份卡：大头像 + 昵称 + 学校·专业 =====
             Column(
                 modifier = Modifier
-                // 平板适配（v4.64.0）：修正修饰符顺序（原 fillMaxWidth 在 widthIn 之前 ⇒ 限宽失效）
-                .appContentWidth()
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
                     .clip(appShapes().card)
                     .background(appColors().cardBg)
                     .padding(horizontal = appSpacing().cardInner, vertical = 20.dp),
@@ -252,9 +250,7 @@ fun ProfileInfoScreen(
                         fontWeight = FontWeight.Medium
                     ),
                     color = MaterialTheme.colorScheme.primary,
-                    // 平板适配（v4.64.0）：「更换头像」原约 34dp 高，抬到 48dp 触控下限
                     modifier = Modifier
-                        .heightIn(min = appSpacing().touchMin)
                         .clip(appShapes().chipSmall)
                         .clickable { fileManager.pickImage() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -264,9 +260,7 @@ fun ProfileInfoScreen(
                         text = stringResource(Res.string.profile_remove_avatar),
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
                         color = appColors().textSecondary,
-                        // 平板适配（v4.64.0）：「移除头像」原约 34dp 高，抬到 48dp 触控下限
                         modifier = Modifier
-                            .heightIn(min = appSpacing().touchMin)
                             .clip(appShapes().chipSmall)
                             .clickable { viewModel.removeProfileAvatar() }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -403,7 +397,8 @@ private fun ProfileGroupLabel(text: String) {
         ),
         color = appColors().textSecondary,
         modifier = Modifier
-            .appContentWidth()
+            .fillMaxWidth()
+            .widthIn(max = 640.dp)
             .padding(start = 4.dp, top = 4.dp)
     )
 }
@@ -415,7 +410,8 @@ private fun ProfileGroupCard(content: @Composable () -> Unit) {
         color = appColors().cardBg,
         shape = appShapes().card,
         modifier = Modifier
-            .appContentWidth()
+            .fillMaxWidth()
+            .widthIn(max = 640.dp)
     ) {
         Column(
             modifier = Modifier.padding(

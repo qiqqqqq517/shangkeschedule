@@ -270,10 +270,7 @@ private fun InternalGradientSlider(
     val horizontalPaddingPx = with(density) { 12.dp.toPx() }
 
     BoxWithConstraints(
-        // 平板适配（v4.64.0）：渐变滑块原 32dp 高，拖动手势命中区抬到 48dp。
-        // 内部按 `constraints.maxHeight` 自适应绘制（heightPx 来自 BoxWithConstraints），
-        // 故轨道视觉居中、条带不变粗，只是上下多出可拖动余量。
-        modifier = modifier.fillMaxWidth().height(appSpacing().touchMin)
+        modifier = modifier.fillMaxWidth().height(32.dp)
     ) {
         val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()

@@ -63,9 +63,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.shangkeschedule.ui.layout.appDialogWidth
-import com.shangkeschedule.ui.layout.appLayout
-import com.shangkeschedule.ui.layout.rememberDialogPropertiesWidth
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_retry
@@ -561,21 +558,10 @@ fun AppAlertDialog(
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     properties: DialogProperties = DialogProperties()
 ) {
-    // 平板适配（v4.64.0）：宽屏把居中弹窗收口到统一宽度（Medium 480dp / Expanded 520dp）并居中。
-    //
-    // 必须同时关掉 `usePlatformDefaultWidth` —— 否则窗口宽度由平台主题决定（平板上偏宽，
-    // 且 Android / iOS / Desktop 三端不一致），只叠加 widthIn 的话窗口本体仍是平台宽度。
-    // 关掉后窗口 wrap_content，再由 appDialogWidth 定上/下限，窗口内居中即弹窗居中。
-    //
-    // ⚠️ 窄屏（<600dp）**完全走原路径**：不叠加任何宽度约束、沿用调用方传入的 properties
-    // ⇒ 手机端零差异。全库 41 处调用点无一覆盖 properties（已核查）。
-    val layout = appLayout()
-
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        // 顺序：宽度上限必须在调用方 modifier 之前（先 widthIn 再 fillMax 才生效）
-        modifier = Modifier.appDialogWidth().then(modifier).then(rememberDialogEnterMotion()),
+        modifier = modifier.then(rememberDialogEnterMotion()),
         dismissButton = dismissButton,
         icon = icon,
         title = title,
@@ -586,7 +572,7 @@ fun AppAlertDialog(
         titleContentColor = titleContentColor,
         textContentColor = textContentColor,
         tonalElevation = tonalElevation,
-        properties = if (layout.isWide) rememberDialogPropertiesWidth() else properties
+        properties = properties
     )
 }
 
@@ -721,16 +707,6 @@ fun AppGlassBottomSheet(
     // 柔绘：薄涂面板 —— 遮罩更浅（26% vs M3 默认 32%）、背板模糊更弱、涂色更实（0.90 vs 0.86），
     // 拖拽把手颜色由 outlineVariant 角色自动变为柔绘淡边，无需单独改写
     val scrim = sheetLook.scrimAlpha?.let { Color.Black.copy(alpha = it) } ?: BottomSheetDefaults.ScrimColor
-    // 平板适配（v4.64.0）：宽屏把底部面板收到统一宽度（Medium 560 / Expanded 600）并居中，
-    // 与页面内容列（640 / 720）同口径。M3 1.9 的 `ModalBottomSheet` 自带 `sheetMaxWidth`
-    // 参数（默认 640dp）且**内部已做底部居中**，故只需透传，无需自绘居中容器。
-    // 窄屏为 Dp.Unspecified ⇒ 显式回落到 M3 默认值，保证与改动前逐像素一致。
-    val rawSheetMaxWidth = appLayout().sheetMaxWidth
-    val sheetMaxWidth = if (rawSheetMaxWidth == Dp.Unspecified) {
-        BottomSheetDefaults.SheetMaxWidth
-    } else {
-        rawSheetMaxWidth
-    }
     if (hazeState == null) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
@@ -739,7 +715,6 @@ fun AppGlassBottomSheet(
             shape = appShapes().sheetTop,
             scrimColor = scrim,
             modifier = sheetModifier,
-            sheetMaxWidth = sheetMaxWidth,
             content = content
         )
     } else {
@@ -750,8 +725,7 @@ fun AppGlassBottomSheet(
             tonalElevation = 0.dp,
             shape = appShapes().sheetTop,
             scrimColor = scrim,
-            modifier = sheetModifier,
-            sheetMaxWidth = sheetMaxWidth
+            modifier = sheetModifier
         ) {
             Column(
                 modifier = Modifier

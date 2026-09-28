@@ -521,29 +521,21 @@ private fun EditableCourseDetailContent(
                 if (occurrenceWeek != null) {
                     Spacer(modifier = Modifier.width(12.dp))
                     Box(
-                        // 平板适配（v4.64.0）：外 48dp 命中区 / 内 36dp 可见圆底 ——
-                        // 写法与 FloatingCourseBar 的删除钮、时间表的删除钮一致（命中区达标，形态不变）
                         modifier = Modifier
-                            .size(appSpacing().touchMin)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(colors.dangerSoft)
                             .clickable { showDeleteOccurrenceConfirm = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(colors.dangerSoft),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.delete_24px),
-                                contentDescription = stringResource(
-                                    Res.string.today_sheet_delete_occurrence
-                                ),
-                                modifier = Modifier.size(18.dp),
-                                tint = colors.danger
-                            )
-                        }
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.delete_24px),
+                            contentDescription = stringResource(
+                                Res.string.today_sheet_delete_occurrence
+                            ),
+                            modifier = Modifier.size(18.dp),
+                            tint = colors.danger
+                        )
                     }
                 }
             }
@@ -1024,12 +1016,9 @@ private fun DetailSwitchRow(
 ) {
     val colors = appColors()
     Row(
-        // 平板适配（v4.64.0）：38dp → 48dp（touchMin）。此处原为 v4.62.0 特意压到 38dp
-        // 「与普通行等高」，但实测相邻可编辑行本就是 48dp（本文件 :252/:275/:293/:716/:734）——
-        // 抬到 48dp 反而**消除**了这行的例外，同时让开关命中区达标。
         modifier = Modifier
             .fillMaxWidth()
-            .height(appSpacing().touchMin)
+            .height(38.dp)
             .background(colors.cardBgElevated)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1043,7 +1032,8 @@ private fun DetailSwitchRow(
             color = colors.textSecondary,
             modifier = Modifier.weight(1f)
         )
-        // 开关视觉尺寸维持 0.85 缩放：行高抬到 48dp 后，可见开关大小不变、上下留白增加
+        // 开关单元格压到与普通行等高：M3 默认 48dp 触摸靶在详情行里过高，
+        // 用固定行高 + scale 收视觉，触摸区域随行高收缩
         AppSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,

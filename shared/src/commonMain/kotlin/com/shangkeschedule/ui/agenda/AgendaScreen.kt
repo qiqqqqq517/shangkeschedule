@@ -72,8 +72,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import com.shangkeschedule.ui.layout.appContentAlignment
-import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -198,8 +196,6 @@ import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.week_days_short_names
 import kotlin.math.abs
 import kotlin.time.Clock
-import androidx.compose.foundation.layout.heightIn
-import com.shangkeschedule.ui.layout.appTypeScale
 
 private val TIME_COLUMN_WIDTH = 56.dp
 private val TIMELINE_COLUMN_WIDTH = 26.dp
@@ -348,12 +344,9 @@ private fun AgendaContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding(),
-        // 平板适配（v4.64.0）：宽屏内容列限宽居中，窄屏 Start —— 与改动前一致
-        horizontalAlignment = appContentAlignment()
+            .statusBarsPadding()
     ) {
         AgendaDatePanel(
-            modifier = Modifier.appContentWidth(),
             state = state,
             expanded = monthExpanded,
             onToggleExpanded = { monthExpanded = !monthExpanded },
@@ -376,13 +369,11 @@ private fun AgendaContent(
             state = state,
             weekFullNames = weekFullNames,
             onCreate = onCreate,
-            modifier = Modifier
-                .appContentWidth()
-                .padding(
-                    start = spacing.pageHorizontal,
-                    end = spacing.pageHorizontal,
-                    top = 10.dp
-                )
+            modifier = Modifier.padding(
+                start = spacing.pageHorizontal,
+                end = spacing.pageHorizontal,
+                top = 10.dp
+            )
         )
 
         Text(
@@ -390,23 +381,19 @@ private fun AgendaContent(
                 " · " + stringResource(Res.string.agenda_count_format, state.entries.size),
             fontSize = appType().caption,
             color = tokens.textSecondary,
-            modifier = Modifier
-                .appContentWidth()
-                .padding(
-                    start = spacing.pageHorizontal,
-                    end = spacing.pageHorizontal,
-                    top = 4.dp,
-                    bottom = 8.dp
-                )
+            modifier = Modifier.padding(
+                start = spacing.pageHorizontal,
+                end = spacing.pageHorizontal,
+                top = 4.dp,
+                bottom = 8.dp
+            )
         )
 
         if (state.entries.isEmpty()) {
             AppEmptyState(
                 hint = stringResource(Res.string.agenda_empty),
                 // 使用主题卡片内边距维持空态与页面内容的舒适呼吸感。
-                modifier = Modifier
-                    .appContentWidth()
-                    .padding(top = spacing.cardInner * 2)
+                modifier = Modifier.padding(top = spacing.cardInner * 2)
             )
         } else {
             // PF3（v3.69.0）：分组结果缓存 —— 原写法每次重组都执行 groupBy + toSortedMap。
@@ -416,8 +403,7 @@ private fun AgendaContent(
                 state.entries.groupBy(::entryGroup).toSortedMap()
             }
             LazyColumn(
-                // 平板适配（v4.64.0）：宽屏限宽居中（顺序：先 widthIn 再 fillMax）
-                modifier = Modifier.appContentWidth().fillMaxHeight(),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = spacing.pageHorizontal,
                     end = spacing.pageHorizontal,
@@ -473,7 +459,6 @@ private fun AgendaContent(
 @Composable
 private fun AgendaDatePanel(
     state: AgendaUiState,
-    modifier: Modifier = Modifier,
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
@@ -523,7 +508,7 @@ private fun AgendaDatePanel(
     val toggleExpanded by rememberUpdatedState(onToggleExpanded)
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 translationX = slideOffset.value * size.width * 0.45f
@@ -555,10 +540,7 @@ private fun AgendaDatePanel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 月份标题：点击直接选月份
                     Row(
-                        // 平板适配（v4.64.0）：月份 chip 原约 21dp 高，抬到 48dp 触控下限。
-                        // 该行内已有 48dp 的翻月 IconButton，故本 chip 抬高**不会**改变行高。
                         modifier = Modifier
-                            .heightIn(min = appSpacing().touchMin)
                             .clip(shapes.chipSmall)
                             .clickable { onOpenMonthPicker() }
                             .padding(horizontal = 4.dp, vertical = 2.dp),
@@ -688,12 +670,10 @@ private fun AgendaDatePanel(
         }
 
         // 展开把手：下拉 / 上收提示，也可直接点击切换
-        // 平板适配（v4.64.0）：原 22dp 远低于 48dp 触控下限（手指几乎点不中）。
-        // 抬到 touchMin 后图标上下的留白变大，但命中区达标（WCAG 2.5.5）。
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(appSpacing().touchMin)
+                .height(22.dp)
                 .clickable { onToggleExpanded() },
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -841,8 +821,7 @@ private fun AgendaDateRailCell(
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = cell.lunarLabel,
-            // 平板适配（v4.64.0）：10sp 农历标签在平板上过小发虚，按宽度档温和放大
-            fontSize = 10.sp * appTypeScale(),
+            fontSize = 10.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = labelColor
@@ -957,11 +936,8 @@ private fun RowScope.AgendaMonthDayCell(
     }
 
     Column(
-        // 平板适配（v4.64.0）：整月日历格子原约 27dp 高，抬到 48dp 触控下限
-        // （展开态日历整体变高，但每格成为可靠手指目标）
         modifier = Modifier
             .weight(1f)
-            .heightIn(min = appSpacing().touchMin)
             .clip(shapes.chipSmall)
             .background(if (selected) tokens.primary else Color.Transparent)
             .clickable { onSelectDate(cell.date) }
@@ -977,8 +953,7 @@ private fun RowScope.AgendaMonthDayCell(
         Spacer(modifier = Modifier.height(1.dp))
         Text(
             text = cell.lunarLabel,
-            // 平板适配（v4.64.0）：9sp 农历标签按宽度档放大（Compact 档乘 1.0 不变）
-            fontSize = 9.sp * appTypeScale(),
+            fontSize = 9.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = labelColor
@@ -1137,9 +1112,8 @@ private fun AgendaMonthOption(
     }
 
     Box(
-        // 平板适配（v4.64.0）：46dp → 48dp（touchMin），补足 2dp 触控缺口
         modifier = modifier
-            .height(appSpacing().touchMin)
+            .height(46.dp)
             .clip(shapes.chip)
             .background(container)
             .clickable { onClick() },
@@ -1355,10 +1329,8 @@ private fun AgendaEntryRow(
             elevation = 1
         ) {
             Row(
-                // 平板适配（v4.64.0）：补 48dp 最小命中高度（内容本身通常已超过，属防御性兜底）
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = appSpacing().touchMin)
                     .combinedClickable(
                         onClick = { if (canToggleDone) onToggleDone() },
                         onLongClick = {
@@ -1768,9 +1740,7 @@ private fun AgendaCategoryChip(
     val contentColor = if (selected) tokens.textOnPrimary else tokens.textPrimary
 
     Row(
-        // 平板适配（v4.64.0）：分类 chip 原约 36dp，抬到 48dp 触控下限（胶囊随之变高）
         modifier = Modifier
-            .heightIn(min = appSpacing().touchMin)
             .clip(shapes.capsule)
             .background(container)
             .clickable { onClick() }
@@ -1826,9 +1796,7 @@ private fun AgendaDateTimeRow(
             ),
             fontSize = appType().body,
             color = tokens.textPrimary,
-            // 平板适配（v4.64.0）：日期 chip 原约 34dp，抬到 48dp 触控下限
             modifier = Modifier
-                .heightIn(min = appSpacing().touchMin)
                 .clip(appShapes().chipSmall)
                 .clickable { onDateClick() }
                 .padding(horizontal = 6.dp, vertical = 6.dp)
@@ -1849,9 +1817,7 @@ private fun AgendaDateTimeRow(
                 fontSize = appType().body,
                 fontWeight = FontWeight.SemiBold,
                 color = tokens.textPrimary,
-                // 平板适配（v4.64.0）：时间 chip 原约 34dp，抬到 48dp 触控下限
                 modifier = Modifier
-                    .heightIn(min = appSpacing().touchMin)
                     .clip(appShapes().chipSmall)
                     .clickable { onTimeClick() }
                     .padding(horizontal = 6.dp, vertical = 6.dp)

@@ -38,7 +38,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
@@ -77,7 +76,8 @@ fun FileImportHubScreen(
         ) {
         Column(
             modifier = Modifier
-                .appContentWidth()
+                .fillMaxWidth()
+                .widthIn(max = 640.dp)
                 .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {

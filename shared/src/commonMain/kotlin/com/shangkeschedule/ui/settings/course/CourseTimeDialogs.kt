@@ -24,12 +24,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.shangkeschedule.ui.layout.appDialogWidth
-import com.shangkeschedule.ui.layout.appLayout
-import com.shangkeschedule.ui.layout.rememberDialogPropertiesWidth
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.components.NativeNumberPicker
@@ -308,18 +304,10 @@ fun DayPickerDialog(
 ) {
     var tempSelectedDay by remember { mutableIntStateOf(selectedDay) }
 
-    // 平板适配（v4.64.0）：这是全库唯一**未走 AppAlertDialog 收口**的弹窗（原裸 Dialog +
-    // 裸 Surface，无任何宽度兜底，平板上会随 NativeNumberPicker 内容自由拉伸）。
-    // 这里只补齐宽度口径（窄屏沿用原属性、不加修饰符 ⇒ 手机端零差异），不动其视觉形态。
-    val layout = appLayout()
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = if (layout.isWide) rememberDialogPropertiesWidth() else DialogProperties()
-    ) {
+    Dialog(onDismissRequest = onDismissRequest) {
         Surface(
             shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.appDialogWidth()
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column(
                 modifier = Modifier.padding(appSpacing().cardInner),

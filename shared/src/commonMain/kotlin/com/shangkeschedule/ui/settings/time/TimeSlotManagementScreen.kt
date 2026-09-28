@@ -45,7 +45,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -315,7 +314,8 @@ fun TimeSlotManagementScreen(
         ) {
         LazyColumn(
             modifier = Modifier
-                .appContentWidth(),
+                .fillMaxWidth()
+                .widthIn(max = 640.dp),
             contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = 0.dp),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
