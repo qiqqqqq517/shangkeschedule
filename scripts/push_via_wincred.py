@@ -11,9 +11,10 @@
 全程不依赖 git 的 helper 配置。
 
 用法：
-  python scripts/push_via_wincred.py                 # 推当前分支到 origin
+  python scripts/push_via_wincred.py                 # 推当前分支到 origin（默认走 git 配置的代理）
   python scripts/push_via_wincred.py --remote gitee   # 指定远端
   python scripts/push_via_wincred.py --dry-run        # 只验证凭据可取，不推送
+  python scripts/push_via_wincred.py --direct         # 绕过代理直连（代理故障时备用）
 
 推送后请用 `git ls-remote --heads <remote> <branch>` 独立核验 ——
 远端是否真的收到提交，只有它能确认（本项目曾出现「push 看似执行、远端未动」）。
@@ -74,8 +75,8 @@ def main():
     ap.add_argument("--remote", default="origin")
     ap.add_argument("--branch", default=None)
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--use-proxy", action="store_true",
-                    help="走 git 配置里的代理（默认直连：本机 7897 代理已损坏）")
+    ap.add_argument("--direct", action="store_true",
+                    help="绕过代理直连（默认走 git 配置的代理：2026-09-29 实测代理通、直连 Connection was reset）")
     args = ap.parse_args()
 
     helper = find_helper()
@@ -108,10 +109,10 @@ def main():
     branch = args.branch or run(["git", "rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
     push_url = f"https://{user}:{tok}@{host}/{path}.git"
     git_args = ["git"]
-    if not args.use_proxy:
-        # 默认**绕过代理直连**：本机 http.proxy=127.0.0.1:7897 已损坏 ——
-        # 经它访问 GitHub 报 schannel handshake 失败（连 ls-remote 都失败），
-        # 而直连完全正常（实测 api.github.com 直连 200）。见 2026-09-26 实测。
+    if args.direct:
+        # 直连降级为备用路径：2026-09-26 时代理坏、直连通；2026-09-29 复测反转 ——
+        # 代理（127.0.0.1:7897）通，清空代理直连反而报 Connection was reset。
+        # 本机网络会漂移，故默认跟随 git 配置（走代理），仅代理故障时手动 --direct 一试。
         git_args += ["-c", "http.proxy=", "-c", "https.proxy="]
     git_args += ["push", push_url, branch]
     r = run(git_args)

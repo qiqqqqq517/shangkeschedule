@@ -98,6 +98,15 @@ ios-style-page.design/
 apple-style-page.design/
 _design_inbox/
 
+# 本地产物目录（AI 会话进度 / QA 截图 / 设计包，不入库；以下三目录 0 tracked 文件，2026-09-29 核实。
+# 注意 claude-style-page.design/ 是在库设计包（约 60 个 tracked 文件，CHANGELOG 有引用），勿加忽略）
+design/
+shots/
+schedule-icon.design/
+
+# 发版临时文件（runbook §4.A 从 CHANGELOG 抽取的 Release notes，用后即删）
+.release-notes.md
+
 # 编辑器 / AI 工具会话缓存（本地残留，不入库）
 .mimosa/
 .rmv/

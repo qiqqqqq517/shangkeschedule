@@ -1,7 +1,7 @@
 # 发版实操手册（Release Runbook）
 
 > 规则正文见仓库根目录 `AGENTS.md` 的「正式版构建与发布」节；本文件是**逐条可执行**的实操步骤，
-> 由 2026-09-23 发布 v3.66.2 的真实过程沉淀而来（全程无 CI，本地构建 + REST API 发布）。
+> 由 2026-09-23 发布 v3.66.2 的真实过程沉淀而来（全程无 CI，本地构建 + 手动上传：gh 最快路径见 §4.A，REST API 备用见 §4.B）。
 > 环境前提：Windows + PowerShell，SDK 在 `D:\Android\SDK`，仓库根为 `D:\01课程表\shangkeschedule`。
 
 ## 0. 前置条件
@@ -11,13 +11,13 @@
 | Java | 环境变量 `JAVA_HOME` 在本机是坏的，每条 Gradle 命令前显式设为 `C:\Program Files\Android\Android Studio\jbr` |
 | Android SDK | `D:\Android\SDK`；`build-tools\37.0.0\` 提供 `aapt2` / `apksigner` |
 | 签名 | `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均在 `.gitignore` 内） |
-| `gh` CLI | **本机未安装** —— 发布一律走 GitHub REST API，令牌从 `git credential fill` 取（helper = `manager`，40 位） |
+| `gh` CLI | 已装并登录（2.101，账号 `qiqqqqq517`，2026-09-29 实测）。令牌一律 `gh auth token` 取；**勿用 `git credential fill`**（本机凭据链不可靠，详见 AGENTS.md 警告） |
 | CHANGELOG | 必须先有 `### vX.Y.Z（YYYY-MM-DD）· …` 条目；Release body 取自它 |
 
 ## 1. 版本与工作区对表
 
 ```powershell
-rg -n 'versionCode|versionName' androidApp/build.gradle.kts | Select-Object -First 2
+Select-String -Pattern 'versionCode|versionName' androidApp/build.gradle.kts | Select-Object -First 2   # 本机未装 rg，勿改回 rg
 git fetch origin
 git rev-list --left-right --count origin/main...HEAD   # 期望 0  0
 git status --short                                     # 只应剩 .mimosa/ 之类未跟踪产物
@@ -55,17 +55,42 @@ foreach($a in Get-ChildItem androidApp\build\outputs\apk\release\*.apk){
 2. `native-code` 每包**只有一项**（arm64-v8a / armeabi-v7a / x86_64 各一）；
 3. V2 证书 SHA-256 = `4ae49d8c97d881c7c249115b833f932c70f9b429624e88e68807e8fc2232475f`（三包一致且与历史一致）。
 
-## 4. 创建 GitHub Release（REST API 替代 `gh`）
+## 4. 创建 GitHub Release（gh 最快路径；REST API 备用）
+
+### 4.A 最快路径：gh 一条命令建草稿并上传（推荐）
 
 ```powershell
-# 4.0 取令牌：来自凭据管理器，不落盘、不打印
-$in="protocol=https`nhost=github.com`n`n"; $cred = $in | git credential fill
-$tok = (($cred | Select-String '^password=(.*)$').Matches.Groups[1].Value)
+# 4.A.1 从 CHANGELOG 抽取对应版本段落为 notes 临时文件（UTF-8 无 BOM；把 vX\.Y\.Z 换成实际版本）
+$cl = Get-Content CHANGELOG.md -Raw
+$body = [regex]::Match($cl,'(?ms)^### vX\.Y\.Z.*?(?=^### |\z)').Value.TrimEnd()
+[System.IO.File]::WriteAllText("$PWD\.release-notes.md",$body)
+
+# 4.A.2 一条命令：建草稿 + 上传全部 APK（gh 自管令牌；PowerShell 不展开通配符，须先取全路径数组）
+$apks = (Get-ChildItem androidApp\build\outputs\apk\release\*.apk).FullName
+$sha = (git rev-parse HEAD).Trim()
+gh release create vX.Y.Z --draft --target $sha --title "vX.Y.Z · 标题（取 CHANGELOG 条目）" --notes-file .release-notes.md $apks
+
+# 4.A.3 核对资产（应 3 个、体积与本地一致）再转正式，然后清理临时文件
+gh release view vX.Y.Z --json isDraft,assets --jq '{isDraft,assets:[.assets[]|{name,size}]}'
+gh release edit vX.Y.Z --draft=false
+Remove-Item .release-notes.md -Force
+
+# 4.A.4 核验 tag 指向发布提交
+git ls-remote --tags origin 'refs/tags/vX.Y.Z'
+```
+
+收尾确认：`draft=false`、`prerelease=false`、`assets=3`，tag 指向发布提交。
+
+### 4.B 备用：REST API 逐步操作（gh 不可用时）
+
+```powershell
+# 4.0 取令牌：gh 已登录，直接取（不落盘、不打印）
+$tok = (gh auth token).Trim()
 $h = @{ Authorization="token $tok"; 'User-Agent'='shangke-release'; Accept='application/vnd.github+json' }
 
 # 4.1 body = CHANGELOG 对应段落（发版前务必确认该段落存在）
 $cl = Get-Content CHANGELOG.md -Raw
-$body = [regex]::Match($cl,'(?ms)^### v3\.66\.2.*?(?=^### |\z)').Value.TrimEnd()
+$body = [regex]::Match($cl,'(?ms)^### vX\.Y\.Z.*?(?=^### |\z)').Value.TrimEnd()
 
 # 4.2 先建草稿；tag 由 API 创建并指向 HEAD
 $sha = (git rev-parse HEAD).Trim()
@@ -101,7 +126,7 @@ git ls-remote --tags origin 'refs/tags/vX.Y.Z'
 ## 6. 提交与推送
 
 ```powershell
-git add -- website/changelog.html website/assets/js/site.js website/sitemap.xml   # 逐个显式，禁用 git add .
+git add -- website/changelog.html website/assets/js/site.js website/sitemap.xml   # 一条命令显式列出全部文件，禁用 git add . / -A
 git commit -m "docs(website): 同步 vX.Y.Z 更新日志 vX.Y.Z"
 git fetch origin; git rev-list --left-right --count origin/main...HEAD
 git push origin main

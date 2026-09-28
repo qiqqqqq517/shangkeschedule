@@ -32,18 +32,17 @@
 
 > 逐条可执行命令见 `docs/agents/release-runbook.md`；本节是必须遵守的硬规则。
 
-- **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中禁用，**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
+- **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中手动禁用（2026-09-29 经 `gh api` 核实；`dco.yml`、`dependency-submission.yml` 与 Dependabot 仍在启用，与构建发布无关），**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
 - **前置：`CHANGELOG.md` 必须已有对应版本条目**。Release body 直接取自该条目（或与之相同的内容）；条目未就绪不得发版。
 - 正式版一律**本地构建**：`./gradlew :androidApp:assembleRelease`，产物为 `androidApp/build/outputs/apk/release/shangke-vX.Y.Z-<abi>-release.apk`（按 ABI 拆分，arm64-v8a / armeabi-v7a / x86_64）。
   - 本机 `JAVA_HOME` 环境变量是坏的，每条 Gradle 命令前必须显式设为本机 JBR：`C:\Program Files\Android\Android Studio\jbr`。
   - 若构建整体 `UP-TO-DATE`，**必须核对产物 mtime 晚于 `HEAD` 提交时间**才能认定产物含本次改动；否则加 `--rerun-tasks` 重打。
 - **发布前必须逐包校验三条**（任一不过即不得发布）：① `aapt2 dump badging` 的 `versionCode`/`versionName` 与本次版本一致；② `native-code` 每包**只有单一 ABI**；③ `apksigner verify --print-certs` 的 V2 证书 SHA-256 = `4ae49d8c97d881c7c249115b833f932c70f9b429624e88e68807e8fc2232475f`（三包一致且与历史一致）。工具在 `D:\Android\SDK\build-tools\37.0.0\`。
-- **上传方式**：本机**未安装 `gh`**，一律走 GitHub REST API（账号 `qiqqqqq517`）：**先建草稿** → 上传全部资产（`state=uploaded`）→ `PATCH draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。不得改用 CI，也不得绕过校验在网页手工上传。
-  ⚠️ **令牌获取不要依赖 `git credential fill`**：本机凭据链不可靠（`~/.gitconfig` 曾被写入空值
-  `credential.helper =` 或多行写法错误的 helper，导致报
-  `could not read Password ... terminal prompts disabled`，而凭据其实一直存在 Windows 凭据管理器里）。
-  可靠做法是直接调用 wincred helper 定位凭据 —— 见 `scripts/push_via_wincred.py`（推送同用此脚本）。
+- **上传方式（最快路径）**：`gh` 一条命令建草稿并上传全部资产（账号 `qiqqqqq517`；`gh` 2.101 已装并登录该账号，2026-09-29 实测）：`gh release create vX.Y.Z --draft --target <发布提交> --notes-file <CHANGELOG 段落文件> <三个 APK>` → `gh release edit vX.Y.Z --draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。逐条命令见 `docs/agents/release-runbook.md` §4（REST API 逐步操作降为备用）。不得改用 CI，也不得绕过校验在网页手工上传。
+  ⚠️ **令牌一律用 `gh auth token` 获取**（实测可用，scopes 含 `repo`）。**不要依赖 `git credential fill`**：本机凭据链不可靠（`~/.gitconfig` 曾被写入空值 `credential.helper =` 或多行写法错误的 helper，导致报 `could not read Password ... terminal prompts disabled`，而凭据其实一直存在 Windows 凭据管理器里）。
+  推送遇凭据故障时的兜底：`python scripts/push_via_wincred.py`（绕开 git 凭据链，直接调 wincred helper 取凭据注入 URL；默认走 git 配置的代理，代理故障时 `--direct` 直连备用）。
 - **官网同步（每次发版必做，单独提交）**：`website/changelog.html` 补时间线条目 + 页头版本号、`website/assets/js/site.js` 的 `SITE.version`/`versionCode`、`website/sitemap.xml` 的 `/changelog` lastmod；提交信息 `docs(website): 同步 vX.Y.Z 更新日志 vX.Y.Z`。
+- **arm64 正式包归档（每次发版必做）**：把当版 `shangke-vX.Y.Z-arm64-v8a-release.apk` 放入仓库外的 `D:\01课程表\正式版-arm64\`（仅此一种包，规则见该目录 `README.md`：一版一包、放入即按 README 第 4 条校验三项）；该目录不入库、不提交。
 - **推送 origin 的已知故障**：可能报 `schannel: failed to receive handshake`。**不要**清空代理直连（报 `Connection was reset`）、**不要**切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`）；正确做法是等约 20 秒后用 `git ls-remote --heads origin main` 探活，恢复后原样重推。`gitee` 镜像每次同步推送。
 - 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）；CI 侧不再需要签名密钥。
 - 发布完成后在 `工作日志.md` 追加 `BUILD` 记录（构建结果、三包体积、versionCode/ABI/签名校验结论、Release id 与 URL、tag 指向、官网同步提交、origin/gitee 推送状态、是否装机验证）。
@@ -57,7 +56,7 @@
   3. **并行会话（本仓库最高频事故源，历史多次互相覆盖）** → **严禁占用主工作区切分支**；一律独立 worktree + 独立分支：`git worktree add D:\01课程表\shangkeschedule-<主题> -b <分支名>`。不读、不写、不切、不删其他会话的 worktree 与分支。
 - **worktree 注意事项**：新 worktree 首次构建前必须复制三样文件（`androidApp/keystore.properties`、`androidApp/shangkeschedule-release.jks`、`local.properties`），否则 `validateSigningRelease` 必失败；分支被 worktree 占用时无法删除，须先 `git worktree remove <路径>`；worktree 目录删除遇 Windows「Filename too long」时改用 `rm -rf` 补删（构建缓存深嵌套是常态）。
 - **删除分支（任务收尾必做）**：只用安全模式 `git branch -d`，删除前先 `git branch --merged main` 核验。**`-D` 强删未合并分支必须先经用户确认**；远端分支删除（`git push origin --delete`）属外发操作，同样必须经用户确认。
-- **推送与同步纪律**：推送前必须 `git fetch` 核对领先 / 落后；本地落后一律 `--ff-only` 快进；出现分叉优先 `rebase` 保持线性历史；推送遇凭据 / 代理问题时用 `gh auth token` 注入 URL 或 `-c http.proxy= -c https.proxy=` 直连（本机已知问题）。
+- **推送与同步纪律**：推送前必须 `git fetch` 核对领先 / 落后；本地落后一律 `--ff-only` 快进；出现分叉优先 `rebase` 保持线性历史；推送遇凭据 / 代理问题时按「正式版构建与发布」节的已知故障处理（等约 20 秒探活后原样重推；凭据故障用 `python scripts/push_via_wincred.py` 兜底），**不要**清空代理直连，**不要**切 `http.sslBackend=openssl`。
 - **未提交工作的保险**：`stash` 是易失保险——并行会话可能 pop / clear 它（已发生过）；重要在途改动要么尽快提交，要么把补丁写到 `build_qa/`，**不得只依赖 stash**。
 
 ## 提交与推送（自动：用户确认即执行）
@@ -66,7 +65,7 @@
 - **动作序列**：
   1. **先验证**：涉及源码的改动必须先通过编译（`:shared:compileKotlinJvm` + `:desktopApp:compileKotlin` + `:androidApp:assembleDebug`）再提交；
   2. 需要版本迭代的按「版本迭代」节先 bump；
-  3. `git add` **逐个显式**暂存本次改动文件（禁止 `git add .` / `git add -A`，防止卷入 AI 会话产物与本地杂物）；
+  3. `git add` **一条命令显式列出**本次全部改动文件（`git add -- <文件1> <文件2> …`；禁止 `git add .` / `git add -A`，防止卷入 AI 会话产物、本地杂物与其他会话在途改动）；
   4. 提交信息沿用仓库惯例：`<type>(<范围>): <中文摘要> vX.Y.Z`；
   5. `git push origin <当前分支>`；失败按「分支使用规范」的凭据 / 代理方法重试，结果如实报告（含 gitee 镜像是否同步）。
 - **红线（用户确认了也不得入库）**：`*.jks` / `keystore.properties` / `local.properties` / `google-services.json` 等敏感文件；AI 会话产物（`.trae/`、`.zcode/`、`build_qa/`、`工作日志.md`、`tools/`）。
