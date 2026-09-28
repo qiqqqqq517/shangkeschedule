@@ -222,6 +222,10 @@ class WeeklyScheduleViewModel (
     /** 手势调课落库失败信号（v3.54.0）：屏幕侧收集后展示本地化错误提示。 */
     private val _gestureSaveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val gestureSaveFailed: SharedFlow<Unit> = _gestureSaveFailed.asSharedFlow()
+
+    /** 「只删本次课」落库结果（v4.63.0）：true 成功 / false 失败；屏幕侧收集后提示。 */
+    private val _deleteOccurrenceResult = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
+    val deleteOccurrenceResult: SharedFlow<Boolean> = _deleteOccurrenceResult.asSharedFlow()
     val uiState: StateFlow<WeeklyScheduleUiState> = _uiState.asStateFlow()
 
     private val _pagerMondayDate = MutableStateFlow(
@@ -597,6 +601,22 @@ class WeeklyScheduleViewModel (
             val currentSettings = appSettingsRepository.getAppSettingsOnce()
             val newSettings = currentSettings.copy(currentCourseTableId = tableId)
             appSettingsRepository.insertOrUpdateAppSettings(newSettings)
+        }
+    }
+
+    /**
+     * 只删除某门课程在**指定周次**的这一次课（v4.63.0，课表详情弹窗内「只删本次」按钮）。
+     *
+     * 复用 [CourseTableRepository.deleteCourseWeekOccurrence]：仅切断该课程与 [weekNumber] 的周次关联，
+     * 其它周次照常保留；若这是它的最后一次出现，则整条课程记录一并删除。
+     * 结果经 [deleteOccurrenceResult] 回传屏幕层提示。
+     */
+    fun deleteCourseWeekOccurrence(courseId: String, weekNumber: Int) {
+        viewModelScope.launch {
+            val succeeded = runCatching {
+                courseTableRepository.deleteCourseWeekOccurrence(courseId, weekNumber)
+            }.isSuccess
+            _deleteOccurrenceResult.emit(succeeded)
         }
     }
 

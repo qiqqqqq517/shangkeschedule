@@ -173,6 +173,8 @@ import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.course_section_range
 import shangkeschedule.shared.generated.resources.snackbar_add_course_within_semester
 import shangkeschedule.shared.generated.resources.swap_horiz_24px
+import shangkeschedule.shared.generated.resources.toast_delete_occurrence_failed
+import shangkeschedule.shared.generated.resources.toast_delete_success
 import shangkeschedule.shared.generated.resources.title_current_week
 import shangkeschedule.shared.generated.resources.title_semester_not_set
 import shangkeschedule.shared.generated.resources.title_vacation
@@ -321,6 +323,17 @@ fun WeeklyScheduleScreen(
     LaunchedEffect(viewModel, moveFailedMsg) {
         viewModel.gestureSaveFailed.collect {
             snackbarHostState.showSnackbar(moveFailedMsg)
+        }
+    }
+
+    // 「只删本次课」删除结果提示（v4.63.0）：课表详情弹窗内的删除按钮 → 本地库写入结果
+    val deleteOccurrenceSuccessMsg = stringResource(Res.string.toast_delete_success)
+    val deleteOccurrenceFailedMsg = stringResource(Res.string.toast_delete_occurrence_failed)
+    LaunchedEffect(viewModel, deleteOccurrenceSuccessMsg, deleteOccurrenceFailedMsg) {
+        viewModel.deleteOccurrenceResult.collect { succeeded ->
+            snackbarHostState.showSnackbar(
+                if (succeeded) deleteOccurrenceSuccessMsg else deleteOccurrenceFailedMsg
+            )
         }
     }
 
@@ -889,7 +902,15 @@ fun WeeklyScheduleScreen(
         CourseDetailBottomSheet(
             block = selectedBlockForDetail!!,
             onDismissRequest = { selectedBlockForDetail = null },
-            onSaved = { selectedBlockForDetail = null }
+            onSaved = { selectedBlockForDetail = null },
+            // 当前展示的周次即「本次」：只删这一周的这一次课（v4.63.0）
+            currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber,
+            onDeleteOccurrence = { week ->
+                selectedBlockForDetail?.courses?.firstOrNull()?.course?.id?.let { courseId ->
+                    viewModel.deleteCourseWeekOccurrence(courseId, week)
+                }
+                selectedBlockForDetail = null
+            }
             // v3.57.4（原 v3.54.0 传 hazeState 走玻璃透明分支）：玻璃分支内层蒙层未裁剪到 sheetTop
             // 圆角、且透明容器在底部 inset 露出透明块，顶部圆角被方角蒙糊 —— 与今日日程详情弹窗
             // （纯色分支）观感不一致。改为与日程完全一致、不传 hazeState，消除圆角丢失与透明块。

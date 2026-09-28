@@ -61,6 +61,10 @@
     <string name="today_countdown_label">分鐘後開始</string>
     <string name="today_sheet_close">關閉</string>
     <string name="today_sheet_edit">編輯課程</string>
+    <string name="today_sheet_delete_occurrence">刪除本次課程</string>
+    <string name="dialog_title_delete_occurrence">刪除本次課程</string>
+    <string name="dialog_text_delete_occurrence">確定只刪除「%1$s」在第 %2$d 週的這一次課嗎？該課程其他週次不受影響。</string>
+    <string name="toast_delete_occurrence_failed">刪除失敗，請重試</string>
     <string name="settings_group_timetable">課表</string>
     <string name="settings_group_courses">課程</string>
     <string name="settings_group_preference">偏好</string>

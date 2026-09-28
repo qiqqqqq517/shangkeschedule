@@ -42,4 +42,12 @@ interface CourseWeekDao {
      */
     @Query("DELETE FROM course_weeks WHERE courseId IN (:courseIds) AND weekNumber = :weekNumber")
     suspend fun deleteCourseWeeksForCourseAndWeek(courseIds: List<String>, weekNumber: Int)
+
+    /**
+     * 查询指定课程当前关联的全部周次（升序）。
+     * 供「只删本次课」在切断某一周后判断该课程是否已无任何周次，
+     * 避免留下永不显示的孤儿课程行。
+     */
+    @Query("SELECT weekNumber FROM course_weeks WHERE courseId = :courseId ORDER BY weekNumber ASC")
+    suspend fun getWeekNumbersByCourseId(courseId: String): List<Int>
 }

@@ -57,6 +57,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSwitch
@@ -81,6 +82,10 @@ import shangkeschedule.shared.generated.resources.action_double_week
 import shangkeschedule.shared.generated.resources.action_save_changes
 import shangkeschedule.shared.generated.resources.action_single_week
 import shangkeschedule.shared.generated.resources.chevron_right_24px
+import shangkeschedule.shared.generated.resources.confirm_delete
+import shangkeschedule.shared.generated.resources.delete_24px
+import shangkeschedule.shared.generated.resources.dialog_text_delete_occurrence
+import shangkeschedule.shared.generated.resources.dialog_title_delete_occurrence
 import shangkeschedule.shared.generated.resources.common_action_continue_editing
 import shangkeschedule.shared.generated.resources.common_action_exit_without_save
 import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
@@ -101,16 +106,22 @@ import shangkeschedule.shared.generated.resources.today_meta_teacher
 import shangkeschedule.shared.generated.resources.today_meta_time
 import shangkeschedule.shared.generated.resources.today_meta_weeks
 import shangkeschedule.shared.generated.resources.today_sheet_close
+import shangkeschedule.shared.generated.resources.today_sheet_delete_occurrence
 import shangkeschedule.shared.generated.resources.today_sheet_edit
 import shangkeschedule.shared.generated.resources.week_days_full_names
 
 /**
- * 课程详情弹窗（v4.62.0 起支持弹窗内就地编辑）。
+ * 课程详情弹窗（v4.62.0 起支持弹窗内就地编辑；v4.63.0 起编辑态可「只删本次」）。
  *
  * 打开即只读预览，版式与原本完全一致：「星期」小节标题 + 课程名大标题，圆角容器内
  * label/value 分隔行，底部「关闭 / 编辑课程」。点「编辑课程」后同一弹窗切换为编辑态：
  * 课程名/地点/教师/学分/考核方式/备注为行内输入框，上课时间/周次/颜色/星期为可点行，
  * 实验课与自定义时间为开关行，底部「取消 / 保存更改」。crush 课程恒为只读，仅「关闭」。
+ *
+ * v4.63.0 起编辑态右上角（课程名输入框同一行）多一个「只删本次」圆形图标按钮：只删除本课程在
+ * **当前展示这一周**的这一次课（切断该周次关联），课程在其它周次的排课照常保留；若这已是它最后一次
+ * 出现，则整条课程记录一并删除。该按钮仅在课程确实排在被展示的这一周时出现（弱化的非本周课程
+ * 块不显示），crush 课程仍为只读、没有编辑态、同样不显示。
  *
  * 复用 [AddEditCourseViewModel]，多方案、周次、时间、配色、学分等字段与整页编辑
  * （[com.shangkeschedule.ui.settings.course.AddEditCourseScreen]）走同一套保存逻辑；
@@ -126,6 +137,8 @@ fun CourseDetailBottomSheet(
     block: MergedCourseBlock,
     onDismissRequest: () -> Unit,
     onSaved: () -> Unit,
+    currentWeek: Int? = null,
+    onDeleteOccurrence: (Int) -> Unit = {},
     hazeState: dev.chrisbanes.haze.HazeState? = null
 ) {
     val courseWrapper = block.courses.firstOrNull() ?: return
@@ -301,8 +314,10 @@ fun CourseDetailBottomSheet(
             courseId = course.id,
             fallbackName = course.name,
             fallbackDay = course.day,
+            currentWeek = currentWeek,
             onDismissRequest = onDismissRequest,
             onSaved = onSaved,
+            onDeleteOccurrence = onDeleteOccurrence,
             onCancelEditing = { isEditing = false }
         )
     }
@@ -316,8 +331,10 @@ private fun EditableCourseDetailSheet(
     courseId: String,
     fallbackName: String,
     fallbackDay: Int,
+    currentWeek: Int?,
     onDismissRequest: () -> Unit,
     onSaved: () -> Unit,
+    onDeleteOccurrence: (Int) -> Unit,
     onCancelEditing: () -> Unit
 ) {
     // 弹层专属 ViewModelStore：实例随编辑态开关而生灭，避免与整页编辑共用实例导致状态串味
@@ -337,9 +354,11 @@ private fun EditableCourseDetailSheet(
             courseId = courseId,
             fallbackName = fallbackName,
             fallbackDay = fallbackDay,
+            currentWeek = currentWeek,
             viewModel = viewModel,
             onDismissRequest = onDismissRequest,
             onSaved = onSaved,
+            onDeleteOccurrence = onDeleteOccurrence,
             onCancelEditing = onCancelEditing
         )
     }
@@ -351,9 +370,11 @@ private fun EditableCourseDetailContent(
     courseId: String,
     fallbackName: String,
     fallbackDay: Int,
+    currentWeek: Int?,
     viewModel: AddEditCourseViewModel,
     onDismissRequest: () -> Unit,
     onSaved: () -> Unit,
+    onDeleteOccurrence: (Int) -> Unit,
     onCancelEditing: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -385,6 +406,12 @@ private fun EditableCourseDetailContent(
         if (uiState.isDataLoaded && scheme == null) onDismissRequest()
     }
 
+    // 「只删本次」的可行周次（v4.63.0）：只删除当前展示这一周的这一次课。
+    // 仅当该课程（按正在编辑的周次）确实排在被展示这一周时才提供删除，否则点下去删不掉任何东西；
+    // crush 课程没有编辑态，自然不会走到这里。
+    val occurrenceWeek = currentWeek?.takeIf { week -> scheme?.weeks?.contains(week) == true }
+    var showDeleteOccurrenceConfirm by remember(courseId, occurrenceWeek) { mutableStateOf(false) }
+
     fun timeLabel(s: CourseScheme): String {
         if (s.isCustomTime) {
             return "${s.customStartTime.ifBlank { "00:00" }}-${s.customEndTime.ifBlank { "00:00" }}"
@@ -405,7 +432,7 @@ private fun EditableCourseDetailContent(
                     ToastManager.show(saveSuccessText)
                     onSaved()
                 }
-                // 本弹层不提供删除入口，理论上不会触发；同 SaveSuccess 一并关闭
+                // 本弹层的「只删本次」不经过该事件（直接调用课表页的仓储删除）；此处仅为兜底
                 UiEvent.DeleteSuccess -> onSaved()
                 UiEvent.Cancel -> onCancelEditing()
             }
@@ -459,30 +486,59 @@ private fun EditableCourseDetailContent(
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
             val dayIndex = (scheme?.day ?: fallbackDay) - 1
-            Text(
-                text = dayNames.getOrNull(dayIndex).orEmpty(),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.1.em
-                ),
-                color = colors.textSecondary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // 大标题即课程名输入框（与只读版式的标题同一版式，暗色无边框）
-            BasicTextField(
-                value = if (uiState.isDataLoaded) uiState.name else fallbackName,
-                onValueChange = viewModel::onNameChange,
-                enabled = uiState.isDataLoaded,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary
-                ),
-                cursorBrush = SolidColor(colors.primary),
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = dayNames.getOrNull(dayIndex).orEmpty(),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.1.em
+                        ),
+                        color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // 大标题即课程名输入框（与只读版式的标题同一版式，暗色无边框）
+                    BasicTextField(
+                        value = if (uiState.isDataLoaded) uiState.name else fallbackName,
+                        onValueChange = viewModel::onNameChange,
+                        enabled = uiState.isDataLoaded,
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary
+                        ),
+                        cursorBrush = SolidColor(colors.primary),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                // 「只删本次」按钮：编辑态右上角的实心圆形图标按钮（不是文字说明）。
+                // 点按后先二次确认，确认即删除本课程在当前展示这一周的这一次课。
+                if (occurrenceWeek != null) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(colors.dangerSoft)
+                            .clickable { showDeleteOccurrenceConfirm = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.delete_24px),
+                            contentDescription = stringResource(
+                                Res.string.today_sheet_delete_occurrence
+                            ),
+                            modifier = Modifier.size(18.dp),
+                            tint = colors.danger
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
             if (!uiState.isDataLoaded || scheme == null) {
@@ -780,6 +836,26 @@ private fun EditableCourseDetailContent(
                 )
             },
             dismissButton = {}
+        )
+    }
+
+    // 「只删本次」二次确认（删除不可撤销）：只影响当前展示这一周的这一次课
+    if (showDeleteOccurrenceConfirm && occurrenceWeek != null) {
+        AppDangerDialog(
+            onDismissRequest = { showDeleteOccurrenceConfirm = false },
+            title = stringResource(Res.string.dialog_title_delete_occurrence),
+            text = stringResource(
+                Res.string.dialog_text_delete_occurrence,
+                uiState.name.ifBlank { fallbackName },
+                occurrenceWeek
+            ),
+            confirmText = stringResource(Res.string.confirm_delete),
+            onConfirm = {
+                showDeleteOccurrenceConfirm = false
+                onDeleteOccurrence(occurrenceWeek)
+            },
+            dismissText = stringResource(Res.string.action_cancel),
+            onDismiss = { showDeleteOccurrenceConfirm = false }
         )
     }
 }

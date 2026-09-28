@@ -566,6 +566,33 @@ class CourseTableRepository(
     }
 
     /**
+     * 只删除某门课程在**指定周次**的这一次课（v4.63.0）。
+     *
+     * 与 [deleteCoursesOnDates] 的「按 (周次, 星期) 整列清理」不同，这里只针对**单条课程记录**：
+     * 仅切断该课程与 [weekNumber] 的关联，它在其他周次的排课照常保留。
+     *
+     * 若切断后该课程已不再关联任何周次（即本次就是它的最后一次出现），
+     * 则把课程记录一并删除——否则会留下一条永不显示的孤儿课程行。
+     *
+     * @param courseId 课程记录的唯一 ID
+     * @param weekNumber 要删除的周次
+     * @return true 表示课程记录已被整条删除；false 表示只移除了该周次
+     */
+    suspend fun deleteCourseWeekOccurrence(courseId: String, weekNumber: Int): Boolean {
+        if (courseId.isBlank()) return false
+        var courseDeleted = false
+        // 真事务：切断周次关联与「已无周次则删课」两步原子化，避免中途失败留下孤儿行
+        database.withWriteTransaction {
+            courseWeekDao.deleteCourseWeeksForCourseAndWeek(listOf(courseId), weekNumber)
+            if (courseWeekDao.getWeekNumbersByCourseId(courseId).isEmpty()) {
+                courseDao.deleteById(courseId)
+                courseDeleted = true
+            }
+        }
+        return courseDeleted
+    }
+
+    /**
      * 获取指定课表、周次和星期下的课程，并以数据流形式返回。
      * 这个方法专为 UI 层提供实时更新的数据。
      */

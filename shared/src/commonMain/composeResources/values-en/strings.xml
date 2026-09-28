@@ -61,6 +61,10 @@
     <string name="today_countdown_label">min to start</string>
     <string name="today_sheet_close">Close</string>
     <string name="today_sheet_edit">Edit course</string>
+    <string name="today_sheet_delete_occurrence">Delete this class</string>
+    <string name="dialog_title_delete_occurrence">Delete this class</string>
+    <string name="dialog_text_delete_occurrence">Delete "%1$s" only for week %2$d? Its other weeks stay unchanged.</string>
+    <string name="toast_delete_occurrence_failed">Delete failed, please try again</string>
     <string name="settings_group_timetable">Timetable</string>
     <string name="settings_group_courses">Courses</string>
     <string name="settings_group_preference">Preferences</string>
