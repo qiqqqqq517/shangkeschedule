@@ -12,6 +12,7 @@ import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.commonCourseRow
+import com.shangkeschedule.widget.setWidgetCardBackground
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.headerSizeSp
 import java.time.LocalDate
@@ -28,6 +29,7 @@ object DoubleDaysNativeRenderer {
         space: WidgetSpaceClass = WidgetSpaceClass.S
     ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_double_days_native)
+        rv.setWidgetCardBackground(R.id.inner_content_card, R.id.container_vacation)
 
         // 状态彻底重置
         resetWidgetState(rv)

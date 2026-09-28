@@ -11,6 +11,7 @@ import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
+import com.shangkeschedule.widget.setWidgetCardBackground
 import com.shangkeschedule.widget.commonCourseRow
 import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
@@ -30,6 +31,8 @@ object CompactNativeRenderer {
         space: WidgetSpaceClass = WidgetSpaceClass.S
     ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_today_compact_native)
+        // 卡片背景按系统深浅显式指定（reapply 路径下 XML 夜间色不重解析，见 setWidgetCardBackground）
+        rv.setWidgetCardBackground(R.id.inner_content_card, R.id.container_full_status)
 
         // 状态彻底重置
         resetWidgetState(rv)
