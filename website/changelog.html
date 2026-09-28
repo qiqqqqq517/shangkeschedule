@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.60.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>384</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.62.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>386</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4620">v4.62.0 · 课表内课程弹窗：先预览，再就地编辑</a></li>
+        <li><a href="#v4610">v4.61.0 · 桌面小组件字号放大与排版收敛</a></li>
         <li><a href="#v4600">v4.60.0 · 全应用界面间距与布局统一接入主题 token</a></li>
         <li><a href="#v3740">v3.74.0 · 学期管理补齐「复制学期」+ 计数 / 折叠 / 标题行修复</a></li>
         <li><a href="#v3730">v3.73.0 · 课程提醒设置页改版 + 跳过日期可自行设定</a></li>
@@ -148,6 +150,31 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4620">
+        <div><span class="tl-ver">v4.62.0</span><span class="tl-date">2026-09-28</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>先预览，再就地编辑</h3>
+          <ul>
+            <li><strong>弹出即预览</strong>：在周课表里点击课程，弹窗保持原本的详情版式（只读）；点「编辑课程」后，可在同一弹窗内直接修改课程名、上课时间、地点、教师、周次、学分、考核方式、实验课、备注、课程颜色与自定义时间，点「保存更改」即写回，<strong>不再跳转整页的课程编辑页</strong>。</li>
+            <li><strong>改动可控</strong>：有未保存内容时取消或下滑关闭会先确认；退出编辑即释放该课程的编辑状态，下次打开重新从数据库读取。</li>
+            <li><strong>版式收敛</strong>：实验课与自定义时间两行压到与普通行等高，弹窗高度随内容自适应（上限 620dp），消除窗口底部的大片留白。</li>
+            <li><strong>克星课程保持只读</strong>：标记为「克星」的课程仍只显示原详情与「关闭」。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4610">
+        <div><span class="tl-ver">v4.61.0</span><span class="tl-date">2026-09-28</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>按空间放大字号</h3>
+          <ul>
+            <li>小组件按自身宽度分 S / M / L 三档，宽组件字号更大；同一组件内课程名、时间、地点字号统一，长名以省略号截断，不断行。</li>
+            <li>课程行不再显示教师，省出的空间用于放大课程名、时间与地点。</li>
+            <li>条目名统一 14sp，地点与时间统一 11sp；Compact 与双日栏头升级为 12sp 主文字；4×N 分隔线统一为一种实现。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4600">
         <div><span class="tl-ver">v4.60.0</span><span class="tl-date">2026-09-28</span></div>
