@@ -14,35 +14,88 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
+import com.shangkeschedule.ui.components.AppSwitch
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
+import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
+import com.shangkeschedule.ui.settings.course.AddEditCourseViewModel
+import com.shangkeschedule.ui.settings.course.ColorPickerBottomSheet
+import com.shangkeschedule.ui.settings.course.CourseScheme
+import com.shangkeschedule.ui.settings.course.CourseTimePickerBottomSheet
+import com.shangkeschedule.ui.settings.course.CustomTimeRangePickerBottomSheet
+import com.shangkeschedule.ui.settings.course.DayPickerDialog
+import com.shangkeschedule.ui.settings.course.UiEvent
+import com.shangkeschedule.ui.settings.course.WeekSelectorBottomSheet
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
+import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_double_week
+import shangkeschedule.shared.generated.resources.action_save_changes
 import shangkeschedule.shared.generated.resources.action_single_week
+import shangkeschedule.shared.generated.resources.chevron_right_24px
+import shangkeschedule.shared.generated.resources.common_action_continue_editing
+import shangkeschedule.shared.generated.resources.common_action_exit_without_save
+import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shangkeschedule.shared.generated.resources.common_dialog_title_abandon_changes
 import shangkeschedule.shared.generated.resources.label_assessment_method
+import shangkeschedule.shared.generated.resources.label_course_color
 import shangkeschedule.shared.generated.resources.label_credit
+import shangkeschedule.shared.generated.resources.label_custom_time
+import shangkeschedule.shared.generated.resources.label_day_of_week
 import shangkeschedule.shared.generated.resources.label_is_lab
 import shangkeschedule.shared.generated.resources.label_remark
 import shangkeschedule.shared.generated.resources.label_section_range_suffix
+import shangkeschedule.shared.generated.resources.toast_name_empty
+import shangkeschedule.shared.generated.resources.toast_save_success
+import shangkeschedule.shared.generated.resources.toast_time_invalid
 import shangkeschedule.shared.generated.resources.today_meta_room
 import shangkeschedule.shared.generated.resources.today_meta_teacher
 import shangkeschedule.shared.generated.resources.today_meta_time
@@ -52,152 +105,137 @@ import shangkeschedule.shared.generated.resources.today_sheet_edit
 import shangkeschedule.shared.generated.resources.week_days_full_names
 
 /**
- * 课程详情弹窗：与「今日日程」详情弹层的视觉语言对齐 ——
- * 顶部小节标题 + 大标题，圆角容器内 label/value 分隔行，底部「关闭/编辑课程」双按钮。
- * 仅承载课程字段展示与编辑入口，不改变任何数据与业务逻辑。
+ * 课程详情弹窗（v4.62.0 起支持弹窗内就地编辑）。
  *
- * [weekNumber] 与 [onTweakOccurrenceClick] 同时提供时，在底部按钮上方展示
- * 「调整本次课程」全宽次级入口（单次课程调整，仅本周生效）。
+ * 打开即只读预览，版式与原本完全一致：「星期」小节标题 + 课程名大标题，圆角容器内
+ * label/value 分隔行，底部「关闭 / 编辑课程」。点「编辑课程」后同一弹窗切换为编辑态：
+ * 课程名/地点/教师/学分/考核方式/备注为行内输入框，上课时间/周次/颜色/星期为可点行，
+ * 实验课与自定义时间为开关行，底部「取消 / 保存更改」。crush 课程恒为只读，仅「关闭」。
+ *
+ * 复用 [AddEditCourseViewModel]，多方案、周次、时间、配色、学分等字段与整页编辑
+ * （[com.shangkeschedule.ui.settings.course.AddEditCourseScreen]）走同一套保存逻辑；
+ * 本弹窗编辑的是被点击的那一个方案（方案 id 即课程行 id），不再跳转整页。
+ *
+ * 生命周期：编辑态自带一个 [ViewModelStore]，随编辑态建立、退出编辑或关闭时
+ * [ViewModelStore.clear]，因此每次进入编辑都是全新 ViewModel 实例（不复用上一次编辑态，
+ * 也不会向页面级 ViewModelStore 泄漏实例，同时结束其无限 combine 收集协程）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailBottomSheet(
     block: MergedCourseBlock,
     onDismissRequest: () -> Unit,
-    onEditClick: (String) -> Unit,
+    onSaved: () -> Unit,
     hazeState: dev.chrisbanes.haze.HazeState? = null
 ) {
     val courseWrapper = block.courses.firstOrNull() ?: return
     val course = courseWrapper.course
 
-    val colors = appColors()
+    // 打开即为只读预览（与原本一致），点「编辑课程」才切到就地编辑；crush 课程恒为只读
+    var isEditing by remember(course.id) { mutableStateOf(false) }
 
-    val weeksDisplayStr = formatWeeks(courseWrapper.weeks.map { it.weekNumber })
+    if (course.isCrush || !isEditing) {
+        // 只读预览版式：crush 课程与原详情弹窗完全一致；普通课程多一个「编辑课程」入口
+        val colors = appColors()
+        val weeksDisplayStr = formatWeeks(courseWrapper.weeks.map { it.weekNumber })
 
-    val weekDaysFullNames = stringArrayResource(Res.array.week_days_full_names)
-    val dayStr = remember(course.day, weekDaysFullNames) {
-        weekDaysFullNames.getOrNull(course.day - 1) ?: ""
-    }
+        val weekDaysFullNames = stringArrayResource(Res.array.week_days_full_names)
+        val dayStr = remember(course.day, weekDaysFullNames) {
+            weekDaysFullNames.getOrNull(course.day - 1) ?: ""
+        }
 
-    val labelTime = stringResource(Res.string.today_meta_time)
-    val labelRoom = stringResource(Res.string.today_meta_room)
-    val labelTeacher = stringResource(Res.string.today_meta_teacher)
-    val labelWeeks = stringResource(Res.string.today_meta_weeks)
-    val labelCredit = stringResource(Res.string.label_credit)
-    val labelAssessment = stringResource(Res.string.label_assessment_method)
-    val labelRemark = stringResource(Res.string.label_remark)
-    val labelIsLab = stringResource(Res.string.label_is_lab)
-    val textClose = stringResource(Res.string.today_sheet_close)
-    val textEdit = stringResource(Res.string.today_sheet_edit)
+        val labelTime = stringResource(Res.string.today_meta_time)
+        val labelRoom = stringResource(Res.string.today_meta_room)
+        val labelTeacher = stringResource(Res.string.today_meta_teacher)
+        val labelWeeks = stringResource(Res.string.today_meta_weeks)
+        val labelCredit = stringResource(Res.string.label_credit)
+        val labelAssessment = stringResource(Res.string.label_assessment_method)
+        val labelRemark = stringResource(Res.string.label_remark)
+        val labelIsLab = stringResource(Res.string.label_is_lab)
+        val textClose = stringResource(Res.string.today_sheet_close)
+        val textEdit = stringResource(Res.string.today_sheet_edit)
 
-    val sectionSuffix = stringResource(Res.string.label_section_range_suffix)
-    val timeStr = if (course.isCustomTime) {
-        "${course.customStartTime} - ${course.customEndTime}"
-    } else {
-        "${course.startSection ?: 0}-${course.endSection ?: 0} $sectionSuffix"
-    }
+        val sectionSuffix = stringResource(Res.string.label_section_range_suffix)
+        val timeStr = if (course.isCustomTime) {
+            "${course.customStartTime} - ${course.customEndTime}"
+        } else {
+            "${course.startSection ?: 0}-${course.endSection ?: 0} $sectionSuffix"
+        }
 
-    AppGlassBottomSheet(
-        hazeState = hazeState,
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
+        AppGlassBottomSheet(
+            hazeState = hazeState,
+            onDismissRequest = onDismissRequest,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
-            // 顶部小节标题：星期作为轻量上下文
-            Text(
-                text = dayStr,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.1.em
-                ),
-                color = colors.textSecondary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // 大标题
-            Text(
-                text = course.name,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = colors.textPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(appSpacing().cardGap))
-
-            // 圆角容器：label/value 分隔行
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(appShapes().chip)
-                    .border(1.dp, colors.divider, appShapes().chip)
+                    .padding(start = 20.dp, end = 20.dp, bottom = 40.dp)
             ) {
-                DetailRow(
-                    label = labelTime,
-                    value = timeStr
+                Text(
+                    text = dayStr,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.1.em
+                    ),
+                    color = colors.textSecondary
                 )
-                HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                if (course.position.isNotBlank()) {
-                    DetailRow(label = labelRoom, value = course.position)
-                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                }
-                if (course.teacher.isNotBlank()) {
-                    DetailRow(label = labelTeacher, value = course.teacher)
-                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                }
-                if (weeksDisplayStr.isNotEmpty()) {
-                    DetailRow(label = labelWeeks, value = weeksDisplayStr)
-                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                }
-                if (!course.credit.isNullOrBlank()) {
-                    DetailRow(label = labelCredit, value = course.credit)
-                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                }
-                if (!course.assessmentMethod.isNullOrBlank()) {
-                    DetailRow(label = labelAssessment, value = course.assessmentMethod)
-                }
-                if (course.isLab) {
-                    DetailRow(label = labelIsLab, value = "✓")
-                }
-                if (!course.remark.isNullOrBlank()) {
-                    DetailRow(label = labelRemark, value = course.remark)
-                }
-            }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = course.name,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = colors.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
-            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
-
-            // 底部按钮
-            if (course.isCrush) {
-                // crush 课程仅展示，禁止编辑 —— 只保留关闭按钮
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
                         .clip(appShapes().chip)
-                        .background(colors.inputBg)
-                        .clickable(onClick = onDismissRequest),
-                    contentAlignment = Alignment.Center
+                        .border(1.dp, colors.divider, appShapes().chip)
                 ) {
-                    Text(
-                        text = textClose,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = colors.textPrimary
-                    )
+                    DetailRow(label = labelTime, value = timeStr)
+                    HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                    if (course.position.isNotBlank()) {
+                        DetailRow(label = labelRoom, value = course.position)
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                    }
+                    if (course.teacher.isNotBlank()) {
+                        DetailRow(label = labelTeacher, value = course.teacher)
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                    }
+                    if (weeksDisplayStr.isNotEmpty()) {
+                        DetailRow(label = labelWeeks, value = weeksDisplayStr)
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                    }
+                    if (!course.credit.isNullOrBlank()) {
+                        DetailRow(label = labelCredit, value = course.credit)
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                    }
+                    if (!course.assessmentMethod.isNullOrBlank()) {
+                        DetailRow(label = labelAssessment, value = course.assessmentMethod)
+                    }
+                    if (course.isLab) {
+                        DetailRow(label = labelIsLab, value = "✓")
+                    }
+                    if (!course.remark.isNullOrBlank()) {
+                        DetailRow(label = labelRemark, value = course.remark)
+                    }
                 }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                Spacer(modifier = Modifier.height(appSpacing().sectionGap))
+
+                if (course.isCrush) {
+                    // crush 课程无编辑入口，仅「关闭」
                     Box(
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(48.dp)
                             .clip(appShapes().chip)
                             .background(colors.inputBg)
@@ -213,30 +251,542 @@ fun CourseDetailBottomSheet(
                             color = colors.textPrimary
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .clip(appShapes().chip)
-                            .background(colors.primary)
-                            .clickable(onClick = { onEditClick(course.id) }),
-                        contentAlignment = Alignment.Center
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = textEdit,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = colors.textOnPrimary
-                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(appShapes().chip)
+                                .background(colors.inputBg)
+                                .clickable(onClick = onDismissRequest),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = textClose,
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = colors.textPrimary
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(appShapes().chip)
+                                .background(colors.primary)
+                                .clickable { isEditing = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = textEdit,
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = colors.textOnPrimary
+                            )
+                        }
                     }
                 }
             }
         }
+    } else {
+        EditableCourseDetailSheet(
+            courseId = course.id,
+            fallbackName = course.name,
+            fallbackDay = course.day,
+            onDismissRequest = onDismissRequest,
+            onSaved = onSaved,
+            onCancelEditing = { isEditing = false }
+        )
     }
 }
 
+/**
+ * 可编辑详情弹窗外壳：仅负责弹层专属 ViewModelStore 与 ViewModel 解析。
+ */
+@Composable
+private fun EditableCourseDetailSheet(
+    courseId: String,
+    fallbackName: String,
+    fallbackDay: Int,
+    onDismissRequest: () -> Unit,
+    onSaved: () -> Unit,
+    onCancelEditing: () -> Unit
+) {
+    // 弹层专属 ViewModelStore：实例随编辑态开关而生灭，避免与整页编辑共用实例导致状态串味
+    val sheetStore = remember { ViewModelStore() }
+    DisposableEffect(sheetStore) {
+        onDispose { sheetStore.clear() }
+    }
+    val sheetStoreOwner = remember(sheetStore) {
+        object : ViewModelStoreOwner {
+            override val viewModelStore: ViewModelStore = sheetStore
+        }
+    }
+
+    CompositionLocalProvider(LocalViewModelStoreOwner provides sheetStoreOwner) {
+        val viewModel: AddEditCourseViewModel = koinViewModel()
+        EditableCourseDetailContent(
+            courseId = courseId,
+            fallbackName = fallbackName,
+            fallbackDay = fallbackDay,
+            viewModel = viewModel,
+            onDismissRequest = onDismissRequest,
+            onSaved = onSaved,
+            onCancelEditing = onCancelEditing
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditableCourseDetailContent(
+    courseId: String,
+    fallbackName: String,
+    fallbackDay: Int,
+    viewModel: AddEditCourseViewModel,
+    onDismissRequest: () -> Unit,
+    onSaved: () -> Unit,
+    onCancelEditing: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 打开即回到数据库最新值（保存后新增方案会拿到新的 dbId，避免二次保存写入重复课程行）
+    LaunchedEffect(courseId) { viewModel.reload(courseId) }
+
+    val colors = appColors()
+    val dayNames = stringArrayResource(Res.array.week_days_full_names)
+    val sectionSuffix = stringResource(Res.string.label_section_range_suffix)
+    val saveSuccessText = stringResource(Res.string.toast_save_success)
+    val nameEmptyText = stringResource(Res.string.toast_name_empty)
+    val timeInvalidText = stringResource(Res.string.toast_time_invalid)
+
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
+    var activeSchemeId by remember { mutableStateOf<String?>(null) }
+    var showWeekSelector by remember { mutableStateOf(false) }
+    var showColorPicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var showDayPicker by remember { mutableStateOf(false) }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // 被点击的课程就是本弹层的编辑对象。故意不做「找不到就退回第一个方案」的兜底：
+    // 那会在 id 不匹配时静默编辑另一门课，属于数据错改；数据已加载却找不到该课程时直接关闭弹层
+    val scheme: CourseScheme? = uiState.schemes.find { it.id == courseId }
+
+    LaunchedEffect(uiState.isDataLoaded, scheme) {
+        if (uiState.isDataLoaded && scheme == null) onDismissRequest()
+    }
+
+    fun timeLabel(s: CourseScheme): String {
+        if (s.isCustomTime) {
+            return "${s.customStartTime.ifBlank { "00:00" }}-${s.customEndTime.ifBlank { "00:00" }}"
+        }
+        val startAlias = uiState.timeSlots.find { it.number == s.startSection }?.alias
+            ?: s.startSection.toString()
+        val endAlias = uiState.timeSlots.find { it.number == s.endSection }?.alias
+            ?: s.endSection.toString()
+        val day = dayNames.getOrNull(s.day - 1).orEmpty()
+        val range = if (startAlias == endAlias) "$startAlias $sectionSuffix" else "$startAlias-$endAlias $sectionSuffix"
+        return if (day.isBlank()) range else "$day $range"
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                UiEvent.SaveSuccess -> {
+                    ToastManager.show(saveSuccessText)
+                    onSaved()
+                }
+                // 本弹层不提供删除入口，理论上不会触发；同 SaveSuccess 一并关闭
+                UiEvent.DeleteSuccess -> onSaved()
+                UiEvent.Cancel -> onCancelEditing()
+            }
+        }
+    }
+
+    // 未保存时手势/遮罩关闭：M3 会先把面板收起再回调 onDismissRequest，
+    // 故此处把面板回弹回去并弹出确认框，避免用户误触丢失编辑内容
+    LaunchedEffect(showExitConfirmDialog) {
+        if (showExitConfirmDialog) sheetState.show()
+    }
+
+    // 编辑态下「取消」/手势关闭：有改动先确认，确认后丢弃改动回到只读预览；无改动直接回预览
+    val requestCancelEditing = {
+        if (uiState.isDataLoaded && viewModel.hasUnsavedChanges()) {
+            showExitConfirmDialog = true
+        } else {
+            onCancelEditing()
+        }
+    }
+
+    val requestSave = {
+        if (uiState.name.isBlank()) {
+            ToastManager.show(nameEmptyText)
+        } else {
+            val allValid = uiState.schemes.all { s ->
+                if (s.isCustomTime) {
+                    s.customStartTime.isNotBlank() && s.customEndTime.isNotBlank() && s.customStartTime < s.customEndTime
+                } else {
+                    s.startSection <= s.endSection
+                }
+            }
+            if (allValid) viewModel.onSave() else ToastManager.show(timeInvalidText)
+        }
+    }
+
+    AppGlassBottomSheet(
+        // 弹层内没有 hazeSource 背板，传 null 退化为实色面板（与今日日程详情弹窗同一处理，
+        // 避免玻璃分支内层蒙层未裁剪到 sheetTop 圆角）
+        hazeState = null,
+        onDismissRequest = requestCancelEditing,
+        sheetState = sheetState
+    ) {
+        // 高度随内容自适应：内容少时面板自然收拢（不再固定 0.88 屏高，下方不留空白），
+        // 内容超过上限时行区域内部滚动，底部按钮始终可见
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 620.dp)
+                .imePadding()
+                .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
+        ) {
+            val dayIndex = (scheme?.day ?: fallbackDay) - 1
+            Text(
+                text = dayNames.getOrNull(dayIndex).orEmpty(),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.1.em
+                ),
+                color = colors.textSecondary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            // 大标题即课程名输入框（与只读版式的标题同一版式，暗色无边框）
+            BasicTextField(
+                value = if (uiState.isDataLoaded) uiState.name else fallbackName,
+                onValueChange = viewModel::onNameChange,
+                enabled = uiState.isDataLoaded,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary
+                ),
+                cursorBrush = SolidColor(colors.primary),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(appSpacing().cardGap))
+
+            if (!uiState.isDataLoaded || scheme == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ThemedLoadingIndicator()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // fill = false：只占内容高度，剩余空间不再撑开面板造成底部留白
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(appShapes().chip)
+                            .border(1.dp, colors.divider, appShapes().chip)
+                    ) {
+                        DetailActionRow(
+                            label = stringResource(Res.string.today_meta_time),
+                            onClick = {
+                                activeSchemeId = scheme.id
+                                showTimePicker = true
+                            }
+                        ) {
+                            DetailValueText(text = timeLabel(scheme))
+                        }
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        EditableDetailRow(
+                            label = stringResource(Res.string.today_meta_room),
+                            value = scheme.position,
+                            onValueChange = { newValue ->
+                                viewModel.updateScheme(scheme.id) { it.copy(position = newValue) }
+                            }
+                        )
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        EditableDetailRow(
+                            label = stringResource(Res.string.today_meta_teacher),
+                            value = scheme.teacher,
+                            onValueChange = { newValue ->
+                                viewModel.updateScheme(scheme.id) { it.copy(teacher = newValue) }
+                            }
+                        )
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        DetailActionRow(
+                            label = stringResource(Res.string.today_meta_weeks),
+                            onClick = {
+                                activeSchemeId = scheme.id
+                                showWeekSelector = true
+                            }
+                        ) {
+                            DetailValueText(text = formatWeeks(scheme.weeks.sorted()))
+                        }
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        EditableDetailRow(
+                            label = stringResource(Res.string.label_credit),
+                            value = uiState.credit,
+                            onValueChange = viewModel::onCreditChange
+                        )
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        EditableDetailRow(
+                            label = stringResource(Res.string.label_assessment_method),
+                            value = uiState.assessmentMethod,
+                            onValueChange = viewModel::onAssessmentMethodChange
+                        )
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        DetailSwitchRow(
+                            label = stringResource(Res.string.label_is_lab),
+                            checked = uiState.isLab,
+                            onCheckedChange = viewModel::onIsLabChange
+                        )
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        EditableDetailRow(
+                            label = stringResource(Res.string.label_remark),
+                            value = scheme.remark,
+                            onValueChange = { newRemark ->
+                                viewModel.onSchemeRemarkChange(scheme.id, newRemark)
+                            },
+                            singleLine = false,
+                            maxLines = 5
+                        )
+                        // 备注字数上限（与整页编辑同一 300 字约束）
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.cardBgElevated)
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${scheme.remark.length} / 300",
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.textSecondary
+                            )
+                        }
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        DetailActionRow(
+                            label = stringResource(Res.string.label_course_color),
+                            onClick = {
+                                activeSchemeId = scheme.id
+                                showColorPicker = true
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        uiState.courseColorMaps.getOrNull(scheme.colorIndex)?.light
+                                            ?: Color.Transparent
+                                    )
+                            )
+                        }
+                        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+
+                        DetailSwitchRow(
+                            label = stringResource(Res.string.label_custom_time),
+                            checked = scheme.isCustomTime,
+                            onCheckedChange = { isCustom ->
+                                viewModel.toggleCustomTime(scheme.id, isCustom)
+                            }
+                        )
+
+                        // 自定义时间模式下，星期单独成行（节次行已由时间选择器承担）
+                        if (scheme.isCustomTime) {
+                            HorizontalDivider(thickness = 1.dp, color = colors.divider)
+                            DetailActionRow(
+                                label = stringResource(Res.string.label_day_of_week),
+                                onClick = {
+                                    activeSchemeId = scheme.id
+                                    showDayPicker = true
+                                }
+                            ) {
+                                DetailValueText(text = dayNames.getOrNull(scheme.day - 1).orEmpty())
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(appSpacing().sectionGap))
+                }
+            }
+
+            // 底部操作区：与只读版式同一套按钮语言
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = appSpacing().cardGap),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.inputBg)
+                        .clickable(onClick = requestCancelEditing),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.action_cancel),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textPrimary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(appShapes().chip)
+                        .background(colors.primary)
+                        .clickable(onClick = requestSave),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.action_save_changes),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = colors.textOnPrimary
+                    )
+                }
+            }
+        }
+    }
+
+    // --- 选择器：与本弹层正在编辑的方案 id 绑定 ---
+    val activeScheme = uiState.schemes.find { it.id == activeSchemeId }
+    if (activeScheme != null) {
+        if (showWeekSelector) {
+            WeekSelectorBottomSheet(
+                totalWeeks = uiState.semesterTotalWeeks,
+                selectedWeeks = activeScheme.weeks,
+                onDismissRequest = { showWeekSelector = false },
+                onConfirm = { weeks: Set<Int> ->
+                    viewModel.updateScheme(activeScheme.id) { it.copy(weeks = weeks) }
+                    showWeekSelector = false
+                },
+                hazeState = null
+            )
+        }
+        if (showColorPicker) {
+            ColorPickerBottomSheet(
+                colorMaps = uiState.courseColorMaps,
+                selectedIndex = activeScheme.colorIndex,
+                onDismissRequest = { showColorPicker = false },
+                onConfirm = { index: Int ->
+                    viewModel.updateScheme(activeScheme.id) { it.copy(colorIndex = index) }
+                    showColorPicker = false
+                },
+                hazeState = null
+            )
+        }
+        if (showTimePicker) {
+            if (activeScheme.isCustomTime) {
+                CustomTimeRangePickerBottomSheet(
+                    initialStartTime = activeScheme.customStartTime.ifBlank { "08:00" },
+                    initialEndTime = activeScheme.customEndTime.ifBlank { "09:45" },
+                    onDismissRequest = { showTimePicker = false },
+                    onTimeRangeSelected = { start, end ->
+                        viewModel.updateScheme(activeScheme.id) {
+                            it.copy(customStartTime = start, customEndTime = end)
+                        }
+                        showTimePicker = false
+                    },
+                    hazeState = null
+                )
+            } else {
+                CourseTimePickerBottomSheet(
+                    selectedDay = activeScheme.day,
+                    onDaySelected = { d -> viewModel.updateScheme(activeScheme.id) { it.copy(day = d) } },
+                    startSection = activeScheme.startSection,
+                    onStartSectionChange = { s ->
+                        viewModel.updateScheme(activeScheme.id) { it.copy(startSection = s) }
+                    },
+                    endSection = activeScheme.endSection,
+                    onEndSectionChange = { e ->
+                        viewModel.updateScheme(activeScheme.id) { it.copy(endSection = e) }
+                    },
+                    timeSlots = uiState.timeSlots,
+                    onDismissRequest = { showTimePicker = false },
+                    hazeState = null
+                )
+            }
+        }
+        if (showDayPicker) {
+            DayPickerDialog(
+                selectedDay = activeScheme.day,
+                onDismissRequest = { showDayPicker = false },
+                onDaySelected = { newDay ->
+                    viewModel.updateScheme(activeScheme.id) { it.copy(day = newDay) }
+                    showDayPicker = false
+                }
+            )
+        }
+    }
+
+    if (showExitConfirmDialog) {
+        AppAlertDialog(
+            onDismissRequest = { showExitConfirmDialog = false },
+            title = {
+                Text(text = stringResource(Res.string.common_dialog_title_abandon_changes))
+            },
+            text = {
+                Text(text = stringResource(Res.string.common_dialog_msg_unsaved_changes))
+            },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.common_action_exit_without_save),
+                    onConfirm = {
+                        showExitConfirmDialog = false
+                        onCancelEditing()
+                    },
+                    dismissText = stringResource(Res.string.common_action_continue_editing),
+                    onDismiss = { showExitConfirmDialog = false },
+                    danger = true
+                )
+            },
+            dismissButton = {}
+        )
+    }
+}
+
+/**
+ * 只读样式的 label/value 行（crush 详情版式沿用）。
+ */
 @Composable
 private fun DetailRow(label: String, value: String) {
     val colors = appColors()
@@ -268,8 +818,172 @@ private fun DetailRow(label: String, value: String) {
     }
 }
 
+/**
+ * 可编辑的 label/value 行：整行可点，点击即聚焦右侧输入框；版式与 [DetailRow] 一致
+ * （同底色、同内边距、同字号），因此弹窗观感保持不变。
+ */
 @Composable
-private fun formatWeeks(weeks: List<Int>): String {
+private fun EditableDetailRow(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    singleLine: Boolean = true,
+    maxLines: Int = if (singleLine) 1 else 5
+) {
+    val colors = appColors()
+    val focusRequester = remember { FocusRequester() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.cardBgElevated)
+            .clickable { focusRequester.requestFocus() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = singleLine,
+                maxLines = maxLines,
+                textStyle = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary,
+                    textAlign = TextAlign.End
+                ),
+                cursorBrush = SolidColor(colors.primary),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = "—",
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.textSecondary
+                                )
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+            )
+        }
+    }
+}
+
+/**
+ * 可点行（上课时间 / 上课周次 / 课程颜色 / 星期）：右侧值 + 箭头，点击展开对应选择器。
+ */
+@Composable
+private fun DetailActionRow(
+    label: String,
+    onClick: () -> Unit,
+    value: @Composable () -> Unit
+) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.cardBgElevated)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        value()
+        Spacer(modifier = Modifier.size(6.dp))
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = colors.textSecondary
+        )
+    }
+}
+
+/**
+ * 开关行（实验课 / 自定义时间）。
+ */
+@Composable
+private fun DetailSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val colors = appColors()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .background(colors.cardBgElevated)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textSecondary,
+            modifier = Modifier.weight(1f)
+        )
+        // 开关单元格压到与普通行等高：M3 默认 48dp 触摸靶在详情行里过高，
+        // 用固定行高 + scale 收视觉，触摸区域随行高收缩
+        AppSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.scale(0.85f)
+        )
+    }
+}
+
+/**
+ * 可点行的值文本（只读展示，与 [DetailRow] 的值同一版式）。
+ */
+@Composable
+private fun DetailValueText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall.copy(
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        ),
+        color = appColors().textPrimary,
+        textAlign = TextAlign.End
+    )
+}
+
+@Composable
+internal fun formatWeeks(weeks: List<Int>): String {
     if (weeks.isEmpty()) return ""
     val sorted = weeks.distinct().sorted()
     val result = mutableListOf<String>()

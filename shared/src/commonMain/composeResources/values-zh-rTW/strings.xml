@@ -136,6 +136,7 @@
     <string name="title_edit_course">編輯課程</string>
     <string name="title_add_course">新增課程</string>
     <string name="label_course_name">課程名稱*</string>
+    <string name="label_course_color">課程顏色</string>
     <string name="toast_name_empty">課程名稱不能為空</string>
     <string name="label_teacher">教師</string>
     <string name="label_position">地點</string>

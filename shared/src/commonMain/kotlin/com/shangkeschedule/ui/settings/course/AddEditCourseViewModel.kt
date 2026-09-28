@@ -12,6 +12,7 @@ import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +73,9 @@ class AddEditCourseViewModel(
     private var initialAssessmentMethod: String = ""
     private var initialIsLab: Boolean = false
 
+    /** 当前进行中的数据加载协程；[reload] 需要先取消它，避免旧协程持续写入界面状态。 */
+    private var loadJob: Job? = null
+
     fun initWithId(id: String?, targetCourseTableId: String? = null) {
         if (_uiState.value.isDataLoaded) return
 
@@ -80,8 +84,29 @@ class AddEditCourseViewModel(
         loadData()
     }
 
+    /**
+     * 强制重新加载指定课程（v4.62.0，供课表内快速编辑弹层使用）。
+     *
+     * 与 [initWithId] 的「已加载即忽略」语义不同：弹层每次打开都必须回到数据库最新值。
+     * 否则复用同一 ViewModel 实例时，上一次会话的未保存编辑、以及保存后新增方案
+     * （[CourseScheme.dbId] 仍为 null）会被再次写库，造成重复课程行。
+     */
+    fun reload(id: String, targetCourseTableId: String? = null) {
+        _courseId = id
+        _targetTableId = targetCourseTableId
+        originalDbIds = emptySet()
+        initialName = ""
+        initialSchemes = emptyList()
+        initialCredit = ""
+        initialAssessmentMethod = ""
+        initialIsLab = false
+        _uiState.value = AddEditCourseUiState()
+        loadData()
+    }
+
     private fun loadData() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             val initialPresetData: PresetCourseData? = if (courseId == null) {
                 AddEditCourseChannel.presetDataFlow.firstOrNull()
             } else { null }

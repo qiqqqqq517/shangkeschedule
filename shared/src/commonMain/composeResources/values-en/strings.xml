@@ -136,6 +136,7 @@
     <string name="title_edit_course">Edit course</string>
     <string name="title_add_course">Add course</string>
     <string name="label_course_name">Course name*</string>
+    <string name="label_course_color">Course color</string>
     <string name="toast_name_empty">Course name cannot be empty</string>
     <string name="label_teacher">Instructor</string>
     <string name="label_position">Location</string>

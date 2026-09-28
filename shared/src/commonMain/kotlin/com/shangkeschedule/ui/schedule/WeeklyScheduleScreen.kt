@@ -249,6 +249,8 @@ fun WeeklyScheduleScreen(
     var showTableSwitcher by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
+    // v4.62.0：点击课表内的课程 → 仍弹原来的课程详情弹窗，但弹窗内各字段可直接编辑、就地保存
+    // （不再点「编辑课程」跳转课程编辑整页）；crush 课程保持只读版式
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
     // 悬浮圆钮与玻璃底栏同步隐藏（同一套下滑手势语义；v3.26.0 起时长/缓动读全局动效令牌，
@@ -882,15 +884,12 @@ fun WeeklyScheduleScreen(
         )
     }
 
-    // 课程详情弹窗
+    // 课程详情弹窗（v4.62.0 起：非 crush 课程在该弹窗内直接编辑并保存，crush 课程保持只读）
     if (selectedBlockForDetail != null) {
         CourseDetailBottomSheet(
             block = selectedBlockForDetail!!,
             onDismissRequest = { selectedBlockForDetail = null },
-            onEditClick = { courseId ->
-                selectedBlockForDetail = null
-                onNavigate(Destination.AddEditCourse(courseId = courseId))
-            }
+            onSaved = { selectedBlockForDetail = null }
             // v3.57.4（原 v3.54.0 传 hazeState 走玻璃透明分支）：玻璃分支内层蒙层未裁剪到 sheetTop
             // 圆角、且透明容器在底部 inset 露出透明块，顶部圆角被方角蒙糊 —— 与今日日程详情弹窗
             // （纯色分支）观感不一致。改为与日程完全一致、不传 hazeState，消除圆角丢失与透明块。
