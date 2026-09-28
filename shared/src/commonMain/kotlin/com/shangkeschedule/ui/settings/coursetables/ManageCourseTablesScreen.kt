@@ -56,6 +56,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -175,6 +176,7 @@ import shangkeschedule.shared.generated.resources.view_earlier_semesters
 import shangkeschedule.shared.generated.resources.view_week_24px
 import shangkeschedule.shared.generated.resources.visibility_24px
 import shangkeschedule.shared.generated.resources.week_progress_format
+import com.shangkeschedule.ui.layout.appTypeScale
 
 /**
  * 学期管理页（原「管理课表」）：对齐设计稿 pages/学期管理.html。
@@ -247,8 +249,7 @@ fun ManageCourseTablesScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 640.dp)
+                .appContentWidth()
             ) {
                 // 正在单独显示情侣课表时，当前学期卡展示的是本人表：
                 // 「查看课表 / 学期设置」先切回本人表，保证卡面与操作目标一致。
@@ -641,10 +642,10 @@ private fun SemesterArchiveHeader(
                 color = colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
-            // 新建学期：44dp 主色圆角方钮
+            // 新建学期：主色圆角方钮（平板适配 v4.64.0：44dp → 48dp touchMin）
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(appSpacing().touchMin)
                     .clip(RoundedCornerShape(14.dp))
                     .background(colors.primary)
                     .clickable(onClick = onNewSemester),
@@ -1091,8 +1092,9 @@ private fun HeroFilledButton(
 ) {
     val colors = appColors()
     Row(
+        // 平板适配（v4.64.0）：42dp → 48dp（touchMin）
         modifier = modifier
-            .height(42.dp)
+            .height(appSpacing().touchMin)
             .clip(appShapes().chip)
             .background(colors.primary)
             .clickable(onClick = onClick),
@@ -1127,8 +1129,9 @@ private fun HeroSecondaryButton(
 ) {
     val colors = appColors()
     Row(
+        // 平板适配（v4.64.0）：42dp → 48dp（touchMin）
         modifier = modifier
-            .height(42.dp)
+            .height(appSpacing().touchMin)
             .clip(appShapes().chip)
             .background(MaterialTheme.colorScheme.secondary)
             // 批 3（规范 R7 删除类 1）：外圈 divider 描边属重复表达，分层交给底色
@@ -1646,8 +1649,9 @@ private fun GhostActionButton(
     val colors = appColors()
     val contentColor = if (danger) colors.danger else colors.textPrimary
     Row(
+        // 平板适配（v4.64.0）：36dp → 48dp（touchMin）
         modifier = modifier
-            .height(36.dp)
+            .height(appSpacing().touchMin)
             .clip(appShapes().chip)
             // 批 3（规范 R7 删除类 1）：外圈 divider 描边属重复表达，分层交给底色
             .clickable(onClick = onClick),
@@ -1687,9 +1691,10 @@ private fun MoreSemestersButton(expanded: Boolean, onClick: () -> Unit) {
         label = "moreSemestersArrow"
     )
     Row(
+        // 平板适配（v4.64.0）：44dp → 48dp（touchMin）
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(appSpacing().touchMin)
             .clip(RoundedCornerShape(14.dp))
             .dashedBorder(colors.divider, cornerRadius = 14.dp)
             .clickable(onClick = onClick),
@@ -1737,7 +1742,8 @@ private fun NewSemesterActionsCard(
                 text = stringResource(Res.string.eyebrow_new_semester),
                 style = TextStyle(
                     fontFamily = claudeReadingSerif(),
-                    fontSize = 10.sp,
+                    // 平板适配（v4.64.0）：10sp eyebrow 标签按宽度档放大
+                    fontSize = 10.sp * appTypeScale(),
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.12.em,
                     lineHeight = 12.sp

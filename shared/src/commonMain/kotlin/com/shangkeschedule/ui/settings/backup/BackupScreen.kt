@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -208,8 +209,10 @@ fun BackupScreen(
         ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 640.dp)
+                // 平板适配（v4.64.0）：原 `fillMaxWidth().widthIn(max=640.dp)` 顺序反了 ——
+                // fillMaxWidth 先把 minWidth 顶到父宽，widthIn 的 max 被 coerceIn 夹回 ⇒ 限宽静默失效。
+                // appContentWidth 内部为「先 widthIn 再 fillMaxWidth」，且宽屏取统一口径。
+                .appContentWidth()
                 .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)

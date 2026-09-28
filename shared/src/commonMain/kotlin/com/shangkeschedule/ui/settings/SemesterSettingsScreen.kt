@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import com.shangkeschedule.ui.layout.appContentWidth
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.DatePickerModal
@@ -136,8 +137,7 @@ fun SemesterSettingsScreen(
         ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 640.dp)
+                .appContentWidth()
                 .verticalScroll(scrollState)
                 .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)

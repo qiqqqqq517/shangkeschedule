@@ -133,6 +133,7 @@ import shangkeschedule.shared.generated.resources.style_category_grid_size
 import shangkeschedule.shared.generated.resources.style_category_interface
 import kotlin.math.roundToInt
 import kotlin.time.Clock
+import androidx.compose.foundation.layout.heightIn
 
 @Composable
 fun SettingsListContent(
@@ -279,8 +280,9 @@ fun ColorSchemeSection(
                     // 序号与下方可见的编号标签一致，用户才能知道自己点的是第几个颜色。
                     val editLabel = stringResource(Res.string.a11y_edit)
                     Box(
+                        // 平板适配（v4.64.0）：44dp → 48dp（touchMin），色块命中区达标
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(appSpacing().touchMin)
                             .clip(CircleShape)
                             .background(color)
                             .semantics {
@@ -480,10 +482,13 @@ fun StyleSliderItem(
         ) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Box(
+                // 平板适配（v4.64.0）：取值文字原约 24dp 高，抬到 48dp 触控下限
                 modifier = Modifier
+                    .heightIn(min = appSpacing().touchMin)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .clickable { showDialog = true }
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = formatValue(value),
@@ -500,7 +505,9 @@ fun StyleSliderItem(
             onValueChangeFinished = { onValueChangeFinished?.invoke() },
             valueRange = range,
             steps = if (steps > 0) steps else 0,
-            modifier = Modifier.height(32.dp),
+            // 平板适配（v4.64.0）：原 32dp 显式压掉了 M3 Slider 自带的 48dp 命中区。
+            // 恢复默认高度 —— 滑块的轨道与 thumb 视觉尺寸不变，只是上下命中区回到 48dp。
+            modifier = Modifier.height(appSpacing().touchMin),
             thumb = {
                 Surface(
                     modifier = Modifier.size(16.dp),

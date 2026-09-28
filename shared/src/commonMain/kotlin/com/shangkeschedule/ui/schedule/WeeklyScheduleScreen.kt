@@ -18,13 +18,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -69,6 +68,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.shangkeschedule.ui.layout.appContentWidth
+import com.shangkeschedule.ui.layout.appLayout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -128,6 +129,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
+import com.shangkeschedule.ui.theme.systemBottomInset
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.components.LocalNavigationGlassBackdrop
 import dev.chrisbanes.haze.HazeState
@@ -270,7 +272,6 @@ fun WeeklyScheduleScreen(
 
     // 圆钮停靠位：紧贴玻璃底栏容器上沿之上（语义与 AdaptiveNavigationScaffold 的
     // barInsetBottom 一致：胶囊高 touchMin+14 + 上下 navBarBottom + 系统手势区）；
-    val density = LocalDensity.current
     // 宽屏 Rail 形态无底部胶囊栏，直接贴屏幕右下，无需顶起预留高度。
     val isRailLayout = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
         currentWindowAdaptiveInfo()
@@ -278,8 +279,9 @@ fun WeeklyScheduleScreen(
     val navBarReserve = if (isRailLayout) {
         0.dp
     } else {
-        appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2 +
-            (WindowInsets.navigationBars.getBottom(density) / density.density).dp
+        // v4.63.3：系统底部安全区统一走 systemBottomInset()（见 SystemInsets.kt），
+        // 与底栏自身占位保持同一口径，避免圆钮停在系统导航栏上。
+        appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2 + systemBottomInset()
     }
 
     val composedStyle = uiState.style
@@ -566,13 +568,17 @@ fun WeeklyScheduleScreen(
                     }
                 }
 
+                // 平板适配（v4.64.0）：**仅在宽屏**补横向页边距 —— 网格贴屏边在手机上是既有设计，
+                // 窄屏加 0dp ⇒ 手机端逐像素不变；宽屏不贴边，避免平板/分屏下内容顶到屏幕物理边缘。
+                val wideGutter = if (appLayout().isWide) appSpacing().pageHorizontal else 0.dp
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(
-                            start = scaffoldInnerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                            start = scaffoldInnerPadding.calculateStartPadding(LayoutDirection.Ltr) + wideGutter,
                             top = scaffoldInnerPadding.calculateTopPadding(),
-                            end = scaffoldInnerPadding.calculateEndPadding(LayoutDirection.Ltr)
+                            end = scaffoldInnerPadding.calculateEndPadding(LayoutDirection.Ltr) + wideGutter
                             // 底部遮挡修复：不再整体缩进——网格视口延伸到玻璃底栏之下（与「我的」页
                             // 内容穿越形态一致），底部留白改由各页滚动内容内部承担（bottomInset）
                         )
@@ -613,27 +619,35 @@ fun WeeklyScheduleScreen(
                     val pageCourses = uiState.courseCache[pageMondayDate.toString()] ?: emptyList()
 
                     if (scheduleViewMode == ScheduleViewMode.LIST) {
-                        ScheduleListView(
-                            pageCourses = pageCourses,
-                            pageMondayDate = pageMondayDate,
-                            timeSlots = uiState.timeSlots,
-                            showWeekends = uiState.showWeekends,
-                            firstDayOfWeek = uiState.firstDayOfWeek,
-                            composedStyle = composedStyle,
-                            bottomInset = dynamicBottomPadding,
-                            onClickedBlock = { block -> selectedBlockForDetail = block },
-                            onLongClickedBlock = { block ->
-                                val targetCourseWrapper = block.courses.firstOrNull()
-                                val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber
-                                if (targetCourseWrapper != null && currentWeek != null) {
-                                    viewModel.enterFloatingMode(
-                                        course = targetCourseWrapper,
-                                        sourceWeek = currentWeek
-                                    )
-                                }
-                            },
-                            onNavigate = onNavigate
-                        )
+                        // 平板适配（v4.64.0）：列表模式在宽屏限宽居中；网格模式保持满宽
+                        // （7 列等分是课表的固有形态，拉宽即拉宽单元格，属正确行为）
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            ScheduleListView(
+                                modifier = Modifier.appContentWidth(),
+                                pageCourses = pageCourses,
+                                pageMondayDate = pageMondayDate,
+                                timeSlots = uiState.timeSlots,
+                                showWeekends = uiState.showWeekends,
+                                firstDayOfWeek = uiState.firstDayOfWeek,
+                                composedStyle = composedStyle,
+                                bottomInset = dynamicBottomPadding,
+                                onClickedBlock = { block -> selectedBlockForDetail = block },
+                                onLongClickedBlock = { block ->
+                                    val targetCourseWrapper = block.courses.firstOrNull()
+                                    val currentWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber
+                                    if (targetCourseWrapper != null && currentWeek != null) {
+                                        viewModel.enterFloatingMode(
+                                            course = targetCourseWrapper,
+                                            sourceWeek = currentWeek
+                                        )
+                                    }
+                                },
+                                onNavigate = onNavigate
+                            )
+                        }
                     } else {
                         val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
 
@@ -839,7 +853,10 @@ fun WeeklyScheduleScreen(
                 hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = appSpacing().cardGap)
+                    // v4.63.3：挂起态底栏隐藏，此时内容已让开底栏占位，挂起条必须自己
+                    // 抬到系统导航栏之上（原先只留 cardGap，Android 10 三键导航下整条
+                    // 挂起条会正好落在系统导航栏里被压住）。
+                    .padding(bottom = systemBottomInset() + appSpacing().cardGap)
             )
             BackToCurrentWeekFab(
                 visible = showBackToCurrentWeek,
@@ -1129,6 +1146,7 @@ private fun WeekPagerGlassSheen(
 @Composable
 private fun ScheduleListView(
     pageCourses: List<MergedCourseBlock>,
+    modifier: Modifier = Modifier,
     pageMondayDate: LocalDate,
     timeSlots: List<com.shangkeschedule.data.db.main.TimeSlot>,
     showWeekends: Boolean,
@@ -1154,7 +1172,8 @@ private fun ScheduleListView(
     val coursesByDay = remember(pageCourses) { pageCourses.groupBy { it.day } }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        // 平板适配（v4.64.0）：宽屏由调用方传入限宽修饰符（窄屏即 fillMaxWidth，零变化）
+        modifier = modifier.fillMaxHeight(),
         // 底部留白走 contentPadding：列表视口延伸到玻璃底栏之下，末项可滚动到导航条上方
         contentPadding = PaddingValues(bottom = bottomInset),
         // 列表节奏使用主题卡片间距，避免三套主题之间出现固定留白差异。

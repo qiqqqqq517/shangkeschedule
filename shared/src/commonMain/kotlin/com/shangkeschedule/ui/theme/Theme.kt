@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.ui.layout.LocalAppLayoutTokens
+import com.shangkeschedule.ui.layout.rememberAppLayoutTokens
 import com.shangkeschedule.ui.glass.GlassRefractionSettings
 import com.shangkeschedule.ui.glass.LocalGlassRefraction
 
@@ -139,9 +141,15 @@ fun ShangKeScheduleTheme(
     val styledScheme = colorScheme.withAppSurfaces(syncedTokens)
 
     // 主题化形状 / 间距 / 字阶 tokens（三套主题各一套，兜底走 iOS 26）
+    //
+    // 平板适配（v4.64.0）：shape 仍只由主题决定；spacing / type / icon 在主题取值之上
+    // 再叠加一层「屏幕宽度档」系数 —— 两个维度正交：主题回答「书卷/柔绘/通透各是多少」，
+    // 宽度档回答「当前窗口有多宽、该放大多少」。Compact 档三个系数恒为 1.0 ⇒
+    // scaled() 直接返回原对象，手机端与 430×932 预览宿主零差异。
+    val layoutTokens = rememberAppLayoutTokens()
     val shapeTokens = appShapeTokens(themePreset)
-    val spacingTokens = appSpacingTokens(themePreset)
-    val typeTokens = appTypeTokens(themePreset)
+    val spacingTokens = appSpacingTokens(themePreset).scaled(layoutTokens.spacingScale)
+    val typeTokens = appTypeTokens(themePreset).scaled(layoutTokens.typeScale)
     // A1/V2：顶栏玻璃材质（v3.69.0 新增角色组）
     val navBarTokens = appNavBarTokens(themePreset)
     // A1/V2 第二批（v3.69.0）：参数型主题分支收口 —— 五个角色组
@@ -161,7 +169,7 @@ fun ShangKeScheduleTheme(
     val settingsUserRowTokens = appSettingsUserRowTokens(themePreset)
     val settingsPageTokens = appSettingsPageTokens(themePreset)
     // 全局 UI 优化批 1（v3.71.0）：图标尺寸与页头材质两组
-    val iconTokens = appIconTokens(themePreset)
+    val iconTokens = appIconTokens(themePreset).scaled(layoutTokens.iconScale)
     val pageHeaderTokens = appPageHeaderTokens(themePreset)
 
     // 字阶：书卷走 Poppins/Newsreader/Lora，柔绘走轻字重柔绘字阶，通透走 SF 字阶
@@ -212,6 +220,8 @@ fun ShangKeScheduleTheme(
     }
     CompositionLocalProvider(
         LocalAppColorTokens provides syncedTokens,
+        // 平板适配（v4.64.0）：布局 token 与主题 token 同层注入，供 appLayout() 读取
+        LocalAppLayoutTokens provides layoutTokens,
         LocalAppShapeTokens provides shapeTokens,
         LocalAppSpacingTokens provides spacingTokens,
         LocalAppTypeTokens provides typeTokens,

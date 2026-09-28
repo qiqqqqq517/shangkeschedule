@@ -372,6 +372,16 @@ data class AppSpacingTokens(
     val chipIcon: Dp,
     val fab: Dp,
     val navBarHorizontal: Dp,
+    /**
+     * 玻璃底栏与**系统导航栏之间**的额外留白（系统安全区之外的那一截）。
+     *
+     * v4.63.3 由 12dp 归零：此前底栏与系统导航栏之间悬着一道 12dp 空档，在系统导航栏
+     * 本身就很高的 Android 10（三键导航 48dp）上观感等于「底栏浮在半空」。归零后底栏
+     * 下缘正好贴住系统导航栏上沿（真机量得胶囊下缘距导航栏仅 ~2dp）。
+     *
+     * ⚠️ 改这一个值三主题同时生效；但它同时参与 `barOccupied`（底栏占位）与课表
+     * 「回到本周」圆钮停靠位的计算，须与 `NavigationComponents.kt` 一并看。
+     */
     val navBarBottom: Dp,
     // ---- 留白节奏（全局 UI 优化批 1 新增）----
     /**
@@ -388,7 +398,31 @@ data class AppSpacingTokens(
      * 取代 `TodayScheduleScreen` 的 `bottomInset + 100.dp` 魔法值。
      */
     val contentBottom: Dp
-)
+) {
+    /**
+     * 按屏幕宽度档缩放**节奏类**字段（平板适配 · v4.64.0）。
+     *
+     * 只放大「页边距 + 纵向节奏 + 行最小高度」，**刻意不动**
+     * `touchMin` / `chipIcon` / `fab` / `navBarHorizontal` / `navBarBottom`：
+     * - `touchMin` 是 48dp 无障碍标准，缩放会让它脱离标准语义（放大虽无害，但失去可读性）；
+     * - `fab` / `chipIcon` / 导航栏边距是**固定控件尺寸**，与内容列宽度无关，跟着放大只会
+     *   让悬浮件在平板上显得笨重。
+     *
+     * `scale == 1f` 时直接返回 this（Compact 档零开销、零差异）。
+     */
+    fun scaled(scale: Float): AppSpacingTokens = if (scale == 1f) this else copy(
+        pageHorizontal = pageHorizontal * scale,
+        cardGap = cardGap * scale,
+        listGap = listGap * scale,
+        cardInner = cardInner * scale,
+        rowMinHeight = rowMinHeight * scale,
+        settingsRowMinHeight = settingsRowMinHeight * scale,
+        pageTop = pageTop * scale,
+        sectionGap = sectionGap * scale,
+        sectionTitleGap = sectionTitleGap * scale,
+        contentBottom = contentBottom * scale
+    )
+}
 
 /**
  * 字阶 tokens：统一管理所有字号。
@@ -425,7 +459,31 @@ data class AppTypeTokens(
     val bodyWeight: FontWeight,
     /** 辅助文字字重（比正文略重一档，保证小字号下的可读性）。 */
     val captionWeight: FontWeight
-)
+) {
+    /**
+     * 按屏幕宽度档缩放全部字阶（平板适配 · v4.64.0）。
+     *
+     * 平板上 sp 的**物理尺寸**与手机一致（sp 随密度缩放），只是相对屏幕偏小 ——
+     * 故在宽屏档整体乘一个温和系数（Medium 1.06 / Expanded 1.10），而不是改各档绝对值。
+     * `scale == 1f` 时直接返回 this（Compact 档零开销、零差异）。
+     *
+     * ⚠️ 课表网格内字号（`AppTypeGrid` + 用户自定义 `courseBlockFontScale`）**不在本函数
+     * 覆盖范围**：那是用户显式设定的值，且网格单元格高度固定，放大有裁切风险。
+     */
+    fun scaled(scale: Float): AppTypeTokens = if (scale == 1f) this else copy(
+        bigNumber = bigNumber * scale,
+        hero = hero * scale,
+        sectionTitle = sectionTitle * scale,
+        timeLabel = timeLabel * scale,
+        badge = badge * scale,
+        pageTitle = pageTitle * scale,
+        rowTitle = rowTitle * scale,
+        settingsRowTitle = settingsRowTitle * scale,
+        body = body * scale,
+        caption = caption * scale,
+        hint = hint * scale
+    )
+}
 
 // ============================================================================
 // CompositionLocal 与访问器
@@ -498,7 +556,17 @@ data class AppIconTokens(
     val medium: Dp,
     /** 页面级强调图标、空状态插图图标。 */
     val large: Dp
-)
+) {
+    /**
+     * 按屏幕宽度档缩放三档图标尺寸（平板适配 · v4.64.0）。
+     * `scale == 1f` 时直接返回 this（Compact 档零开销、零差异）。
+     */
+    fun scaled(scale: Float): AppIconTokens = if (scale == 1f) this else copy(
+        small = small * scale,
+        medium = medium * scale,
+        large = large * scale
+    )
+}
 
 /** CompositionLocal：图标尺寸 tokens（默认 = 通透 / iOS 26）。 */
 val LocalAppIconTokens = staticCompositionLocalOf { iosIconTokens }

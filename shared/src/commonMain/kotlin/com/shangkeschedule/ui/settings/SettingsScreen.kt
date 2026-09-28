@@ -36,6 +36,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.shangkeschedule.ui.layout.appContentWidth
+import com.shangkeschedule.ui.layout.appLayout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -161,8 +163,14 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .padding(horizontal = appSpacing().pageHorizontal),
                 verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
-                // 宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
-                horizontalAlignment = if (page.centerContent) Alignment.CenterHorizontally else Alignment.Start,
+                // 宽屏（平板/桌面）内容限宽居中，对齐 iPad 设置 App 行为。
+                // 平板适配（v4.64.0）：书卷主题 centerContent=false 会在宽屏左对齐、右侧留大片
+                // 空白 —— 宽屏一律居中（窄屏沿用主题口径，内容本就满宽，视觉等价）。
+                horizontalAlignment = if (page.centerContent || appLayout().isWide) {
+                    Alignment.CenterHorizontally
+                } else {
+                    Alignment.Start
+                },
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
@@ -177,14 +185,13 @@ fun SettingsScreen(
                 item {
                     AppPageHeader(
                         title = stringResource(Res.string.nav_settings),
-                        modifier = Modifier.widthIn(max = 640.dp)
+                        modifier = Modifier.appContentWidth()
                     )
                 }
                 item {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 640.dp)
+                            .appContentWidth()
                             .padding(top = appSpacing().pageTop)
                     ) {
                         AppSettingsUserRow(
@@ -738,8 +745,7 @@ private fun LazyListScope.appSettingsItems(
         item(key = "settings-$sectionIndex") {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 640.dp)
+                    .appContentWidth()
             ) {
                 AppGroupLabel(stringResource(section.labelRes))
                 AppSettingsGroup {

@@ -40,6 +40,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.shangkeschedule.ui.layout.appDialogWidth
+import com.shangkeschedule.ui.layout.rememberDialogPropertiesWidth
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.db.main.CourseTable
@@ -234,6 +236,11 @@ private fun ImportEntryEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        // 平板适配（v4.64.0）：全库唯一绕过 AppAlertDialog 收口的弹窗。这里**只补宽度口径**
+        // （窄屏即默认值与空修饰符 ⇒ 手机端零差异），不动其视觉形态 —— 改走 AppAlertDialog
+        // 会额外叠加主题化入场动效，属手机端可见变化，本轮不做。
+        modifier = Modifier.appDialogWidth(),
+        properties = rememberDialogPropertiesWidth(),
         title = { Text(stringResource(Res.string.import_edit_entry_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

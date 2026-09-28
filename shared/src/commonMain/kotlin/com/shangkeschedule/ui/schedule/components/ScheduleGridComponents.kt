@@ -62,6 +62,7 @@ import kotlin.math.roundToInt
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import com.shangkeschedule.ui.layout.appTypeScale
 
 /**
  * 课表项统一调度接口
@@ -474,7 +475,8 @@ fun TimeColumn(
                                     h >= 38.dp -> {
                                         Text(
                                             text = "${slot.startTime}-${slot.endTime}",
-                                            fontSize = 9.sp,
+                                            // 平板适配（v4.64.0）：节次 9sp 按宽度档放大
+                                            fontSize = 9.sp * appTypeScale(),
                                             color = subTextColor,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -555,11 +557,12 @@ private fun EditHandleDot() {
 fun TimeText(text: String, color: Color) {
     Text(
         text = text,
-        fontSize = 9.sp,
+        // 平板适配（v4.64.0）：TimeText 9sp 按宽度档放大（lineHeight 同比例，避免挤压）
+        fontSize = 9.sp * appTypeScale(),
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        style = TextStyle(lineHeight = 10.sp)
+        style = TextStyle(lineHeight = 10.sp * appTypeScale())
     )
 }
 

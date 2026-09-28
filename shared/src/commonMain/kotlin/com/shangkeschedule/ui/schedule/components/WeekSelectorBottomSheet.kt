@@ -112,8 +112,8 @@ fun WeekSelectorBottomSheet(
 
                     Box(
                         modifier = Modifier
-                            // 触控标准 ≥44dp（原 32dp 偏小，与全局 touchMin 语言靠拢）
-                            .height(44.dp)
+                            // 平板适配（v4.64.0）：44dp → 48dp（touchMin），此前的「≥44dp」未达 48 下限
+                            .height(appSpacing().touchMin)
                             .clip(CircleShape)
                             .background(backgroundColor)
                             .clickable { onWeekSelected(weekNumber) }
