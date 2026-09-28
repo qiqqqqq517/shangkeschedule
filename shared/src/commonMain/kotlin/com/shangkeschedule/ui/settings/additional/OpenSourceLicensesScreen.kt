@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.settings.additional
 
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -96,7 +97,7 @@ fun OpenSourceLicensesScreen(onBack: () -> Unit) {
                         text = stringResource(Res.string.text_loading_failed, state.message),
                         color = appColors().danger,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(appSpacing().cardInner)
                     )
                 }
             }

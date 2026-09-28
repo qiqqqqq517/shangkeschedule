@@ -40,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -178,7 +177,7 @@ fun CoupleScheduleSettingsScreen(
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
                 .padding(horizontal = appSpacing().pageHorizontal),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
             // --- 关联情侣课表 ---
             SectionCard {

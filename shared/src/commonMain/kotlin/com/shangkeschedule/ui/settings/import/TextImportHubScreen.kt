@@ -70,7 +70,7 @@ fun TextImportHubScreen(
                 .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(appSpacing().pageTop))
             SectionCard {
                 SettingItem(
                     title = stringResource(Res.string.import_text_hub_wakeup),
@@ -102,14 +102,14 @@ fun TextImportHubScreen(
                     onClick = { onNavigate(Destination.TextImportFormatPage(TextImportFormat.ICS.name)) }
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(appSpacing().listGap))
             Text(
                 text = stringResource(Res.string.import_text_hub_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(appSpacing().pageTop))
         }
     }
 }

@@ -54,6 +54,7 @@ import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -185,7 +186,7 @@ fun WeekSelectorBottomSheet(
             Text(
                 text = titleSelectWeeks,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = appSpacing().cardGap)
             )
 
             LazyVerticalGrid(
@@ -230,7 +231,7 @@ fun WeekSelectorBottomSheet(
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = appSpacing().cardGap),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
@@ -309,7 +310,7 @@ fun ColorPickerBottomSheet(
             Text(
                 text = stringResource(Res.string.title_select_color),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(bottom = appSpacing().sectionGap)
             )
 
             LazyVerticalGrid(
@@ -354,7 +355,7 @@ fun ColorPickerBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppDialogActions(

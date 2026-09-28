@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schedule.components
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -128,7 +129,7 @@ fun CourseDetailBottomSheet(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
             // 圆角容器：label/value 分隔行
             Column(
@@ -169,7 +170,7 @@ fun CourseDetailBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             // 底部按钮
             if (course.isCrush) {

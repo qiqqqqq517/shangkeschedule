@@ -81,7 +81,7 @@ fun FileImportHubScreen(
                 .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(appSpacing().pageTop))
             SectionCard {
                 SettingItem(
                     title = stringResource(Res.string.import_cat_excel),
@@ -113,14 +113,14 @@ fun FileImportHubScreen(
                     onClick = { onNavigate(Destination.TextFileImport("AUTO")) }
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(appSpacing().listGap))
             Text(
                 text = stringResource(Res.string.import_file_hub_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(appSpacing().pageTop))
         }
         }
     }

@@ -392,7 +392,8 @@ private fun AgendaContent(
         if (state.entries.isEmpty()) {
             AppEmptyState(
                 hint = stringResource(Res.string.agenda_empty),
-                modifier = Modifier.padding(top = 64.dp)
+                // 使用主题卡片内边距维持空态与页面内容的舒适呼吸感。
+                modifier = Modifier.padding(top = spacing.cardInner * 2)
             )
         } else {
             // PF3（v3.69.0）：分组结果缓存 —— 原写法每次重组都执行 groupBy + toSortedMap。
@@ -409,7 +410,8 @@ private fun AgendaContent(
                     top = 4.dp,
                     bottom = bottomInset + 24.dp
                 ),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                // 日程分组列表使用主题卡片间距，保持空态与内容态的节奏一致。
+                verticalArrangement = Arrangement.spacedBy(spacing.cardGap)
             ) {
                 grouped.forEach { (group, entries) ->
                     item(key = "group_$group") {
@@ -643,7 +645,7 @@ private fun AgendaDatePanel(
                 transform using SizeTransform(clip = false)
             },
             label = "agenda-date-panel",
-            modifier = Modifier.padding(horizontal = 8.dp)
+            modifier = Modifier.padding(horizontal = appSpacing().cardInner)
         ) { showMonthGrid ->
             if (showMonthGrid) {
                 AgendaMonthGrid(
@@ -1002,7 +1004,7 @@ private fun AgendaMonthPickerSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.pageHorizontal)
-                .padding(bottom = 24.dp)
+                .padding(bottom = spacing.sectionGap)
         ) {
             Row(
                 modifier = Modifier
@@ -1069,7 +1071,7 @@ private fun AgendaMonthPickerSheet(
             (0 until 4).forEach { rowIndex ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)
                 ) {
                     (0 until 3).forEach { columnIndex ->
                         val month = rowIndex * 3 + columnIndex + 1
@@ -1488,7 +1490,7 @@ private fun AgendaCreateSheet(
                 // 键盘弹起时顶起内容（v3.54.0）：此前备注框与「创建」按钮会被 IME 遮挡
                 .imePadding()
                 .padding(horizontal = spacing.pageHorizontal)
-                .padding(bottom = 24.dp)
+                .padding(bottom = spacing.sectionGap)
         ) {
             Row(
                 modifier = Modifier
@@ -1658,7 +1660,7 @@ private fun AgendaCreateSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             Button(
                 onClick = {

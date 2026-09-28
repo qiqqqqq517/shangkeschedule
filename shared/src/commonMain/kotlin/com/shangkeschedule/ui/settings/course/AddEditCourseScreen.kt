@@ -208,12 +208,12 @@ fun AddEditCourseScreen(
                 // 键盘弹起时顶起列表（v3.54.0）：此前底部「添加方案」按钮被 IME 遮挡
                 .imePadding()
                 .padding(horizontal = appSpacing().pageHorizontal),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap),
+            contentPadding = PaddingValues(bottom = appSpacing().sectionGap)
         ) {
             // 课程名称输入
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 // 统一柔和填充输入框（AppTextField，取代方硬的 OutlinedTextField）
                 AppTextField(
                     value = uiState.name,
@@ -260,9 +260,9 @@ fun AddEditCourseScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionGap))
                 HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
             }
 
             // 方案卡片列表
@@ -310,7 +310,7 @@ fun AddEditCourseScreen(
                     onClick = viewModel::addScheme,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .padding(vertical = appSpacing().cardGap),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = appColors().primary,

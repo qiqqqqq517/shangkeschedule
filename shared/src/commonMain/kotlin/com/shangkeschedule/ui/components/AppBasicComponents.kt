@@ -113,7 +113,7 @@ fun AppSectionHeader(
         ),
         fontWeight = header.textWeight,
         color = appColors().primary,
-        modifier = modifier.padding(start = 4.dp, bottom = 8.dp)
+        modifier = modifier.padding(start = 4.dp, bottom = appSpacing().sectionTitleGap)
     )
 }
 
@@ -144,7 +144,7 @@ fun AppEmptyState(
                 .then(rememberContentEnterMotion())
                 .clip(appShapes().card)
                 .background(appColors().inputBg.copy(alpha = 0.55f))
-                .padding(horizontal = 28.dp, vertical = 22.dp)
+                .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             Text(
                 text = hint,
@@ -153,7 +153,7 @@ fun AppEmptyState(
             )
         }
         if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
             Button(
                 onClick = onAction,
                 shape = appShapes().capsule,
@@ -199,7 +199,7 @@ fun AppErrorState(
                 .then(rememberContentEnterMotion())
                 .clip(appShapes().card)
                 .background(appColors().inputBg.copy(alpha = 0.55f))
-                .padding(horizontal = 28.dp, vertical = 22.dp)
+                .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             Text(
                 text = hint,
@@ -208,7 +208,7 @@ fun AppErrorState(
             )
         }
         if (onRetry != null) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
             Button(
                 onClick = onRetry,
                 shape = appShapes().capsule,

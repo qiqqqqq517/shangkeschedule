@@ -162,7 +162,7 @@ fun QuickDeleteScreen(
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(appSpacing().cardInner),
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = appColors().danger,
@@ -189,14 +189,14 @@ fun QuickDeleteScreen(
         ) {
             // 维度一：周次和星期筛选卡片
             item {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(appSpacing().sectionTitleGap))
                 AppSectionHeader(stringResource(Res.string.label_dimension_weeks_days))
                 AppCard(
                     onClick = { showFilterSheet = true },
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        modifier = Modifier.padding(appSpacing().cardInner).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(vectorResource(Res.drawable.filter_list_24px), null, tint = MaterialTheme.colorScheme.primary)
@@ -236,10 +236,10 @@ fun QuickDeleteScreen(
                 AppSectionHeader(stringResource(Res.string.label_dimension_dates))
                 AppCard(
                     onClick = { showDateRangePicker = true },
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        modifier = Modifier.padding(appSpacing().cardInner).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(vectorResource(Res.drawable.calendar_today_24px), null, tint = MaterialTheme.colorScheme.primary)
@@ -356,8 +356,8 @@ fun FilterBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
+                .padding(horizontal = appSpacing().pageHorizontal)
+                .padding(bottom = appSpacing().contentBottom)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(stringResource(Res.string.title_select_weeks), style = MaterialTheme.typography.titleMedium)
@@ -414,7 +414,7 @@ fun FilterBottomSheet(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(appSpacing().sectionGap))
             // 主色胶囊确认钮（与其他 sheet / 弹窗操作区同语言）
             AppDialogActions(
                 confirmText = stringResource(Res.string.action_confirm),

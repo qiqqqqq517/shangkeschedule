@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.components
 
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -102,7 +103,7 @@ fun <T> AlphabetIndexerList(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(32.dp)
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = appSpacing().cardInner),
                 contentAlignment = Alignment.Center // 这里控制索引条在垂直方向居中
             ) {
                 Column(

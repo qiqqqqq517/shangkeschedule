@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.components
 import com.shangkeschedule.ui.theme.appShapes
 
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -173,8 +174,8 @@ fun AdvancedColorPicker(
         }
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        previewContent?.let { Box(modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)) { it() } }
+    Column(modifier = Modifier.fillMaxWidth().padding(appSpacing().cardInner)) {
+        previewContent?.let { Box(modifier = Modifier.fillMaxWidth().padding(bottom = appSpacing().cardGap)) { it() } }
 
         // 标题与切换按钮
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
@@ -202,7 +203,7 @@ fun AdvancedColorPicker(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(appSpacing().listGap))
 
         if (!isInputMode) {
             val updateHsv = { nh: Float, ns: Float, nv: Float, na: Float ->
@@ -244,7 +245,7 @@ fun AdvancedColorPicker(
         }
 
         if (config.showHex) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Surface(color = appColors().primarySoft, shape = MaterialTheme.shapes.small) {
                     Text(text = ColorInternalUtils.colorToHex(currentColor), modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)

@@ -2,7 +2,9 @@ package com.shangkeschedule.ui.settings.import
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -23,9 +25,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,7 +79,7 @@ fun TextImportScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
         ) {
             // 格式说明
             Text(
@@ -86,7 +88,7 @@ fun TextImportScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
 
             // 文本输入框
             AppTextField(
@@ -98,7 +100,7 @@ fun TextImportScreen(
                     .height(150.dp),
                 maxLines = 8
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
 
             // 解析按钮
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,10 +108,7 @@ fun TextImportScreen(
                     Text(stringResource(Res.string.import_text_preview))
                 }
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(24.dp),
-                        strokeWidth = 2.dp
-                    )
+                    ThemedLoadingIndicator()
                 }
                 if (uiState.detectedFormat.isNotBlank()) {
                     Text(
@@ -122,13 +121,13 @@ fun TextImportScreen(
 
             // 错误提示
             uiState.error?.let { err ->
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Text(text = err, color = appColors().danger)
             }
 
             // 预览区域
             uiState.parseResult?.let { model ->
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 ImportPreviewSection(
                     model = model,
                     // P1-6 预览可编辑：编辑/删除结果回写 VM，保证导入数据与预览一致
@@ -136,7 +135,7 @@ fun TextImportScreen(
                 )
 
                 // 选择导入目标：另存为新课表 / 覆盖已有课表
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 ImportDestinationForm(
                     isLoading = uiState.isLoading,
                     onImportToNewTable = { tableName ->

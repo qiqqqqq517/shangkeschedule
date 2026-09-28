@@ -28,6 +28,7 @@ import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.ui.components.AppRadioIndicator
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -88,8 +89,8 @@ fun NextCardSettingsScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             Text(
                 text = stringResource(Res.string.desc_next_card_settings),

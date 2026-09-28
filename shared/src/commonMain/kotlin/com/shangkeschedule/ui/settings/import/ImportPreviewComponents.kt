@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings.import
 
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 
@@ -25,12 +26,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -96,7 +97,7 @@ internal fun ImportPreviewSection(
             text = stringResource(Res.string.import_preview_count_fmt, model.courses.size),
             style = MaterialTheme.typography.titleMedium
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(appSpacing().listGap))
 
         LazyColumn(
             modifier = Modifier
@@ -380,7 +381,7 @@ internal fun ImportDestinationForm(
             ) { Text(stringResource(Res.string.import_preview_action_overwrite)) }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
         when (mode) {
             ImportDestinationMode.NEW_TABLE -> {
@@ -391,7 +392,7 @@ internal fun ImportDestinationForm(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Button(
                     onClick = { onImportToNewTable(tableName) },
                     enabled = !isLoading,
@@ -399,12 +400,8 @@ internal fun ImportDestinationForm(
                 ) {
                     if (isLoading) {
                         Row {
-                            CircularProgressIndicator(
-                                modifier = Modifier.height(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.padding(start = 8.dp))
+                            ThemedLoadingIndicator(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
                             Text(stringResource(Res.string.import_status_processing))
                         }
                     } else {
@@ -420,7 +417,7 @@ internal fun ImportDestinationForm(
                 ) {
                     Text(selectedTable?.name ?: stringResource(Res.string.import_preview_pick_table_placeholder))
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Button(
                     onClick = { selectedTable?.let { pendingOverwriteId = it.id } },
                     enabled = selectedTable != null && !isLoading,
@@ -428,12 +425,8 @@ internal fun ImportDestinationForm(
                 ) {
                     if (isLoading) {
                         Row {
-                            CircularProgressIndicator(
-                                modifier = Modifier.height(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.padding(start = 8.dp))
+                            ThemedLoadingIndicator(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
                             Text(stringResource(Res.string.import_status_processing))
                         }
                     } else {

@@ -2,7 +2,9 @@ package com.shangkeschedule.ui.settings.import
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -25,10 +27,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -107,7 +109,7 @@ fun TextFileImportScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
@@ -115,7 +117,7 @@ fun TextFileImportScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
 
             Button(
                 onClick = { viewModel.clearFile(); fileManager.importFile(allowedExtensions) },
@@ -126,7 +128,7 @@ fun TextFileImportScreen(
             }
 
             uiState.fileName?.let { name ->
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Text(
                     text = stringResource(Res.string.import_selected_fmt, name),
                     style = MaterialTheme.typography.bodyMedium,
@@ -144,29 +146,29 @@ fun TextFileImportScreen(
             }
 
             uiState.error?.let { err ->
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Text(text = err, color = appColors().danger)
             }
 
             if (uiState.isLoading && uiState.parseResult == null) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionGap))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.padding(start = 12.dp))
+                    ThemedLoadingIndicator()
+                    Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
                     Text(stringResource(Res.string.import_status_parsing))
                 }
             }
 
             // 预览 + 导入
             uiState.parseResult?.let { model ->
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 ImportPreviewSection(
                     model = model,
                     // P1-6 预览可编辑：编辑/删除结果回写 VM，保证导入数据与预览一致
                     onCoursesChanged = viewModel::updateParsedCourses
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 ImportDestinationForm(
                     isLoading = uiState.isLoading,
                     defaultName = uiState.fileName?.substringBeforeLast('.')?.take(20) ?: "",

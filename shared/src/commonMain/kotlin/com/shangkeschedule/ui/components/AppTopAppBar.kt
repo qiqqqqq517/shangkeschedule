@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.components
+package com.shangkeschedule.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -148,7 +148,8 @@ fun AppPageHeader(
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
+                // 标题占满动作区之外的剩余空间，避免宽标题与右侧操作争抢布局宽度。
+                modifier = Modifier.weight(1f)
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,

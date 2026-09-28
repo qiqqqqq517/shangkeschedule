@@ -54,8 +54,11 @@ fun NotificationSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = appSpacing().pageHorizontal),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
+            contentPadding = PaddingValues(
+                top = appSpacing().pageTop,
+                bottom = appSpacing().contentBottom
+            )
         ) {
             // 常规卡片由于各平台差异巨大，采用 expect 隔离由各平台自行实现
             item {

@@ -210,7 +210,7 @@ fun BackupScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 640.dp)
-                .padding(16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {

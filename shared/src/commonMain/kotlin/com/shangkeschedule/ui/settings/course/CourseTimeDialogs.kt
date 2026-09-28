@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import dev.chrisbanes.haze.HazeState
+import com.shangkeschedule.ui.theme.appSpacing
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_confirm
@@ -84,13 +85,13 @@ fun CourseTimePickerBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(appSpacing().cardInner),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = stringResource(Res.string.title_select_time),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = appSpacing().cardGap)
             )
 
             Row(
@@ -101,13 +102,13 @@ fun CourseTimePickerBottomSheet(
                 // 星期
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = stringResource(Res.string.label_day_of_week), style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(appSpacing().listGap))
                     DayPicker(selectedDay = tempSelectedDay, onDaySelected = { tempSelectedDay = it })
                 }
                 // 开始节次
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = stringResource(Res.string.label_start_section), style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(appSpacing().listGap))
                     SectionPicker(selectedSection = tempStartSection, onSectionSelected = {
                         tempStartSection = it
                         if (it > tempEndSection) tempEndSection = it
@@ -116,12 +117,12 @@ fun CourseTimePickerBottomSheet(
                 // 结束节次
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = stringResource(Res.string.label_end_section), style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(appSpacing().listGap))
                     SectionPicker(selectedSection = tempEndSection, onSectionSelected = { tempEndSection = it }, timeSlots = timeSlots)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             Button(
                 onClick = {
@@ -187,13 +188,13 @@ fun CustomTimeRangePickerBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(appSpacing().cardInner),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = titleText,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(bottom = appSpacing().cardGap)
             )
 
             Row(
@@ -267,7 +268,7 @@ fun CustomTimeRangePickerBottomSheet(
             }
 
             // 底部确认按钮
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
@@ -287,7 +288,7 @@ fun CustomTimeRangePickerBottomSheet(
             ) {
                 Text(confirmText)
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().cardInner))
         }
     }
 }
@@ -309,13 +310,13 @@ fun DayPickerDialog(
             color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(appSpacing().cardInner),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = stringResource(Res.string.label_day_of_week), style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 DayPicker(selectedDay = tempSelectedDay, onDaySelected = { tempSelectedDay = it })
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismissRequest) { Text(stringResource(Res.string.action_cancel)) }
                     Button(onClick = {

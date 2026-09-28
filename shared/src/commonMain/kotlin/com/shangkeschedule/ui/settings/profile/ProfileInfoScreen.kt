@@ -202,9 +202,9 @@ fun ProfileInfoScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = appSpacing().pageHorizontal)
-                .padding(top = 12.dp, bottom = 32.dp),
+                .padding(top = appSpacing().pageTop, bottom = appSpacing().contentBottom),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             // ===== 顶部身份卡：大头像 + 昵称 + 学校·专业 =====
             Column(

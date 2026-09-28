@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.ia5_other_ways
@@ -114,7 +115,7 @@ fun AddScheduleGuide(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(appSpacing().cardGap))
 
         Button(
             onClick = onSchoolImport,

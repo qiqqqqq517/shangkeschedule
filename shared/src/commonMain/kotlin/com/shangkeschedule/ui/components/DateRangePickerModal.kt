@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -70,7 +71,7 @@ fun DateRangePickerModal(
             modifier = Modifier.weight(1f),
             title = {
                 Text(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(appSpacing().cardInner),
                     text = title
                 )
             }

@@ -45,6 +45,7 @@ import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppSelectableCard
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.settings.SettingCard
 import kotlinx.coroutines.launch
@@ -244,9 +245,12 @@ fun CourseNameListScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(
+                    horizontal = appSpacing().pageHorizontal,
+                    vertical = appSpacing().cardGap
+                ),
+                horizontalArrangement = Arrangement.spacedBy(appSpacing().listGap),
+                verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
             ) {
                 items(uniqueCourseNames, key = { it.name }) { item ->
                     val isSelected = item.name in selectedCourseNames
@@ -366,7 +370,7 @@ private fun QuickActionsSection(
     modifier: Modifier = Modifier,
     onNavigate: (Destination) -> Unit
 ) {
-    Column(modifier = modifier.padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)) {
         AppSectionHeader(stringResource(Res.string.label_quick_action_category_schedule))
         SettingCard(
             title = stringResource(Res.string.item_schedule_tweak),

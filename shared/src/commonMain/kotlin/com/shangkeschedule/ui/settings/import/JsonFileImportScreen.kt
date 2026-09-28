@@ -2,7 +2,9 @@ package com.shangkeschedule.ui.settings.import
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -26,11 +28,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,7 +120,7 @@ fun JsonFileImportScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
@@ -126,7 +128,7 @@ fun JsonFileImportScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
             // 第一步：选择目标课表
             Text(
@@ -134,7 +136,7 @@ fun JsonFileImportScreen(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
             OutlinedButton(
                 onClick = { showTablePicker = true },
                 enabled = !uiState.isLoading,
@@ -143,7 +145,7 @@ fun JsonFileImportScreen(
                 Text(selectedTableName ?: stringResource(Res.string.import_json_pick_table_placeholder))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
             // 第二步：选择 JSON 文件并导入
             Text(
@@ -151,7 +153,7 @@ fun JsonFileImportScreen(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
             Button(
                 onClick = {
                     pendingTableId = selectedTableId
@@ -164,16 +166,16 @@ fun JsonFileImportScreen(
             }
 
             if (uiState.isLoading) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionGap))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    CircularProgressIndicator(modifier = Modifier.height(24.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.padding(start = 12.dp))
+                    ThemedLoadingIndicator()
+                    Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
                     Text(stringResource(Res.string.import_status_importing))
                 }
             }
 
             uiState.error?.let { err ->
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 Text(text = err, color = appColors().danger)
             }
         }

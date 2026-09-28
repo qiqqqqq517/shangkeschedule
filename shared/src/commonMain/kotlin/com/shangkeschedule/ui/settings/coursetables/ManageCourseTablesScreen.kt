@@ -81,6 +81,7 @@ import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
@@ -501,7 +502,7 @@ private fun SemesterArchiveList(
             .fillMaxSize()
             .padding(horizontal = appSpacing().pageHorizontal),
         contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(appSpacing().sectionGap)
     ) {
         // 页头：eyebrow + 标题 + 新建按钮 + 概览行
         item(key = "header") {
@@ -552,14 +553,10 @@ private fun SemesterArchiveList(
             }
         } else {
             item(key = "empty-hint") {
-                Text(
-                    text = stringResource(Res.string.text_no_semesters_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = appColors().textSecondary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                AppEmptyState(
+                    hint = stringResource(Res.string.text_no_semesters_hint),
+                    modifier = Modifier.fillMaxWidth(),
+                    fillScreen = false
                 )
             }
         }
@@ -570,7 +567,7 @@ private fun SemesterArchiveList(
                 val visibleGroups = if (showAllGroups) uiState.historyGroups else uiState.historyGroups.take(2)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                 ) {
                     visibleGroups.forEach { group ->
                         HistoryYearGroup(
@@ -937,8 +934,8 @@ private fun CurrentSemesterCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(appSpacing().pageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             // 状态徽标
             SuccessStatusBadge(
@@ -1176,7 +1173,7 @@ private fun HistoryYearGroup(
     val colors = appColors()
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
     ) {
         // 学年标题行：N-M 学年 + 学期数
         Row(
@@ -1257,7 +1254,7 @@ private fun HistorySemesterCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(appSpacing().cardInner),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // 标题行：学期名 + 已完成徽标；下行日期区间
@@ -1483,7 +1480,7 @@ private fun CoupleSemesterCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(appSpacing().cardInner),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -1733,8 +1730,8 @@ private fun NewSemesterActionsCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(appSpacing().pageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             Text(
                 text = stringResource(Res.string.eyebrow_new_semester),
@@ -1753,7 +1750,7 @@ private fun NewSemesterActionsCard(
                 color = colors.textPrimary
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)) {
                 SemesterOptionItem(
                     icon = vectorResource(Res.drawable.upload_24px),
                     iconBg = colors.primarySoft,

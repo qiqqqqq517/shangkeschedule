@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.ui.settings.SettingCard
 import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -80,8 +81,8 @@ fun PersonalizedDisplayScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             SettingCard(
                 title = stringResource(Res.string.item_glass_blur_settings),

@@ -2,9 +2,7 @@ package com.shangkeschedule.ui.settings.additional
 
 import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.appSpacing
-
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -153,14 +151,14 @@ fun MoreOptionsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 32.dp),
+                    .padding(vertical = appSpacing().contentBottom),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 DynamicAppIconHeader(
                     isDeveloperModeEnabled = isDeveloperModeEnabled,
                     onTriggerDeveloperMode = { viewModel.onDeveloperModeChanged(true) }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
                 Text(
                     text = stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.headlineSmall,
@@ -174,7 +172,7 @@ fun MoreOptionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 开发者模式设置项（隐藏项，保留原有动画逻辑）
             DeveloperModeSettingItem(
@@ -224,7 +222,7 @@ fun MoreOptionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 自动同步教务系统：手动触发远程适配同步，并轮询展示同步结果
             SectionCard(
@@ -242,7 +240,7 @@ fun MoreOptionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 联系作者反馈（欢迎新功能建议 / 教务适配请求）
             SectionCard(
@@ -271,7 +269,7 @@ fun MoreOptionsScreen(
 
             // 鸣谢内容
             AcknowledgmentContent()
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
         }
     }
 

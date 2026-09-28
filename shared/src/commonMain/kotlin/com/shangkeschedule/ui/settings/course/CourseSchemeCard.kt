@@ -129,7 +129,7 @@ fun CourseSchemeCard(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
 
                 // 备注输入
                 AppTextField(
@@ -155,18 +155,18 @@ fun CourseSchemeCard(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
                 // 底部区域：时间与周次（此时周次内容多会撑开 Row 的高度，进而拉伸左侧颜色条）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)
                 ) {
                     // 时间显示逻辑
                     if (scheme.isCustomTime) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
                         ) {
                             val dayNames = stringArrayResource(Res.array.week_days_full_names)
                             TimeSection(

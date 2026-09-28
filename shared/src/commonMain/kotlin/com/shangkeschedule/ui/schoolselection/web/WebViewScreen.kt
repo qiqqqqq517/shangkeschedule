@@ -4,6 +4,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
+import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +26,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -446,15 +446,11 @@ fun WebViewScreen(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(horizontal = appSpacing().pageHorizontal, vertical = 10.dp),
+                        .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().listGap),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    ThemedLoadingIndicator(modifier = Modifier.size(16.dp))
                     Text(
                         text = toastExecutingImport,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),

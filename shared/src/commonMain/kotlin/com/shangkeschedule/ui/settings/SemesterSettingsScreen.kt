@@ -140,7 +140,7 @@ fun SemesterSettingsScreen(
                 .widthIn(max = 640.dp)
                 .verticalScroll(scrollState)
                 .padding(horizontal = appSpacing().pageHorizontal),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
             SectionCard {
                 SettingItem(

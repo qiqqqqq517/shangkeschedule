@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.components
 
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -205,8 +205,8 @@ fun ImageCropper(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                    .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().contentBottom),
+                horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 取消按钮
@@ -259,10 +259,8 @@ fun ImageCropper(
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                 ) {
                     if (isCropping) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
+                        ThemedLoadingIndicator(
+                            modifier = Modifier.size(20.dp)
                         )
                     } else {
                         Text(stringResource(Res.string.action_confirm_crop))

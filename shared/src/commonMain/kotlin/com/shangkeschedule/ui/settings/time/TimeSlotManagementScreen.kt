@@ -317,10 +317,10 @@ fun TimeSlotManagementScreen(
                 .fillMaxWidth()
                 .widthIn(max = 640.dp),
             contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = 0.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
                 SchemeSelector(
                     currentSchemeId = uiState.currentSchemeId,
                     schemeIds = uiState.schemeIds,
@@ -333,19 +333,19 @@ fun TimeSlotManagementScreen(
                         showSchemeDatesDialog = true
                     }
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 AutoSwitchToggle(
                     enabled = uiState.autoSwitchScheme,
                     onToggle = { timeSlotViewModel.onToggleAutoSwitch(it) }
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 DefaultDurationSettings(
                     defaultClassDuration = localDefaultClassDuration,
                     onClassDurationChange = { newValue -> localDefaultClassDuration = newValue },
                     defaultBreakDuration = localDefaultBreakDuration,
                     onBreakDurationChange = { newValue -> localDefaultBreakDuration = newValue }
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 if (localTimeSlots.isEmpty()) {
                     // 统一空状态
                     AppEmptyState(hint = textNoTimeSlotsHint)
@@ -367,7 +367,7 @@ fun TimeSlotManagementScreen(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().sectionTitleGap / 2)
                     )
                 }
             }
@@ -415,7 +415,7 @@ fun TimeSlotManagementScreen(
                         ToastManager.show(toastRestoredDefault)
                     }
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionGap))
             }
         }
         }
@@ -617,7 +617,7 @@ fun SchemeSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().sectionTitleGap)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -678,7 +678,7 @@ fun SchemeSelector(
                                 expanded = false
                                 if (scheme != currentSchemeId) onSwitch(scheme)
                             }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().sectionTitleGap),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -872,7 +872,7 @@ private fun DurationNumberField(
     val colors = appColors()
     var isFocused by remember { mutableStateOf(false) }
     Column(
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier = modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().sectionTitleGap),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
@@ -931,7 +931,7 @@ fun TimeSlotItem(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)
                 ) {
                     Text(
                         text = stringResource(Res.string.time_slot_section_number, timeSlot.number.toString()),
@@ -1037,7 +1037,7 @@ private fun RestoreDefaultButton(
             .fillMaxWidth()
             .then(containerModifier)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().sectionTitleGap),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -1152,7 +1152,7 @@ fun TimeSlotEditContent(
             }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(appSpacing().listGap))
 
         Row(
             modifier = Modifier
@@ -1270,19 +1270,19 @@ fun TimeSlotEditContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
             tonalElevation = 3.dp
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(appSpacing().cardInner)) {
                 Text(
                     text = currentTimeRange,
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
                 AppDialogActions(
                     confirmText = if (isEditing) actionSaveChanges else actionAdd,
@@ -1455,7 +1455,7 @@ fun SchemeDateRangeDialog(
         text = {
             Column {
                 Text(schemeDisplayName, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
                 DateRangePickerRow(
                     label = labelStartMonthDay,
                     month = startMonth,
@@ -1470,7 +1470,8 @@ fun SchemeDateRangeDialog(
                     },
                     onDayChange = { startDay = it }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                // 起止日期之间使用主题卡片间距，保持表单层级舒适。
+                Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 DateRangePickerRow(
                     label = labelEndMonthDay,
                     month = endMonth,
@@ -1490,12 +1491,13 @@ fun SchemeDateRangeDialog(
                         text = hintCrossYear,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
+                        // 校验提示与清除操作沿用主题列表间距，保持表单层级舒适。
+                        modifier = Modifier.padding(top = appSpacing().listGap)
                     )
                 }
                 TextButton(
                     onClick = { onConfirm(null, null) },
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = appSpacing().listGap)
                 ) {
                     Text(actionClearDates, color = appColors().textSecondary)
                 }

@@ -824,7 +824,7 @@ fun WeeklyScheduleScreen(
                 hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = appSpacing().cardGap)
             )
             BackToCurrentWeekFab(
                 visible = showBackToCurrentWeek,
@@ -1137,7 +1137,8 @@ private fun ScheduleListView(
         modifier = Modifier.fillMaxSize(),
         // 底部留白走 contentPadding：列表视口延伸到玻璃底栏之下，末项可滚动到导航条上方
         contentPadding = PaddingValues(bottom = bottomInset),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        // 列表节奏使用主题卡片间距，避免三套主题之间出现固定留白差异。
+        verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
     ) {
         // 整周无课时显示空态占位（v3.54.0）：与今日页/日程页空态同语言
         // IA5（方案 B · 增强空态）：由「一句话 + 一个按钮」升级为「三步引导 +
@@ -1147,7 +1148,8 @@ private fun ScheduleListView(
         if (pageCourses.isEmpty()) {
             item(key = "empty-week") {
                 AddScheduleGuide(
-                    modifier = Modifier.padding(top = 48.dp),
+                    // 空课表引导顶部留白使用主题卡片内边距，避免固定值破坏不同主题节奏。
+                    modifier = Modifier.padding(top = appSpacing().cardInner * 2),
                     onSchoolImport = { onNavigate(Destination.SchoolSelectionListScreen) },
                     onFileImport = { onNavigate(Destination.FileImportHub) },
                     onManualAdd = { onNavigate(Destination.AddEditCourse()) }

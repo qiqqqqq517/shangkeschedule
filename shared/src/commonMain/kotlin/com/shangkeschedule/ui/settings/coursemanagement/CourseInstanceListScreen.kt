@@ -181,9 +181,12 @@ fun CourseInstanceListScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize().padding(paddingValues).glassBackdropSource(pageGlassBackdrop),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(
+                horizontal = appSpacing().pageHorizontal,
+                vertical = appSpacing().cardGap
+            ),
+            horizontalArrangement = Arrangement.spacedBy(appSpacing().listGap),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {
             items(courseInstances, key = { it.course.id }) { courseWithWeeks ->
                 CourseInstanceCard(
@@ -271,13 +274,14 @@ fun CourseInstanceCard(
                 text = course.teacher,
                 style = MaterialTheme.typography.labelMedium
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            // 课程信息之间使用主题列表间距，保持卡片内层次舒适。
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
             // 地点信息
             Text(
                 text = course.position,
                 style = MaterialTheme.typography.bodySmall
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().listGap))
 
             // 上课时间/节次
             val timeText = if (course.isCustomTime) {

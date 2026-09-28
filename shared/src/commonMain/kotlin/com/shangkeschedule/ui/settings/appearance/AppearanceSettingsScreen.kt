@@ -115,8 +115,8 @@ fun AppearanceSettingsScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             SettingCard(
                 title = stringResource(Res.string.item_theme_settings),
@@ -194,8 +194,8 @@ fun ThemeSettingsScreen(
                     .verticalScroll(rememberScrollState())
             ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop),
+                verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
             ) {
                 AppearanceSectionHeader(stringResource(Res.string.theme_style_section))
                 Text(
@@ -213,7 +213,7 @@ fun ThemeSettingsScreen(
                     }
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = appColors().divider, thickness = 0.5.dp)
+                HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap), color = appColors().divider, thickness = 0.5.dp)
                 AppearanceSectionHeader(stringResource(Res.string.theme_mode_label))
                 AppearanceThemeModeSelector(
                     selectedMode = settings.themeMode,
@@ -329,7 +329,7 @@ fun ScheduleStyleSettingsScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 ) {
                     AppearanceSectionHeader(stringResource(Res.string.item_personalization))
                 }
@@ -364,7 +364,7 @@ private fun AppearanceStylePreview(
     }
 
     AppCard(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
     ) {
         Box(
             modifier = Modifier
@@ -402,7 +402,7 @@ private fun AppearancePresetSelector(
     // 5 个及以上预设也不会挤压，宽屏下同样完整可见。
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)
     ) {
         AppThemePreset.entries.forEach { preset ->
             val selected = preset == selectedPreset
@@ -414,9 +414,9 @@ private fun AppearancePresetSelector(
                 border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = appSpacing().cardInner, horizontal = appSpacing().sectionTitleGap),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)
                 ) {
                     Box(
                         modifier = Modifier.size(28.dp).clip(CircleShape).background(preset.seedColor)

@@ -38,6 +38,7 @@ import com.shangkeschedule.ui.theme.AnimationGroup
 import com.shangkeschedule.ui.theme.AnimationStyle
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -107,10 +108,10 @@ fun AnimationSettingsScreen(
                 .fillMaxSize()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop),
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+            HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap / 2), color = appColors().divider, thickness = 0.5.dp)
 
             // 屏幕刷新率（v3.56.0）：自动 = 交还系统自适应（解除钉定）；手动可固定 120/90/60
             Text(
@@ -133,7 +134,7 @@ fun AnimationSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+            HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap / 2), color = appColors().divider, thickness = 0.5.dp)
 
             // 1) 动效风格
             Text(
@@ -157,7 +158,7 @@ fun AnimationSettingsScreen(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+            HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap / 2), color = appColors().divider, thickness = 0.5.dp)
 
             // 2) 动效速度（v3.44.0）：统一缩放全部毫秒级时长——倍率越高越快
             Text(
@@ -180,7 +181,7 @@ fun AnimationSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = appColors().divider, thickness = 0.5.dp)
+            HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap / 2), color = appColors().divider, thickness = 0.5.dp)
 
             // 3) 动画分组
             Text(
@@ -227,7 +228,7 @@ fun AnimationSettingsScreen(
                 modifier = Modifier.fillMaxWidth().alpha(0.45f)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(appSpacing().cardInner),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -258,7 +259,7 @@ private fun MotionStyleCard(
         border = if (selected) BorderStroke(1.dp, selectedColor.copy(alpha = 0.4f)) else null
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().cardInner, vertical = appSpacing().sectionTitleGap),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -292,7 +293,7 @@ private fun MotionGroupToggle(
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            modifier = Modifier.fillMaxWidth().padding(appSpacing().cardInner),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {

@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.schedule.components
 import com.shangkeschedule.ui.theme.appType
 
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +70,7 @@ fun WeekSelectorBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 32.dp),
+                .padding(bottom = appSpacing().contentBottom),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -78,7 +79,7 @@ fun WeekSelectorBottomSheet(
                     fontSize = appType().sectionTitle,
                     fontWeight = FontWeight.SemiBold
                 ),
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(appSpacing().cardInner)
             )
 
             // 网格状的周次选择器

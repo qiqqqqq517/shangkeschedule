@@ -74,6 +74,7 @@ import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.glass.LiquidGlassTab
@@ -467,11 +468,11 @@ fun AdaptiveNavigationScaffold(
                                         imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                         contentDescription = null,
                                         tint = finalContentColor,
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(appIconSize().large)
                                     )
                                     Text(
                                         text = item.label,
-                                        fontSize = 12.sp,
+                                        fontSize = appType().hint,
                                         // 行高修剪：默认 12sp 字号的行盒 ≈16sp 且带字体上下留白，
                                         // 视觉上"图标与文字之间还有挺大间距"主要来自这里而非
                                         // Column 的 spacedBy。lineHeight 收到 14sp + 去掉

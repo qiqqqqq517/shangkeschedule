@@ -267,11 +267,11 @@ fun ColorSchemeSection(
     // 是对池底色的对照色，不随主题 token 变化，属有意的功能性固定色。
     val contentColor = if (isDarkSection) Color.White else Color.Black
 
-    Column(modifier = Modifier.fillMaxWidth().clip(appShapes().chip).background(bgColor).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().clip(appShapes().chip).background(bgColor).padding(appSpacing().cardInner)) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = contentColor)
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
-        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap)) {
             colors.forEachIndexed { index, color ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // AC2（v3.69.2）：色块可点击打开取色器，但块内没有文字 ——
@@ -633,7 +633,7 @@ fun ColorPickerItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, bottom = 40.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

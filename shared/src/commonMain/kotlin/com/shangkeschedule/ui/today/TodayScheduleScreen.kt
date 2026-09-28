@@ -99,6 +99,7 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppPageHeader
+import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
@@ -868,12 +869,11 @@ private fun TodayThemeContent(
 
         if (state.courses.isEmpty()) {
             item {
-                Text(
-                    text = stringResource(Res.string.text_no_courses_today),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    textAlign = TextAlign.Center
+                // 统一使用全局空态组件，保持三套主题的状态容器、内边距与动效一致。
+                AppEmptyState(
+                    hint = stringResource(Res.string.text_no_courses_today),
+                    modifier = Modifier.fillMaxWidth(),
+                    fillScreen = false
                 )
             }
         } else {
@@ -1206,7 +1206,8 @@ private fun TodayTimelineItem(
 
     Row(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        // 时间轴横向节奏跟随主题卡片间距，保持不同主题下的舒适留白。
+        horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
     ) {
         Box(modifier = Modifier.width(56.dp).fillMaxHeight()) {
             Text(
@@ -1362,7 +1363,7 @@ private fun TodayTimelineCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
                     TodayMetaRow(
@@ -1626,7 +1627,7 @@ private fun TodayNextClassCard(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1661,7 +1662,7 @@ private fun TodayNextClassCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     data.location?.let { loc ->
                         TodayMetaRow(
@@ -1713,7 +1714,7 @@ private fun TodayNextClassCard(
                     }
                 }
                 if (minutesUntil != null && minutesUntil > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = minutesUntil.toString(),
@@ -1896,7 +1897,7 @@ private fun TodayEventsSection(
     style: TodayCardStyle
 ) {
     val colors = appColors()
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
     TodaySectionLabelRow(
         label = todayEventsSectionLabel(events),
         trailing = stringResource(Res.string.agenda_count_format, events.size.toString()),
@@ -1908,7 +1909,7 @@ private fun TodayEventsSection(
         TodayEventRow(event = event, index = index, isLast = index == events.lastIndex, onToggleDone = onToggleDone, style = style)
         if (index < events.lastIndex) Spacer(modifier = Modifier.height(6.dp))
     }
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 }
 
 @Composable
@@ -1944,7 +1945,8 @@ private fun TodayEventRow(
 
     Row(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        // 日程事件与课程时间轴共享主题横向节奏。
+        horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
     ) {
         // 无时间条目（默认待办 / 全天）不渲染时间占位列，内容卡铺满整行
         if (!event.startTime.isNullOrBlank()) {
@@ -2030,7 +2032,7 @@ private fun TodayTodosSection(
     onEdit: (TodoItem) -> Unit,
     style: TodayCardStyle
 ) {
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
     TodaySectionLabelRow(
         label = stringResource(Res.string.today_todos_section),
         trailing = stringResource(Res.string.todo_count_format, todos.size.toString()),
@@ -2048,7 +2050,7 @@ private fun TodayTodosSection(
         )
         if (index < todos.lastIndex) Spacer(modifier = Modifier.height(6.dp))
     }
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 }
 
 /**
@@ -2257,7 +2259,7 @@ private fun TodayCourseDetailSheet(
                 ),
                 color = colors.textPrimary
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(appSpacing().cardGap))
 
             Column(
                 modifier = Modifier
@@ -2296,7 +2298,7 @@ private fun TodayCourseDetailSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(

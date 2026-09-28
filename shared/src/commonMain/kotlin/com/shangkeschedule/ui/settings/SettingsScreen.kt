@@ -166,7 +166,7 @@ fun SettingsScreen(
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = navPadding.calculateBottomPadding() + 16.dp
+                    bottom = navPadding.calculateBottomPadding() + appSpacing().contentBottom
                 )
             ) {
                 // ===== 页头（批 2）+ 身份卡 + 数据驱动分组列表（v3.69.0 三份复制合一）=====
@@ -185,7 +185,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 640.dp)
-                            .padding(top = 12.dp)
+                            .padding(top = appSpacing().pageTop)
                     ) {
                         AppSettingsUserRow(
                             name = profileName,

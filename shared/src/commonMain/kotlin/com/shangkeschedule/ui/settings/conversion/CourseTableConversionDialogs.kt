@@ -11,6 +11,7 @@ import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.NativeNumberPicker
+import com.shangkeschedule.ui.theme.appSpacing
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_cancel
 import shangkeschedule.shared.generated.resources.action_next_step
@@ -90,7 +91,7 @@ fun IcsExportDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(stringResource(Res.string.label_select_alarm_time))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(appSpacing().cardGap))
                     AlarmMinutesPicker(
                         modifier = Modifier.width(150.dp),
                         onValueSelected = { alarmMinutes = it },

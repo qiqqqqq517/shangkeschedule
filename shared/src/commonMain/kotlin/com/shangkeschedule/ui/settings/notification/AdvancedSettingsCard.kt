@@ -1,7 +1,7 @@
 package com.shangkeschedule.ui.settings.notification
 
 import com.shangkeschedule.ui.theme.appType
-
+import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
@@ -48,7 +48,7 @@ fun AdvancedSettingsCard(
             text = stringResource(Res.string.desc_skipped_dates),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().caption),
             color = appColors().textSecondary,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = appSpacing().sectionTitleGap)
         )
 
         SectionCard {
@@ -87,7 +87,11 @@ fun AdvancedSettingsCard(
             text = stringResource(Res.string.update_holiday_info_hint),
             style = MaterialTheme.typography.bodySmall,
             color = appColors().textSecondary.copy(alpha = 0.6f),
-            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            // 辅助说明与设置卡片之间使用主题列表间距，保持信息层级舒适。
+            modifier = Modifier.padding(
+                start = appSpacing().cardInner,
+                top = appSpacing().listGap
+            )
         )
     }
 }

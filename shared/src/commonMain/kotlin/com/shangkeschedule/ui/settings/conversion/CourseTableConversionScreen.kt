@@ -181,7 +181,7 @@ fun CourseTableConversionScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(appSpacing().pageTop))
 
             AppSectionHeader(stringResource(Res.string.section_file_conversion), modifier = Modifier.fillMaxWidth())
             SectionCard {
@@ -204,7 +204,7 @@ fun CourseTableConversionScreen(
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(appSpacing().sectionGap))
 
             AppSectionHeader(stringResource(Res.string.section_school_import), modifier = Modifier.fillMaxWidth())
             SectionCard {
@@ -221,7 +221,7 @@ fun CourseTableConversionScreen(
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(appSpacing().sectionGap))
 
             AppSectionHeader(stringResource(Res.string.section_sync), modifier = Modifier.fillMaxWidth())
             SectionCard {
@@ -237,7 +237,7 @@ fun CourseTableConversionScreen(
                     onClick = { onNavigate(Destination.BackupAndRestore) }
                 )
             }
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(appSpacing().contentBottom))
         }
     }
 

@@ -40,6 +40,7 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.repository.CourseTableRepository.TweakMode
 import com.shangkeschedule.ui.settings.quickactions.asString
 import com.shangkeschedule.ui.components.AppCard
+import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.DatePickerModal
@@ -157,9 +158,11 @@ fun TweakScheduleScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = appSpacing().pageHorizontal)
+                .padding(top = appSpacing().pageTop, bottom = appSpacing().contentBottom),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            // 微调表单纵向节奏跟随主题卡片间距，减少固定留白差异。
+            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
         ) {
             item {
                 Row(
@@ -209,7 +212,7 @@ fun TweakScheduleScreen(
                     if (isLandscape) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CourseDisplayCard(modifier = Modifier.weight(1f), title = titleTweakFromCourse, courses = uiState.fromCourses)
@@ -230,7 +233,7 @@ fun TweakScheduleScreen(
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                         ) {
                             CourseDisplayCard(title = titleTweakFromCourse, courses = uiState.fromCourses)
 
@@ -343,7 +346,13 @@ fun CourseDisplayCard(title: String, courses: List<CourseWithWeeks>, modifier: M
             Text(text = title, style = MaterialTheme.typography.titleLarge)
             LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp)) {
                 if (courses.isEmpty()) {
-                    item { Text(text = textNoCourse, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(8.dp)) }
+                    item {
+                        AppEmptyState(
+                            hint = textNoCourse,
+                            modifier = Modifier.fillMaxWidth(),
+                            fillScreen = false
+                        )
+                    }
                 } else {
                     items(courses, key = { it.course.id }) { courseWithWeeks: CourseWithWeeks ->
                         val course = courseWithWeeks.course

@@ -101,7 +101,8 @@ fun LanguageSettingScreen(
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
         ) {
-            Spacer(Modifier.height(8.dp))
+            // 语言选项卡片顶部留白采用主题卡片间距。
+            Spacer(Modifier.height(appSpacing().cardGap))
             // 统一白卡容器（与其他设置二级页同语言）
             AppCard(modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal)) {
                 languageList.forEachIndexed { index, item ->
@@ -132,7 +133,7 @@ fun LanguageSettingScreen(
                     }
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(appSpacing().cardGap))
         }
     }
 }

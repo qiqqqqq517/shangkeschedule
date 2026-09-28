@@ -186,8 +186,12 @@ fun AdapterSelectionScreen(
                 }
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        // 适配器列表使用主题页面边距与卡片间距，保持三套主题的舒适节奏。
+                        contentPadding = PaddingValues(
+                            horizontal = appSpacing().pageHorizontal,
+                            vertical = appSpacing().cardGap
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                     ) {
                         items(adapters, key = { it.adapter_id }) { adapter ->
                             AdapterCard(
@@ -256,14 +260,14 @@ fun AdapterCard(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(appSpacing().listGap))
 
             // 描述
             Text(
                 text = adapter.description.ifBlank { stringResource(Res.string.text_no_detailed_description) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = appColors().textSecondary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = appSpacing().listGap)
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {

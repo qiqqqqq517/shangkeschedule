@@ -142,7 +142,7 @@ fun CourseTablePickerDialog(
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
                     ) {
                         items(courseTables, key = { it.id }) { courseTable ->
                             val isCurrentActive = courseTable.id == appSettings?.currentCourseTableId
@@ -269,7 +269,7 @@ fun CourseTablePickerCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(appSpacing().cardInner),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

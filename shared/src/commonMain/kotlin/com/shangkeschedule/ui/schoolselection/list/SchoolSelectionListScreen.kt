@@ -252,12 +252,12 @@ private fun SchoolContent(
                         null
                     }
                     if (recentSchool != null) {
-                        Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) {
+                        Column(modifier = Modifier.padding(start = appSpacing().cardInner, end = appSpacing().cardInner, bottom = appSpacing().listGap)) {
                             Text(
                                 text = stringResource(Res.string.label_recent_visit),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp)
+                                modifier = Modifier.padding(start = appSpacing().cardInner, top = appSpacing().listGap, bottom = 4.dp)
                             )
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 SchoolItem(
@@ -277,7 +277,7 @@ private fun SchoolContent(
                                 }
                             }
                             HorizontalDivider(
-                                modifier = Modifier.padding(top = 12.dp, start = 8.dp, end = 8.dp),
+                                modifier = Modifier.padding(start = appSpacing().cardInner, end = appSpacing().cardInner, top = appSpacing().sectionTitleGap),
                                 thickness = 0.5.dp,
                                 color = appColors().divider
                             )
@@ -285,7 +285,7 @@ private fun SchoolContent(
                     }
                 }
             ) { school ->
-                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
+                Box(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 2.dp)) {
                     SchoolItem(
                         school = school,
                         onClick = { onSchoolSelected(it, selectedCategory) }
@@ -349,7 +349,8 @@ fun SearchBarWithTitle(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 8.dp)
+            // 搜索栏顶部留白跟随主题列表间距，避免固定值造成页面节奏差异。
+            .padding(top = appSpacing().listGap)
     ) {
         AppTextField(
             value = searchQuery,
