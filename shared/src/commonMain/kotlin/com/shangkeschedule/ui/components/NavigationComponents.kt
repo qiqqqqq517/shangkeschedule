@@ -28,12 +28,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
@@ -76,6 +73,8 @@ import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
+import com.shangkeschedule.ui.theme.systemBottomInset
+import com.shangkeschedule.ui.theme.systemBottomInsetPx
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.glass.LiquidGlassTab
 import com.shangkeschedule.ui.glass.LiquidGlassTabs
@@ -276,7 +275,9 @@ fun AdaptiveNavigationScaffold(
                             .glassBackdropSource(glassBackdrop)
                     ) {
                         CompositionLocalProvider(LocalNavigationGlassBackdrop provides glassBackdrop) {
-                            content(PaddingValues(0.dp))
+                            // v4.63.3：侧边栏形态虽无底部胶囊栏，屏幕底端仍有系统导航栏，
+                            // 内容必须照样让开（原先恒为 0，横屏 / 折叠展开时课表末节压在导航栏下）。
+                            content(PaddingValues(bottom = systemBottomInset()))
                         }
                     }
                 }
@@ -294,14 +295,19 @@ fun AdaptiveNavigationScaffold(
                 val density = LocalDensity.current
                 // 方案 A 底栏 Tab 触觉（终审 P3：此前只接在方案 B 兜底栏）
                 val haptics = rememberAppHaptics()
-                val navInsetPx = WindowInsets.navigationBars.getBottom(density)
+                // 系统底部安全区（系统导航栏 / 手势条）统一走 SystemInsets.kt：
+                // 不用裸 WindowInsets.navigationBars——手势导航机型（API 29 才有原生手势导航）
+                // 的底部手势区由 systemGestures 上报，navigationBars 在部分 ROM 上少报/报 0。
+                val navInsetPx = systemBottomInsetPx()
+                val navInsetBottom = with(density) { navInsetPx.toDp() }
                 // 底栏占用 = 胶囊高（方案 A 64dp / 方案 B touchMin + 上下 7dp）+ 上下外距
                 val barOccupied = if (useLegacyBar) {
                     appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2
                 } else {
                     64.dp + appSpacing().navBarBottom * 2
                 }
-                val barInsetBottom = barOccupied + (navInsetPx / density.density).dp
+                // 底栏整体占位（含系统区）：滑动隐藏的位移距离按它算
+                val barInsetBottom = barOccupied + navInsetBottom
 
                 // 滚动隐藏（Telegram 手势）：下滑累积超过阈值隐藏，上滑立即显示；
                 // 切换 Tab / 列表顶部 overscroll 时恢复显示
@@ -386,10 +392,21 @@ fun AdaptiveNavigationScaffold(
                     ) {
                         // P2-3 隐藏后留白回收：底栏隐藏动画进行中，内容底部 padding 同步收缩，
                         // 让列表内容顺势延伸至底栏空位，不残留一块空白。
+                        // ⚠️ v4.63.3 修正（Android 10 课表被系统导航栏遮挡）：**系统底部安全区恒定保留**。
+                        // 原实现是 `barInsetBottom * (1 - hideFraction)`——把系统 inset 一起乘进了
+                        // 隐藏系数，底栏隐藏到 hideFraction=1 时整个底部 padding 归零，内容可滚下限
+                        // 直接伸进系统导航栏底下：Android 10 三键导航（48dp 实心）下课表末节被压住
+                        // 且**再也滚不上来**（底部已无 padding 可滚）。现在只有「底栏自身那块」随隐藏
+                        // 收缩，系统导航栏那一截恒定留在内容下方。
                         // ⚠️ 必须钳制：弹性风格（琉璃轻弹 GlassEase）末端过冲会让 hideFraction > 1，
                         // 不钳制则算出负 padding 直接 IllegalArgumentException（真机已实锤）。
                         CompositionLocalProvider(LocalNavigationGlassBackdrop provides glassBackdrop) {
-                            content(PaddingValues(bottom = barInsetBottom * (1f - hideFraction).coerceIn(0f, 1f)))
+                            content(
+                                PaddingValues(
+                                    bottom = navInsetBottom +
+                                        barOccupied * (1f - hideFraction).coerceIn(0f, 1f)
+                                )
+                            )
                         }
                     }
                     Box(
@@ -402,7 +419,9 @@ fun AdaptiveNavigationScaffold(
                                 // （原为 1 - fraction*0.4 只淡到 60%，与圆钮 1-fraction 不一致）
                                 alpha = (1f - hideFraction).coerceIn(0f, 1f)
                             }
-                            .navigationBarsPadding()
+                            // v4.63.3：与内容留白同源，改用统一口径的系统底部安全区
+                            // （原 navigationBarsPadding() 只认 navigationBars，手势导航机型会少报）
+                            .padding(bottom = navInsetBottom)
                             .padding(
                                 horizontal = appSpacing().navBarHorizontal,
                                 vertical = appSpacing().navBarBottom
@@ -504,7 +523,9 @@ fun AdaptiveNavigationScaffold(
                         .glassBackdropSource(glassBackdrop)
                 ) {
                     CompositionLocalProvider(LocalNavigationGlassBackdrop provides glassBackdrop) {
-                        content(PaddingValues(0.dp))
+                        // v4.63.3：无底栏形态（课程挂起 / 隐藏导航）下，系统导航栏依然在，
+                        // 底部至少要让开系统安全区，不能把内容留在导航栏底下。
+                        content(PaddingValues(bottom = systemBottomInset()))
                     }
                 }
             }

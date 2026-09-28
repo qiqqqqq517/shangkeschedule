@@ -372,6 +372,16 @@ data class AppSpacingTokens(
     val chipIcon: Dp,
     val fab: Dp,
     val navBarHorizontal: Dp,
+    /**
+     * 玻璃底栏与**系统导航栏之间**的额外留白（系统安全区之外的那一截）。
+     *
+     * v4.64.1 由 12dp 收窄为 4dp：此前底栏与系统导航栏之间悬着一道 12dp 空档，在系统导航栏
+     * 本身就很高的 Android 10（三键导航 48dp）上观感等于「底栏浮在半空」。收窄后底栏
+     * 下缘基本贴住系统导航栏上沿。
+     *
+     * ⚠️ 改这一个值三主题同时生效；但它同时参与 `barOccupied`（底栏占位）与课表
+     * 「回到本周」圆钮停靠位的计算，须与 `NavigationComponents.kt` 一并看。
+     */
     val navBarBottom: Dp,
     // ---- 留白节奏（全局 UI 优化批 1 新增）----
     /**

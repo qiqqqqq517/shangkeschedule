@@ -18,13 +18,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -128,6 +126,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
+import com.shangkeschedule.ui.theme.systemBottomInset
 import com.shangkeschedule.ui.glass.GlassBackdrop
 import com.shangkeschedule.ui.components.LocalNavigationGlassBackdrop
 import dev.chrisbanes.haze.HazeState
@@ -270,7 +269,6 @@ fun WeeklyScheduleScreen(
 
     // 圆钮停靠位：紧贴玻璃底栏容器上沿之上（语义与 AdaptiveNavigationScaffold 的
     // barInsetBottom 一致：胶囊高 touchMin+14 + 上下 navBarBottom + 系统手势区）；
-    val density = LocalDensity.current
     // 宽屏 Rail 形态无底部胶囊栏，直接贴屏幕右下，无需顶起预留高度。
     val isRailLayout = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
         currentWindowAdaptiveInfo()
@@ -278,8 +276,9 @@ fun WeeklyScheduleScreen(
     val navBarReserve = if (isRailLayout) {
         0.dp
     } else {
-        appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2 +
-            (WindowInsets.navigationBars.getBottom(density) / density.density).dp
+        // v4.63.5：系统底部安全区统一走 systemBottomInset()（见 SystemInsets.kt），
+        // 与底栏自身占位保持同一口径，避免圆钮停在系统导航栏上。
+        appSpacing().touchMin + 14.dp + appSpacing().navBarBottom * 2 + systemBottomInset()
     }
 
     val composedStyle = uiState.style
@@ -839,7 +838,10 @@ fun WeeklyScheduleScreen(
                 hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = appSpacing().cardGap)
+                    // v4.63.5：挂起态底栏隐藏，此时内容已让开底栏占位，挂起条必须自己
+                    // 抬到系统导航栏之上（原先只留 cardGap，Android 10 三键导航下整条
+                    // 挂起条会正好落在系统导航栏里被压住）。
+                    .padding(bottom = systemBottomInset() + appSpacing().cardGap)
             )
             BackToCurrentWeekFab(
                 visible = showBackToCurrentWeek,

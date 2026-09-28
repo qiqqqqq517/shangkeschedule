@@ -275,7 +275,7 @@ internal val iosSpacingTokens = AppSpacingTokens(
     chipIcon = 44.dp,
     fab = 56.dp,
     navBarHorizontal = 16.dp,
-    navBarBottom = 12.dp,
+    navBarBottom = 4.dp,
     // 留白节奏（批 1 新增）
     pageTop = 8.dp,
     sectionGap = 24.dp,
