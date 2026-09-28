@@ -31,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -48,6 +47,7 @@ import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ImageCropper
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -58,6 +58,7 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.profile_avatar_label
 import shangkeschedule.shared.generated.resources.profile_change_avatar
 import shangkeschedule.shared.generated.resources.profile_college
@@ -105,10 +106,23 @@ fun ProfileInfoScreen(
     var grade by remember { mutableStateOf("") }
     var signature by remember { mutableStateOf("") }
 
-    // 首次拿到 DataStore 快照时灌入本地编辑态；此后以本地状态为准（避免回写打断输入）
+    // 首次拿到「已就绪」的 DataStore 快照时灌入本地编辑态；此后以本地状态为准（避免回写打断输入）。
+    // 必须等 uiState.isReady 后才播种：uiState 的初始值是 SettingsUiState()（字段全空），
+    // 若在 isReady 之前播种，会把「尚未加载的空快照」当成已加载数据（seeded 置真），
+    // 之后真实数据到达也不再灌入 —— 页面重进永远显示为空；且用户在空表单里编辑任一
+    // 字段时会把其余已存字段一并写空。此为 v3.74.1 修复的持久化显示缺陷。
+    val isReady = uiState.isReady
     var seeded by remember { mutableStateOf(false) }
-    LaunchedEffect(settings.profileNickname, settings.profileSchool, settings.profileCollege) {
-        if (!seeded) {
+    LaunchedEffect(
+        isReady,
+        settings.profileNickname,
+        settings.profileSchool,
+        settings.profileCollege,
+        settings.profileMajor,
+        settings.profileGrade,
+        settings.profileSignature
+    ) {
+        if (!seeded && isReady) {
             nickname = settings.profileNickname
             school = settings.profileSchool
             college = settings.profileCollege
@@ -204,7 +218,6 @@ fun ProfileInfoScreen(
             ) {
                 ProfileAvatar(
                     avatarPath = settings.profileAvatarPath,
-                    fallbackLetter = displayName.take(1),
                     onClick = { fileManager.pickImage() }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -337,27 +350,21 @@ fun ProfileInfoScreen(
 }
 
 /**
- * 大头像（96dp）：已设置头像时显示图片，否则回落为「主题主色 → 强调色」渐变 + 首字。
- * 点击唤起图片选择器；右上角相机角标提示可更换。
+ * 大头像（96dp）：已设置头像时显示图片，否则显示中性灰底 + 人像图标的默认头像（v3.74.1：
+ * 原「主题渐变 + 昵称首字」在未设置头像时观感偏装饰化，改为通用默认用户头像）。
+ * 点击唤起图片选择器。
  */
 @Composable
 private fun ProfileAvatar(
     avatarPath: String,
-    fallbackLetter: String,
     onClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
     Box(
         modifier = Modifier
             .size(96.dp)
             .clip(CircleShape)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.tertiary
-                    )
-                )
-            )
+            .background(if (isDark) Color(0xFF3A3F46) else Color(0xFFE4E7EB))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -369,13 +376,11 @@ private fun ProfileAvatar(
                 contentScale = ContentScale.Crop
             )
         } else {
-            Text(
-                text = fallbackLetter,
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = Color.White
+            Icon(
+                imageVector = vectorResource(Res.drawable.person_24px),
+                contentDescription = stringResource(Res.string.profile_avatar_label),
+                tint = if (isDark) Color(0xFF9BA3AE) else Color(0xFF98A1AC),
+                modifier = Modifier.size(48.dp)
             )
         }
     }
