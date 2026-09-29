@@ -55,21 +55,23 @@ internal fun isNightUiMode(uiMode: Int): Boolean =
 internal fun isSystemNight(): Boolean =
     isNightUiMode(Resources.getSystem().configuration.uiMode)
 
-/** 卡片背景 drawable 映射（纯函数，可进 JVM 单测；R 值编译期折叠）。 */
-internal fun widgetCardBackground(night: Boolean): Int =
-    if (night) R.drawable.widget_bg_rounded_dark else R.drawable.widget_bg_rounded_light
+/** 卡片背景固定资源 ID（纯函数，可进 JVM 单测锁定：必须是单夜色感知 ID，禁止再按推送时刻快照二选一）。 */
+internal fun widgetCardBackgroundRes(): Int = R.drawable.widget_bg_rounded
 
 /**
- * 把卡片背景**显式**压进 RemoteViews。
+ * 把卡片背景**显式**压进 RemoteViews —— 单 ID 夜色感知式。
  *
- * 背景（2026-09-29，Android 10 深浅错配的另一半）：宿主收到同 layout ID 的
- * 新 RemoteViews 时走 `reapply` —— 只重放 setText / setColorFilter 等动作，
- * XML 属性（`android:background="@drawable/widget_bg_rounded"` 的夜间色）
- * 沿用首次 inflate 的旧值。显式 `setBackgroundResource` 是动作，重放必生效，
- * 不依赖宿主是否重新 inflate。文字色宿主侧本就跟新（用户实证），故只显式背景。
+ * 语义（v4.64.1 起，替代推送时刻快照二选一）：一律记录
+ * `R.drawable.widget_bg_rounded` 这一个夜色感知 ID（内引 `@color/widget_bg`，
+ * `values/colors.xml` / `values-night/colors.xml` 两档）。宿主重放该动作时调的是
+ * `view.setBackgroundResource(id)`，按视图**当前**配置实时解析，等价于嵌套课程行
+ * 在重放时按当前配置重 inflate 选 `layout-night/` 的行为 —— 同一趟重放里背景与文字
+ * 一起跟新系统深浅，**进程已死也能跟**（`ACTION_CONFIGURATION_CHANGED`
+ * 不允许静态注册，死进程收不到广播推新 RemoteViews，快照式在此必冻住）。
+ * 活进程切主题时运行时监听仍会推一次全量重渲染，结果一致。
  */
 internal fun RemoteViews.setWidgetCardBackground(vararg viewIds: Int) {
-    val bg = widgetCardBackground(isSystemNight())
+    val bg = widgetCardBackgroundRes()
     viewIds.forEach { setInt(it, "setBackgroundResource", bg) }
 }
 

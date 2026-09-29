@@ -56,9 +56,9 @@ class WidgetNightModeTest {
     }
 
     @Test
-    fun `card background follows mode`() {
-        assertEquals(R.drawable.widget_bg_rounded_dark, widgetCardBackground(true))
-        assertEquals(R.drawable.widget_bg_rounded_light, widgetCardBackground(false))
+    fun `card background is single night-aware id`() {
+        // 回归锁：禁止再按推送时刻快照二选一（light/dark 写死 ID 在死进程切主题时必冻住）。
+        assertEquals(R.drawable.widget_bg_rounded, widgetCardBackgroundRes())
     }
 
     @Test

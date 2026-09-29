@@ -31,7 +31,7 @@ object CompactNativeRenderer {
         space: WidgetSpaceClass = WidgetSpaceClass.S
     ): RemoteViews {
         val rv = RemoteViews(context.packageName, R.layout.widget_today_compact_native)
-        // 卡片背景按系统深浅显式指定（reapply 路径下 XML 夜间色不重解析，见 setWidgetCardBackground）
+        // 卡片背景按单夜色感知 ID 显式指定（reapply 重放时按当前配置重解，见 setWidgetCardBackground）
         rv.setWidgetCardBackground(R.id.inner_content_card, R.id.container_full_status)
 
         // 状态彻底重置
