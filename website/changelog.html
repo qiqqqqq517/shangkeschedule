@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.64.1</b></span>
-        <span>versionCode <b class="mono" data-version-code>396</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.64.2</b></span>
+        <span>versionCode <b class="mono" data-version-code>397</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4642">v4.64.2 · 修复湖北师范大学 ehall 登录报密码错误</a></li>
         <li><a href="#v4641">v4.64.1 · 不打开 App 切深浅，背景也跟上</a></li>
         <li><a href="#v4640">v4.64.0 · 新增学校：湖北师范大学</a></li>
         <li><a href="#v4636">v4.63.6 · 深浅切换小组件即时跟随</a></li>
@@ -157,6 +158,18 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4642">
+        <div><span class="tl-ver">v4.64.2</span><span class="tl-date">2026-09-30</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>湖北师范大学 ehall 登录报密码错误</h3>
+          <ul>
+            <li><strong>密码正确却报"用户名或密码错误"</strong>：该认证页密码提交时才加密，App 的表单拦截抢先快照了加密前的值。现在含密码框的登录表单一律走原生提交，不再劫持；课表查询不受影响。</li>
+            <li><strong>"同步教务系统"报"文件校验未通过"</strong>：私有适配清单漏登记 HBNU，已补（服务端侧，用户无需操作）。</li>
+            <li>导入引导补充：统一认证密码与今日校园 APP 一致。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4641">
         <div><span class="tl-ver">v4.64.1</span><span class="tl-date">2026-09-29</span></div>
