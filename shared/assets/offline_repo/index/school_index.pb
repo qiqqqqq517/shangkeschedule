@@ -1119,10 +1119,10 @@ u_400c510a湖北工程学院hbgcxy"hubei_engineering*�
 u_400c510a_zf正方教务系统（直连）"hbeu.js*5http://jwgl.hbeu.edu.cn/jwglxt/xtgl/login_slogin.html2*多入口：正方教务系统（直连）:manual-multi-entry�
 
 u_f69ae8ea!湖北工程学院新技术学院hbgcxyxjsxy"	zhengfang*�
-u_f69ae8ea_01正方教务系统"zhengfang.js*)http://jwglxt.hbeutc.cn:20000/jwglxt/xtgl21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_f69ae8ea_01正方教务系统"zhengfang.js*)http://jwglxt.hbeutc.cn:20000/jwglxt/xtgl21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
-u_1eabbae6湖北师范大学hbsfdx"	zhengfang*�
-u_1eabbae6_01正方教务系统"zhengfang.js*.http://jwxt.hbnu.edu.cn/xtgl/login_slogin.html21自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_1eabbae6湖北师范大学hbsfdx"HBNU*�
+u_1eabbae6_ehall$网上办事大厅（统一认证）"hbnu.js*https://ehall.hbnu.edu.cn/20多入口：网上办事大厅（统一认证）:manual-multi-entry�
 
 u_a1e015c3湖北师范大学文理学院
 hbsfdxwlxy"	zhengfang*�
