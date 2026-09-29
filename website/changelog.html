@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.63.4</b></span>
-        <span>versionCode <b class="mono" data-version-code>391</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.63.5</b></span>
+        <span>versionCode <b class="mono" data-version-code>392</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4635">v4.63.5 · Android 10：课表不再被系统导航栏遮住</a></li>
         <li><a href="#v4634">v4.63.4 · 升级后小组件即时刷新</a></li>
         <li><a href="#v4632">v4.63.2 · 桌面小组件配色：统一固定色板、可读性修复</a></li>
         <li><a href="#v4630">v4.63.0 · 课程编辑界面新增「只删本次」</a></li>
@@ -153,6 +154,23 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4635">
+        <div><span class="tl-ver">v4.63.5</span><span class="tl-date">2026-09-29</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>课表不再被系统导航栏遮住</h3>
+          <ul>
+            <li><strong>课表末节被系统导航栏压住、且再也滚不上来</strong>：在课表里向下滑动时底部导航栏会自动隐藏，此前它把<strong>系统导航栏的高度也一起收走了</strong>。于是内容的可滚动下限直接伸到系统导航栏底下，最后一节课被盖住，而且因为已经没有留白可以再滚，那一节<strong>再也回不到眼前</strong>。现在只有导航栏自身那一块会随隐藏收缩，系统导航栏的高度恒定保留在内容下方。在 <strong>Android 10</strong> 上尤其明显：该版本多为三键导航，系统导航栏是一条 48dp 的实心栏。</li>
+            <li><strong>系统手势区被漏算</strong>：底部安全区此前只读系统的导航栏 inset；手势导航机型底部手势区由另一个来源上报，部分机型上会少报甚至报 0。现改为以导航栏 inset 为主、仅在它报 0 时才用手势区兜底。</li>
+            <li><strong>Android 10 的系统栏保护色</strong>：Android 10 在导航栏色为透明时会强制画一层保护性遮罩，正压在悬浮玻璃底栏的下缘；已在 Android 10 及以上关闭。</li>
+            <li>宽屏侧边栏布局、隐藏底部导航栏的形态（拖出课程时）此前底部留白恒为 0，同样会被系统导航栏压住；现在都会正常让开，课程挂起条也会抬到系统导航栏之上。</li>
+          </ul>
+          <h3><span class="tl-tag tag-ui">外观</span>底栏贴住系统导航栏</h3>
+          <ul>
+            <li>底部导航栏与系统导航栏之间的空档由 12dp 收窄为 4dp：底栏不再像悬在半空，基本贴住系统导航栏上沿。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4634">
         <div><span class="tl-ver">v4.63.4</span><span class="tl-date">2026-09-29</span></div>
