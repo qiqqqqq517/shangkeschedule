@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.63.6</b></span>
-        <span>versionCode <b class="mono" data-version-code>393</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.64.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>395</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4640">v4.64.0 · 新增学校：湖北师范大学</a></li>
         <li><a href="#v4636">v4.63.6 · 深浅切换小组件即时跟随</a></li>
         <li><a href="#v4635">v4.63.5 · Android 10：课表不再被系统导航栏遮住</a></li>
         <li><a href="#v4634">v4.63.4 · 升级后小组件即时刷新</a></li>
@@ -155,6 +156,19 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4640">
+        <div><span class="tl-ver">v4.64.0</span><span class="tl-date">2026-09-29</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增学校：湖北师范大学</h3>
+          <ul>
+            <li><strong>湖北师范大学（HBNU）课表导入</strong>：经 ehall 网上办事大厅统一身份认证进入正方教务 V-9.0，自动抓取「个人课表查询」全部课程。</li>
+            <li>优先解析页面渲染的 12 节 × 7 天网格，DOM 无数据时自动走正方数据接口（从当前周往回累积整学期）。</li>
+            <li>兼容周次单双周（如「6-16周(双)」）、课程名【理论】/【调】后缀清理、教师职称括号清理、教学班/学分备注。</li>
+            <li>已用真实账号实测：2026-2027 第一学期 19 门课全部正确解析。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4636">
         <div><span class="tl-ver">v4.63.6</span><span class="tl-date">2026-09-29</span></div>
