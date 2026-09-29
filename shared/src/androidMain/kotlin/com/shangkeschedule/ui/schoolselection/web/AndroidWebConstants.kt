@@ -163,6 +163,15 @@ val JS_INTERCEPT_POST = """
 
             if (form.querySelector && form.querySelector('input[type="file"]')) return;
 
+            // 登录表单直接放行：含密码框的表单多为统一认证/CAS 登录页，
+            // 其可见密码框常无 name（加密后写入隐藏域，如 Wisedu 的 passwordEncrypt），
+            // 或提交时由页面脚本就地加密；本监听器在捕获阶段先于页面加密逻辑执行，
+            // 快照到的必是加密前的空值/明文，经 Ktor 重放后服务端即报用户名或密码错误。
+            // 课表查询表单从不含密码框，放行无任何损失。
+            try {
+                if (form.querySelector && form.querySelector('input[type="password"]')) return;
+            } catch (ign) {}
+
             var id = 'form_' + Date.now() + '_' + Math.random().toString(36).substr(2);
             var formData = new FormData(form);
             
