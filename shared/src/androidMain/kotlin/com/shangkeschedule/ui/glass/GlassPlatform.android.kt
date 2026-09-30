@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asAndroidColorFilter
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.toArgb
+import com.shangkeschedule.tool.AppLog
 
 /**
  * Android 实现：折射走 `android.graphics.RuntimeShader`（AGSL），需 API 33 (TIRAMISU)。
@@ -69,7 +70,7 @@ public fun applyGlassNativeCrashFallback(context: Context) {
         val markerVersion = marker.readText().trim().toLongOrNull()
         if (markerVersion == versionCode) {
             isGlassFallbackActive = true
-            println("GLASS: 检测到降级锁存（versionCode=$versionCode），本进程玻璃退化为色调面板")
+            AppLog.w("GLASS", "检测到降级锁存（versionCode=$versionCode），本进程玻璃退化为色调面板")
             return
         }
         marker.delete()
@@ -89,14 +90,15 @@ public fun applyGlassNativeCrashFallback(context: Context) {
     ) {
         runCatching { marker.writeText(versionCode.toString()) }
         isGlassFallbackActive = true
-        println("GLASS: 上次进程崩溃退出，本进程玻璃退化为色调面板（已锁存到 versionCode=$versionCode）")
+        AppLog.w("GLASS", "上次进程崩溃退出，本进程玻璃退化为色调面板（已锁存到 versionCode=$versionCode）")
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.R)
 private fun hasRecentGlassKillingCrash(context: Context, nowMs: Long): Boolean =
     runCatching {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            ?: return@runCatching false
         am.getHistoricalProcessExitReasons(context.packageName, 0, 3).any { info ->
             (info.reason == ApplicationExitInfo.REASON_CRASH ||
                 info.reason == ApplicationExitInfo.REASON_CRASH_NATIVE) &&
@@ -121,7 +123,7 @@ internal actual fun liquidShaderEffect(
             )
             .asComposeRenderEffect()
     }.onFailure {
-        println("GLASS: createRuntimeShaderEffect 失败 uniform=$uniformShaderName, ${it.message}")
+        AppLog.w("GLASS", "createRuntimeShaderEffect 失败 uniform=$uniformShaderName, ${it.message}", it)
     }.getOrNull()
 
 @RequiresApi(Build.VERSION_CODES.S)

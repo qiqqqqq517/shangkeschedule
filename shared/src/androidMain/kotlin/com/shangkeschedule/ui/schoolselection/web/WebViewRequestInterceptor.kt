@@ -554,9 +554,8 @@ class WebViewRequestInterceptor {
                 } else rawBytes
                 if (isMainFrame) {
                     val after = servedBytes.take(16).joinToString(" ") { "%02x".format(it) }
-                    val sample = runCatching { servedBytes.toString(Charsets.UTF_8).substring(0, 200) }.getOrDefault("decode-fail")
+                    // R1-017：原文前200字符采样日志已删（可能含学号/姓名），仅保留长度+hex诊断
                     Log.i("WebViewInterceptor", "AFTER-CLEAN len=${servedBytes.size} first16=$after enc=$encoding")
-                    Log.i("WebViewInterceptor", "SAMPLE: $sample")
                 }
 
                 WebResourceResponse(

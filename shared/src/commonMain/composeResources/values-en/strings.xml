@@ -825,6 +825,8 @@
     <string name="tivm_import_failed_fmt">Import failed: %1$s</string>
     <string name="tivm_error_parse_first">Parse and preview first</string>
     <string name="tivm_error_table_name_empty">Enter a timetable name</string>
+    <string name="tivm_error_old_xls">Legacy .xls is a binary format. Please save as .xlsx in Office/WPS and import again</string>
+    <string name="tivm_error_not_utf8_guidance">File is not UTF-8 encoded (possibly GBK/ANSI). Please save as UTF-8 or import an Excel (.xlsx) file instead</string>
     <string name="wb_default_confirm">OK</string>
 
     <!-- 风格预览演示数据 i18n（UI 迭代第 7 轮） -->

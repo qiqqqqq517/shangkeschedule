@@ -513,9 +513,10 @@ class WebBridgeHandler(
                 getString(Res.string.wb_adapter_error_fmt, payload.message)
             }
 
+            // R1-017c：stack 可能含教务页 URL/路径，不进日志；message 已是用户可见文案
             AppLog.w(
                 TAG,
-                "适配脚本错误上报 kind=${payload.kind} message=${payload.message} stack=${payload.stack}"
+                "适配脚本错误上报 kind=${payload.kind} message=${payload.message}"
             )
 
             if (importState is ImportRunState.Running) {

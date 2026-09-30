@@ -11,6 +11,13 @@ package com.shangkeschedule.tool
 object TimeTextUtils {
 
     /**
+     * 自定义开始时间为空时的统一回退（首节默认上课时间）。
+     * R1-027：原散落 6 处 "08:00" 字面量收归此处；默认时刻模板
+     * （CourseTableRepository.DEFAULT_TIME_SLOTS）属固定时刻表数据，不在此列。
+     */
+    const val DEFAULT_CUSTOM_START_TIME = "08:00"
+
+    /**
      * 解析 "HH:mm" / "H:m" 形式的作息时间，返回当天 0 点起的分钟数。
      *
      * 仅接受「冒号分隔的两段纯数字」且落在 0..23 / 0..59 范围内；

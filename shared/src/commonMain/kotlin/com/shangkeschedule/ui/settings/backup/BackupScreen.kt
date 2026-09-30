@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
@@ -209,7 +210,7 @@ fun BackupScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 640.dp)
+                .widthIn(max = SettingsPageMaxWidth)
                 .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)

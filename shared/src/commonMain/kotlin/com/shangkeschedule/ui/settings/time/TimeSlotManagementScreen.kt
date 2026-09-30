@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.data.db.main.TimeSlot
 import com.shangkeschedule.data.db.main.TimeSlotScheme
@@ -315,7 +316,7 @@ fun TimeSlotManagementScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 640.dp),
+                .widthIn(max = SettingsPageMaxWidth),
             contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = 0.dp),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)
         ) {

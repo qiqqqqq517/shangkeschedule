@@ -826,6 +826,8 @@
     <string name="tivm_import_failed_fmt">匯入失敗: %1$s</string>
     <string name="tivm_error_parse_first">請先解析並預覽</string>
     <string name="tivm_error_table_name_empty">請輸入課表名稱</string>
+    <string name="tivm_error_old_xls">舊版 .xls 為二進位格式，請在 Office/WPS 中另存為 .xlsx 後再匯入</string>
+    <string name="tivm_error_not_utf8_guidance">檔案不是 UTF-8 編碼（可能為 GBK/ANSI），請另存為 UTF-8 或改用 Excel(.xlsx) 匯入</string>
     <string name="wb_default_confirm">確定</string>
 
     <!-- 风格预览演示数据 i18n（UI 迭代第 7 轮） -->

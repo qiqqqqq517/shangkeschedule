@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastCoerceAtMost
+import com.shangkeschedule.tool.AppLog
 
 /**
  * 玻璃效果作用域：在 [Modifier.glassSurface] 的 `effects { }` 块内描述
@@ -197,7 +198,7 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
 
     override fun reportOnce(key: String, message: () -> String) {
         if (reported.add(key)) {
-            println("GLASS: " + message())
+            AppLog.w("GLASS", message())
         }
     }
 
@@ -207,7 +208,7 @@ internal class GlassEffectScopeImpl : GlassEffectScope {
             val result = runCatching { createLiquidShader(agsl) }
             // 编译失败必须留痕：此前静默返回 null 会让「折射/色散完全没作用」无从排查
             result.exceptionOrNull()?.let { err ->
-                println("GLASS: 运行时着色器编译失败 key=$key, ${err.message}")
+                AppLog.w("GLASS", "运行时着色器编译失败 key=$key, ${err.message}", err)
             }
             result.getOrNull()
         }

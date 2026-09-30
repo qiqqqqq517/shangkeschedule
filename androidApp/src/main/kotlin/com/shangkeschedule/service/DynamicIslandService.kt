@@ -345,15 +345,14 @@ class DynamicIslandService : Service(), KoinComponent {
             )
         }
 
-        // 1) 正在上课
-        val active = filtered.firstOrNull { course ->
-            val s = DynamicIslandManager.parseTime(course.startTime)
-            val e = DynamicIslandManager.parseTime(course.endTime)
-            s != null && e != null && !currentTime.isBefore(s) && currentTime.isBefore(e)
-        }
-        if (active != null) {
-            val s = DynamicIslandManager.parseTime(active.startTime)!!
-            val e = DynamicIslandManager.parseTime(active.endTime)!!
+        // 1) 正在上课（解析值复用：谓词内已判空，下方不再重解析）
+        val activeParsed = filtered.mapNotNull { course ->
+            val s = DynamicIslandManager.parseTime(course.startTime) ?: return@mapNotNull null
+            val e = DynamicIslandManager.parseTime(course.endTime) ?: return@mapNotNull null
+            Triple(course, s, e)
+        }.firstOrNull { (_, s, e) -> !currentTime.isBefore(s) && currentTime.isBefore(e) }
+        if (activeParsed != null) {
+            val (active, s, e) = activeParsed
             val totalMin = Duration.between(s, e).toMinutes().coerceAtLeast(1)
             val elapsedMin = Duration.between(s, currentTime).toMinutes().coerceAtLeast(0)
             val pct = ((elapsedMin * 100) / totalMin).toInt().coerceIn(0, 100)
@@ -377,13 +376,13 @@ class DynamicIslandService : Service(), KoinComponent {
             )
         }
 
-        // 2) 下一节课
-        val next = filtered.firstOrNull { course ->
-            val s = DynamicIslandManager.parseTime(course.startTime)
-            s != null && currentTime.isBefore(s)
-        }
-        if (next != null) {
-            val s = DynamicIslandManager.parseTime(next.startTime)!!
+        // 2) 下一节课（解析值复用，同上）
+        val nextParsed = filtered.mapNotNull { course ->
+            val s = DynamicIslandManager.parseTime(course.startTime) ?: return@mapNotNull null
+            course to s
+        }.firstOrNull { (_, s) -> currentTime.isBefore(s) }
+        if (nextParsed != null) {
+            val (next, s) = nextParsed
             val minutesUntil = Duration.between(currentTime, s).toMinutes().coerceAtLeast(0)
             return IslandState(
                 title = getString(R.string.dynamic_island_next_class_title),

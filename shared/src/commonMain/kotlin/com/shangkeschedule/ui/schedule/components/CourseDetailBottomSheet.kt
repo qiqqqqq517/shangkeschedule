@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.schedule.components
 
+import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -773,7 +774,7 @@ private fun EditableCourseDetailContent(
         if (showTimePicker) {
             if (activeScheme.isCustomTime) {
                 CustomTimeRangePickerBottomSheet(
-                    initialStartTime = activeScheme.customStartTime.ifBlank { "08:00" },
+                    initialStartTime = activeScheme.customStartTime.ifBlank { TimeTextUtils.DEFAULT_CUSTOM_START_TIME },
                     initialEndTime = activeScheme.customEndTime.ifBlank { "09:45" },
                     onDismissRequest = { showTimePicker = false },
                     onTimeRangeSelected = { start, end ->

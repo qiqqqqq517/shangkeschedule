@@ -65,7 +65,8 @@ object MorningAlarmPlan {
             // 当天最早的一节课
             val first = effective
                 .filter { it.date == date.toString() }
-                .minByOrNull { ReminderEngine.parseTime(it.startTime)!! }
+                .mapNotNull { c -> ReminderEngine.parseTime(c.startTime)?.let { c to it } }
+                .minByOrNull { it.second }?.first
                 ?: return@mapNotNull null
 
             val start = ReminderEngine.parseTime(first.startTime) ?: return@mapNotNull null

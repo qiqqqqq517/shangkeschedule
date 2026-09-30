@@ -826,6 +826,8 @@
     <string name="tivm_import_failed_fmt">导入失败: %1$s</string>
     <string name="tivm_error_parse_first">请先解析并预览</string>
     <string name="tivm_error_table_name_empty">请输入课表名称</string>
+    <string name="tivm_error_old_xls">旧版 .xls 为二进制格式，请在 Office/WPS 中另存为 .xlsx 后再导入</string>
+    <string name="tivm_error_not_utf8_guidance">文件不是 UTF-8 编码（可能为 GBK/ANSI），请另存为 UTF-8 或改用 Excel(.xlsx) 导入</string>
     <string name="wb_default_confirm">确定</string>
 
     <!-- 风格预览演示数据 i18n（UI 迭代第 7 轮） -->

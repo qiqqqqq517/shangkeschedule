@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.tool.FileManagerCallbacks
 import com.shangkeschedule.tool.rememberFileManager
 import com.shangkeschedule.ui.components.AppTextField
@@ -210,7 +211,7 @@ fun ProfileInfoScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 640.dp)
+                    .widthIn(max = SettingsPageMaxWidth)
                     .clip(appShapes().card)
                     .background(appColors().cardBg)
                     .padding(horizontal = appSpacing().cardInner, vertical = 20.dp),
@@ -398,7 +399,7 @@ private fun ProfileGroupLabel(text: String) {
         color = appColors().textSecondary,
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 640.dp)
+            .widthIn(max = SettingsPageMaxWidth)
             .padding(start = 4.dp, top = 4.dp)
     )
 }
@@ -411,7 +412,7 @@ private fun ProfileGroupCard(content: @Composable () -> Unit) {
         shape = appShapes().card,
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 640.dp)
+            .widthIn(max = SettingsPageMaxWidth)
     ) {
         Column(
             modifier = Modifier.padding(

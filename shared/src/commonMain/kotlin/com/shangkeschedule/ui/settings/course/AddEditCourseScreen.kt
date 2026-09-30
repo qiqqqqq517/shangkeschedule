@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.course
 
+import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppTopAppBar
 import androidx.compose.foundation.layout.Arrangement
@@ -364,7 +365,7 @@ fun AddEditCourseScreen(
         if (showTimePickerSelector) {
             if (activeScheme.isCustomTime) {
                 CustomTimeRangePickerBottomSheet(
-                    initialStartTime = activeScheme.customStartTime.ifBlank { "08:00" },
+                    initialStartTime = activeScheme.customStartTime.ifBlank { TimeTextUtils.DEFAULT_CUSTOM_START_TIME },
                     initialEndTime = activeScheme.customEndTime.ifBlank { "09:45" },
                     onDismissRequest = { showTimePickerSelector = false },
                     onTimeRangeSelected = { start, end ->

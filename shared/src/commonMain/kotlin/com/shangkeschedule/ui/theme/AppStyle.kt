@@ -401,6 +401,13 @@ data class AppSpacingTokens(
 )
 
 /**
+ * 设置系页面内容最大宽度（居中容器）。
+ * R1-027b：原 8 文件 11 处 `widthIn(max = 640.dp)` 收归此处；与主题无关、
+ * 各主题取值一致，故不进 AppSpacingTokens（那是按主题分别赋值的）。
+ */
+val SettingsPageMaxWidth = 640.dp
+
+/**
  * 字阶 tokens：统一管理所有字号。
  * 默认值与原 AppType 对象完全一致。
  */

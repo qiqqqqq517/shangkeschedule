@@ -89,9 +89,10 @@ private fun androidx.compose.ui.graphics.Canvas.clipGlassOutline(outline: Outlin
     when (outline) {
         is Outline.Rectangle -> clipRect(outline.rect)
         is Outline.Rounded -> {
-            path!!.rewind()
-            path.addRoundRect(outline.roundRect)
-            clipPath(path)
+            val p = path ?: Path()
+            p.rewind()
+            p.addRoundRect(outline.roundRect)
+            clipPath(p)
         }
         is Outline.Generic -> clipPath(outline.path)
     }

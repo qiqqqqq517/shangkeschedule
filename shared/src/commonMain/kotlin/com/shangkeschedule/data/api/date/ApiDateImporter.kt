@@ -75,7 +75,7 @@ object ApiDateImporter {
             appSettingsRepository.addSkippedDates(holidayDates)
 
             val mergedCount = appSettingsRepository.getAppSettings().first().skippedDates.size
-            println("成功导入并合并了 ${holidayDates.size} 个假期日期（现共 $mergedCount 个跳过日期）。")
+            AppLog.w(TAG, "成功导入并合并了 ${holidayDates.size} 个假期日期（现共 $mergedCount 个跳过日期）。")
         } catch (e: Exception) {
             AppLog.e(TAG, "假期数据导入失败: ${e.message}", e)
         }

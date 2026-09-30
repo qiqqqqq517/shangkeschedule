@@ -4,6 +4,8 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.tivm_error_empty_file
 import shangkeschedule.shared.generated.resources.tivm_error_empty_input
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
+import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
+import shangkeschedule.shared.generated.resources.tivm_error_old_xls
 import shangkeschedule.shared.generated.resources.tivm_error_parse_first
 import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
 import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
@@ -99,7 +101,7 @@ class TextImportViewModel(
                     when {
                         // 旧版二进制 .xls 明确提示转换
                         isOldXls && !ExcelScheduleParser.isZipBytes(bytes) ->
-                            UniversalScheduleParser.ParseResult.Error("旧版 .xls 为二进制格式，请在 Office/WPS 中另存为 .xlsx 后再导入")
+                            UniversalScheduleParser.ParseResult.Error(getString(Res.string.tivm_error_old_xls))
 
                         // xlsx（ZIP 容器）
                         ExcelScheduleParser.isZipBytes(bytes) -> {
@@ -111,14 +113,14 @@ class TextImportViewModel(
                         else -> {
                             val text = bytes.decodeToString().removePrefix("\uFEFF")
                             if (text.contains('\uFFFD')) {
-                                UniversalScheduleParser.ParseResult.Error("文件不是 UTF-8 编码（可能为 GBK/ANSI），请另存为 UTF-8 或改用 Excel(.xlsx) 导入")
+                                UniversalScheduleParser.ParseResult.Error(getString(Res.string.tivm_error_not_utf8_guidance))
                             } else {
                                 UniversalScheduleParser.parseWithFormat(text, forcedFormat ?: TextImportFormat.forFileName(fileName))
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    UniversalScheduleParser.ParseResult.Error("文件解析失败：${e.message ?: e.javaClass.simpleName}")
+                    UniversalScheduleParser.ParseResult.Error(getString(Res.string.tivm_import_failed_fmt, e.message ?: e.javaClass.simpleName))
                 }
             }
             applyParseResult(result)
@@ -135,12 +137,11 @@ class TextImportViewModel(
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
-        if (bytes.isEmpty()) {
-            onError("文件内容为空")
-            return
-        }
-
         viewModelScope.launch {
+            if (bytes.isEmpty()) {
+                onError(getString(Res.string.tivm_error_empty_file))
+                return@launch
+            }
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val imported = withContext(Dispatchers.IO) {

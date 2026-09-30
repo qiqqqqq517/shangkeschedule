@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.DualColor
@@ -177,14 +178,14 @@ fun SettingsScreen(
                 item {
                     AppPageHeader(
                         title = stringResource(Res.string.nav_settings),
-                        modifier = Modifier.widthIn(max = 640.dp)
+                        modifier = Modifier.widthIn(max = SettingsPageMaxWidth)
                     )
                 }
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .widthIn(max = 640.dp)
+                            .widthIn(max = SettingsPageMaxWidth)
                             .padding(top = appSpacing().pageTop)
                     ) {
                         AppSettingsUserRow(
@@ -739,7 +740,7 @@ private fun LazyListScope.appSettingsItems(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 640.dp)
+                    .widthIn(max = SettingsPageMaxWidth)
             ) {
                 AppGroupLabel(stringResource(section.labelRes))
                 AppSettingsGroup {

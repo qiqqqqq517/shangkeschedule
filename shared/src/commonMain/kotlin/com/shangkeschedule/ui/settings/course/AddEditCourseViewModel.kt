@@ -11,6 +11,7 @@ import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
+import com.shangkeschedule.tool.TimeTextUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -39,7 +40,7 @@ data class CourseScheme(
     val startSection: Int = 1,
     val endSection: Int = 1,
     val isCustomTime: Boolean = false,
-    val customStartTime: String = "08:00",
+    val customStartTime: String = TimeTextUtils.DEFAULT_CUSTOM_START_TIME,
     val customEndTime: String = "09:35",
     val weeks: Set<Int> = emptySet(),
     val colorIndex: Int = 0
@@ -176,7 +177,7 @@ class AddEditCourseViewModel(
                                     startSection = initialPresetData?.startSection ?: 1,
                                     endSection = initialPresetData?.endSection ?: 1,
                                     isCustomTime = initialPresetData?.isCustomTime ?: false,
-                                    customStartTime = initialPresetData?.customStartTime ?: "08:00",
+                                    customStartTime = initialPresetData?.customStartTime ?: TimeTextUtils.DEFAULT_CUSTOM_START_TIME,
                                     customEndTime = initialPresetData?.customEndTime ?: "09:35",
                                     weeks = initialPresetData?.presetWeeks ?: (1..totalWeeks).toSet(),
                                     colorIndex = initialPresetData?.colorIndex ?: newColor
@@ -304,7 +305,7 @@ class AddEditCourseViewModel(
         updateScheme(schemeId) { scheme ->
             scheme.copy(
                 isCustomTime = isCustom,
-                customStartTime = if (isCustom && scheme.customStartTime.isBlank()) "08:00" else scheme.customStartTime,
+                customStartTime = if (isCustom && scheme.customStartTime.isBlank()) TimeTextUtils.DEFAULT_CUSTOM_START_TIME else scheme.customStartTime,
                 customEndTime = if (isCustom && scheme.customEndTime.isBlank()) "09:35" else scheme.customEndTime
             )
         }

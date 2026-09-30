@@ -57,7 +57,8 @@ fun AlarmMinutesPicker(
     }
 
     val initialOption = remember(initialValue, localizedOptions) {
-        localizedOptions.find { it.value == initialValue } ?: localizedOptions.find { it.value == 15 }!!
+        localizedOptions.find { it.value == initialValue } ?: localizedOptions.find { it.value == 15 }
+            ?: localizedOptions.first()
     }
 
     NativeNumberPicker(

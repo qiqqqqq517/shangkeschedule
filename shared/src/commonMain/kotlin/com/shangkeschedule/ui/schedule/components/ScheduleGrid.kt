@@ -111,32 +111,35 @@ fun ScheduleGrid(
         var activeDragHour by remember { mutableStateOf<Int?>(null) }
         var activeDragMinuteStr by remember { mutableStateOf<String?>(null) }
 
-        if (is24HourMode && state.expandedItem != null) {
+        // R1-001e：快照局部替代6处!!（同帧主线程快照一致；仅提示计算用，无数据影响）
+        val expandedSnapshot = state.expandedItem
+        if (is24HourMode && expandedSnapshot != null) {
+            val moveIntentSnapshot = state.activeMoveIntent
             val currentTargetSection = when {
                 state.isTopHandleDragging -> {
                     val minGap = 0.25f
                     val deltaSection = state.topHandleDragOffsetY / sectionHeightPx
-                    var proposedStart = state.expandedItem!!.startSection + deltaSection
+                    var proposedStart = expandedSnapshot.startSection + deltaSection
                     proposedStart = (proposedStart / 0.25f).roundToInt() * 0.25f
                     // 上界必须先夹到 ≥ 下界：endSection 可为 0（24H 模式下结束时间为 00:00），
                     // 此时 endSection - minGap = -0.25 < 0 = 下界 → coerceIn 抛
                     // IllegalArgumentException: Cannot coerce value to an empty range（长按展开即崩）。
-                    proposedStart.coerceIn(0f, (state.expandedItem!!.endSection - minGap).coerceAtLeast(0f))
+                    proposedStart.coerceIn(0f, (expandedSnapshot.endSection - minGap).coerceAtLeast(0f))
                 }
                 state.isBottomHandleDragging -> {
                     val minGap = 0.25f
                     val deltaSection = state.bottomHandleDragOffsetY / sectionHeightPx
-                    var proposedEnd = state.expandedItem!!.endSection + deltaSection
+                    var proposedEnd = expandedSnapshot.endSection + deltaSection
                     proposedEnd = (proposedEnd / 0.25f).roundToInt() * 0.25f
                     // 同理：startSection 接近 24 时下界会超过上界
                     proposedEnd.coerceIn(
-                        (state.expandedItem!!.startSection + minGap).coerceAtMost(maxGridSections.toFloat()),
+                        (expandedSnapshot.startSection + minGap).coerceAtMost(maxGridSections.toFloat()),
                         maxGridSections.toFloat()
                     )
                 }
-                state.activeMoveIntent != null -> {
-                    val duration = state.activeMoveIntent!!.duration
-                    var targetStart = state.activeMoveIntent!!.initialStartSection + (state.bodyDragOffsetY / sectionHeightPx)
+                moveIntentSnapshot != null -> {
+                    val duration = moveIntentSnapshot.duration
+                    var targetStart = moveIntentSnapshot.initialStartSection + (state.bodyDragOffsetY / sectionHeightPx)
                     targetStart = (targetStart / 0.25f).roundToInt() * 0.25f
                     targetStart.coerceIn(0f, (maxGridSections - duration).coerceAtLeast(0f))
                 }

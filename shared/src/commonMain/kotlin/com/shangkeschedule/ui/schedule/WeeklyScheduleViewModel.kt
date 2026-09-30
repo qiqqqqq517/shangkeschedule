@@ -786,7 +786,7 @@ class WeeklyScheduleViewModel (
                 val updatedCourseForTime = if (mode == ScheduleModeProto.TIME_24H_MODE) {
                     val parsedSlots = slots.sortedParsedTimeSlots()
                     val baseStartTime = gridScaleToTime(startSection, parsedSlots, mode)
-                    val origStart = LocalTime.parse(originalCourse.customStartTime ?: "08:00")
+                    val origStart = LocalTime.parse(originalCourse.customStartTime ?: TimeTextUtils.DEFAULT_CUSTOM_START_TIME)
                     val origEnd = LocalTime.parse(originalCourse.customEndTime ?: "09:00")
                     val originalDurationMinutes = ((origEnd.toSecondOfDay() - origStart.toSecondOfDay()) / 60).coerceAtLeast(1)
                     val newStartTime = baseStartTime

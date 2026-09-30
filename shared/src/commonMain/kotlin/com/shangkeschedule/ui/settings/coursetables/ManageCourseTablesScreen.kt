@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.settings.coursetables
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -248,7 +249,7 @@ fun ManageCourseTablesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 640.dp)
+                    .widthIn(max = SettingsPageMaxWidth)
             ) {
                 // 正在单独显示情侣课表时，当前学期卡展示的是本人表：
                 // 「查看课表 / 学期设置」先切回本人表，保证卡面与操作目标一致。

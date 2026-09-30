@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
@@ -137,7 +138,7 @@ fun SemesterSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 640.dp)
+                .widthIn(max = SettingsPageMaxWidth)
                 .verticalScroll(scrollState)
                 .padding(horizontal = appSpacing().pageHorizontal),
             verticalArrangement = Arrangement.spacedBy(appSpacing().listGap)

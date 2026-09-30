@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.import
 
+import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 
@@ -77,7 +78,7 @@ fun FileImportHubScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 640.dp)
+                .widthIn(max = SettingsPageMaxWidth)
                 .padding(horizontal = appSpacing().pageHorizontal)
                 .verticalScroll(rememberScrollState())
         ) {
