@@ -16,6 +16,19 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
+    <!--
+      包可见性（Android 11+ / targetSdk 37）：早八写入系统时钟前用
+      `packageManager.resolveActivity(ACTION_SET_ALARM)` 探测「是否装了时钟应用」。
+      该查询受包可见性过滤，缺此声明会恒返回 null → 早八永远走应用内降级、永远写不进
+      系统时钟；且因为「没发生交互」，可见性也不会事后自动补授，形成自锁。
+      startActivity 本身不受过滤，所以缺声明时是「探测失败、写入从未尝试」。
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MyApplication"
         android:allowBackup="true"

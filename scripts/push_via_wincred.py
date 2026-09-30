@@ -100,7 +100,8 @@ def main():
         print(f"[push] ❌ 未取到凭据：{err or '返回为空'}")
         print("       请确认 Windows 凭据管理器里存有 git:https://%s" % host)
         return 1
-    print(f"[push] user={user} token_len={len(tok)} prefix={tok[:4]}...")
+    # 刻意不打印令牌的任何片段（含前缀）：stdout 会被 CI/终端历史/日志留存。
+    print(f"[push] user={user} token_len={len(tok)} (令牌内容不打印)")
 
     if args.dry_run:
         print("[push] --dry-run：凭据可取，未执行推送")

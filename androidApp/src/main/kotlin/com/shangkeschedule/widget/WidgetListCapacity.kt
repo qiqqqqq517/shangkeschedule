@@ -20,6 +20,19 @@ internal object WidgetListCapacity {
      */
     const val CHROME_DP = 39
 
+    /**
+     * 行间分隔线实占高度（dp）。
+     *
+     * 构成（`widget_divider_horizontal.xml` 实值）：`layout_height` 1dp
+     * + `layout_marginTop` 2dp + `layout_marginBottom` 2dp = 5dp。
+     *
+     * v4.64.17 补：此前 [rowsFor] 只按 `N × 行高` 计算，漏掉这 (N-1)×5dp，
+     * 在 250dp 高 / density 3 / 行高 49dp 时余量恰好归零 —— 系统字体一放大
+     * （`container_courses` 是 LinearLayout、不滚动）末条就被静默裁切，
+     * 正是 v3.66.4/3.66.5 事故的形态。该布局的 margin 若改动，此值需同步。
+     */
+    const val DIVIDER_DP = 5
+
     /** 单次渲染的条数上限，避免异常尺寸下构造过大的 RemoteViews。 */
     const val MAX_ROWS = 12
 
@@ -32,6 +45,7 @@ internal object WidgetListCapacity {
      * @param rowHeightPx 实测条目高度（px）
      * @param density 屏幕密度
      * @param maxRows 条数上限（[MAX_ROWS]）
+     * @param dividerDp 行间分隔线占位（[DIVIDER_DP]）；0 或负数表示不计分隔线
      * @return 1..maxRows
      */
     fun rowsFor(
@@ -39,7 +53,8 @@ internal object WidgetListCapacity {
         chromeDp: Int,
         rowHeightPx: Int,
         density: Float,
-        maxRows: Int
+        maxRows: Int,
+        dividerDp: Int = DIVIDER_DP
     ): Int {
         val availablePx = (heightDp * density).toInt() - (chromeDp * density).toInt()
         // 两种保守出口：
@@ -47,6 +62,17 @@ internal object WidgetListCapacity {
         //  - 行高非法（≤0，说明测量失败且兜底也没生效）→ 返回 1，**不能**退化成除以 1px
         //    （那会算出几十条、封顶到 maxRows，反而比「算多」更严重地溢出）
         if (availablePx <= 0 || rowHeightPx <= 0) return 1
-        return (availablePx / rowHeightPx).coerceIn(1, maxRows)
+        val dividerPx = (dividerDp * density).toInt().coerceAtLeast(0)
+        // N 行需要 N×行高 + (N-1)×分隔线 ⇒ 用「逐行递减累加」求最大满足 N 的值，
+        // 而不是除法闭式解（除法无法把 (N-1) 的依赖写进去，闭式会系统性算多）。
+        var count = 0
+        var used = 0
+        while (count < maxRows) {
+            val next = used + rowHeightPx + if (count == 0) 0 else dividerPx
+            if (next > availablePx) break
+            used = next
+            count++
+        }
+        return count.coerceIn(1, maxRows)
     }
 }

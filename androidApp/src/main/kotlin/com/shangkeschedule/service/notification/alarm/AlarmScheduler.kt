@@ -97,6 +97,10 @@ internal class AlarmScheduler(private val context: Context) {
         }
         for (offset in 0 until AUTO_MODE_SLOT_LIMIT) {
             cancelByCode(am, autoModeCancelIntent(), AUTO_MODE_CODE_BASE + offset)
+            // PendingIntent.filterEquals 只比较 action（不含 extras），而上课/下课是
+            // 同一个 requestCode 槽位上两个不同 action —— 只取消 START 会让上一次
+            // 排程的「下课」闹钟残留，新排程中途把勿扰提前关掉（卡在静音态）。
+            cancelByCode(am, autoModeEndCancelIntent(), AUTO_MODE_CODE_BASE + offset)
         }
         // 早八降级闹钟（系统无时钟应用时使用）
         cancelByCode(am, morningFallbackCancelIntent(), MORNING_FALLBACK_CODE)
@@ -110,6 +114,11 @@ internal class AlarmScheduler(private val context: Context) {
     private fun autoModeCancelIntent(): Intent =
         Intent(context, AutoModeAlarmReceiver::class.java).apply {
             action = AutoModeAlarmReceiver.ACTION_AUTO_MODE_START
+        }
+
+    private fun autoModeEndCancelIntent(): Intent =
+        Intent(context, AutoModeAlarmReceiver::class.java).apply {
+            action = AutoModeAlarmReceiver.ACTION_AUTO_MODE_END
         }
 
     private fun morningFallbackCancelIntent(): Intent =

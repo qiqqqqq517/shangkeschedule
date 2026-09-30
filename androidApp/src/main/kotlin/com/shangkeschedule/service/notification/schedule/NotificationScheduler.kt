@@ -5,6 +5,7 @@ import android.util.Log
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.ReminderEngine
+import com.shangkeschedule.service.DynamicIslandManager
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.control.AutoModeScheduler
 import com.shangkeschedule.service.notification.morning.MorningAlarmScheduler
@@ -16,6 +17,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlin.time.Clock
 
 /**
@@ -64,6 +67,18 @@ class NotificationScheduler(
     private val morningAlarms = MorningAlarmScheduler(context, alarms)
 
     /**
+     * 灵动岛窗口排程器（@Single Koin）。
+     *
+     * 取不到就当作「本轮不管灵动岛」——它是独立的前台服务策略，缺席不应让
+     * 提醒/勿扰/早八三套排程失败，故此处惰性 + 静默降级。
+     */
+    private val dynamicIsland: DynamicIslandManager? by lazy {
+        runCatching { NotificationSchedulerDeps.dynamicIslandManager }
+            .onFailure { Log.w(TAG, "灵动岛排程器不可用，本轮跳过窗口重排: ${it.message}") }
+            .getOrNull()
+    }
+
+    /**
      * 全量重排。
      *
      * 顺序固定：**先全量注销**（无残留、无碰撞）→ 确保通知渠道 → 三套策略各自排 →
@@ -101,6 +116,12 @@ class NotificationScheduler(
         // 早八要自己判断「某天是否还有课」，故传**原始**课程 + 窗口天数
         val morningResult = morningAlarms.sync(settings, courses, WINDOW_DAYS, today, now)
 
+        // 灵动岛窗口此前**没有任何外部触发点**（只靠自己的 START 闹钟自举，而 START 闹钟
+        // 又要靠本方法排出来）→ 开机 / 设置变更 / 课表变更后窗口永远不重排。
+        // KDoc 早已声明「由 SyncManager 在同步完成时调用」，这里补上缺失的那一环。
+        runCatching { dynamicIsland?.sync() }
+            .onFailure { Log.w(TAG, "灵动岛窗口重排失败，不影响其余排程: ${it.message}") }
+
         return Summary(
             reminderCount = reminderCount,
             autoModeCount = autoModeCount,
@@ -124,4 +145,13 @@ class NotificationScheduler(
         /** 前瞻天数（与原 7 天窗口一致）。 */
         const val WINDOW_DAYS = 7
     }
+}
+
+/**
+ * 本类的 Koin 取用点（与 [WidgetUpdateHelper] 的 WidgetDependencyContainer 同构）：
+ * `NotificationScheduler` 由调用方 new 出来（要传 context），不是 Koin 管理的实例，
+ * 故用局部注入代理取 @Single 的 [DynamicIslandManager]。
+ */
+private object NotificationSchedulerDeps : KoinComponent {
+    val dynamicIslandManager: DynamicIslandManager by inject()
 }
