@@ -19,6 +19,7 @@ import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.notification.plan.ReminderEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -221,7 +222,7 @@ class DynamicIslandService : Service(), KoinComponent {
                             break
                         }
 
-                        val state = computeState(courses, now)
+                        val state = computeState(courses, now, settings.skippedDates)
                         val requestPromoted = !settings.compatWearableSync
                         val signature = stateSignature(state, requestPromoted)
                         // 内容去重（v3.57.1）：倒计时/进度按分钟变化，固定 20s 无脑重投会让状态栏
@@ -326,10 +327,16 @@ class DynamicIslandService : Service(), KoinComponent {
         val segments: List<NotificationCompat.ProgressStyle.Segment>? = null
     )
 
-    private fun computeState(courses: List<WidgetCourse>, now: LocalDateTime): IslandState {
-        val filtered = courses
-            .filter { !it.isSkipped }
-            .filter { it.startTime.isNotBlank() && it.endTime.isNotBlank() }
+    private fun computeState(
+        courses: List<WidgetCourse>,
+        now: LocalDateTime,
+        skippedDates: Set<String> = emptySet()
+    ): IslandState {
+        // 口径与 ReminderEngine.effectiveCourses 对齐（v4.64.17）：跳过日与「结束≤开始」
+        // 的脏数据都不该出现在灵动岛分段/倒计时里。
+        // 此前这里只滤 isSkipped + 时间非空，既漏了节假日（skippedDates），
+        // 又把零时长课算成「已完成」分段推高 dayProgress。
+        val filtered = ReminderEngine.effectiveCourses(courses, skippedDates)
             .sortedWith(compareBy({ it.startTime }, { it.endTime }))
 
         val currentTime = now.toLocalTime()

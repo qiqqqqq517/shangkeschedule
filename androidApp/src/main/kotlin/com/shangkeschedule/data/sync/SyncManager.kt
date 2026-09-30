@@ -10,6 +10,7 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TodoRepository
+import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.alarm.ForegroundGate
 import com.shangkeschedule.service.notification.schedule.NotificationScheduler
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
@@ -106,6 +108,36 @@ class SyncManager(
             .drop(1)
             .onEach { scheduleWebDavAutoSyncIfEnabled() }
             .launchIn(scope)
+
+        // 0.3 通知/自动化设置变更 → 立即重排闹钟
+        //
+        // 此前这些开关（提醒开关/提前量/自动勿扰/控制模式/灵动岛/早八开关与提前量）
+        // 写完 DataStore 后**没有任何重排触发点** —— `WidgetDataSynchronizer` 的同步链
+        // 早在 v3.54.0 就收窄为只消费「当前课表 ID + 免打扰日期」，不再由设置写入重启。
+        // 净效果：用户把「课前提醒 10 → 30 分钟」改完，提醒要等到下次开机 / 零点自愈 /
+        // 再次打开 App 才生效；「关闭灵动岛」也不会立刻取消窗口闹钟。
+        //
+        // 这里只挑**真正影响排程**的字段做签名比较：课表内容/周次/主题/备份等无关字段
+        // 变动不会触发，避免把「拨动无关开关 → 全量重排 + 101 闹钟重挂」的放大链带回来。
+        appSettingsRepository.getAppSettings()
+            .drop(1)
+            .map { settings ->
+                NotificationSettingsSignature(
+                    reminderEnabled = settings.reminderEnabled,
+                    remindBeforeMinutes = settings.remindBeforeMinutes,
+                    autoModeEnabled = settings.autoModeEnabled,
+                    autoControlMode = settings.autoControlMode,
+                    dynamicIslandEnabled = settings.dynamicIslandEnabled,
+                    morningAlarmEnabled = settings.morningAlarmEnabled,
+                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
+                )
+            }
+            .distinctUntilChanged()
+            .onEach {
+                Log.d(TAG, "收到通知/自动化设置变更，正在重排闹钟...")
+                triggerNotificationSync()
+            }
+            .launchIn(scope)
         todoRepository.getAllTodos()
             .drop(1)
             .onEach { scheduleWebDavAutoSyncIfEnabled() }
@@ -177,6 +209,21 @@ class SyncManager(
             WorkManagerHelper.enqueueWebDavAutoSyncNow(appContext)
         }
     }
+
+    /**
+     * 「影响闹钟排程的设置」签名。
+     *
+     * 只有这 7 个字段变化才值得重排；课表内容、主题、备份、假期等由其它链路负责。
+     */
+    private data class NotificationSettingsSignature(
+        val reminderEnabled: Boolean,
+        val remindBeforeMinutes: Int,
+        val autoModeEnabled: Boolean,
+        val autoControlMode: AutoControlMode,
+        val dynamicIslandEnabled: Boolean,
+        val morningAlarmEnabled: Boolean,
+        val morningAlarmLeadMinutes: Int
+    )
 
     private companion object {
         const val TAG = "SyncManager"

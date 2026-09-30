@@ -66,6 +66,10 @@ object AutoModeController {
     /**
      * 静音模式切换：**不需要**「勿扰访问」权限（只改铃声模式）。
      * 个别 OEM 仍可能抛 [SecurityException]，此处兜住并记录，不让提醒链路崩掉。
+     *
+     * 关闭时**恢复进入前的铃声模式**，而不是无条件写 [AudioManager.RINGER_MODE_NORMAL]：
+     * 用户原本用「仅振动/正常」是个人偏好，下课被强制切成 NORMAL 等于替他改了系统设置。
+     * 进入前只记录一次（连续重排/校准不会覆盖记录），关闭成功后清除。
      */
     private fun toggleSilent(context: Context, enableMode: Boolean): Boolean {
         val audioManager = context.getSystemService<AudioManager>()
@@ -73,9 +77,23 @@ object AutoModeController {
             Log.w(TAG, "AudioManager 不可用，静音切换跳过")
             return false
         }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return try {
-            audioManager.ringerMode = if (enableMode) AudioManager.RINGER_MODE_SILENT
-            else AudioManager.RINGER_MODE_NORMAL
+            if (enableMode) {
+                if (!prefs.contains(KEY_RINGER_MODE_BEFORE)) {
+                    val current = audioManager.ringerMode
+                    if (current != AudioManager.RINGER_MODE_SILENT) {
+                        prefs.edit().putInt(KEY_RINGER_MODE_BEFORE, current).apply()
+                    }
+                }
+                audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+            } else {
+                // 取回进入前的模式；无记录（旧版本升级而来 / 从未记录）时退回 NORMAL，
+                // 保持与旧行为一致的兜底，而不是突然保持静音。
+                val restore = prefs.getInt(KEY_RINGER_MODE_BEFORE, AudioManager.RINGER_MODE_NORMAL)
+                audioManager.ringerMode = restore
+                prefs.edit().remove(KEY_RINGER_MODE_BEFORE).apply()
+            }
             true
         } catch (e: SecurityException) {
             Log.w(TAG, "静音模式切换被系统拒绝", e)
@@ -85,4 +103,7 @@ object AutoModeController {
             false
         }
     }
+
+    private const val PREFS_NAME = "auto_mode_controller"
+    private const val KEY_RINGER_MODE_BEFORE = "ringer_mode_before"
 }
