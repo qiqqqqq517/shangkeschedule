@@ -27,6 +27,8 @@
             return Promise.resolve(false);
         }
         function save(courses) {
+            // 契约：调用方传课程对象数组，此处做唯一一次 JSON 编码；
+            // 调用方不得预先 stringify，否则原生侧会因双重编码解析失败导致导入失败。
             var s = JSON.stringify(courses);
             try { if (window.shangkeBridge && window.shangkeBridge.saveImportedCourses) return window.shangkeBridge.saveImportedCourses(s); } catch (e) {}
             try { if (window.shangkeBridgePromise && window.shangkeBridgePromise.saveImportedCourses) return window.shangkeBridgePromise.saveImportedCourses(s); } catch (e) {}
@@ -315,6 +317,8 @@
     }
 
     // 从 API 获取课程数据（页面无课表表格时兜底）
+    // 依次尝试多个候选接口地址：页面实际请求过的地址最优先（ehall 代理解析场景下最可靠），
+    // 其次按当前路径推导，最后按站点根推导；全部失败才报出诊断信息。
     function fetchCoursesFromApi() {
         if (!isZhengfangPage()) {
             Bridge.showToast('请先进入正方教务系统的「个人课表查询」页面');
@@ -324,40 +328,79 @@
         var xnxq = getXnxq();
         var gnmkdm = getGnmkdm();
         var basePath = window.location.pathname;
-        var apiPath = '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+        var candidates = [];
+        var knownApi = findCourseApiFromPerformance();
+        if (knownApi) candidates.push(knownApi);
+        var derived = '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
         var kbcxIdx = basePath.indexOf('/kbcx/');
         if (kbcxIdx !== -1) {
-            apiPath = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+            derived = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
         }
-        var knownApi = findCourseApiFromPerformance();
-        if (knownApi) apiPath = knownApi;
+        if (candidates.indexOf(derived) === -1) candidates.push(derived);
+        try {
+            var rootApi = window.location.origin + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
+            if (candidates.indexOf(rootApi) === -1) candidates.push(rootApi);
+        } catch (e) {}
 
         Bridge.showToast('正在从教务接口获取课程数据...');
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', apiPath, true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.withCredentials = true;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    try {
-                        var resp = JSON.parse(xhr.responseText);
-                        var list = resp.kbList || [];
-                        if (list.length === 0) {
-                            Bridge.showToast('未查询到课程数据，请确认已选择正确学年学期并点查询');
-                            return;
-                        }
-                        parseAndImport(list);
-                    } catch (e) {
-                        Bridge.showToast('课程数据获取失败：返回的不是数据页面，请确认已登录并停留在课表页');
-                    }
-                } else {
-                    var respUrl = xhr.responseURL || apiPath;
-                    Bridge.showToast('课程数据请求失败（状态码 ' + xhr.status + '）｜页面:' + window.location.href);
-                }
+        var firstError = '';
+        tryCandidate(0);
+
+        function respHead(xhr) {
+            try {
+                var t = xhr.responseText ? String(xhr.responseText).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120) : '';
+                return t;
+            } catch (e) { return ''; }
+        }
+        function tryCandidate(i) {
+            if (i >= candidates.length) {
+                var msg = '课程数据请求失败（' + firstError + '）｜页面:' + window.location.href + '｜学期:' + xnxq.xnm + '/' + xnxq.xqm;
+                if (firstError === '接口返回空课表') msg += '｜请确认已选择正确学年学期并点查询';
+                else if (/状态码(0|502|504|404)|网络错误/.test(firstError)) msg += '｜如在校外请连接校园VPN后重试';
+                Bridge.showToast(msg);
+                return;
             }
-        };
-        xhr.send('xnm=' + xnxq.xnm + '&xqm=' + xnxq.xqm);
+            var apiPath = candidates[i];
+            var advanced = false;
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', apiPath, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.withCredentials = true;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            var list = resp.kbList || [];
+                            if (list.length === 0) {
+                                if (!firstError) firstError = '接口返回空课表';
+                                next();
+                                return;
+                            }
+                            parseAndImport(list);
+                        } catch (e) {
+                            if (!firstError) firstError = '返回非数据页面:' + respHead(xhr);
+                            next();
+                        }
+                    } else {
+                        if (!firstError) {
+                            firstError = '状态码' + xhr.status;
+                            var head = respHead(xhr);
+                            if (head) firstError += ':' + head;
+                        }
+                        next();
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                if (!firstError) firstError = '网络错误';
+                next();
+            };
+            xhr.send('xnm=' + xnxq.xnm + '&xqm=' + xnxq.xqm);
+            function next() {
+                if (!advanced) { advanced = true; tryCandidate(i + 1); }
+            }
+        }
     }
 
     // 解析接口节次：jcs / jc / djj+cs
@@ -437,7 +480,7 @@
             return;
         }
 
-        Bridge.saveImportedCourses(JSON.stringify(courses));
+        Bridge.saveImportedCourses(courses);
         Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
     }
 
@@ -459,13 +502,14 @@
         }
         var courses = parseScheduleFromPage();
         if (courses.length > 0) {
-            Bridge.saveImportedCourses(JSON.stringify(courses));
+            Bridge.saveImportedCourses(courses);
             Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
             return;
         }
         var noTextYet = /有文本0/.test(lastPageDiag || '');
-        if (noTextYet && !window.__hbnuRetried) {
-            window.__hbnuRetried = true;
+        window.__hbnuRetries = window.__hbnuRetries || 0;
+        if (noTextYet && window.__hbnuRetries < 3) {
+            window.__hbnuRetries++;
             Bridge.showToast('正在读取课表数据...');
             window.setTimeout(function () { fetchCourses(); }, 1000);
             return;
