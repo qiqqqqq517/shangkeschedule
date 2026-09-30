@@ -58,6 +58,12 @@ object ReminderEngine {
         .filter { !it.isSkipped }
         .filter { it.date !in skippedDates }
         .filter { parseTime(it.startTime) != null }
+        // R4-001：结束≤开始的脏数据（零时长/倒挂）不参与调度；无结束时间保持旧行为
+        .filter { course ->
+            val end = parseTime(course.endTime) ?: return@filter true
+            val start = parseTime(course.startTime) ?: return@filter false
+            end > start
+        }
         .sortedWith(compareBy({ it.date }, { it.startTime }, { it.endTime }))
 
     /**

@@ -86,7 +86,8 @@ object IcsExportTool {
                     .plus(dayOffset.toLong(), DateTimeUnit.DAY)
 
                 val weekIndex = alignedSemesterStart.daysUntil(date) / 7 + 1
-                if (weekIndex > semesterTotalWeeks) return@forEach
+                // R4-002：与 Widget/Today 双边截断对齐（原仅截上界，week≤0 会落盘过去日期）
+                if (weekIndex !in 1..semesterTotalWeeks) return@forEach
 
                 if (skippedDates?.contains(date.toString()) == true) return@forEach
 
