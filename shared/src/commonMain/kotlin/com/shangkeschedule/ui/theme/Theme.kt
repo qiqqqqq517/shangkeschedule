@@ -3,8 +3,11 @@ package com.shangkeschedule.ui.theme
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -210,6 +213,26 @@ fun ShangKeScheduleTheme(
             easing = appMotion.tokens.touchEasing,
         )
     }
+    // M3 组件按压水波（v4.64.5）：Button / TextButton / IconButton / Switch / RadioButton 等
+    // 内部走 M3 自带的 ripple（读 LocalRippleConfiguration），不经过上面的 LocalIndication——
+    // v4.64.4 只收敛了 Modifier.clickable 系，弹窗按钮 / 顶栏图标 / 开关仍是 M3 默认灰涟漪。
+    // 此处按同一套主题口径提供配置：色相与指示层同源（柔绘主色 / 其余按深浅黑白），
+    // 按压强度取 indicationAlpha（pressedAlpha 即最终不透明度；颜色传满 alpha，
+    // 无论实现取色相还是乘 alpha 结果一致）；hover / focus / drag 沿用 M3 默认。
+    // 注：三个非按压 alpha 取自本工程 M3 1.9.0 jar 内 RippleDefaults 字节码实测
+    // （RippleAlpha(dragged=0.16, focused=0.1, hovered=0.08, pressed=0.1)），
+    // 不直接读 RippleDefaults.rippleAlpha（该符号在 commonMain 不可见）。
+    val rippleConfig = remember(indicationColor, appMotion.profile.indicationAlpha) {
+        RippleConfiguration(
+            color = indicationColor.copy(alpha = 1f),
+            rippleAlpha = RippleAlpha(
+                draggedAlpha = 0.16f,
+                focusedAlpha = 0.1f,
+                hoveredAlpha = 0.08f,
+                pressedAlpha = appMotion.profile.indicationAlpha
+            )
+        )
+    }
     CompositionLocalProvider(
         LocalAppColorTokens provides syncedTokens,
         LocalAppShapeTokens provides shapeTokens,
@@ -233,7 +256,8 @@ fun ShangKeScheduleTheme(
         LocalAppIconTokens provides iconTokens,
         LocalAppPageHeaderTokens provides pageHeaderTokens,
         LocalIsSoftTheme provides isSoft,
-        LocalIndication provides indication
+        LocalIndication provides indication,
+        LocalRippleConfiguration provides rippleConfig
     ) {
         // 应用平台特定的窗口与系统栏外观控制
         SetupPlatformThemeEffects(
