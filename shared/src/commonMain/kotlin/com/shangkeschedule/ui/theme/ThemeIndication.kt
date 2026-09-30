@@ -7,12 +7,15 @@ import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -94,6 +97,10 @@ private class ThemeIndicationNode(
 
     private var pressPosition: Offset = Offset.Unspecified
 
+    /** 当前按压/淡出动画任务：快击时直接取消上一段从现值衔接，避免旧写法里
+     *  Release 排队等 Press 走完 400ms 才淡出导致的"长方形滞留、生硬"感。 */
+    private var feedbackJob: Job? = null
+
     override fun onAttach() {
         // 时长归零（减弱动效 / 关闭分组）时整层不订阅交互，零开销
         if (expandMs <= 0 && fadeMs <= 0) return
@@ -102,18 +109,24 @@ private class ThemeIndicationNode(
                 when (interaction) {
                     is PressInteraction.Press -> {
                         pressPosition = interaction.pressPosition
-                        progress.snapTo(0f)
-                        progress.animateTo(
-                            targetValue = 1f,
-                            animationSpec = tween(expandMs.coerceAtLeast(1), easing = easing)
-                        )
+                        feedbackJob?.cancel()
+                        feedbackJob = launch {
+                            progress.snapTo(0f)
+                            progress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(expandMs.coerceAtLeast(1), easing = easing)
+                            )
+                        }
                     }
 
                     is PressInteraction.Release, is PressInteraction.Cancel -> {
-                        progress.animateTo(
-                            targetValue = 0f,
-                            animationSpec = tween(fadeMs.coerceAtLeast(1), easing = easing)
-                        )
+                        feedbackJob?.cancel()
+                        feedbackJob = launch {
+                            progress.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(fadeMs.coerceAtLeast(1), easing = easing)
+                            )
+                        }
                     }
                 }
             }
@@ -124,12 +137,30 @@ private class ThemeIndicationNode(
         drawContent()
         val fraction = progress.value
         if (fraction <= 0.001f) return
+        // smoothstep：按压首尾更缓，中间跟手——直角整块"啪地出现/消失"是生硬感的另一半
+        val eased = fraction * fraction * (3f - 2f * fraction)
         when (style) {
-            // 书卷 / 通透：整块均匀加深——没有任何方向与边界，静态表面上不会产生"水波"
+            // 书卷 / 通透：整块均匀加深——圆角跟手，不再是直角整块。
+            // 自适应圆角：近方形（圆形图标钮）按圆形绘制，长条（列表行/卡片）按
+            // minDim*0.3 且上限 14dp 绘制——与卡片圆角（16~24dp）同语言，不会出现
+            // "点击闪出一块直角长方形"。
             IndicationStyle.COLOR_DARKEN,
-            IndicationStyle.HIG_HIGHLIGHT -> drawRect(
-                color = color.copy(alpha = color.alpha * fraction)
-            )
+            IndicationStyle.HIG_HIGHLIGHT -> {
+                val minDim = minOf(size.width, size.height)
+                if (minDim <= 0f) return
+                val maxDim = maxOf(size.width, size.height)
+                val aspect = maxDim / minDim
+                val radius = if (aspect < 1.3f) {
+                    minDim / 2f
+                } else {
+                    val capPx = with(drawContext.density) { 14.dp.toPx() }
+                    minOf(minDim * 0.30f, capPx)
+                }
+                drawRoundRect(
+                    color = color.copy(alpha = color.alpha * eased),
+                    cornerRadius = CornerRadius(radius, radius)
+                )
+            }
 
             // 柔绘：软边径向浓度渗开——中心最浓、极缓慢衰减到全透明，
             // 没有环状外缘，也不画"光源点"，保证与柔绘的"无锐利硬边缘"一致
