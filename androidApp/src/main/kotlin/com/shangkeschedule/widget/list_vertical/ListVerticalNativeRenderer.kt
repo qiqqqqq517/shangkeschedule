@@ -15,6 +15,7 @@ import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.setWidgetCardBackground
 import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
+import com.shangkeschedule.widget.headerSizeSp
 import com.shangkeschedule.widget.rowMetaSizeSp
 import com.shangkeschedule.widget.todayEmptyTip
 import java.time.LocalDate
@@ -56,8 +57,14 @@ object ListVerticalNativeRenderer {
         val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
         val tomorrowCourses = WidgetCourseSelection.tomorrow(snapshot.courses, tomorrowStr)
 
-        val weekDaysArray = context.resources.getStringArray(R.array.week_days_full_names)
-        val dayOfWeekStr = weekDaysArray[today.dayOfWeek.value - 1]
+        // 星期取法与 Compact / DoubleDays 统一走 `DateTimeFormatter("E", Locale.getDefault())`：
+        // 原先读 `R.array.week_days_full_names`，而该数组只在 values / zh-rCN / zh-rTW / en
+        // 四档定义 —— 系统语言为日/法/韩等的用户会在这里看到中文「周一」，
+        // 而同屏 Compact 组件显示本地化「月」。
+        val dayOfWeekStr = today.dayOfWeek.getDisplayName(
+            java.time.format.TextStyle.SHORT,
+            java.util.Locale.getDefault()
+        )
 
         when {
             todayRemaining.isNotEmpty() -> {
@@ -81,6 +88,13 @@ object ListVerticalNativeRenderer {
                 rv.setTextViewText(R.id.tv_header_count_summary, "")
             }
         }
+        // 头部随空间档放大（与 Compact/DoubleDays 同口径）：此前本组件只放大行内文字、
+        // 头部固定 14sp，结果 S 档下 Compact 头 12sp < ListVertical 头 14sp，层级反转。
+        rv.setTextViewTextSize(
+            R.id.tv_header_title,
+            TypedValue.COMPLEX_UNIT_SP,
+            headerSizeSp(space)
+        )
         return rv
     }
 

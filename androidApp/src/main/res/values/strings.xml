@@ -6,6 +6,7 @@
 
     <!-- 主界面及今日课表 -->
     <string name="text_no_courses_today">今天没有课程</string>
+    <string name="text_no_courses_tomorrow">明天没有课程</string>
 
     <!-- 添加课程 -->
     <string name="label_teacher">教师</string>

@@ -76,6 +76,7 @@
     <string name="widget_remaining_courses_format_tomorrow">明天有 %1$d 节课</string>
     <string name="widget_title_today">今天</string>
     <string name="widget_title_tomorrow">明天</string>
+    <string name="text_no_courses_tomorrow">明天没有课程</string>
     <string name="widget_course_remaining_count">剩余 %1$d 节</string>
     <string name="widget_course_total_count">共有 %1$d 节</string>
 

@@ -76,7 +76,8 @@
     <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
     <string name="widget_title_today">Today</string>
     <string name="widget_title_tomorrow">Tomorrow</string>
-    
+    <string name="text_no_courses_tomorrow">No courses tomorrow</string>
+
     <!-- Notification Settings -->
     <string name="widget_course_total_count">%1$d total</string>
     <string name="item_course_reminder">Course reminders</string>

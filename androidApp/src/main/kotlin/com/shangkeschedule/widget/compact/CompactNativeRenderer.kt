@@ -145,6 +145,12 @@ object CompactNativeRenderer {
         rv.setTextViewText(R.id.tv_footer, context.getString(footerRes, totalCount))
     }
 
+    /**
+     * 状态层渲染。
+     *
+     * @param msg 仅在 [isFullCover] 时使用（`container_full_status` 确有 `tv_full_status_msg`）；
+     *   非全屏形态的 `container_status` 只有标题一个 TextView，[msg] 被忽略。
+     */
     private fun showStatus(rv: RemoteViews, context: Context, title: String, msg: String?, isFullCover: Boolean) {
         if (isFullCover) {
             rv.setViewVisibility(R.id.inner_content_card, View.GONE)
@@ -161,13 +167,11 @@ object CompactNativeRenderer {
             rv.setViewVisibility(R.id.tv_footer, View.GONE)
             rv.setViewVisibility(R.id.container_status, View.VISIBLE)
             rv.setViewVisibility(R.id.container_full_status, View.GONE)
+            // `widget_today_compact_native.xml` 的 `container_status` **只有** `tv_status_title`，
+            // 没有 `tv_status_msg`。此前这里对 msg 的写入是恒 no-op（RemoteViews 对不存在的
+            // id 静默跳过），且唯一调用点（:107）本来就传空串 —— 属于埋雷式死代码：
+            // 将来若有人给非空 msg，文字会无声消失。改为显式忽略并在签名上标注。
             rv.setTextViewText(R.id.tv_status_title, title)
-            if (!msg.isNullOrBlank()) {
-                rv.setTextViewText(R.id.tv_status_msg, msg)
-                rv.setViewVisibility(R.id.tv_status_msg, View.VISIBLE)
-            } else {
-                rv.setViewVisibility(R.id.tv_status_msg, View.GONE)
-            }
         }
     }
 }

@@ -13,6 +13,7 @@ import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.commonCourseRow
 import com.shangkeschedule.widget.setWidgetCardBackground
+import com.shangkeschedule.widget.todayEmptyTip
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.headerSizeSp
 import java.time.LocalDate
@@ -56,16 +57,21 @@ object DoubleDaysNativeRenderer {
         val nowMinutes = now.hour * 60 + now.minute
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
+        val todayStr = today.toString()
 
         // 渲染左侧：今日
-        val remainingToday = WidgetCourseSelection.remainingToday(snapshot.courses, today.toString(), nowMinutes)
+        val remainingToday = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
 
         renderColumn(
             context, rv,
             R.id.container_today, R.id.tv_today_date, R.id.tv_today_footer,
             R.id.empty_today_container,
             today, remainingToday.take(maxCourseCount), remainingToday.size,
-            true, snapshot, space
+            true, snapshot, space,
+            // 空态区分「今天整天没课」与「有课但已结束」：与其余三规格同口径
+            // （此前恒用 text_no_course「无课程」，同一天同课表下与 Compact/ListVertical
+            //   显示的「今日课程已结束」互相矛盾）。
+            emptyTip = todayEmptyTip(context, snapshot.courses, todayStr)
         )
 
         // 渲染右侧：明日
@@ -76,7 +82,8 @@ object DoubleDaysNativeRenderer {
             R.id.container_tomorrow, R.id.tv_tomorrow_date, R.id.tv_tomorrow_footer,
             R.id.empty_tomorrow_container,
             tomorrow, effectiveTomorrow.take(maxCourseCount), effectiveTomorrow.size,
-            false, snapshot, space
+            false, snapshot, space,
+            emptyTip = context.getString(R.string.text_no_courses_tomorrow)
         )
 
         return rv
@@ -103,7 +110,8 @@ object DoubleDaysNativeRenderer {
         totalCount: Int,
         isToday: Boolean,
         snapshot: WidgetSnapshot,
-        space: WidgetSpaceClass
+        space: WidgetSpaceClass,
+        emptyTip: String
     ) {
         // 设置日期标题（含按空间放大，v4.61.0）
         val prefix = if (isToday) {
@@ -120,7 +128,7 @@ object DoubleDaysNativeRenderer {
             rootRv.setViewVisibility(emptyContainerId, View.VISIBLE)
             rootRv.setViewVisibility(footerId, View.GONE)
             val emptyTextViewId = if (isToday) R.id.empty_today else R.id.empty_tomorrow
-            rootRv.setTextViewText(emptyTextViewId, context.getString(R.string.text_no_course))
+            rootRv.setTextViewText(emptyTextViewId, emptyTip)
         } else {
             rootRv.setViewVisibility(containerId, View.VISIBLE)
             rootRv.setViewVisibility(emptyContainerId, View.GONE)
