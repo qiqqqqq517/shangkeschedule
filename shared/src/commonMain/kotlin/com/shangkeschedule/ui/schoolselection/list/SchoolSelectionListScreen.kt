@@ -56,6 +56,7 @@ import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import kotlin.time.Clock
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -433,9 +434,17 @@ fun SearchBarWithTitle(
  */
 @Composable
 fun SchoolItem(school: School, onClick: (School) -> Unit) {
+    // R1-012b：快速双击只进一次选校页（500ms 节流，item 作用域）
+    var lastClickMs by remember { mutableStateOf(0L) }
     AppCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { onClick(school) }
+        onClick = {
+            val nowMs = Clock.System.now().toEpochMilliseconds()
+            if (nowMs - lastClickMs > 500) {
+                lastClickMs = nowMs
+                onClick(school)
+            }
+        }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner),

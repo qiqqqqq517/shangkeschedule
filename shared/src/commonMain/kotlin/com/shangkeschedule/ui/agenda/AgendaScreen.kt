@@ -1662,8 +1662,12 @@ private fun AgendaCreateSheet(
 
             Spacer(modifier = Modifier.height(appSpacing().sectionGap))
 
+            // R1-012a：提交后锁死，关闭前的双击穿透只落一条（sheet 条件合成，重开自动复位）
+            var submitted by remember { mutableStateOf(false) }
             Button(
                 onClick = {
+                    if (!submitted) {
+                        submitted = true
                     onCreate(
                         startDate,
                         title.trim(),
@@ -1673,13 +1677,14 @@ private fun AgendaCreateSheet(
                         if (allDay) null else endTime,
                         location.trim().takeIf { it.isNotBlank() },
                         note.trim().takeIf { it.isNotBlank() }
-                    )
+                        )
+                    }
                 },
                 // 时间顺序校验：此前唯一前置条件是标题非空，可创建 startTime >= endTime 的非法日程。
                 // 落库后 durationText 用 coerceAtLeast(0) 把负时长显示成「0 分钟」，
                 // 时间轴状态判定永远匹配不到「进行中」，属持久化的脏数据。
                 // 「HH:mm」为等宽补零格式，字符串比较即时间比较。
-                enabled = title.isNotBlank() && (allDay || startTime < endTime),
+                enabled = !submitted && title.isNotBlank() && (allDay || startTime < endTime),
                 shape = shapes.chip,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = tokens.primary,
