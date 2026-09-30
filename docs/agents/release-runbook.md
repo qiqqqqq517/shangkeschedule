@@ -61,7 +61,9 @@ foreach($a in Get-ChildItem androidApp\build\outputs\apk\release\*.apk){
 
 ```powershell
 # 4.A.1 从 CHANGELOG 抽取对应版本段落为 notes 临时文件（UTF-8 无 BOM；把 vX\.Y\.Z 换成实际版本）
-$cl = Get-Content CHANGELOG.md -Raw
+# ⚠️ Get-Content 必须带 -Encoding utf8：PS 5.1 默认按 GBK 解码无 BOM 的 UTF-8 文件，
+# 抽出的段落会是 mojibake（2026-09-30 实测 v4.64.2/v4.64.3 因此乱码，已用 API PATCH 修复）。
+$cl = Get-Content CHANGELOG.md -Raw -Encoding utf8
 $body = [regex]::Match($cl,'(?ms)^### vX\.Y\.Z.*?(?=^### |\z)').Value.TrimEnd()
 [System.IO.File]::WriteAllText("$PWD\.release-notes.md",$body)
 
@@ -70,7 +72,9 @@ $apks = (Get-ChildItem androidApp\build\outputs\apk\release\*.apk).FullName
 $sha = (git rev-parse HEAD).Trim()
 gh release create vX.Y.Z --draft --target $sha --title "vX.Y.Z · 标题（取 CHANGELOG 条目）" --notes-file .release-notes.md $apks
 
-# 4.A.3 核对资产（应 3 个、体积与本地一致）再转正式，然后清理临时文件
+# 4.A.3 先过防乱码门禁（核对远端正文与 CHANGELOG 逐字一致；不通过就停手排查，不得转正式）
+$env:PYTHONUTF8=1; python scripts/check_release_body.py vX.Y.Z
+# 通过后再转正式，然后清理临时文件
 gh release view vX.Y.Z --json isDraft,assets --jq '{isDraft,assets:[.assets[]|{name,size}]}'
 gh release edit vX.Y.Z --draft=false
 Remove-Item .release-notes.md -Force
@@ -88,8 +92,8 @@ git ls-remote --tags origin 'refs/tags/vX.Y.Z'
 $tok = (gh auth token).Trim()
 $h = @{ Authorization="token $tok"; 'User-Agent'='shangke-release'; Accept='application/vnd.github+json' }
 
-# 4.1 body = CHANGELOG 对应段落（发版前务必确认该段落存在）
-$cl = Get-Content CHANGELOG.md -Raw
+# 4.1 body = CHANGELOG 对应段落（发版前务必确认该段落存在；-Encoding utf8 必带，原因见 §4.A.1 警告）
+$cl = Get-Content CHANGELOG.md -Raw -Encoding utf8
 $body = [regex]::Match($cl,'(?ms)^### vX\.Y\.Z.*?(?=^### |\z)').Value.TrimEnd()
 
 # 4.2 先建草稿；tag 由 API 创建并指向 HEAD
