@@ -194,6 +194,34 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
 
+    // ── 页面自我摘栈（v4.64.27）───────────────────────────────────────────────
+    // 导入类页面（Excel / 文本 / JSON / 教务 WebView）把结果交出去之后就完成使命了。
+    // 此前它们一直留在返回栈里：用户从结果页返回会重新看到「已经导完」的导入页，
+    // WebView 更是连带保活整页网页与 JS 上下文。
+    // 摘除范围 = 本页 + 本页之下的连续二级页（同属刚结束的这条流程）：导入链常是
+    // 课表根 → 学校列表 → 适配器 → WebView 四级，只摘自己会让返回键停在中间某一级。
+    // 段起点的 Tab 根必须留下；调用方保证在**跳转成功之后**才调（此时本页已不是栈顶，
+    // 正在看的页面不受影响）。摘除放进原子快照（与切 Tab 搬段一致）：组合不会读到
+    // 「段中间缺一格」的中间态。
+    val onRemoveFlow: (Destination) -> Unit = remember(backStack) {
+        { dest ->
+            val index = backStack.indexOfLast { it == dest }
+            if (index >= 0) {
+                var start = index
+                while (start > 0 && (backStack[start - 1] as? Destination)?.isMainScreen != true) {
+                    start--
+                }
+                // start == 0 说明这段里没有 Tab 根可兜底（不变量下不可达）：宁可不摘，
+                // 也不能把返回栈清空。
+                if (start > 0) {
+                    Snapshot.withMutableSnapshot {
+                        repeat(index - start + 1) { backStack.removeAt(start) }
+                    }
+                }
+            }
+        }
+    }
+
     // v3.26.0 动效收口 + v3.43.0 主题分档：导航转场时长/曲线/形态读全局动效令牌与主题档位，
     // 关掉「导航转场」分组 ⇒ 直接瞬切（无转场动画）。
     //
@@ -360,7 +388,8 @@ fun AppNavigation(startDestination: Destination) {
                 ScreenContent(
                     targetDest = destination,
                     onNavigate = onNavigate,
-                    onBack = onBack
+                    onBack = onBack,
+                    onRemoveSelf = { onRemoveFlow(destination) }
                 )
             }
         }
@@ -398,18 +427,24 @@ private fun tabSegmentEndIndex(backStack: List<NavKey>, rootIndex: Int): Int {
 fun ScreenContent(
     targetDest: Destination,
     onNavigate: (Destination) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRemoveSelf: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val courseConversionRepository: CourseConversionRepository = koinInject()
     var showSemesterStartPrompt by remember { mutableStateOf(false) }
 
-    // 文件/文本/Excel 导入成功后：若当前课表未设置开学日期，弹窗引导去学期设置
+    // 文件/文本/Excel 导入成功后：若当前课表未设置开学日期，弹窗引导去学期设置；
+    // 已设置则直接回课表管理。两种情况在**真的跳走之后**都把本页从返回栈摘掉：
+    // 它的使命已经结束，留着只会让用户从结果页返回时又回到「已经导完」的导入页。
     fun handleImportSuccess() {
         scope.launch {
             if (courseConversionRepository.isSemesterStartDateSet()) {
                 onNavigate(Destination.ManageCourseTables)
+                onRemoveSelf()
             } else {
+                // 引导弹窗挂在 ScreenContent 自己身上（见文件末尾），此刻摘栈会连带把弹窗
+                // 一起销毁，因此这里不动返回栈 —— 交给弹窗「去设置」分支（用户确实离开本页时）再摘。
                 showSemesterStartPrompt = true
             }
         }
@@ -464,7 +499,8 @@ fun ScreenContent(
             onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder
         )
         is Destination.WebView -> WebViewScreen(
-            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.forceDesktopMode
+            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.forceDesktopMode,
+            onImportSucceeded = { onRemoveSelf() }
         )
         is Destination.AddEditCourse -> AddEditCourseScreen(
             onBack, targetDest.courseId, targetDest.targetCourseTableId
@@ -485,6 +521,8 @@ fun ScreenContent(
                     onConfirm = {
                         showSemesterStartPrompt = false
                         onNavigate(Destination.SemesterSettings)
+                        // 弹窗已关闭、页面已跳走：此时摘栈不会再销毁任何仍在使用的 UI
+                        onRemoveSelf()
                     },
                     dismissText = stringResource(Res.string.webview_semester_prompt_later),
                     onDismiss = { showSemesterStartPrompt = false }

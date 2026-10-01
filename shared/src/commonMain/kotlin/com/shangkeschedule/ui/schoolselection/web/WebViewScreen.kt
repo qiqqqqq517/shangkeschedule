@@ -83,6 +83,7 @@ import shangkeschedule.shared.generated.resources.a11y_more_options
 import shangkeschedule.shared.generated.resources.action_execute_import
 import shangkeschedule.shared.generated.resources.action_navigate_to_timetable
 import shangkeschedule.shared.generated.resources.action_refresh
+import shangkeschedule.shared.generated.resources.action_retry
 import shangkeschedule.shared.generated.resources.action_switch_to_desktop_mode
 import shangkeschedule.shared.generated.resources.action_switch_to_phone_mode
 import shangkeschedule.shared.generated.resources.arrow_back_24px
@@ -118,6 +119,10 @@ fun WebViewScreen(
     initialUrl: String?,
     assetJsPath: String?,
     forceDesktopMode: Boolean = false,
+    // 导入真的落库成功后才通知调用方：本页（连同它下面的学校列表/适配器选择）可以
+    // 从返回栈摘掉了。v4.64.27 之前导入完成后本页一直留在栈上，用户从结果页返回
+    // 会回到「已经导完」的教务页，WebView 也连带保活整页网页与 JS 上下文。
+    onImportSucceeded: () -> Unit = {},
     viewModel: WebViewModel = koinViewModel()
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -176,10 +181,31 @@ fun WebViewScreen(
             courseConversionRepository = courseConversionRepository,
             onTaskCompleted = {
                 coroutineScope.launch {
-                    if (courseConversionRepository.isSemesterStartDateSet()) {
-                        onNavigate(Destination.CourseSchedule)
-                    } else {
-                        onNavigate(Destination.SemesterSettings)
+                    when (importRunState) {
+                        is ImportRunState.Succeeded -> {
+                            // 真的落库成功：跳结果页，并把本页（连同它下面的学校列表/适配器选择）
+                            // 摘出返回栈 —— 否则用户从结果页返回会回到「已经导完」的教务页，
+                            // WebView 还连带保活整页网页与 JS 上下文。
+                            if (courseConversionRepository.isSemesterStartDateSet()) {
+                                onNavigate(Destination.CourseSchedule)
+                            } else {
+                                onNavigate(Destination.SemesterSettings)
+                            }
+                            onImportSucceeded()
+                        }
+                        // 失败/超时：留在本页，由下方渲染区的失败条给出原因与重试入口。
+                        // notifyTaskCompletion 在脚本收尾时一律触发（WebBridgeHandler.kt:495-497
+                        // 只把 Running 复位为 Idle），此前失败也会被当作成功跳走。
+                        is ImportRunState.Failed -> Unit
+                        else -> {
+                            // 脚本既没回传成功也没回传失败就直接收尾：没有可展示的原因，
+                            // 沿用旧行为跳走，不把用户晾在教务页。
+                            if (courseConversionRepository.isSemesterStartDateSet()) {
+                                onNavigate(Destination.CourseSchedule)
+                            } else {
+                                onNavigate(Destination.SemesterSettings)
+                            }
+                        }
                     }
                 }
             },
@@ -190,8 +216,35 @@ fun WebViewScreen(
         )
     }
 
+    // 「前置校验适配脚本 → 选课表 → 注入脚本」的唯一入口：导入按钮与失败重试共用，
+    // 避免两处各写一遍读盘/校验（重试时重新读一遍脚本，适配脚本被更新过也能立刻生效）。
+    fun beginImport() {
+        val jsPath = assetJsPath
+        if (jsPath == null) {
+            ToastManager.show(toastNoManualImport)
+            return
+        }
+        // 前置校验：先确认适配脚本确实读得到，再让用户去选课表，
+        // 避免「选完课表才发现脚本不存在」的倒置体验
+        val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
+        if (!viewModel.fileSystem.exists(jsFilePath)) {
+            ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+            return
+        }
+        try {
+            pendingAdapterJsCode = viewModel.fileSystem.read(jsFilePath) { readUtf8() }
+            showCourseTablePicker = true
+        } catch (e: Exception) {
+            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
+        }
+    }
+
     val handleBackAction: () -> Unit = {
-        if (isEditingUrl) {
+        if (loadErrorMessage != null) {
+            // 加载失败是全屏覆盖（见下方渲染区）：此刻「返回」的语义是离开这个出错的页面，
+            // 而不是去操作被盖住、看不见的网页历史。
+            onBack()
+        } else if (isEditingUrl) {
             isEditingUrl = false
             val rawUrl = webViewController.currentUrl
             inputUrl = if (rawUrl.isBlank() || rawUrl == "about:blank") "" else rawUrl
@@ -375,26 +428,7 @@ fun WebViewScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = {
-                                val jsPath = assetJsPath
-                                if (jsPath == null) {
-                                    ToastManager.show(toastNoManualImport)
-                                } else {
-                                    // 前置校验：先确认适配脚本确实读得到，再让用户去选课表，
-                                    // 避免「选完课表才发现脚本不存在」的倒置体验
-                                    val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
-                                    if (!viewModel.fileSystem.exists(jsFilePath)) {
-                                        ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
-                                    } else {
-                                        try {
-                                            pendingAdapterJsCode = viewModel.fileSystem.read(jsFilePath) { readUtf8() }
-                                            showCourseTablePicker = true
-                                        } catch (e: Exception) {
-                                            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
-                                        }
-                                    }
-                                }
-                            },
+                            onClick = { beginImport() },
                             enabled = assetJsPath != null && importRunState !is ImportRunState.Running,
                             modifier = Modifier.weight(1f)
                         ) {
@@ -470,6 +504,40 @@ fun WebViewScreen(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
                         color = appColors().textSecondary
                     )
+                }
+            }
+
+            // X2 三态：导入失败（脚本报错 / 落库失败 / 无响应超时）→ 常驻失败条 + 重新导入。
+            // 此前失败只留一条一闪而过的 toast（CONFLATED，还会被跳转顶掉），原因不留痕、
+            // 也没有重试入口。这里刻意用底部条而不是全屏覆盖：看门狗超时**不代表脚本没在跑**
+            // （WebBridgeHandler.kt:143-148 刻意保留 importTableId，等晚到的落库），
+            // 网页保持可见可交互，晚到的成功也会由状态变化自动把这条顶掉。
+            (importRunState as? ImportRunState.Failed)?.let { failed ->
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().listGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = failed.reason,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
+                        color = appColors().textSecondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(
+                        onClick = {
+                            // 复位运行状态后重走「选课表 → 注入脚本」；脚本源码重新读一遍，
+                            // 适配脚本在两次尝试之间被更新过也能立刻生效
+                            importRunState = ImportRunState.Idle
+                            beginImport()
+                        }
+                    ) {
+                        Text(stringResource(Res.string.action_retry))
+                    }
                 }
             }
 
