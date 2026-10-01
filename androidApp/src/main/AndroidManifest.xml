@@ -99,8 +99,12 @@
             android:enabled="true"
             android:exported="false">
             <intent-filter>
+                <!-- 只保留 BOOT_COMPLETED：LOCKED_BOOT_COMPLETED 只投递给
+                     android:directBootAware="true" 的组件，本应用未声明（也不应声明 ——
+                     Room/DataStore 全为 credential-protected，解锁前读不到库），且
+                     BootEventReceiver 本身也只处理 ACTION_BOOT_COMPLETED。
+                     故该 action 是永不投递的死配置，删之。 -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 

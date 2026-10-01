@@ -3,8 +3,10 @@ import com.shangkeschedule.notification.identity.AlarmCodeBook
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.notification.identity.NotificationIds
 import com.shangkeschedule.notification.plan.ReminderEngine
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -95,6 +97,37 @@ class NotificationEngineTest {
         // 负数通知 ID 在 NotificationManager 上是非法输入
         val ids = (0 until 300).map { NotificationIds.forOccurrence("k$it") }
         assertTrue(ids.all { it > 0 }, "所有通知 ID 必须为正数")
+    }
+
+    @Test
+    fun notificationIdHasNoCollisionAcrossRealisticWeekWindow() {
+        // v4.64.21 回归：命名空间容量由 10 万提到 100 万（10 万槽下 7 天窗口实测约
+        // 2.2% 会撞）。碰撞后果是两条课程共用一个通知 ID —— 后投递的顶替先投递的，
+        // dismiss PendingIntent 还会连带把另一条一起关掉。
+        //
+        // 这里构造真实排程量级：7 天 × 每天 10 节 = 70 个 occurrence，跨多门课。
+        val ids = buildSet {
+            for (courseIndex in 0 until 4) {
+                for (dayOffset in 0 until 7) {
+                    for (slot in 0 until 10) {
+                        val date = LocalDate(2026, 9, 28).plus(dayOffset.toLong(), DateTimeUnit.DAY)
+                        add(
+                            NotificationIds.forOccurrence(
+                                "c$courseIndex",
+                                date.toString(),
+                                "%02d:00".format(8 + slot)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        val total = 4 * 7 * 10
+        assertEquals(
+            total,
+            ids.size,
+            "7 天 × 10 节 × 4 门课（$total 个 occurrence）必须全部拿到互不相同的通知 ID"
+        )
     }
 
     // ------------------------------------------------------------------

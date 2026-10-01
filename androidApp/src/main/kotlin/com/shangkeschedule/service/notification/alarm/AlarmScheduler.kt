@@ -38,6 +38,17 @@ internal class AlarmScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
     private val codeBook = AlarmCodeBook(base = ALARM_CODE_BASE, capacity = ALARM_SLOT_LIMIT)
 
+    /**
+     * 本轮「精确闹钟权限缺失」提示是否已发过。
+     *
+     * v4.64.21：一轮重排最多挂 261 个闹钟（200 课程 + 60 自动模式 + 1 早八），
+     * 缺权限时每个都会调一次 `notifyExactAlarmMissing`，而它内部要做
+     * `resolveActivity`（PackageManager 查询）+ 渠道查询 + build + binder notify。
+     * 用户侧不会看到 261 条通知（同 ID 覆盖 + `setOnlyAlertOnce`），但这是纯浪费的
+     * 几百次 binder 往返。由 [cancelAll]（每轮起点）复位，保证「一轮至多一条」。
+     */
+    private var exactAlarmNoticeSentThisRound = false
+
     /** 本轮已占用的课程提醒槽位。 */
     val usedSlots: Int get() = codeBook.size
 
@@ -64,11 +75,16 @@ internal class AlarmScheduler(private val context: Context) {
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
-            // 缺精确闹钟权限：降级为非精确（仍可触发）+ 提示用户开启，而不是静默放弃
-            PermissionNoticeNotifier.notifyExactAlarmMissing(context)
+            // 缺精确闹钟权限：降级为非精确（仍可触发）+ 提示用户开启，而不是静默放弃。
+            // 一轮内只提示一次（见 exactAlarmNoticeSentThisRound）。
+            if (!exactAlarmNoticeSentThisRound) {
+                exactAlarmNoticeSentThisRound = true
+                PermissionNoticeNotifier.notifyExactAlarmMissing(context)
+            }
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pi)
             return
         }
+        // 权限齐备：撤掉历史遗留的权限提示（clear 幂等，保留逐次调用不增加成本）
         PermissionNoticeNotifier.clear(context, PermissionNoticeNotifier.NOTICE_ID_EXACT_ALARM)
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pi)
     }
@@ -91,6 +107,8 @@ internal class AlarmScheduler(private val context: Context) {
      */
     fun cancelAll() {
         val am = alarmManager ?: return
+        // 每轮起点：重置「本轮已提示过精确闹钟权限缺失」，下一轮仍会正常提示一次。
+        exactAlarmNoticeSentThisRound = false
         codeBook.reset()
         for (offset in 0 until ALARM_SLOT_LIMIT) {
             cancelByCode(am, applicationCancelIntent(), ALARM_CODE_BASE + offset)

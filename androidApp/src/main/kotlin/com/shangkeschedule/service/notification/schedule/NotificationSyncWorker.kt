@@ -41,6 +41,12 @@ class NotificationSyncWorker(
                 Log.w(TAG, "排程读库失败，稍后重试")
                 return Result.retry()
             }
+            if (summary.failedStrategies > 0) {
+                // 局部策略抛异常：编排层已让其余策略照排（不再整轮中断），但这一轮是
+                // 「残缺」的 —— 已 cancelAll，缺的那部分没有闹钟。走同一条退避重试。
+                Log.w(TAG, "有 ${summary.failedStrategies} 个策略排程失败，稍后重试补齐")
+                return Result.retry()
+            }
             Log.d(
                 TAG,
                 "排程完成：课程提醒 ${summary.reminderCount} 条、自动模式 ${summary.autoModeCount} 条、" +

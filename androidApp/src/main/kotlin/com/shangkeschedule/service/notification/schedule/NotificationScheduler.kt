@@ -111,10 +111,25 @@ class NotificationScheduler(
         alarms.cancelAll()
         NotificationChannels.ensureAll(context)
 
-        val reminderCount = courseReminders.sync(settings, effective, now)
-        val autoModeCount = autoMode.sync(settings, effective, now)
+        // KDoc 承诺「任一套失败都不该影响其余（各策略内部自吞异常/自行降级）」，
+        // 但三者此前是裸调用：任一抛异常（如 OEM 定制下 setExactAndAllowWhileIdle
+        // 抛 SecurityException）都会中断整轮 —— 而 `alarms.cancelAll()` 已执行完，
+        // 结果是「当日提醒真空」，要等 Worker 退避重试或下次前台同步才补上。
+        var failedStrategies = 0
+        fun <T> guard(tag: String, block: () -> T): T? =
+            runCatching(block)
+                .onFailure {
+                    failedStrategies++
+                    Log.e(TAG, "$tag 排程失败，其余策略继续", it)
+                }
+                .getOrNull()
+
+        val reminderCount = guard("课程提醒") { courseReminders.sync(settings, effective, now) } ?: 0
+        val autoModeCount = guard("自动模式") { autoMode.sync(settings, effective, now) } ?: 0
         // 早八要自己判断「某天是否还有课」，故传**原始**课程 + 窗口天数
-        val morningResult = morningAlarms.sync(settings, courses, WINDOW_DAYS, today, now)
+        val morningResult = guard("早八闹钟") {
+            morningAlarms.sync(settings, courses, WINDOW_DAYS, today, now)
+        }
 
         // 灵动岛窗口此前**没有任何外部触发点**（只靠自己的 START 闹钟自举，而 START 闹钟
         // 又要靠本方法排出来）→ 开机 / 设置变更 / 课表变更后窗口永远不重排。
@@ -126,7 +141,8 @@ class NotificationScheduler(
             reminderCount = reminderCount,
             autoModeCount = autoModeCount,
             morningAlarmResult = morningResult,
-            readFailed = false
+            readFailed = false,
+            failedStrategies = failedStrategies
         )
     }
 
@@ -136,7 +152,12 @@ class NotificationScheduler(
         val autoModeCount: Int = 0,
         val morningAlarmResult: MorningAlarmWriter.Result? = null,
         /** 读库失败（已保留旧排程，等下轮重试） */
-        val readFailed: Boolean = false
+        val readFailed: Boolean = false,
+        /**
+         * 本轮抛异常而未能完成排程的策略数（0..3）。
+         * 非零表示这轮是「残缺」的（已排的仍在、缺的没排），调用方可据此决定重试。
+         */
+        val failedStrategies: Int = 0
     )
 
     companion object {

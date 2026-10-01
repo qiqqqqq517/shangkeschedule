@@ -29,12 +29,27 @@ object NotificationIds {
      *  - 50000–50200：旧版闹钟槽位（含自动模式 50001/50002、权限提示 50190/50191）
      *  - 20240904    ：灵动岛前台服务通知
      *
-     * 本命名空间取 600000 起，容量 10 万，足以覆盖 7 天 × 每天数十节的极端课表。
+     * 本命名空间取 600000 起，容量 100 万，足以覆盖 7 天 × 每天数十节的极端课表。
      */
     private const val NAMESPACE_BASE = 600_000
 
-    /** 命名空间容量（单字节量级之外的取模安全边界）。 */
-    private const val NAMESPACE_SIZE = 100_000
+    /**
+     * 命名空间容量（取模基数）。
+     *
+     * v4.64.21 由 100_000 提到 1_000_000：取模碰撞率随槽位数的平方上升，
+     * 10 万槽下「7 天窗口 70 节课」实测约 2.2% 会撞（30 个窗口累计约 48%），
+     * 提到 100 万后降到约 0.22%。碰撞后果是两条课程共用一个通知 ID ——
+     * 后投递的顶替先投递的，且 dismiss PendingIntent 会连带把另一条一起关掉。
+     *
+     * 换基数**不影响**已投递通知的 dismiss 对应关系：dismiss 的 requestCode /
+     * extra / identifier 与通知 ID 在同一次 `build()` 内派生（CourseReminderNotifier），
+     * 而登记簿的键是 occurrenceKey 原文、不是 ID 派生值（PostedNotificationRegistry）。
+     * 升级前已投递的通知仍是旧 ID，靠自身 `setTimeoutAfter` 到上课时刻自清。
+     *
+     * 区间 600_000–1_599_999 仍与 [RESERVED_ID_RANGE]（50_000–50_200）和
+     * [DYNAMIC_ISLAND_ID]（2_024_0904）完全隔离。
+     */
+    private const val NAMESPACE_SIZE = 1_000_000
 
     /** 旧实现的通知 ID 区间下界（含自动模式与权限提示）。 */
     val RESERVED_ID_RANGE = 50_000..50_200
