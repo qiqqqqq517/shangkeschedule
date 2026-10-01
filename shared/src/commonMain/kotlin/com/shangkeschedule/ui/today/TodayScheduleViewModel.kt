@@ -20,15 +20,18 @@ import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -36,8 +39,13 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.error_schedule_load_failed
 import kotlin.time.Clock
+
+private const val TAG = "TodayScheduleViewModel"
 
 @KoinViewModel
 class TodayScheduleViewModel(
@@ -121,14 +129,18 @@ class TodayScheduleViewModel(
         refreshTrigger.value += 1
     }
 
+    /**
+     * 一次订阅的完整查询链（v4.64.28）。
+     * 拆成独立属性的原因：`catch` 若挂在最外层，接住异常后整条 flow 即 completed ——
+     * 此后 `refreshTrigger` 再 +1 也没人收集，重试会变成死按钮。
+     * 包进 [refreshTrigger] 的 flatMapLatest 之后，重试才能真正重建这条链。
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<TodayUiState> = combine(
+    private val todayDataFlow: Flow<TodayUiState> = combine(
         appSettingsRepository.getAppSettings(),
         // 跨天自动重算：today 不再是流装配期的一次性快照，午夜后状态机与课程查询全部刷新
-        currentDateFlow(),
-        // 下拉刷新：作为第三个源，值一变即触发下方 flatMapLatest 重新装配整条查询
-        refreshTrigger
-    ) { settings, today, _ ->
+        currentDateFlow()
+    ) { settings, today ->
         settings to today
     }.flatMapLatest { (settings, today) ->
             val tableId = settings.currentCourseTableId
@@ -211,6 +223,23 @@ class TodayScheduleViewModel(
                 }
             }
         }
+        // 显式类型实参把链路拓宽为 Flow<TodayUiState>：Flow 是协变的，仅靠属性声明的
+        // Flow<TodayUiState> 不会反向影响推断，R 会被最内层 combine 固定成 Success，
+        // 于是 catch 里 emit(Error) 变成类型错误。
+        .catch<TodayUiState> { e ->
+            // 此前这条链没有任何兜底：Room/DataStore 抛异常会直接取消收集协程，
+            // 今日页便永久停在加载动画上，用户既不知情也没有重试入口。
+            AppLog.e(TAG, "今日数据加载失败", e)
+            emit(TodayUiState.Error(getString(Res.string.error_schedule_load_failed)))
+        }
+        .onStart { emit(TodayUiState.Loading) }
+
+    /**
+     * 今日页 UI 状态；[refreshTrigger] 变化即重建 [todayDataFlow]（下拉刷新与错误态重试共用）。
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<TodayUiState> = refreshTrigger
+        .flatMapLatest { todayDataFlow }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TodayUiState.Loading)
 
     // ─── 待办操作 ───
@@ -330,6 +359,13 @@ enum class TodayStatus { Normal, NoSemesterConfig, SemesterEnded, Vacation }
 @androidx.compose.runtime.Immutable
 sealed class TodayUiState {
     data object Loading : TodayUiState()
+
+    /**
+     * 数据源异常（v4.64.28）：链路抛异常时的兜底态。
+     * 页面据此渲染错误提示 + 重试按钮（[TodayScheduleViewModel.refresh]）。
+     */
+    data class Error(val message: String) : TodayUiState()
+
     data class Success(
         val courses: List<CourseDisplayModel>,
         val tomorrowCourses: List<CourseDisplayModel>,

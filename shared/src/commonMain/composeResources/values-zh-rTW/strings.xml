@@ -574,6 +574,8 @@
     <string name="quick_delete_dialog_select_date_title">選擇日期範圍</string>
     <string name="quick_delete_success">課表清理成功</string>
     <string name="error_load_failed">初始化失敗，請重試</string>
+    <string name="error_schedule_load_failed">課表資料載入失敗，請重試</string>
+    <string name="error_agenda_load_failed">日程載入失敗，請重試</string>
     <string name="error_op_failed">操作失敗: %1$s</string>
     <string name="theme_follow_system">跟隨系統</string>
     <string name="theme_light">淺色模式</string>

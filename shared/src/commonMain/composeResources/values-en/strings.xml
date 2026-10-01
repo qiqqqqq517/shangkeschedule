@@ -578,6 +578,8 @@
     <string name="quick_delete_dialog_select_date_title">Select Date Range</string>
     <string name="quick_delete_success">Schedule cleared successfully</string>
     <string name="error_load_failed">Failed to initialize, please try again</string>
+    <string name="error_schedule_load_failed">Failed to load your schedule. Please try again.</string>
+    <string name="error_agenda_load_failed">Failed to load your agenda. Please try again.</string>
     <string name="error_op_failed">Operation failed: %1$s</string>
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light Mode</string>

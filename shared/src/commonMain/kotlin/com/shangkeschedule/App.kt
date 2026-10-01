@@ -5,6 +5,7 @@ import shangkeschedule.shared.generated.resources.Res
 import org.jetbrains.compose.resources.stringResource
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppToastHost
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.ui.Alignment
@@ -105,25 +106,46 @@ fun App() {
     val gate by viewModel.startGate.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (gate.isReady) {
-        ShangKeScheduleTheme(settings = state.appSettings) {
-            val startDest = remember(gate.startScreen) {
-                when (gate.startScreen) {
-                    StartScreen.COURSE_SCHEDULE -> Destination.CourseSchedule
-                    StartScreen.TODAY_SCHEDULE -> Destination.TodaySchedule
+    // 门控失败态（v4.64.28）：设置链（DataStore + Room 配置）抛异常时 isReady 永远不会变 true，
+    // 此前只能永久停在下面的加载动画上 —— 用户既不知道出了什么事，也没有任何重试入口。
+    val gateError = state.error
+    when {
+        gateError != null -> {
+            ShangKeScheduleTheme(settings = state.appSettings) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AppErrorState(
+                            hint = gateError,
+                            fillScreen = true,
+                            onRetry = viewModel::retryLoad
+                        )
+                    }
                 }
             }
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppNavigation(startDestination = startDest)
-                // 全局反馈横幅（v3.54.0）：ToastManager.show 的主题化应用内呈现
-                AppToastHost()
+        }
+
+        gate.isReady -> {
+            ShangKeScheduleTheme(settings = state.appSettings) {
+                val startDest = remember(gate.startScreen) {
+                    when (gate.startScreen) {
+                        StartScreen.COURSE_SCHEDULE -> Destination.CourseSchedule
+                        StartScreen.TODAY_SCHEDULE -> Destination.TodaySchedule
+                    }
+                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppNavigation(startDestination = startDest)
+                    // 全局反馈横幅（v3.54.0）：ToastManager.show 的主题化应用内呈现
+                    AppToastHost()
+                }
             }
         }
-    } else {
-        // 冷启动 DB 初始化期间的加载占位（v3.54.0）：不再是无内容白/黑屏
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ThemedLoadingIndicator()
+
+        else -> {
+            // 冷启动 DB 初始化期间的加载占位（v3.54.0）：不再是无内容白/黑屏
+            Surface(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ThemedLoadingIndicator()
+                }
             }
         }
     }
