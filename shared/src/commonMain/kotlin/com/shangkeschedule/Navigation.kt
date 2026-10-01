@@ -70,6 +70,10 @@ sealed interface Destination : NavKey {
     @Serializable data object NextCardSettings : Destination
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
+    /** 意见反馈页（v4.65.0）：填写后经邮件 / GitHub Issue / 剪贴板三种出口提交，不采集任何标识符。 */
+    @Serializable data object Feedback : Destination
+    /** 法律文档页（v4.65.0）：type 传 LegalDocumentType 名称（PRIVACY / TERMS）。 */
+    @Serializable data class LegalDocument(val type: String) : Destination
 
     // --- 导入分类二级页 ---
     @Serializable data object FileImportHub : Destination
@@ -147,6 +151,8 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.NextCardSettings::class)
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
+        subclass(Destination.Feedback::class)
+        subclass(Destination.LegalDocument::class)
 
         // 导入分类二级页
         subclass(Destination.FileImportHub::class)

@@ -42,10 +42,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.model.SchoolHistoryModel
+import com.shangkeschedule.tool.AppExternalLinks
+import com.shangkeschedule.tool.copyToClipboard
 import com.shangkeschedule.ui.components.AlphabetIndexerList
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppEmptyState
@@ -53,18 +56,24 @@ import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppLoading
 import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppTextField
+import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import kotlin.time.Clock
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import school_index.AdapterCategory
 import school_index.School
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.action_request_adapter
 import shangkeschedule.shared.generated.resources.action_retry
+import shangkeschedule.shared.generated.resources.adapter_request_form_unavailable
+import shangkeschedule.shared.generated.resources.adapter_request_no_school_copied
+import shangkeschedule.shared.generated.resources.adapter_request_school_copied
 import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_clear_search
@@ -198,6 +207,41 @@ fun SchoolSelectionListScreen(
 }
 
 /**
+ * 「申请适配教务系统」动作（v4.65.0 新增）。
+ *
+ * 学校列表没命中时（分类下没有学校 / 搜索无结果）此前只能退回主页或反复换关键词，
+ * 这里给一条直达通道：**先复制学校名到剪贴板再打开表单** —— WPS 表单不支持 URL 预填，
+ * 复制是唯一能替用户少打一次字的办法。
+ *
+ * 表单地址在 [AppExternalLinks.ADAPTER_REQUEST_FORM] 置空即视为下线：只提示、不跳转。
+ * 返回的 lambda 参数为学校名（无则传 null，仅提示「正在打开表单」）。
+ */
+@Composable
+private fun rememberAdapterRequestAction(): (String?) -> Unit {
+    val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
+    val unavailableText = stringResource(Res.string.adapter_request_form_unavailable)
+    val openingText = stringResource(Res.string.adapter_request_no_school_copied)
+    return { schoolName ->
+        if (AppExternalLinks.ADAPTER_REQUEST_FORM.isBlank()) {
+            ToastManager.show(unavailableText)
+        } else {
+            val name = schoolName?.trim().orEmpty()
+            if (name.isEmpty()) {
+                ToastManager.show(openingText)
+            } else {
+                copyToClipboard(name)
+                // 带占位符的文案只能在挂起上下文里取（与「更多选项」里的同步结果提示同一写法）
+                scope.launch {
+                    ToastManager.show(getString(Res.string.adapter_request_school_copied, name))
+                }
+            }
+            uriHandler.openUri(AppExternalLinks.ADAPTER_REQUEST_FORM)
+        }
+    }
+}
+
+/**
  * 集中管理加载状态和列表显示。
  */
 @Composable
@@ -232,10 +276,13 @@ private fun SchoolContent(
             )
         }
         filteredSchools.isEmpty() && !isLoading -> {
-            // 统一空状态：淡灰胶囊 + 辅助文案
+            // 统一空状态：淡灰胶囊 + 辅助文案（v4.65.0 起附「申请适配」入口）
+            val requestAdapter = rememberAdapterRequestAction()
             AppEmptyState(
                 hint = stringResource(Res.string.text_no_adapter_for_category),
-                fillScreen = true
+                fillScreen = true,
+                actionLabel = stringResource(Res.string.action_request_adapter),
+                onAction = { requestAdapter(null) }
             )
         }
         else -> {
@@ -410,9 +457,13 @@ fun SearchBarWithTitle(
         if (searchActive) {
             // 搜索结果内容
             if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
+                // v4.65.0：搜索无结果时把学校名带进「申请适配」入口（点一次即复制 + 打开表单）
+                val requestAdapter = rememberAdapterRequestAction()
                 AppEmptyState(
                     hint = stringResource(Res.string.text_no_school_found),
-                    fillScreen = true
+                    fillScreen = true,
+                    actionLabel = stringResource(Res.string.action_request_adapter),
+                    onAction = { requestAdapter(searchQuery) }
                 )
             } else {
                 LazyColumn(

@@ -33,7 +33,9 @@ import kotlinx.coroutines.launch
 import com.shangkeschedule.Destination
 import com.shangkeschedule.tool.AdapterRemoteUpdater
 import com.shangkeschedule.tool.AdapterSyncResult
+import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -75,10 +77,20 @@ import shangkeschedule.shared.generated.resources.sync_status_syncing
 import shangkeschedule.shared.generated.resources.sync_status_up_to_date
 import shangkeschedule.shared.generated.resources.sync_status_updated
 import shangkeschedule.shared.generated.resources.title_more_options
+import shangkeschedule.shared.generated.resources.adapter_request_form_unavailable
+import shangkeschedule.shared.generated.resources.desc_feedback
+import shangkeschedule.shared.generated.resources.desc_legal_offline
+import shangkeschedule.shared.generated.resources.desc_request_adapter
+import shangkeschedule.shared.generated.resources.edit_24px
+import shangkeschedule.shared.generated.resources.info_24px
+import shangkeschedule.shared.generated.resources.item_feedback
+import shangkeschedule.shared.generated.resources.item_privacy_policy
+import shangkeschedule.shared.generated.resources.item_request_adapter
+import shangkeschedule.shared.generated.resources.item_user_agreement
+import shangkeschedule.shared.generated.resources.sticky_note_2_24px
 
-private const val GITHUB_REPO_URL = "https://github.com/qiqqqqq517/shangkeschedule"
-private const val OFFICIAL_WEBSITE_URL = "https://shangke.asia"
-private const val OFFICIAL_WEBSITE_DISPLAY = "shangke.asia"
+// v4.65.0：三个地址常量收敛到 com.shangkeschedule.tool.AppExternalLinks，
+// 因为「申请适配教务系统」需要「更多选项」与「学校选择」两处共用同一个表单地址。
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +101,17 @@ fun MoreOptionsScreen(
 ) {
     val scrollState = rememberScrollState()
     val uriHandler = LocalUriHandler.current
+
+    // 教务适配申请表单（WPS 表单，第三方页面）：不支持 URL 预填，这里只负责打开入口；
+    // 表单地址在 AppExternalLinks 里置空即视为下线，此时只提示不跳转。
+    val adapterFormUnavailableText = stringResource(Res.string.adapter_request_form_unavailable)
+    fun openAdapterRequestForm() {
+        if (AppExternalLinks.ADAPTER_REQUEST_FORM.isBlank()) {
+            ToastManager.show(adapterFormUnavailableText)
+        } else {
+            uriHandler.openUri(AppExternalLinks.ADAPTER_REQUEST_FORM)
+        }
+    }
 
     // 从 Koin 动态获取注入的版本号
     val appVersionName: String = koinInject(named("AppVersionName"))
@@ -204,15 +227,15 @@ fun MoreOptionsScreen(
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.item_official_website),
-                    subtitle = OFFICIAL_WEBSITE_DISPLAY,
+                    subtitle = AppExternalLinks.OFFICIAL_WEBSITE_DISPLAY,
                     leadingIcon = vectorResource(Res.drawable.link_24px),
-                    onClick = { uriHandler.openUri(OFFICIAL_WEBSITE_URL) }
+                    onClick = { uriHandler.openUri(AppExternalLinks.OFFICIAL_WEBSITE) }
                 )
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.item_github_repo),
                     leadingIcon = vectorResource(Res.drawable.code_24px),
-                    onClick = { uriHandler.openUri(GITHUB_REPO_URL) }
+                    onClick = { uriHandler.openUri(AppExternalLinks.GITHUB_REPO) }
                 )
                 SectionDivider()
                 SettingItem(
@@ -242,7 +265,42 @@ fun MoreOptionsScreen(
 
             Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
-            // 联系作者反馈（欢迎新功能建议 / 教务适配请求）
+            // 意见反馈 / 教务适配申请 / 应用内协议（v4.65.0）
+            SectionCard(
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
+            ) {
+                SettingItem(
+                    title = stringResource(Res.string.item_request_adapter),
+                    subtitle = stringResource(Res.string.desc_request_adapter),
+                    leadingIcon = vectorResource(Res.drawable.school_24px),
+                    onClick = ::openAdapterRequestForm
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_feedback),
+                    subtitle = stringResource(Res.string.desc_feedback),
+                    leadingIcon = vectorResource(Res.drawable.edit_24px),
+                    onClick = { onNavigate(Destination.Feedback) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_privacy_policy),
+                    subtitle = stringResource(Res.string.desc_legal_offline),
+                    leadingIcon = vectorResource(Res.drawable.info_24px),
+                    onClick = { onNavigate(Destination.LegalDocument(LegalDocumentType.PRIVACY.name)) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_user_agreement),
+                    subtitle = stringResource(Res.string.desc_legal_offline),
+                    leadingIcon = vectorResource(Res.drawable.sticky_note_2_24px),
+                    onClick = { onNavigate(Destination.LegalDocument(LegalDocumentType.TERMS.name)) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
+
+            // 联系作者（邮件直连；功能建议与问题反馈走上面的「意见反馈」页，那里能带上类型与联系方式）
             SectionCard(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
@@ -250,7 +308,7 @@ fun MoreOptionsScreen(
                     title = stringResource(Res.string.item_contact_author),
                     subtitle = stringResource(Res.string.desc_contact_author),
                     leadingIcon = vectorResource(Res.drawable.email_24px),
-                    onClick = { uriHandler.openUri("mailto:hhixingchen520@163.com") }
+                    onClick = { uriHandler.openUri("mailto:${AppExternalLinks.SUPPORT_EMAIL}") }
                 )
                 SectionDivider()
                 Text(

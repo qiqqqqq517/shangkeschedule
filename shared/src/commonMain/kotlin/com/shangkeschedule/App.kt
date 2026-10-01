@@ -61,7 +61,9 @@ import com.shangkeschedule.ui.settings.SettingsScreen
 import com.shangkeschedule.ui.settings.SemesterSettingsScreen
 import com.shangkeschedule.ui.settings.CoupleScheduleSettingsScreen
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.feedback.FeedbackScreen
 import com.shangkeschedule.ui.settings.additional.LanguageSettingScreen
+import com.shangkeschedule.ui.settings.additional.LegalDocumentScreen
 import com.shangkeschedule.ui.settings.additional.MoreOptionsScreen
 import com.shangkeschedule.ui.settings.additional.OpenSourceLicensesScreen
 import com.shangkeschedule.ui.settings.backup.BackupScreen
@@ -443,6 +445,8 @@ fun ScreenContent(
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
+        Destination.Feedback -> FeedbackScreen(onBack)
+        is Destination.LegalDocument -> LegalDocumentScreen(targetDest.type, onBack)
 
         // 导入分类二级页
         Destination.FileImportHub -> FileImportHubScreen(onNavigate, onBack)
