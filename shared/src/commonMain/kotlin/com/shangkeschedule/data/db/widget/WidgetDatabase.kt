@@ -8,7 +8,10 @@ import com.shangkeschedule.data.di.AppStorage
 
 @Database(
     entities = [WidgetCourse::class, WidgetAppSettings::class],
-    version = 3,
+    // v3 → v4：WidgetAppSettings 新增 snapshotVersion（快照版本戳）。
+    // 该库是纯派生缓存且启用 destructive migration，清库后的重建正是该字段要自愈的场景，
+    // 故不提供迁移 —— 见 WidgetAppSettings.snapshotVersion 的 KDoc。
+    version = 4,
     exportSchema = false
 )
 @ConstructedBy(WidgetDatabaseConstructor::class)

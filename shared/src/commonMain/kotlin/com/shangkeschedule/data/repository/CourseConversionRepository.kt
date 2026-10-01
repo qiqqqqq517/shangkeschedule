@@ -183,6 +183,8 @@ class CourseConversionRepository(
      * @param colorSize 当前主题的颜色数量
      * @param isCrush 是否为情侣课表（crush 课程）
      * @param preserveId 是否保留 JSON 中的课程 ID（用于完整导入，false 时生成新 UUID）
+     * @param conflictingIds 库中属于**其它课表**的课程 ID。`Course.id` 是全局主键，
+     *   命中其中任一即重生 UUID，避免 `CourseDao` 的 ABORT 约束把整次导入炸掉。
      * @return Pair(课程实体列表, 周次实体列表)
      */
     private fun buildCourseEntities(
@@ -190,7 +192,8 @@ class CourseConversionRepository(
         tableId: String,
         colorSize: Int,
         isCrush: Boolean,
-        preserveId: Boolean
+        preserveId: Boolean,
+        conflictingIds: Set<String> = emptySet()
     ): Pair<List<Course>, List<CourseWeek>> {
         val courseEntities = ArrayList<Course>(coursesJsonModel.size)
         val courseWeekEntities = mutableListOf<CourseWeek>()
@@ -199,7 +202,11 @@ class CourseConversionRepository(
         var colorOffset = if (colorSize > 0) Random.nextInt(colorSize) else 0
 
         coursesJsonModel.forEach { jsonCourse ->
-            val courseId = if (preserveId && jsonCourse.id != null) jsonCourse.id else Uuid.random().toString()
+            val courseId = if (preserveId && jsonCourse.id != null && jsonCourse.id !in conflictingIds) {
+                jsonCourse.id
+            } else {
+                Uuid.random().toString()
+            }
 
             val courseIndex = getOrAssignColorByName(
                 jsonCourse = jsonCourse,
@@ -300,12 +307,21 @@ class CourseConversionRepository(
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
 
+        // v4.64.23：`preserveId=true` 会复用 JSON 里的课程 id，而 `Course.id` 是**全局主键、
+        // 不按 tableId 分域**。于是「A 表导入成功 → 同一份 JSON 再导 B 表」必然撞
+        // `CourseDao` 的 ABORT 约束，用户只看到一句裸 SQL 错误。
+        // 这里先取出库里已有的全部课程 id，凡与**其它课表**冲突的一律重生 UUID；
+        // 同表重复导入时仍复用原 id，保持幂等（全删全插，结果一致）。
+        val conflictingIds: Set<String> = courseDao.getAllCourseIds()
+            .toSet() - courseDao.getCourseIdsByTableId(tableId).toSet()
+
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
             coursesJsonModel = courseTableJsonModel.courses,
             tableId = tableId,
             colorSize = colorSize,
             isCrush = false,
-            preserveId = true
+            preserveId = true,
+            conflictingIds = conflictingIds
         )
 
         val jsonTimeSlots = courseTableJsonModel.timeSlots
@@ -393,6 +409,12 @@ class CourseConversionRepository(
         tableId: String,
         timeSlots: List<TimeSlotJsonModel>
     ) {
+        // v4.64.23：空列表此前被 validateTimeSlotsOrThrow 直接放过（:77 的 early return），
+        // 于是下面 `deleteAllTimeSlotsByCourseTableId` 照样执行 —— 净效果是
+        // **清空该课表的全部作息并返回成功**。适配脚本只要算出 0 个时段（NIIT / BUPT
+        // 等已实测会走到）就会触发，用户表现是「导入成功但作息全没了、课表空白」。
+        // 空列表对「整体替换作息」这个语义没有任何合法解释，故显式拒绝。
+        require(timeSlots.isNotEmpty()) { "时间段列表为空，已拒绝导入（否则会清空该课表的全部作息）" }
         validateTimeSlotsOrThrow(timeSlots)
 
         val timeSlotEntities = timeSlots.map { jsonModel ->
@@ -404,12 +426,11 @@ class CourseConversionRepository(
             )
         }
 
-        // 真事务：时段清空与写入原子化
+        // 真事务：时段清空与写入原子化。
+        // 空列表已在入口被 require 拦下，这里的 isNotEmpty 是双保险（防御后续新增调用点）。
         database.withWriteTransaction {
             timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
-            if (timeSlotEntities.isNotEmpty()) {
-                timeSlotDao.insertAll(timeSlotEntities)
-            }
+            timeSlotDao.insertAll(timeSlotEntities)
         }
     }
 

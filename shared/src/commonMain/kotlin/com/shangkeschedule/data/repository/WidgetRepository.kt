@@ -57,12 +57,18 @@ class WidgetRepository(
      * 原子替换完整 Widget 快照：课程与学期设置在同一个数据库事务内提交。
      */
     suspend fun replaceSnapshot(courses: List<WidgetCourse>, settings: WidgetAppSettings) {
+        // 版本戳在此处递增：这里是「快照真正落库」的唯一出口。读库方（渲染层）
+        // 不消费该字段，只用于让下一次内容比对能识别「库曾被清空」。
+        val nextVersion = runCatching {
+            widgetAppSettingsDao.getAppSettings().first()?.snapshotVersion?.plus(1) ?: 1L
+        }.getOrDefault(settings.snapshotVersion + 1)
+        val stamped = settings.copy(snapshotVersion = nextVersion)
         widgetDatabase.withWriteTransaction {
             widgetCourseDao.deleteAll()
             if (courses.isNotEmpty()) {
                 widgetCourseDao.insertAll(courses)
             }
-            widgetAppSettingsDao.insertOrUpdate(settings)
+            widgetAppSettingsDao.insertOrUpdate(stamped)
         }
     }
 
@@ -76,7 +82,21 @@ class WidgetRepository(
     ): Boolean {
         val currentCourses = widgetCourseDao.getAllWidgetCourses().first().associateBy { it.id }
         val currentSettings = widgetAppSettingsDao.getAppSettings().first()
-        if (currentSettings == settings && currentCourses == courses.associateBy { it.id }) {
+        // v4.64.23：原先只要「两边相等」就跳过写库。但 widget 库可能被清空（destructive
+        // migration / 系统回收 / 手动清理），而同步器在「无有效配置」路径写下的正是
+        // 「空课程 + 默认 settings」—— 两者完全相等 ⇒ 判定「无需更新」⇒ 组件永久空白，
+        // 且此后每次同步都命中同一分支，永远不会自愈。
+        //
+        // 引入版本戳：每次真正写入都递增 [WidgetAppSettings.snapshotVersion]，
+        // 于是「内容相同但版本戳不同」必被识别为「需要更新」，数据库一被清空
+        // （version 回到 0 或空行）就会立刻被下一轮同步重建。
+        if (currentSettings == null) {
+            replaceSnapshot(courses, settings)
+            return true
+        }
+        if (currentSettings == settings && currentCourses == courses.associateBy { it.id } &&
+            currentSettings.snapshotVersion == settings.snapshotVersion
+        ) {
             return false
         }
         replaceSnapshot(courses, settings)
