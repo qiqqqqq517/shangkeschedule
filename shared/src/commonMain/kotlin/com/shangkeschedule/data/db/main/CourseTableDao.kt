@@ -26,9 +26,20 @@ interface CourseTableDao {
     suspend fun getCourseTableById(tableId: String): CourseTable?
 
     /**
-     * 插入一个新的课表。如果发生主键冲突，则替换旧数据。
+     * 插入一个新的课表。
+     *
+     * 冲突策略必须是 **ABORT**（不得改回 REPLACE）：`course_tables` 是根表，
+     * `Course` / `CourseWeek` / `TimeSlot` / `TimeSlotScheme` / `CourseTableConfig`
+     * 均以 `onDelete = ForeignKey.CASCADE` 挂在它下面。SQLite 的
+     * `INSERT OR REPLACE` 语义是 **先 DELETE 再 INSERT**，一旦 id 冲突，
+     * 会连带把该课表下的**全部课程、周次、作息**静默删光（无异常、无日志），
+     * 而 `insert` 的调用点全部在最常用的建表 / 导入 / 备份恢复入口上。
+     *
+     * 所有调用点都是「先查后插新 ID」或「先 delete 再插」的形式，正常路径不依赖
+     * REPLACE 的覆盖语义；改用 ABORT 后，真出现 id 冲突会显式抛错（而非静默丢数据），
+     * 由调用点所在的事务回滚并上报。
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(courseTable: CourseTable)
 
     /**

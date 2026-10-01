@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v46425">v4.64.25 · 插入课表不再静默清空该表全部课程</a></li>
         <li><a href="#v46423">v4.64.23 · 通知与导入链的一批实打实修复</a></li>
         <li><a href="#v4645">v4.64.5 · 弹窗按钮与图标按压也跟主题了</a></li>
         <li><a href="#v4644">v4.64.4 · 点击反馈不再闪出直角方块</a></li>
@@ -162,6 +163,18 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v46425">
+        <div><span class="tl-ver">v4.64.25</span><span class="tl-date">2026-10-01</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>极端情况下「新增/插入课表」会连带删光该课表的全部课程、周次与作息</h3>
+          <ul>
+            <li>课表根表 <code>course_tables</code> 的插入用的是 <code>INSERT OR REPLACE</code> 冲突策略，而 SQLite 的 REPLACE 语义是「先 DELETE 再 INSERT」。该表下挂着课程、周次、作息、作息方案、课表配置五类以 <code>ON DELETE CASCADE</code> 关联的子表，因此一旦主键撞上，删除会级联把整张课表的内容一并抹掉——<b>不抛异常、不打日志、界面照常提示成功</b>。现改为冲突即中止（<code>ABORT</code>）：真出现冲突会显式抛错，由调用点所在事务回滚并上报，不再静默丢数据。</li>
+            <li>现有建表 / 导入 / 备份恢复路径全部是「先查再写新 ID」或「先清空再写入」，不依赖 REPLACE 的覆盖语义，正常流程行为完全不变。</li>
+            <li>主数据库结构与版本（13）未变更，升级无需迁移，无外观与交互变化。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v46423">
         <div><span class="tl-ver">v4.64.23</span><span class="tl-date">2026-10-01</span></div>
