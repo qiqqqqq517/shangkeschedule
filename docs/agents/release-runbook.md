@@ -127,7 +127,25 @@ git ls-remote --tags origin 'refs/tags/vX.Y.Z'
 - `website/assets/js/site.js`：`SITE.version` / `SITE.versionCode`（页头版本号由它渲染，改一处即可）。
 - `website/sitemap.xml`：`/changelog` 的 `lastmod`。
 
-## 6. 提交与推送
+## 6. 夸克网盘同步（每次发版必做）
+
+分发目录是夸克网盘「上课-课程表」（面向用户的下载页），里面只留当版最新包，旧包统一收进其子目录「旧版本在此」。
+
+```powershell
+python scripts\quark_publish_apk.py --dry-run   # 先预览将上传/归档哪些包（不改动网盘）
+python scripts\quark_publish_apk.py             # 上传当版 arm64 包 + 归档其余 .apk
+```
+
+脚本行为与约束：
+
+- 按 `androidApp/build.gradle.kts` 的 `versionName` 取 `shangke-vX.Y.Z-arm64-v8a-release.apk`（只传 arm64-v8a 一种 ABI）；先在 `androidApp/build/outputs/apk/release/` 找，找不到回退仓库外的 `..\正式版-arm64\`。
+- **发版闸**：默认要求 `vX.Y.Z` 在 GitHub 上已是「已发布（非 draft）」Release，否则中止——防止把未发版构建公开到分发目录；确需上传才加 `--allow-unreleased`。
+- 「上课-课程表」与「旧版本在此」的 fid **按目录名现场解析**，不写死（文件夹分享/重建后 fid 前缀会变，硬编码必失效）。
+- 同名包已存在即跳过上传，脚本可重复执行（幂等）；随后把该目录内**其余全部 .apk** 分批（每批 ≤100）移入「旧版本在此」。
+- 前置：本机已安装并授权夸克网盘 Skill（`C:\Users\30458\.dsh\skills\quarkclouddrive\`）；脚本会自动跑一次该 Skill 的 `scripts/install.sh` 作安装检查。Skill 的 CLI 要求每次调用带 `--session-input` / `--session-id`，脚本已自动附加。
+- 收尾核验：夸克「上课-课程表」内有且仅有当版一个 .apk，旧包已出现在「旧版本在此」。
+
+## 7. 提交与推送
 
 ```powershell
 git add -- website/changelog.html website/assets/js/site.js website/sitemap.xml   # 一条命令显式列出全部文件，禁用 git add . / -A
@@ -145,7 +163,7 @@ git push gitee main
 | `Recv failure: Connection was reset`（清空代理直连） | 不要走这条路径；回到带代理的原样重推 |
 | `SSL_ERROR_SYSCALL`（`http.sslBackend=openssl`） | 不要切 openssl 后端 |
 
-## 7. 工作日志
+## 8. 工作日志
 
 ```powershell
 python tools\worklog\worklog.py append --date YYYY-MM-DD --version X.Y.Z --code NNN --type BUILD `
