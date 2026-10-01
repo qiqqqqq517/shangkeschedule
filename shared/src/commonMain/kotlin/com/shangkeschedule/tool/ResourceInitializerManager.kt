@@ -3,6 +3,7 @@ package com.shangkeschedule.tool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.FileSystem
@@ -30,8 +31,20 @@ class ResourceInitializerManager(
     private val targetRepoDir: Path = filesDir / "repo"
     private val shareTempDir: Path = cacheDir / "share_temp"
 
+    /**
+     * 初始化协程作用域。
+     *
+     * `SupervisorJob`：此前用 `CoroutineScope(Dispatchers.IO)`，其默认 `Job()` 不是
+     * supervisor —— 三个子步骤中任一抛出都会**取消整个作用域并把异常交给默认 handler**，
+     * Android 上即未捕获异常崩溃。三个步骤现在各自 `runCatching` 吞异常，但 `withContext`
+     * 或将来新增语句抛出时这条隐患依旧。与仓库既有惯例一致
+     * （CourseTableRepository / WidgetDataSynchronizer / SyncManager / StyleSettingsRepository
+     * 均为「类内私有 scope + SupervisorJob」），故就地修而不引入新的 Koin 提供者。
+     */
+    private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     init {
-        CoroutineScope(Dispatchers.IO).launch {
+        initScope.launch {
             initializeOfflineRepo()
             clearTempCaches()
             // 追加：内置适配就绪后叠加远程安全更新；失败静默回退，不影响既有功能

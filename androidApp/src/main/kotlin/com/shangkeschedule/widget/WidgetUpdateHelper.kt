@@ -183,16 +183,23 @@ private suspend fun performUpdate(context: Context) {
             Triple(ListVerticalNativeProvider::class.java, WidgetKind.LIST_VERTICAL, ListVerticalNativeRenderer::render)
         )
 
-        // 4.5 实测 ListVertical 条目高度（每次刷新测一次，4 个规格共用）。
+        // 4.5 实测 ListVertical 条目高度（每次刷新至多测一次，4 个规格共用）。
         //     仅 ListVertical 消费该值，其余规格的条数是固定档位。
         //     v4.61.0 起条目带放大字号渲染，测量必须用「空间档最大字号」（L 档），
         //     否则条数算多溢出。
+        //
+        //     `by lazy`（v4.64.22）：本函数会 inflate + measure 一份行布局，有实测开销；
+        //     而桌面没有 ListVertical 组件（或只装了其它三种规格）时算出的值永远不被
+        //     消费 —— 无探针即可证伪的纯浪费。lazy 保持「首次需要时才测」，
+        //     该函数纯读 density + inflate、无副作用，语义等价。
         val density = context.resources.displayMetrics.density
-        val listRowHeightPx = measureListRowHeightPx(
-            context,
-            nameSp = (ROW_NAME_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat(),
-            metaSp = (ROW_META_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat()
-        )
+        val listRowHeightPx by lazy {
+            measureListRowHeightPx(
+                context,
+                nameSp = (ROW_NAME_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat(),
+                metaSp = (ROW_META_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat()
+            )
+        }
 
         // 5. 统一分发更新
         nativeConfigs.forEachIndexed { index, (providerClass, kind, renderFunc) ->

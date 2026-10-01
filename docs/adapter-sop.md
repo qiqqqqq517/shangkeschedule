@@ -19,8 +19,9 @@
    ├─【离线内置 · 随 APK 发布】
    │   shared/assets/offline_repo/                        （主仓库，git 跟踪）
    │     ├─ tools/build_schools.py ──▶ index/school_index.pb   学校索引
-   │     └─ tools/rebuild_zip.py ──▶ composeResources/files/offline_schools.zip
+   │     └─ :shared:packSchoolsZip（Gradle，构建时自动）─▶ composeResources/files/offline_schools.zip
    │            → 装机后 ResourceInitializerManager 解压到 filesDir/repo/（离线兜底）
+   │            ※ tools/rebuild_zip.py 已废弃（产物格式不兼容），见 §4.5
    │
    └─【OTA 热更新 · 不用发版】
        .adapter_private/                                   （独立私有仓库工作副本）
@@ -246,15 +247,22 @@ python scripts/check_adapters.py --strict   # 提示项也判失败（CI 用）
 
 > ⚠️ 历史教训：两处 `school_index.pb` 曾出现不同步（私有仓库侧滞后 5 天），导致热更新用户与离线用户看到的学校集合不一致。**每次 `build_schools.py` 之后必须立刻拷贝到私有仓库侧**，阶段四发布前再跑一次 `check_adapters.py` 核对。
 
-### 4.5 重建离线 zip（仅发版前需要）
+### 4.5 重建离线包（无需手工操作）
 
 ```powershell
-python tools/rebuild_zip.py   # 将 offline_repo/ 打包为 composeResources/files/offline_schools.zip
+.\gradlew :shared:packSchoolsZip
 ```
 
-- 离线 zip 只随 APK 发布生效；日常热更新**不需要**重建；
-- 该脚本尾部有一段硬编码的一次性验证代码（检查特定学校），非本次目标学校的报错可忽略；
-- 重建后建议装机验证 zip 版本标记触发重新解压（App 以 zip 内容哈希判断是否重解压）。
+⚠️ **`tools/rebuild_zip.py` 已废弃，不要再运行它。**
+
+- 真正的打包入口是 Gradle 任务 `:shared:packSchoolsZip`，它已被 `:shared` 的预构建
+  流程依赖，**每次构建自动重生成**，无需也不应手工触发；
+- 旧 Python 脚本做的是「逐文件写进普通 zip」，而 App 端要求 zip 内**唯一条目**为
+  `repo.skr`（`"SKR1"` 魔数的顺序流，由 `OfflineRepoArchive` 硬校验）。直接跑旧脚本会
+  覆盖掉可用产物，且异常被 `runCatching` 吞掉 → **内置适配资源静默失效**，表面看不出原因；
+- 打包端已内置可复现性保障：条目按 `relativePath` 排序 + 固定时间戳 + DEFLATE level 9，
+  同内容产出同字节；
+- 装机后 `ResourceInitializerManager` 按 zip 内容哈希判断是否需要重新解压。
 
 ---
 
@@ -364,7 +372,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "X-App-Secret: $APP_SECRET" "$BASE/i
 |---|---|---|
 | 修复 / 优化既有适配脚本 | ✅（阶段四即可，分钟级生效） | 否 |
 | 新增学校（新脚本 + 索引注册） | ✅（`adapters/**` 与 `index/school_index.pb` 一并热更） | 否；但建议下个版本并入离线兜底包 |
-| 更新离线兜底包（offline_schools.zip） | ❌ | 是（`rebuild_zip.py` + 发版） |
+| 更新离线兜底包（offline_schools.zip） | ❌ | 是（`:shared:packSchoolsZip` 构建时自动生成 + 发版） |
 | 修改 App 原生逻辑（Bridge 协议、解析、UI） | ❌ | 是 |
 | 修改 Worker 网关本身 | —（`wrangler deploy`，见 `adapter-worker/README.md`） | 否 |
 
@@ -395,7 +403,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "X-App-Secret: $APP_SECRET" "$BASE/i
 | `shared/assets/offline_repo/schools/timetable_schools.json` | 学校数据集（1778 条，id/name/type/url） | ✅ |
 | `shared/assets/offline_repo/schools/ADAPTER_GUIDE.md` | 适配脚本开发指南（Bridge / TimetableParser API） | ✅ |
 | `shared/assets/offline_repo/index/school_index.pb` | 内置学校索引（build_schools.py 产物） | ✅ |
-| `shared/src/commonMain/composeResources/files/offline_schools.zip` | 离线资源包（rebuild_zip.py 产物，随 APK） | ✅ |
+| `shared/src/commonMain/composeResources/files/offline_schools.zip` | 离线资源包（`:shared:packSchoolsZip` 产物，随 APK） | ✅ |
 | `shared/src/commonMain/kotlin/.../web/WebBridgeProtocol.kt` | JS Bridge 协议与注入脚本（App 侧契约源头） | ✅ |
 | `shared/src/commonMain/kotlin/.../web/WebViewScreen.kt` | 导入执行页（脚本读取与注入入口） | ✅ |
 | `shared/src/commonMain/kotlin/.../tool/AdapterRemoteUpdater.kt` | 热更新同步器（清单比对 / sha256 / 原子写） | ✅ |
@@ -407,7 +415,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "X-App-Secret: $APP_SECRET" "$BASE/i
 | `.adapter_private/tools/build_index.py` / `verify_index.py` | 清单重建 / 校验 | ❌ |
 | `.adapter_private/README.md` | 私有仓库维护与安全约定 | ❌ |
 | `tools/build_schools.py` | 学校索引生成（含三注册路径与两道校验） | ❌（本地） |
-| `tools/rebuild_zip.py` | 离线包重打包 | ❌（本地） |
+| `tools/rebuild_zip.py` | **已废弃**，仅作提醒；真实入口是 `:shared:packSchoolsZip` | ❌（本地） |
 | `adapter_secrets.properties` | 网关密钥（构建期注入 App） | ❌ **严禁入库** |
 
 ---
