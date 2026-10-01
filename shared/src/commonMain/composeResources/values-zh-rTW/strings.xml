@@ -821,6 +821,7 @@
     <string name="wb_list_json_invalid_fmt">選項清單 JSON 無效: %1$s</string>
     <string name="tivm_error_empty_input">請輸入或貼上課表內容</string>
     <string name="tivm_error_empty_file">檔案內容為空</string>
+    <string name="tivm_error_no_courses">未辨識到任何課程，已取消匯入，原課表維持不變</string>
     <string name="tivm_error_not_utf8">檔案不是 UTF-8 編碼</string>
     <string name="tivm_json_parse_failed">JSON 解析失敗：未找到有效課程</string>
     <string name="tivm_import_failed_fmt">匯入失敗: %1$s</string>

@@ -820,6 +820,7 @@
     <string name="wb_list_json_invalid_fmt">Invalid options list JSON: %1$s</string>
     <string name="tivm_error_empty_input">Enter or paste timetable content</string>
     <string name="tivm_error_empty_file">File content is empty</string>
+    <string name="tivm_error_no_courses">No courses were identified. Import cancelled; your original schedule is unchanged.</string>
     <string name="tivm_error_not_utf8">File is not UTF-8 encoded</string>
     <string name="tivm_json_parse_failed">JSON parse failed: no valid courses found</string>
     <string name="tivm_import_failed_fmt">Import failed: %1$s</string>

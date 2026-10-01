@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
@@ -135,6 +136,9 @@ fun WebViewScreen(
     val toastLoadImportFailedFmt = stringResource(Res.string.toast_load_import_script_failed, "%s")
     val toastNavigatingToTimetable = stringResource(Res.string.toast_navigating_to_timetable)
     val toastTimetableEntryNotFound = stringResource(Res.string.toast_timetable_entry_not_found)
+    val loadErrorGeneric = stringResource(Res.string.webview_load_error_generic)
+    val loadErrorDetail = stringResource(Res.string.webview_load_error_detail)
+    val loadErrorFmt = stringResource(Res.string.webview_load_error_fmt, "%s")
     val statusEnabled = stringResource(Res.string.status_enabled)
     val statusDisabled = stringResource(Res.string.status_disabled)
     val toastDevToolsEnabled = stringResource(Res.string.toast_devtools_enabled_format, statusEnabled)
@@ -155,6 +159,9 @@ fun WebViewScreen(
     var importRunState by remember { mutableStateOf<ImportRunState>(ImportRunState.Idle) }
     // 已通过前置校验并读入内存的适配脚本源码，选定课表后直接注入，不再二次读盘
     var pendingAdapterJsCode by remember { mutableStateOf<String?>(null) }
+    // 加载失败的应用内错误提示（v4.64.26）：平台层会回传失败原因，此前这里把回调吞成空实现，
+    // Android 上加载失败只会留下一片空白 WebView，用户既不知道发生了什么也没有重试入口。
+    var loadErrorMessage by remember { mutableStateOf<String?>(null) }
     val webViewController = rememberWebViewController()
 
     val coroutineScope = rememberCoroutineScope()
@@ -213,6 +220,7 @@ fun WebViewScreen(
             currentUrl = formattedUrl
             isEditingUrl = false
             pageTitle = titleLoading
+            loadErrorMessage = null
         }
     }
 
@@ -427,7 +435,13 @@ fun WebViewScreen(
                 onProgressChange = { loadingProgress = it },
                 onTitleChange = { pageTitle = it },
                 onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) },
-                onWebViewLoadError = { }
+                onWebViewLoadError = { description ->
+                    loadErrorMessage = if (description.isBlank()) {
+                        loadErrorGeneric
+                    } else {
+                        loadErrorFmt.replace("%s", description)
+                    }
+                }
             )
 
             if (loadingProgress < 1.0f) {
@@ -455,6 +469,25 @@ fun WebViewScreen(
                         text = toastExecutingImport,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
                         color = appColors().textSecondary
+                    )
+                }
+            }
+
+            // X2 三态：错误 → AppErrorState（v4.64.26）。盖住白屏 WebView，给出原因与重试入口。
+            loadErrorMessage?.let { message ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppErrorState(
+                        hint = "$message\n$loadErrorDetail",
+                        fillScreen = true,
+                        onRetry = {
+                            loadErrorMessage = null
+                            webViewController.reload()
+                        }
                     )
                 }
             }
