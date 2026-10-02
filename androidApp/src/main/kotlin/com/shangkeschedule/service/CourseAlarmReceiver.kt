@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.service.notification.notify.NotificationChannels
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -34,7 +35,7 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
     private val appSettingsRepository: AppSettingsRepository by inject()
 
     companion object {
-        const val NOTIFICATION_CHANNEL_ID = "course_notification_channel"
+        const val NOTIFICATION_CHANNEL_ID = NotificationChannels.COURSE
         const val EXTRA_COURSE_NAME = "course_name"
         const val EXTRA_COURSE_POSITION = "course_position"
         const val EXTRA_COURSE_TEACHER = "extra_course_teacher"
@@ -250,6 +251,8 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
         val closeActionText = context.getString(R.string.action_close)
         val liveStatusText = context.getString(R.string.notification_live_status_preparing)
 
+        // 渠道 ID 取自 NotificationChannels.COURSE（单一来源）；这里的幂等创建是防御性的：
+        // 广播可能在被杀进程后由系统冷启动，不能假定 NotificationChannels.ensureAll() 已经跑过。
         if (nm.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,

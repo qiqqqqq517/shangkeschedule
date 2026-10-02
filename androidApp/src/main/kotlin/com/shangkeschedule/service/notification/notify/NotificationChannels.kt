@@ -9,21 +9,35 @@ import androidx.core.content.getSystemService
 import com.shangkeschedule.R
 
 /**
- * 通知渠道统一定义与创建（渠道集中一处，避免散落各处 createNotificationChannel）。
+ * 通知渠道统一定义与创建。
  *
- * **渠通 ID 全部保持与旧版一致**：Android 上渠道的重要性/声音等属性由用户掌控，
+ * **渠道 ID 的唯一来源**：全部渠道 ID 只在本文件定义，其它模块一律引用这里的常量，
+ * 不得再写字面量——ID 一旦分裂，就等于把用户的渠道自定义（静音、置顶、重要性）重置。
+ *
+ * 渠道创建的主入口是 `ensureAll()`；以下三处例外各自保留一次幂等创建（属性与本文件完全一致），
+ * 因为它们的调用路径可能在进程冷启动时先于 `ensureAll()` 发通知：
+ *  - `CourseAlarmReceiver`（闹钟广播，被系统冷启动拉起）；
+ *  - `PermissionNoticeNotifier`（WorkManager 周期任务）；
+ *  - `DynamicIslandService`（前台服务随显示窗口启停，见 DYNAMIC_ISLAND 的说明）。
+ *
+ * **渠道 ID 全部保持与旧版一致**：Android 上渠道的重要性/声音等属性由用户掌控，
  * 一旦换个新 ID 就等于把用户的渠道自定义（静音、置顶、重要性）全部重置。
- * 因此重写只改代码结构，不动已发布渠道的身份。
+ * 因此重写只改代码结构，不动已发布渠道的身份（唯一例外是 DYNAMIC_ISLAND 的 v1→v2，
+ * 那次换 ID 是刻意为之，原因见该常量的说明）。
  */
 object NotificationChannels {
 
-    /** 课程提醒渠道（旧 ID，保持不变）。 */
+    /** 课程提醒渠道（旧 ID，保持不变；`CourseAlarmReceiver` 与本文件各幂等创建一次）。 */
     const val COURSE = "course_notification_channel"
 
-    /** 权限缺失提示渠道（旧 ID，保持不变）。 */
+    /** 权限缺失提示渠道（旧 ID，保持不变；`PermissionNoticeNotifier` 与本文件各幂等创建一次）。 */
     const val PERMISSION_NOTICE = "permission_notice_channel"
 
-    /** 灵动岛前台服务渠道（旧 ID，保持不变；其创建仍留在 DynamicIslandService）。 */
+    /**
+     * 灵动岛前台服务渠道（ID 自灵动岛上线起保持不变；后缀 v2 是因为 v1 用 IMPORTANCE_LOW
+     * 创建后无法升级，只能换新 ID——这是一次有意为之的身份重置，不是笔误）。
+     * 创建仍留在 `DynamicIslandService`（服务随显示窗口启停），ID 引用本常量。
+     */
     const val DYNAMIC_ISLAND = "dynamic_island_v2_channel"
 
     /**

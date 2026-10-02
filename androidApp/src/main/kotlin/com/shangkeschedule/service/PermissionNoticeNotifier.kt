@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import com.shangkeschedule.R
+import com.shangkeschedule.service.notification.notify.NotificationChannels
 import com.shangkeschedule.ui.settings.notification.hasNotificationPermission
 
 /**
@@ -31,7 +32,9 @@ import com.shangkeschedule.ui.settings.notification.hasNotificationPermission
 object PermissionNoticeNotifier {
 
     private const val TAG = "PermissionNotice"
-    private const val CHANNEL_ID = "permission_notice_channel"
+
+    /** 渠道 ID 取自 `NotificationChannels.PERMISSION_NOTICE`（单一来源，勿写字面量）。 */
+    private const val CHANNEL_ID = NotificationChannels.PERMISSION_NOTICE
 
     /** 精确闹钟权限缺失提示的通知 ID。 */
     const val NOTICE_ID_EXACT_ALARM = 50190
@@ -108,6 +111,8 @@ object PermissionNoticeNotifier {
 
     private fun ensureChannel(context: Context, nm: NotificationManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        // 幂等创建是防御性的：本对象由 WorkManager 周期任务调用，可能在进程冷启动时
+        // 先于 NotificationChannels.ensureAll() 发通知。渠道属性与 NotificationChannels 一致。
         if (nm.getNotificationChannel(CHANNEL_ID) != null) return
 
         nm.createNotificationChannel(

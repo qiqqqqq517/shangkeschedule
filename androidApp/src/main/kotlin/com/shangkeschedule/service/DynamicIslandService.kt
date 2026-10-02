@@ -20,6 +20,7 @@ import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.ReminderEngine
+import com.shangkeschedule.service.notification.notify.NotificationChannels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -81,7 +82,7 @@ class DynamicIslandService : Service(), KoinComponent {
         private const val TAG = "DynamicIslandService"
 
         /** 灵动岛通知专用频道（v2：IMPORTANCE_DEFAULT，状态栏常驻可见；旧 v1 为 LOW 无法升级故换新 ID） */
-        const val NOTIFICATION_CHANNEL_ID = "dynamic_island_v2_channel"
+        const val NOTIFICATION_CHANNEL_ID = NotificationChannels.DYNAMIC_ISLAND
 
         /** 灵动岛通知 ID */
         const val NOTIFICATION_ID = 20240904
