@@ -771,6 +771,22 @@ private data class SettingsSection(
  *
  * 分组结果（6 组 / 18 条 + 身份卡）：
  * 课表(4) · 教务系统(3) · 课程(3) · 学习(3) · 显示与提醒(4) · 应用与关于(1)
+ *
+ * ── v4.66.2 / v4.66.3（按用户两次反馈继续收口）─────────────────────────
+ * - v4.66.2：教务适配两条（适配状态 / 自动同步）移回「更多」页 —— 抓取脚本的维护/
+ *   诊断入口，对普通用户没有实际作用，不该占本页首屏。同步状态机随行搬迁。
+ * - v4.66.3：v4.66.2 把「教务系统」组收窄到只剩 1 条（空教室查询），成了空壳分组；
+ *   用户指出「课表导入导出和其他多项等均属于教务系统」。据此重划：
+ *   · **教务系统**（3→2）：课表导入与导出（从「课程」组并入）+ 空教室查询 ——
+ *     两条都要**先打通学校教务系统**才能拿到数据，是同族；
+ *   · **课程**组**整体撤销**：课程管理并入「课表」组（它管的是课表里的课程条目，
+ *     本质是课表自身内容）；备份与恢复并入「应用与关于」组（跨课表的数据保全，
+ *     不属于任何单张课表）。撤销后本页由 6 组降为 5 组，避免出现单条分组。
+ *   · 「学习」组保留（成绩与绩点 / 学业情况 / 考证查分）—— 区分「向教务系统取数」
+ *     （教务系统组）与「看学业结果」（学习组）。
+ *
+ * 分组结果（5 组 / 16 条 + 身份卡）：
+ * 课表(5) · 教务系统(2) · 学习(3) · 显示与提醒(4) · 应用与关于(2)
  */
 private fun buildSettingsSections(
     uiState: SettingsUiState,
@@ -796,42 +812,33 @@ private fun buildSettingsSections(
             SettingsEntry(
                 Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK,
                 Res.string.settings_sub_couple_schedule, destination = Destination.CoupleScheduleSettings
-            )
-        )
-    ),
-    // ── 教务系统：与学校教务系统对接的查询（v4.66.2 收窄为 1 条）────────────
-    SettingsSection(
-        labelRes = Res.string.settings_group_school_system,
-        entries = listOf(
-            // v4.66.2：另两条（教务适配状态 / 自动同步教务系统）已移回「更多」页——
-            // 那是抓取脚本的**维护 / 诊断**入口，对普通用户没有实际作用，
-            // 不该占「我的」页首屏。本组只剩「空教室查询」：它是实打实的教务查询功能，
-            // 留着；组名「教务系统」也仍然名副其实（后续再有教务类功能可直接归入）。
-            SettingsEntry(
-                Res.string.title_empty_classroom, Res.drawable.search_24px, SettingsEntryTone.AMBER,
-                Res.string.settings_sub_empty_classroom,
-                destination = Destination.SchoolSelectionListScreen(WebPagePurpose.EMPTY_CLASSROOM)
-            )
-        )
-    ),
-    // ── 课程：内容与数据进出 ──────────────────────────────────────────────
-    SettingsSection(
-        labelRes = Res.string.settings_group_courses,
-        entries = listOf(
+            ),
+            // v4.66.3：从已撤销的「课程」组并入。课程管理管的是**课表里的课程条目**
+            // （课程名 / 同课不同班次），本质是课表自身的内容，与课表同属一域。
             SettingsEntry(
                 Res.string.item_course_management, Res.drawable.edit_24px, SettingsEntryTone.MATCHA,
                 Res.string.settings_sub_course_management, destination = Destination.CourseManagementList
-            ),
+            )
+        )
+    ),
+    // ── 教务系统：向学校教务系统取数的入口（v4.66.3 扩为 2 条）──────────────
+    SettingsSection(
+        labelRes = Res.string.settings_group_school_system,
+        entries = listOf(
+            // v4.66.3：课表导入与导出从「课程」组并入。它与空教室查询同族 ——
+            // **都要先打通学校教务系统**才能拿到数据（其「学校导入」分区就是
+            // 教务系统导入 / 文本粘贴 / AI 识别）。先前「教务系统」组只挂一条
+            // 空教室查询是个空壳分组，现由这两条把它撑起来。
+            // 注：该页还含文件导入导出与系统日历同步，严格说不是纯教务系统，
+            // 但从用户心智看它就是「从学校把课表弄进来」的总入口，归在此处最直观。
             SettingsEntry(
                 Res.string.item_course_conversion, Res.drawable.download_24px, SettingsEntryTone.PURPLE,
                 Res.string.settings_sub_course_conversion, destination = Destination.CourseTableConversion
             ),
             SettingsEntry(
-                Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN,
-                // 刻意不复用 BackupScreen 内层的 desc_backup_restore（24 字）：那条是详情页
-                // 的完整说明，在「我的」页 14 行里会折成两行，把该行撑高、与其余 10 条
-                // 单行副标题不齐。行内副标题统一 12~16 字。
-                Res.string.settings_sub_backup_restore, destination = Destination.BackupAndRestore
+                Res.string.title_empty_classroom, Res.drawable.search_24px, SettingsEntryTone.AMBER,
+                Res.string.settings_sub_empty_classroom,
+                destination = Destination.SchoolSelectionListScreen(WebPagePurpose.EMPTY_CLASSROOM)
             )
         )
     ),
@@ -886,10 +893,20 @@ private fun buildSettingsSections(
             )
         )
     ),
-    // ── 应用与关于：应用元信息 ────────────────────────────────────────────
+    // ── 应用与关于：数据保全 + 应用元信息 ──────────────────────────────────
     SettingsSection(
         labelRes = Res.string.settings_group_app,
         entries = listOf(
+            // v4.66.3：从已撤销的「课程」组并入。备份与恢复是**跨课表**的数据保全动作
+            // （整库打包 / WebDAV / 本地文件），不属于任何单张课表或课程条目，
+            // 与应用元信息并在一组，由「与」字承担两类含义。
+            SettingsEntry(
+                Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN,
+                // 刻意不复用 BackupScreen 内层的 desc_backup_restore（24 字）：那条是详情页
+                // 的完整说明，在「我的」页行列表里会折成两行，把该行撑高、与其余单行
+                // 副标题不齐。行内副标题统一 12~16 字。
+                Res.string.settings_sub_backup_restore, destination = Destination.BackupAndRestore
+            ),
             SettingsEntry(
                 Res.string.item_more_options, Res.drawable.more_horiz_24px, SettingsEntryTone.BROWN,
                 Res.string.settings_sub_more_options, destination = Destination.MoreOptions
