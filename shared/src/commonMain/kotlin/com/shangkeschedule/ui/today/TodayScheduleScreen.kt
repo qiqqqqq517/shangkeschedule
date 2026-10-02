@@ -102,6 +102,7 @@ import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppPageHeader
 import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppFab
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
@@ -268,6 +269,12 @@ fun TodayScheduleScreen(
                 ) { todayState ->
                     when (val state = todayState) {
                         is TodayUiState.Loading -> AppLoading()
+                        // 数据源异常（v4.64.28）：此前没有兜底，页面会永久停在加载态
+                        is TodayUiState.Error -> AppErrorState(
+                            hint = state.message,
+                            fillScreen = true,
+                            onRetry = viewModel::refresh
+                        )
                         is TodayUiState.Success -> {
                         PullToRefreshBox(
                             isRefreshing = refreshing,

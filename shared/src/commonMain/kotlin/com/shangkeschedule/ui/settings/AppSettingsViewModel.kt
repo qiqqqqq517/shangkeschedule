@@ -20,8 +20,10 @@ import com.shangkeschedule.ui.theme.AnimationStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -36,8 +38,11 @@ import kotlinx.datetime.toLocalDateTime
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
+import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.annotation.Named
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.error_load_failed
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -52,7 +57,12 @@ data class SettingsUiState(
     val appSettings: AppSettingsModel = AppSettingsModel(),
     val courseConfig: CourseTableConfig? = null,
     val currentWeek: Int? = null,
-    val isReady: Boolean = false
+    val isReady: Boolean = false,
+    /**
+     * 数据源异常时的提示文案（v4.64.28）。非空表示启动门控无法放行，
+     * 此时 App() 根部渲染错误态并给出 [SettingsViewModel.retryLoad] 重试入口。
+     */
+    val error: String? = null
 )
 
 /**
@@ -86,34 +96,56 @@ class SettingsViewModel(
     }
 
     /**
+     * 数据源异常时的重订阅触发器（v4.64.28）。
+     * 背景：combine 链一旦抛异常，stateIn 的上游协程随即结束 —— 而 [startGate] 依赖 isReady，
+     * 失败时它会**永远**停在 false，冷启动便永久停在加载动画上，用户既看不到出错原因，
+     * 也没有任何重试入口。因此把链路包进 flatMapLatest，catch 之后仍可通过 [retryLoad] 重订阅。
+     */
+    private val retryTrigger = MutableStateFlow(0)
+
+    /**
      * 核心优化：聚合 UI 状态流
      * 使用 combine 将多个异步源合并为一个原子包，消除状态裂缝
      */
-    val uiState: StateFlow<SettingsUiState> = combine(
-        appSettingsFlow,
-        courseTableConfigFlow
-    ) { settings, config ->
-        val week = if (config != null) {
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-            val rawWeek = appSettingsRepository.getWeekIndexAtDate(
-                targetDate = today,
-                startDateStr = config.semesterStartDate,
-                firstDayOfWeekInt = config.firstDayOfWeek
-            )
-            rawWeek?.takeIf { it in 1..config.semesterTotalWeeks }
-        } else null
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<SettingsUiState> = retryTrigger
+        .flatMapLatest {
+            combine(
+                appSettingsFlow,
+                courseTableConfigFlow
+            ) { settings, config ->
+                val week = if (config != null) {
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val rawWeek = appSettingsRepository.getWeekIndexAtDate(
+                        targetDate = today,
+                        startDateStr = config.semesterStartDate,
+                        firstDayOfWeekInt = config.firstDayOfWeek
+                    )
+                    rawWeek?.takeIf { it in 1..config.semesterTotalWeeks }
+                } else null
 
-        SettingsUiState(
-            appSettings = settings,
-            courseConfig = config,
-            currentWeek = week,
-            isReady = true
+                SettingsUiState(
+                    appSettings = settings,
+                    courseConfig = config,
+                    currentWeek = week,
+                    isReady = true
+                )
+            }.catch { e ->
+                // 日志保留堆栈，UI 只给用户可理解的一句话
+                AppLog.e(TAG, "设置数据源异常，启动门控无法放行", e)
+                emit(SettingsUiState(error = getString(Res.string.error_load_failed)))
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = SettingsUiState()
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = SettingsUiState()
-    )
+
+    /** 启动/设置数据加载失败后的重试入口（v4.64.28）：重新订阅整条设置链。 */
+    fun retryLoad() {
+        retryTrigger.value += 1
+    }
 
     /**
      * 启动门控：isReady + startScreen 单独 map 出来供 App() 根部订阅（v3.54.0）。

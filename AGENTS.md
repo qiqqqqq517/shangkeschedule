@@ -43,6 +43,7 @@
   推送遇凭据故障时的兜底：`python scripts/push_via_wincred.py`（绕开 git 凭据链，直接调 wincred helper 取凭据注入 URL；默认走 git 配置的代理，代理故障时 `--direct` 直连备用）。
 - **官网同步（每次发版必做，单独提交）**：`website/changelog.html` 补时间线条目 + 页头版本号、`website/assets/js/site.js` 的 `SITE.version`/`versionCode`、`website/sitemap.xml` 的 `/changelog` lastmod；提交信息 `docs(website): 同步 vX.Y.Z 更新日志 vX.Y.Z`。
 - **arm64 正式包归档（每次发版必做）**：把当版 `shangke-vX.Y.Z-arm64-v8a-release.apk` 放入仓库外的 `D:\01课程表\正式版-arm64\`（仅此一种包，规则见该目录 `README.md`：一版一包、放入即按 README 第 4 条校验三项）；该目录不入库、不提交。
+- **夸克网盘同步（每次发版必做）**：把当版 `shangke-vX.Y.Z-arm64-v8a-release.apk` 上传到夸克网盘「上课-课程表」用户下载目录，并把该目录内**其余全部 .apk 旧包**移入其子目录「旧版本在此」（该目录只留最新一个包）。一条命令：`python scripts\quark_publish_apk.py`（`--dry-run` 只预览）。脚本按目录名现场解析 fid、同名包跳过上传（幂等），并设有**发版闸**：该版本在 GitHub 上没有已发布的 Release 时会拒绝上传，未发版构建须显式加 `--allow-unreleased`。前置：本机已安装并授权夸克网盘 Skill（`C:\Users\30458\.dsh\skills\quarkclouddrive\`）。逐条见 `docs/agents/release-runbook.md` §6。
 - **推送 origin 的已知故障**：可能报 `schannel: failed to receive handshake`。**不要**清空代理直连（报 `Connection was reset`）、**不要**切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`）；正确做法是等约 20 秒后用 `git ls-remote --heads origin main` 探活，恢复后原样重推。`gitee` 镜像每次同步推送。
 - 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）；CI 侧不再需要签名密钥。
 - 发布完成后在 `工作日志.md` 追加 `BUILD` 记录（构建结果、三包体积、versionCode/ABI/签名校验结论、Release id 与 URL、tag 指向、官网同步提交、origin/gitee 推送状态、是否装机验证）。

@@ -71,6 +71,20 @@
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">學習</string>
     <string name="settings_group_about">關於</string>
+    <string name="settings_group_display_notify">顯示與提醒</string>
+    <string name="settings_group_app">應用與關於</string>
+    <string name="settings_sub_manage_course_tables">多張課表的建立、切換與歸檔</string>
+    <string name="settings_sub_semester_settings">開學日期、總週數與目前週次</string>
+    <string name="settings_sub_time_slot">作息、上下午與節次劃分</string>
+    <string name="settings_sub_couple_schedule">與 TA 的課表疊加與同步</string>
+    <string name="settings_sub_course_management">課程名與同課不同班次的集中管理</string>
+    <string name="settings_sub_course_conversion">教務、檔案與文字匯入，JSON / ICS 匯出</string>
+    <string name="settings_sub_backup_restore">雲端與本機雙通道備份與還原</string>
+    <string name="settings_sub_appearance">主題、課表樣式與懸浮件觀感</string>
+    <string name="settings_sub_notification">上課提醒、勿擾與早八鬧鐘</string>
+    <string name="settings_sub_show_non_current_week">同時顯示其他週次的課程</string>
+    <string name="settings_sub_show_weekends">課表與今日頁包含週六、週日</string>
+    <string name="settings_sub_more_options">語言、啟動頁、官網與開源授權</string>
     <string name="text_no_courses_today">今天沒有課程</string>
     <string name="text_no_courses_this_week">本週沒有課程</string>
     <string name="title_vacation_until_start">假期中（距離開學還有%1$s天）</string>
@@ -609,6 +623,8 @@
     <string name="quick_delete_dialog_select_date_title">選擇日期範圍</string>
     <string name="quick_delete_success">課表清理成功</string>
     <string name="error_load_failed">初始化失敗，請重試</string>
+    <string name="error_schedule_load_failed">課表資料載入失敗，請重試</string>
+    <string name="error_agenda_load_failed">日程載入失敗，請重試</string>
     <string name="error_op_failed">操作失敗: %1$s</string>
     <string name="theme_follow_system">跟隨系統</string>
     <string name="theme_light">淺色模式</string>
@@ -896,6 +912,7 @@
     <string name="wb_list_json_invalid_fmt">選項清單 JSON 無效: %1$s</string>
     <string name="tivm_error_empty_input">請輸入或貼上課表內容</string>
     <string name="tivm_error_empty_file">檔案內容為空</string>
+    <string name="tivm_error_no_courses">未辨識到任何課程，已取消匯入，原課表維持不變</string>
     <string name="tivm_error_not_utf8">檔案不是 UTF-8 編碼</string>
     <string name="tivm_json_parse_failed">JSON 解析失敗：未找到有效課程</string>
     <string name="tivm_import_failed_fmt">匯入失敗: %1$s</string>

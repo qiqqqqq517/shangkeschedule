@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -86,6 +87,31 @@ private val SettingsTrailingSlotHeight = 32.dp
 
 /** 图标徽章内的图标尺寸：三主题一致。 */
 private val SettingsRowIconSize = 16.dp
+
+/**
+ * 副标题排版常量（v4.64.29「我的」页重排新增）。
+ *
+ * 为什么单独定义而不是走主题 token：副标题是**行内第二行**（description），
+ * 与 `appSettingsRow().titleSize`（行主标题）、`detailSize`（行尾取值）都不同角色，
+ * 且三主题取值本就一致（同一层「我的」列表的说明文字不应随主题改变字号）。
+ * 故按行内角色在本文件固定，避免三个风格文件各写一份又产生漂移。
+ *
+ * [SettingsRowSubtitleMaxLines] = 2：说明文案在窄屏（如 360dp 宽 + 30dp 图标槽）
+ * 可能折行，限 2 行后溢出省略；不限行会让极端长文案把行撑得过高。
+ */
+private val SettingsRowSubtitleSize = 13.sp
+private val SettingsRowSubtitleLineHeight = 17.sp
+private const val SettingsRowSubtitleMaxLines = 2
+
+/**
+ * 带副标题时的上下内距收窄量。
+ *
+ * 单行行的 paddingVertical（通透 / 柔绘 10dp、书卷 0dp）是围绕 16~17sp 单行调的；
+ * 换成「标题 + 副标题」两行后，文字本身已占约 40dp，若不收窄每行多出约 8~10dp 空白，
+ * 整页 14 行累计多出可观的滚动长度。收窄后单行行与双行行的视觉密度接近，
+ * 且行高仍由 `settingsRowMinHeight` 兜底，不会出现拥挤。
+ */
+private val SettingsSubtitlePaddingCut = 4.dp
 
 /**
  * 设置分组标签（原 ClaudeGroupLabel / IosGroupLabel / SoftGroupLabel 合一）。
@@ -158,9 +184,15 @@ fun AppSettingsGroup(
 /**
  * 设置列表行（原 ClaudeListItem / IosSettingCell / SoftSettingCell 合一）。
  *
- * 信息层级与顺序三主题逐项一致：分隔线 → 图标徽章 → 标题 → detail → 尾部插槽。
+ * 信息层级与顺序三主题逐项一致：分隔线 → 图标徽章 → 标题 → [subtitle] → detail → 尾部插槽。
  * 差异全部走 [appSettingsRow]（行高策略 / 分隔线取色与缩进 / 内距 / 图标画法 /
  * 字阶 / 箭头尺寸与透明度 / 尾部插槽形态）。
+ *
+ * [subtitle]（v4.64.29「我的」页重排新增）：标题下方的**功能说明**，与行尾 [detail]
+ * 语义不同 —— [detail] 是「当前取值」（如「已开启」），回答"现在是什么状态"；
+ * [subtitle] 是「这一项能干什么」，回答"点进去会发生什么"。两者互斥使用，不可叠加。
+ * 带副标题时垂直内距收窄一档（见 [SettingsSubtitlePaddingCut]）：两行文字本身就吃掉
+ * 约 40dp，若沿用单行行距会让整页 14 行全部虚胖约 12dp。
  *
  * [tone] 是**语义角色**（如「课程管理 = PURPLE」），具体颜色由主题层
  * [settingsToneColors] 决定——组件不再接触任何主题专属色调枚举。
@@ -171,6 +203,7 @@ fun AppSettingRow(
     icon: ImageVector,
     tone: SettingsEntryTone,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     detail: String? = null,
     showDivider: Boolean = false,
     onClick: (() -> Unit)? = null,
@@ -179,6 +212,12 @@ fun AppSettingRow(
     val r = appSettingsRow()
     val colors = appColors()
     val toneColors = settingsToneColors(tone)
+    // 有副标题时收窄上下内距，保持整页总高度可控（详见 KDoc）。
+    val verticalPadding: Dp = if (subtitle != null) {
+        (r.paddingVertical - SettingsSubtitlePaddingCut).coerceAtLeast(0.dp)
+    } else {
+        r.paddingVertical
+    }
     Column(modifier = modifier.fillMaxWidth()) {
         if (showDivider) {
             HorizontalDivider(
@@ -202,7 +241,7 @@ fun AppSettingRow(
                 // ⇒ token 说一套、渲染做另一套。删除枚举后二者合一。
                 .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
                 .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .padding(horizontal = r.paddingHorizontal, vertical = r.paddingVertical),
+                .padding(horizontal = r.paddingHorizontal, vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val iconShape = RoundedCornerShape(r.iconBoxRadius)
@@ -228,18 +267,46 @@ fun AppSettingRow(
                 )
             }
             Spacer(modifier = Modifier.width(r.iconGap))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = r.titleSize,
-                    fontWeight = r.titleWeight,
-                    letterSpacing = r.titleLetterSpacing
-                ),
-                color = colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            if (subtitle == null) {
+                // 单行：无副标题时保持原样（标题独占一列）
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = r.titleSize,
+                        fontWeight = r.titleWeight,
+                        letterSpacing = r.titleLetterSpacing
+                    ),
+                    color = colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                // 双行：标题 + 功能说明同处一列（weight 落在 Column 上，尾部插槽仍贴右）
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = r.titleSize,
+                            fontWeight = r.titleWeight,
+                            letterSpacing = r.titleLetterSpacing
+                        ),
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = SettingsRowSubtitleSize,
+                            lineHeight = SettingsRowSubtitleLineHeight
+                        ),
+                        color = colors.textSecondary,
+                        maxLines = SettingsRowSubtitleMaxLines,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             if (detail != null) {
                 Text(
                     text = detail,

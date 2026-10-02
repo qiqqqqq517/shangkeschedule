@@ -73,4 +73,92 @@ if [ "$ASTATUS" -ne 0 ]; then
   echo "  本次跳过  ：git commit --no-verify" >&2
   exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# 红线文件守卫（**绝对式**：命中即拦截，无棘轮、无基线）
+#
+# 背景：AGENTS.md 明令 *.jks / keystore.properties / local.properties /
+#       google-services.json 不得入库；签名密钥当前仅存本机，一旦被
+#       `git add .` 带进历史就是永久泄露（改写历史成本极高）。
+#       配合"git add 禁止 . / -A、必须显式列文件"的纪律，这里给出机器兜底。
+# 放行：确属误报时用 `git commit --no-verify`，但请先确认该文件真的可以入库。
+# ---------------------------------------------------------------------------
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)"
+
+FORBIDDEN=""
+echo "$STAGED" | while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    *.jks|*.keystore|*/keystore.properties|keystore.properties|*/local.properties|local.properties|*/google-services.json|google-services.json|adapter_secrets.properties|*/adapter_secrets.properties)
+      echo "$f" ;;
+  esac
+done > "$(git rev-parse --git-dir)/shangke-forbidden.tmp" 2>/dev/null
+FORBIDDEN="$(cat "$(git rev-parse --git-dir)/shangke-forbidden.tmp" 2>/dev/null)"
+
+if [ -n "$FORBIDDEN" ]; then
+  echo "" >&2
+  echo "[redline] 提交被拦截：以下文件是 AGENTS.md 明令禁止入库的红线文件（密钥/本地配置/私有适配密钥）：" >&2
+  echo "$FORBIDDEN" | sed 's/^/    - /' >&2
+  echo "  取消暂存：git restore --staged <文件>" >&2
+  echo "  确认无敏感内容后再提交；确属误报：git commit --no-verify" >&2
+  rm -f "$(git rev-parse --git-dir)/shangke-forbidden.tmp"
+  exit 1
+fi
+rm -f "$(git rev-parse --git-dir)/shangke-forbidden.tmp"
+
+# ---------------------------------------------------------------------------
+# 教务适配脚本门禁（**条件触发**：仅当暂存区碰了适配脚本时才跑）
+#
+# 背景：适配脚本（178 校 / 196 文件）是产品的护城河，却零自动化测试；
+#       check_adapters.py 已覆盖 —— 入口契约、双落点(主仓库↔私有仓)一致性、
+#       裸原生对话框、危险 API、require/catch、孤儿脚本、node --check 语法。
+# 为何条件触发：全量跑含 196 次 node --check 约 13 秒，若每次都跑，几天内必然被
+#       `--no-verify` 绕过。这里只在暂存区确实动了适配脚本时触发，并用 --skip-node
+#       压到 ~1.8 秒（结构/双落点/孤儿照查）；含 --skip-node 的全量校验请留在
+#       发版 runbook 与 CI 前置检查里跑。
+# 放行：确属误报：python scripts/check_adapters.py --strict（看明细）或 --no-verify。
+# ---------------------------------------------------------------------------
+ADAPTER_TOUCHED="$(echo "$STAGED" | grep -E '^(shared/assets/offline_repo/|\.adapter_private/|adapter-worker/)' || true)"
+if [ -n "$ADAPTER_TOUCHED" ]; then
+  echo "[adapters] 检测到适配脚本改动，运行适配置体检（--skip-node）..." >&2
+  "$PY" scripts/check_adapters.py --skip-node
+  ADSTATUS=$?
+  if [ "$ADSTATUS" -ne 0 ]; then
+    echo "" >&2
+    echo "[adapters] 提交被拦截：教务适配脚本存在 ERROR（见上方明细）。" >&2
+    echo "  看完整报告（含 node 语法校验）：python scripts/check_adapters.py" >&2
+    echo "  本次跳过  ：git commit --no-verify" >&2
+    exit 1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 版本号一致性门禁（**条件触发**：仅当暂存区碰了版本源或官网时）
+#
+# 背景：发版时版本号被写进多处；androidApp/build.gradle.kts 是 APK 真实版本，
+#       website/assets/js/site.js 的 SITE.version 在运行时覆写官网页所有
+#       data-version 占位符。两者一旦漂移，用户从官网点下载拿到的是旧包 —— 而本
+#       repo 的 tools/ 整目录被 gitignore，负责同步的 update_website.py 在新
+#       worktree 里根本不存在，漂移可以完全静默地发生。
+# 说明：scripts/check_version_sync.py 只对齐 (1)(2) 两个文件的四个字段，
+#       不涉及 CHANGELOG / GitHub Release（那两者无机器可校验锚点）。
+#       注意：纯工具链提交会 bump versionName 但不出 Release，此时
+#       site.js 同步到新版本、changelog.html 停留在上一已发布版本 —— 这是
+#       update_website.py 的既有设计，不是违规，本门禁不涉及这一点。
+# 放行：确属误报：git commit --no-verify
+# ---------------------------------------------------------------------------
+VERSION_TOUCHED="$(echo "$STAGED" | grep -E '^(androidApp/build\.gradle\.kts|website/assets/js/site\.js|CHANGELOG\.md)$' || true)"
+if [ -n "$VERSION_TOUCHED" ]; then
+  "$PY" scripts/check_version_sync.py --quiet
+  VSTATUS=$?
+  if [ "$VSTATUS" -ne 0 ]; then
+    echo "" >&2
+    echo "[version] 提交被拦截：版本号不一致（见上方明细）。" >&2
+    echo "  APK 真实版本源：androidApp/build.gradle.kts" >&2
+    echo "  官网页版本源  ：website/assets/js/site.js" >&2
+    echo "  本次跳过      ：git commit --no-verify" >&2
+    exit 1
+  fi
+fi
+
 exit 0

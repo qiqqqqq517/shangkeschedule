@@ -4,6 +4,7 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.import_fmt_share_code
 import shangkeschedule.shared.generated.resources.tivm_error_empty_file
 import shangkeschedule.shared.generated.resources.tivm_error_empty_input
+import shangkeschedule.shared.generated.resources.tivm_error_no_courses
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
 import shangkeschedule.shared.generated.resources.tivm_error_old_xls
@@ -163,31 +164,42 @@ class TextImportViewModel(
             }
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val imported = withContext(Dispatchers.IO) {
+                // 空结果保护（v4.64.26）：importCourseTableFromJson 是「先清空目标表再插入」，
+                // 0 门课会把已有课表静默删光并返回成功。此前预览页可逐条删空（P1-6）后仍能走到这里，
+                // 因此把「解析成功但没有任何课程」当失败上报。守卫放在 VM 层而非 repository：
+                // BackupRepository 的回滚快照分支允许合法空表（见 importCourseTableFromJson 调用点）。
+                val failure: String? = withContext(Dispatchers.IO) {
                     val text = bytes.decodeToString().removePrefix("\uFEFF")
                     if (text.contains('\uFFFD')) throw IllegalArgumentException(getString(Res.string.tivm_error_not_utf8))
 
                     // 1) 本 App 导出格式严格解析
                     try {
                         val model = CourseImportExport.json.decodeFromString<CourseTableImportModel>(text)
+                        if (model.courses.isEmpty()) {
+                            throw IllegalArgumentException(getString(Res.string.tivm_error_no_courses))
+                        }
                         courseConversionRepository.importCourseTableFromJson(tableId, model)
-                        return@withContext true
+                        return@withContext null
                     } catch (_: Exception) {
                     }
 
                     // 2) WakeUp / 通用 JSON 解析
                     when (val r = UniversalScheduleParser.parseWithFormat(text, TextImportFormat.JSON)) {
                         is UniversalScheduleParser.ParseResult.Success -> {
-                            courseConversionRepository.importCourseTableFromJson(tableId, r.model)
-                            true
+                            if (r.model.courses.isEmpty()) {
+                                getString(Res.string.tivm_error_no_courses)
+                            } else {
+                                courseConversionRepository.importCourseTableFromJson(tableId, r.model)
+                                null
+                            }
                         }
-                        is UniversalScheduleParser.ParseResult.Error -> false
+                        is UniversalScheduleParser.ParseResult.Error -> getString(Res.string.tivm_json_parse_failed)
                     }
                 }
-                if (imported) {
+                if (failure == null) {
                     onSuccess(tableId)
                 } else {
-                    onError(getString(Res.string.tivm_json_parse_failed))
+                    onError(failure)
                 }
             } catch (e: Exception) {
                 onError(getString(Res.string.tivm_import_failed_fmt, e.message ?: ""))
@@ -214,6 +226,11 @@ class TextImportViewModel(
                 onError(getString(Res.string.tivm_error_parse_first))
                 return@launch
             }
+            // 空结果保护：预览页可逐条删除条目（P1-6），删空后不许再落库
+            if (model.courses.isEmpty()) {
+                onError(getString(Res.string.tivm_error_no_courses))
+                return@launch
+            }
             if (tableName.isBlank()) {
                 onError(getString(Res.string.tivm_error_table_name_empty))
                 return@launch
@@ -238,6 +255,11 @@ class TextImportViewModel(
             val model = _uiState.value.parseResult
             if (model == null) {
                 onError(getString(Res.string.tivm_error_parse_first))
+                return@launch
+            }
+            // 空结果保护：预览页可逐条删除条目（P1-6），删空后不许再落库（会清空目标表）
+            if (model.courses.isEmpty()) {
+                onError(getString(Res.string.tivm_error_no_courses))
                 return@launch
             }
             _uiState.value = _uiState.value.copy(isLoading = true)

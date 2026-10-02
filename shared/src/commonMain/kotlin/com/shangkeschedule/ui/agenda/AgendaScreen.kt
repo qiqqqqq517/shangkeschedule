@@ -102,6 +102,7 @@ import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppEmptyState
+import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppLoading
 import com.shangkeschedule.ui.components.AppSwitch
@@ -250,7 +251,15 @@ fun AgendaScreen(
                         .padding(innerPadding)
                         .hazeSource(hazeState)
                 ) {
-                    if (!uiState.isLoaded) {
+                    val loadError = uiState.error
+                    if (loadError != null) {
+                        // 数据源异常（v4.64.28）：此前链路抛异常会取消收集协程，页面永久停在加载态
+                        AppErrorState(
+                            hint = loadError,
+                            fillScreen = true,
+                            onRetry = viewModel::retryLoad
+                        )
+                    } else if (!uiState.isLoaded) {
                         AppLoading()
                     } else {
                         AgendaContent(

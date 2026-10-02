@@ -71,6 +71,20 @@
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">Study</string>
     <string name="settings_group_about">About</string>
+    <string name="settings_group_display_notify">Display &amp; Reminders</string>
+    <string name="settings_group_app">App &amp; About</string>
+    <string name="settings_sub_manage_course_tables">Create, switch and archive multiple timetables</string>
+    <string name="settings_sub_semester_settings">Start date, total weeks and current week</string>
+    <string name="settings_sub_time_slot">Daily routine, AM/PM split and periods</string>
+    <string name="settings_sub_couple_schedule">Overlay and sync a partner's timetable</string>
+    <string name="settings_sub_course_management">Course names and same-name classes in one place</string>
+    <string name="settings_sub_course_conversion">Import from school system, files and text; export JSON / ICS</string>
+    <string name="settings_sub_backup_restore">Back up and restore via cloud or local files</string>
+    <string name="settings_sub_appearance">Theme, timetable style and floating widget look</string>
+    <string name="settings_sub_notification">Class reminders, silent mode and alarm sync</string>
+    <string name="settings_sub_show_non_current_week">Also show classes from other weeks</string>
+    <string name="settings_sub_show_weekends">Include Saturday and Sunday</string>
+    <string name="settings_sub_more_options">Language, start page, website and open-source licenses</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="text_no_courses_this_week">No courses this week</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
@@ -613,6 +627,8 @@
     <string name="quick_delete_dialog_select_date_title">Select Date Range</string>
     <string name="quick_delete_success">Schedule cleared successfully</string>
     <string name="error_load_failed">Failed to initialize, please try again</string>
+    <string name="error_schedule_load_failed">Failed to load your schedule. Please try again.</string>
+    <string name="error_agenda_load_failed">Failed to load your agenda. Please try again.</string>
     <string name="error_op_failed">Operation failed: %1$s</string>
     <string name="theme_follow_system">Follow System</string>
     <string name="theme_light">Light Mode</string>
@@ -895,6 +911,7 @@
     <string name="wb_list_json_invalid_fmt">Invalid options list JSON: %1$s</string>
     <string name="tivm_error_empty_input">Enter or paste timetable content</string>
     <string name="tivm_error_empty_file">File content is empty</string>
+    <string name="tivm_error_no_courses">No courses were identified. Import cancelled; your original schedule is unchanged.</string>
     <string name="tivm_error_not_utf8">File is not UTF-8 encoded</string>
     <string name="tivm_json_parse_failed">JSON parse failed: no valid courses found</string>
     <string name="tivm_import_failed_fmt">Import failed: %1$s</string>

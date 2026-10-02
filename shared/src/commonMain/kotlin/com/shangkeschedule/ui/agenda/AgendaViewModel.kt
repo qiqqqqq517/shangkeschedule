@@ -13,14 +13,18 @@ import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
 import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.tool.LunarCalendar
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -32,8 +36,13 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.error_agenda_load_failed
 import kotlin.time.Clock
+
+private const val TAG = "AgendaViewModel"
 
 /**
  * 「日程」页视图模型。
@@ -86,8 +95,24 @@ class AgendaViewModel(
     /** 选中日期变化（供新建日程默认日期使用）。 */
     val currentSelectedDate: StateFlow<LocalDate> = selectedDate
 
+    /**
+     * 数据源异常时的重订阅触发器（v4.64.28）。
+     * 详见 [agendaDataFlow]：catch 必须包在 flatMapLatest 之内，重试才有机会重建整条链。
+     */
+    private val retryTrigger = MutableStateFlow(0)
+
+    /** 日程加载失败后的重试入口（v4.64.28）。 */
+    fun retryLoad() {
+        retryTrigger.value += 1
+    }
+
+    /**
+     * 一次订阅的完整查询链（v4.64.28）。
+     * 拆成独立属性的原因：`catch` 若挂在最外层，接住异常后整条 flow 即 completed ——
+     * 此后 [retryTrigger] 再 +1 也没人收集，重试会变成死按钮。
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<AgendaUiState> = combine(
+    private val agendaDataFlow: Flow<AgendaUiState> = combine(
         appSettingsRepository.getAppSettings(),
         selectedDate,
         visibleMonth,
@@ -172,6 +197,20 @@ class AgendaViewModel(
                     }
             }
         }
+        // 显式类型实参把链路拓宽为 Flow<AgendaUiState>：Flow 协变，单靠属性声明的
+        // Flow<AgendaUiState> 不会反向影响推断，catch 里 emit(...error=...) 会类型不符。
+        .catch<AgendaUiState> { e ->
+            // 此前这条链没有任何兜底：Room/DataStore 抛异常会直接取消收集协程，
+            // 日程页便永久停在加载动画上，用户既不知情也没有重试入口。
+            AppLog.e(TAG, "日程数据加载失败", e)
+            emit(AgendaUiState(error = getString(Res.string.error_agenda_load_failed)))
+        }
+        .onStart { emit(AgendaUiState()) }
+
+    /** 日程页 UI 状态；[retryTrigger] 变化即重建 [agendaDataFlow]。 */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<AgendaUiState> = retryTrigger
+        .flatMapLatest { agendaDataFlow }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AgendaUiState())
 
     /** 选中某一天。 */
@@ -488,6 +527,11 @@ data class AgendaEntry(
 /** 日程页 UI 状态。 */
 data class AgendaUiState(
     val isLoaded: Boolean = false,
+    /**
+     * 数据源异常时的提示文案（v4.64.28）。非空表示本次加载失败，
+     * 页面据此渲染错误态并给出 [AgendaViewModel.retryLoad] 重试入口。
+     */
+    val error: String? = null,
     val today: LocalDate = LocalDate(2000, 1, 1),
     val selectedDate: LocalDate = LocalDate(2000, 1, 1),
     val month: MonthKey = MonthKey(2000, 1),
