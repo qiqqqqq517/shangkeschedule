@@ -39,6 +39,8 @@ import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.tool.AdapterRemoteUpdater
+import com.shangkeschedule.tool.AdapterSyncResult
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -92,14 +94,27 @@ import shangkeschedule.shared.generated.resources.item_privacy_policy
 import shangkeschedule.shared.generated.resources.item_request_adapter
 import shangkeschedule.shared.generated.resources.item_star_project
 import shangkeschedule.shared.generated.resources.item_start_screen_settings
+import shangkeschedule.shared.generated.resources.item_auto_sync_adapter
 import shangkeschedule.shared.generated.resources.item_user_agreement
+import shangkeschedule.shared.generated.resources.settings_sub_adapter_status
+import shangkeschedule.shared.generated.resources.settings_sub_auto_sync_adapter
+import shangkeschedule.shared.generated.resources.sync_alt_24px
+import shangkeschedule.shared.generated.resources.sync_status_disabled
+import shangkeschedule.shared.generated.resources.sync_status_failed
+import shangkeschedule.shared.generated.resources.sync_status_syncing
+import shangkeschedule.shared.generated.resources.sync_status_up_to_date
+import shangkeschedule.shared.generated.resources.sync_status_updated
+import shangkeschedule.shared.generated.resources.title_adapter_status
 import shangkeschedule.shared.generated.resources.label_version_prefix
 import shangkeschedule.shared.generated.resources.language_24px
 import shangkeschedule.shared.generated.resources.link_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.school_24px
+import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
+import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.section_more_about
+import shangkeschedule.shared.generated.resources.section_more_adapter
 import shangkeschedule.shared.generated.resources.section_more_contact
 import shangkeschedule.shared.generated.resources.section_more_feedback
 import shangkeschedule.shared.generated.resources.share_copy_failed
@@ -150,6 +165,34 @@ fun MoreOptionsScreen(
     // 状态观察
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled = uiState.appSettings.developerModeEnabled
+
+    // 教务适配「自动同步」（v4.66.2 从「我的」页搬来）：状态机整段随行搬迁。
+    // 同步结果写回该行副标题并弹一次 toast —— 与搬走前在「我的」页的行为逐字一致，
+    // 用户感知不到入口换了位置，只是不再占据「我的」页首屏。
+    val adapterRemoteUpdater: AdapterRemoteUpdater = koinInject()
+    val adapterSyncScope = rememberCoroutineScope()
+    var adapterSyncing by remember { mutableStateOf(false) }
+    var adapterSyncStatusText by remember { mutableStateOf<String?>(null) }
+    fun triggerAdapterSync() {
+        if (adapterSyncing) return
+        adapterSyncing = true
+        adapterSyncStatusText = null
+        adapterSyncScope.launch {
+            val result = adapterRemoteUpdater.sync()
+            val text = when (result) {
+                is AdapterSyncResult.Updated ->
+                    getString(Res.string.sync_status_updated, result.fileCount)
+                AdapterSyncResult.UpToDate -> getString(Res.string.sync_status_up_to_date)
+                AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
+                is AdapterSyncResult.VerificationFailed ->
+                    getString(Res.string.adapter_remote_update_failed)
+                is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
+            }
+            adapterSyncing = false
+            adapterSyncStatusText = text
+            ToastManager.show(text)
+        }
+    }
 
     // 「检查更新」（v4.66.0，K4）：版本号来自官网静态 version.json，网盘只做下载落点。
     // 只在用户点击时请求一次——不后台轮询、不开机自检；失败按原因明确提示，不静默。
@@ -318,6 +361,44 @@ fun MoreOptionsScreen(
             // 「教务适配状态 / 自动同步教务系统 / 空教室查询」「考证查分」「成绩与绩点 + 学业情况」
             // 三张卡已上移到「我的」页（SettingsScreen.kt 的「课表」分组与新增「学习」分组），
             // 本页只保留关于本应用 / 反馈与协议 / 联系作者 —— 避免新功能堆在「更多」里。
+
+            // 教务适配维护（v4.66.2 从「我的」页搬回）：抓取脚本的**维护 / 诊断**入口——
+            // 「适配状态」看各校脚本能不能用、「自动同步」手动拉最新脚本。
+            // 对普通用户没有实际作用（教务导入失败时适配器会自动兜底），
+            // 故放「更多」而非「我的」页首屏；与下方「申请适配教务系统」相邻，
+            // 让"适配"相关的三件事在一屏内连续可读。
+            AppSectionHeader(
+                stringResource(Res.string.section_more_adapter),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = appSpacing().pageHorizontal)
+            )
+            SectionCard(
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
+            ) {
+                SettingItem(
+                    title = stringResource(Res.string.title_adapter_status),
+                    subtitle = stringResource(Res.string.settings_sub_adapter_status),
+                    leadingIcon = vectorResource(Res.drawable.build_24px),
+                    onClick = { onNavigate(Destination.AdapterStatus) }
+                )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.item_auto_sync_adapter),
+                    // 同步中 / 同步结果写回副标题位：与本文件「检查更新」同一套约定
+                    // （那边是 checkingUpdate / updateStatusText 三态），不另加一行，
+                    // 免得行高随状态跳变。
+                    subtitle = if (adapterSyncing) {
+                        stringResource(Res.string.sync_status_syncing)
+                    } else {
+                        adapterSyncStatusText ?: stringResource(Res.string.settings_sub_auto_sync_adapter)
+                    },
+                    leadingIcon = vectorResource(Res.drawable.sync_alt_24px),
+                    onClick = ::triggerAdapterSync
+                )
+            }
+
+            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 意见反馈 / 教务适配申请 / 应用内协议（v4.65.0）
             AppSectionHeader(

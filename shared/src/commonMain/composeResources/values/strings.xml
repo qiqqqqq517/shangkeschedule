@@ -97,6 +97,7 @@
     <string name="section_more_about">关于本应用</string>
     <string name="section_more_feedback">反馈与协议</string>
     <string name="section_more_contact">联系作者</string>
+    <string name="section_more_adapter">教务适配</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="text_no_courses_this_week">本周没有课程</string>
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>

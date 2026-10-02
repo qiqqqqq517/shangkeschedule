@@ -86,7 +86,6 @@ import shangkeschedule.shared.generated.resources.dialog_title_set_first_day_of_
 import shangkeschedule.shared.generated.resources.item_course_conversion
 import shangkeschedule.shared.generated.resources.item_course_management
 import shangkeschedule.shared.generated.resources.item_more_options
-import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.download_24px
 import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_show_non_current_week
@@ -95,9 +94,7 @@ import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.settings_group_app
 import shangkeschedule.shared.generated.resources.settings_group_display_notify
 import shangkeschedule.shared.generated.resources.settings_group_school_system
-import shangkeschedule.shared.generated.resources.settings_sub_adapter_status
 import shangkeschedule.shared.generated.resources.settings_sub_appearance
-import shangkeschedule.shared.generated.resources.settings_sub_auto_sync_adapter
 import shangkeschedule.shared.generated.resources.settings_sub_backup_restore
 import shangkeschedule.shared.generated.resources.settings_sub_cert_exam
 import shangkeschedule.shared.generated.resources.settings_sub_couple_schedule
@@ -135,28 +132,13 @@ import shangkeschedule.shared.generated.resources.title_manage_course_tables
 import shangkeschedule.shared.generated.resources.nav_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 // v4.66.0（信息架构搬迁 · 用户 m05093 / 裁决 A）：学习与教务类入口从「更多」页上移到「我的」页
-import androidx.compose.runtime.rememberCoroutineScope
 import com.shangkeschedule.WebPagePurpose
-import com.shangkeschedule.tool.AdapterRemoteUpdater
-import com.shangkeschedule.tool.AdapterSyncResult
-import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
-import org.koin.compose.koinInject
-import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
 import shangkeschedule.shared.generated.resources.check_circle_24px
 import shangkeschedule.shared.generated.resources.grade_page_title
-import shangkeschedule.shared.generated.resources.item_auto_sync_adapter
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.search_24px
 import shangkeschedule.shared.generated.resources.settings_group_study
-import shangkeschedule.shared.generated.resources.sync_alt_24px
-import shangkeschedule.shared.generated.resources.sync_status_disabled
-import shangkeschedule.shared.generated.resources.sync_status_failed
-import shangkeschedule.shared.generated.resources.sync_status_syncing
-import shangkeschedule.shared.generated.resources.sync_status_up_to_date
-import shangkeschedule.shared.generated.resources.sync_status_updated
-import shangkeschedule.shared.generated.resources.title_adapter_status
 import shangkeschedule.shared.generated.resources.title_cert_exam
 import shangkeschedule.shared.generated.resources.title_empty_classroom
 import shangkeschedule.shared.generated.resources.title_study_progress
@@ -178,45 +160,15 @@ fun SettingsScreen(
     // 再在 7 处按身份分派；设置页组件族合一后，身份判断全部消失。
     val page = appSettingsPage()
 
-    // v4.66.0（IA 搬迁）：教务适配的「自动同步」入口从「更多」页移到本页「课表」分组，
-    // 与「教务适配状态 / 空教室查询」同组；本页行是数据驱动的（buildSettingsSections），
-    // 所以这里只把「触发动作 + 结果副标题」两个参数传进去，不把同步状态机搬进数据层。
-    val adapterRemoteUpdater: AdapterRemoteUpdater = koinInject()
-    val syncScope = rememberCoroutineScope()
-    var syncing by remember { mutableStateOf(false) }
-    var syncStatusText by remember { mutableStateOf<String?>(null) }
-    fun triggerAdapterSync() {
-        if (syncing) return
-        syncing = true
-        syncStatusText = null
-        syncScope.launch {
-            val result = adapterRemoteUpdater.sync()
-            val text = when (result) {
-                is AdapterSyncResult.Updated ->
-                    getString(Res.string.sync_status_updated, result.fileCount)
-                AdapterSyncResult.UpToDate -> getString(Res.string.sync_status_up_to_date)
-                AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
-                is AdapterSyncResult.VerificationFailed ->
-                    getString(Res.string.adapter_remote_update_failed)
-                is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
-            }
-            syncing = false
-            syncStatusText = text
-            ToastManager.show(text)
-        }
-    }
-    val adapterSyncDetail = when {
-        syncing -> stringResource(Res.string.sync_status_syncing)
-        syncStatusText != null -> syncStatusText
-        else -> null
-    }
+    // v4.66.2：教务适配的「状态 / 自动同步」两条已移回「更多」页（抓取脚本的维护/诊断
+    // 入口，对普通用户没有实际作用），其同步状态机随之整段搬走 —— 本页不再持有
+    // adapterRemoteUpdater / syncing / syncStatusText。留在本页只会让这两个状态成为死代码。
+    //
     // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，一套组件渲染，
     // 新增设置项不再需要同步改三处（历史上已出现 tone 映射漂移）
     val settingsSections = buildSettingsSections(
         uiState = uiState,
-        viewModel = viewModel,
-        adapterSyncDetail = adapterSyncDetail,
-        onAdapterSync = ::triggerAdapterSync
+        viewModel = viewModel
     )
     // 批 2：页头统一为内容区 AppPageHeader 后，Scaffold 不再有吸顶玻璃栏
     // ⇒ haze 三件套（rememberHazeState / glassTint / glassFallback）与
@@ -822,9 +774,7 @@ private data class SettingsSection(
  */
 private fun buildSettingsSections(
     uiState: SettingsUiState,
-    viewModel: SettingsViewModel,
-    adapterSyncDetail: String? = null,
-    onAdapterSync: (() -> Unit)? = null
+    viewModel: SettingsViewModel
 ): List<SettingsSection> = listOf(
     // ── 课表：集合与参数 ──────────────────────────────────────────────────
     SettingsSection(
@@ -849,19 +799,14 @@ private fun buildSettingsSections(
             )
         )
     ),
-    // ── 教务系统：与学校教务系统对接的能力（v4.66.0 独立成组）──────────────
+    // ── 教务系统：与学校教务系统对接的查询（v4.66.2 收窄为 1 条）────────────
     SettingsSection(
         labelRes = Res.string.settings_group_school_system,
         entries = listOf(
-            SettingsEntry(
-                Res.string.title_adapter_status, Res.drawable.build_24px, SettingsEntryTone.PURPLE,
-                Res.string.settings_sub_adapter_status, destination = Destination.AdapterStatus
-            ),
-            SettingsEntry(
-                Res.string.item_auto_sync_adapter, Res.drawable.sync_alt_24px, SettingsEntryTone.GREEN,
-                Res.string.settings_sub_auto_sync_adapter,
-                detail = adapterSyncDetail, onClick = onAdapterSync
-            ),
+            // v4.66.2：另两条（教务适配状态 / 自动同步教务系统）已移回「更多」页——
+            // 那是抓取脚本的**维护 / 诊断**入口，对普通用户没有实际作用，
+            // 不该占「我的」页首屏。本组只剩「空教室查询」：它是实打实的教务查询功能，
+            // 留着；组名「教务系统」也仍然名副其实（后续再有教务类功能可直接归入）。
             SettingsEntry(
                 Res.string.title_empty_classroom, Res.drawable.search_24px, SettingsEntryTone.AMBER,
                 Res.string.settings_sub_empty_classroom,

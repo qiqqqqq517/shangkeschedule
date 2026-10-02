@@ -97,6 +97,7 @@
     <string name="section_more_about">About this app</string>
     <string name="section_more_feedback">Feedback &amp; legal</string>
     <string name="section_more_contact">Contact the author</string>
+    <string name="section_more_adapter">School adapters</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="text_no_courses_this_week">No courses this week</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>
