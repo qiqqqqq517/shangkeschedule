@@ -49,7 +49,7 @@ object TinyNativeRenderer {
             return rv
         }
 
-        // 情况 B：开学期间数据过滤（排序与过滤统一走 WidgetCourseSelection，与其余三个组件一致）
+        // 情况 B：开学期间数据过滤（排序与过滤统一走 WidgetCourseSelection，与其余五个组件一致）
         val todayRemaining = WidgetCourseSelection.remainingToday(snapshot.courses, todayStr, nowMinutes)
         val nextCourse = todayRemaining.firstOrNull()
 

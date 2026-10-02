@@ -6,7 +6,7 @@ import android.widget.RemoteViews
 import com.shangkeschedule.R
 
 /**
- * 四个 Renderer 共用的「课程行构造 / 列表插入 + 分隔线 / 空态与周次判定」。
+ * 七个规格共用（仅「考试倒计时」不消费本文件）的「课程行构造 / 列表插入 + 分隔线 / 空态与周次判定」。
  *
  * 此前 Tiny / Compact / DoubleDays / ListVertical 各自逐字重复了这三段逻辑：
  * ① 课程行内的色条取色（三处逐字相同，仅行布局 ID 不同；v4.61.0 起教师不再显示）；
@@ -19,7 +19,7 @@ import com.shangkeschedule.R
  * 强行统一会改变组件外观。
  */
 
-/** 当前周次；`<= 0` 视为「假期 / 未开学」。四个 Renderer 的统一口径。 */
+/** 当前周次；`<= 0` 视为「假期 / 未开学」。六个课程类 Renderer 的统一口径。 */
 internal fun WidgetSnapshot.currentWeekOrNull(): Int? =
     if (current_week <= 0) null else current_week
 

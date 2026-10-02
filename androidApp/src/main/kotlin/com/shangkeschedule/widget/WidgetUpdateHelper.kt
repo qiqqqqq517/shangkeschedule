@@ -83,8 +83,8 @@ enum class WidgetRefreshReason {
     /**
      * 系统提醒（`AppWidgetProvider.onUpdate`）。
      *
-     * 系统会为 4 个 receiver **同时**各发一次广播，而每次回调都会遍历全部 4 种组件——即同一份
-     * 数据在同一时刻被渲染 16 次。这类提醒的语义只是「组件可能需要重绘」，若已有渲染正在进行，
+     * 系统会为 8 个 receiver **同时**各发一次广播，而每次回调都会遍历全部 8 种组件——即同一份
+     * 数据在同一时刻被渲染 64 次。这类提醒的语义只是「组件可能需要重绘」，若已有渲染正在进行，
      * 它已经被满足，可安全丢弃。
      */
     SYSTEM_NUDGE,
@@ -104,10 +104,10 @@ private var requiredRefreshPending = false
 
 /**
  * 小组件统一分发中心
- * 负责从 Repository 提取数据并分发给所有 4 种规格的原生 Renderer
+ * 负责从 Repository 提取数据并分发给所有 8 种规格的原生 Renderer
  *
  * 并发语义（v3.66.3）：同一时刻只允许一次渲染，其余请求按 [WidgetRefreshReason] 分流——
- * `SYSTEM_NUDGE` 合并丢弃（消除 4 个 receiver 齐发造成的重复渲染），`REQUIRED` 登记补跑
+ * `SYSTEM_NUDGE` 合并丢弃（消除 8 个 receiver 齐发造成的重复渲染），`REQUIRED` 登记补跑
  * （保证任何一次数据变更都不会被吞掉）。
  *
  * 这里刻意**不使用「距上次刷新 < N 毫秒就跳过」的时间窗口**：`WidgetDataSynchronizer` 上游
@@ -145,7 +145,7 @@ private suspend fun performUpdate(context: Context) {
         // 2. 准备基础数据
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
-        // 「周课程」要连续 7 天（含今天），故读取窗口放宽到一周；其余四个规格仍只消费
+        // 「周课程」要连续 7 天（含今天），故读取窗口放宽到一周；其余七个规格仍只消费
         // 今天 + 明天（下方 dbCourses 过滤），数据面与 v4.67.0 之前逐字段一致。
         val weekEnd = today.plusDays((WIDGET_WEEK_WINDOW_DAYS - 1).toLong())
 
@@ -159,7 +159,7 @@ private suspend fun performUpdate(context: Context) {
         val dbCourses = allCourses.filter { it.date <= tomorrow.toString() }
 
         // 周次读取超时必须与课程数据同策略：跳过本次渲染、保留旧快照。
-        // 旧实现为 `?: 0`，而四个 Renderer 一律以 `current_week <= 0` 判定假期——Room 读取
+        // 旧实现为 `?: 0`，而六个课程类 Renderer 一律以 `current_week <= 0` 判定假期——Room 读取
         // 一旦超过 2s，组件会误显示「假期中 / 期待新学期」，与上方「保留旧快照」的注释自相矛盾。
         val weekRead = withTimeoutOrNull(2.seconds) {
             WeekRead(repository.getCurrentWeekFlow().first())

@@ -22,7 +22,7 @@ import java.time.LocalTime
 /**
  * 「下一节课」小组件渲染器（v4.67.0）。
  *
- * 与其余四个组件的口径**完全一致**，差异只在「显示多少」：
+ * 与其余五个组件的口径**完全一致**，差异只在「显示多少」：
  * - 今日剩余课程一律走 [WidgetCourseSelection.remainingToday]（已跳过的不算、已结束的不算、
  *   按开始时间显式排序），只取第一条 → 这就是「下一节课」；
  * - 今日已无课不再直接落到空态，而是看**明天第一节**（跨天场景，与 G1 常驻通知同口径）；
@@ -163,7 +163,7 @@ object NextCourseNativeRenderer {
         )
     }
 
-    /** 每次渲染前强制归零可见性，消除跨状态残留（与其余四个组件同一纪律）。 */
+    /** 每次渲染前强制归零可见性，消除跨状态残留（与其余五个组件同一纪律）。 */
     private fun resetWidgetState(rv: RemoteViews) {
         rv.setViewVisibility(R.id.container_info, View.GONE)
         rv.setViewVisibility(R.id.container_status, View.GONE)

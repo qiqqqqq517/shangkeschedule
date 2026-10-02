@@ -68,7 +68,7 @@ object DoubleDaysNativeRenderer {
             R.id.empty_today_container,
             today, remainingToday.take(maxCourseCount), remainingToday.size,
             true, snapshot, space,
-            // 空态区分「今天整天没课」与「有课但已结束」：与其余三规格同口径
+            // 空态区分「今天整天没课」与「有课但已结束」：与其余四规格同口径
             // （此前恒用 text_no_course「无课程」，同一天同课表下与 Compact/ListVertical
             //   显示的「今日课程已结束」互相矛盾）。
             emptyTip = todayEmptyTip(context, snapshot.courses, todayStr)

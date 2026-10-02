@@ -22,7 +22,7 @@ abstract class ScheduledWidgetProvider : AppWidgetProvider() {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // 系统会给 4 个 receiver 同时各发一次 onUpdate；标为 SYSTEM_NUDGE 以便与正在进行的
+        // 系统会给 8 个 receiver 同时各发一次 onUpdate；标为 SYSTEM_NUDGE 以便与正在进行的
         // 渲染合并，消除同一份数据的重复渲染（v3.66.3）。
         refreshInBackground(context, WidgetRefreshReason.SYSTEM_NUDGE)
     }

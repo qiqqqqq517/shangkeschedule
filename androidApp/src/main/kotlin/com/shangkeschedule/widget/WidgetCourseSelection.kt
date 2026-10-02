@@ -4,10 +4,10 @@ package com.shangkeschedule.widget
  * 小组件课程筛选与计数的**纯逻辑**（不依赖任何 Android API，可直接 JVM 单测）。
  *
  * 背景：四个 Renderer 此前各自内联了一份「今日剩余 / 明日课程」的过滤逻辑，彼此不一致，
- * 且 Tiny 那份存在两处缺陷（见下）。此处收敛为单一实现，四个 Renderer 统一调用。
+ * 且 Tiny 那份存在两处缺陷（见下）。此处收敛为单一实现，六个 Renderer 统一调用。
  *
  * 修复（v3.66.3）：
- * ① Tiny 是四个 Renderer 中唯一**未按开始时间排序**的，仅依赖上游 `CourseDao` 的
+ * ① Tiny 是当时（v3.66.3）四个 Renderer 中唯一**未按开始时间排序**的，仅依赖上游 `CourseDao` 的
  *    `ORDER BY day, startSection` 隐式保证顺序；自定义时间的课（`isCustomTime=1`）在 SQL 里
  *    被排到所有节次课之后，会取错「下一节课」。此处统一显式排序。
  * ② Tiny 的剩余课数用 `todayAllCourses.size - indexOf(nextCourse)` 计算，而 `todayAllCourses`
