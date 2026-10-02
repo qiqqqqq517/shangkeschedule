@@ -14,7 +14,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 
 /**
- * **系统闹钟层的唯一出口**：请求码分配 + 精确闹钟的挂载与注销。
+ * **课程提醒 / 自动勿扰 / 早八降级三类闹钟的唯一出口**：请求码分配 + 精确闹钟的挂载与注销。
  *
  * 编排层（`NotificationScheduler`）只表达「把哪个 Intent 挂在哪个时刻」，
  * 不直接接触 [AlarmManager] / [PendingIntent]，也不关心槽位编号规则。
@@ -22,6 +22,21 @@ import kotlinx.datetime.toInstant
  * ## 职责边界
  *  - **本类**：请求码命名空间、`setExactAndAllowWhileIdle`、精确闹钟权限降级与提示、全量注销；
  *  - `NotificationScheduler`：算时刻、构造业务 Intent、决定排什么。
+ *
+ * ## 请求码命名空间全表（跨子系统核对用，2026-10-03 逐行实测）
+ * | 区间 | 用途 | 挂载 / 取消方 | 接收器 |
+ * |---|---|---|---|
+ * | 61000–61199 | 课程提醒（上限 200） | 本类 | `ReminderAlarmReceiver` |
+ * | 63000–63059 | 自动勿扰 START / END（上限 60；同码不同 action） | 本类 | `AutoModeAlarmReceiver` |
+ * | 65000 | 早八降级（单条） | 本类 | `ReminderAlarmReceiver` |
+ * | 60001 / 60002 | 灵动岛窗口 START / STOP | `DynamicIslandManager` **直连** | `DynamicIslandAlarmReceiver` |
+ * | 50000–50200 | 旧版遗留闹钟清理（只取消、不再排） | `LegacyAlarmMigrator` **直连** | `com.shangkeschedule.service.CourseAlarmReceiver`（冻结类，反射还原） |
+ *
+ * 后两行是**已登记的例外**：灵动岛有独立的窗口生命周期与 PendingIntent 归零逻辑；旧版清理必须
+ * 反射还原冻结类的 Intent 才能命中。新增闹钟需求一律走本类，不得再开新基址。
+ *
+ * PendingIntent 按「请求码 + `filterEquals`（含组件与 action）」匹配，故相邻区间不会互相误取消；
+ * 分命名空间的意义在于每轮 `cancelAll()` 能一次扫完自己的区间、不与别的子系统纠缠。
  *
  * ## 为什么请求码要分命名空间
  * 旧版课程提醒占用 50010–50110、自动勿扰占用 50001/50002，两套取消逻辑混在一起，

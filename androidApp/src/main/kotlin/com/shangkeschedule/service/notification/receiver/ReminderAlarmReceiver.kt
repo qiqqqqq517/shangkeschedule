@@ -45,7 +45,9 @@ class ReminderAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
     private fun handleReminder(ctx: Context, intent: Intent) {
         val course = intent.toCourse() ?: run {
-            Log.w(TAG, "课程提醒 extras 缺失，投递通用提醒")
+            // extras 由 CourseReminderScheduler.applicationIntent 全量写入，缺失只可能来自
+            // 升级前残留的 PendingIntent；此时没有任何课程信息可展示，放弃本条而非投递空通知。
+            Log.w(TAG, "课程提醒 extras 缺失，放弃本条投递（无课程信息可展示）")
             return
         }
         val pendingResult = goAsync()

@@ -511,6 +511,21 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
 }
 
 // 【集中管理所有迁移对象】
+//
+// 迁移链完整性（2026-10-03 巡检第 8 轮取证，勿删）：
+// 1. 对外发布过的 schema 版本实测只有 9–13（`git tag` 122 个 tag 全量扫描：v2.12.0–v3.11.0 = 9、
+//    v3.13.1–v3.28.0 = 10、v3.33.0–v3.50.7 = 11、v3.50.9–v3.51.2 = 12、v3.53.1–v4.64.23 = 13；
+//    当前版本见 MainAppDatabase.version）。从 9 到当前版本的每一步都有迁移，所以任何**已发布版本**
+//    的设备都能平滑升级。
+// 2. 这里**故意没有** MIGRATION_3_4 / MIGRATION_4_5：它们自仓库首个提交（squashed 根提交
+//    d47d8dba）起就不存在，历史上也从未出现过（git log -S "Migration(3, 4)" / "Migration(4, 5)"
+//    零命中）。shared/schemas/ 恰好从 3.json 开始导出，说明版本 3/4/5 只存在于对外发布之前的
+//    开发期，无证据表明有设备停留在此。缺口不补的理由：没有可复现的 v3/v4 设备可用于验证，
+//    凭空写迁移无法验证（违反修复协议）；且主库刻意**不开** fallbackToDestructiveMigration ——
+//    真实课表数据不能被静默清空。
+// 3. 硬要求：MainAppDatabase.version 每提升一次，必须同步补一个单步 Migration(v, v+1) 并加入本数组，
+//    否则老用户升级即 IllegalStateException 闪退。该约束由 DatabaseMigrationChainTest 自动守住
+//    （从对外发布过的最低版本 9 到 schema 导出目录的最高版本，逐版本要求存在迁移）。
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
     MIGRATION_2_3,
