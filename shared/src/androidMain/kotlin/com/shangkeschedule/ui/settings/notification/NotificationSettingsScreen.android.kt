@@ -40,6 +40,9 @@ actual fun PlatformGeneralSettingsSection(
     val permissionDeniedMessage = stringResource(Res.string.toast_notification_permission_denied)
     // 记录"因缺少通知权限而挂起开启灵动岛"的意图，授权成功后自动补开
     var pendingDynamicIslandEnable by remember { mutableStateOf(false) }
+    // 同样的「先授权后补开」意图，分别对应新增的两个通知开关
+    var pendingNextClassNotificationEnable by remember { mutableStateOf(false) }
+    var pendingExamCountdownReminderEnable by remember { mutableStateOf(false) }
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -48,6 +51,12 @@ actual fun PlatformGeneralSettingsSection(
         } else if (pendingDynamicIslandEnable) {
             pendingDynamicIslandEnable = false
             viewModel.updateDynamicIslandEnabled(true)
+        } else if (pendingNextClassNotificationEnable) {
+            pendingNextClassNotificationEnable = false
+            viewModel.updateNextClassNotificationEnabled(true)
+        } else if (pendingExamCountdownReminderEnable) {
+            pendingExamCountdownReminderEnable = false
+            viewModel.updateExamCountdownReminderEnabled(true)
         }
     }
 
@@ -105,6 +114,29 @@ actual fun PlatformGeneralSettingsSection(
                 }
             } else {
                 viewModel.updateDynamicIslandEnabled(false)
+            }
+        },
+        onNextClassNotificationToggle = { isEnabled ->
+            // Android 13+ 没有通知权限时先申请，授权后自动补开（与灵动岛同款交互）
+            if (isEnabled &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !hasNotificationPermission(context)
+            ) {
+                pendingNextClassNotificationEnable = true
+                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                viewModel.updateNextClassNotificationEnabled(isEnabled)
+            }
+        },
+        onExamCountdownReminderToggle = { isEnabled ->
+            if (isEnabled &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !hasNotificationPermission(context)
+            ) {
+                pendingExamCountdownReminderEnable = true
+                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                viewModel.updateExamCountdownReminderEnabled(isEnabled)
             }
         },
         onCompatWearableToggle = { isEnabled ->

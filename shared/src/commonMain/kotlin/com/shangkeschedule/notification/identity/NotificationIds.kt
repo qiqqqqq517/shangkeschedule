@@ -27,11 +27,16 @@ object NotificationIds {
      *
      * 与既有占用区间隔离，避免互相覆盖：
      *  - 50000–50200：旧版闹钟槽位（含自动模式 50001/50002、权限提示 50190/50191）
+     *  - 599001/599002：「下一节课」常驻通知 / 「考试倒计时」通知（单例，见下）
+     *  - 700100      ：早八闹钟兜底通知（MorningAlarmNotifier）
      *  - 20240904    ：灵动岛前台服务通知
      *
-     * 本命名空间取 600000 起，容量 100 万，足以覆盖 7 天 × 每天数十节的极端课表。
+     * 本命名空间取 **100 万** 起，容量 100 万，足以覆盖 7 天 × 每天数十节的极端课表。
+     * v4.66.0 由 600000 上移到 1000000：容量在 v4.64.21 扩到 100 万后，原区间
+     * 600000–1599999 会把早八闹钟的 700100 圈进来（碰撞概率百万分之一，但后果是
+     * 课程提醒顶掉早八兜底通知、任一方 dismiss 会连带把另一方一起关掉）。
      */
-    private const val NAMESPACE_BASE = 600_000
+    private const val NAMESPACE_BASE = 1_000_000
 
     /**
      * 命名空间容量（取模基数）。
@@ -46,8 +51,8 @@ object NotificationIds {
      * 而登记簿的键是 occurrenceKey 原文、不是 ID 派生值（PostedNotificationRegistry）。
      * 升级前已投递的通知仍是旧 ID，靠自身 `setTimeoutAfter` 到上课时刻自清。
      *
-     * 区间 600_000–1_599_999 仍与 [RESERVED_ID_RANGE]（50_000–50_200）和
-     * [DYNAMIC_ISLAND_ID]（2_024_0904）完全隔离。
+     * 区间 1_000_000–1_999_999 仍与 [RESERVED_ID_RANGE]（50_000–50_200）、
+     * 早八闹钟的 700_100 和 [DYNAMIC_ISLAND_ID]（2_024_0904）完全隔离。
      */
     private const val NAMESPACE_SIZE = 1_000_000
 
@@ -56,6 +61,18 @@ object NotificationIds {
 
     /** 灵动岛通知 ID（属另一命名空间，此处仅作断言用常量）。 */
     const val DYNAMIC_ISLAND_ID = 2_024_0904
+
+    /**
+     * 「下一节课」常驻通知 ID（单例）。
+     *
+     * 取 599_xxx 段落：避开旧闹钟槽位 50_000–50_200，也避开课程 occurrence 命名空间
+     * （1_000_000 起）。单例通知**不走**注册簿回收（注册簿是给「一课程一条」用的），
+     * 关闭/无课时显式 `cancel()` 即可。
+     */
+    const val NEXT_CLASS_PERSISTENT_ID = 599_001
+
+    /** 「考试倒计时提醒」通知 ID（同为单例，与上一节各占一条）。 */
+    const val EXAM_COUNTDOWN_ID = 599_002
 
     /**
      * occurrence 稳定键：`courseId|date|startTime`。

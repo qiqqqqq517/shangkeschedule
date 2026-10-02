@@ -10,6 +10,10 @@ import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
+import com.shangkeschedule.data.model.CertCredential
+import com.shangkeschedule.data.model.CreditRequirement
+import com.shangkeschedule.data.model.AdapterSyncRecord
+import com.shangkeschedule.data.model.GpaScale
 import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.tool.AppLog
@@ -164,6 +168,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_MOTION_SPEED] = newSettings.motionSpeed.value
             prefs[AppSettingsModel.KEY_NEXT_CARD_MODE] = newSettings.nextCardMode.value
             prefs[AppSettingsModel.KEY_REFRESH_RATE_MODE] = newSettings.refreshRateMode.value
+            prefs[AppSettingsModel.KEY_STAR_PROMPT_SHOWN] = newSettings.starPromptShown
         }
     }
 
@@ -268,6 +273,26 @@ class AppSettingsRepository(
     /** 单独持久化「灵动岛」开关。 */
     suspend fun updateDynamicIslandEnabled(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_DYNAMIC_ISLAND_ENABLED] = enabled }
+    }
+
+    /** 单独持久化「下一节课常驻通知」开关。 */
+    suspend fun updateNextClassNotificationEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_NEXT_CLASS_NOTIFICATION_ENABLED] = enabled }
+    }
+
+    /** 单独持久化「考试倒计时提醒」开关。 */
+    suspend fun updateExamCountdownReminderEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_EXAM_COUNTDOWN_REMINDER_ENABLED] = enabled }
+    }
+
+    /**
+     * 标记「GitHub Star 引导」已展示（K5，一次性）。
+     *
+     * 无论用户点了「去点个 Star」还是「不再提示」都写 true：这是**一次性**提示，
+     * 不做「以后再说」反复弹窗（不打扰）。刻意不参与备份——纯界面状态，重装后再提示一次无害。
+     */
+    suspend fun updateStarPromptShown(shown: Boolean) {
+        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_STAR_PROMPT_SHOWN] = shown }
     }
 
     /** 单独持久化早八闹钟开关。 */
@@ -393,6 +418,139 @@ class AppSettingsRepository(
     suspend fun updateProfileAvatarPath(path: String) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_PROFILE_AVATAR_PATH] = path
+        }
+    }
+
+    /**
+     * 单独持久化成绩页的绩点制式（v4.66.0）。
+     *
+     * 只写这一个键：绩点制式会影响成绩页上所有课程的绩点展示，
+     * 但切换它不应触发整份设置写回（避免覆盖并发修改的其它设置项）。
+     */
+    suspend fun updateGpaScale(scale: GpaScale) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_GPA_SCALE] = scale.value
+        }
+    }
+
+    /**
+     * 整体覆盖学业情况的类别学分要求（v4.66.0「学业情况」）。
+     *
+     * 供备份恢复链路使用；界面上的增删改请走 [mutateCreditRequirements]，
+     * 那条路径把「读—改—写」放在同一个 `dataStore.edit` 里，天然免疫并发覆盖。
+     */
+    suspend fun updateCreditRequirements(requirements: List<CreditRequirement>) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_CREDIT_REQUIREMENTS] = CreditRequirement.encode(requirements)
+        }
+    }
+
+    /**
+     * 原子地增删改一条学分要求。
+     *
+     * 与 [addSkippedDates] 同源：先 `getAppSettings().first()` 取快照再整份写回的做法，
+     * 会让「连续快速编辑两条类别」各自以旧快照覆盖对方，故这里把解析、变换、序列化
+     * 全部放进 `edit` 事务内。
+     */
+    suspend fun mutateCreditRequirements(
+        transform: (List<CreditRequirement>) -> List<CreditRequirement>
+    ) {
+        dataStore.edit { prefs ->
+            val current = CreditRequirement.decode(prefs[AppSettingsModel.KEY_CREDIT_REQUIREMENTS])
+            prefs[AppSettingsModel.KEY_CREDIT_REQUIREMENTS] =
+                CreditRequirement.encode(transform(current))
+        }
+    }
+
+    /**
+     * 考证查分凭据（v4.66.0）。
+     *
+     * 一次读出全部模块的凭据（模块数量固定且极少），页面用一个 Map 渲染，
+     * 不必为每一行各建一个 flow。
+     */
+    fun getCertCredentials(moduleIds: List<String>): Flow<Map<String, CertCredential>> =
+        dataStore.data.map { prefs ->
+            moduleIds.associateWith { moduleId ->
+                CertCredential(
+                    name = prefs[AppSettingsModel.keyCertName(moduleId)].orEmpty(),
+                    ticket = prefs[AppSettingsModel.keyCertTicket(moduleId)].orEmpty()
+                )
+            }
+        }
+
+    /**
+     * 保存某个考证模块的查询凭据（姓名 / 准考证号）。
+     *
+     * 只写这两个键：与 [updateGpaScale] 同理，避免整份设置写回覆盖并发修改的其它设置项。
+     */
+    suspend fun updateCertCredential(moduleId: String, name: String, ticket: String) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.keyCertName(moduleId)] = name.trim()
+            prefs[AppSettingsModel.keyCertTicket(moduleId)] = ticket.trim()
+        }
+    }
+
+    /**
+     * 最近一次教务适配远程同步的记录（v4.66.0）。
+     *
+     * 从未同步过时返回 null（而不是造一个 0 值），页面据此区分「尚未检查过」与真实结果。
+     */
+    fun getAdapterSyncRecord(): Flow<AdapterSyncRecord?> = dataStore.data.map { prefs ->
+        val atMillis = prefs[AppSettingsModel.KEY_ADAPTER_SYNC_AT]?.toLongOrNull()
+        if (atMillis == null || atMillis <= 0L) {
+            null
+        } else {
+            AdapterSyncRecord(
+                atMillis = atMillis,
+                kind = prefs[AppSettingsModel.KEY_ADAPTER_SYNC_KIND].orEmpty(),
+                updatedCount = prefs[AppSettingsModel.KEY_ADAPTER_SYNC_COUNT]?.toIntOrNull() ?: 0
+            )
+        }
+    }
+
+    /** 写入最近一次适配同步记录（只写这三个键，不动其它设置项）。 */
+    suspend fun updateAdapterSyncRecord(kind: String, updatedCount: Int, atMillis: Long) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_ADAPTER_SYNC_AT] = atMillis.toString()
+            prefs[AppSettingsModel.KEY_ADAPTER_SYNC_KIND] = kind
+            prefs[AppSettingsModel.KEY_ADAPTER_SYNC_COUNT] = updatedCount.toString()
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // AI 识别导入（v4.66.0 J1）
+    //
+    // 全部走「只写自己要改的键」的单字段更新：AI 配置页改一个输入框，
+    // 不该连带重写主题 / 动画 / 情侣课表等无关字段（同 updateThemePreset 的模式）。
+    // ------------------------------------------------------------------
+
+    /** 单独持久化 AI 识别导入总开关（默认关闭）。 */
+    suspend fun updateAiImportEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_AI_IMPORT_ENABLED] = enabled
+        }
+    }
+
+    /** 单独持久化「数据外发说明」的确认标记。 */
+    suspend fun updateAiImportNoticeAccepted(accepted: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_AI_IMPORT_NOTICE_ACCEPTED] = accepted
+        }
+    }
+
+    /**
+     * 单独持久化 AI 接口配置（基地址 / 模型名 / API Key）。
+     *
+     * 三项一起写：它们是同一份配置的三个部分，分开写会留下
+     * 「地址换了、Key 还没换」的中间态，下一次识别就会带着旧 Key 打新地址。
+     *
+     * **API Key 只落本机 DataStore，不参与备份**（见 [AppSettingsModel.aiApiKey]）。
+     */
+    suspend fun updateAiApiConfig(baseUrl: String, model: String, apiKey: String) {
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_AI_API_BASE_URL] = baseUrl.trim()
+            prefs[AppSettingsModel.KEY_AI_API_MODEL] = model.trim()
+            prefs[AppSettingsModel.KEY_AI_API_KEY] = apiKey.trim()
         }
     }
 

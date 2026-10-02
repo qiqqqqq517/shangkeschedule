@@ -8,6 +8,8 @@ import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,17 +55,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.WebPagePurpose
+import com.shangkeschedule.data.db.main.Grade
+import com.shangkeschedule.data.parser.EmptyClassroomRoom
+import com.shangkeschedule.data.parser.formatEmptyClassroomLine
+import com.shangkeschedule.data.parser.formatEmptyClassroomText
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.data.repository.GradeRepository
+import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.TelegramMenu
 import com.shangkeschedule.ui.components.TelegramMenuItem
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.tool.copyToClipboard
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
@@ -88,6 +104,23 @@ import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.arrow_forward_24px
 import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.desktop_windows_24px
+import shangkeschedule.shared.generated.resources.action_close
+import shangkeschedule.shared.generated.resources.empty_classroom_capacity
+import shangkeschedule.shared.generated.resources.empty_classroom_copied
+import shangkeschedule.shared.generated.resources.empty_classroom_copy
+import shangkeschedule.shared.generated.resources.empty_classroom_dialog_hint
+import shangkeschedule.shared.generated.resources.empty_classroom_dialog_title
+import shangkeschedule.shared.generated.resources.empty_classroom_found
+import shangkeschedule.shared.generated.resources.empty_classroom_locate
+import shangkeschedule.shared.generated.resources.empty_classroom_locate_found
+import shangkeschedule.shared.generated.resources.empty_classroom_locate_not_found
+import shangkeschedule.shared.generated.resources.empty_classroom_no_result
+import shangkeschedule.shared.generated.resources.empty_classroom_scan
+import shangkeschedule.shared.generated.resources.empty_classroom_scanning
+import shangkeschedule.shared.generated.resources.grade_import_no_result
+import shangkeschedule.shared.generated.resources.grade_import_recognize
+import shangkeschedule.shared.generated.resources.grade_import_success
+import shangkeschedule.shared.generated.resources.grade_semester_unknown
 import shangkeschedule.shared.generated.resources.dialog_title_select_table_for_import
 import shangkeschedule.shared.generated.resources.item_devtools_debug
 import shangkeschedule.shared.generated.resources.link_24px
@@ -117,6 +150,13 @@ fun WebViewScreen(
     initialUrl: String?,
     assetJsPath: String?,
     forceDesktopMode: Boolean = false,
+    /**
+     * 内嵌页面用途，见 [WebPagePurpose]：
+     * - `COURSE`：底部显示「执行导入 / 跳到课表」（原有行为）；
+     * - `GRADE`：底部显示「识别本页成绩」，用内置通用脚本抓成绩；
+     * - `CERT`：纯浏览器（考证查分），底部不显示任何业务按钮。
+     */
+    mode: String = WebPagePurpose.COURSE,
     viewModel: WebViewModel = koinViewModel()
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -140,6 +180,23 @@ fun WebViewScreen(
     val toastDevToolsEnabled = stringResource(Res.string.toast_devtools_enabled_format, statusEnabled)
     val toastDevToolsDisabled = stringResource(Res.string.toast_devtools_enabled_format, statusDisabled)
 
+    // 用途分流：COURSE = 课表导入（原有行为），GRADE = 成绩识别，CERT = 纯浏览器
+    val isCourseMode = mode == WebPagePurpose.COURSE
+    val isGradeMode = mode == WebPagePurpose.GRADE
+    val isEmptyClassroomMode = mode == WebPagePurpose.EMPTY_CLASSROOM
+    val toastGradeNoResult = stringResource(Res.string.grade_import_no_result)
+    val toastEmptyNoResult = stringResource(Res.string.empty_classroom_no_result)
+    val toastEmptyLocateFound = stringResource(Res.string.empty_classroom_locate_found)
+    val toastEmptyLocateNotFound = stringResource(Res.string.empty_classroom_locate_not_found)
+    val toastEmptyCopied = stringResource(Res.string.empty_classroom_copied)
+    val emptyDialogTitle = stringResource(Res.string.empty_classroom_dialog_title)
+    val emptyDialogHint = stringResource(Res.string.empty_classroom_dialog_hint)
+    val emptyCopyText = stringResource(Res.string.empty_classroom_copy)
+    val emptyCloseText = stringResource(Res.string.action_close)
+    // 座位数模板（如「%1$d 人」）：不带参数取回原始模板，交给 data.parser 拼行
+    val emptyCapacityPattern = stringResource(Res.string.empty_classroom_capacity)
+    val statusReadingEmpty = stringResource(Res.string.empty_classroom_scanning)
+
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
     var inputUrl by remember { mutableStateOf(if (startedEmpty) "" else (initialUrl ?: "")) }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
@@ -155,10 +212,17 @@ fun WebViewScreen(
     var importRunState by remember { mutableStateOf<ImportRunState>(ImportRunState.Idle) }
     // 已通过前置校验并读入内存的适配脚本源码，选定课表后直接注入，不再二次读盘
     var pendingAdapterJsCode by remember { mutableStateOf<String?>(null) }
+    // 成绩识别运行状态：Running 期间禁用按钮，避免重复注入扫描脚本
+    var gradeScanRunning by remember { mutableStateOf(false) }
+    // 空教室读取运行状态与结果：结果只在内存里（弹窗展示 + 一键复制），不落库
+    var emptyScanRunning by remember { mutableStateOf(false) }
+    var emptyRooms by remember { mutableStateOf<List<EmptyClassroomRoom>>(emptyList()) }
+    var showEmptyRooms by remember { mutableStateOf(false) }
     val webViewController = rememberWebViewController()
 
     val coroutineScope = rememberCoroutineScope()
     val courseConversionRepository: CourseConversionRepository = koinInject()
+    val gradeRepository: GradeRepository = koinInject()
     val uiEventChannel = remember { Channel<WebUiEvent>(Channel.UNLIMITED) }
     val uiEventsFlow = remember(uiEventChannel) { uiEventChannel.receiveAsFlow() }
 
@@ -181,6 +245,71 @@ fun WebViewScreen(
             },
             onImportStateChanged = { importRunState = it }
         )
+    }
+
+    /**
+     * 成绩识别：把内置通用扫描脚本注入当前页面，取回 Base64(JSON) 结果后落库并回到成绩页。
+     *
+     * 结果为空（页面不是成绩表 / 表结构识别不了）只提示，不落库 —— 用户可直接退回
+     * 成绩页用「粘贴导入」兜底，不会因为自动识别失败而卡住。
+     */
+    val startGradeScan: () -> Unit = {
+        if (!gradeScanRunning) {
+            gradeScanRunning = true
+            webViewController.evaluateJavascript(JS_SCAN_GRADES) { result ->
+                coroutineScope.launch {
+                    gradeScanRunning = false
+                    val scanned = decodeScannedGrades(result)
+                    if (scanned.isEmpty()) {
+                        ToastManager.show(toastGradeNoResult)
+                    } else {
+                        // 学校成绩页普遍不在一张表里写学期，统一落到「未标注学期」，
+                        // 用户可在成绩页逐条改学期（比猜错学期更安全）
+                        val semester = getString(Res.string.grade_semester_unknown)
+                        gradeRepository.importGrades(
+                            scanned.map { item ->
+                                gradeRepository.buildGrade(
+                                    semester = semester,
+                                    courseName = item.courseName,
+                                    credit = item.credit,
+                                    scoreText = item.scoreText,
+                                    source = Grade.SOURCE_IMPORT,
+                                    category = item.category
+                                )
+                            }
+                        )
+                        ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
+                        onNavigate(Destination.Grade)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 读取本页空教室：把内置通用空教室识别脚本注入当前页面，取回 Base64(JSON) 结果后
+     * 弹窗展示并支持一键复制。
+     *
+     * 与成绩识别不同，这里**不落库**：空教室是即时信息（换一周就作废），
+     * 识别为空只提示，用户可在教务页改条件后直接再读一次，不会写脏本机数据。
+     */
+    val startEmptyClassroomScan: () -> Unit = {
+        if (!emptyScanRunning) {
+            emptyScanRunning = true
+            webViewController.evaluateJavascript(JS_SCAN_EMPTY_CLASSROOMS) { result ->
+                coroutineScope.launch {
+                    emptyScanRunning = false
+                    val scanned = decodeEmptyClassrooms(result)
+                    if (scanned.isEmpty()) {
+                        ToastManager.show(toastEmptyNoResult)
+                    } else {
+                        emptyRooms = scanned
+                        showEmptyRooms = true
+                        ToastManager.show(getString(Res.string.empty_classroom_found, scanned.size))
+                    }
+                }
+            }
+        }
     }
 
     val handleBackAction: () -> Unit = {
@@ -366,46 +495,83 @@ fun WebViewScreen(
                             .padding(horizontal = appSpacing().pageHorizontal),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                val jsPath = assetJsPath
-                                if (jsPath == null) {
-                                    ToastManager.show(toastNoManualImport)
-                                } else {
-                                    // 前置校验：先确认适配脚本确实读得到，再让用户去选课表，
-                                    // 避免「选完课表才发现脚本不存在」的倒置体验
-                                    val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
-                                    if (!viewModel.fileSystem.exists(jsFilePath)) {
-                                        ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+                        if (isCourseMode) {
+                            Button(
+                                onClick = {
+                                    val jsPath = assetJsPath
+                                    if (jsPath == null) {
+                                        ToastManager.show(toastNoManualImport)
                                     } else {
-                                        try {
-                                            pendingAdapterJsCode = viewModel.fileSystem.read(jsFilePath) { readUtf8() }
-                                            showCourseTablePicker = true
-                                        } catch (e: Exception) {
-                                            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
+                                        // 前置校验：先确认适配脚本确实读得到，再让用户去选课表，
+                                        // 避免「选完课表才发现脚本不存在」的倒置体验
+                                        val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
+                                        if (!viewModel.fileSystem.exists(jsFilePath)) {
+                                            ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+                                        } else {
+                                            try {
+                                                pendingAdapterJsCode = viewModel.fileSystem.read(jsFilePath) { readUtf8() }
+                                                showCourseTablePicker = true
+                                            } catch (e: Exception) {
+                                                ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            enabled = assetJsPath != null && importRunState !is ImportRunState.Running,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(Res.string.action_execute_import))
+                                },
+                                enabled = assetJsPath != null && importRunState !is ImportRunState.Running,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.action_execute_import))
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    webViewController.evaluateJavascript(JS_NAVIGATE_TO_TIMETABLE) { result ->
+                                        when (result?.trim('"')) {
+                                            "found" -> ToastManager.show(toastNavigatingToTimetable)
+                                            "notfound" -> ToastManager.show(toastTimetableEntryNotFound)
+                                            else -> Unit
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.action_navigate_to_timetable))
+                            }
                         }
 
-                        OutlinedButton(
-                            onClick = {
-                                webViewController.evaluateJavascript(JS_NAVIGATE_TO_TIMETABLE) { result ->
-                                    when (result?.trim('"')) {
-                                        "found" -> ToastManager.show(toastNavigatingToTimetable)
-                                        "notfound" -> ToastManager.show(toastTimetableEntryNotFound)
-                                        else -> Unit
+                        if (isGradeMode) {
+                            Button(
+                                onClick = startGradeScan,
+                                enabled = !gradeScanRunning,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.grade_import_recognize))
+                            }
+                        }
+
+                        if (isEmptyClassroomMode) {
+                            OutlinedButton(
+                                onClick = {
+                                    webViewController.evaluateJavascript(JS_NAVIGATE_TO_EMPTY_CLASSROOM) { result ->
+                                        when (result?.trim('"')) {
+                                            "found" -> ToastManager.show(toastEmptyLocateFound)
+                                            "notfound" -> ToastManager.show(toastEmptyLocateNotFound)
+                                            else -> Unit
+                                        }
                                     }
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(Res.string.action_navigate_to_timetable))
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.empty_classroom_locate))
+                            }
+
+                            Button(
+                                onClick = startEmptyClassroomScan,
+                                enabled = !emptyScanRunning,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.empty_classroom_scan))
+                            }
                         }
                     }
                 }
@@ -440,7 +606,10 @@ fun WebViewScreen(
             }
 
 
-            if (importRunState is ImportRunState.Running) {
+            if ((isCourseMode && importRunState is ImportRunState.Running) ||
+                (isGradeMode && gradeScanRunning) ||
+                (isEmptyClassroomMode && emptyScanRunning)
+            ) {
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -452,7 +621,7 @@ fun WebViewScreen(
                 ) {
                     ThemedLoadingIndicator(modifier = Modifier.size(16.dp))
                     Text(
-                        text = toastExecutingImport,
+                        text = if (isEmptyClassroomMode) statusReadingEmpty else toastExecutingImport,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
                         color = appColors().textSecondary
                     )
@@ -483,9 +652,126 @@ fun WebViewScreen(
                     }
                 )
             }
+            if (showEmptyRooms) {
+                EmptyClassroomResultDialog(
+                    title = emptyDialogTitle,
+                    hint = emptyDialogHint,
+                    rows = emptyRooms.map { formatEmptyClassroomLine(it, emptyCapacityPattern) },
+                    copyText = emptyCopyText,
+                    closeText = emptyCloseText,
+                    onCopy = {
+                        copyToClipboard(formatEmptyClassroomText(emptyRooms, emptyCapacityPattern))
+                        ToastManager.show(toastEmptyCopied)
+                    },
+                    onDismissRequest = { showEmptyRooms = false }
+                )
+            }
             WebDialogHost(uiEvents = uiEventsFlow)
 
 
         }
     }
+}
+
+/**
+ * 「识别本页成绩」脚本回传的成绩条目（字段名与注入脚本里的 JSON 键一一对应）。
+ */
+@Serializable
+private data class ScannedGrade(
+    val courseName: String = "",
+    val credit: Double? = null,
+    val scoreText: String = "",
+    val category: String? = null
+)
+
+private val scannedGradeJson = Json { ignoreUnknownKeys = true }
+
+/**
+ * 解析注入脚本回传的 `Base64(JSON)` 成绩列表。
+ *
+ * 为什么走 Base64：`evaluateJavascript` 回调拿到的是**再 JSON 编码一次**的字符串
+ * （脚本返回 JSON 字符串时内部引号会被转义），直接 `trim('"')` 解不出嵌套引号；
+ * 让脚本先编码成单行安全字符串，原生侧解一次即可。
+ * 结果为空 / 解码失败 / 当前页不是成绩表，一律返回空列表，由调用方提示用户手动录入。
+ */
+@OptIn(ExperimentalEncodingApi::class)
+private fun decodeScannedGrades(raw: String?): List<ScannedGrade> {
+    val base64 = raw?.trim()?.trim('"')?.trim().orEmpty()
+    if (base64.isEmpty()) return emptyList()
+    return try {
+        scannedGradeJson.decodeFromString<List<ScannedGrade>>(Base64.decode(base64).decodeToString())
+    } catch (e: Exception) {
+        emptyList()
+    }
+}
+
+private val scannedEmptyRoomJson = Json { ignoreUnknownKeys = true }
+
+/**
+ * 解析注入脚本回传的 `Base64(JSON)` 空教室列表（编码理由同 [decodeScannedGrades]）。
+ * 结果为空 / 解码失败 / 当前页不是空教室结果表，一律返回空列表，由调用方提示用户。
+ */
+@OptIn(ExperimentalEncodingApi::class)
+private fun decodeEmptyClassrooms(raw: String?): List<EmptyClassroomRoom> {
+    val base64 = raw?.trim()?.trim('"')?.trim().orEmpty()
+    if (base64.isEmpty()) return emptyList()
+    return try {
+        scannedEmptyRoomJson.decodeFromString<List<EmptyClassroomRoom>>(
+            Base64.decode(base64).decodeToString()
+        )
+    } catch (e: Exception) {
+        emptyList()
+    }
+}
+
+/**
+ * 空教室识别结果弹窗：列表展示 + 一键复制全部。
+ *
+ * 用弹窗而不是新页面：空教室是「看一眼、复制给同学」的一次性信息，
+ * 复制完即关，不必在导航栈里多留一层。
+ */
+@Composable
+private fun EmptyClassroomResultDialog(
+    title: String,
+    hint: String,
+    rows: List<String>,
+    copyText: String,
+    closeText: String,
+    onCopy: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    AppAlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(title) },
+        text = {
+            Column {
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
+                    color = appColors().textSecondary
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(rows) { line ->
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = appType().body),
+                            color = appColors().textPrimary
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            AppDialogActions(
+                confirmText = copyText,
+                onConfirm = onCopy,
+                dismissText = closeText,
+                onDismiss = onDismissRequest
+            )
+        }
+    )
 }

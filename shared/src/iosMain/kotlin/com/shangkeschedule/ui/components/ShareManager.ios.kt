@@ -8,9 +8,22 @@ import platform.UIKit.UIWindowScene
 actual val isShareDialogSupported: Boolean = true
 
 actual fun platformShareFile(filePath: String, mimeType: String) {
-    val fileUrl = NSURL.fileURLWithPath(filePath)
-    val activityItems = listOf(fileUrl)
+    presentShareSheet(activityItems = listOf(NSURL.fileURLWithPath(filePath)))
+}
 
+actual fun platformShareTextWithFile(
+    subject: String,
+    text: String,
+    filePath: String,
+    mimeType: String
+) {
+    presentShareSheet(
+        activityItems = listOf(text, NSURL.fileURLWithPath(filePath))
+    )
+}
+
+/** 从当前 key window 弹出系统分享面板（文本与附件都塞进 activityItems）。 */
+private fun presentShareSheet(activityItems: List<Any>) {
     val activityViewController = UIActivityViewController(
         activityItems = activityItems,
         applicationActivities = null

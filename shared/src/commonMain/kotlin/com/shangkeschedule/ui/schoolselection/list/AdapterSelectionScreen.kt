@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.WebPagePurpose
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -105,6 +106,8 @@ fun AdapterSelectionScreen(
     schoolName: String,
     categoryNumber: Int,
     resourceFolder: String,
+    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩），原样透传给内嵌 WebView。 */
+    purpose: String = WebPagePurpose.COURSE,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 异步加载状态
@@ -223,7 +226,8 @@ fun AdapterSelectionScreen(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
                                             // 名单与判定理由见文件顶部 FORCE_DESKTOP_MODE_SCHOOL_IDS
-                                            forceDesktopMode = schoolId in FORCE_DESKTOP_MODE_SCHOOL_IDS
+                                            forceDesktopMode = schoolId in FORCE_DESKTOP_MODE_SCHOOL_IDS,
+                                            mode = purpose
                                         )
                                     )
                                 }

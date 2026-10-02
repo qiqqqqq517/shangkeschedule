@@ -565,9 +565,14 @@ object UniversalScheduleParser {
             RE_INT_RANGE_DASH.find(trimmed)?.let {
                 val start = it.groupValues[1].toInt()
                 val end = it.groupValues[2].toInt()
-                for (w in minOf(start, end)..maxOf(start, end)) weeks.add(w)
+                // v4.64.23：分段级 (单)/(双) 过滤。
+                // 此前过滤只作用于 Excel 的 ◇ 分隔路径（:745），而 CSV / HTML / 纯文本
+                // 三条路径都走这里 —— 于是「1-16(单)」被当成「每周都上」，单周课静默
+                // 入库为全周，预览页看上去完全正常，没有任何提示。
+                val parsed = (minOf(start, end)..maxOf(start, end)).toList()
+                weeks.addAll(applyOddEvenFilter(parsed, trimmed))
             } ?: RE_DIGITS_CAPTURE.find(trimmed)?.let {
-                weeks.add(it.groupValues[1].toInt())
+                weeks.addAll(applyOddEvenFilter(listOf(it.groupValues[1].toInt()), trimmed))
             }
         }
         return weeks.sorted()
@@ -784,7 +789,11 @@ object UniversalScheduleParser {
         RE_WEEK_RANGE.find(working)?.let { m ->
             val a = m.groupValues[1].toInt()
             val b = m.groupValues[2].toInt()
-            weeks = (minOf(a, b)..maxOf(a, b)).toList()
+            // v4.64.23：与 parseWeeksSimple 同步补 (单)/(双) 过滤。
+            // 此前只有 ◇ 分隔路径过滤，本路径（Excel 非 ◇ 单元格、CSV、HTML）
+            // 把「1-16(单)」当成「每周都上」，单周课静默入库为全周。
+            val parsed = (minOf(a, b)..maxOf(a, b)).toList()
+            weeks = applyOddEvenFilter(parsed, working)
             working = working.replace(m.value, " ")
         }
 

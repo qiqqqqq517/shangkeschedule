@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「周课程」小组件元数据（v4.67.0，C3）：4x3 起步，可横向/纵向拉伸（列表型组件越高越好）。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_loading_placeholder"
+    android:minHeight="180dp"
+    android:minWidth="250dp"
+    android:previewImage="@drawable/widget_preview_week_courses"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="3"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

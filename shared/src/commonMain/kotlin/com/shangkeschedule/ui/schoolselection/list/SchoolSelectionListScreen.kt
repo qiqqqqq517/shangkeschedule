@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
+import com.shangkeschedule.WebPagePurpose
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.tool.copyToClipboard
@@ -102,6 +103,8 @@ import shangkeschedule.shared.generated.resources.title_select_school
 fun SchoolSelectionListScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
+    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩），透传给适配方案选择与内嵌 WebView。 */
+    purpose: String = WebPagePurpose.COURSE,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 观察 ViewModel 状态
@@ -154,6 +157,7 @@ fun SchoolSelectionListScreen(
                             schoolName = selectedSchool.name,
                             categoryNumber = selectedCategory.value,
                             resourceFolder = selectedSchool.resource_folder,
+                            purpose = purpose,
                         )
                     )
                     isSearchActive = false
@@ -195,6 +199,7 @@ fun SchoolSelectionListScreen(
                                 schoolName = school.name,
                                 categoryNumber = category.value,
                                 resourceFolder = school.resource_folder,
+                                purpose = purpose,
                                 )
                         )
                     }

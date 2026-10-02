@@ -37,6 +37,9 @@ kotlinSerialization = "1.11.0"
 okio = "3.18.1"
 kotlinxDateTime = "0.8.0"
 
+# 二维码（课表分享串），MIT，纯 Kotlin KMP：jvm / android / ios / js / wasm
+qrcodeKotlin = "4.5.0"
+
 # 依赖注入 (DI) & 工具库
 koin = "4.2.2"
 koin-plugin = "1.1.0"
@@ -63,6 +66,9 @@ compose-components-resources = { module = "org.jetbrains.compose.components:comp
 
 # Haze 毛玻璃 backdrop blur（Telegram 形态玻璃质感）
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+
+# 二维码生成（课表分享串）
+qrcode-kotlin = { module = "io.github.g0dkar:qrcode-kotlin", version.ref = "qrcodeKotlin" }
 
 # Kotlin & 通用测试
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

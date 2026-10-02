@@ -346,7 +346,7 @@ fun ManageCourseTablesScreen(
                             ToastManager.show(if (created) toastCoupleCreated else toastCoupleCreateFailed)
                         }
                     },
-                    onImportSemester = { onNavigate(Destination.SchoolSelectionListScreen) },
+                    onImportSemester = { onNavigate(Destination.SchoolSelectionListScreen()) },
                     onRestoreBackup = { onNavigate(Destination.BackupAndRestore) }
                 )
             }

@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.shangkeschedule.Destination
+import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.model.schedule_style.ScheduleModeProto
 import com.shangkeschedule.data.model.ScheduleGridStyle
@@ -495,7 +496,7 @@ fun WeeklyScheduleScreen(
                                         text = stringResource(Res.string.item_school_system_import),
                                         onClick = {
                                             showOverflowMenu = false
-                                            onNavigate(Destination.SchoolSelectionListScreen)
+                                            onNavigate(Destination.SchoolSelectionListScreen())
                                         }
                                     )
                                     TelegramMenuDivider()
@@ -912,6 +913,17 @@ fun WeeklyScheduleScreen(
                     viewModel.deleteCourseWeekOccurrence(courseId, week)
                 }
                 selectedBlockForDetail = null
+            },
+            // 课堂笔记（v4.66.0）：先关弹窗再跳，避免返回时详情弹窗仍浮在课表上。
+            // 节次预填用裸数字区间（"1-2"），不引入本地化文案（三语言都要维护）。
+            onOpenNotes = { course ->
+                selectedBlockForDetail = null
+                val sectionLabel = if (course.startSection != null && course.endSection != null) {
+                    "${course.startSection}-${course.endSection}"
+                } else {
+                    ""
+                }
+                onNavigate(Destination.CourseNote(course.id, course.name, sectionLabel))
             }
             // v3.57.4（原 v3.54.0 传 hazeState 走玻璃透明分支）：玻璃分支内层蒙层未裁剪到 sheetTop
             // 圆角、且透明容器在底部 inset 露出透明块，顶部圆角被方角蒙糊 —— 与今日日程详情弹窗
@@ -1172,7 +1184,7 @@ private fun ScheduleListView(
                 AddScheduleGuide(
                     // 空课表引导顶部留白使用主题卡片内边距，避免固定值破坏不同主题节奏。
                     modifier = Modifier.padding(top = appSpacing().cardInner * 2),
-                    onSchoolImport = { onNavigate(Destination.SchoolSelectionListScreen) },
+                    onSchoolImport = { onNavigate(Destination.SchoolSelectionListScreen()) },
                     onFileImport = { onNavigate(Destination.FileImportHub) },
                     onManualAdd = { onNavigate(Destination.AddEditCourse()) }
                 )

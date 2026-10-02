@@ -26,4 +26,17 @@
     -->
     <color name="widget_divider">#EAECEE</color> # 分割线颜色：用于垂直分割线和课程间的水平线
     <color name="widget_course_fallback">#5D6D7E</color> # 课程指示条兜底色：原 #F2F4F4 在卡底上仅 1.05:1（等于看不见），改取次要文字色（5.05:1）
+    <!--
+      「考试倒计时」小组件左侧色条（v4.67.0）：考试是红色语义（与日程页 EXAM 分类的 danger 色一致），
+      不参与课程 12 档色板，故单列一个颜色项。浅色档取深红，保证在 #FEF7FF 卡底上有足够对比。
+    -->
+    <color name="widget_exam_accent">#C0392B</color> # 考试色条：浅色档
+    <!--
+      「日程清单」小组件（v4.67.0）：左侧色条按日程类别取色，考试沿用 widget_exam_accent。
+      与课程 12 档色板无关；浅色档取中深色，保证在 #FEF7FF 卡底上可辨。
+    -->
+    <color name="widget_agenda_todo">#5B8DEF</color> # 待办：蓝
+    <color name="widget_agenda_activity">#2BAE85</color> # 活动：绿
+    <color name="widget_agenda_homework">#E0A32E</color> # 作业：琥珀
+    <color name="widget_agenda_other">#8E8E93</color> # 其他：灰
 </resources>

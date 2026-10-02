@@ -17,6 +17,8 @@ import shangkeschedule.shared.generated.resources.import_text_paste_label
 import shangkeschedule.shared.generated.resources.import_text_any_desc
 import shangkeschedule.shared.generated.resources.import_text_any_title
 import shangkeschedule.shared.generated.resources.import_detected_fmt
+import shangkeschedule.shared.generated.resources.import_ai_text_hint
+import shangkeschedule.shared.generated.resources.import_external_text_hint
 import shangkeschedule.shared.generated.resources.import_toast_success
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,10 +37,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.parser.TextImportFormat
+import com.shangkeschedule.tool.ExternalTextImport
+import com.shangkeschedule.tool.ExternalTextSource
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
@@ -62,6 +70,18 @@ fun TextImportScreen(
     val toastNoFile = stringResource(Res.string.import_error_no_file)
     val toastSuccess = stringResource(Res.string.import_toast_success)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // v4.66.0（L1 / J1）：外部文本（系统文本选择工具栏的「上课」，或 AI 识别导入的结果）
+    // 一次性带入并预填；消费后立刻 clear，之后返回/重进本页不会重复灌入。
+    val pendingExternalText by ExternalTextImport.pending.collectAsStateWithLifecycle()
+    val externalTextSource by ExternalTextImport.source.collectAsStateWithLifecycle()
+    var fromExternalText by remember { mutableStateOf(false) }
+    LaunchedEffect(pendingExternalText) {
+        val external = pendingExternalText ?: return@LaunchedEffect
+        viewModel.updateInputText(external)
+        fromExternalText = true
+        ExternalTextImport.clear()
+    }
 
     Scaffold(
         topBar = {
@@ -88,6 +108,19 @@ fun TextImportScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary
             )
+            // 外部文本带入提示（v4.66.0 · L1 选中文本 / J1 AI 识别）
+            if (fromExternalText) {
+                Spacer(modifier = Modifier.height(appSpacing().listGap))
+                Text(
+                    text = if (externalTextSource == ExternalTextSource.AI) {
+                        stringResource(Res.string.import_ai_text_hint)
+                    } else {
+                        stringResource(Res.string.import_external_text_hint)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(modifier = Modifier.height(appSpacing().listGap))
 
             // 文本输入框

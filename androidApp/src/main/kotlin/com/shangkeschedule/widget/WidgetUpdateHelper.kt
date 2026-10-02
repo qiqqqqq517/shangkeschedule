@@ -10,18 +10,29 @@ import android.view.View
 import android.widget.TextView
 import androidx.datastore.core.DataStore
 import com.shangkeschedule.R
+import com.shangkeschedule.data.db.main.ScheduleCategory
+import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.model.toProto
+import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.widget.agenda_list.AgendaListNativeProvider
+import com.shangkeschedule.widget.agenda_list.AgendaListNativeRenderer
 import com.shangkeschedule.widget.compact.CompactNativeProvider
 import com.shangkeschedule.widget.compact.CompactNativeRenderer
 import com.shangkeschedule.widget.double_days.DoubleDaysNativeProvider
 import com.shangkeschedule.widget.double_days.DoubleDaysNativeRenderer
+import com.shangkeschedule.widget.exam_countdown.ExamCountdownNativeProvider
+import com.shangkeschedule.widget.exam_countdown.ExamCountdownNativeRenderer
 import com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider
 import com.shangkeschedule.widget.list_vertical.ListVerticalNativeRenderer
+import com.shangkeschedule.widget.next_course.NextCourseNativeProvider
+import com.shangkeschedule.widget.next_course.NextCourseNativeRenderer
 import com.shangkeschedule.widget.tiny.TinyNativeProvider
 import com.shangkeschedule.widget.tiny.TinyNativeRenderer
+import com.shangkeschedule.widget.week_courses.WeekCoursesNativeProvider
+import com.shangkeschedule.widget.week_courses.WeekCoursesNativeRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -36,10 +47,26 @@ import kotlin.time.Duration.Companion.seconds
 private object WidgetDependencyContainer : KoinComponent {
     val repository: WidgetRepository by inject()
     val styleDataStore: DataStore<ScheduleGridStyleProto> by inject()
+
+    /** v4.67.0：「考试倒计时」组件的数据源（主库日程表）。 */
+    val scheduleEventRepository: ScheduleEventRepository by inject()
 }
 
 /** 组件规格，决定「可容纳课程条数」的计算口径。 */
-private enum class WidgetKind { TINY, COMPACT, DOUBLE_DAYS, LIST_VERTICAL }
+private enum class WidgetKind {
+    TINY, COMPACT, DOUBLE_DAYS, LIST_VERTICAL, NEXT_COURSE, EXAM_COUNTDOWN,
+    // v4.67.0：C3「周课程」/ C4「日程清单」两个列表型规格
+    WEEK_COURSES, AGENDA_LIST
+}
+
+/** 写入快照的未来考试场上限（v4.67.0）：渲染只消费第一场，其余仅用于「还有 N 场」计数。 */
+private const val MAX_WIDGET_EXAMS = 5
+
+/** 写入快照的未来日程条数上限（v4.67.0）：「日程清单」组件的清单长度。 */
+private const val MAX_WIDGET_AGENDA = 8
+
+/** 「周课程」组件的数据窗口（天，含今天，v4.67.0）：今天起连续 7 天。 */
+private const val WIDGET_WEEK_WINDOW_DAYS = 7
 
 /**
  * 周次读取结果的包装。
@@ -118,14 +145,18 @@ private suspend fun performUpdate(context: Context) {
         // 2. 准备基础数据
         val today = LocalDate.now()
         val tomorrow = today.plusDays(1)
+        // 「周课程」要连续 7 天（含今天），故读取窗口放宽到一周；其余四个规格仍只消费
+        // 今天 + 明天（下方 dbCourses 过滤），数据面与 v4.67.0 之前逐字段一致。
+        val weekEnd = today.plusDays((WIDGET_WEEK_WINDOW_DAYS - 1).toLong())
 
         // 读取超时时直接跳过本次渲染（保留旧快照）——清成空列表会让组件整体空白到下个 15min tick
-        val dbCourses = withTimeoutOrNull(3.seconds) {
-            repository.getWidgetCoursesByDateRange(today.toString(), tomorrow.toString()).first()
+        val allCourses = withTimeoutOrNull(3.seconds) {
+            repository.getWidgetCoursesByDateRange(today.toString(), weekEnd.toString()).first()
         } ?: run {
             Log.w("WidgetSync", "widget 数据读取超时，跳过本次渲染以保留旧快照")
             return
         }
+        val dbCourses = allCourses.filter { it.date <= tomorrow.toString() }
 
         // 周次读取超时必须与课程数据同策略：跳过本次渲染、保留旧快照。
         // 旧实现为 `?: 0`，而四个 Renderer 一律以 `current_week <= 0` 判定假期——Room 读取
@@ -153,25 +184,67 @@ private suspend fun performUpdate(context: Context) {
             course_color_maps = widgetCoursePaletteProto()
         )
 
-        // 3. 构造数据快照 (Protobuf)
-        val courseProtoList = dbCourses.map { course ->
-            WidgetCourseProto(
-                id = course.id,
-                name = course.name,
-                teacher = course.teacher,
-                position = course.position,
-                start_time = course.startTime,
-                end_time = course.endTime,
-                color_int = course.colorInt,
-                is_skipped = course.isSkipped,
-                date = course.date
-            )
+        // 2.5 未来日程（v4.67.0）：「考试倒计时」与「日程清单」的共同数据源，取自主库日程表。
+        //     日期 >= 今天、按（日期, 开始时间）升序；已勾选的条目不进快照——勾掉的考试不该继续
+        //     倒计时，被划掉的待办也不该继续占清单（口径与 G3 通知的 ExamCountdownNotifier 一致）。
+        //     读取超时按「暂无」渲染：日程表是小表，2s 内读不到属异常，下一个 15 分钟 tick 会自愈；
+        //     这里不做「保留旧快照」，因为与「宁可显示空态也不显示过期倒计时」的取向冲突
+        //     （过期倒计时比空态更误导）。
+        val upcomingEvents = withTimeoutOrNull(2.seconds) {
+            WidgetDependencyContainer.scheduleEventRepository.getAllEvents().first()
+                .asSequence()
+                .filter { !it.done }
+                .filter { it.date >= today.toString() }
+                .sortedWith(compareBy({ it.date }, { it.startTime ?: "" }))
+                .toList()
+        } ?: run {
+            Log.w("WidgetSync", "日程读取超时，本次按「暂无考试 / 暂无日程」渲染")
+            emptyList()
         }
+
+        // 「考试倒计时」只取最近若干场考试：渲染消费第一场，其余用于「还有 N 场考试」计数。
+        val examProtoList = upcomingEvents.asSequence()
+            .filter { ScheduleCategory.fromKey(it.category) == ScheduleCategory.EXAM }
+            .take(MAX_WIDGET_EXAMS)
+            .map { event ->
+                WidgetExamProto(
+                    id = event.id,
+                    title = event.title,
+                    date = event.date,
+                    start_time = event.startTime ?: "",
+                    location = event.location ?: ""
+                )
+            }
+            .toList()
+
+        // 「日程清单」消费全部类别（待办 / 活动 / 作业 / 考试 / 其他），仅取前 MAX_WIDGET_AGENDA 条。
+        val agendaProtoList = upcomingEvents.asSequence()
+            .take(MAX_WIDGET_AGENDA)
+            .map { event ->
+                WidgetAgendaProto(
+                    id = event.id,
+                    title = event.title,
+                    date = event.date,
+                    start_time = event.startTime ?: "",
+                    category = event.category,
+                    location = event.location ?: "",
+                    is_all_day = event.isAllDay
+                )
+            }
+            .toList()
+
+        // 3. 构造数据快照 (Protobuf)
+        val courseProtoList = dbCourses.map { it.toProto() }
+        // 「周课程」消费完整一周（含今天/明天，与 courses 同源同映射，不引入第二个事实来源）
+        val weekCourseProtoList = allCourses.map { it.toProto() }
 
         val snapshot = WidgetSnapshot(
             current_week = currentWeek,
             style = finalStyleToSync,
-            courses = courseProtoList
+            courses = courseProtoList,
+            exams = examProtoList,
+            week_courses = weekCourseProtoList,
+            agenda = agendaProtoList
         )
 
         // 4. 定义所有原生尺寸的映射列表（同时携带各自规格，用于按类型推算可容纳条数）
@@ -180,26 +253,23 @@ private suspend fun performUpdate(context: Context) {
             Triple(TinyNativeProvider::class.java, WidgetKind.TINY, TinyNativeRenderer::render),
             Triple(CompactNativeProvider::class.java, WidgetKind.COMPACT, CompactNativeRenderer::render),
             Triple(DoubleDaysNativeProvider::class.java, WidgetKind.DOUBLE_DAYS, DoubleDaysNativeRenderer::render),
-            Triple(ListVerticalNativeProvider::class.java, WidgetKind.LIST_VERTICAL, ListVerticalNativeRenderer::render)
+            Triple(ListVerticalNativeProvider::class.java, WidgetKind.LIST_VERTICAL, ListVerticalNativeRenderer::render),
+            Triple(NextCourseNativeProvider::class.java, WidgetKind.NEXT_COURSE, NextCourseNativeRenderer::render),
+            Triple(ExamCountdownNativeProvider::class.java, WidgetKind.EXAM_COUNTDOWN, ExamCountdownNativeRenderer::render),
+            Triple(WeekCoursesNativeProvider::class.java, WidgetKind.WEEK_COURSES, WeekCoursesNativeRenderer::render),
+            Triple(AgendaListNativeProvider::class.java, WidgetKind.AGENDA_LIST, AgendaListNativeRenderer::render)
         )
 
-        // 4.5 实测 ListVertical 条目高度（每次刷新至多测一次，4 个规格共用）。
-        //     仅 ListVertical 消费该值，其余规格的条数是固定档位。
+        // 4.5 实测列表型组件的条目高度（每次刷新至多测一次，各规格按需测量）。
+        //     仅三个列表型规格消费该值，其余规格的条数是固定档位。
         //     v4.61.0 起条目带放大字号渲染，测量必须用「空间档最大字号」（L 档），
         //     否则条数算多溢出。
         //
-        //     `by lazy`（v4.64.22）：本函数会 inflate + measure 一份行布局，有实测开销；
-        //     而桌面没有 ListVertical 组件（或只装了其它三种规格）时算出的值永远不被
-        //     消费 —— 无探针即可证伪的纯浪费。lazy 保持「首次需要时才测」，
-        //     该函数纯读 density + inflate、无副作用，语义等价。
+        //     `by lazy`（v4.64.22）：测量会 inflate + measure 一份行布局，有实测开销；
+        //     而桌面没有该规格组件时算出的值永远不被消费 —— 无探针即可证伪的纯浪费。
+        //     [RowHeights] 保持「首次需要时才测」，测量本身纯读 density + inflate、无副作用。
         val density = context.resources.displayMetrics.density
-        val listRowHeightPx by lazy {
-            measureListRowHeightPx(
-                context,
-                nameSp = (ROW_NAME_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat(),
-                metaSp = (ROW_META_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat()
-            )
-        }
+        val rowHeights = RowHeights(context)
 
         // 5. 统一分发更新
         nativeConfigs.forEachIndexed { index, (providerClass, kind, renderFunc) ->
@@ -218,7 +288,7 @@ private suspend fun performUpdate(context: Context) {
                         val remoteViews = renderFunc(
                             context,
                             snapshot,
-                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, listRowHeightPx, density),
+                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, rowHeights, density),
                             space
                         )
                         appWidgetManager.updateAppWidget(widgetId, remoteViews)
@@ -242,25 +312,65 @@ private const val LIST_ROW_FALLBACK_DP = 52
 private const val LIST_MEASURE_WIDTH_DP = 250
 
 /**
- * 实测 ListVertical 条目（`widget_item_course_list_node`）在当前配置下的高度，单位 px。
+ * 三种列表型规格各自的实测条目高度（px），每项 `by lazy`：桌面没有该规格组件时永不测量。
  *
- * 背景（v3.66.5 修复）：v3.66.4 用常量 `LIST_ROW_DP = 36` 估算条数，而该条目实际占位约 49dp
- * （课程名 13sp + 地点 10sp + 教师 10sp + 2dp/1dp 间隔 + paddingVertical 3dp×2）⇒ 条数偏高约 36%，
- * 4×N 被拉高后列表溢出、末条被静默裁切（LinearLayout 不滚动，超出部分直接不可见）。
+ * 为什么必须是实测：v3.66.4 曾用常量估算条目高度，而条目实际占位比分估大 ⇒ 条数算多 ⇒
+ * 列表溢出、末条被静默裁切（LinearLayout 不滚动，超出部分直接不可见）。见 [WidgetListCapacity]。
+ * 为什么必须 lazy：inflate + measure 有实测开销，而某规格在桌面上一件都没有时该值永不被消费。
+ */
+private class RowHeights(private val context: Context) {
+
+    /** 垂直列表课表条目（`widget_item_course_list_node`）。 */
+    val list: Int by lazy {
+        measureRowHeightPx(context, R.layout.widget_item_course_list_node) { view, nameSp, metaSp ->
+            view.setTextSizeTo(R.id.tv_course_name, nameSp)
+            view.setTextSizeTo(R.id.tv_course_position, metaSp)
+            view.setTextSizeTo(R.id.tv_course_start_time, metaSp)
+            view.setTextSizeTo(R.id.tv_course_end_time, metaSp)
+        }
+    }
+
+    /** 周课程条目（`widget_item_week_course_node`，v4.67.0 起）。 */
+    val week: Int by lazy {
+        measureRowHeightPx(context, R.layout.widget_item_week_course_node) { view, nameSp, metaSp ->
+            view.setTextSizeTo(R.id.tv_week_name, nameSp)
+            view.setTextSizeTo(R.id.tv_week_day, metaSp)
+            view.setTextSizeTo(R.id.tv_week_time, metaSp)
+            view.setTextSizeTo(R.id.tv_week_position, metaSp)
+        }
+    }
+
+    /** 日程清单条目（`widget_item_agenda_node`，v4.67.0 起）。 */
+    val agenda: Int by lazy {
+        measureRowHeightPx(context, R.layout.widget_item_agenda_node) { view, nameSp, metaSp ->
+            view.setTextSizeTo(R.id.tv_agenda_title, nameSp)
+            view.setTextSizeTo(R.id.tv_agenda_day, metaSp)
+            view.setTextSizeTo(R.id.tv_agenda_time, metaSp)
+            view.setTextSizeTo(R.id.tv_agenda_meta, metaSp)
+        }
+    }
+}
+
+/**
+ * 实测某个条目行布局在当前配置下的高度，单位 px。
  *
  * 固定常量无法适配 fontScale / 字体 / 语言差异，故改为**实测**：在 App 进程 inflate 条目布局并测量。
  * 渲染发生在 App 侧，不违反 RemoteViews「不能自绘」的限制。测量失败时回落 [LIST_ROW_FALLBACK_DP]。
  *
- * v4.61.0：调用方传入「最大可能字号」（L 档 + 短名）后再测量，保证条数宁可少算不可多算。
+ * v4.61.0：一律按「最大可能字号」（L 档）测量，保证条数宁可少算不可多算。
  */
-private fun measureListRowHeightPx(context: Context, nameSp: Float, metaSp: Float): Int = runCatching {
+private fun measureRowHeightPx(
+    context: Context,
+    layoutRes: Int,
+    applyTextSizes: (View, Float, Float) -> Unit
+): Int = runCatching {
     val density = context.resources.displayMetrics.density
-    val view = LayoutInflater.from(context)
-        .inflate(R.layout.widget_item_course_list_node, null, false)
-    view.findViewById<TextView>(R.id.tv_course_name).setTextSize(TypedValue.COMPLEX_UNIT_SP, nameSp)
-    view.findViewById<TextView>(R.id.tv_course_position).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
-    view.findViewById<TextView>(R.id.tv_course_start_time).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
-    view.findViewById<TextView>(R.id.tv_course_end_time).setTextSize(TypedValue.COMPLEX_UNIT_SP, metaSp)
+    val view = LayoutInflater.from(context).inflate(layoutRes, null, false)
+    applyTextSizes(
+        view,
+        (ROW_NAME_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat(),
+        (ROW_META_BASE_SP + spaceDeltaSp(WidgetSpaceClass.L)).toFloat()
+    )
     val widthPx = (LIST_MEASURE_WIDTH_DP * density).toInt().coerceAtLeast(1)
     view.measure(
         View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
@@ -269,6 +379,24 @@ private fun measureListRowHeightPx(context: Context, nameSp: Float, metaSp: Floa
     val measured = view.measuredHeight
     if (measured > 0) measured else (LIST_ROW_FALLBACK_DP * density).toInt()
 }.getOrElse { (LIST_ROW_FALLBACK_DP * context.resources.displayMetrics.density).toInt() }
+
+/** 把测量用字号写到布局里的某个 ID 上（ID 缺失时静默跳过，不让整个测量失败）。 */
+private fun View.setTextSizeTo(viewId: Int, sp: Float) {
+    findViewById<TextView>(viewId)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+}
+
+/** `WidgetCourse` → 快照 proto：今天/明天数据面与本周数据面共用同一映射，避免两处走样。 */
+private fun WidgetCourse.toProto(): WidgetCourseProto = WidgetCourseProto(
+    id = id,
+    name = name,
+    teacher = teacher,
+    position = position,
+    start_time = startTime,
+    end_time = endTime,
+    color_int = colorInt,
+    is_skipped = isSkipped,
+    date = date
+)
 
 /**
  * 按组件宽度定空间档（v4.61.0，字号按空间放大的依据）。
@@ -301,7 +429,7 @@ private fun resolveMaxCourseCount(
     kind: WidgetKind,
     appWidgetManager: AppWidgetManager,
     widgetId: Int,
-    listRowHeightPx: Int,
+    rowHeights: RowHeights,
     density: Float
 ): Int {
     val options = appWidgetManager.getAppWidgetOptions(widgetId)
@@ -310,22 +438,27 @@ private fun resolveMaxCourseCount(
         options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
     )
 
+    // 三种列表型规格共用同一公式，只有实测行高不同。
+    fun rowsFor(rowHeightPx: Int): Int = WidgetListCapacity.rowsFor(
+        heightDp = heightDp,
+        chromeDp = WidgetListCapacity.CHROME_DP,
+        rowHeightPx = rowHeightPx,
+        density = density,
+        maxRows = WidgetListCapacity.MAX_ROWS
+    )
+
     return when (kind) {
-        // 单节课展示，不消费条数上限
-        WidgetKind.TINY -> 1
+        // 单节课展示，不消费条数上限（Tiny 一节课、NextCourse 一节课、ExamCountdown 一场考试）
+        WidgetKind.TINY, WidgetKind.NEXT_COURSE, WidgetKind.EXAM_COUNTDOWN -> 1
         WidgetKind.COMPACT, WidgetKind.DOUBLE_DAYS -> when {
             heightDp < 90 -> 1
             heightDp < 150 -> 2
             else -> 3
         }
-        // 4×N：可用高度 = 组件高度 − 卡片 padding 与头部占位；向下取整，宁可少显示不可裁切。
+        // 列表型规格：可用高度 = 组件高度 − 卡片 padding 与头部占位；向下取整，宁可少显示不可裁切。
         // 公式与边界由 WidgetListCapacity 持有并单测覆盖（v3.66.4 的「算多导致裁切」事故即在此防回归）。
-        WidgetKind.LIST_VERTICAL -> WidgetListCapacity.rowsFor(
-            heightDp = heightDp,
-            chromeDp = WidgetListCapacity.CHROME_DP,
-            rowHeightPx = listRowHeightPx,
-            density = density,
-            maxRows = WidgetListCapacity.MAX_ROWS
-        )
+        WidgetKind.LIST_VERTICAL -> rowsFor(rowHeights.list)
+        WidgetKind.WEEK_COURSES -> rowsFor(rowHeights.week)
+        WidgetKind.AGENDA_LIST -> rowsFor(rowHeights.agenda)
     }
 }

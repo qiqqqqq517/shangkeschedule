@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「下一节课」小组件的课程色条 —— **浅色半边**（v4.67.0）。
+
+  动态课程色不能写死在布局里：宿主按**系统**深浅 inflate 可见的那一份，
+  故浅色档提供 `course_bar_light`、`layout-night/` 档提供 `course_bar_dark`，
+  `applyCourseColor` 对两个 ID 各压一次颜色过滤，谁被 inflate 谁生效
+  （与 `widget_tiny_circle.xml` / `widget_item_course_common.xml` 同一路数）。
+-->
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/course_bar_light"
+    android:layout_width="4dp"
+    android:layout_height="match_parent"
+    android:src="@drawable/widget_indicator_shape" />

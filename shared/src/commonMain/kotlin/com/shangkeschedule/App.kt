@@ -12,6 +12,10 @@ import shangkeschedule.shared.generated.resources.webview_semester_prompt_title
 import shangkeschedule.shared.generated.resources.webview_semester_prompt_message
 import shangkeschedule.shared.generated.resources.webview_semester_prompt_later
 import shangkeschedule.shared.generated.resources.action_go_to_settings
+import shangkeschedule.shared.generated.resources.star_prompt_title
+import shangkeschedule.shared.generated.resources.star_prompt_message
+import shangkeschedule.shared.generated.resources.star_prompt_go
+import shangkeschedule.shared.generated.resources.star_prompt_never
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
@@ -28,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +42,13 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.CourseTableRepository
+import com.shangkeschedule.tool.AppExternalLinks
+import com.shangkeschedule.tool.ExternalTextImport
+import androidx.compose.ui.platform.LocalUriHandler
+import kotlinx.coroutines.flow.first
+import kotlin.time.Clock
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.ui.unit.IntOffset
@@ -55,16 +67,25 @@ import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.ui.agenda.AgendaScreen
 import com.shangkeschedule.ui.schedule.WeeklyScheduleScreen
 import com.shangkeschedule.ui.schoolselection.list.AdapterSelectionScreen
+import com.shangkeschedule.ui.cert.CertExamScreen
+import com.shangkeschedule.ui.adapters.AdapterStatusScreen
+import com.shangkeschedule.ui.grade.GradeScreen
+import com.shangkeschedule.ui.note.CourseNoteScreen
+import com.shangkeschedule.ui.share.CourseShareScreen
+import com.shangkeschedule.ui.share.ThemeShareScreen
+import com.shangkeschedule.ui.study.StudyProgressScreen
 import com.shangkeschedule.ui.schoolselection.list.SchoolSelectionListScreen
 import com.shangkeschedule.ui.schoolselection.web.WebViewScreen
 import com.shangkeschedule.ui.settings.SettingsScreen
 import com.shangkeschedule.ui.settings.SemesterSettingsScreen
+import com.shangkeschedule.ui.couple.CoupleFreeTimeScreen
 import com.shangkeschedule.ui.settings.CoupleScheduleSettingsScreen
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.feedback.FeedbackScreen
 import com.shangkeschedule.ui.settings.additional.LanguageSettingScreen
 import com.shangkeschedule.ui.settings.additional.LegalDocumentScreen
 import com.shangkeschedule.ui.settings.additional.MoreOptionsScreen
+import com.shangkeschedule.ui.settings.additional.WidgetTroubleshootScreen
 import com.shangkeschedule.ui.settings.additional.OpenSourceLicensesScreen
 import com.shangkeschedule.ui.settings.backup.BackupScreen
 import com.shangkeschedule.ui.settings.conversion.CourseTableConversionScreen
@@ -72,6 +93,7 @@ import com.shangkeschedule.ui.settings.course.AddEditCourseScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.shangkeschedule.ui.settings.coursetables.ManageCourseTablesScreen
+import com.shangkeschedule.ui.settings.import.AiImportScreen
 import com.shangkeschedule.ui.settings.import.ExcelImportScreen
 import com.shangkeschedule.ui.settings.import.FileImportHubScreen
 import com.shangkeschedule.ui.settings.import.JsonFileImportScreen
@@ -193,6 +215,17 @@ fun AppNavigation(startDestination: Destination) {
             if (backStack.isNotEmpty() && backStack.lastOrNull() !is Destination.MainDestination) {
                 backStack.removeAt(backStack.lastIndex)
             }
+        }
+    }
+
+    // v4.66.0（L1）：外部选中文本导入 —— 系统文本选择工具栏点「上课」时，
+    // MainActivity 把 `ACTION_PROCESS_TEXT` 的文本放进 ExternalTextImport；
+    // 这里只负责把入口页推到栈顶（文本由 TextImportScreen 预填后清空）。
+    // 冷启动（进程未活）时 MainActivity.onCreate 先 offer、组合随后才跑，故不会漏。
+    val pendingExternalText by ExternalTextImport.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingExternalText) {
+        if (!pendingExternalText.isNullOrBlank()) {
+            onNavigate(Destination.ShareTextImport)
         }
     }
 
@@ -396,6 +429,12 @@ private fun tabSegmentEndIndex(backStack: List<NavKey>, rootIndex: Int): Int {
     return if (nextRootOffset < 0) backStack.size else rootIndex + 1 + nextRootOffset
 }
 
+/** K5：最早一张课表建满多少天后才展示「GitHub Star」引导（新用户不打扰）。 */
+private const val STAR_PROMPT_MIN_TABLE_AGE_DAYS = 7L
+
+/** K5：毫秒 / 天。 */
+private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
+
 @Composable
 fun ScreenContent(
     targetDest: Destination,
@@ -404,7 +443,26 @@ fun ScreenContent(
 ) {
     val scope = rememberCoroutineScope()
     val courseConversionRepository: CourseConversionRepository = koinInject()
+    val appSettingsRepository: AppSettingsRepository = koinInject()
+    val courseTableRepository: CourseTableRepository = koinInject()
+    val uriHandler = LocalUriHandler.current
     var showSemesterStartPrompt by remember { mutableStateOf(false) }
+    var showStarPrompt by remember { mutableStateOf(false) }
+
+    // K5：GitHub Star 引导（一次性）。星链课表用 application 内评价（rating_bottom_sheet）拉商店评分，
+    // 上课以官网/GitHub 分发为主，所以换成「Star 引导」。触发条件刻意收紧，避免打扰：
+    //   ① 本地从未提示过（starPromptShown = false）；② 最早一张课表已建满 7 天（老用户才会看到）。
+    // 提示过一次后（无论点「去点个 Star」还是「不再提示」）立刻写标记，之后永不再弹；
+    // 常驻入口仍在「更多 → 联系作者」卡里，不依赖这个弹窗。
+    LaunchedEffect(Unit) {
+        runCatching {
+            if (appSettingsRepository.getAppSettingsOnce().starPromptShown) return@runCatching
+            val oldestTableAt = courseTableRepository.getAllCourseTables().first()
+                .minOfOrNull { it.createdAt } ?: return@runCatching
+            val ageDays = (Clock.System.now().toEpochMilliseconds() - oldestTableAt) / MILLIS_PER_DAY
+            if (ageDays >= STAR_PROMPT_MIN_TABLE_AGE_DAYS) showStarPrompt = true
+        }
+    }
 
     // 文件/文本/Excel 导入成功后：若当前课表未设置开学日期，弹窗引导去学期设置
     fun handleImportSuccess() {
@@ -425,8 +483,11 @@ fun ScreenContent(
         is Destination.TimeSlotSettings -> TimeSlotManagementScreen(onBack, targetDest.targetCourseTableId)
         Destination.SemesterSettings -> SemesterSettingsScreen(onBack)
         Destination.CoupleScheduleSettings -> CoupleScheduleSettingsScreen(onNavigate, onBack)
+        Destination.CoupleFreeTime -> CoupleFreeTimeScreen(onBack = onBack)
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack, onNavigate)
-        Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
+        is Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(
+            onNavigate, onBack, purpose = targetDest.purpose
+        )
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
         Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
@@ -434,7 +495,7 @@ fun ScreenContent(
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
         Destination.AppearanceSettings -> AppearanceSettingsScreen(onBack, onNavigate)
-        Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
+        Destination.ThemeSettings -> ThemeSettingsScreen(onBack, onNavigate = onNavigate)
         Destination.ProfileInfo -> ProfileInfoScreen(onBack)
         Destination.ScheduleStyleSettings -> ScheduleStyleSettingsScreen(onBack)
         Destination.PersonalizedDisplay -> PersonalizedDisplayScreen(onBack, onNavigate)
@@ -447,6 +508,19 @@ fun ScreenContent(
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
         Destination.Feedback -> FeedbackScreen(onBack)
         is Destination.LegalDocument -> LegalDocumentScreen(targetDest.type, onBack)
+        Destination.Grade -> GradeScreen(onNavigate, onBack)
+        Destination.CertExam -> CertExamScreen(onNavigate, onBack)
+        Destination.AdapterStatus -> AdapterStatusScreen(onBack)
+        Destination.StudyProgress -> StudyProgressScreen(onNavigate, onBack)
+        is Destination.CourseNote -> CourseNoteScreen(
+            courseId = targetDest.courseId,
+            courseName = targetDest.courseName,
+            sectionLabel = targetDest.sectionLabel,
+            onBack = onBack
+        )
+        Destination.CourseShare -> CourseShareScreen(onBack = onBack)
+        Destination.ThemeShare -> ThemeShareScreen(onBack = onBack)
+        Destination.WidgetTroubleshoot -> WidgetTroubleshootScreen(onBack = onBack)
 
         // 导入分类二级页
         Destination.FileImportHub -> FileImportHubScreen(onNavigate, onBack)
@@ -463,18 +537,57 @@ fun ScreenContent(
             onImportSuccess = { handleImportSuccess() },
             format = TextImportFormat.fromName(targetDest.format)
         )
+        // v4.66.0（L1）：外部选中文本 —— 与「文本粘贴导入」同款页面，自动嗅探格式
+        Destination.ShareTextImport -> TextImportScreen(
+            onBack,
+            onImportSuccess = { handleImportSuccess() }
+        )
+        // v4.66.0（J1）：AI 识别导入 —— 识别结果交给「文本粘贴导入」页预览导入，不直接写课表
+        Destination.AiImport -> AiImportScreen(
+            onBack = onBack,
+            onNavigate = onNavigate
+        )
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(
-            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder
+            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder,
+            purpose = targetDest.purpose
         )
         is Destination.WebView -> WebViewScreen(
-            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.forceDesktopMode
+            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath, targetDest.forceDesktopMode,
+            mode = targetDest.mode
         )
         is Destination.AddEditCourse -> AddEditCourseScreen(
             onBack, targetDest.courseId, targetDest.targetCourseTableId
         )
         is Destination.CourseManagementDetail -> CourseInstanceListScreen(
             targetDest.courseName, onBack, onNavigate
+        )
+    }
+
+    if (showStarPrompt) {
+        AppAlertDialog(
+            onDismissRequest = {
+                showStarPrompt = false
+                scope.launch { appSettingsRepository.updateStarPromptShown(true) }
+            },
+            title = { Text(stringResource(Res.string.star_prompt_title)) },
+            text = { Text(stringResource(Res.string.star_prompt_message)) },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.star_prompt_go),
+                    onConfirm = {
+                        showStarPrompt = false
+                        scope.launch { appSettingsRepository.updateStarPromptShown(true) }
+                        uriHandler.openUri(AppExternalLinks.GITHUB_REPO)
+                    },
+                    dismissText = stringResource(Res.string.star_prompt_never),
+                    onDismiss = {
+                        showStarPrompt = false
+                        scope.launch { appSettingsRepository.updateStarPromptShown(true) }
+                    }
+                )
+            },
+            dismissButton = {}
         )
     }
 

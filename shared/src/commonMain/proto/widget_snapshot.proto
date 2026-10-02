@@ -20,9 +20,47 @@ message WidgetCourseProto {
   string date = 9;
 }
 
+// 考试日程（v4.67.0 起供「考试倒计时」小组件使用）。
+// 数据源自主库 schedule_events 表中 category = "exam" 的日程，由
+// androidApp 侧 WidgetUpdateHelper 读取后按日期升序填入快照。
+message WidgetExamProto {
+  string id = 1;
+  string title = 2;
+  // 归属日期，格式 "yyyy-MM-dd"。
+  string date = 3;
+  // 开始时间，格式 "HH:mm"；全天考试为空串。
+  string start_time = 4;
+  string location = 5;
+}
+
+// 日程条目（v4.67.0 起供「日程清单」小组件使用）：待办 / 活动 / 作业 / 考试 / 其他
+// 一视同仁，类别由 `category` 原样携带，色条与文案由 androidApp 侧映射。
+// 数据源自主库 schedule_events 表，由 WidgetUpdateHelper 读取后按（日期, 开始时间）升序填入。
+message WidgetAgendaProto {
+  string id = 1;
+  string title = 2;
+  // 归属日期，格式 "yyyy-MM-dd"。
+  string date = 3;
+  // 开始时间，格式 "HH:mm"；全天日程为空串。
+  string start_time = 4;
+  // 类别 key：todo / activity / exam / homework / other。
+  string category = 5;
+  string location = 6;
+  bool is_all_day = 7;
+}
+
 message WidgetSnapshot {
   repeated WidgetCourseProto courses = 1;
   int32 current_week = 2;
 
   .com.shangkeschedule.data.model.ScheduleGridStyleProto style = 3;
+
+  // 未来考试（已按日期升序，仅取最近若干场）。
+  repeated WidgetExamProto exams = 4;
+
+  // 本周课程（v4.67.0 起供「周课程」小组件使用）：今天起连续 7 天，按（日期, 开始时间）升序。
+  repeated WidgetCourseProto week_courses = 5;
+
+  // 未来日程（v4.67.0 起供「日程清单」小组件使用）：日期 >= 今天，按（日期, 开始时间）升序。
+  repeated WidgetAgendaProto agenda = 6;
 }

@@ -21,6 +21,15 @@ interface CourseDao {
     suspend fun getCourseTableIdById(courseId: String): String?
 
     /**
+     * 一次性取全部课程 ID。
+     *
+     * 备份恢复课堂笔记时用来过滤「课程已不存在」的笔记：`course_notes` 对 `courses`
+     * 有 CASCADE 外键，插入孤儿笔记会直接抛外键约束失败，整次恢复失败。
+     */
+    @Query("SELECT id FROM courses")
+    suspend fun getAllCourseIdsOnce(): List<String>
+
+    /**
      * 一次性获取指定课表ID的所有本人课程（不含 crush 课程）。
      * 用于时间段删除重编号后迁移课程节次引用。
      */
@@ -44,6 +53,23 @@ interface CourseDao {
     )
     @Suppress(RoomWarnings.QUERY_MISMATCH)
     fun getCoursesWithWeeksByTableId(courseTableId: String): Flow<List<CourseWithWeeks>>
+
+    /**
+     * 一次性获取全部课程 ID（不分课表）。
+     *
+     * `Course.id` 是**全局主键**，不按 courseTableId 分域。整表备份导入时用它判断
+     * 「JSON 里的 id 是否已被**其它**课表占用」—— 占用则必须重生 UUID，否则
+     * `insertAll` 的 ABORT 约束会把整次导入炸掉。
+     */
+    @Query("SELECT id FROM courses")
+    suspend fun getAllCourseIds(): List<String>
+
+    /**
+     * 一次性获取指定课表的全部课程 ID。
+     * 与 [getAllCourseIds] 相减即得「其它课表占用的 id」。
+     */
+    @Query("SELECT id FROM courses WHERE courseTableId = :courseTableId")
+    suspend fun getCourseIdsByTableId(courseTableId: String): List<String>
 
     /**
      * 检查指定 ID 的课程是否存在。

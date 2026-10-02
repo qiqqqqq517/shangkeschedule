@@ -12,6 +12,20 @@ import shangkeschedule.shared.generated.resources.action_share
 actual val isShareDialogSupported: Boolean = true
 
 actual fun platformShareFile(filePath: String, mimeType: String) {
+    shareFile(filePath = filePath, mimeType = mimeType, text = null, subject = null)
+}
+
+actual fun platformShareTextWithFile(
+    subject: String,
+    text: String,
+    filePath: String,
+    mimeType: String
+) {
+    shareFile(filePath = filePath, mimeType = mimeType, text = text, subject = subject)
+}
+
+/** [platformShareFile] / [platformShareTextWithFile] 的公共实现（有 text 时即「文本 + 附件」分享）。 */
+private fun shareFile(filePath: String, mimeType: String, text: String?, subject: String?) {
     val context = GlobalContext.get().get<android.content.Context>()
 
     val file = filePath.toPath().toFile()
@@ -27,6 +41,8 @@ actual fun platformShareFile(filePath: String, mimeType: String) {
         action = Intent.ACTION_SEND
         putExtra(Intent.EXTRA_STREAM, uri)
         type = mimeType
+        if (text != null) putExtra(Intent.EXTRA_TEXT, text)
+        if (subject != null) putExtra(Intent.EXTRA_SUBJECT, subject)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }

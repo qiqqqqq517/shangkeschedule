@@ -95,6 +95,9 @@ import shangkeschedule.shared.generated.resources.tune_24px
 import shangkeschedule.shared.generated.resources.upload_24px
 import shangkeschedule.shared.generated.resources.visibility_24px
 import shangkeschedule.shared.generated.resources.delete_24px
+import shangkeschedule.shared.generated.resources.desc_couple_free_time
+import shangkeschedule.shared.generated.resources.schedule_24px
+import shangkeschedule.shared.generated.resources.title_couple_free_time
 
 /**
  * 情侣课表二级页（独立课表形态）。
@@ -237,6 +240,13 @@ fun CoupleScheduleSettingsScreen(
                     )
                     SectionDivider()
                     SettingItem(
+                        title = stringResource(Res.string.title_couple_free_time),
+                        subtitle = stringResource(Res.string.desc_couple_free_time),
+                        leadingIcon = vectorResource(Res.drawable.schedule_24px),
+                        onClick = { onNavigate(Destination.CoupleFreeTime) }
+                    )
+                    SectionDivider()
+                    SettingItem(
                         title = stringResource(Res.string.delete_couple_table),
                         subtitle = stringResource(Res.string.desc_delete_couple_table),
                         leadingIcon = vectorResource(Res.drawable.delete_24px),
@@ -324,7 +334,7 @@ fun CoupleScheduleSettingsScreen(
                     if (coupleTable == null) {
                         ToastManager.show(needCoupleFirst)
                     } else {
-                        onNavigate(Destination.SchoolSelectionListScreen)
+                        onNavigate(Destination.SchoolSelectionListScreen())
                     }
                 }
                 val importFileGuard: () -> Unit = {

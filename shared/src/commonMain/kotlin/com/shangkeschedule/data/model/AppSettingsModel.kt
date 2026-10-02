@@ -108,6 +108,35 @@ data class AppSettingsModel(
     val dynamicIslandEnabled: Boolean = false,
 
     /**
+     * 「下一节课」常驻通知开关。
+     *
+     * true  → 状态栏常驻显示下一节课（课程名 + 地点 + 剩余分钟），当天课上完即撤下；
+     * false → 关闭（默认，与 [reminderEnabled] 同默认：没授权就不占状态栏）。
+     *
+     * 与 [reminderEnabled] 的关系：两者互不依赖——课前提醒是「到点响一声」，
+     * 常驻通知是「一直看得见」，用户完全可以只开后者。
+     */
+    val nextClassNotificationEnabled: Boolean = false,
+
+    /**
+     * 考试倒计时提醒开关。
+     *
+     * true  → 最近的考试进入 [EXAM_REMIND_WINDOW_DAYS] 天窗口后，每天更新一条提醒；
+     * false → 关闭（默认）。
+     *
+     * 提醒内容取自「日程」页里分类为「考试」的条目，不新增数据结构。
+     */
+    val examCountdownReminderEnabled: Boolean = false,
+
+    /**
+     * 「GitHub Star 引导」是否已展示过（K5，v4.66.0）。
+     *
+     * true  → 不再自动提示（用户已看过，或已点了去 Star）；
+     * false → 满足「最早一张课表建满 7 天」后自动提示一次。
+     */
+    val starPromptShown: Boolean = false,
+
+    /**
      * 每日「早八闹钟」开关。
      * true ⇒ 按每天第一节课时间 − [morningAlarmLeadMinutes] 写入系统时钟应用，
      * 用户可在系统闹钟页直接修改/停用。
@@ -237,6 +266,48 @@ data class AppSettingsModel(
     val profileSignature: String = "",
     /** 头像图片在私有目录下的绝对路径；空串表示未设置（回落到首字母圆形头像）。 */
     val profileAvatarPath: String = "",
+    /** 成绩页使用的绩点换算制式（4.0 制 / 5.0 制），默认 4.0 制。 */
+    val gpaScale: GpaScale = GpaScale.SCALE_4,
+
+    /**
+     * 培养方案的类别学分要求（v4.66.0「学业情况」）。
+     *
+     * 只存「哪一类要求多少学分 + 可改写的显示名」，已获学分由成绩表现算。
+     * 空列表 = 用户还没设置，学业情况页会引导先加一条。
+     */
+    val creditRequirements: List<CreditRequirement> = emptyList(),
+
+    // --- AI 识别导入（v4.66.0 J1）---
+    /**
+     * AI 识别导入总开关（默认关闭）。
+     *
+     * 关闭时「AI 识别导入」页只展示开关与说明，**不发起任何网络请求**；
+     * 既有本地导入路径（文本粘贴 / 文件 / Excel / 分享串）完全不受影响 ——
+     * AI 只是新增一条可选路径，不是导入的必要条件。
+     */
+    val aiImportEnabled: Boolean = false,
+
+    /**
+     * 用户是否已确认过「数据外发说明」。
+     *
+     * 首次开启 [aiImportEnabled] 前必须确认一次：说清上传什么（截图或文字）、
+     * 发给谁（用户自己填的接口）、不含什么（课表以外的本机数据一律不发）。
+     */
+    val aiImportNoticeAccepted: Boolean = false,
+
+    /** OpenAI 兼容接口基地址（如 `https://api.example.com/v1`）；空串 = 未配置。 */
+    val aiApiBaseUrl: String = "",
+
+    /** 模型名（如 `gpt-4o-mini`）；空串 = 未配置。 */
+    val aiApiModel: String = "",
+
+    /**
+     * API Key。
+     *
+     * 只存本机 DataStore，**刻意不参与云备份 / 备份文件**：
+     * 备份文件常被随手存到网盘或聊天工具，密钥不该跟着走。
+     */
+    val aiApiKey: String = "",
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -256,6 +327,8 @@ data class AppSettingsModel(
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
         val KEY_DYNAMIC_ISLAND_ENABLED = booleanPreferencesKey("dynamic_island_enabled")
+        val KEY_NEXT_CLASS_NOTIFICATION_ENABLED = booleanPreferencesKey("next_class_notification_enabled")
+        val KEY_EXAM_COUNTDOWN_REMINDER_ENABLED = booleanPreferencesKey("exam_countdown_reminder_enabled")
         val KEY_MORNING_ALARM_ENABLED = booleanPreferencesKey("morning_alarm_enabled")
         val KEY_MORNING_ALARM_LEAD_MINUTES = intPreferencesKey("morning_alarm_lead_minutes")
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
@@ -281,6 +354,15 @@ data class AppSettingsModel(
         val KEY_NEXT_CARD_MODE = stringPreferencesKey("next_card_mode")
         val KEY_REFRESH_RATE_MODE = stringPreferencesKey("refresh_rate_mode")
 
+        /**
+         * 「GitHub Star 引导」是否已经展示过（K5，v4.66.0）。
+         *
+         * 语义：**一次性**——无论用户点了「去点个 Star」还是「不再提示」，都会置为 true，
+         * 之后永不再自动弹出（不打扰是上课的既有定位）。常驻入口仍在「更多 → 联系作者」卡里。
+         * 因此这是一个纯界面状态标记、不是用户数据，**刻意不参与备份**（重装后再提示一次无害）。
+         */
+        val KEY_STAR_PROMPT_SHOWN = booleanPreferencesKey("star_prompt_shown")
+
         // 「我的」页个人信息（v3.49.0）
         val KEY_PROFILE_NICKNAME = stringPreferencesKey("profile_nickname")
         val KEY_PROFILE_SCHOOL = stringPreferencesKey("profile_school")
@@ -289,6 +371,30 @@ data class AppSettingsModel(
         val KEY_PROFILE_GRADE = stringPreferencesKey("profile_grade")
         val KEY_PROFILE_SIGNATURE = stringPreferencesKey("profile_signature")
         val KEY_PROFILE_AVATAR_PATH = stringPreferencesKey("profile_avatar_path")
+
+        // 成绩 / GPA（v4.66.0）
+        val KEY_GPA_SCALE = stringPreferencesKey("gpa_scale")
+
+        // 学业情况：类别学分要求（v4.66.0），JSON 文本存 DataStore
+        val KEY_CREDIT_REQUIREMENTS = stringPreferencesKey("credit_requirements_json")
+
+        // 考证查分凭据（v4.66.0）：按模块 ID 隔离，仅存本机、不上传
+        fun keyCertName(moduleId: String) = stringPreferencesKey("cert_name_$moduleId")
+        fun keyCertTicket(moduleId: String) = stringPreferencesKey("cert_ticket_$moduleId")
+
+        // 教务适配远程同步记录（v4.66.0）：适配状态页展示「上次检查」
+        val KEY_ADAPTER_SYNC_AT = stringPreferencesKey("adapter_sync_at")
+        val KEY_ADAPTER_SYNC_KIND = stringPreferencesKey("adapter_sync_kind")
+        val KEY_ADAPTER_SYNC_COUNT = stringPreferencesKey("adapter_sync_count")
+
+        // AI 识别导入（v4.66.0 J1）：默认关闭，配置项全部由用户自己填
+        val KEY_AI_IMPORT_ENABLED = booleanPreferencesKey("ai_import_enabled")
+        val KEY_AI_IMPORT_NOTICE_ACCEPTED = booleanPreferencesKey("ai_import_notice_accepted")
+        val KEY_AI_API_BASE_URL = stringPreferencesKey("ai_api_base_url")
+        val KEY_AI_API_MODEL = stringPreferencesKey("ai_api_model")
+
+        /** API Key：只存本机，不参与备份（见 AppSettingsModel.aiApiKey）。 */
+        val KEY_AI_API_KEY = stringPreferencesKey("ai_api_key")
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -304,6 +410,9 @@ data class AppSettingsModel(
                 autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
                 compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
                 dynamicIslandEnabled = prefs[KEY_DYNAMIC_ISLAND_ENABLED] ?: d.dynamicIslandEnabled,
+                nextClassNotificationEnabled = prefs[KEY_NEXT_CLASS_NOTIFICATION_ENABLED] ?: d.nextClassNotificationEnabled,
+                examCountdownReminderEnabled = prefs[KEY_EXAM_COUNTDOWN_REMINDER_ENABLED] ?: d.examCountdownReminderEnabled,
+                starPromptShown = prefs[KEY_STAR_PROMPT_SHOWN] ?: d.starPromptShown,
                 morningAlarmEnabled = prefs[KEY_MORNING_ALARM_ENABLED] ?: d.morningAlarmEnabled,
                 morningAlarmLeadMinutes = prefs[KEY_MORNING_ALARM_LEAD_MINUTES] ?: d.morningAlarmLeadMinutes,
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
@@ -338,6 +447,13 @@ data class AppSettingsModel(
                 profileGrade = prefs[KEY_PROFILE_GRADE] ?: d.profileGrade,
                 profileSignature = prefs[KEY_PROFILE_SIGNATURE] ?: d.profileSignature,
                 profileAvatarPath = prefs[KEY_PROFILE_AVATAR_PATH] ?: d.profileAvatarPath,
+                gpaScale = GpaScale.fromString(prefs[KEY_GPA_SCALE]),
+                creditRequirements = CreditRequirement.decode(prefs[KEY_CREDIT_REQUIREMENTS]),
+                aiImportEnabled = prefs[KEY_AI_IMPORT_ENABLED] ?: d.aiImportEnabled,
+                aiImportNoticeAccepted = prefs[KEY_AI_IMPORT_NOTICE_ACCEPTED] ?: d.aiImportNoticeAccepted,
+                aiApiBaseUrl = prefs[KEY_AI_API_BASE_URL] ?: d.aiApiBaseUrl,
+                aiApiModel = prefs[KEY_AI_API_MODEL] ?: d.aiApiModel,
+                aiApiKey = prefs[KEY_AI_API_KEY] ?: d.aiApiKey,
             )
         }
     }
@@ -386,5 +502,31 @@ enum class RefreshRateMode(val value: String, val labelRes: StringResource) {
     companion object {
         fun fromString(value: String?): RefreshRateMode =
             entries.find { it.value == value } ?: AUTO
+    }
+}
+
+/**
+ * 绩点换算制式（v4.66.0 成绩 / GPA 功能）。
+ *
+ * 国内高校没有统一公式，这里提供两种最常见的「分段法」，由用户在成绩页自行切换：
+ * - 4.0 制：≥90→4.0、85–89→3.7、82–84→3.3、78–81→3.0、75–77→2.7、
+ *   72–74→2.3、68–71→2.0、64–67→1.5、60–63→1.0、<60→0；
+ * - 5.0 制：≥90→5.0、80–89→4.0、70–79→3.0、60–69→2.0、<60→0。
+ *
+ * 换算规则同样适用于等级制成绩：优秀 / 良好 / 中等 / 及格 分别取该制式的高分段。
+ * 「通过 / 不通过」不参与绩点计算（只保留成绩记录，不拉低或抬高 GPA），
+ * 具体实现见 `GradeRepository.pointOf`。切换制式不会改写数据库里的分数，
+ * 绩点始终由原始分数实时换算（成绩表刻意不落库绩点列）。
+ */
+enum class GpaScale(val value: String, val labelRes: StringResource) {
+    /** 4.0 制（默认，国内最常见）。 */
+    SCALE_4("4.0", Res.string.gpa_scale_4),
+
+    /** 5.0 制。 */
+    SCALE_5("5.0", Res.string.gpa_scale_5);
+
+    companion object {
+        fun fromString(value: String?): GpaScale =
+            entries.find { it.value == value } ?: SCALE_4
     }
 }

@@ -129,7 +129,9 @@ class SyncManager(
                     autoControlMode = settings.autoControlMode,
                     dynamicIslandEnabled = settings.dynamicIslandEnabled,
                     morningAlarmEnabled = settings.morningAlarmEnabled,
-                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
+                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes,
+                    nextClassNotificationEnabled = settings.nextClassNotificationEnabled,
+                    examCountdownReminderEnabled = settings.examCountdownReminderEnabled
                 )
             }
             .distinctUntilChanged()
@@ -213,7 +215,10 @@ class SyncManager(
     /**
      * 「影响闹钟排程的设置」签名。
      *
-     * 只有这 7 个字段变化才值得重排；课表内容、主题、备份、假期等由其它链路负责。
+     * 只有这 9 个字段变化才值得重排；课表内容、主题、备份、假期等由其它链路负责。
+     *
+     * 后两个（「下一节课常驻通知」「考试倒计时提醒」）与课程提醒共用同一次重排：
+     * 拨动开关的那一刻就投递/撤下通知，不必等下一次应用启动。
      */
     private data class NotificationSettingsSignature(
         val reminderEnabled: Boolean,
@@ -222,7 +227,9 @@ class SyncManager(
         val autoControlMode: AutoControlMode,
         val dynamicIslandEnabled: Boolean,
         val morningAlarmEnabled: Boolean,
-        val morningAlarmLeadMinutes: Int
+        val morningAlarmLeadMinutes: Int,
+        val nextClassNotificationEnabled: Boolean,
+        val examCountdownReminderEnabled: Boolean
     )
 
     private companion object {

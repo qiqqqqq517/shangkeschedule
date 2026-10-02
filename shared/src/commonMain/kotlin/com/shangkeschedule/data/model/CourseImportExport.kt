@@ -15,10 +15,13 @@ object CourseImportExport {
     const val COURSE_SCHEMA_VERSION = 2
 
     /**
-     * 全局用户数据（待办 / 日程）备份规范版本号。
+     * 全局用户数据（待办 / 日程 / 成绩）备份规范版本号。
      * v1：首次纳入全量备份（此前这两个表完全不进备份，换机/恢复即丢）。
+     * v2：新增成绩表（`grades`）；旧 v1 备份缺该字段 ⇒ 解码为 null ⇒ 恢复时**不动**本机成绩，
+     *     避免「用老备份恢复」把成绩静默清空。
      */
-    const val USER_DATA_SCHEMA_VERSION = 1
+    // 3：新增课堂笔记表 course_notes
+const val USER_DATA_SCHEMA_VERSION = 3
 
     /**
      * 自定义 Json 解析器
@@ -226,21 +229,50 @@ object CourseImportExport {
         // ---- v3 新增：早八闹钟（写入系统时钟应用）----
         // 可空：旧备份缺字段 ⇒ 解码为 null ⇒ 恢复时保留设备现值
         val morningAlarmEnabled: Boolean? = null,
-        val morningAlarmLeadMinutes: Int? = null
+        val morningAlarmLeadMinutes: Int? = null,
+
+        // ---- v4 新增：学业要求 / 绩点制 / 常驻通知开关 ----
+        // 同样可空：旧备份缺字段 ⇒ null ⇒ 恢复时保留设备现值
+        /** 培养方案学分要求（[CreditRequirement] 列表的 JSON 串）。 */
+        val creditRequirements: String? = null,
+        /** 绩点制名称（GpaScale 枚举的 name）。 */
+        val gpaScale: String? = null,
+        val nextClassNotificationEnabled: Boolean? = null,
+        val examCountdownReminderEnabled: Boolean? = null
     )
 
     /**
-     * 全局用户数据（待办 + 日程）备份信封。
+     * 全局用户数据（待办 + 日程 + 成绩 + 课堂笔记）备份信封。
      *
      * 背景：`todo_items` / `schedule_events` 是 Room 实体，但此前不属于任何备份模块，
      * 全量备份/恢复（本地 zip 与 WebDAV）完全不覆盖它们 —— 换机或恢复后这两张表为空。
+     * v2：`grades` 也纳入（在此之前成绩同样完全不进备份）。
+     * v3：`course_notes` 课堂笔记也纳入（图片文件在 files/notes/ 下，不进备份，恢复后笔记仍在但图片需重新拍）。
      */
     @Serializable
     data class UserDataBackupEnvelope(
         val backupTimestamp: Long,
         val appVersionCode: Int,
         val todos: List<TodoBackupModel> = emptyList(),
-        val events: List<ScheduleEventBackupModel> = emptyList()
+        val events: List<ScheduleEventBackupModel> = emptyList(),
+        // 可空（而非默认空列表）：旧 v1 备份缺该字段 ⇒ 解码为 null ⇒ 恢复时不动本机成绩，
+        // 避免「用老备份恢复」把成绩静默清空。
+        val grades: List<GradeBackupModel>? = null,
+        // 可空（v3 新增）：旧备份缺该字段 ⇒ 解码为 null ⇒ 恢复时不动本机笔记。
+        val notes: List<CourseNoteBackupModel>? = null
+    )
+
+    @Serializable
+    data class CourseNoteBackupModel(
+        val id: String,
+        val courseId: String,
+        val date: String,
+        val sections: String? = null,
+        val title: String = "",
+        val content: String = "",
+        val imagePaths: String? = null,
+        val createdAt: Long = 0L,
+        val updatedAt: Long = 0L
     )
 
     @Serializable
@@ -268,6 +300,27 @@ object CourseImportExport {
         val location: String? = null,
         val note: String? = null,
         val done: Boolean = false,
+        val createdAt: Long = 0L,
+        val updatedAt: Long = 0L
+    )
+
+    /**
+     * 成绩记录备份模型（v2 新增）。
+     *
+     * 字段与 Room 实体 `Grade` 一一对应；`source` 默认值为手工录入（`Grade.SOURCE_MANUAL`）。
+     */
+    @Serializable
+    data class GradeBackupModel(
+        val id: String,
+        val semester: String,
+        val courseName: String,
+        val credit: Double? = null,
+        val scoreText: String? = null,
+        val scoreValue: Double? = null,
+        val category: String? = null,
+        val isRetake: Boolean = false,
+        val note: String? = null,
+        val source: String = "MANUAL",
         val createdAt: Long = 0L,
         val updatedAt: Long = 0L
     )

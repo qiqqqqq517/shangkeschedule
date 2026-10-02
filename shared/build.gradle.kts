@@ -109,6 +109,9 @@ kotlin {
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.okio)
 
+                // 二维码生成（课表分享串 → 二维码；MIT，纯 Kotlin KMP，无传递依赖）
+                implementation(libs.qrcode.kotlin)
+
                 // Ktor 核心网络库
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.logging)

@@ -1,5 +1,6 @@
 package com.shangkeschedule.tool
 
+import com.shangkeschedule.data.repository.CourseNoteRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -26,7 +27,8 @@ class ResourceInitializerManager(
     private val fileSystem: FileSystem,
     @Named("FilesDir") private val filesDir: Path,
     @Named("CacheDir") private val cacheDir: Path,
-    private val adapterRemoteUpdater: AdapterRemoteUpdater
+    private val adapterRemoteUpdater: AdapterRemoteUpdater,
+    private val courseNoteRepository: CourseNoteRepository
 ) {
     private val targetRepoDir: Path = filesDir / "repo"
     private val shareTempDir: Path = cacheDir / "share_temp"
@@ -49,6 +51,10 @@ class ResourceInitializerManager(
             clearTempCaches()
             // 追加：内置适配就绪后叠加远程安全更新；失败静默回退，不影响既有功能
             adapterRemoteUpdater.sync()
+            // 追加：清理「数据库已无引用」的笔记图片文件（删除笔记时若被系统杀进程，
+            // 会出现孤儿图片）。必须放在这里而不是更早：prune 以 DB 引用集为准，
+            // 早于数据库初始化执行会把全部笔记图片误删。
+            runCatching { courseNoteRepository.pruneOrphanImages() }
         }
     }
 

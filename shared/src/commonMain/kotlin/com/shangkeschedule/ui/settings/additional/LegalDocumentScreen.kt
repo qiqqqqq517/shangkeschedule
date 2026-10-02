@@ -21,6 +21,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +40,7 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.legal_load_failed
+import shangkeschedule.shared.generated.resources.legal_load_failed_plain
 import shangkeschedule.shared.generated.resources.legal_offline_note
 import shangkeschedule.shared.generated.resources.title_privacy_policy
 import shangkeschedule.shared.generated.resources.title_user_agreement
@@ -62,7 +65,14 @@ enum class LegalDocumentType(val resPath: String, val titleRes: StringResource) 
 private sealed interface LegalContentState {
     data object Loading : LegalContentState
     data class Success(val text: String) : LegalContentState
-    data class Error(val message: String) : LegalContentState
+
+    /**
+     * 读取/解码失败。
+     *
+     * 刻意**不带异常原文**：异常消息里可能夹带资源路径等内部信息，对用户也没有意义，
+     * 界面统一显示本地化的 [shangkeschedule.shared.generated.resources.Res.string.legal_load_failed_plain]。
+     */
+    data object Error : LegalContentState
 }
 
 /**
@@ -86,9 +96,11 @@ fun LegalDocumentScreen(type: String, onBack: () -> Unit) {
         document
     ) {
         value = try {
-            LegalContentState.Success(Res.readBytes(document.resPath).decodeToString())
-        } catch (e: Exception) {
-            LegalContentState.Error(e.message ?: e.toString())
+            // 读内置文档 + 解码走后台调度器，别占合成线程。
+            val text = withContext(Dispatchers.Default) { Res.readBytes(document.resPath).decodeToString() }
+            LegalContentState.Success(text)
+        } catch (_: Exception) {
+            LegalContentState.Error
         }
     }
 
@@ -132,7 +144,7 @@ fun LegalDocumentScreen(type: String, onBack: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(Res.string.legal_load_failed, state.message),
+                        text = stringResource(Res.string.legal_load_failed_plain),
                         color = appColors().danger,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(appSpacing().cardInner)

@@ -17,9 +17,11 @@ import com.shangkeschedule.data.di.AppStorage
         CourseTableConfig::class,
         TimeSlotScheme::class,
         TodoItem::class,
-        ScheduleEvent::class
+        ScheduleEvent::class,
+        Grade::class,
+        CourseNote::class
     ],
-    version = 13,
+    version = 15,
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5, spec = MainAppDatabase.RemoveAppSettingsSpec::class)
@@ -40,6 +42,8 @@ abstract class MainAppDatabase : RoomDatabase() {
     abstract fun timeSlotSchemeDao(): TimeSlotSchemeDao
     abstract fun todoDao(): TodoDao
     abstract fun scheduleEventDao(): ScheduleEventDao
+    abstract fun gradeDao(): GradeDao
+    abstract fun courseNoteDao(): CourseNoteDao
 
     companion object {
         fun getDatabase(appStorage: AppStorage): MainAppDatabase {

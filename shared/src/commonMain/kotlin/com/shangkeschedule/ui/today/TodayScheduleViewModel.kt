@@ -15,6 +15,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
+import com.shangkeschedule.data.repository.GradeRepository
+import com.shangkeschedule.data.repository.GradeSummary
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TimeSlotRepository
@@ -46,7 +48,8 @@ class TodayScheduleViewModel(
     private val styleSettingsRepository: StyleSettingsRepository,
     private val timeSlotRepository: TimeSlotRepository,
     private val todoRepository: TodoRepository,
-    private val scheduleEventRepository: ScheduleEventRepository
+    private val scheduleEventRepository: ScheduleEventRepository,
+    private val gradeRepository: GradeRepository
 ) : ViewModel() {
 
     /**
@@ -106,6 +109,24 @@ class TodayScheduleViewModel(
 
     val gridStyle: StateFlow<ScheduleGridStyle> = styleSettingsRepository.styleFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScheduleGridStyle())
+
+    /**
+     * 今日页「成绩 / GPA」卡数据（v4.66.0）。
+     *
+     * 成绩在今日页只做「一眼可见 + 入口」，完整管理仍在成绩页：原先成绩页唯一的入口是
+     * 「教务抓取成功后跳转」，用户升级后根本找不到它。空数据时 courseCount = 0，
+     * 卡片降级为引导文案（点进去录入 / 导入），不渲染空数字。
+     */
+    val gradeSummary: StateFlow<GradeSummary> = combine(
+        gradeRepository.getAllGrades(),
+        appSettingsRepository.getAppSettings().map { it.gpaScale }
+    ) { grades, scale ->
+        gradeRepository.computeSummary(grades, scale)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        GradeSummary(null, null, 0.0, 0, 0)
+    )
 
     /**
      * 手动刷新触发器（v3.43.0 ·《交互动效审查》P2「下拉刷新」）。

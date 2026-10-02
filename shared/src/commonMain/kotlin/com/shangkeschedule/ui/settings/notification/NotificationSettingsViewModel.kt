@@ -70,6 +70,8 @@ data class NotificationSettingsUiState(
     val autoControlMode: AutoControlMode = AutoControlMode.DND,
     val compatWearableSync: Boolean = false,
     val dynamicIslandEnabled: Boolean = false,
+    val nextClassNotificationEnabled: Boolean = false,
+    val examCountdownReminderEnabled: Boolean = false,
     val morningAlarmEnabled: Boolean = false,
     val morningAlarmLeadMinutes: Int = 45,
     val nextMorningAlarm: MorningAlarmPlan.MorningAlarm? = null,
@@ -113,6 +115,8 @@ class NotificationSettingsViewModel(
                     autoControlMode = settings.autoControlMode,
                     compatWearableSync = settings.compatWearableSync,
                     dynamicIslandEnabled = settings.dynamicIslandEnabled,
+                    nextClassNotificationEnabled = settings.nextClassNotificationEnabled,
+                    examCountdownReminderEnabled = settings.examCountdownReminderEnabled,
                     morningAlarmEnabled = settings.morningAlarmEnabled,
                     morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
                 )
@@ -194,6 +198,22 @@ class NotificationSettingsViewModel(
     /** 更新状态栏「灵动岛」开关（Android 16 实时更新）。 */
     fun updateDynamicIslandEnabled(isEnabled: Boolean) {
         viewModelScope.launch { appSettingsRepository.updateDynamicIslandEnabled(isEnabled) }
+    }
+
+    /**
+     * 更新「下一节课常驻通知」开关。
+     *
+     * 不需要在这里手动触发重排：该字段已进 [SyncManager] 的
+     * `NotificationSettingsSignature`，开关一变就会走 `NotificationScheduler.reschedule()`
+     * 立刻投递/撤下通知并（反）注册 15 分钟刷新任务。
+     */
+    fun updateNextClassNotificationEnabled(isEnabled: Boolean) {
+        viewModelScope.launch { appSettingsRepository.updateNextClassNotificationEnabled(isEnabled) }
+    }
+
+    /** 更新「考试倒计时提醒」开关（同样由设置签名驱动重排）。 */
+    fun updateExamCountdownReminderEnabled(isEnabled: Boolean) {
+        viewModelScope.launch { appSettingsRepository.updateExamCountdownReminderEnabled(isEnabled) }
     }
 
     /** 更新早八闹钟开关。 */

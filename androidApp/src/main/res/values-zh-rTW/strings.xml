@@ -68,6 +68,40 @@
     <string name="widget_name_compact">緊湊課程2x2</string>
     <string name="widget_name_double_days">近日課程4x2</string>
     <string name="widget_name_list_vertical">垂直列表課表4xN</string>
+    <string name="widget_name_next_course">下一節課3x2</string>
+    <!-- 「下一節課」小工具執行時文案（倒數膠囊 + 跨天兜底） -->
+    <string name="widget_next_course_label">下一節課</string>
+    <string name="widget_next_course_tomorrow">明日第一節</string>
+    <string name="widget_next_course_in_minutes">%1$d 分鐘後</string>
+    <string name="widget_next_course_ongoing">正在上課</string>
+    <string name="widget_next_course_today">今日</string>
+    <!-- 「考試倒數」小工具（v4.67.0）：資料取自日程表的「考試」分類 -->
+    <string name="widget_name_exam_countdown">考試倒數3x2</string>
+    <string name="widget_exam_label">距離考試</string>
+    <string name="widget_exam_today">今天</string>
+    <string name="widget_exam_tomorrow">明天</string>
+    <string name="widget_exam_days">%1$d 天後</string>
+    <string name="widget_exam_none">暫無考試安排</string>
+    <string name="widget_exam_none_hint">在「日程」頁新增考試即可倒數</string>
+    <string name="widget_exam_more">還有 %1$d 場考試</string>
+    <!-- 「週課程」小工具（v4.67.0，C3） -->
+    <string name="widget_name_week_courses">週課程列表4xN</string>
+    <string name="widget_week_remaining">本週還有 %1$d 節課</string>
+    <string name="widget_week_finished">本週課程已結束</string>
+    <string name="widget_week_finished_hint">下週一見</string>
+    <!-- 「日程清單」小工具（v4.67.0，C4） -->
+    <string name="widget_name_agenda_list">日程清單3x3</string>
+    <string name="widget_agenda_today">今日日程</string>
+    <string name="widget_agenda_upcoming">未來日程</string>
+    <string name="widget_agenda_count">共 %1$d 項</string>
+    <string name="widget_agenda_none">暫無日程</string>
+    <string name="widget_agenda_none_hint">在「日程」頁新增待辦、考試或活動</string>
+    <string name="widget_agenda_all_day">全天</string>
+    <string name="widget_agenda_cat_todo">待辦</string>
+    <string name="widget_agenda_cat_exam">考試</string>
+    <string name="widget_agenda_cat_activity">活動</string>
+    <string name="widget_agenda_cat_homework">作業</string>
+    <string name="widget_agenda_cat_other">其他</string>
     <string name="widget_loading">正在載入課程…</string>
     <string name="widget_tomorrow_course_preview">明日預告</string>
     <string name="widget_today_courses_finished">今日課程已結束</string>
@@ -136,4 +170,23 @@
     <string name="dynamic_island_chip_next">下節:%1$s</string>
     <string name="dynamic_island_chip_no_class">今日無課</string>
     <string name="dynamic_island_chip_done">已結束</string>
+
+    <!-- G1/G3：下一节课常驻通知 + 考试倒计时提醒 -->
+    <string name="notification_channel_next_class">下一節課常駐</string>
+    <string name="notification_channel_next_class_desc">在狀態列常駐顯示下一節課與剩餘分鐘</string>
+    <string name="notification_next_class_title">下一節課</string>
+    <string name="notification_next_class_tomorrow">明日第一節</string>
+    <string name="notification_next_class_in_minutes">%1$d 分鐘後</string>
+    <string name="notification_next_class_ongoing">正在上課</string>
+    <string name="notification_next_class_disable">關閉常駐</string>
+    <!-- G2：狀態列膠囊（Android 16+ 實況更新）裡的晶片短文字，必須自帶語境 -->
+    <string name="notification_next_class_chip_ongoing">正在上課 · %1$s</string>
+    <string name="notification_next_class_chip_in_minutes">%1$d 分鐘後 · %2$s</string>
+    <string name="notification_next_class_chip_at">%1$s · %2$s</string>
+    <string name="notification_channel_exam_countdown">考試倒數提醒</string>
+    <string name="notification_channel_exam_countdown_desc">考試臨近時提醒最近的考試</string>
+    <string name="notification_exam_countdown_title">考試倒數</string>
+    <string name="notification_exam_countdown_today">%1$s 就在今天</string>
+    <string name="notification_exam_countdown_tomorrow">%1$s 就在明天</string>
+    <string name="notification_exam_countdown_days">%1$s 還有 %2$d 天</string>
 </resources>

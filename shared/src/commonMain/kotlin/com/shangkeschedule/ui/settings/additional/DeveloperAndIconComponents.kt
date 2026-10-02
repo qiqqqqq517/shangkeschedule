@@ -42,9 +42,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_app_icon
+import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.developer_mode_24px
 import shangkeschedule.shared.generated.resources.ic_launcher_foreground
 import shangkeschedule.shared.generated.resources.item_developer_options
+import shangkeschedule.shared.generated.resources.title_widget_troubleshoot
 
 // 图标背景颜色定义
 // 功能色（豁免声明）：应用图标背景品牌色，固定不随主题
@@ -100,12 +102,16 @@ fun DynamicAppIconHeader(
 
 /**
  * 开发者模式列表选项组件（带展开/收起动画）
+ *
+ * @param onWidgetTroubleshootClick 小组件排障入口的回调（v4.66.0，K7）。传 null 表示当前调用方
+ *   没有可跳转的导航栈（例如组件预览 / 桌面端），此时整个入口行不渲染，而不是渲染一个点了没反应的项。
  */
 @Composable
 fun DeveloperModeSettingItem(
     isDeveloperModeEnabled: Boolean,
     onDeveloperModeChanged: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onWidgetTroubleshootClick: (() -> Unit)? = null
 ) {
     // v3.26.0 动效收口：展开/收起时长与缓动读全局令牌 expandDurationMs/expandEasing
     val itemMotion = LocalAppMotion.current
@@ -141,6 +147,16 @@ fun DeveloperModeSettingItem(
                 color = appColors().divider,
                 thickness = 0.5.dp
             )
+            // v4.66.0（K7）：开发者模式下的「小组件排障」入口。放在开关下面而不是另开一张卡 ——
+            // 这两项同属「出了问题的排查工具」，且开发者模式本身就是隐藏开关，不需要独立卡片。
+            if (onWidgetTroubleshootClick != null) {
+                SettingListItem(
+                    icon = vectorResource(Res.drawable.build_24px),
+                    title = stringResource(Res.string.title_widget_troubleshoot),
+                    onClick = onWidgetTroubleshootClick,
+                    showDivider = false
+                )
+            }
         }
     }
 }

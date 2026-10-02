@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「日程清单」条目（v4.67.0，C4）：色条 + 「日期 / 时间」两列 + 「标题 / 类别·地点」两行。
+  与 widget_item_week_course_node.xml 同构，色条由类别决定（考试红、待办蓝、活动绿、作业琥珀、其他灰）。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="3dp"
+    android:paddingHorizontal="2dp">
+
+    <include layout="@layout/widget_course_color_bar" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp">
+
+        <TextView
+            android:id="@+id/tv_agenda_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:includeFontPadding="false"
+            android:minWidth="32dp"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="今天" />
+
+        <TextView
+            android:id="@+id/tv_agenda_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            tools:text="09:00" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_toStartOf="@id/tv_agenda_time"
+            android:layout_toEndOf="@id/tv_agenda_day"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_agenda_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="提交实验报告" />
+
+            <TextView
+                android:id="@+id/tv_agenda_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                tools:text="作业 · 教三 305" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

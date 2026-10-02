@@ -59,7 +59,9 @@ import com.shangkeschedule.ui.components.ImageCropper
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
 import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SettingCard
+import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.settings.style.ScheduleGridContent
 import com.shangkeschedule.ui.settings.style.SettingsListContent
@@ -77,6 +79,7 @@ import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.desc_schedule_style_settings
 import shangkeschedule.shared.generated.resources.desc_theme_settings
+import shangkeschedule.shared.generated.resources.desc_theme_share
 import shangkeschedule.shared.generated.resources.image_24px
 import shangkeschedule.shared.generated.resources.palette_24px
 import shangkeschedule.shared.generated.resources.item_schedule_style_settings
@@ -89,6 +92,7 @@ import shangkeschedule.shared.generated.resources.item_personalization
 import shangkeschedule.shared.generated.resources.theme_mode_label
 import shangkeschedule.shared.generated.resources.theme_style_desc
 import shangkeschedule.shared.generated.resources.theme_style_section
+import shangkeschedule.shared.generated.resources.title_theme_share
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,6 +157,7 @@ fun AppearanceSettingsScreen(
 @Composable
 fun ThemeSettingsScreen(
     onBack: () -> Unit,
+    onNavigate: (Destination) -> Unit = {},
     settingsViewModel: SettingsViewModel = koinViewModel(),
     styleViewModel: StyleSettingsViewModel = koinViewModel()
 ) {
@@ -219,6 +224,19 @@ fun ThemeSettingsScreen(
                     selectedMode = settings.themeMode,
                     onModeSelected = { settingsViewModel.onThemeModeChanged(it) }
                 )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = appSpacing().sectionTitleGap), color = appColors().divider, thickness = 0.5.dp)
+                // v4.66.0（D3）：主题分享放在主题页页尾——它就是「切换主题」的对应动作，
+                // 星链也把主题分享放在同一处；本页没有可追加行的既有卡片列表，
+                // 故按本页「分区标题 + 卡片」的节奏单独成卡，不新开独立入口、不塞页顶。
+                SectionCard {
+                    SettingItem(
+                        title = stringResource(Res.string.title_theme_share),
+                        subtitle = stringResource(Res.string.desc_theme_share),
+                        leadingIcon = vectorResource(Res.drawable.palette_24px),
+                        onClick = { onNavigate(Destination.ThemeShare) }
+                    )
+                }
                 }
             }
         }

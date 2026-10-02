@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「下一节课」小组件的课程色条 —— **深色半边**（说明见 layout/widget_course_color_bar.xml）。 -->
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/course_bar_dark"
+    android:layout_width="4dp"
+    android:layout_height="match_parent"
+    android:src="@drawable/widget_indicator_shape" />

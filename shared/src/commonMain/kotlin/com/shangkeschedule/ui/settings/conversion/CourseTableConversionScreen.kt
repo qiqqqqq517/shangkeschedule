@@ -53,7 +53,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.desc_ai_import
 import shangkeschedule.shared.generated.resources.desc_backup_restore
+import shangkeschedule.shared.generated.resources.desc_course_share
 import shangkeschedule.shared.generated.resources.desc_export_ics_with_alarm
 import shangkeschedule.shared.generated.resources.desc_export_json_with_config
 import shangkeschedule.shared.generated.resources.desc_school_import_quick
@@ -67,7 +69,9 @@ import shangkeschedule.shared.generated.resources.section_file_conversion
 import shangkeschedule.shared.generated.resources.section_school_import
 import shangkeschedule.shared.generated.resources.section_sync
 import shangkeschedule.shared.generated.resources.snackbar_file_save_canceled
+import shangkeschedule.shared.generated.resources.title_ai_import
 import shangkeschedule.shared.generated.resources.title_conversion
+import shangkeschedule.shared.generated.resources.title_course_share
 import kotlin.time.Clock
 
 /**
@@ -202,6 +206,12 @@ fun CourseTableConversionScreen(
                     subtitle = stringResource(Res.string.desc_export_ics_with_alarm),
                     onClick = { viewModel.onExportIcsClick() }
                 )
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.title_course_share),
+                    subtitle = stringResource(Res.string.desc_course_share),
+                    onClick = { onNavigate(Destination.CourseShare) }
+                )
             }
 
             Spacer(Modifier.height(appSpacing().sectionGap))
@@ -211,13 +221,21 @@ fun CourseTableConversionScreen(
                 SettingItem(
                     title = stringResource(Res.string.item_school_system_import),
                     subtitle = stringResource(Res.string.desc_school_import_quick),
-                    onClick = { onNavigate(Destination.SchoolSelectionListScreen) }
+                    onClick = { onNavigate(Destination.SchoolSelectionListScreen()) }
                 )
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.import_cat_text_paste),
                     subtitle = stringResource(Res.string.conversion_text_paste_desc),
                     onClick = { onNavigate(Destination.TextImportHub) }
+                )
+                // v4.66.0（J1）：AI 识别导入与「文本粘贴导入」同族（都要先拿到一段文字再预览导入），
+                // 故追加在同一张「教务导入」卡里，不另开卡片（见方案 §7.1）
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.title_ai_import),
+                    subtitle = stringResource(Res.string.desc_ai_import),
+                    onClick = { onNavigate(Destination.AiImport) }
                 )
             }
 

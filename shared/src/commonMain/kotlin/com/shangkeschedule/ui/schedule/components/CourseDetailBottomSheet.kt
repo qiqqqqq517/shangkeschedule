@@ -62,9 +62,11 @@ import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppGlassBottomSheet
 import com.shangkeschedule.ui.components.AppSwitch
+import com.shangkeschedule.data.db.main.Course
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
+import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.settings.course.AddEditCourseViewModel
 import com.shangkeschedule.ui.settings.course.ColorPickerBottomSheet
 import com.shangkeschedule.ui.settings.course.CourseScheme
@@ -97,6 +99,7 @@ import shangkeschedule.shared.generated.resources.label_credit
 import shangkeschedule.shared.generated.resources.label_custom_time
 import shangkeschedule.shared.generated.resources.label_day_of_week
 import shangkeschedule.shared.generated.resources.label_is_lab
+import shangkeschedule.shared.generated.resources.desc_course_notes
 import shangkeschedule.shared.generated.resources.label_remark
 import shangkeschedule.shared.generated.resources.label_section_range_suffix
 import shangkeschedule.shared.generated.resources.toast_name_empty
@@ -106,6 +109,8 @@ import shangkeschedule.shared.generated.resources.today_meta_room
 import shangkeschedule.shared.generated.resources.today_meta_teacher
 import shangkeschedule.shared.generated.resources.today_meta_time
 import shangkeschedule.shared.generated.resources.today_meta_weeks
+import shangkeschedule.shared.generated.resources.sticky_note_2_24px
+import shangkeschedule.shared.generated.resources.title_course_notes
 import shangkeschedule.shared.generated.resources.today_sheet_close
 import shangkeschedule.shared.generated.resources.today_sheet_delete_occurrence
 import shangkeschedule.shared.generated.resources.today_sheet_edit
@@ -140,6 +145,8 @@ fun CourseDetailBottomSheet(
     onSaved: () -> Unit,
     currentWeek: Int? = null,
     onDeleteOccurrence: (Int) -> Unit = {},
+    /** 点「课堂笔记」时回调（传入当前展示的课程），由调用方负责跳转。 */
+    onOpenNotes: (Course) -> Unit = {},
     hazeState: dev.chrisbanes.haze.HazeState? = null
 ) {
     val courseWrapper = block.courses.firstOrNull() ?: return
@@ -165,6 +172,8 @@ fun CourseDetailBottomSheet(
         val labelCredit = stringResource(Res.string.label_credit)
         val labelAssessment = stringResource(Res.string.label_assessment_method)
         val labelRemark = stringResource(Res.string.label_remark)
+        val textCourseNotes = stringResource(Res.string.title_course_notes)
+        val descCourseNotes = stringResource(Res.string.desc_course_notes)
         val labelIsLab = stringResource(Res.string.label_is_lab)
         val textClose = stringResource(Res.string.today_sheet_close)
         val textEdit = stringResource(Res.string.today_sheet_edit)
@@ -241,6 +250,15 @@ fun CourseDetailBottomSheet(
                     if (!course.remark.isNullOrBlank()) {
                         DetailRow(label = labelRemark, value = course.remark)
                     }
+                    // 课堂笔记入口：笔记挂在课程下，不在详情里直接编辑（笔记按课次一条，
+                    // 详情弹窗只处理课程本身），点进去是独立的笔记列表页。
+                    Spacer(modifier = Modifier.height(appSpacing().listGap))
+                    SettingItem(
+                        title = textCourseNotes,
+                        subtitle = descCourseNotes,
+                        leadingIcon = vectorResource(Res.drawable.sticky_note_2_24px),
+                        onClick = { onOpenNotes(course) }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(appSpacing().sectionGap))

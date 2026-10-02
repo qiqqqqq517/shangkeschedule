@@ -434,6 +434,82 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+/**
+ * 数据库版本 13 迁移到 版本 14 的迁移代码。
+ * 新增 grades 成绩表（成绩/GPA 功能，对照星链课表补全）。
+ *
+ * 建表语句必须与 Grade 实体逐列对齐（列名、可空性、默认值、索引名都要一致），
+ * 否则 Room 在迁移后做 TableInfo 校验时会判定 schema 不一致，启动即闪退。
+ * 其中 `isRetake` 与 `source` 在实体里声明了 @ColumnInfo(defaultValue = ...)，
+ * 因此建表时必须带上 `DEFAULT 0` / `DEFAULT 'MANUAL'`。
+ */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `grades` (
+                `id` TEXT NOT NULL,
+                `semester` TEXT NOT NULL,
+                `courseName` TEXT NOT NULL,
+                `credit` REAL,
+                `scoreText` TEXT,
+                `scoreValue` REAL,
+                `category` TEXT,
+                `isRetake` INTEGER NOT NULL DEFAULT 0,
+                `note` TEXT,
+                `source` TEXT NOT NULL DEFAULT 'MANUAL',
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_grades_semester` ON `grades` (`semester`)")
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_grades_semester_courseName` ON `grades` (`semester`, `courseName`)"
+        )
+    }
+}
+
+/**
+ * 数据库版本 14 迁移到 版本 15 的迁移代码。
+ * 新增 course_notes 课堂笔记表（按课次记录 + 图片路径，对照星链课表补全）。
+ *
+ * 与 [MIGRATION_13_14] 同样的硬要求：建表语句必须与 CourseNote 实体逐列对齐
+ * （列名、可空性、外键 CASCADE、索引名都要一致），否则 Room 迁移后 TableInfo
+ * 校验失败，启动即闪退。
+ *
+ * 外键 ON DELETE CASCADE 是「笔记随课程删除」的**唯一实现**：删除课程/课表时
+ * 由 SQLite 自动清理笔记，不需要任何应用层清理逻辑（见 F1 设计约束）。
+ */
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `course_notes` (
+                `id` TEXT NOT NULL,
+                `courseId` TEXT NOT NULL,
+                `date` TEXT NOT NULL,
+                `sections` TEXT,
+                `title` TEXT NOT NULL,
+                `content` TEXT NOT NULL,
+                `imagePaths` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`courseId`) REFERENCES `courses`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_course_notes_courseId` ON `course_notes` (`courseId`)"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_course_notes_date` ON `course_notes` (`date`)"
+        )
+    }
+}
+
 // 【集中管理所有迁移对象】
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_1_2,
@@ -446,4 +522,6 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_10_11,
     MIGRATION_11_12,
     MIGRATION_12_13,
+    MIGRATION_13_14,
+    MIGRATION_14_15,
 )

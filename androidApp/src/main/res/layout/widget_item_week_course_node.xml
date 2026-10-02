@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「周课程」条目（v4.67.0，C3）：色条 + 「日期 / 时间」两列 + 「课程名 / 地点」两行。
+
+  与 widget_item_course_list_node.xml（条目 B）的差异：左侧多一列日期（今天/明天/周X），
+  时间只显示开始时刻——周视图里「几点上」比「上到几点」更重要，省出的宽度给课程名。
+  色条沿用 include widget_course_color_bar 的深浅双 ID 约定。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="3dp"
+    android:paddingHorizontal="2dp">
+
+    <include layout="@layout/widget_course_color_bar" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp">
+
+        <TextView
+            android:id="@+id/tv_week_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:includeFontPadding="false"
+            android:minWidth="32dp"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="今天" />
+
+        <TextView
+            android:id="@+id/tv_week_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            tools:text="08:00" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_toStartOf="@id/tv_week_time"
+            android:layout_toEndOf="@id/tv_week_day"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_week_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="高等数学" />
+
+            <TextView
+                android:id="@+id/tv_week_position"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                tools:text="教三 305" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

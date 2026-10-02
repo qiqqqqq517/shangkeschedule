@@ -72,6 +72,29 @@ internal fun commonCourseRow(
     bindCourseRowBody(context, course, snapshot)
 }
 
+/**
+ * 把任意行依次插入容器，行间补横向分隔线（最后一行之后不补）。
+ *
+ * 泛型化（v4.67.0）：C3「周课程」消费 `WidgetCourseProto`、C4「日程清单」消费
+ * `WidgetAgendaProto`，而「插行 + 分隔线」这段逻辑与元素类型无关，故收敛为
+ * [addRows]；[addCourseRows] 保留为课程行的薄封装，既有 6 个调用点零改动。
+ */
+internal fun <T> addRows(
+    rootRv: RemoteViews,
+    containerId: Int,
+    context: Context,
+    items: List<T>,
+    rowFactory: (T) -> RemoteViews
+) {
+    items.forEachIndexed { index, item ->
+        rootRv.addView(containerId, rowFactory(item))
+
+        if (index < items.size - 1) {
+            rootRv.addView(containerId, RemoteViews(context.packageName, R.layout.widget_divider_horizontal))
+        }
+    }
+}
+
 /** 把课程行依次插入容器，行间补横向分隔线（最后一行之后不补）。 */
 internal fun addCourseRows(
     rootRv: RemoteViews,
@@ -79,12 +102,4 @@ internal fun addCourseRows(
     context: Context,
     courses: List<WidgetCourseProto>,
     rowFactory: (WidgetCourseProto) -> RemoteViews
-) {
-    courses.forEachIndexed { index, course ->
-        rootRv.addView(containerId, rowFactory(course))
-
-        if (index < courses.size - 1) {
-            rootRv.addView(containerId, RemoteViews(context.packageName, R.layout.widget_divider_horizontal))
-        }
-    }
-}
+) = addRows(rootRv, containerId, context, courses, rowFactory)

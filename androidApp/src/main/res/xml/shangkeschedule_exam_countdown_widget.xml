@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「考试倒计时」小组件元数据（v4.67.0）：3x2 起步，可横向/纵向拉伸。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_loading_placeholder"
+    android:minHeight="110dp"
+    android:minWidth="180dp"
+    android:previewImage="@drawable/widget_preview_exam_countdown"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="2"
+    android:targetCellWidth="3"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

@@ -42,6 +42,12 @@ class DatabaseModule {
     fun provideTodoDao(db: MainAppDatabase): TodoDao = db.todoDao()
 
     @Factory
+    fun provideGradeDao(db: MainAppDatabase): GradeDao = db.gradeDao()
+
+    @Factory
+    fun provideCourseNoteDao(db: MainAppDatabase): CourseNoteDao = db.courseNoteDao()
+
+    @Factory
     fun provideScheduleEventDao(db: MainAppDatabase): ScheduleEventDao = db.scheduleEventDao()
 
     @Factory

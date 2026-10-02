@@ -68,6 +68,40 @@
     <string name="widget_name_compact">Compact 2x2</string>
     <string name="widget_name_double_days">Recent Days 4x2</string>
     <string name="widget_name_list_vertical">Vertical Course List 4xN</string>
+    <string name="widget_name_next_course">Next Class 3x2</string>
+    <!-- Next-class widget runtime strings (countdown chip + cross-day fallback) -->
+    <string name="widget_next_course_label">Next class</string>
+    <string name="widget_next_course_tomorrow">Tomorrow\'s first class</string>
+    <string name="widget_next_course_in_minutes">in %1$d min</string>
+    <string name="widget_next_course_ongoing">In progress</string>
+    <string name="widget_next_course_today">Today</string>
+    <!-- Exam countdown widget (v4.67.0): reads the "exam" category of the agenda -->
+    <string name="widget_name_exam_countdown">Exam Countdown 3x2</string>
+    <string name="widget_exam_label">Until exam</string>
+    <string name="widget_exam_today">Today</string>
+    <string name="widget_exam_tomorrow">Tomorrow</string>
+    <string name="widget_exam_days">in %1$d days</string>
+    <string name="widget_exam_none">No upcoming exam</string>
+    <string name="widget_exam_none_hint">Add an exam in Agenda to see the countdown</string>
+    <string name="widget_exam_more">%1$d more exams</string>
+    <!-- Weekly classes widget (v4.67.0, C3) -->
+    <string name="widget_name_week_courses">Weekly Classes 4xN</string>
+    <string name="widget_week_remaining">%1$d classes left this week</string>
+    <string name="widget_week_finished">No classes left this week</string>
+    <string name="widget_week_finished_hint">See you next week</string>
+    <!-- Agenda widget (v4.67.0, C4) -->
+    <string name="widget_name_agenda_list">Agenda 3x3</string>
+    <string name="widget_agenda_today">Today\'s agenda</string>
+    <string name="widget_agenda_upcoming">Upcoming agenda</string>
+    <string name="widget_agenda_count">%1$d items</string>
+    <string name="widget_agenda_none">No agenda items</string>
+    <string name="widget_agenda_none_hint">Add todos, exams or activities in Agenda</string>
+    <string name="widget_agenda_all_day">All day</string>
+    <string name="widget_agenda_cat_todo">Todo</string>
+    <string name="widget_agenda_cat_exam">Exam</string>
+    <string name="widget_agenda_cat_activity">Activity</string>
+    <string name="widget_agenda_cat_homework">Homework</string>
+    <string name="widget_agenda_cat_other">Other</string>
     <string name="widget_loading">Loading courses…</string>
     <string name="widget_tomorrow_course_preview">Tomorrow</string>
     <string name="widget_today_courses_finished">Today\'s classes ended.</string>
@@ -136,4 +170,23 @@
     <string name="dynamic_island_chip_next">Next:%1$s</string>
     <string name="dynamic_island_chip_no_class">No class</string>
     <string name="dynamic_island_chip_done">Done</string>
+
+    <!-- G1/G3：下一节课常驻通知 + 考试倒计时提醒 -->
+    <string name="notification_channel_next_class">Next class status</string>
+    <string name="notification_channel_next_class_desc">Keep the next class and the minutes left in your status bar</string>
+    <string name="notification_next_class_title">Next class</string>
+    <string name="notification_next_class_tomorrow">Tomorrow\'s first class</string>
+    <string name="notification_next_class_in_minutes">in %1$d min</string>
+    <string name="notification_next_class_ongoing">In progress</string>
+    <string name="notification_next_class_disable">Turn off</string>
+    <!-- G2: chip text for the status-bar chip (Android 16+ live updates); must carry context -->
+    <string name="notification_next_class_chip_ongoing">In class · %1$s</string>
+    <string name="notification_next_class_chip_in_minutes">in %1$d min · %2$s</string>
+    <string name="notification_next_class_chip_at">%1$s · %2$s</string>
+    <string name="notification_channel_exam_countdown">Exam countdown</string>
+    <string name="notification_channel_exam_countdown_desc">Reminds you of the nearest exam</string>
+    <string name="notification_exam_countdown_title">Exam countdown</string>
+    <string name="notification_exam_countdown_today">%1$s is today</string>
+    <string name="notification_exam_countdown_tomorrow">%1$s is tomorrow</string>
+    <string name="notification_exam_countdown_days">%1$s in %2$d days</string>
 </resources>

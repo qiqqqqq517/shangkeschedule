@@ -10,6 +10,8 @@ import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.control.AutoModeScheduler
 import com.shangkeschedule.service.notification.morning.MorningAlarmScheduler
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import com.shangkeschedule.service.notification.notify.ExamCountdownNotifier
+import com.shangkeschedule.service.notification.notify.NextClassNotifier
 import com.shangkeschedule.service.notification.notify.NotificationChannels
 import com.shangkeschedule.service.notification.reminder.CourseReminderScheduler
 import kotlinx.coroutines.flow.first
@@ -67,6 +69,18 @@ class NotificationScheduler(
     private val morningAlarms = MorningAlarmScheduler(context, alarms)
 
     /**
+     * 「下一节课」常驻通知（G1）。
+     *
+     * 不注册进 [com.shangkeschedule.service.notification.notify.PostedNotificationRegistry]：
+     * 那是课程提醒的回收账本，`CourseReminderScheduler` 的 `pruneExcept` 会把不属于
+     * 课程提醒的条目一并取消 —— 常驻通知的生命周期由本类与用户动作显式管理。
+     */
+    private val nextClassNotifier = NextClassNotifier(context)
+
+    /** 考试倒计时提醒（G3）：单例通知，每天重算。 */
+    private val examCountdownNotifier = ExamCountdownNotifier(context)
+
+    /**
      * 灵动岛窗口排程器（@Single Koin）。
      *
      * 取不到就当作「本轮不管灵动岛」——它是独立的前台服务策略，缺席不应让
@@ -92,6 +106,11 @@ class NotificationScheduler(
         val now = Clock.System.now().toLocalDateTime(zone)
         val today = now.date
 
+        // 考试倒计时提醒（G3）：只依赖「日程」里的考试条目，与课程读库无关，
+        // 因此放在课程读取**之前** —— 课程库读失败时它仍应正常更新（考试照旧要倒计时）。
+        runCatching { examCountdownNotifier.sync(settings.examCountdownReminderEnabled, today) }
+            .onFailure { Log.w(TAG, "考试倒计时提醒失败，不影响其余排程: ${it.message}") }
+
         // 单次读库，供三套调度共用（旧版各读一次，且读的是不同的日期范围）
         val courses = runCatching {
             widgetRepository.getWidgetCoursesByDateRange(
@@ -102,6 +121,14 @@ class NotificationScheduler(
             // 读库失败：**保留**旧闹钟（不清空），下轮重试。
             // 旧实现先清后读，读库异常会把全部提醒槽位清掉且不重试。
             Log.e(TAG, "读取课程失败，保留既有排程", error)
+            // 唯一的例外：常驻通知已关闭时必须撤下 —— 常驻通知不靠超时自清，
+            // 而用户关闭开关的那一刻很可能正好读库失败，漏了就是永久残留。
+            if (!settings.nextClassNotificationEnabled) {
+                runCatching {
+                    nextClassNotifier.cancel()
+                    NextClassNotificationWorker.cancel(context)
+                }.onFailure { Log.w(TAG, "撤下「下一节课」常驻通知失败: ${it.message}") }
+            }
             return Summary(readFailed = true)
         }
 
@@ -129,6 +156,25 @@ class NotificationScheduler(
         // 早八要自己判断「某天是否还有课」，故传**原始**课程 + 窗口天数
         val morningResult = guard("早八闹钟") {
             morningAlarms.sync(settings, courses, WINDOW_DAYS, today, now)
+        }
+
+        // 「下一节课」常驻通知（G1）：复用同一份有效课程与同一个「今天/此刻」，
+        // 因此课表变更、假期避让、跨天都会立刻反映到状态栏。
+        // 关闭分支必须显式 cancel + 注销周期任务 —— 常驻通知没有超时自清机制。
+        guard("下一节课常驻通知") {
+            if (settings.nextClassNotificationEnabled) {
+                // 胶囊与灵动岛共用同一个「兼容穿戴」开关：开了就不抢状态栏实况位（§G2）
+                nextClassNotifier.sync(
+                    courses = effective,
+                    today = today,
+                    nowMinutes = now.hour * 60 + now.minute,
+                    requestChip = !settings.compatWearableSync
+                )
+                NextClassNotificationWorker.schedule(context)
+            } else {
+                nextClassNotifier.cancel()
+                NextClassNotificationWorker.cancel(context)
+            }
         }
 
         // 灵动岛窗口此前**没有任何外部触发点**（只靠自己的 START 闹钟自举，而 START 闹钟

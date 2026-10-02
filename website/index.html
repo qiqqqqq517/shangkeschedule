@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>上课 · ShangKeSchedule — 面向中国高校的开源课表 App</title>
-<meta name="description" content="「上课」是一款面向中国高校的开源无广告课表 App。1700+ 所高校教务一键导入，书卷 / 通透 / 柔绘三套主题，多作息方案、情侣课表、桌面小组件、上课免打扰与 WebDAV 云备份，Android 8.0+ 免费下载。">
+<meta name="description" content="「上课」是一款面向中国高校的开源无广告课表 App。1700+ 所高校教务一键导入，书卷 / 通透 / 柔绘三套主题，多作息方案、情侣课表、桌面小组件、上课免打扰、成绩绩点与考证查分、WebDAV 云备份，Android 8.0+ 免费下载。">
 <meta name="keywords" content="课表App,课程表,大学课表,教务导入,开源课表,上课,ShangKeSchedule,Android课表">
 <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
@@ -159,11 +159,13 @@
 <div class="marquee" aria-hidden="true">
   <div class="marquee-track">
     <span>今日课表</span><span>周课表</span><span>日程与待办</span><span>教务一键导入</span>
-    <span>情侣课表</span><span>多作息方案</span><span>桌面小组件</span><span>上课免打扰</span>
-    <span>灵动岛状态栏</span><span>WebDAV 云备份</span><span>ICS 日历导出</span><span>多语言</span>
+    <span>成绩与绩点</span><span>考证查分</span><span>情侣课表</span><span>多作息方案</span>
+    <span>桌面小组件</span><span>上课免打扰</span><span>灵动岛状态栏</span><span>WebDAV 云备份</span>
+    <span>空教室查询</span><span>课堂笔记</span><span>ICS 日历导出</span><span>多语言</span>
     <span>今日课表</span><span>周课表</span><span>日程与待办</span><span>教务一键导入</span>
-    <span>情侣课表</span><span>多作息方案</span><span>桌面小组件</span><span>上课免打扰</span>
-    <span>灵动岛状态栏</span><span>WebDAV 云备份</span><span>ICS 日历导出</span><span>多语言</span>
+    <span>成绩与绩点</span><span>考证查分</span><span>情侣课表</span><span>多作息方案</span>
+    <span>桌面小组件</span><span>上课免打扰</span><span>灵动岛状态栏</span><span>WebDAV 云备份</span>
+    <span>空教室查询</span><span>课堂笔记</span><span>ICS 日历导出</span><span>多语言</span>
   </div>
 </div>
 
@@ -258,10 +260,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/></svg>
         </div>
         <h3>桌面小组件</h3>
-        <p>多种尺寸与样式的桌面、锁屏小组件，直出「今天 / 明天」课程概览与当日课程数，点按直达课程详情。</p>
+        <p>共 8 类桌面、锁屏小组件：超小课程、紧凑课程、近日课程、垂直列表课表、下一节课、考试倒计时、周课程列表、日程清单。</p>
         <ul class="card-list">
-          <li>深色模式有对应外观</li>
-          <li>每日零点自动同步课表并刷新，不必打开 App</li>
+          <li>「下一节课」直接显示课名、地点与倒计时，「考试倒计时」盯着最近一场考试</li>
+          <li>深色模式有对应外观，每日零点自动同步课表并刷新</li>
         </ul>
       </article>
 
@@ -273,6 +275,7 @@
         <p>课前自动提醒；上课期间自动切换勿扰或静音，下课自动恢复。内置全年节假日数据，假期不打扰。</p>
         <ul class="card-list">
           <li>状态栏灵动岛常驻显示当前 / 下一节课进度（Android 16）</li>
+          <li>可另开「下一节课常驻通知」与「考试倒计时提醒」，两项各自独立开关</li>
           <li>仅在第一节课前至最后一节课后运行，其余时间零常驻</li>
         </ul>
       </article>
@@ -286,6 +289,43 @@
         <ul class="card-list">
           <li>ICS 导出可指定提醒时间，导入系统日历自带课前提醒</li>
           <li>导入前先预览、可逐条编辑，再决定导入方式</li>
+          <li>课表分享串 / 二维码带走整张课表，主题分享串带走配色与外观</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m8 15 3-4 3 3 4-6"/></svg>
+        </div>
+        <h3>成绩与绩点</h3>
+        <p>按学期记录课程、学分与分数，自动累计加权绩点与已修学分，绩点制式可在 4.0 制 / 5.0 制之间切换。</p>
+        <ul class="card-list">
+          <li>支持百分制、等级（优秀 / 良好 / 中等 / 及格 / 不及格）与两级（通过 / 不通过）记分</li>
+          <li>「学业情况」一屏看清已修学分与培养方案要求的完成度</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="m8.5 13.5-1.5 7.5 5-3 5 3-1.5-7.5"/></svg>
+        </div>
+        <h3>考证查分</h3>
+        <p>四六级、计算机等级考试、教师资格、普通话四类内置官方查分入口；专升本按省分流到 31 个省级考试院。</p>
+        <ul class="card-list">
+          <li>姓名 / 证件号 / 准考证号只保存在本机，不会上传</li>
+          <li>专升本由各省自主组织，全国没有统一查分站，因此按省分别给出入口</li>
+        </ul>
+      </article>
+
+      <article class="card card-hover reveal">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+        </div>
+        <h3>空教室与笔记</h3>
+        <p>在内置浏览器里打开本校教务的空教室页，读取本页识别到的空教室并一键复制；课堂笔记按课次记录文字与图片。</p>
+        <ul class="card-list">
+          <li>空教室结果可一键复制，直接发给同学</li>
+          <li>笔记随课程删除自动清理，不留孤儿数据</li>
         </ul>
       </article>
     </div>
@@ -692,6 +732,38 @@
     <div class="timeline">
       <div class="tl-item reveal">
         <div>
+          <span class="tl-ver">v4.66.0</span>
+          <span class="tl-date">2026-10-01</span>
+        </div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>课表之外：成绩、考证、小组件与 AI 识别导入</h3>
+          <ul>
+            <li>新增成绩与绩点（4.0 / 5.0 制可切换）与学业情况页，学分要求可自定义</li>
+            <li>新增考证查分：四六级、计算机等级、教师资格、普通话，专升本按省分流到 31 个省级考试院</li>
+            <li>小组件扩到 8 类，新增下一节课、考试倒计时、周课程列表、日程清单</li>
+            <li>新增找共同空闲、主题分享串、空教室查询、课堂笔记、选中文本导入；AI 识别导入默认关闭、首次开启前明示数据外发</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal">
+        <div>
+          <span class="tl-ver">v4.64.23</span>
+          <span class="tl-date">2026-10-01</span>
+        </div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>通知与导入链的一批实打实修复</h3>
+          <ul>
+            <li>早八闹钟在部分手机上永远写不进系统时钟；自动勿扰「下课」闹钟残留导致卡静音</li>
+            <li>时区或系统时间变更后闹钟整体偏移；改提醒设置不立即生效</li>
+            <li>导入时算不出时间段会清空作息却报成功；同一份课表文件导入第二张表必失败</li>
+            <li>单双周 <code>1-16(单)</code> 在表格 / 网页 / 纯文本四条导入路径未识别；小组件库被系统回收后永久空白</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal">
+        <div>
           <span class="tl-ver">v3.56.5</span>
           <span class="tl-date">2026-09-14</span>
         </div>
@@ -762,6 +834,7 @@
         <div class="acc-body">
           <p>不会。课表、待办与个性化设置保存在本机数据库，App 不要求注册账号，也不集成广告或用户行为统计 SDK。</p>
           <p>唯一的联网场景是「教务导入」（访问你自己学校的教务系统）与「适配资源更新」，以及你在设置里主动开启的 WebDAV 云备份——备份目标由你自行填写。</p>
+          <p>另外有一个默认关闭、需要你手动开启的「AI 识别导入」：开启前会明确说明上传什么、发给谁，接口地址、模型名与 Key 都由你自己填写，只保存在本机且不参与备份；不开启时不会发出任何请求。</p>
         </div>
       </details>
 

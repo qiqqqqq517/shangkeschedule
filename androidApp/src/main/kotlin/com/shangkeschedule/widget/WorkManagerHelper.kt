@@ -143,7 +143,11 @@ object WorkManagerHelper {
                 com.shangkeschedule.widget.tiny.TinyNativeProvider::class.java,
                 com.shangkeschedule.widget.compact.CompactNativeProvider::class.java,
                 com.shangkeschedule.widget.double_days.DoubleDaysNativeProvider::class.java,
-                com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider::class.java
+                com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider::class.java,
+                com.shangkeschedule.widget.next_course.NextCourseNativeProvider::class.java,
+                com.shangkeschedule.widget.exam_countdown.ExamCountdownNativeProvider::class.java,
+                com.shangkeschedule.widget.week_courses.WeekCoursesNativeProvider::class.java,
+                com.shangkeschedule.widget.agenda_list.AgendaListNativeProvider::class.java
             )
             val hasAnyWidget = providers.any { cls ->
                 manager.getAppWidgetIds(android.content.ComponentName(context, cls)).isNotEmpty()

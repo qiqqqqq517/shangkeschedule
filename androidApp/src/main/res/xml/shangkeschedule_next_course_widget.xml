@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「下一节课」小组件（v4.67.0）：3×2 宽卡，只显示**下一节课**及其倒计时。
+
+  updatePeriodMillis=0：周期刷新统一交给 WorkManager（详见 shangkeschedule_tiny_widget.xml 说明）。
+  本组件不消费「可容纳条数」上限（一次只显示一节课），但**必须**参与 onAppWidgetOptionsChanged
+  重算——尺寸变化会改变字号空间档（S/M/L），见 WidgetTextScale。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_loading_placeholder"
+    android:previewImage="@drawable/widget_preview_next_course"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen">
+</appwidget-provider>

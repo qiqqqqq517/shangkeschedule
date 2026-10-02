@@ -1,8 +1,6 @@
 package com.shangkeschedule.ui.settings.additional
 
-import com.shangkeschedule.ui.theme.appType
-import com.shangkeschedule.ui.theme.appSpacing
-import com.shangkeschedule.ui.theme.appColors
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,11 +27,15 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import com.shangkeschedule.Destination
-import com.shangkeschedule.tool.AdapterRemoteUpdater
-import com.shangkeschedule.tool.AdapterSyncResult
+import com.shangkeschedule.data.api.UpdateCheckClient
+import com.shangkeschedule.data.api.UpdateCheckResult
+import com.shangkeschedule.data.api.UpdateFailureKind
+import com.shangkeschedule.data.api.UpdateManifest
 import com.shangkeschedule.tool.AppExternalLinks
+import com.shangkeschedule.tool.copyToClipboard
+import com.shangkeschedule.ui.components.AppAlertDialog
+import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.settings.SectionCard
@@ -41,6 +43,10 @@ import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.settings.SettingValueTrailing
 import com.shangkeschedule.ui.settings.SettingsViewModel
+import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -49,45 +55,65 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.qualifier.named
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.account_circle_24px
+import shangkeschedule.shared.generated.resources.adapter_request_form_unavailable
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.code_24px
+import shangkeschedule.shared.generated.resources.community_qq_copied
+import shangkeschedule.shared.generated.resources.community_qq_copy_failed
 import shangkeschedule.shared.generated.resources.contact_author_email
 import shangkeschedule.shared.generated.resources.contact_author_hint
+import shangkeschedule.shared.generated.resources.desc_check_update
+import shangkeschedule.shared.generated.resources.desc_community_qq
+import shangkeschedule.shared.generated.resources.desc_community_xiaohongshu
 import shangkeschedule.shared.generated.resources.desc_contact_author
+import shangkeschedule.shared.generated.resources.desc_feedback
+import shangkeschedule.shared.generated.resources.desc_legal_offline
+import shangkeschedule.shared.generated.resources.desc_request_adapter
+import shangkeschedule.shared.generated.resources.desc_star_project
+import shangkeschedule.shared.generated.resources.edit_24px
 import shangkeschedule.shared.generated.resources.email_24px
-import shangkeschedule.shared.generated.resources.item_contact_author
+import shangkeschedule.shared.generated.resources.favorite_24px
 import shangkeschedule.shared.generated.resources.home_24px
+import shangkeschedule.shared.generated.resources.info_24px
+import shangkeschedule.shared.generated.resources.item_check_update
+import shangkeschedule.shared.generated.resources.item_community_qq
+import shangkeschedule.shared.generated.resources.item_community_xiaohongshu
+import shangkeschedule.shared.generated.resources.item_contact_author
+import shangkeschedule.shared.generated.resources.item_feedback
 import shangkeschedule.shared.generated.resources.item_github_repo
 import shangkeschedule.shared.generated.resources.item_language_settings
 import shangkeschedule.shared.generated.resources.item_official_website
 import shangkeschedule.shared.generated.resources.item_open_source_licenses
+import shangkeschedule.shared.generated.resources.item_privacy_policy
+import shangkeschedule.shared.generated.resources.item_request_adapter
+import shangkeschedule.shared.generated.resources.item_star_project
 import shangkeschedule.shared.generated.resources.item_start_screen_settings
+import shangkeschedule.shared.generated.resources.item_user_agreement
 import shangkeschedule.shared.generated.resources.label_version_prefix
 import shangkeschedule.shared.generated.resources.language_24px
 import shangkeschedule.shared.generated.resources.link_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
-import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
-import shangkeschedule.shared.generated.resources.desc_auto_sync_adapter
-import shangkeschedule.shared.generated.resources.item_auto_sync_adapter
+import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.school_24px
-import shangkeschedule.shared.generated.resources.sync_status_disabled
-import shangkeschedule.shared.generated.resources.sync_status_failed
-import shangkeschedule.shared.generated.resources.sync_status_syncing
-import shangkeschedule.shared.generated.resources.sync_status_up_to_date
-import shangkeschedule.shared.generated.resources.sync_status_updated
-import shangkeschedule.shared.generated.resources.title_more_options
-import shangkeschedule.shared.generated.resources.adapter_request_form_unavailable
-import shangkeschedule.shared.generated.resources.desc_feedback
-import shangkeschedule.shared.generated.resources.desc_legal_offline
-import shangkeschedule.shared.generated.resources.desc_request_adapter
-import shangkeschedule.shared.generated.resources.edit_24px
-import shangkeschedule.shared.generated.resources.info_24px
-import shangkeschedule.shared.generated.resources.item_feedback
-import shangkeschedule.shared.generated.resources.item_privacy_policy
-import shangkeschedule.shared.generated.resources.item_request_adapter
-import shangkeschedule.shared.generated.resources.item_user_agreement
+import shangkeschedule.shared.generated.resources.share_copy_failed
+import shangkeschedule.shared.generated.resources.star_24px
 import shangkeschedule.shared.generated.resources.sticky_note_2_24px
+import shangkeschedule.shared.generated.resources.title_more_options
+import shangkeschedule.shared.generated.resources.update_check_available
+import shangkeschedule.shared.generated.resources.update_check_checking
+import shangkeschedule.shared.generated.resources.update_check_failed_http
+import shangkeschedule.shared.generated.resources.update_check_failed_network
+import shangkeschedule.shared.generated.resources.update_check_failed_parse
+import shangkeschedule.shared.generated.resources.update_check_failed_payload
+import shangkeschedule.shared.generated.resources.update_check_up_to_date
+import shangkeschedule.shared.generated.resources.update_dialog_copy_token
+import shangkeschedule.shared.generated.resources.update_dialog_current
+import shangkeschedule.shared.generated.resources.update_dialog_notes
+import shangkeschedule.shared.generated.resources.update_dialog_open_download
+import shangkeschedule.shared.generated.resources.update_dialog_title
+import shangkeschedule.shared.generated.resources.update_token_copied
 
 // v4.65.0：三个地址常量收敛到 com.shangkeschedule.tool.AppExternalLinks，
 // 因为「申请适配教务系统」需要「更多选项」与「学校选择」两处共用同一个表单地址。
@@ -120,28 +146,40 @@ fun MoreOptionsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled = uiState.appSettings.developerModeEnabled
 
-    // 「自动同步教务系统」：手动触发远程适配同步，并展示同步结果
-    val adapterRemoteUpdater: AdapterRemoteUpdater = koinInject()
-    val syncScope = rememberCoroutineScope()
-    var syncing by remember { mutableStateOf(false) }
-    var syncStatusText by remember { mutableStateOf<String?>(null) }
-    fun triggerAdapterSync() {
-        if (syncing) return
-        syncing = true
-        syncStatusText = null
-        syncScope.launch {
-            val result = adapterRemoteUpdater.sync()
-            val text = when (result) {
-                is AdapterSyncResult.Updated ->
-                    getString(Res.string.sync_status_updated, result.fileCount)
-                AdapterSyncResult.UpToDate -> getString(Res.string.sync_status_up_to_date)
-                AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
-                is AdapterSyncResult.VerificationFailed ->
-                    getString(Res.string.adapter_remote_update_failed)
-                is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
+    // 「检查更新」（v4.66.0，K4）：版本号来自官网静态 version.json，网盘只做下载落点。
+    // 只在用户点击时请求一次——不后台轮询、不开机自检；失败按原因明确提示，不静默。
+    // 历史提示：官网更新日志 v4.64.x 记录过「清理从未接入界面的『检查更新』脚手架」，
+    // 本次是有真实版本源与下载落点后的正式接入，请勿再当死代码删除。
+    val updateCheckClient: UpdateCheckClient = koinInject()
+    val updateScope = rememberCoroutineScope()
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var updateStatusText by remember { mutableStateOf<String?>(null) }
+    var pendingUpdate by remember { mutableStateOf<UpdateManifest?>(null) }
+    val updateTokenCopiedText = stringResource(Res.string.update_token_copied)
+    val updateCopyFailedText = stringResource(Res.string.share_copy_failed)
+    fun triggerUpdateCheck() {
+        if (checkingUpdate) return
+        checkingUpdate = true
+        updateStatusText = null
+        updateScope.launch {
+            val text = when (val result = updateCheckClient.check()) {
+                is UpdateCheckResult.UpToDate ->
+                    getString(Res.string.update_check_up_to_date, result.versionName)
+                is UpdateCheckResult.UpdateAvailable -> {
+                    pendingUpdate = result.manifest
+                    getString(Res.string.update_check_available, result.manifest.versionName)
+                }
+                is UpdateCheckResult.Failed -> when (result.kind) {
+                    UpdateFailureKind.NETWORK -> getString(Res.string.update_check_failed_network)
+                    UpdateFailureKind.HTTP ->
+                        getString(Res.string.update_check_failed_http, result.httpCode)
+                    UpdateFailureKind.PARSE -> getString(Res.string.update_check_failed_parse)
+                    UpdateFailureKind.INCOMPLETE -> getString(Res.string.update_check_failed_payload)
+                }
             }
-            syncing = false
-            syncStatusText = text
+            checkingUpdate = false
+            updateStatusText = text
+            ToastManager.show(text)
         }
     }
 
@@ -198,10 +236,12 @@ fun MoreOptionsScreen(
             Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 开发者模式设置项（隐藏项，保留原有动画逻辑）
+            // v4.66.0（K7）：同组追加「小组件排障」入口，排障页只在开发者模式打开后出现。
             DeveloperModeSettingItem(
                 isDeveloperModeEnabled = isDeveloperModeEnabled,
                 onDeveloperModeChanged = { viewModel.onDeveloperModeChanged(it) },
-                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
+                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
+                onWidgetTroubleshootClick = { onNavigate(Destination.WidgetTroubleshoot) }
             )
 
             // 语言/启动页/官网/GitHub/开源许可证（分区大卡，组内分割）
@@ -243,27 +283,28 @@ fun MoreOptionsScreen(
                     leadingIcon = vectorResource(Res.drawable.list_alt_24px),
                     onClick = { onNavigate(Destination.OpenSourceLicenses) }
                 )
-            }
-
-            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
-
-            // 自动同步教务系统：手动触发远程适配同步，并轮询展示同步结果
-            SectionCard(
-                modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
-            ) {
+                // 检查更新（K4，v4.66.0）：与「上课官网 / GitHub 仓库 / 开源许可证」同属「关于本应用」的信息组，
+                // 放在该组末尾（微信/QQ 等同类应用都把「检查更新」放在关于列表底部）。
+                // 星链课表的检查更新也在「个人中心 → 关于我们」里，而不是首页或顶部独立卡片。
+                SectionDivider()
                 SettingItem(
-                    title = stringResource(Res.string.item_auto_sync_adapter),
+                    title = stringResource(Res.string.item_check_update),
                     subtitle = when {
-                        syncing -> stringResource(Res.string.sync_status_syncing)
-                        syncStatusText != null -> syncStatusText!!
-                        else -> stringResource(Res.string.desc_auto_sync_adapter)
+                        checkingUpdate -> stringResource(Res.string.update_check_checking)
+                        updateStatusText != null -> updateStatusText!!
+                        else -> stringResource(Res.string.desc_check_update)
                     },
-                    leadingIcon = vectorResource(Res.drawable.school_24px),
-                    onClick = ::triggerAdapterSync
+                    leadingIcon = vectorResource(Res.drawable.refresh_24px),
+                    onClick = ::triggerUpdateCheck
                 )
             }
 
             Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
+
+            // v4.66.0（信息架构搬迁 · 用户 m05093 / 裁决 A）：原先这里的
+            // 「教务适配状态 / 自动同步教务系统 / 空教室查询」「考证查分」「成绩与绩点 + 学业情况」
+            // 三张卡已上移到「我的」页（SettingsScreen.kt 的「课表」分组与新增「学习」分组），
+            // 本页只保留关于本应用 / 反馈与协议 / 联系作者 —— 避免新功能堆在「更多」里。
 
             // 意见反馈 / 教务适配申请 / 应用内协议（v4.65.0）
             SectionCard(
@@ -323,6 +364,42 @@ fun MoreOptionsScreen(
                     color = appColors().textSecondary,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+                SectionDivider()
+                // K6（v4.66.0）：社群入口。群号 / 主页链接在 AppExternalLinks 里留空即整行不渲染
+                // （与「申请适配教务系统」表单同一约定），这样没开通社群时页面上不留空入口。
+                if (AppExternalLinks.COMMUNITY_QQ_GROUP.isNotBlank()) {
+                    // Compose 资源的 getString 是 suspend，不能在 onClick 里直接调；
+                    // 这里在组合期先把两条提示取出来，点击时只做同步的复制 + 显示。
+                    val copiedText = stringResource(Res.string.community_qq_copied)
+                    val copyFailedText = stringResource(Res.string.community_qq_copy_failed)
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.item_community_qq),
+                        subtitle = stringResource(Res.string.desc_community_qq),
+                        leadingIcon = vectorResource(Res.drawable.account_circle_24px),
+                        onClick = {
+                            val copied = copyToClipboard(AppExternalLinks.COMMUNITY_QQ_GROUP)
+                            ToastManager.show(if (copied) copiedText else copyFailedText)
+                        }
+                    )
+                }
+                if (AppExternalLinks.COMMUNITY_XIAOHONGSHU_URL.isNotBlank()) {
+                    SectionDivider()
+                    SettingItem(
+                        title = stringResource(Res.string.item_community_xiaohongshu),
+                        subtitle = stringResource(Res.string.desc_community_xiaohongshu),
+                        leadingIcon = vectorResource(Res.drawable.favorite_24px),
+                        onClick = { uriHandler.openUri(AppExternalLinks.COMMUNITY_XIAOHONGSHU_URL) }
+                    )
+                }
+                SectionDivider()
+                // K5：GitHub Star 常驻入口（与一次性弹窗同一目标；参考星链把社区类入口放在列表最后一张卡）
+                SettingItem(
+                    title = stringResource(Res.string.item_star_project),
+                    subtitle = stringResource(Res.string.desc_star_project),
+                    leadingIcon = vectorResource(Res.drawable.star_24px),
+                    onClick = { uriHandler.openUri(AppExternalLinks.GITHUB_REPO) }
+                )
             }
 
             // 鸣谢内容
@@ -343,5 +420,66 @@ fun MoreOptionsScreen(
             showStartScreenDialog = false
         }
     )
+    // 发现新版本弹窗（v4.66.0，K4）：内容全部来自官网 version.json；
+    // 下载落点是夸克网盘分享页，其口令需要在夸克 App 里打开，所以另给「复制分享口令」。
+    pendingUpdate?.let { manifest ->
+        AppAlertDialog(
+            onDismissRequest = { pendingUpdate = null },
+            title = {
+                Text(text = stringResource(Res.string.update_dialog_title, manifest.versionName))
+            },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(
+                            Res.string.update_dialog_current,
+                            updateCheckClient.currentVersionName,
+                            updateCheckClient.currentVersionCode
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = appColors().textSecondary
+                    )
+                    if (manifest.releaseNotesUrl.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(appSpacing().listGap))
+                        Text(
+                            text = stringResource(Res.string.update_dialog_notes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                pendingUpdate = null
+                                uriHandler.openUri(manifest.releaseNotesUrl)
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.update_dialog_open_download),
+                    onConfirm = {
+                        pendingUpdate = null
+                        uriHandler.openUri(manifest.downloadUrl)
+                    },
+                    // 口令为空（例如换用其它下载方式）时不显示次按钮，避免给一个点了没用的入口
+                    dismissText = if (manifest.shareToken.isBlank()) {
+                        null
+                    } else {
+                        stringResource(Res.string.update_dialog_copy_token)
+                    },
+                    onDismiss = if (manifest.shareToken.isBlank()) {
+                        null
+                    } else {
+                        {
+                            val copied = copyToClipboard(manifest.shareToken)
+                            pendingUpdate = null
+                            ToastManager.show(
+                                if (copied) updateTokenCopiedText else updateCopyFailedText
+                            )
+                        }
+                    }
+                )
+            }
+        )
+    }
 
 }

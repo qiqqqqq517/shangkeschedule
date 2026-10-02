@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「下一节课」小组件布局（v4.67.0）：左侧课程色条 + 右侧「下一节课 + 倒计时胶囊 + 课程名 + 时间 + 地点」。
+
+  设计意图（对齐星链「下一节课」而保留上课自己的排版纪律）：
+  - 只显示**一节课**，课程名是主角（18sp 基准，随空间档放大），时间/地点退居 12sp 次要色；
+  - 倒计时胶囊是唯一的高信息密度元素，放在右上角，与课程名同排但不与其争宽（课程名 maxLines=1 截断）；
+  - 今日已无课时复用 `container_status` 全卡空态（文案由 todayEmptyTip 决定），
+    跨天则用同一套 container_info 展示「明日第一节」，不给用户留空白组件。
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/inner_content_card"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_bg_rounded"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:id="@+id/container_info"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            tools:visibility="visible">
+
+            <include layout="@layout/widget_course_color_bar" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/tv_next_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@+id/tv_next_countdown"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="11sp"
+                        tools:text="下一节课" />
+
+                    <TextView
+                        android:id="@+id/tv_next_countdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:background="@drawable/widget_chip_bg"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="2dp"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="25 分钟后" />
+                </RelativeLayout>
+
+                <TextView
+                    android:id="@+id/tv_course_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:maxLines="2"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    tools:text="计算机网络" />
+
+                <TextView
+                    android:id="@+id/tv_course_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="12sp"
+                    tools:text="08:30 - 10:05" />
+
+                <TextView
+                    android:id="@+id/tv_course_position"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="12sp"
+                    tools:text="实验楼 402" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/container_status"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_status_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="假期中" />
+
+            <TextView
+                android:id="@+id/tv_status_msg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                tools:text="期待新学期" />
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>

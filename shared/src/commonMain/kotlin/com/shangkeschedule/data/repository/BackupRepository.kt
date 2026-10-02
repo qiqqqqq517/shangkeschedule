@@ -1,8 +1,10 @@
 package com.shangkeschedule.data.repository
 
 import androidx.room3.withWriteTransaction
+import com.shangkeschedule.data.db.main.CourseNote
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
+import com.shangkeschedule.data.db.main.Grade
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TodoItem
@@ -11,9 +13,13 @@ import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupEnvelope
+import com.shangkeschedule.data.model.CourseImportExport.CourseNoteBackupModel
+import com.shangkeschedule.data.model.CourseImportExport.GradeBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.ScheduleEventBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.TodoBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.UserDataBackupEnvelope
+import com.shangkeschedule.data.model.CreditRequirement
+import com.shangkeschedule.data.model.GpaScale
 import com.shangkeschedule.data.model.NextCardMode
 import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.ui.theme.MotionSpeed
@@ -54,11 +60,12 @@ enum class BackupModule(val key: String) {
     APP_SETTINGS("app_settings"),
 
     /**
-     * 全局用户数据（待办 + 日程）。
+     * 全局用户数据（待办 + 日程 + 成绩）。
      *
      * 新增原因：`todo_items` / `schedule_events` 是 Room 实体，但此前不属于任何备份模块，
      * 全量备份/恢复（本地 zip 与 WebDAV 共用同一入口）完全不覆盖它们 ——
      * 用户换机或恢复备份后，全部待办与日程丢失且无任何提示。
+     * 成绩表（`grades`）同样如此，于 v2 规范一并纳入。
      */
     USER_DATA("user_data")
 }
@@ -503,8 +510,10 @@ class BackupRepository(
          * v2：新增个人信息（昵称/学校/学院/专业/年级/签名/头像）与 5 项此前未备份的设置。
          * v3：新增早八闹钟（开关 + 提前量）；旧 v2 备份缺字段 ⇒ 解码为 null ⇒ 保留设备现值，
          *     故恢复链路向前兼容，无需迁移旧数据。
+         * v4：新增培养方案学分要求、绩点制、两个常驻通知开关（下一节课 / 考试倒计时）；
+         *     同样全可空，旧备份恢复时保留设备现值。
          */
-        const val APP_SETTINGS_SCHEMA_VERSION = 3
+        const val APP_SETTINGS_SCHEMA_VERSION = 4
     }
 
     /**
@@ -554,7 +563,12 @@ class BackupRepository(
                 profileSignature = settings.profileSignature,
                 profileAvatarPath = settings.profileAvatarPath,
                 morningAlarmEnabled = settings.morningAlarmEnabled,
-                morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
+                morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes,
+                // v4：学业要求 / 绩点制 / 常驻通知开关
+                creditRequirements = CreditRequirement.encode(settings.creditRequirements),
+                gpaScale = settings.gpaScale.name,
+                nextClassNotificationEnabled = settings.nextClassNotificationEnabled,
+                examCountdownReminderEnabled = settings.examCountdownReminderEnabled
             )
             val envelope = AppSettingsBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
@@ -648,21 +662,49 @@ class BackupRepository(
                 // v3 可空字段：旧备份 ⇒ null ⇒ 保留设备现值
                 morningAlarmEnabled = bm.morningAlarmEnabled ?: currentSettings.morningAlarmEnabled,
                 morningAlarmLeadMinutes = (bm.morningAlarmLeadMinutes ?: currentSettings.morningAlarmLeadMinutes)
-                    .coerceIn(0, 180)
+                    .coerceIn(0, 180),
+                // v4 可空字段：旧备份 ⇒ null ⇒ 保留设备现值
+                creditRequirements = bm.creditRequirements?.let { raw -> CreditRequirement.decode(raw) }
+                    ?: currentSettings.creditRequirements,
+                gpaScale = bm.gpaScale?.let { runCatching { GpaScale.valueOf(it) }.getOrNull() }
+                    ?: currentSettings.gpaScale,
+                nextClassNotificationEnabled = bm.nextClassNotificationEnabled
+                    ?: currentSettings.nextClassNotificationEnabled,
+                examCountdownReminderEnabled = bm.examCountdownReminderEnabled
+                    ?: currentSettings.examCountdownReminderEnabled
             )
             appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
+            // 补写 insertOrUpdateAppSettings 未覆盖的键：该函数只一次性写回 31 个键，
+            // 个人信息、早八闹钟、学业要求、绩点制与两个常驻通知开关不在其中 ——
+            // 若只靠上面这行，这些字段会「算对了但没落盘」，表现为恢复后设置没生效。
+            // 故这里按单字段原子更新逐个补齐（与 AppSettingsRepository 的设计保持一致）。
+            appSettingsRepository.updateProfileInfo(
+                nickname = restoredSettings.profileNickname,
+                school = restoredSettings.profileSchool,
+                college = restoredSettings.profileCollege,
+                major = restoredSettings.profileMajor,
+                grade = restoredSettings.profileGrade,
+                signature = restoredSettings.profileSignature
+            )
+            appSettingsRepository.updateProfileAvatarPath(restoredSettings.profileAvatarPath)
+            appSettingsRepository.updateMorningAlarmEnabled(restoredSettings.morningAlarmEnabled)
+            appSettingsRepository.updateMorningAlarmLeadMinutes(restoredSettings.morningAlarmLeadMinutes)
+            appSettingsRepository.updateNextClassNotificationEnabled(restoredSettings.nextClassNotificationEnabled)
+            appSettingsRepository.updateExamCountdownReminderEnabled(restoredSettings.examCountdownReminderEnabled)
+            appSettingsRepository.updateGpaScale(restoredSettings.gpaScale)
+            appSettingsRepository.updateCreditRequirements(restoredSettings.creditRequirements)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // 4. 全局用户数据（待办 / 日程）备份通道
+    // 4. 全局用户数据（待办 / 日程 / 成绩）备份通道
 
     /**
-     * 导出全部待办与日程为 CBOR 字节。
+     * 导出全部待办、日程与成绩为 CBOR 字节。
      *
-     * 这两张表是全局数据（不随课表切换），故与课表模块分开、单独作为一个备份模块。
+     * 这三张表是全局数据（不随课表切换），故与课表模块分开、单独作为一个备份模块。
      * 即使无任何数据也返回**有效信封**（而非 null），以保证「备份包含该模块」语义明确 ——
      * 用户可能确实没有待办，此时空列表就是正确快照。
      */
@@ -684,11 +726,28 @@ class BackupRepository(
                     createdAt = it.createdAt, updatedAt = it.updatedAt
                 )
             }
+            val grades = database.gradeDao().getAllGradesOnce().map {
+                GradeBackupModel(
+                    id = it.id, semester = it.semester, courseName = it.courseName,
+                    credit = it.credit, scoreText = it.scoreText, scoreValue = it.scoreValue,
+                    category = it.category, isRetake = it.isRetake, note = it.note,
+                    source = it.source, createdAt = it.createdAt, updatedAt = it.updatedAt
+                )
+            }
+            val notes = database.courseNoteDao().getAllNotesOnce().map {
+                CourseNoteBackupModel(
+                    id = it.id, courseId = it.courseId, date = it.date, sections = it.sections,
+                    title = it.title, content = it.content, imagePaths = it.imagePaths,
+                    createdAt = it.createdAt, updatedAt = it.updatedAt
+                )
+            }
             val envelope = UserDataBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
                 appVersionCode = CourseImportExport.USER_DATA_SCHEMA_VERSION,
                 todos = todos,
-                events = events
+                events = events,
+                grades = grades,
+                notes = notes
             )
             CourseImportExport.cbor.encodeToByteArray(UserDataBackupEnvelope.serializer(), envelope)
         } catch (e: Exception) {
@@ -697,10 +756,13 @@ class BackupRepository(
     }
 
     /**
-     * 从 CBOR 字节恢复待办与日程。
+     * 从 CBOR 字节恢复待办、日程与成绩。
      *
      * 采用**快照替换**语义（同一事务内先清空再插入），与课表模块的恢复语义保持一致，
      * 避免旧数据残留导致「恢复到某个时间点」的结果不准确。
+     *
+     * 例外：`grades` 字段在旧 v1 备份中不存在（解码为 null），此时**整表不动** ——
+     * 否则用老备份恢复会把用户新录入的成绩静默清空。
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun restoreUserDataBytes(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
@@ -745,6 +807,44 @@ class BackupRepository(
                             )
                         }
                     )
+                }
+                // 课堂笔记：同样仅在备份带了该字段（v3+）时才替换。
+                // 额外按「课程仍存在」过滤：course_notes → courses 是 CASCADE 外键，
+                // 直接插入孤儿笔记会外键失败，导致整次恢复回滚。
+                val restoredNotes = envelope.notes
+                if (restoredNotes != null) {
+                    val existingCourseIds = database.courseDao().getAllCourseIdsOnce().toHashSet()
+                    database.courseNoteDao().deleteAll()
+                    val insertableNotes = restoredNotes
+                        .filter { it.courseId in existingCourseIds }
+                        .map {
+                            CourseNote(
+                                id = it.id, courseId = it.courseId, date = it.date,
+                                sections = it.sections, title = it.title, content = it.content,
+                                imagePaths = it.imagePaths,
+                                createdAt = it.createdAt, updatedAt = it.updatedAt
+                            )
+                        }
+                    if (insertableNotes.isNotEmpty()) {
+                        database.courseNoteDao().insertAll(insertableNotes)
+                    }
+                }
+                // 成绩：仅在备份确实带了该字段时才替换（v1 老备份为 null ⇒ 保持本机成绩不变）
+                val restoredGrades = envelope.grades
+                if (restoredGrades != null) {
+                    database.gradeDao().deleteAll()
+                    if (restoredGrades.isNotEmpty()) {
+                        database.gradeDao().insertAll(
+                            restoredGrades.map {
+                                Grade(
+                                    id = it.id, semester = it.semester, courseName = it.courseName,
+                                    credit = it.credit, scoreText = it.scoreText, scoreValue = it.scoreValue,
+                                    category = it.category, isRetake = it.isRetake, note = it.note,
+                                    source = it.source, createdAt = it.createdAt, updatedAt = it.updatedAt
+                                )
+                            }
+                        )
+                    }
                 }
             }
             Result.success(Unit)

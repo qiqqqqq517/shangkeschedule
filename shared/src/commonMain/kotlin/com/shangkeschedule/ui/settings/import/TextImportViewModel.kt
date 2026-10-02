@@ -1,12 +1,14 @@
 package com.shangkeschedule.ui.settings.import
 
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.import_fmt_share_code
 import shangkeschedule.shared.generated.resources.tivm_error_empty_file
 import shangkeschedule.shared.generated.resources.tivm_error_empty_input
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
 import shangkeschedule.shared.generated.resources.tivm_error_old_xls
 import shangkeschedule.shared.generated.resources.tivm_error_parse_first
+import shangkeschedule.shared.generated.resources.tivm_error_share_code_invalid
 import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
 import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
 import shangkeschedule.shared.generated.resources.tivm_json_parse_failed
@@ -18,6 +20,7 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.di.AppStorage
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
+import com.shangkeschedule.data.codec.CourseShareCodec
 import com.shangkeschedule.data.parser.ExcelScheduleParser
 import com.shangkeschedule.data.parser.TextImportFormat
 import com.shangkeschedule.data.parser.UniversalScheduleParser
@@ -71,7 +74,23 @@ class TextImportViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val result = withContext(Dispatchers.Default) {
-                UniversalScheduleParser.parseWithFormat(text, forcedFormat)
+                // 「课表分享串」优先：`SK1:` 是自包含编码，交给通用格式嗅探只会被当成乱文本。
+                if (CourseShareCodec.looksLikeCode(text)) {
+                    when (val decoded = CourseShareCodec.decode(text)) {
+                        is CourseShareCodec.DecodeResult.Success -> UniversalScheduleParser.ParseResult.Success(
+                            model = decoded.model,
+                            format = getString(Res.string.import_fmt_share_code)
+                        )
+                        CourseShareCodec.DecodeResult.NotAShareCode ->
+                            UniversalScheduleParser.parseWithFormat(text, forcedFormat)
+                        CourseShareCodec.DecodeResult.Invalid ->
+                            UniversalScheduleParser.ParseResult.Error(
+                                getString(Res.string.tivm_error_share_code_invalid)
+                            )
+                    }
+                } else {
+                    UniversalScheduleParser.parseWithFormat(text, forcedFormat)
+                }
             }
             applyParseResult(result)
         }

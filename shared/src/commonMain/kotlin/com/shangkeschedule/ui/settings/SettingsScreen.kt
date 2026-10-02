@@ -113,6 +113,32 @@ import shangkeschedule.shared.generated.resources.title_course_notification_sett
 import shangkeschedule.shared.generated.resources.title_manage_course_tables
 import shangkeschedule.shared.generated.resources.nav_settings
 import shangkeschedule.shared.generated.resources.title_vacation
+// v4.66.0（信息架构搬迁 · 用户 m05093 / 裁决 A）：学习与教务类入口从「更多」页上移到「我的」页
+import androidx.compose.runtime.rememberCoroutineScope
+import com.shangkeschedule.WebPagePurpose
+import com.shangkeschedule.tool.AdapterRemoteUpdater
+import com.shangkeschedule.tool.AdapterSyncResult
+import com.shangkeschedule.ui.components.ToastManager
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.koin.compose.koinInject
+import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
+import shangkeschedule.shared.generated.resources.check_circle_24px
+import shangkeschedule.shared.generated.resources.grade_page_title
+import shangkeschedule.shared.generated.resources.item_auto_sync_adapter
+import shangkeschedule.shared.generated.resources.list_alt_24px
+import shangkeschedule.shared.generated.resources.search_24px
+import shangkeschedule.shared.generated.resources.settings_group_study
+import shangkeschedule.shared.generated.resources.sync_alt_24px
+import shangkeschedule.shared.generated.resources.sync_status_disabled
+import shangkeschedule.shared.generated.resources.sync_status_failed
+import shangkeschedule.shared.generated.resources.sync_status_syncing
+import shangkeschedule.shared.generated.resources.sync_status_up_to_date
+import shangkeschedule.shared.generated.resources.sync_status_updated
+import shangkeschedule.shared.generated.resources.title_adapter_status
+import shangkeschedule.shared.generated.resources.title_cert_exam
+import shangkeschedule.shared.generated.resources.title_empty_classroom
+import shangkeschedule.shared.generated.resources.title_study_progress
 
 // 页面节奏对齐全局 token（v2 规范 §2：pageHorizontal=16 / cardGap=12）
 // 注意：已迁移为主题化 token，各 Composable 内用 appSpacing().pageHorizontal / appSpacing().cardGap 读取，
@@ -130,9 +156,47 @@ fun SettingsScreen(
     // [appSettingsPage] 提供 —— 原先这里声明 isIos/isSoft/isClaude 三个身份布尔，
     // 再在 7 处按身份分派；设置页组件族合一后，身份判断全部消失。
     val page = appSettingsPage()
+
+    // v4.66.0（IA 搬迁）：教务适配的「自动同步」入口从「更多」页移到本页「课表」分组，
+    // 与「教务适配状态 / 空教室查询」同组；本页行是数据驱动的（buildSettingsSections），
+    // 所以这里只把「触发动作 + 结果副标题」两个参数传进去，不把同步状态机搬进数据层。
+    val adapterRemoteUpdater: AdapterRemoteUpdater = koinInject()
+    val syncScope = rememberCoroutineScope()
+    var syncing by remember { mutableStateOf(false) }
+    var syncStatusText by remember { mutableStateOf<String?>(null) }
+    fun triggerAdapterSync() {
+        if (syncing) return
+        syncing = true
+        syncStatusText = null
+        syncScope.launch {
+            val result = adapterRemoteUpdater.sync()
+            val text = when (result) {
+                is AdapterSyncResult.Updated ->
+                    getString(Res.string.sync_status_updated, result.fileCount)
+                AdapterSyncResult.UpToDate -> getString(Res.string.sync_status_up_to_date)
+                AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
+                is AdapterSyncResult.VerificationFailed ->
+                    getString(Res.string.adapter_remote_update_failed)
+                is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
+            }
+            syncing = false
+            syncStatusText = text
+            ToastManager.show(text)
+        }
+    }
+    val adapterSyncDetail = when {
+        syncing -> stringResource(Res.string.sync_status_syncing)
+        syncStatusText != null -> syncStatusText
+        else -> null
+    }
     // 数据驱动（v3.54.0）：全部设置条目只在此定义一份，一套组件渲染，
     // 新增设置项不再需要同步改三处（历史上已出现 tone 映射漂移）
-    val settingsSections = buildSettingsSections(uiState, viewModel)
+    val settingsSections = buildSettingsSections(
+        uiState = uiState,
+        viewModel = viewModel,
+        adapterSyncDetail = adapterSyncDetail,
+        onAdapterSync = ::triggerAdapterSync
+    )
     // 批 2：页头统一为内容区 AppPageHeader 后，Scaffold 不再有吸顶玻璃栏
     // ⇒ haze 三件套（rememberHazeState / glassTint / glassFallback）与
     // `.hazeSource` 一并移除 —— 没有 hazeEffect 消费方时，source 只是白付的每帧开销。
@@ -656,7 +720,11 @@ private data class SettingsEntry(
     val iconRes: DrawableResource,
     val tone: SettingsEntryTone,
     val destination: Destination? = null,
-    val toggle: SettingsEntryToggle? = null
+    val toggle: SettingsEntryToggle? = null,
+    /** 行副标题（本页大多数行不用；目前只有「自动同步教务系统」用它显示同步状态）。 */
+    val detail: String? = null,
+    /** 无 destination 的行自带动作（如触发一次适配同步）。 */
+    val onClick: (() -> Unit)? = null
 )
 
 /** 一个设置分组：组标题 + 条目列表。 */
@@ -666,12 +734,18 @@ private data class SettingsSection(
 )
 
 /**
- * 构建设置主页全部分组。结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）
+ * 构建设置主页全部分组。结构（5 组【课表 / 课程 / 学习 / 偏好 / 关于】、条目、开关位置）
  * 与 v3.53.5 三份主题复制完全一致；开关条目的取值随 [uiState] 刷新。
+ *
+ * v4.66.0（信息架构搬迁）：新增「学习」分组，并把教务适配三行并入「课表」分组 ——
+ * 依据用户 m05093「新加的功能位置重新排列，不要放在更多里面」与随后的裁决 A：
+ * 学习/教务类放「我的」页，「更多」页只留关于本应用 / 反馈与协议 / 联系作者。
  */
 private fun buildSettingsSections(
     uiState: SettingsUiState,
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
+    adapterSyncDetail: String? = null,
+    onAdapterSync: (() -> Unit)? = null
 ): List<SettingsSection> = listOf(
     SettingsSection(
         labelRes = Res.string.settings_group_timetable,
@@ -679,7 +753,11 @@ private fun buildSettingsSections(
             SettingsEntry(Res.string.item_course_conversion, Res.drawable.school_24px, SettingsEntryTone.PURPLE, Destination.CourseTableConversion),
             SettingsEntry(Res.string.section_title_semester_settings, Res.drawable.calendar_today_24px, SettingsEntryTone.ORANGE, Destination.SemesterSettings),
             SettingsEntry(Res.string.item_time_slot_customization, Res.drawable.schedule_24px, SettingsEntryTone.RED, Destination.TimeSlotSettings()),
-            SettingsEntry(Res.string.title_manage_course_tables, Res.drawable.class_24px, SettingsEntryTone.OLIVE, Destination.ManageCourseTables)
+            SettingsEntry(Res.string.title_manage_course_tables, Res.drawable.class_24px, SettingsEntryTone.OLIVE, Destination.ManageCourseTables),
+            // v4.66.0（IA 搬迁 · 裁决 A）：教务适配三行从「更多」页移到「课表」分组
+            SettingsEntry(Res.string.title_adapter_status, Res.drawable.school_24px, SettingsEntryTone.OLIVE, Destination.AdapterStatus),
+            SettingsEntry(Res.string.item_auto_sync_adapter, Res.drawable.sync_alt_24px, SettingsEntryTone.GREEN, detail = adapterSyncDetail, onClick = onAdapterSync),
+            SettingsEntry(Res.string.title_empty_classroom, Res.drawable.search_24px, SettingsEntryTone.AMBER, Destination.SchoolSelectionListScreen(WebPagePurpose.EMPTY_CLASSROOM))
         )
     ),
     SettingsSection(
@@ -687,6 +765,15 @@ private fun buildSettingsSections(
         entries = listOf(
             SettingsEntry(Res.string.item_course_management, Res.drawable.edit_24px, SettingsEntryTone.MATCHA, Destination.CourseManagementList),
             SettingsEntry(Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK, Destination.CoupleScheduleSettings)
+        )
+    ),
+    SettingsSection(
+        // v4.66.0（IA 搬迁 · 裁决 A）：学习类入口从「更多」页上移到「我的」页独立分组
+        labelRes = Res.string.settings_group_study,
+        entries = listOf(
+            SettingsEntry(Res.string.grade_page_title, Res.drawable.list_alt_24px, SettingsEntryTone.PURPLE, Destination.Grade),
+            SettingsEntry(Res.string.title_study_progress, Res.drawable.check_circle_24px, SettingsEntryTone.MATCHA, Destination.StudyProgress),
+            SettingsEntry(Res.string.title_cert_exam, Res.drawable.school_24px, SettingsEntryTone.PINK, Destination.CertExam)
         )
     ),
     SettingsSection(
@@ -752,8 +839,10 @@ private fun LazyListScope.appSettingsItems(
                             title = stringResource(entry.titleRes),
                             icon = vectorResource(entry.iconRes),
                             tone = entry.tone,
+                            detail = entry.detail,
                             showDivider = entryIndex > 0,
-                            onClick = entry.destination?.let { d -> { onNavigate(d) } },
+                            // 有 destination 就导航；否则执行条目自带动作（如「自动同步教务系统」）
+                            onClick = entry.destination?.let { d -> { onNavigate(d) } } ?: entry.onClick,
                             trailing = toggleTrailing
                         )
                     }

@@ -33,12 +33,28 @@ object NotificationChannels {
      */
     const val MORNING_ALARM_FALLBACK = "morning_alarm_fallback_channel"
 
+    /**
+     * 「下一节课」常驻通知渠道（新增）：
+     * 常年挂在状态栏的状态牌，因此用 IMPORTANCE_LOW —— 默认不响不震（用户仍可在
+     * 系统设置里抬高重要性）；渠道名/描述里明确写「常驻」，让用户知道怎么关掉它。
+     */
+    const val NEXT_CLASS = "next_class_persistent_channel"
+
+    /**
+     * 考试倒计时提醒渠道（新增）：
+     * IMPORTANCE_DEFAULT —— 按系统默认强度提醒一次（通知本身 `setOnlyAlertOnce`），
+     * 不必像课程提醒那样抢占高优先级。
+     */
+    const val EXAM_COUNTDOWN = "exam_countdown_reminder_channel"
+
     /** 确保所有渠道存在；可重复调用（已存在则跳过，不会覆盖用户设置）。 */
     fun ensureAll(context: Context) {
         val nm = context.getSystemService<NotificationManager>() ?: return
         ensureCourseChannel(context, nm)
         ensurePermissionChannel(context, nm)
         ensureMorningAlarmChannel(context, nm)
+        ensureNextClassChannel(context, nm)
+        ensureExamCountdownChannel(context, nm)
     }
 
     private fun ensureCourseChannel(context: Context, nm: NotificationManager) {
@@ -84,5 +100,35 @@ object NotificationChannels {
             }
         }
         nm.createNotificationChannel(channel)
+    }
+
+    private fun ensureNextClassChannel(context: Context, nm: NotificationManager) {
+        if (nm.getNotificationChannel(NEXT_CLASS) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(
+                NEXT_CLASS,
+                context.getString(R.string.notification_channel_next_class),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = context.getString(R.string.notification_channel_next_class_desc)
+                setShowBadge(false)
+                setSound(null, null)
+                enableVibration(false)
+            }
+        )
+    }
+
+    private fun ensureExamCountdownChannel(context: Context, nm: NotificationManager) {
+        if (nm.getNotificationChannel(EXAM_COUNTDOWN) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(
+                EXAM_COUNTDOWN,
+                context.getString(R.string.notification_channel_exam_countdown),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = context.getString(R.string.notification_channel_exam_countdown_desc)
+                setShowBadge(true)
+            }
+        )
     }
 }

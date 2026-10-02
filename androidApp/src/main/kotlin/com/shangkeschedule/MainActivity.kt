@@ -1,5 +1,6 @@
 package com.shangkeschedule
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.Display
@@ -17,6 +18,7 @@ import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.tool.ExternalTextImport
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -60,9 +62,35 @@ class MainActivity : AppCompatActivity(), KoinComponent {
             }
         }
 
+        // v4.66.0（L1）：外部选中文本导入。系统文本选择工具栏点「上课」时投递
+        // `ACTION_PROCESS_TEXT`，文本在 `EXTRA_PROCESS_TEXT` 里 —— 冷启动走 onCreate、
+        // 已在后台/前台时走 onNewIntent（launchMode=singleTask）。这里只做交接，
+        // 由 AppNavigation 把「文本粘贴导入」页推到栈顶并预填。
+        handleProcessTextIntent(intent)
+
         setContent {
             App()
         }
+    }
+
+    /** 热启动（singleTask 复用本 Activity）时的外部文本入口。 */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleProcessTextIntent(intent)
+    }
+
+    /**
+     * 取 `ACTION_PROCESS_TEXT` 的选中文本交给导入页；其他 action / 空文本直接忽略。
+     *
+     * 调用方（文本选择工具栏）在可编辑选择区还允许回写处理结果，本应用是「导入到课表」，
+     * 不修改原文，故不 setResult —— 选区内容保持不变。
+     */
+    private fun handleProcessTextIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_PROCESS_TEXT) return
+        val selected = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+        if (selected.isNullOrBlank()) return
+        ExternalTextImport.offer(selected)
     }
 
     /**

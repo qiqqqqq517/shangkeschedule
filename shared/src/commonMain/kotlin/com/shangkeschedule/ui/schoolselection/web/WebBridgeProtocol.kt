@@ -583,3 +583,417 @@ fun buildImportScript(tableId: String, adapterJsCode: String): String {
     ;$JS_IMPORT_AUTOSTART
     """.trimIndent()
 }
+
+/**
+ * 「识别本页成绩」注入脚本（通用成绩表解析，不依赖适配脚本）。
+ *
+ * 面向教务系统成绩查询页：优先按表头映射列（课程名 / 学分 / 成绩 / 性质），
+ * 表头识别失败时退回逐行启发式（取最右侧「像成绩」的单元格为成绩，
+ * 其左侧 0–30 的数字为学分，首个非数字单元格为课程名）。
+ *
+ * 返回值经 Base64 编码，规避 `evaluateJavascript` 回调的 JSON 转义问题：
+ * 空字符串 = 未识别到任何成绩；否则是 JSON 数组（UTF-8 → Base64），元素形如
+ * `{"courseName":"高等数学","credit":5,"scoreText":"92","category":"必修"}`。
+ *
+ * 设计取舍：不做「一键进成绩页」的自动导航（各校入口差异太大），
+ * 由用户在页面内自行导航后点「识别本页成绩」，识别失败可直接退回手动/粘贴录入。
+ */
+val JS_SCAN_GRADES = """
+(function() {
+    try {
+        function norm(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+
+        function toBase64(str) {
+            var bytes = new TextEncoder().encode(str);
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            var out = '';
+            for (var i = 0; i < bytes.length; i += 3) {
+                var b0 = bytes[i];
+                var b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+                var b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+                out += chars[b0 >> 2];
+                out += chars[((b0 & 3) << 4) | (b1 >> 4)];
+                out += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+                out += i + 2 < bytes.length ? chars[b2 & 63] : '=';
+            }
+            return out;
+        }
+
+        var LEVELS = ['优秀', '良好', '中等', '及格', '不及格', '合格', '不合格', '通过', '不通过', '优', '良', '中'];
+        function isLevel(text) {
+            for (var i = 0; i < LEVELS.length; i++) if (text === LEVELS[i]) return true;
+            return /^[A-Fa-f][+-]?$/.test(text);
+        }
+        function scoreOf(text) {
+            if (!text) return null;
+            if (isLevel(text)) return text;
+            var m = text.match(/^(\d{1,3}(\.\d+)?)\s*分?$/);
+            if (!m) return null;
+            var v = parseFloat(m[1]);
+            return v >= 0 && v <= 100 ? text : null;
+        }
+        function creditOf(text) {
+            if (!text) return null;
+            var m = String(text).match(/\d{1,2}(\.\d+)?/);
+            if (!m) return null;
+            var v = parseFloat(m[0]);
+            return v > 0 && v <= 30 ? v : null;
+        }
+
+        var NAME_RE = /课程名称|课程名|科目名称|教学班名称|科目|课程/;
+        var CREDIT_RE = /学分/;
+        var SCORE_RE = /成绩|分数|总评|绩点|得分/;
+        var CATEGORY_RE = /性质|类别|修读方式|课程类型/;
+
+        function cellsOf(row) {
+            var nodes = row.querySelectorAll('td, th, [role="gridcell"], [role="cell"]');
+            var out = [];
+            for (var i = 0; i < nodes.length; i++) out.push(norm(nodes[i].textContent));
+            return out;
+        }
+        function firstIndex(list, re) {
+            for (var i = 0; i < list.length; i++) if (re.test(list[i])) return i;
+            return -1;
+        }
+
+        var rows = [];
+        var candidates = document.querySelectorAll('table tr, [role="row"], .el-table__row, .ant-table-row, .ivu-table-row');
+        for (var i = 0; i < candidates.length; i++) {
+            var cells = cellsOf(candidates[i]);
+            if (cells.length >= 2) rows.push(cells);
+        }
+
+        var results = [];
+        var seen = {};
+        function push(name, credit, score, category) {
+            if (!name || !score) return;
+            if (name.length > 60) return;
+            if (scoreOf(score) === null) return;
+            var key = name + '|' + score;
+            if (seen[key]) return;
+            seen[key] = true;
+            results.push({ courseName: name, credit: credit, scoreText: score, category: category });
+        }
+
+        // 1. 表头映射（最可靠）
+        var headerIndex = -1;
+        var header = null;
+        for (var r = 0; r < rows.length; r++) {
+            var h = rows[r];
+            var nameIdx = firstIndex(h, NAME_RE);
+            var creditIdx = firstIndex(h, CREDIT_RE);
+            var scoreIdx = firstIndex(h, SCORE_RE);
+            if (nameIdx >= 0 && (creditIdx >= 0 || scoreIdx >= 0)) {
+                headerIndex = r;
+                header = { name: nameIdx, credit: creditIdx, score: scoreIdx, category: firstIndex(h, CATEGORY_RE) };
+                break;
+            }
+        }
+        if (header) {
+            for (var r2 = headerIndex + 1; r2 < rows.length; r2++) {
+                var row = rows[r2];
+                if (row.length <= Math.max(header.name, header.score)) continue;
+                var name = row[header.name];
+                if (!name || NAME_RE.test(name)) continue;
+                var score = header.score >= 0 ? row[header.score] : '';
+                if (scoreOf(score) === null) continue;
+                var credit = header.credit >= 0 ? creditOf(row[header.credit]) : null;
+                var category = header.category >= 0 ? row[header.category] : null;
+                push(name, credit, score, category && category.length <= 20 ? category : null);
+            }
+        }
+
+        // 2. 逐行启发式兜底（表头识别失败，或表头识别到但没抓到数据行）
+        if (results.length === 0) {
+            for (var r3 = 0; r3 < rows.length; r3++) {
+                var cells3 = rows[r3];
+                if (cells3.length < 2) continue;
+                var scoreIdx3 = -1;
+                for (var c = cells3.length - 1; c >= 0; c--) {
+                    if (scoreOf(cells3[c]) !== null && !NAME_RE.test(cells3[c])) {
+                        scoreIdx3 = c;
+                        break;
+                    }
+                }
+                if (scoreIdx3 <= 0) continue;
+                var nameIdx3 = -1;
+                for (var c2 = 0; c2 < scoreIdx3; c2++) {
+                    var t = cells3[c2];
+                    if (!t || t.length < 2) continue;
+                    if (/^\d+(\.\d+)?$/.test(t)) continue;
+                    if (SCORE_RE.test(t)) continue;
+                    nameIdx3 = c2;
+                    break;
+                }
+                if (nameIdx3 < 0) continue;
+                var credit3 = null;
+                for (var c3 = scoreIdx3 - 1; c3 > nameIdx3; c3--) {
+                    var cv = creditOf(cells3[c3]);
+                    if (cv !== null) { credit3 = cv; break; }
+                }
+                push(cells3[nameIdx3], credit3, cells3[scoreIdx3], null);
+            }
+        }
+
+        if (!results.length) return '';
+        return toBase64(JSON.stringify(results));
+    } catch (e) {
+        return '';
+    }
+})();
+""".trimIndent()
+
+/**
+ * 「定位空教室查询页」注入脚本。
+ *
+ * 与 [JS_NAVIGATE_TO_TIMETABLE] 同一套策略：适配脚本可显式声明
+ * `window.shangkeNavigateToEmptyClassroom()`；否则在 DOM 里按菜单文案打分挑一个入口点击。
+ *
+ * 空教室入口的文案比课表更杂（空教室 / 空闲教室 / 教室查询 / 自习室 / 教室借用…），
+ * 因此关键词表按「越精确越优先」排序，沿用长度加权打分，避免选中「教室」这种
+ * 会命中一大片菜单的短词。找不到入口时返回 `notfound`，由 Native 侧提示用户
+ * 自行在地址栏进入空教室页后直接点「读取本页空教室」。
+ */
+val JS_NAVIGATE_TO_EMPTY_CLASSROOM = """
+(function() {
+    try {
+        if (typeof window.shangkeNavigateToEmptyClassroom === 'function') {
+            try {
+                window.shangkeNavigateToEmptyClassroom();
+                return 'found';
+            } catch (e) {
+            }
+        }
+
+        var keywords = ['空教室查询', '空闲教室查询', '空教室', '空闲教室', '教室查询', '空闲时段查询', '自习教室', '自习室', '教室占用查询', '教室借用查询', '教室借用'];
+
+        function isVisible(el) {
+            if (!el || typeof el.getBoundingClientRect !== 'function') return false;
+            var rect = el.getBoundingClientRect();
+            if (rect.width < 2 || rect.height < 2) return false;
+            if (typeof window.getComputedStyle === 'function') {
+                var style = window.getComputedStyle(el);
+                if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
+            }
+            return true;
+        }
+
+        var candidates = document.querySelectorAll('a, button, [onclick], li, td');
+        var best = null;
+        var bestScore = -1;
+
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            if (!isVisible(el)) continue;
+            var text = (el.textContent || '').replace(/\s+/g, '').trim();
+            if (!text || text.length > 24) continue;
+            var hay = text.toLowerCase();
+            for (var k = 0; k < keywords.length; k++) {
+                var needle = keywords[k].toLowerCase();
+                if (hay.indexOf(needle) === -1) continue;
+                var score = needle.length * 100 - text.length;
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = el;
+                }
+            }
+        }
+
+        if (!best) return 'notfound';
+
+        var trigger = best;
+        if (typeof best.closest === 'function') {
+            trigger = best.closest('a, button, [onclick]') || best;
+        }
+        if (trigger.tagName === 'A' && trigger.href) {
+            trigger.target = '_self';
+        }
+        trigger.click();
+        return 'found';
+    } catch (e) {
+        return 'notfound';
+    }
+})();
+""".trimIndent()
+
+/**
+ * 「读取本页空教室」注入脚本（通用空教室结果表解析，不依赖适配脚本）。
+ *
+ * 与 [JS_SCAN_GRADES] 同构：先按表头映射列（教室 / 座位数 / 空闲节次 / 教学楼 / 校区），
+ * 表头识别失败或识别到表头却没抓到数据行时，退回逐行启发式（第一个「像教室名」的
+ * 单元格为教室，纯数字单元格为座位数，带「节」的单元格为空闲节次）。
+ *
+ * 为什么不做「按条件查空教室」（学期 / 校区 / 楼 / 周次 / 节次）：这些查询接口是
+ * 各校教务自行实现的（正方 / 强智 / 金智的请求参数完全不同，且多数还要带会话令牌），
+ * 在客户端硬编码参数拼装极易失效。这里改为让用户在真实的教务页里自己设条件点查询
+ * ——页面本身就是最可靠的查询表单——应用只负责把结果表读成干净文本。
+ *
+ * 返回值经 Base64 编码（理由同 [JS_SCAN_GRADES]）：空字符串 = 未识别到任何空教室；
+ * 否则是 JSON 数组，元素形如
+ * `{"room":"教三305","campus":"","building":"三教","capacity":60,"freeSlots":"1-2节"}`。
+ */
+val JS_SCAN_EMPTY_CLASSROOMS = """
+(function() {
+    try {
+        function norm(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+
+        function toBase64(str) {
+            var bytes = new TextEncoder().encode(str);
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            var out = '';
+            for (var i = 0; i < bytes.length; i += 3) {
+                var b0 = bytes[i];
+                var b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+                var b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+                out += chars[b0 >> 2];
+                out += chars[((b0 & 3) << 4) | (b1 >> 4)];
+                out += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+                out += i + 2 < bytes.length ? chars[b2 & 63] : '=';
+            }
+            return out;
+        }
+
+        // 表头关键词
+        var ROOM_RE = /教室|房间|房号|场地|机房|实验室|语音室|多媒体/;
+        var CAPACITY_RE = /座位|容量|可容纳|容纳人数|人数/;
+        var BUILDING_RE = /教学楼|楼栋|建筑|楼|馆/;
+        var CAMPUS_RE = /校区/;
+        var SLOT_RE = /节次|空闲|可用|时间段|时段|节/;
+
+        function cellsOf(row) {
+            var nodes = row.querySelectorAll('td, th, [role="gridcell"], [role="cell"]');
+            var out = [];
+            for (var i = 0; i < nodes.length; i++) out.push(norm(nodes[i].textContent));
+            return out;
+        }
+        function firstIndex(list, re) {
+            for (var i = 0; i < list.length; i++) if (re.test(list[i])) return i;
+            return -1;
+        }
+        // 座位数只认「纯数字（可带 人/座）」的单元格，避免把「1-2节」里的 1 当成座位数
+        function capacityOf(text) {
+            var t = norm(text);
+            if (!/^\d{1,4}\s*(人|座|个)?$/.test(t)) return null;
+            var v = parseInt(t, 10);
+            if (isNaN(v) || v <= 0 || v > 2000) return null;
+            return v;
+        }
+        // 表头单元格自身的文案（如「教室」）不是数据，清掉
+        function valueOf(text, headerRe) {
+            var t = norm(text);
+            if (!t || t.length > 40) return '';
+            if (headerRe && headerRe.test(t)) return '';
+            return t;
+        }
+        function looksLikeRoom(text) {
+            var t = norm(text);
+            if (!t || t.length > 40) return false;
+            if (/^\d{1,4}$/.test(t)) return false;
+            if (SLOT_RE.test(t) && !ROOM_RE.test(t)) return false;
+            return ROOM_RE.test(t) || /^[A-Za-z]?[A-Za-z]?[-－]?\d{2,4}$/.test(t);
+        }
+
+        var rows = [];
+        var candidates = document.querySelectorAll('table tr, [role="row"], .el-table__row, .ant-table-row, .ivu-table-row');
+        for (var i = 0; i < candidates.length; i++) {
+            var cells = cellsOf(candidates[i]);
+            if (cells.length >= 2) rows.push(cells);
+        }
+
+        var results = [];
+        var seen = {};
+        function push(room, campus, building, capacity, freeSlots) {
+            if (!room) return;
+            if (room.length > 40) return;
+            var key = room + '|' + (freeSlots || '');
+            if (seen[key]) return;
+            seen[key] = true;
+            results.push({
+                room: room,
+                campus: campus || '',
+                building: building || '',
+                capacity: capacity,
+                freeSlots: freeSlots || ''
+            });
+        }
+
+        // 1. 表头映射（最可靠）
+        var headerIndex = -1;
+        var header = null;
+        for (var r = 0; r < rows.length; r++) {
+            var h = rows[r];
+            var roomIdx = firstIndex(h, ROOM_RE);
+            var capIdx = firstIndex(h, CAPACITY_RE);
+            var slotIdx = firstIndex(h, SLOT_RE);
+            if (roomIdx >= 0 && (capIdx >= 0 || slotIdx >= 0)) {
+                headerIndex = r;
+                header = {
+                    room: roomIdx,
+                    cap: capIdx,
+                    slot: slotIdx,
+                    building: firstIndex(h, BUILDING_RE),
+                    campus: firstIndex(h, CAMPUS_RE)
+                };
+                break;
+            }
+        }
+        if (header) {
+            for (var r2 = headerIndex + 1; r2 < rows.length; r2++) {
+                var row = rows[r2];
+                if (row.length <= header.room) continue;
+                var room = valueOf(row[header.room], ROOM_RE);
+                if (!room || !looksLikeRoom(room)) continue;
+                var cap = header.cap >= 0 ? capacityOf(row[header.cap]) : null;
+                var slot = header.slot >= 0 ? valueOf(row[header.slot], SLOT_RE) : '';
+                if (slot.length > 60) slot = '';
+                // 至少要有一个「能用」的信号（座位数或空闲时段），否则多半是别的表
+                if (cap === null && !slot) continue;
+                push(
+                    room,
+                    header.campus >= 0 ? valueOf(row[header.campus], CAMPUS_RE) : '',
+                    header.building >= 0 ? valueOf(row[header.building], BUILDING_RE) : '',
+                    cap,
+                    slot
+                );
+            }
+        }
+
+        // 2. 逐行启发式兜底（表头识别失败，或识别到表头但没抓到数据行）
+        if (results.length === 0) {
+            for (var r3 = 0; r3 < rows.length; r3++) {
+                var cells3 = rows[r3];
+                if (cells3.length < 2) continue;
+                var roomIdx3 = -1;
+                for (var c = 0; c < cells3.length; c++) {
+                    if (looksLikeRoom(cells3[c])) {
+                        roomIdx3 = c;
+                        break;
+                    }
+                }
+                if (roomIdx3 < 0) continue;
+                var cap3 = null;
+                var slot3 = '';
+                for (var c2 = 0; c2 < cells3.length; c2++) {
+                    if (c2 === roomIdx3) continue;
+                    var t2 = cells3[c2];
+                    if (!t2) continue;
+                    if (cap3 === null) {
+                        var cv = capacityOf(t2);
+                        if (cv !== null) { cap3 = cv; continue; }
+                    }
+                    if (!slot3 && SLOT_RE.test(t2) && !CAPACITY_RE.test(t2) && t2.length <= 60) {
+                        slot3 = t2;
+                    }
+                }
+                if (cap3 === null && !slot3) continue;
+                push(cells3[roomIdx3], '', '', cap3, slot3);
+            }
+        }
+
+        if (!results.length) return '';
+        return toBase64(JSON.stringify(results));
+    } catch (e) {
+        return '';
+    }
+})();
+""".trimIndent()

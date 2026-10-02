@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  倒计时胶囊底（v4.67.0）。颜色取用既有单夜色感知色 `@color/widget_divider`，
+  不新增颜色项：浅色档是极浅灰、`values-night` 档是极深灰，两档都足够低调，
+  不与课程色条抢视觉（对比度由 scripts/check_widget_contrast.py 统一把关）。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/widget_divider" />
+    <corners android:radius="8dp" />
+</shape>

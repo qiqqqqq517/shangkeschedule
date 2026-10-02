@@ -9,4 +9,11 @@
     <!-- 第三级「提示文字」已移除（2026-09-23）：与浅色档同因，全部并入 widget_text_secondary。 -->
     <color name="widget_divider">#2C2C2E</color> # 深色分割线：比背景略亮的灰色
     <color name="widget_course_fallback">#AEA9AF</color> # 课程指示条兜底色：原 #3A3A3C 在深色卡底上仅 1.64:1（等于看不见），改取次要文字色（8.05:1）
+    <!-- 「考试倒计时」小组件左侧色条（v4.67.0）：深色档提高明度，避免深红在 #141218 上糊成一团。 -->
+    <color name="widget_exam_accent">#FF6B6B</color> # 考试色条：深色档
+    <!-- 「日程清单」小组件（v4.67.0）：深色档整体提高明度，避免深色在 #141218 上糊成一团。 -->
+    <color name="widget_agenda_todo">#7FA6FF</color> # 待办：蓝
+    <color name="widget_agenda_activity">#4FCBA4</color> # 活动：绿
+    <color name="widget_agenda_homework">#F2BC55</color> # 作业：琥珀
+    <color name="widget_agenda_other">#AEA9AF</color> # 其他：灰
 </resources>

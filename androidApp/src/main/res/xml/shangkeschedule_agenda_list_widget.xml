@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「日程清单」小组件元数据（v4.67.0，C4）：3x3 起步，可横向/纵向拉伸。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_loading_placeholder"
+    android:minHeight="180dp"
+    android:minWidth="180dp"
+    android:previewImage="@drawable/widget_preview_agenda_list"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="3"
+    android:targetCellWidth="3"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

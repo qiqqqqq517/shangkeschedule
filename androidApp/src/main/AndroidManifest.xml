@@ -60,6 +60,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- v4.66.0（L1）：系统文本选择工具栏条目。选中任意外部文本（浏览器/微信/备忘录）
+                 → 工具栏点「上课」（条目名取 application 的 android:label = @string/app_name）
+                 → MainActivity 读 EXTRA_PROCESS_TEXT 交给「文本粘贴导入」页预填。
+                 只声明 text/plain：选中文本的 Intent 一律是该类型，窄声明不会漏。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <service
@@ -167,7 +176,66 @@
                 android:resource="@xml/shangkeschedule_list_vertical_widget" />
         </receiver>
 
+        <!-- 下一节课（v4.67.0 新增）：只显示下一节课 + 倒计时，跨天退化为「明日第一节」 -->
+        <receiver
+            android:name=".widget.next_course.NextCourseNativeProvider"
+            android:exported="false"
+            android:label="@string/widget_name_next_course">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shangkeschedule_next_course_widget" />
+        </receiver>
 
+        <!-- 考试倒计时（v4.67.0 新增）：最近一场考试 + 天数倒计时，数据来自日程表 exam 分类 -->
+        <receiver
+            android:name=".widget.exam_countdown.ExamCountdownNativeProvider"
+            android:exported="false"
+            android:label="@string/widget_name_exam_countdown">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shangkeschedule_exam_countdown_widget" />
+        </receiver>
+
+        <!-- 周课程（v4.67.0 新增）：今天起 7 天的课程，按「日期 + 时间 + 课程名」逐行 -->
+        <receiver
+            android:name=".widget.week_courses.WeekCoursesNativeProvider"
+            android:exported="false"
+            android:label="@string/widget_name_week_courses">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shangkeschedule_week_courses_widget" />
+        </receiver>
+
+        <!-- 日程清单（v4.67.0 新增）：日期 >= 今天的日程，左侧色条按类别取色 -->
+        <receiver
+            android:name=".widget.agenda_list.AgendaListNativeProvider"
+            android:exported="false"
+            android:label="@string/widget_name_agenda_list">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shangkeschedule_agenda_list_widget" />
+        </receiver>
+
+        <!-- G1：「下一节课」常驻通知里的「关闭常驻」动作（应用内广播，不对外暴露） -->
+        <receiver
+            android:name=".service.notification.receiver.NextClassControlReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.shangkeschedule.action.DISABLE_NEXT_CLASS_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.startup.InitializationProvider"

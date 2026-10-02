@@ -96,6 +96,8 @@ import kotlinx.datetime.plus
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.AppThemePreset
+import com.shangkeschedule.data.repository.GradeSummary
+import com.shangkeschedule.ui.grade.formatNumber
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
 import com.shangkeschedule.ui.components.AppCheckboxIndicator
 import com.shangkeschedule.ui.components.AppPageHeader
@@ -143,6 +145,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.date_format_year_month_day
+import shangkeschedule.shared.generated.resources.grade_today_card_empty
+import shangkeschedule.shared.generated.resources.grade_today_card_summary
+import shangkeschedule.shared.generated.resources.grade_today_card_summary_credits
+import shangkeschedule.shared.generated.resources.grade_today_card_title
+import shangkeschedule.shared.generated.resources.grade_value_none
 import shangkeschedule.shared.generated.resources.location_on_24px
 import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.status_semester_ended
@@ -200,6 +207,7 @@ fun TodayScheduleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val gridStyle by viewModel.gridStyle.collectAsStateWithLifecycle()
+    val gradeSummary by viewModel.gradeSummary.collectAsStateWithLifecycle()
     val isDark = LocalIsDarkTheme.current
     // 书卷 / 通透两套主题的今日页都自带页头（书卷：日期 eyebrow + 大标题 + 图标钮；
     // 通透：周次胶囊 + 日期大字），因此都不叠加 M3 CenterAlignedTopAppBar；
@@ -314,7 +322,9 @@ fun TodayScheduleScreen(
                                 onNavigateWeekly = { onNavigate(Destination.CourseSchedule) },
                                 onEditCourse = { courseId ->
                                     onNavigate(Destination.AddEditCourse(courseId))
-                                }
+                                },
+                                gradeSummary = gradeSummary,
+                                onOpenGrades = { onNavigate(Destination.Grade) }
                             )
                         }
                     }
@@ -337,6 +347,8 @@ fun TodayContent(
     onEditTodo: (TodoItem) -> Unit,
     onNavigateWeekly: () -> Unit = {},
     onEditCourse: (String) -> Unit = {},
+    gradeSummary: GradeSummary = GradeSummary(null, null, 0.0, 0, 0),
+    onOpenGrades: () -> Unit = {},
     // 仅用于视觉回归预览：覆盖主题预设，避免预览宿主必须走完整 CompositionLocal 链
     presetOverride: AppThemePreset? = null,
     /** 视觉回归专用：冻结「现在」。非 null 时跳过系统时钟与每分钟刷新（下节课卡/已结束态不再随真实时间漂移，像素比对才可复现）。 */
@@ -430,7 +442,9 @@ fun TodayContent(
             onEditCourse = onEditCourse,
             onToggleEventDone = onToggleEventDone,
             onToggleTodo = onToggleTodo,
-            onEditTodo = onEditTodo
+            onEditTodo = onEditTodo,
+            gradeSummary = gradeSummary,
+            onOpenGrades = onOpenGrades
         )
         return@Column
 
@@ -790,7 +804,9 @@ private fun TodayThemeContent(
     onEditCourse: (String) -> Unit,
     onToggleEventDone: (String, Boolean) -> Unit,
     onToggleTodo: (String, Boolean) -> Unit,
-    onEditTodo: (TodoItem) -> Unit
+    onEditTodo: (TodoItem) -> Unit,
+    gradeSummary: GradeSummary,
+    onOpenGrades: () -> Unit
 ) {
     val colors = appColors()
     val style = skin.cardStyle()
@@ -955,6 +971,16 @@ private fun TodayThemeContent(
                     style = style
                 )
             }
+        }
+
+        // 成绩 / GPA 入口（v4.66.0）：排在待办之后，有数据时给一眼可见的绩点与平均分，
+        // 无数据时就是成绩页的引导入口（此前该页只有「教务抓取成功」这一条路径可达）。
+        item(key = "today-grade") {
+            TodayGradeCard(
+                summary = gradeSummary,
+                style = style,
+                onClick = onOpenGrades
+            )
         }
     }
 
@@ -2018,6 +2044,73 @@ private fun TodayEventRow(
             }
         }
     }
+}
+
+/**
+ * 今日页「成绩 / GPA」卡（v4.66.0）。
+ *
+ * 星链课表把成绩放在二级页，用户不主动翻就永远想不起来用；这里直接在今日页露出
+ * 绩点与平均分，同时充当成绩页的固定入口——此前成绩页只有「教务抓取成功后跳转」
+ * 一条路径可达，等于新版本发出去也没人找得到它。
+ * courseCount == 0 时降级为引导文案（点进去录入 / 导入），不渲染空数字。
+ */
+@Composable
+private fun TodayGradeCard(
+    summary: GradeSummary,
+    style: TodayCardStyle,
+    onClick: () -> Unit
+) {
+    val colors = appColors()
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
+    TodaySectionLabelRow(
+        label = stringResource(Res.string.grade_today_card_title),
+        trailing = null,
+        fillWidth = true,
+        labelFont = style.sectionLabelFont
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .background(colors.cardBg)
+            .then(
+                if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(RoundedCornerShape(12.dp))
+                else Modifier
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            if (summary.courseCount == 0) {
+                Text(
+                    text = stringResource(Res.string.grade_today_card_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textSecondary
+                )
+            } else {
+                val noneText = stringResource(Res.string.grade_value_none)
+                Text(
+                    text = stringResource(
+                        Res.string.grade_today_card_summary,
+                        summary.gpa?.let { formatNumber(it) } ?: noneText,
+                        summary.averageScore?.let { formatNumber(it) } ?: noneText
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textPrimary
+                )
+            }
+        }
+        Icon(
+            imageVector = vectorResource(Res.drawable.chevron_right_24px),
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 }
 
 /**

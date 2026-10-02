@@ -1,5 +1,6 @@
 package com.shangkeschedule.ui.settings.notification
 
+import com.shangkeschedule.notification.live.LiveUpdateSupport
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -25,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.datetime.isoDayNumber
+import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import com.shangkeschedule.ui.components.AppSectionHeader
@@ -32,11 +35,17 @@ import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.week_days_full_names
 import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.desc_auto_mode
 import shangkeschedule.shared.generated.resources.desc_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.desc_course_reminder
 import shangkeschedule.shared.generated.resources.desc_dynamic_island
+import shangkeschedule.shared.generated.resources.desc_exam_countdown_reminder
+import shangkeschedule.shared.generated.resources.desc_live_update_capability_supported
+import shangkeschedule.shared.generated.resources.desc_live_update_capability_unsupported
+import shangkeschedule.shared.generated.resources.desc_live_update_capability_vendor
+import shangkeschedule.shared.generated.resources.desc_next_class_notification
 import shangkeschedule.shared.generated.resources.desc_morning_alarm
 import shangkeschedule.shared.generated.resources.desc_morning_alarm_managed_in_clock
 import shangkeschedule.shared.generated.resources.item_auto_mode
@@ -45,6 +54,9 @@ import shangkeschedule.shared.generated.resources.item_compat_wearable_sync
 import shangkeschedule.shared.generated.resources.item_course_reminder
 import shangkeschedule.shared.generated.resources.item_dnd_permission
 import shangkeschedule.shared.generated.resources.item_dynamic_island
+import shangkeschedule.shared.generated.resources.item_exam_countdown_reminder
+import shangkeschedule.shared.generated.resources.item_live_update_capability
+import shangkeschedule.shared.generated.resources.item_next_class_notification
 import shangkeschedule.shared.generated.resources.item_exact_alarm_permission
 import shangkeschedule.shared.generated.resources.item_ignore_battery_optimization
 import shangkeschedule.shared.generated.resources.item_morning_alarm
@@ -92,6 +104,8 @@ fun GeneralSettingsCard(
     currentModeText: String?,
     onReminderToggle: (Boolean) -> Unit,
     onDynamicIslandToggle: (Boolean) -> Unit,
+    onNextClassNotificationToggle: (Boolean) -> Unit,
+    onExamCountdownReminderToggle: (Boolean) -> Unit,
     onCompatWearableToggle: (Boolean) -> Unit,
     onAutoModeClick: () -> Unit,
     onRemindTimeClick: () -> Unit,
@@ -179,6 +193,31 @@ fun GeneralSettingsCard(
                 }
             )
             SectionDivider()
+            // 「下一节课」常驻通知：与灵动岛同属「提醒以什么形态出现」，
+            // 但它是独立开关——灵动岛只在课中/课前亮，常驻通知是一整天都看得见。
+            SettingItem(
+                title = stringResource(Res.string.item_next_class_notification),
+                subtitle = stringResource(Res.string.desc_next_class_notification),
+                trailingContent = {
+                    AppSwitch(
+                        checked = uiState.nextClassNotificationEnabled,
+                        onCheckedChange = onNextClassNotificationToggle
+                    )
+                }
+            )
+            SectionDivider()
+            // 考试倒计时提醒：数据来自「日程」页的考试条目，不依赖课程表
+            SettingItem(
+                title = stringResource(Res.string.item_exam_countdown_reminder),
+                subtitle = stringResource(Res.string.desc_exam_countdown_reminder),
+                trailingContent = {
+                    AppSwitch(
+                        checked = uiState.examCountdownReminderEnabled,
+                        onCheckedChange = onExamCountdownReminderToggle
+                    )
+                }
+            )
+            SectionDivider()
             SettingItem(
                 title = stringResource(Res.string.item_compat_wearable_sync),
                 subtitle = stringResource(Res.string.desc_compat_wearable_sync),
@@ -188,6 +227,29 @@ fun GeneralSettingsCard(
                         onCheckedChange = onCompatWearableToggle
                     )
                 }
+            )
+            SectionDivider()
+            // §G2：实况通知胶囊能力探测。这里只回答「本机现在能不能把常驻通知显示成胶囊」，
+            // 探测结果不参与投递决策（通知一律先按公版能力投递，不支持时系统自然降级）。
+            // 厂商实况区（小米「超级岛」）没有公开接入协议，故只做一句如实说明，
+            // **不**伪造厂商 extras —— 它由系统按通知自行呈现（见 [LiveUpdateSupport]）。
+            val liveUpdateSupported = LiveUpdateSupport.supportsLiveUpdate(context)
+            val capabilityText = stringResource(
+                if (liveUpdateSupported) {
+                    Res.string.desc_live_update_capability_supported
+                } else {
+                    Res.string.desc_live_update_capability_unsupported
+                }
+            )
+            val vendorText = if (LiveUpdateSupport.isXiaomiDevice()) {
+                stringResource(Res.string.desc_live_update_capability_vendor)
+            } else {
+                null
+            }
+            SettingItem(
+                title = stringResource(Res.string.item_live_update_capability),
+                subtitle = listOfNotNull(capabilityText, vendorText).joinToString(" "),
+                trailingContent = {}
             )
         }
 
@@ -224,12 +286,14 @@ fun GeneralSettingsCard(
                 SectionDivider()
                 // 下一个闹钟预览（点击直达系统闹钟页管理）
                 val preview = uiState.nextMorningAlarm
+                // 星期文案取自既有本地化数组（与 AgendaScreen / ScheduleGrid 同一口径），不要手写中文
+                val weekDayNames = stringArrayResource(Res.array.week_days_full_names)
                 val previewText = if (preview == null) {
                     stringResource(Res.string.morning_alarm_preview_none)
                 } else {
                     stringResource(
                         Res.string.morning_alarm_preview_format,
-                        weekdayLabel(preview.courseDate.dayOfWeek),
+                        weekdayLabel(preview.courseDate.dayOfWeek, weekDayNames),
                         formatHhMm(preview.alarmTime.hour, preview.alarmTime.minute),
                         formatHhMm(preview.courseStart.hour, preview.courseStart.minute),
                         preview.courseName
@@ -355,16 +419,16 @@ private fun CardNote(
     )
 }
 
-/** 周几的本地化短标签（预览文案用）。 */
-private fun weekdayLabel(dayOfWeek: kotlinx.datetime.DayOfWeek): String = when (dayOfWeek) {
-    kotlinx.datetime.DayOfWeek.MONDAY -> "周一"
-    kotlinx.datetime.DayOfWeek.TUESDAY -> "周二"
-    kotlinx.datetime.DayOfWeek.WEDNESDAY -> "周三"
-    kotlinx.datetime.DayOfWeek.THURSDAY -> "周四"
-    kotlinx.datetime.DayOfWeek.FRIDAY -> "周五"
-    kotlinx.datetime.DayOfWeek.SATURDAY -> "周六"
-    else -> "周日"
-}
+/**
+ * 周几标签（闹钟预览文案用）。
+ *
+ * v4.66.0 修复：此前这里手写死中文「周一…周日」，英文 / 繁中界面会显示简体中文；
+ * 现改为读既有本地化数组 [Res.array.week_days_full_names]。
+ */
+private fun weekdayLabel(
+    dayOfWeek: kotlinx.datetime.DayOfWeek,
+    weekDays: List<String>
+): String = weekDays.getOrElse(dayOfWeek.isoDayNumber - 1) { weekDays.firstOrNull().orEmpty() }
 
 /** HH:mm 格式化（避免为预览专门引格式化器）。 */
 private fun formatHhMm(hour: Int, minute: Int): String {
