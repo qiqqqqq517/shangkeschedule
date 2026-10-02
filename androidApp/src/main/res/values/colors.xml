@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!--
+      2026-10-03（巡检第 11 轮）：移除 Android Studio 模板遗留色 purple_200 / purple_500 /
+      purple_700 / teal_200 / teal_700。全仓零引用（原唯一引用是 DynamicIslandService 的通知
+      强调色，已改用 App 自身品牌色 ic_launcher_background），且 values-night 从未定义这 5 色
+      —— 属模板残留而非主题色板。
+    -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <!--

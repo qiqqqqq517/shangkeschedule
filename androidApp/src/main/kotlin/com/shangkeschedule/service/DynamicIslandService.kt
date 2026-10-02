@@ -490,7 +490,10 @@ class DynamicIslandService : Service(), KoinComponent {
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setShowWhen(false)
-            .setColor(getColor(R.color.purple_500))
+            // 通知强调色：与课程提醒 / 早八提醒同一口径（CourseAlarmReceiver.kt 与
+            // CourseReminderNotifier.kt 均用 ic_launcher_background）。此前误用 Android Studio
+            // 模板色 purple_500（#6200EE），是全仓唯一的模板残留引用（2026-10-03 巡检第 11 轮）。
+            .setColor(getColor(R.color.ic_launcher_background))
 
         // Android 16 实时更新（灵动岛）：请求状态栏实时芯片 + 芯片短文本
         if (requestPromoted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {

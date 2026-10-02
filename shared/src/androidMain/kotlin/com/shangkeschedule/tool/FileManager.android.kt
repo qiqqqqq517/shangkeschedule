@@ -26,6 +26,13 @@ import com.shangkeschedule.ui.components.ToastManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.toast_file_picker_open_failed
+import shangkeschedule.shared.generated.resources.toast_image_picker_open_failed
+import shangkeschedule.shared.generated.resources.toast_save_dialog_open_failed
+import shangkeschedule.shared.generated.resources.toast_save_file_failed
+import shangkeschedule.shared.generated.resources.toast_saved_to
 import android.webkit.MimeTypeMap
 
 private const val TAG = "FileManager"
@@ -261,13 +268,21 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
         }
     }
 
+    // i18n（2026-10-03 巡检第 11 轮）：下面 5 条提示原先硬编码简体中文，英语 / 繁体用户会看到中文。
+    // ToastManager.show 只收 String，而 remember 的 lambda 不是 composable 作用域，
+    // 故在此处（composable 体内）先按当前语言取值，lambda 里只负责 .format(明细)。
+    val msgImagePickerOpenFailed = stringResource(Res.string.toast_image_picker_open_failed)
+    val msgFilePickerOpenFailed = stringResource(Res.string.toast_file_picker_open_failed)
+    val msgSaveDialogOpenFailed = stringResource(Res.string.toast_save_dialog_open_failed)
+    val msgSavedTo = stringResource(Res.string.toast_saved_to)
+    val msgSaveFileFailed = stringResource(Res.string.toast_save_file_failed)
     return remember {
         AndroidFileManager(
             onPickImage = {
                 try {
                     imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 } catch (e: Exception) {
-                    ToastManager.show("无法打开图片选择器：${e.message ?: ""}")
+                    ToastManager.show(msgImagePickerOpenFailed.format(e.message ?: ""))
                 }
             },
             onImportFile = { _ ->
@@ -275,7 +290,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                     importLauncher.launch("*/*")
                 } catch (e: Exception) {
                     // 兜底：选择器拉起失败不再导致闪退，仅提示用户
-                    ToastManager.show("无法打开文件选择器：${e.message ?: ""}")
+                    ToastManager.show(msgFilePickerOpenFailed.format(e.message ?: ""))
                     currentCallbacks.onFileImported?.invoke(null, null)
                 }
             },
@@ -286,7 +301,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                         exportLauncher.launch(fileName)
                     } catch (e: Exception) {
                         pendingExportBytes = null
-                        ToastManager.show("无法打开保存对话框：${e.message ?: ""}")
+                        ToastManager.show(msgSaveDialogOpenFailed.format(e.message ?: ""))
                         currentCallbacks.onFileExported?.invoke(false)
                     }
                 } else {
@@ -296,11 +311,11 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                         withContext(Dispatchers.Main) {
                             result.fold(
                                 onSuccess = { path ->
-                                    ToastManager.show("已保存到 $path")
+                                    ToastManager.show(msgSavedTo.format(path))
                                     currentCallbacks.onFileExported?.invoke(true)
                                 },
                                 onFailure = { e ->
-                                    ToastManager.show("保存失败：${e.message ?: ""}")
+                                    ToastManager.show(msgSaveFileFailed.format(e.message ?: ""))
                                     currentCallbacks.onFileExported?.invoke(false)
                                 }
                             )

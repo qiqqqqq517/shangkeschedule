@@ -952,6 +952,14 @@
     <string name="dialog_text_confirm_overwrite_import">Importing will overwrite all course data in "%1$s". This cannot be undone. Continue?</string>
     <string name="action_overwrite_import">Overwrite &amp; Import</string>
     <string name="toast_calendar_permission_denied">Calendar permission is required to sync to the system calendar</string>
+
+    <!-- 文件选择器与保存回退的用户提示（2026-10-03 巡检第 11 轮）：原先硬编码在
+         FileManager.android.kt 的 5 处 Toast 里，只有简体中文；此处补齐三语。 -->
+    <string name="toast_image_picker_open_failed">Unable to open the image picker: %1$s</string>
+    <string name="toast_file_picker_open_failed">Unable to open the file picker: %1$s</string>
+    <string name="toast_save_dialog_open_failed">Unable to open the save dialog: %1$s</string>
+    <string name="toast_saved_to">Saved to %1$s</string>
+    <string name="toast_save_file_failed">Save failed: %1$s</string>
     <string name="dialog_title_confirm_delete_course">Delete course</string>
     <string name="dialog_text_confirm_delete_course">Delete the course "%1$s"? This cannot be undone.</string>
     <string name="dialog_text_confirm_delete_courses">Delete the %1$d selected courses? This cannot be undone.</string>

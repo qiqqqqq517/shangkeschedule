@@ -953,6 +953,14 @@
     <string name="dialog_text_confirm_overwrite_import">匯入將覆寫課表「%1$s」的全部課程資料，此操作無法復原。確定繼續嗎？</string>
     <string name="action_overwrite_import">覆寫匯入</string>
     <string name="toast_calendar_permission_denied">需要日曆權限才能同步到系統日曆</string>
+
+    <!-- 文件选择器与保存回退的用户提示（2026-10-03 巡检第 11 轮）：原先硬编码在
+         FileManager.android.kt 的 5 处 Toast 里，只有简体中文；此处补齐三语。 -->
+    <string name="toast_image_picker_open_failed">無法開啟圖片選擇器：%1$s</string>
+    <string name="toast_file_picker_open_failed">無法開啟檔案選擇器：%1$s</string>
+    <string name="toast_save_dialog_open_failed">無法開啟儲存對話框：%1$s</string>
+    <string name="toast_saved_to">已儲存至 %1$s</string>
+    <string name="toast_save_file_failed">儲存失敗：%1$s</string>
     <string name="dialog_title_confirm_delete_course">確認刪除課程</string>
     <string name="dialog_text_confirm_delete_course">確定要刪除課程「%1$s」嗎？此操作無法復原。</string>
     <string name="dialog_text_confirm_delete_courses">確定要刪除選中的 %1$d 門課程嗎？此操作無法復原。</string>

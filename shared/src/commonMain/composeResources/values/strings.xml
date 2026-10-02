@@ -953,6 +953,14 @@
     <string name="dialog_text_confirm_overwrite_import">导入将覆盖课表「%1$s」的全部课程数据，此操作无法撤销。确定继续吗？</string>
     <string name="action_overwrite_import">覆盖导入</string>
     <string name="toast_calendar_permission_denied">需要日历权限才能同步到系统日历</string>
+
+    <!-- 文件选择器与保存回退的用户提示（2026-10-03 巡检第 11 轮）：原先硬编码在
+         FileManager.android.kt 的 5 处 Toast 里，只有简体中文；此处补齐三语。 -->
+    <string name="toast_image_picker_open_failed">无法打开图片选择器：%1$s</string>
+    <string name="toast_file_picker_open_failed">无法打开文件选择器：%1$s</string>
+    <string name="toast_save_dialog_open_failed">无法打开保存对话框：%1$s</string>
+    <string name="toast_saved_to">已保存到 %1$s</string>
+    <string name="toast_save_file_failed">保存失败：%1$s</string>
     <string name="dialog_title_confirm_delete_course">确认删除课程</string>
     <string name="dialog_text_confirm_delete_course">确定要删除课程「%1$s」吗？此操作无法撤销。</string>
     <string name="dialog_text_confirm_delete_courses">确定要删除选中的 %1$d 门课程吗？此操作无法撤销。</string>
