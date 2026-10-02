@@ -90,10 +90,10 @@ import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_show_non_current_week
 import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
-import shangkeschedule.shared.generated.resources.desc_backup_restore
 import shangkeschedule.shared.generated.resources.settings_group_app
 import shangkeschedule.shared.generated.resources.settings_group_display_notify
 import shangkeschedule.shared.generated.resources.settings_sub_appearance
+import shangkeschedule.shared.generated.resources.settings_sub_backup_restore
 import shangkeschedule.shared.generated.resources.settings_sub_couple_schedule
 import shangkeschedule.shared.generated.resources.settings_sub_course_conversion
 import shangkeschedule.shared.generated.resources.settings_sub_course_management
@@ -761,9 +761,10 @@ private fun buildSettingsSections(
             ),
             SettingsEntry(
                 Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN,
-                // 备份与恢复有专属文案 desc_backup_restore（云盘 / 本地双渠道），
-                // 此处直接复用，避免为同一含义再造一条近义串。
-                Res.string.desc_backup_restore, destination = Destination.BackupAndRestore
+                // 刻意不复用 BackupScreen 内层的 desc_backup_restore（24 字）：那条是详情页
+                // 的完整说明，在「我的」页 14 行里会折成两行，把该行撑高、与其余 10 条
+                // 单行副标题不齐。行内副标题统一 12~16 字。
+                Res.string.settings_sub_backup_restore, destination = Destination.BackupAndRestore
             )
         )
     ),

@@ -77,6 +77,7 @@
     <string name="settings_sub_couple_schedule">與 TA 的課表疊加與同步</string>
     <string name="settings_sub_course_management">課程名與同課不同班次的集中管理</string>
     <string name="settings_sub_course_conversion">教務、檔案與文字匯入，JSON / ICS 匯出</string>
+    <string name="settings_sub_backup_restore">雲端與本機雙通道備份與還原</string>
     <string name="settings_sub_appearance">主題、課表樣式與懸浮件觀感</string>
     <string name="settings_sub_notification">上課提醒、勿擾與早八鬧鐘</string>
     <string name="settings_sub_show_non_current_week">同時顯示其他週次的課程</string>
