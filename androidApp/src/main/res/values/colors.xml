@@ -5,9 +5,9 @@
       purple_700 / teal_200 / teal_700。全仓零引用（原唯一引用是 DynamicIslandService 的通知
       强调色，已改用 App 自身品牌色 ic_launcher_background），且 values-night 从未定义这 5 色
       —— 属模板残留而非主题色板。
+      2026-10-03（巡检第 14 轮）：同因移除模板最后一对 black / white。全仓零引用
+      （`@color/black` / `R.color.black` 及 white 同类写法均零命中），values-night 亦未定义。
     -->
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
     <!--
       PF4（v3.69.0）：冷启动首帧背景。原用 ?android:attr/colorBackground（近纯白），
       App 内选了深色而系统仍为浅色时首帧会闪白；改为与 App 浅色背景同色系的浅灰，

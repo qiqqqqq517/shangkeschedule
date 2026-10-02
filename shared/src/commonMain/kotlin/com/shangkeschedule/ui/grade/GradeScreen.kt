@@ -96,7 +96,6 @@ import shangkeschedule.shared.generated.resources.grade_delete_title
 import shangkeschedule.shared.generated.resources.grade_deleted
 import shangkeschedule.shared.generated.resources.grade_edit_title
 import shangkeschedule.shared.generated.resources.grade_empty_desc
-import shangkeschedule.shared.generated.resources.grade_empty_title
 import shangkeschedule.shared.generated.resources.grade_failed_badge
 import shangkeschedule.shared.generated.resources.grade_import_tip
 import shangkeschedule.shared.generated.resources.grade_name_required

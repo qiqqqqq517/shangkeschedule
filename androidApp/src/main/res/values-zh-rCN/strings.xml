@@ -14,26 +14,6 @@
     <!-- 课程相关 -->
     <string name="title_vacation">假期中</string>
 
-    <!-- 时间与星期格式 -->
-    <string-array name="week_days_short_names">
-        <item>一</item>
-        <item>二</item>
-        <item>三</item>
-        <item>四</item>
-        <item>五</item>
-        <item>六</item>
-        <item>日</item>
-    </string-array>
-    <string-array name="week_days_full_names">
-        <item>周一</item>
-        <item>周二</item>
-        <item>周三</item>
-        <item>周四</item>
-        <item>周五</item>
-        <item>周六</item>
-        <item>周日</item>
-    </string-array>
-
     <!-- 通知与闹钟 -->
     <string name="notification_title_course_alert">上课提醒</string>
     <string name="notification_channel_permission_notice">权限提醒</string>
@@ -118,8 +98,6 @@
     <!-- 课表导入/导出 -->
 
     <!-- 更多设置 -->
-
-
 
     <!-- 课程调动 -->
     <string name="text_no_course">无课程</string>

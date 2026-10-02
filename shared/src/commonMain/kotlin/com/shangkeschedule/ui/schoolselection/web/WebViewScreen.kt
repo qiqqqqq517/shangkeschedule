@@ -89,7 +89,6 @@ import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.webview_load_error_generic
 import shangkeschedule.shared.generated.resources.webview_load_error_fmt
 import shangkeschedule.shared.generated.resources.webview_load_error_detail
-import shangkeschedule.shared.generated.resources.webview_load_error_retry
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.a11y_cancel_editing
 import shangkeschedule.shared.generated.resources.a11y_devtools

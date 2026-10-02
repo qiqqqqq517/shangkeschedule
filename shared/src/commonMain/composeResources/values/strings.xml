@@ -66,7 +66,6 @@
     <string name="dialog_text_delete_occurrence">确定只删除「%1$s」在第 %2$d 周的这一次课吗？该课程其他周次不受影响。</string>
     <string name="toast_delete_occurrence_failed">删除失败，请重试</string>
     <string name="settings_group_timetable">课表</string>
-    <string name="settings_group_courses">课程</string>
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">学习</string>
     <string name="settings_group_display_notify">显示与提醒</string>
@@ -978,7 +977,6 @@
     <string name="title_semester_settings">学期设置</string>
     <string name="webview_load_error_generic">页面加载失败，请检查网络后重试</string>
     <string name="webview_load_error_fmt">加载失败：%1$s</string>
-    <string name="webview_load_error_retry">重试</string>
     <string name="webview_load_error_detail">无法加载此页面。可能原因：网络不可用、站点暂时无法访问、或需要校园网连接。</string>
     <string name="a11y_course_sections_fmt">第 %1$s 至 %2$s 节</string>
     <string name="a11y_course_location_fmt">地点 %1$s</string>
@@ -1183,7 +1181,6 @@
     <string name="adapter_status_note">适配脚本离线内置，检查更新只下载校验通过的增量脚本；失败会自动回退到内置版本，不会清空已有缓存。</string>
     <string name="title_privacy_policy">隐私政策</string>
     <string name="title_user_agreement">用户协议</string>
-    <string name="legal_load_failed">文档加载失败：%1$s</string>
     <string name="legal_load_failed_plain">文档加载失败，请稍后重试</string>
     <string name="legal_offline_note">全文已内置，离线可读</string>
     <!-- 成绩 / GPA（v4.66.0） -->
@@ -1196,7 +1193,6 @@
     <string name="grade_scale_note">绩点按所选制式由原始分数实时换算；重修记录不计入绩点</string>
     <string name="gpa_scale_4">4.0 制</string>
     <string name="gpa_scale_5">5.0 制</string>
-    <string name="grade_empty_title">还没有成绩记录</string>
     <string name="grade_empty_desc">支持手动录入、粘贴教务成绩页文本自动解析，或直接在教务系统页面里识别成绩</string>
     <string name="grade_action_add">添加成绩</string>
     <string name="grade_action_paste">粘贴导入</string>
@@ -1220,7 +1216,6 @@
     <string name="grade_save">保存</string>
     <string name="grade_cancel">取消</string>
     <string name="grade_delete">删除</string>
-    <string name="grade_edit">编辑</string>
     <string name="grade_name_required">请填写课程名</string>
     <string name="grade_semester_required">请填写学期</string>
     <string name="grade_credit_invalid">学分需为 0 到 30 之间的数字</string>
@@ -1253,7 +1248,6 @@
     <string name="grade_today_card_title">成绩 / GPA</string>
     <string name="grade_today_card_empty">点击添加或导入成绩</string>
     <string name="grade_today_card_summary">绩点 %1$s · 平均分 %2$s</string>
-    <string name="grade_today_card_summary_credits">绩点 %1$s · 已修 %2$s 学分</string>
     <string name="grade_value_none">—</string>
 
     <!-- 考证查分入口（v4.66.0） -->
@@ -1490,7 +1484,6 @@
   <string name="widget_troubleshoot_section_add">添加到桌面</string>
   <string name="widget_troubleshoot_add_desc">点一下由系统确认添加；添加后可长按桌面调整大小和位置</string>
   <string name="widget_troubleshoot_added_count">已添加 %1$d 个</string>
-  <string name="widget_troubleshoot_added_none">尚未添加</string>
   <string name="widget_troubleshoot_toast_pin_requested">已请求添加，请在弹出的提示中确认</string>
   <string name="widget_troubleshoot_toast_pin_rejected">系统未接受请求，可长按桌面手动添加</string>
 </resources>

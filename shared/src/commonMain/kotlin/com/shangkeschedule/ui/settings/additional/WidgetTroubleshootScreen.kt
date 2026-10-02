@@ -55,7 +55,6 @@ import shangkeschedule.shared.generated.resources.widget_oem_guide_summary_title
 import shangkeschedule.shared.generated.resources.widget_oem_guide_title
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_add_desc
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_added_count
-import shangkeschedule.shared.generated.resources.widget_troubleshoot_added_none
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help_desc
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help_message

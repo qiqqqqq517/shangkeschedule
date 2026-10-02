@@ -66,7 +66,6 @@
     <string name="dialog_text_delete_occurrence">確定只刪除「%1$s」在第 %2$d 週的這一次課嗎？該課程其他週次不受影響。</string>
     <string name="toast_delete_occurrence_failed">刪除失敗，請重試</string>
     <string name="settings_group_timetable">課表</string>
-    <string name="settings_group_courses">課程</string>
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">學習</string>
     <string name="settings_group_display_notify">顯示與提醒</string>
@@ -978,7 +977,6 @@
     <string name="title_semester_settings">學期設定</string>
     <string name="webview_load_error_generic">頁面載入失敗，請檢查網路後重試</string>
     <string name="webview_load_error_fmt">載入失敗：%1$s</string>
-    <string name="webview_load_error_retry">重試</string>
     <string name="webview_load_error_detail">無法載入此頁面。可能原因：網路不可用、網站暫時無法存取、或需要校園網路連線。</string>
     <string name="a11y_course_sections_fmt">第 %1$s 至 %2$s 節</string>
     <string name="a11y_course_location_fmt">地點 %1$s</string>
@@ -1183,7 +1181,6 @@
     <string name="adapter_status_note">適配腳本離線內建，檢查更新只下載校驗通過的增量腳本；失敗會自動回退到內建版本，不會清空既有快取。</string>
     <string name="title_privacy_policy">隱私政策</string>
     <string name="title_user_agreement">使用者條款</string>
-    <string name="legal_load_failed">文件載入失敗：%1$s</string>
     <string name="legal_load_failed_plain">文件載入失敗，請稍後重試</string>
     <string name="legal_offline_note">全文已內建</string>
     <!-- 成績 / GPA（v4.66.0） -->
@@ -1196,7 +1193,6 @@
     <string name="grade_scale_note">績點按所選制式由原始分數即時換算；重修紀錄不計入績點</string>
     <string name="gpa_scale_4">4.0 制</string>
     <string name="gpa_scale_5">5.0 制</string>
-    <string name="grade_empty_title">還沒有成績紀錄</string>
     <string name="grade_empty_desc">支援手動錄入、貼上教務成績頁文字自動解析，或直接在教務系統頁面裡辨識成績</string>
     <string name="grade_action_add">新增成績</string>
     <string name="grade_action_paste">貼上匯入</string>
@@ -1220,7 +1216,6 @@
     <string name="grade_save">儲存</string>
     <string name="grade_cancel">取消</string>
     <string name="grade_delete">刪除</string>
-    <string name="grade_edit">編輯</string>
     <string name="grade_name_required">請填寫課程名</string>
     <string name="grade_semester_required">請填寫學期</string>
     <string name="grade_credit_invalid">學分需為 0 到 30 之間的數字</string>
@@ -1253,7 +1248,6 @@
     <string name="grade_today_card_title">成績 / GPA</string>
     <string name="grade_today_card_empty">點擊新增或匯入成績</string>
     <string name="grade_today_card_summary">績點 %1$s · 平均分 %2$s</string>
-    <string name="grade_today_card_summary_credits">績點 %1$s · 已修 %2$s 學分</string>
     <string name="grade_value_none">—</string>
 
     <!-- 考證查分入口（v4.66.0） -->
@@ -1490,7 +1484,6 @@
   <string name="widget_troubleshoot_section_add">加入桌面</string>
   <string name="widget_troubleshoot_add_desc">點一下由系統確認加入；加入後可長按桌面調整大小和位置</string>
   <string name="widget_troubleshoot_added_count">已加入 %1$d 個</string>
-  <string name="widget_troubleshoot_added_none">尚未加入</string>
   <string name="widget_troubleshoot_toast_pin_requested">已要求加入，請在彈出的提示中確認</string>
   <string name="widget_troubleshoot_toast_pin_rejected">系統未接受要求，可長按桌面手動加入</string>
 </resources>

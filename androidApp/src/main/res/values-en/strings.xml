@@ -14,26 +14,6 @@
     <!-- Course Related -->
     <string name="title_vacation">On vacation</string>
     
-    <!-- Time and Day Formats -->
-    <string-array name="week_days_short_names">
-        <item>MON</item>
-        <item>TUE</item>
-        <item>WED</item>
-        <item>THU</item>
-        <item>FRI</item>
-        <item>SAT</item>
-        <item>SUN</item>
-    </string-array>
-    <string-array name="week_days_full_names">
-        <item>Monday</item>
-        <item>Tuesday</item>
-        <item>Wednesday</item>
-        <item>Thursday</item>
-        <item>Friday</item>
-        <item>Saturday</item>
-        <item>Sunday</item>
-    </string-array>
-    
     <!-- Notifications and Alarms -->
     <string name="notification_title_course_alert">Class reminder</string>
     <string name="notification_channel_permission_notice">Permission notices</string>
@@ -118,8 +98,6 @@
     
     <!-- More Settings -->
 
-
-    
     <!-- Schedule Adjustment -->
     <string name="text_no_course">No courses</string>
 
@@ -137,7 +115,6 @@
 
     <!-- Quick Delete Courses -->
     <string name="widget_course_remaining_count">%1$d left</string>
-
 
     <!-- 状态栏灵动岛（Android 16 实时更新） -->
     <string name="dynamic_island_channel_name">Live Class Status</string>

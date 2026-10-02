@@ -39,7 +39,6 @@ import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.legal_load_failed
 import shangkeschedule.shared.generated.resources.legal_load_failed_plain
 import shangkeschedule.shared.generated.resources.legal_offline_note
 import shangkeschedule.shared.generated.resources.title_privacy_policy

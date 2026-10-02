@@ -25,12 +25,13 @@ class WidgetPinStringsTest {
 
     private val locales = listOf("values", "values-en", "values-zh-rTW")
 
-    /** 本次新增的 6 个 key（其余既有 key 由其它测试/人工把关）。 */
+    /** 本次新增的 key（其余既有 key 由其它测试/人工把关）。
+     * `widget_troubleshoot_added_none` 是 XL-015 设计期的分支文案，界面从未使用
+     * （`placedCount == 0` 走的是 `widget_troubleshoot_add_desc`），巡检第 14 轮已随死资源一并删除。 */
     private val pinKeys = listOf(
         "widget_troubleshoot_section_add",
         "widget_troubleshoot_add_desc",
         "widget_troubleshoot_added_count",
-        "widget_troubleshoot_added_none",
         "widget_troubleshoot_toast_pin_requested",
         "widget_troubleshoot_toast_pin_rejected",
     )
@@ -73,7 +74,7 @@ class WidgetPinStringsTest {
     }
 
     @Test
-    fun `新增的 6 个 key 在三语里都存在且非空`() {
+    fun `新增的 5 个 key 在三语里都存在且非空`() {
         locales.forEach { loc ->
             val map = readStrings(loc)
             pinKeys.forEach { key ->

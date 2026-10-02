@@ -148,7 +148,6 @@ import shangkeschedule.shared.generated.resources.chevron_right_24px
 import shangkeschedule.shared.generated.resources.date_format_year_month_day
 import shangkeschedule.shared.generated.resources.grade_today_card_empty
 import shangkeschedule.shared.generated.resources.grade_today_card_summary
-import shangkeschedule.shared.generated.resources.grade_today_card_summary_credits
 import shangkeschedule.shared.generated.resources.grade_today_card_title
 import shangkeschedule.shared.generated.resources.grade_value_none
 import shangkeschedule.shared.generated.resources.location_on_24px

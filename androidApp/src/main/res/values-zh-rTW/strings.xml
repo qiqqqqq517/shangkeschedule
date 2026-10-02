@@ -14,26 +14,6 @@
     <!-- 課程相關 -->
     <string name="title_vacation">假期中</string>
     
-    <!-- 時間與星期格式 -->
-    <string-array name="week_days_short_names">
-        <item>一</item>
-        <item>二</item>
-        <item>三</item>
-        <item>四</item>
-        <item>五</item>
-        <item>六</item>
-        <item>日</item>
-    </string-array>
-    <string-array name="week_days_full_names">
-        <item>週一</item>
-        <item>週二</item>
-        <item>週三</item>
-        <item>週四</item>
-        <item>週五</item>
-        <item>週六</item>
-        <item>週日</item>
-    </string-array>
-    
     <!-- 通知與鬧鐘 -->
     <string name="notification_title_course_alert">上課提醒</string>
     <string name="notification_channel_permission_notice">權限提醒</string>
@@ -118,8 +98,6 @@
     
     <!-- 更多設定 -->
 
-
-
     <!-- 課程調動 -->
     <string name="text_no_course">無課程</string>
 
@@ -137,7 +115,6 @@
 
     <!-- 快速刪除課程 -->
     <string name="widget_course_remaining_count">剩餘 %1$d 節</string>
-
 
     <!-- 状态栏灵动岛（Android 16 实时更新） -->
     <string name="dynamic_island_channel_name">狀態欄即時課程</string>

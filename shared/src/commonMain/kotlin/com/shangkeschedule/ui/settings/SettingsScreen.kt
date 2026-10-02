@@ -123,7 +123,6 @@ import shangkeschedule.shared.generated.resources.notifications_24px
 import shangkeschedule.shared.generated.resources.filter_list_24px
 import shangkeschedule.shared.generated.resources.view_week_24px
 import shangkeschedule.shared.generated.resources.settings_group_timetable
-import shangkeschedule.shared.generated.resources.settings_group_courses
 import shangkeschedule.shared.generated.resources.item_backup_restore
 import shangkeschedule.shared.generated.resources.cloud_24px
 import shangkeschedule.shared.generated.resources.status_current_week_format

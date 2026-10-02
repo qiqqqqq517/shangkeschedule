@@ -66,7 +66,6 @@
     <string name="dialog_text_delete_occurrence">Delete "%1$s" only for week %2$d? Its other weeks stay unchanged.</string>
     <string name="toast_delete_occurrence_failed">Delete failed, please try again</string>
     <string name="settings_group_timetable">Timetable</string>
-    <string name="settings_group_courses">Courses</string>
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">Study</string>
     <string name="settings_group_display_notify">Display &amp; Reminders</string>
@@ -977,7 +976,6 @@
     <string name="title_semester_settings">Semester settings</string>
     <string name="webview_load_error_generic">Couldn't load this page. Check your network and try again.</string>
     <string name="webview_load_error_fmt">Load failed: %1$s</string>
-    <string name="webview_load_error_retry">Retry</string>
     <string name="webview_load_error_detail">This page couldn't be loaded. Possible causes: no network, the site is temporarily down, or a campus-network connection is required.</string>
     <string name="a11y_course_sections_fmt">Sections %1$s to %2$s</string>
     <string name="a11y_course_location_fmt">Location %1$s</string>
@@ -1182,7 +1180,6 @@
     <string name="adapter_status_note">Adapter scripts work offline; checking for updates only downloads verified incremental scripts, falls back to the built-in version on failure, and never clears your cache.</string>
     <string name="title_privacy_policy">Privacy Policy</string>
     <string name="title_user_agreement">Terms of Service</string>
-    <string name="legal_load_failed">Failed to load the document: %1$s</string>
     <string name="legal_load_failed_plain">Failed to load the document. Please try again.</string>
     <string name="legal_offline_note">Bundled offline</string>
     <!-- Grades / GPA (v4.66.0) -->
@@ -1195,7 +1192,6 @@
     <string name="grade_scale_note">Points are converted from raw scores with the selected scale; retakes are excluded</string>
     <string name="gpa_scale_4">4.0 scale</string>
     <string name="gpa_scale_5">5.0 scale</string>
-    <string name="grade_empty_title">No grades yet</string>
     <string name="grade_empty_desc">Add grades manually, paste text from your academic system to parse, or detect grades directly on its page</string>
     <string name="grade_action_add">Add grade</string>
     <string name="grade_action_paste">Paste import</string>
@@ -1219,7 +1215,6 @@
     <string name="grade_save">Save</string>
     <string name="grade_cancel">Cancel</string>
     <string name="grade_delete">Delete</string>
-    <string name="grade_edit">Edit</string>
     <string name="grade_name_required">Please enter a course name</string>
     <string name="grade_semester_required">Please enter a term</string>
     <string name="grade_credit_invalid">Credits must be a number between 0 and 30</string>
@@ -1252,7 +1247,6 @@
     <string name="grade_today_card_title">Grades / GPA</string>
     <string name="grade_today_card_empty">Tap to add or import grades</string>
     <string name="grade_today_card_summary">GPA %1$s · Avg %2$s</string>
-    <string name="grade_today_card_summary_credits">GPA %1$s · %2$s credits</string>
     <string name="grade_value_none">—</string>
 
     <!-- Exam score lookup entry (v4.66.0) -->
@@ -1489,7 +1483,6 @@
   <string name="widget_troubleshoot_section_add">Add to home screen</string>
   <string name="widget_troubleshoot_add_desc">Tap to confirm via the system dialog; afterwards you can resize and move it on the home screen</string>
   <string name="widget_troubleshoot_added_count">%1$d placed</string>
-  <string name="widget_troubleshoot_added_none">Not added yet</string>
   <string name="widget_troubleshoot_toast_pin_requested">Add requested — confirm the system prompt</string>
   <string name="widget_troubleshoot_toast_pin_rejected">The system declined — long-press the home screen to add one manually</string>
 </resources>
