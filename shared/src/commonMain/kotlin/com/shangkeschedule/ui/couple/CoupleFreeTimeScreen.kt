@@ -60,6 +60,7 @@ import shangkeschedule.shared.generated.resources.couple_free_this_week
 import shangkeschedule.shared.generated.resources.couple_free_week_item
 import shangkeschedule.shared.generated.resources.couple_free_week_picker_title
 import shangkeschedule.shared.generated.resources.couple_free_window_format
+import shangkeschedule.shared.generated.resources.list_separator
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.title_couple_free_time
 import shangkeschedule.shared.generated.resources.title_current_week
@@ -88,6 +89,8 @@ fun CoupleFreeTimeScreen(
     val toastCopied = stringResource(Res.string.couple_free_copied)
     val toastCopyFailed = stringResource(Res.string.couple_free_copy_failed)
     val copyTitle = stringResource(Res.string.couple_free_copy_title, uiState.selectedWeek)
+    // 复制出去的文本同样是用户可见文案：分隔符随语言变化，不得写死顿号
+    val copyListSeparator = stringResource(Res.string.list_separator)
 
     Scaffold(
         topBar = {
@@ -179,7 +182,7 @@ fun CoupleFreeTimeScreen(
                             subtitle = stringResource(Res.string.couple_free_copy_desc),
                             leadingIcon = vectorResource(Res.drawable.content_copy_24px),
                             onClick = {
-                                val text = buildCopyText(copyTitle, weekDays, uiState.days)
+                                val text = buildCopyText(copyTitle, weekDays, uiState.days, copyListSeparator)
                                 ToastManager.show(
                                     if (copyToClipboard(text)) toastCopied else toastCopyFailed
                                 )
@@ -224,11 +227,16 @@ private fun weekLabel(uiState: CoupleFreeTimeUiState): String {
     }
 }
 
-/** 复制出去的文本：首行标题（含周次），其后每天一行「周一 09:00–11:30、13:00–17:00」。 */
-private fun buildCopyText(header: String, weekDays: List<String>, days: List<DayFreeTime>): String {
+/** 复制出去的文本：首行标题（含周次），其后每天一行「周一 09:00–11:30、13:00–17:00」（分隔符由 UI 按语言传入）。 */
+private fun buildCopyText(
+    header: String,
+    weekDays: List<String>,
+    days: List<DayFreeTime>,
+    separator: String
+): String {
     val builder = StringBuilder(header)
     days.forEach { day ->
-        val ranges = day.blocks.joinToString("、") {
+        val ranges = day.blocks.joinToString(separator) {
             "${CoupleFreeTimeCalculator.formatMinutes(it.startMinutes)}–" +
                 CoupleFreeTimeCalculator.formatMinutes(it.endMinutes)
         }

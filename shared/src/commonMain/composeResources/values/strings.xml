@@ -983,6 +983,9 @@
     <string name="a11y_course_teacher_fmt">教师 %1$s</string>
     <string name="a11y_course_not_this_week">非本周课程</string>
     <string name="a11y_list_separator">，</string>
+    <string name="list_separator">、</string>
+    <string name="label_value_separator">：</string>
+    <string name="ics_alarm_description">课程提醒</string>
     <string name="backup_warn_restore_partial">恢复完成，但以下模块缺失：%1$s</string>
     <string name="import_edit_entry_title">编辑课程条目</string>
     <string name="import_edit_label_name">课程名</string>

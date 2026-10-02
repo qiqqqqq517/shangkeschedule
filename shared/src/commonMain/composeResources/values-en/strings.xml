@@ -982,6 +982,9 @@
     <string name="a11y_course_teacher_fmt">Teacher %1$s</string>
     <string name="a11y_course_not_this_week">Not in current week</string>
     <string name="a11y_list_separator">, </string>
+    <string name="list_separator">, </string>
+    <string name="label_value_separator">: </string>
+    <string name="ics_alarm_description">Course reminder</string>
     <string name="backup_warn_restore_partial">Restored, but these modules were missing: %1$s</string>
     <string name="import_edit_entry_title">Edit course entry</string>
     <string name="import_edit_label_name">Course name</string>

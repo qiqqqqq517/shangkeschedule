@@ -16,6 +16,7 @@ import kotlinx.datetime.plus
 import org.jetbrains.compose.resources.getString
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.course_teacher_prefix
+import shangkeschedule.shared.generated.resources.ics_alarm_description
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -154,7 +155,7 @@ object IcsExportTool {
             if (alarmMinutes != null && alarmMinutes in 0..60) {
                 ics.append("BEGIN:VALARM\r\n")
                 ics.append("ACTION:DISPLAY\r\n")
-                ics.append("DESCRIPTION:课程提醒\r\n")
+                ics.append("DESCRIPTION:${escapeText(getString(Res.string.ics_alarm_description))}\r\n")
                 ics.append("TRIGGER:-PT${alarmMinutes}M\r\n")
                 ics.append("END:VALARM\r\n")
             }

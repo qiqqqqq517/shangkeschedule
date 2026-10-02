@@ -149,6 +149,7 @@ import shangkeschedule.shared.generated.resources.grade_today_card_empty
 import shangkeschedule.shared.generated.resources.grade_today_card_summary
 import shangkeschedule.shared.generated.resources.grade_today_card_title
 import shangkeschedule.shared.generated.resources.grade_value_none
+import shangkeschedule.shared.generated.resources.label_value_separator
 import shangkeschedule.shared.generated.resources.location_on_24px
 import shangkeschedule.shared.generated.resources.person_24px
 import shangkeschedule.shared.generated.resources.status_semester_ended
@@ -1445,12 +1446,14 @@ private fun TodayTimelineCard(
 @Composable
 private fun TodayFactText(label: String, value: String) {
     val colors = appColors()
+    // 标签与取值之间的分隔符随语言变化（zh 全角冒号 / en 半角冒号+空格），不得写死
+    val separator = stringResource(Res.string.label_value_separator)
     Text(
         text = buildAnnotatedString {
             withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.textSecondary)) {
                 append(label)
             }
-            append("：")
+            append(separator)
             append(value)
         },
         style = MaterialTheme.typography.labelSmall.copy(

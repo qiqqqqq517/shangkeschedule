@@ -89,6 +89,7 @@ import shangkeschedule.shared.generated.resources.label_dimension_dates
 import shangkeschedule.shared.generated.resources.label_dimension_weeks_days
 import shangkeschedule.shared.generated.resources.label_none
 import shangkeschedule.shared.generated.resources.label_weeks_format
+import shangkeschedule.shared.generated.resources.list_separator
 import shangkeschedule.shared.generated.resources.quick_delete_dialog_select_date_title
 import shangkeschedule.shared.generated.resources.quick_delete_filter_date_range_hint
 import shangkeschedule.shared.generated.resources.quick_delete_filter_weeks_days_hint
@@ -212,7 +213,9 @@ fun QuickDeleteScreen(
                                     text = stringResource(Res.string.label_weeks_format, weeksContent),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                val daysContent = uiState.selectedDays.sorted().joinToString("、") { weekDays[it - 1] }
+                                // 列表分隔符随语言变化（zh 顿号 / en 半角逗号+空格），不得写死
+                                val daySeparator = stringResource(Res.string.list_separator)
+                                val daysContent = uiState.selectedDays.sorted().joinToString(daySeparator) { weekDays[it - 1] }
                                 Text(
                                     text = stringResource(Res.string.quick_delete_label_days_prefix, daysContent),
                                     style = MaterialTheme.typography.bodySmall,
