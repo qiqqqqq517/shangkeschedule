@@ -363,7 +363,13 @@ exit=0
 
    → **这为 XL-014 第 2 条「核查 `APPWIDGET_VISIBLE/HIDDEN` 的必要性」给出了确定答案**：对方确实监听，
    且是**每个 provider 都监听**。我方当前 manifest 仅在 `TimeChangeReceiver`（:123）挂了 `LOCALE_CHANGED`，
-   **未挂 `APPWIDGET_VISIBLE/HIDDEN`** —— 属可对标的真实差距，已记入 pending 等用户决策（属行为变更，非纯文档）。
+   **未挂 `APPWIDGET_VISIBLE/HIDDEN`**。
+
+   **✅ 已决策（2026-10-02，用户裁定）：选 (a) 隐藏时不刷新，以省电。**
+   即对齐我方现有行为与本清单 XL-014 验收标准第 4 条「组件被桌面隐藏时不触发刷新（省电）」，
+   **不引入该监听**。我方现状即目标态，零代码改动。
+   记在此处的目的是：避免后续轮次或他人把「对手有、我们没有」当成待办重复提出 ——
+   **「有」不等于「该跟」**，这一条已判定为不跟。
 
 2. **对方有独立的 `BootReceiver` 与 `DndActionReceiver`**
    `com.xlhzcm.starcurriculum.receiver.BootReceiver`、
