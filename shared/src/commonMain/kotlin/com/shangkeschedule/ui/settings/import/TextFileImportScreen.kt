@@ -75,7 +75,11 @@ fun TextFileImportScreen(
 
     // 按格式定制：说明文案
     val hintText = forcedFormat?.let { fmt ->
-        stringResource(Res.string.import_textfile_fmt_info, fmt.label, fmt.hint)
+        stringResource(
+            Res.string.import_textfile_fmt_info,
+            stringResource(fmt.labelRes()),
+            stringResource(fmt.hintRes())
+        )
     } ?: stringResource(Res.string.import_textfile_desc_fallback)
 
     // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
@@ -96,7 +100,7 @@ fun TextFileImportScreen(
     Scaffold(
         topBar = {
             AppTopAppBar(
-                title = { Text(forcedFormat?.screenTitle ?: stringResource(Res.string.import_cat_text_file)) },
+                title = { Text(forcedFormat?.screenTitle() ?: stringResource(Res.string.import_cat_text_file)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))

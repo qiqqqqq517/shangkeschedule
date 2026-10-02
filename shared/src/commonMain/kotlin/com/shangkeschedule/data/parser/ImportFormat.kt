@@ -4,38 +4,18 @@ package com.shangkeschedule.data.parser
  * 文本/文件导入的格式类别。
  * 用于「文本粘贴导入」与「文件导入」的二级分类页面：
  * 每个类别对应一个独立页面，页面内强制使用该类别的解析器（不再依赖自动嗅探）。
+ *
+ * 本枚举只承载解析口径（枚举名 = 导航参数、扩展名映射），**不含任何展示文案**：
+ * 二级页标题与说明文案在 UI 层按枚举取值（见 `ui/settings/import/ImportFormatText.kt`
+ * 的 `labelRes` / `hintRes` / `screenTitle`），以免英文/繁体界面里出现硬编码简体文案。
  */
-enum class TextImportFormat(
-    val label: String,
-    val hint: String
-) {
-    WAKEUP(
-        "WakeUp 分享文本",
-        "粘贴 WakeUp 课程表 App「分享给好友/复制文本」得到的完整内容（含【来自WakeUp课程表】开头或 JSON 数据段）"
-    ),
-    PLAIN(
-        "纯文本（一行一课）",
-        "每行一门课，字段用制表符 / 逗号 / | / 连续空格分隔：\n课程名 教师 教室 星期 节次 周次\n例：高等数学 张三 教5-103 周一 1-2节 1-16周"
-    ),
-    JSON(
-        "JSON",
-        "粘贴本 App 导出的 .json 课表文件内容，或 WakeUp JSON（含 courses 数组）"
-    ),
-    CSV(
-        "CSV 表格",
-        "首行为表头：课程,教师,教室,星期,节次,周次（列名支持 中英文/部分匹配，顺序可变）\n例：课程,教师,教室,星期,节次,周次"
-    ),
-    ICS(
-        "ICS 日历",
-        "粘贴 .ics 日历文本（以 BEGIN:VCALENDAR 开头、含 VEVENT 事件），每条事件识别为一门课"
-    ),
-    HTML(
-        "HTML 表格",
-        "粘贴含 <table> 的 HTML 源码，按行解析：课程/教师/教室/星期/节次/周次"
-    );
-
-    /** 二级页标题 */
-    val screenTitle: String get() = "$label 导入"
+enum class TextImportFormat {
+    WAKEUP,
+    PLAIN,
+    JSON,
+    CSV,
+    ICS,
+    HTML;
 
     companion object {
         /** 按文件名猜测格式类别（用于文件导入时辅助识别，识别不出返回 null 走自动嗅探） */

@@ -86,7 +86,7 @@ fun TextImportScreen(
     Scaffold(
         topBar = {
             AppTopAppBar(
-                title = { Text(format?.screenTitle ?: stringResource(Res.string.import_text_any_title)) },
+                title = { Text(format?.screenTitle() ?: stringResource(Res.string.import_text_any_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(vectorResource(Res.drawable.arrow_back_24px), contentDescription = stringResource(Res.string.a11y_back))
@@ -103,8 +103,11 @@ fun TextImportScreen(
         ) {
             // 格式说明
             Text(
-                text = format?.hint
-                    ?: stringResource(Res.string.import_text_any_desc),
+                text = if (format != null) {
+                    stringResource(format.hintRes())
+                } else {
+                    stringResource(Res.string.import_text_any_desc)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = appColors().textSecondary
             )

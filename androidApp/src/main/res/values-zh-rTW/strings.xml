@@ -46,18 +46,6 @@
     <string name="notification_unknown_position">地點未知</string>
 
     <!-- 早八鬧鐘（寫入系統時鐘） -->
-    <string name="item_morning_alarm">早八鬧鐘</string>
-    <string name="desc_morning_alarm">依每天第一節課時間寫入系統鬧鐘，可在時鐘應用程式裡直接修改</string>
-    <string name="item_morning_alarm_lead">提前提醒時間</string>
-    <string name="morning_alarm_preview_title">下一個鬧鐘</string>
-    <string name="morning_alarm_preview_format">%1$s %2$s · 第一節 %3$s %4$s</string>
-    <string name="morning_alarm_preview_none">近期沒有需要早起的課程</string>
-    <string name="action_open_system_alarm">開啟系統鬧鐘</string>
-    <string name="action_write_system_alarm">寫入系統鬧鐘</string>
-    <string name="toast_morning_alarm_enable_reminder_first">請先開啟課程提醒</string>
-    <string name="toast_morning_alarm_written">已寫入系統鬧鐘</string>
-    <string name="toast_morning_alarm_failed">寫入系統鬧鐘失敗，請稍後重試</string>
-    <string name="toast_morning_alarm_no_app">未找到系統時鐘應用程式，已改用應用內提醒</string>
     <string name="notification_title_morning_alarm">早八鬧鐘</string>
     <string name="notification_text_morning_alarm_format">第一節 %1$s 的 %2$s，現在出發剛好</string>
     <string name="notification_channel_morning_alarm">早八鬧鐘</string>

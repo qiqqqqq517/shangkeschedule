@@ -67,10 +67,8 @@
     <string name="toast_delete_occurrence_failed">Delete failed, please try again</string>
     <string name="settings_group_timetable">Timetable</string>
     <string name="settings_group_courses">Courses</string>
-    <string name="settings_group_preference">Preferences</string>
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">Study</string>
-    <string name="settings_group_about">About</string>
     <string name="settings_group_display_notify">Display &amp; Reminders</string>
     <string name="settings_group_app">App &amp; About</string>
     <string name="settings_group_school_system">School System</string>
@@ -269,7 +267,6 @@
     
     <!-- Notification Settings -->
     <string name="title_course_notification_settings">Course reminder settings</string>
-    <string name="section_title_general">General</string>
     <string name="section_title_skipped_dates">Skipped dates</string>
     <string name="section_title_reminder">Course reminders</string>
     <string name="section_title_notification_display">Notification display</string>
@@ -286,8 +283,6 @@
     <string name="morning_alarm_preview_title">Next alarm</string>
     <string name="morning_alarm_preview_format">%1$s %2$s · first class %3$s %4$s</string>
     <string name="morning_alarm_preview_none">No early classes coming up</string>
-    <string name="action_open_system_alarm">Open system alarms</string>
-    <string name="toast_morning_alarm_enable_reminder_first">Turn on course reminders first</string>
     <string name="item_remind_time_before">Remind before class</string>
     <string name="remind_time_minutes_format">%1$s minutes</string>
     <string name="item_exact_alarm_permission">Exact alarm permission</string>
@@ -819,6 +814,20 @@
     <string name="import_status_importing">Importing…</string>
     <string name="import_json_dialog_title">Choose the timetable to import into</string>
     <string name="import_textfile_fmt_info">Import %1$s file:\n%2$s</string>
+    <!-- Text import format categories: labels and hints (were hardcoded in the TextImportFormat enum) -->
+    <string name="import_format_wakeup_label">WakeUp share text</string>
+    <string name="import_format_wakeup_hint">Paste the full text produced by WakeUp (Share with friend / Copy text): either the WakeUp curriculum header line or a JSON block</string>
+    <string name="import_format_plain_label">Plain text (one class per line)</string>
+    <string name="import_format_plain_hint">One class per line, fields separated by tab / comma / | / runs of spaces:\nCourse Teacher Room Weekday Periods Weeks\nExample: Calculus Zhang San Bldg5-103 Mon 1-2 1-16</string>
+    <string name="import_format_json_label">JSON</string>
+    <string name="import_format_json_hint">Paste the contents of a .json timetable exported by this app, or WakeUp JSON (with a courses array)</string>
+    <string name="import_format_csv_label">CSV table</string>
+    <string name="import_format_csv_hint">First row is the header: Course,Teacher,Room,Weekday,Periods,Weeks (Chinese/English column names, partial match, any order)\nExample: Course,Teacher,Room,Weekday,Periods,Weeks</string>
+    <string name="import_format_ics_label">ICS calendar</string>
+    <string name="import_format_ics_hint">Paste .ics calendar text (starting with BEGIN:VCALENDAR and containing VEVENT); each event becomes one class</string>
+    <string name="import_format_html_label">HTML table</string>
+    <string name="import_format_html_hint">Paste HTML source containing &lt;table&gt;; parsed row by row: Course/Teacher/Room/Weekday/Periods/Weeks</string>
+    <string name="import_format_screen_title">Import %1$s</string>
     <string name="import_textfile_desc_fallback">Supports text timetable files, detected by extension first with automatic fallback:\nCSV (header: course, teacher, room, day, period, weeks)\nICS calendar (BEGIN:VCALENDAR)\nHTML table (&lt;table&gt;)\nPlain TXT (one course per line)</string>
     <string name="import_textfile_action_select">Choose timetable file</string>
     <string name="import_text_hub_wakeup">WakeUp shared text</string>
@@ -906,16 +915,13 @@
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
     <string name="wb_config_import_no_table">Config import failed: no target timetable selected.</string>
     <string name="item_auto_sync_adapter">Auto-sync school system</string>
-    <string name="desc_auto_sync_adapter">Pull the latest adapter to keep schedule sync working</string>
     <string name="sync_status_syncing">Syncing…</string>
     <string name="sync_status_updated">Updated %1$d adapter file(s)</string>
     <string name="sync_status_up_to_date">Already up to date</string>
     <string name="sync_status_disabled">Remote sync is disabled</string>
     <string name="sync_status_failed">Sync failed, using built-in adapter</string>
     <string name="adapter_remote_update_failed">Adapter update failed: checksum mismatch, update discarded.</string>
-    <string name="wb_config_import_success">Timetable config imported!</string>
     <string name="wb_config_import_failed_fmt">Timetable config import failed: %1$s</string>
-    <string name="wb_preset_import_success">Preset time slots imported!</string>
     <string name="wb_preset_import_failed_fmt">Preset time slots import failed: %1$s</string>
     <string name="wb_show_alert_queue_full">Cannot show alert: event queue is full</string>
     <string name="wb_show_prompt_queue_full">Cannot show prompt: event queue is full</string>
@@ -1157,7 +1163,6 @@
     <string name="adapter_request_no_school_copied">Opening the adapter request form (WPS form, third-party page)</string>
     <string name="adapter_request_form_unavailable">The adapter request form is not available right now</string>
     <string name="title_adapter_status">Adapter status</string>
-    <string name="desc_adapter_status">Local adapters and update checks</string>
     <string name="adapter_status_res_title">Local adapter resources</string>
     <string name="adapter_status_local_scripts">Adapter scripts: %1$d</string>
     <string name="adapter_status_local_schools">School index: %1$d schools</string>
@@ -1181,7 +1186,6 @@
     <string name="legal_load_failed_plain">Failed to load the document. Please try again.</string>
     <string name="legal_offline_note">Bundled offline</string>
     <!-- Grades / GPA (v4.66.0) -->
-    <string name="title_grade">Grades &amp; GPA</string>
     <string name="grade_page_title">Grades &amp; GPA</string>
     <string name="grade_summary_gpa">Weighted GPA</string>
     <string name="grade_summary_average">Average score</string>
@@ -1245,7 +1249,6 @@
     <string name="grade_import_tip">Open the grade query page in the academic system, then tap "Detect grades on this page"</string>
     <string name="grade_import_no_result">No grade table found on this page. Try paste import instead.</string>
     <string name="grade_import_success">Imported %1$d course grades</string>
-    <string name="grade_import_select_school">Select a school and sign in to its academic system first</string>
     <string name="grade_today_card_title">Grades / GPA</string>
     <string name="grade_today_card_empty">Tap to add or import grades</string>
     <string name="grade_today_card_summary">GPA %1$s · Avg %2$s</string>
@@ -1254,7 +1257,6 @@
 
     <!-- Exam score lookup entry (v4.66.0) -->
     <string name="title_cert_exam">Exam results</string>
-    <string name="cert_entry_subtitle">CET-4/6, NCRE, NTCE, PSC · ZSB</string>
     <string name="cert_page_intro">Direct links to each exam's official score page. Credentials stay on this device.</string>
     <string name="cert_module_cet">College English Test (CET-4/6)</string>
     <string name="cert_module_cet_desc">Score query · admission ticket no.</string>
@@ -1320,8 +1322,6 @@
 
     <!-- A2 学业情况 -->
     <string name="title_study_progress">Study Progress</string>
-    <string name="desc_study_progress">Credit completion by course category</string>
-    <string name="desc_grade_page">Enter grades, see GPA and grade-point conversion</string>
     <string name="study_overview_title">Degree progress</string>
     <string name="study_overview_value">%1$s / %2$s credits</string>
     <string name="study_overview_percent">%1$s complete</string>
@@ -1356,7 +1356,6 @@
     <string name="study_category_empty">No category data yet. Add grades on the Grades page, or add a category requirement above.</string>
     <string name="study_footnote">Earned credits count only passed courses (retakes and ungraded courses excluded). For planning reference only - the school portal is authoritative.</string>
     <string name="title_empty_classroom">Free classrooms</string>
-    <string name="desc_empty_classroom">Open your school's classroom page, then read and copy the result</string>
     <string name="empty_classroom_locate">Open classroom page</string>
     <string name="empty_classroom_scan">Read this page</string>
     <string name="empty_classroom_scanning">Reading free classrooms…</string>

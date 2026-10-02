@@ -67,10 +67,8 @@
     <string name="toast_delete_occurrence_failed">刪除失敗，請重試</string>
     <string name="settings_group_timetable">課表</string>
     <string name="settings_group_courses">課程</string>
-    <string name="settings_group_preference">偏好</string>
     <!-- v4.66.0（IA 搬迁 · 裁决 A）：学习类入口（成绩与绩点 / 学业情况 / 考证查分）独立分组 -->
     <string name="settings_group_study">學習</string>
-    <string name="settings_group_about">關於</string>
     <string name="settings_group_display_notify">顯示與提醒</string>
     <string name="settings_group_app">應用與關於</string>
     <string name="settings_group_school_system">教務系統</string>
@@ -269,7 +267,6 @@
     
     <!-- 通知設定 -->
     <string name="title_course_notification_settings">課程提醒設定</string>
-    <string name="section_title_general">一般</string>
     <string name="section_title_skipped_dates">跳過日期</string>
     <string name="section_title_reminder">課程提醒</string>
     <string name="section_title_notification_display">通知顯示</string>
@@ -286,8 +283,6 @@
     <string name="morning_alarm_preview_title">下一個鬧鐘</string>
     <string name="morning_alarm_preview_format">%1$s %2$s · 第一節 %3$s %4$s</string>
     <string name="morning_alarm_preview_none">近期沒有需要早起的課程</string>
-    <string name="action_open_system_alarm">開啟系統鬧鐘</string>
-    <string name="toast_morning_alarm_enable_reminder_first">請先開啟課程提醒</string>
     <string name="item_remind_time_before">課前提醒時間</string>
     <string name="remind_time_minutes_format">%1$s 分鐘</string>
     <string name="item_exact_alarm_permission">精確鬧鐘權限</string>
@@ -820,6 +815,20 @@
     <string name="import_status_importing">正在匯入…</string>
     <string name="import_json_dialog_title">選擇匯入到的課表</string>
     <string name="import_textfile_fmt_info">匯入 %1$s 檔案：\n%2$s</string>
+    <!-- 文字匯入格式類別：類別名與說明（原硬編碼在 TextImportFormat 列舉裡） -->
+    <string name="import_format_wakeup_label">WakeUp 分享文字</string>
+    <string name="import_format_wakeup_hint">貼上 WakeUp 課程表 App「分享給好友／複製文字」得到的完整內容（含【來自WakeUp課程表】開頭或 JSON 資料段）</string>
+    <string name="import_format_plain_label">純文字（一行一課）</string>
+    <string name="import_format_plain_hint">每行一門課，欄位用定位字元 / 逗號 / | / 連續空格分隔：\n課程名 教師 教室 星期 節次 週次\n例：高等數學 張三 教5-103 週一 1-2節 1-16週</string>
+    <string name="import_format_json_label">JSON</string>
+    <string name="import_format_json_hint">貼上本 App 匯出的 .json 課表檔案內容，或 WakeUp JSON（含 courses 陣列）</string>
+    <string name="import_format_csv_label">CSV 表格</string>
+    <string name="import_format_csv_hint">首列為表頭：課程,教師,教室,星期,節次,週次（欄名支援 中英文／部分比對，順序可變）\n例：課程,教師,教室,星期,節次,週次</string>
+    <string name="import_format_ics_label">ICS 日曆</string>
+    <string name="import_format_ics_hint">貼上 .ics 日曆文字（以 BEGIN:VCALENDAR 開頭、含 VEVENT 事件），每筆事件識別為一門課</string>
+    <string name="import_format_html_label">HTML 表格</string>
+    <string name="import_format_html_hint">貼上含 &lt;table&gt; 的 HTML 原始碼，逐列解析：課程/教師/教室/星期/節次/週次</string>
+    <string name="import_format_screen_title">%1$s 匯入</string>
     <string name="import_textfile_desc_fallback">支援文字類課表檔案，按副檔名優先識別，失敗自動回退其他格式：\nCSV（表頭：課程,教師,教室,星期,節次,週次）\nICS 日曆（BEGIN:VCALENDAR）\nHTML 表格（&lt;table&gt;）\nTXT 純文字（一行一課）</string>
     <string name="import_textfile_action_select">選擇課表檔案</string>
     <string name="import_text_hub_wakeup">WakeUp 分享文字</string>
@@ -907,16 +916,13 @@
     <string name="wb_import_failed_fmt">課程匯入失敗: %1$s</string>
     <string name="wb_config_import_no_table">設定匯入失敗：未選擇目標課表。</string>
     <string name="item_auto_sync_adapter">自動同步教務系統</string>
-    <string name="desc_auto_sync_adapter">手動拉取最新教務適配，讓課表抓取保持可用</string>
     <string name="sync_status_syncing">正在同步…</string>
     <string name="sync_status_updated">已更新 %1$d 個適配檔案</string>
     <string name="sync_status_up_to_date">已是最新，無需更新</string>
     <string name="sync_status_disabled">遠端同步未啟用</string>
     <string name="sync_status_failed">同步失敗，已回退到內建適配</string>
     <string name="adapter_remote_update_failed">適配更新失敗：檔案校驗未通過，本次更新已丟棄。</string>
-    <string name="wb_config_import_success">課表設定匯入成功！</string>
     <string name="wb_config_import_failed_fmt">課表設定匯入失敗: %1$s</string>
-    <string name="wb_preset_import_success">預設時間段匯入成功！</string>
     <string name="wb_preset_import_failed_fmt">預設時間段匯入失敗: %1$s</string>
     <string name="wb_show_alert_queue_full">無法顯示彈窗：事件佇列已滿</string>
     <string name="wb_show_prompt_queue_full">無法顯示輸入框：事件佇列已滿</string>
@@ -1158,7 +1164,6 @@
     <string name="adapter_request_no_school_copied">正在開啟適配申請表單（WPS 表單，第三方頁面）</string>
     <string name="adapter_request_form_unavailable">適配申請入口暫未開放</string>
     <string name="title_adapter_status">教務適配狀態</string>
-    <string name="desc_adapter_status">檢視本機適配腳本與適配更新</string>
     <string name="adapter_status_res_title">本機適配資源</string>
     <string name="adapter_status_local_scripts">適配腳本：%1$d 個</string>
     <string name="adapter_status_local_schools">學校索引：%1$d 所</string>
@@ -1182,7 +1187,6 @@
     <string name="legal_load_failed_plain">文件載入失敗，請稍後重試</string>
     <string name="legal_offline_note">全文已內建</string>
     <!-- 成績 / GPA（v4.66.0） -->
-    <string name="title_grade">成績與績點</string>
     <string name="grade_page_title">成績與績點</string>
     <string name="grade_summary_gpa">加權績點</string>
     <string name="grade_summary_average">平均分</string>
@@ -1246,7 +1250,6 @@
     <string name="grade_import_tip">在開啟的教務頁面裡進入成績查詢頁，再點「辨識本頁成績」</string>
     <string name="grade_import_no_result">本頁沒有辨識到成績表格，可改用貼上匯入</string>
     <string name="grade_import_success">已匯入 %1$d 門課程成績</string>
-    <string name="grade_import_select_school">請先選擇學校並登入教務系統</string>
     <string name="grade_today_card_title">成績 / GPA</string>
     <string name="grade_today_card_empty">點擊新增或匯入成績</string>
     <string name="grade_today_card_summary">績點 %1$s · 平均分 %2$s</string>
@@ -1255,7 +1258,6 @@
 
     <!-- 考證查分入口（v4.66.0） -->
     <string name="title_cert_exam">考證查分</string>
-    <string name="cert_entry_subtitle">四六級、電腦等級、教師資格、普通話、專升本</string>
     <string name="cert_page_intro">直達各考試官網查分入口。查詢憑據只保存在本機，不會上傳。</string>
     <string name="cert_module_cet">大學英語四六級（CET）</string>
     <string name="cert_module_cet_desc">成績查詢 · 准考證號</string>
@@ -1321,8 +1323,6 @@
 
     <!-- A2 学业情况 -->
     <string name="title_study_progress">學業情況</string>
-    <string name="desc_study_progress">依課程類別查看培養方案學分完成度</string>
-    <string name="desc_grade_page">錄入成績、查看 GPA 與績點換算</string>
     <string name="study_overview_title">培養方案完成度</string>
     <string name="study_overview_value">%1$s / %2$s 學分</string>
     <string name="study_overview_percent">完成度 %1$s</string>
@@ -1357,7 +1357,6 @@
     <string name="study_category_empty">暫無類別資料：先在「成績與績點」頁錄入成績，或直接在上方新增類別要求。</string>
     <string name="study_footnote">已獲學分只統計及格課程（重修紀錄與未出分課程不計入），結果僅供規劃參考，最終以教務系統為準。</string>
     <string name="title_empty_classroom">空教室查詢</string>
-    <string name="desc_empty_classroom">進入教務空教室頁，識別結果並可一鍵複製</string>
     <string name="empty_classroom_locate">定位空教室頁</string>
     <string name="empty_classroom_scan">讀取本頁空教室</string>
     <string name="empty_classroom_scanning">正在讀取空教室…</string>

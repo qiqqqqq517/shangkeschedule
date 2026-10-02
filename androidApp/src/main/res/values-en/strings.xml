@@ -46,18 +46,6 @@
     <string name="notification_unknown_position">Unknown Location</string>
 
     <!-- Morning alarm (written into the system clock app) -->
-    <string name="item_morning_alarm">Morning alarm</string>
-    <string name="desc_morning_alarm">Writes an alarm into your system clock app based on the first class each day; manage it there directly</string>
-    <string name="item_morning_alarm_lead">Lead time</string>
-    <string name="morning_alarm_preview_title">Next alarm</string>
-    <string name="morning_alarm_preview_format">%1$s %2$s · first class %3$s %4$s</string>
-    <string name="morning_alarm_preview_none">No early classes coming up</string>
-    <string name="action_open_system_alarm">Open system alarms</string>
-    <string name="action_write_system_alarm">Write to system alarms</string>
-    <string name="toast_morning_alarm_enable_reminder_first">Turn on course reminders first</string>
-    <string name="toast_morning_alarm_written">Alarm written to system clock</string>
-    <string name="toast_morning_alarm_failed">Failed to write alarm, please try again later</string>
-    <string name="toast_morning_alarm_no_app">No system clock app found; using in-app reminder instead</string>
     <string name="notification_title_morning_alarm">Morning alarm</string>
     <string name="notification_text_morning_alarm_format">First class %1$s at %2$s — time to head out</string>
     <string name="notification_channel_morning_alarm">Morning alarm</string>
