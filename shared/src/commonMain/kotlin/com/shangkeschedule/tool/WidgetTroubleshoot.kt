@@ -35,4 +35,13 @@ expect object WidgetTroubleshootBridge {
 
     /** 跳转到本应用的系统设置页（自启动、后台限制、电池优化都在那里）；返回是否成功拉起。 */
     fun openSystemSettings(): Boolean
+
+    /**
+     * 设备制造商（小米 / 华为 / vivo …），用于选择后台限制的引导方案。
+     *
+     * 非 Android 平台返回 null（那些平台无此机制）。
+     *
+     * 不属于设备标识，不可用于追踪；只用于选一份引导文案。
+     */
+    fun manufacturer(): String?
 }

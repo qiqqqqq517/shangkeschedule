@@ -1468,4 +1468,15 @@
     <string name="star_prompt_message">ShangKe is fully open source, ad-free and collects no personal data. If it helps you, a GitHub star means a lot; issues are always welcome.</string>
     <string name="star_prompt_go">Star on GitHub</string>
     <string name="star_prompt_never">Don\'t ask again</string>
+
+    <string name="widget_oem_guide_title">Background limits</string>
+    <string name="widget_oem_guide_summary">Some Chinese ROMs kill background apps. Open these limits in order, or widgets and reminders may stop working. Changing only one of them is usually not enough.</string>
+    <string name="widget_oem_guide_step_fmt">Step %1$d</string>
+    <string name="widget_oem_guide_step_autostart">Allow auto-start</string>
+    <string name="widget_oem_guide_step_battery">Set battery optimisation to Unrestricted</string>
+    <string name="widget_oem_guide_step_background">Allow background activity (high background power use)</string>
+    <string name="widget_oem_guide_step_related">Allow related launch (still able to start after the process is killed)</string>
+    <string name="widget_oem_guide_step_lock">Lock the app in the recent-apps list so it is not cleared by one-tap cleanup</string>
+
+    <string name="widget_oem_guide_summary_title">Set these in order</string>
 </resources>

@@ -189,4 +189,18 @@
     <string name="notification_exam_countdown_today">%1$s is today</string>
     <string name="notification_exam_countdown_tomorrow">%1$s is tomorrow</string>
     <string name="notification_exam_countdown_days">%1$s in %2$d days</string>
+
+    <string name="notification_channel_live_update">Live updates</string>
+    <string name="notification_channel_live_update_desc">Show in-progress class and event status in the live activity</string>
+    <string name="notification_channel_vivo_atomic">Atomic notification</string>
+    <string name="notification_channel_vivo_atomic_desc">Show course reminders in the system atomic notification</string>
+
+    <string name="widget_desc_tiny">Classes - minimal</string>
+    <string name="widget_desc_compact">Classes - today</string>
+    <string name="widget_desc_double_days">Classes - today and tomorrow</string>
+    <string name="widget_desc_list_vertical">Classes - vertical list</string>
+    <string name="widget_desc_next_course">Classes - next class</string>
+    <string name="widget_desc_week_courses">Classes - whole week</string>
+    <string name="widget_desc_agenda_list">Agenda - all</string>
+    <string name="widget_desc_exam_countdown">Agenda - exam countdown</string>
 </resources>

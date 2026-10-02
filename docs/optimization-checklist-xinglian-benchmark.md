@@ -41,6 +41,32 @@
 
 ---
 
+### 0.5 实施状态（v4.66.4 / code 429，2026-10-02 批次）
+
+本轮实施了 P0 与 P1 中**全部可在本仓库内完成且可验证**的条目。逐项状态：
+
+| ID | 状态 | 落地位置 |
+|---|---|---|
+| **XL-001** | ✅ 已修（**根因 + 防御双层**） | 根因：`ReminderEngine.autoModeTransitions` 由「合并转换点」改为「合并区间」，重叠/包含/链式三档全部修正；防御：`AutoModeAlarmReceiver` 在 END 前用 `shouldModeBeOn` 重算，仍在上课则跳过恢复 |
+| **XL-002** | ✅ 已修 | `AutoModeController`：DND 分支补「记录—还原进入前过滤档」，两个分支均写入后回读校验，不一致返回 false 并记日志；还原失败保留记录待重试 |
+| **XL-003** | ✅ 已修 | 新增 `AlarmPermissionReceiver`（manifest 静态注册，`exported=false`）：撤销时提示 + 降级重排，恢复时重排升级 + 撤提示 |
+| **XL-004** | ✅ 改设计后落地 | **不再新建登记表**：改用既有 `NotificationScheduler.reschedule()` 统一入口 + `shouldModeBeOn` 重算。派生状态不落盘就不会漂移；落盘的收益为零、漂移的风险不为零 |
+| **XL-010** | ✅ 已修 | `CalendarAccountManager.android.kt`：稳定 UID（`sk:<courseId>:<week>`）+ 增删改差分 + 写入后回读条数校验；课表为空时按 UID 精确清理 |
+| **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
+| **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
+| **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |
+| **XL-014** | ✅ 已修 | `TimeChangeReceiver` 改为 manifest 静态注册（移除 `MyApplication` 运行时注册）+ 新增 `LOCALE_CHANGED`；修正其 KDoc 中与实现不符的「静态注册」表述 |
+| **XL-015** | ❌ 未做 | `requestPinAppWidget` 需平台桥接 + 新 UI 入口（当前排障页无「添加小组件」动作），单独排期 |
+
+**顺带补的基础设施**：`AppLog` 增加 `i` 级别（expect + android/jvm/ios 三处 actual）—— shared 层此前只有 `w`/`e`，导致信息级日志无处可去。
+
+**验证**：`:shared:compileKotlinJvm` + `:desktopApp:compileKotlin` + `:androidApp:assembleDebug` 全绿；单测 **217 例全通过、0 失败 0 跳过**（新增 5 例重叠回归 + 7 例厂商识别）。
+
+**本轮发现并修正的自身错误**（供后续参考）：
+1. 重写日历写回时把 `withValueBackReference` 的批次索引算错，且把提醒分钟数放进内容指纹 —— 会导致**每次同步全量重写**，正好退回旧行为。改为查询 `Reminders` 归并真实分钟数后才正确。
+2. `Events.UID` 无法通过 `CalendarContract.Events` 解析（该常量在 **protected** 的 `SyncColumns` 上），最终用具名列名常量 `COL_UID = "uid"`。
+3. 向 data class 尾部误插一个 `}`，导致 ViewModel 语法错误被编译器报成「primary constructor must only have property」。
+
 ## 1. 总览速览
 
 | 章 | 桶 | 条数 | P0 | P1 | P2 | 工作量合计 |

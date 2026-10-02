@@ -1469,4 +1469,15 @@
     <string name="star_prompt_message">上课完全开源、无广告，也不会收集你的数据。如果它帮到了你，在 GitHub 上点个 Star 是最大的鼓励；遇到问题欢迎提 Issue。</string>
     <string name="star_prompt_go">去 GitHub 点 Star</string>
     <string name="star_prompt_never">不再提示</string>
+
+    <string name="widget_oem_guide_title">后台限制引导</string>
+    <string name="widget_oem_guide_summary">国产系统会杀后台。按下面顺序放开后面的限制，小组件与提醒才能稳定工作；只改其中一项通常不够。</string>
+    <string name="widget_oem_guide_step_fmt">第 %1$d 步</string>
+    <string name="widget_oem_guide_step_autostart">允许自启动</string>
+    <string name="widget_oem_guide_step_battery">电池优化设为不限制</string>
+    <string name="widget_oem_guide_step_background">允许后台活动（后台高耗电）</string>
+    <string name="widget_oem_guide_step_related">允许关联启动（进程被回收后仍能被拉起）</string>
+    <string name="widget_oem_guide_step_lock">在最近任务下拉加锁，避免被一键清理</string>
+
+    <string name="widget_oem_guide_summary_title">按下列步骤设置</string>
 </resources>

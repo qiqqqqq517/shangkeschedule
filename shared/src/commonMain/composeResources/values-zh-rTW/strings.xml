@@ -1469,4 +1469,15 @@
     <string name="star_prompt_message">上課完全開源、無廣告，也不會蒐集你的資料。如果它幫到你，在 GitHub 上點個 Star 是最大的鼓勵；遇到問題歡迎提 Issue。</string>
     <string name="star_prompt_go">去 GitHub 點 Star</string>
     <string name="star_prompt_never">不再提示</string>
+
+    <string name="widget_oem_guide_title">後台限制引導</string>
+    <string name="widget_oem_guide_summary">國產系統會殺後台。按下面順序放開後面的限制，小元件與提醒才能穩定運作；只改其中一項通常不夠。</string>
+    <string name="widget_oem_guide_step_fmt">第 %1$d 步</string>
+    <string name="widget_oem_guide_step_autostart">允許自啟動</string>
+    <string name="widget_oem_guide_step_battery">電池優化設為不限制</string>
+    <string name="widget_oem_guide_step_background">允許後台活動（後台高耗電）</string>
+    <string name="widget_oem_guide_step_related">允許關聯啟動（進程被回收後仍能被拉起）</string>
+    <string name="widget_oem_guide_step_lock">在最新任務下拉加鎖，避免被一鍵清理</string>
+
+    <string name="widget_oem_guide_summary_title">按下列步驟設定</string>
 </resources>

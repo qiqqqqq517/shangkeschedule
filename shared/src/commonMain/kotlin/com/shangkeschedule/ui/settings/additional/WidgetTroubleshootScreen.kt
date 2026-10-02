@@ -28,6 +28,10 @@ import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
+import com.shangkeschedule.tool.OemGuide
+import com.shangkeschedule.tool.OemGuideStep
+import com.shangkeschedule.tool.textRes
+import com.shangkeschedule.tool.OemVendor
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -44,6 +48,10 @@ import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.sync_alt_24px
 import shangkeschedule.shared.generated.resources.title_widget_troubleshoot
+import shangkeschedule.shared.generated.resources.widget_oem_guide_title
+import shangkeschedule.shared.generated.resources.widget_oem_guide_summary_title
+import shangkeschedule.shared.generated.resources.widget_oem_guide_summary
+import shangkeschedule.shared.generated.resources.widget_oem_guide_step_fmt
 import shangkeschedule.shared.generated.resources.tune_24px
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help_desc
@@ -152,6 +160,13 @@ fun WidgetTroubleshootScreen(
                 AppEmptyState(hint = stringResource(Res.string.widget_troubleshoot_unsupported_desc))
             }
 
+            // XL-013：排障只能告诉用户「有问题」，这里补上「怎么一步步解决」。
+            // 只在解析出非空步骤时渲染：未识别厂商不给猜测路径。
+            val oemGuide = uiState.oemGuide
+            if (oemGuide != null) {
+                OemGuideSection(guide = oemGuide)
+            }
+
             if (uiState.isReady && uiState.supported) {
                 AppSectionHeader(text = stringResource(Res.string.widget_troubleshoot_section_status))
                 SectionCard {
@@ -235,5 +250,35 @@ fun WidgetTroubleshootScreen(
                 )
             },
         )
+    }
+}
+
+/**
+ * 厂商后台限制分步引导（XL-013）。
+ *
+ * 整个区块只在 [OemGuideResolver] 返回非空步骤时渲染；
+ * 未识别厂商不显示 —— 给错路径比不给更伤用户信任。
+ *
+ * 全部用 [SettingItem] 行搭建，不自行 `padding`：行内边距由 SettingItem 统一
+ * 维护，手写 `padding` 会与 token 进行体系化脱结。
+ * 文案从 StringResource 取，四语维护在 composeResources，不在 commonMain 里硬编码中文。
+ */
+@Composable
+private fun OemGuideSection(guide: OemGuide) {
+    AppSectionHeader(text = stringResource(Res.string.widget_oem_guide_title))
+    SectionCard {
+        SettingItem(
+            title = stringResource(Res.string.widget_oem_guide_summary_title),
+            subtitle = stringResource(Res.string.widget_oem_guide_summary),
+            trailingContent = {},
+        )
+        guide.steps.forEachIndexed { index, step ->
+            SectionDivider()
+            SettingItem(
+                title = stringResource(Res.string.widget_oem_guide_step_fmt, index + 1),
+                subtitle = stringResource(step.textRes()),
+                trailingContent = {},
+            )
+        }
     }
 }

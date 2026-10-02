@@ -5,7 +5,6 @@ import androidx.work.Configuration
 import com.shangkeschedule.data.di.SharedModule
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.syncNightModeFromStoredThemeMode
-import com.shangkeschedule.service.notification.registerTimeChangeWatcher
 import com.shangkeschedule.ui.glass.applyGlassNativeCrashFallback
 import com.shangkeschedule.widget.registerWidgetNightModeWatcher
 import org.koin.android.ext.koin.androidContext
@@ -58,8 +57,8 @@ class MyApplication : Application(), Configuration.Provider {
         // 系统深浅色切换即时刷新小组件（运行时注册，manifest 收不到该广播）。
         registerWidgetNightModeWatcher(this)
 
-        // 系统时间/时区变更后立即重排闹钟：闹钟时刻在排程时已固化为 epoch 毫秒，
-        // 换时区或校时后不重排就会整体偏移（此前只能等开机/零点自愈/开 App 才纠正）。
-        registerTimeChangeWatcher(this)
+        // 时间/时区/日期/语言变更的闹钟纠偏已改为 manifest 静态注册
+        // （TimeChangeReceiver），不再在此运行时注册 —— 运行时注册与进程同寿，
+        // 用户在 App 未启动时改时区/改系统时间，已排闹钟不重排且 App 无感知。
     }
 }

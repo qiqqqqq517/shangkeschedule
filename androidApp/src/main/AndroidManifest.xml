@@ -95,6 +95,35 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- 「闹钟和提醒」权限状态变更（XL-003）：此前全仓无监听，用户撤销权限后系统
+             静默取消全部精确闹钟，App 侧毫无感知，提醒全线失灵且无从排查。
+             必须静态注册：权限变更发生在用户离开本 App 之后，运行时注册收不到。
+             撤销时降级重排（延迟但不再静默），恢复时重排升级回精确闹钟。 -->
+        <receiver
+            android:name=".service.notification.receiver.AlarmPermissionReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 时间/时区/日期/语言变更：闹钟时间基准的纠偏入口。
+             此前由 MyApplication 在启动期运行时注册，与进程同寿 —— 用户在 App 未启动时
+             改时区或改系统时间，已排闹钟不重排，课表整体偏移且 App 无感知。
+             四个 action 均为受保护的系统广播，静态注册照常投递。 -->
+        <receiver
+            android:name=".service.notification.TimeChangeReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <!-- 旧版课程/自动模式闹钟接收器：冻结保留一版做升级兵底。
              升级安装后旧版已排下的闹钟会指向本类，待 LegacyAlarmMigrator 首次运行清理完毕。
              下个大版本连同 LegacyAlarmMigrator 一并移除。 -->

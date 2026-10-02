@@ -192,4 +192,18 @@
     <string name="notification_exam_countdown_today">%1$s 就在今天</string>
     <string name="notification_exam_countdown_tomorrow">%1$s 就在明天</string>
     <string name="notification_exam_countdown_days">%1$s 还有 %2$d 天</string>
+
+    <string name="notification_channel_live_update">实况提醒</string>
+    <string name="notification_channel_live_update_desc">在实时活动里显示课程与事件的进行中状态</string>
+    <string name="notification_channel_vivo_atomic">原子通知</string>
+    <string name="notification_channel_vivo_atomic_desc">在系统原子通知中展示课程提醒</string>
+
+    <string name="widget_desc_tiny">课表 · 极简</string>
+    <string name="widget_desc_compact">课表 · 今日</string>
+    <string name="widget_desc_double_days">课表 · 今明两日</string>
+    <string name="widget_desc_list_vertical">课表 · 纵向列表</string>
+    <string name="widget_desc_next_course">课表 · 下一节课</string>
+    <string name="widget_desc_week_courses">课表 · 一周</string>
+    <string name="widget_desc_agenda_list">日程 · 全部</string>
+    <string name="widget_desc_exam_countdown">日程 · 考试倒计时</string>
 </resources>

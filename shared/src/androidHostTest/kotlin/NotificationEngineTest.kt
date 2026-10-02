@@ -255,6 +255,83 @@ class NotificationEngineTest {
         assertTrue(!transitions[1].enable)
     }
 
+    // ------------------------------------------------------------------
+    // 重叠课程的回归用例（XL-001）
+    //
+    // 旧实现按「转换点」归一化，遇到重叠会丢掉较晚的结束时间：
+    //   A 11:00-12:00 + B 11:30-13:00 → 「相邻同态去重」丢掉 关13:00
+    //   → 只剩 开11:00 / 关12:00 → 12:00 恢复铃声，而 B 上到 13:00
+    // 现改为合并「区间」，重叠与紧邻统一正确。
+    // ------------------------------------------------------------------
+
+    @Test
+    fun autoModeTransitionsMergeOverlappingCourses() {
+        val courses = listOf(
+            course("a", "2026-09-28", "11:00", "12:00"),
+            course("b", "2026-09-28", "11:30", "13:00")
+        )
+        val transitions = ReminderEngine.autoModeTransitions(courses)
+        assertEquals(2, transitions.size, "重叠课程应合并成一段静音区间")
+        assertEquals(LocalTime(11, 0), transitions[0].time, "起点取最早")
+        assertTrue(transitions[0].enable)
+        assertEquals(LocalTime(13, 0), transitions[1].time, "终点取最晚，不能被前一段截断")
+        assertTrue(!transitions[1].enable)
+    }
+
+    @Test
+    fun autoModeTransitionsMergeFullyNestedCourse() {
+        // B 完全落在 A 之内：区间应取 A 的外沿，不能被 B 缩短
+        val courses = listOf(
+            course("a", "2026-09-28", "11:00", "13:00"),
+            course("b", "2026-09-28", "11:30", "12:00")
+        )
+        val transitions = ReminderEngine.autoModeTransitions(courses)
+        assertEquals(2, transitions.size)
+        assertEquals(LocalTime(11, 0), transitions[0].time)
+        assertEquals(LocalTime(13, 0), transitions[1].time)
+        assertTrue(!transitions[1].enable)
+    }
+
+    @Test
+    fun autoModeTransitionsKeepChainOfOverlaps() {
+        // 三段链式重叠 A→B→C：合并后应只剩一对开关
+        val courses = listOf(
+            course("a", "2026-09-28", "09:00", "11:00"),
+            course("b", "2026-09-28", "10:30", "12:00"),
+            course("c", "2026-09-28", "11:45", "14:00")
+        )
+        val transitions = ReminderEngine.autoModeTransitions(courses)
+        assertEquals(2, transitions.size, "链式重叠应合并为一段")
+        assertEquals(LocalTime(9, 0), transitions[0].time)
+        assertEquals(LocalTime(14, 0), transitions[1].time)
+        assertTrue(!transitions[1].enable)
+    }
+
+    @Test
+    fun autoModeTransitionsKeepSeparateDaysIndependent() {
+        val courses = listOf(
+            course("a", "2026-09-28", "11:00", "12:00"),
+            course("b", "2026-09-29", "11:30", "13:00")
+        )
+        val transitions = ReminderEngine.autoModeTransitions(courses)
+        assertEquals(4, transitions.size, "跨天的区间不得互相合并")
+        assertEquals(LocalDate(2026, 9, 28), transitions[0].date)
+        assertEquals(LocalDate(2026, 9, 29), transitions[2].date)
+    }
+
+    @Test
+    fun autoModeTransitionsNeverEndBeforeStart() {
+        // 结束早于开始的脏数据：effectiveCourses 已过滤，此处兜底确认序列仍自洽
+        val courses = listOf(course("bad", "2026-09-28", "12:00", "11:00"))
+        val transitions = ReminderEngine.autoModeTransitions(courses)
+        transitions.zipWithNext { a, b ->
+            assertTrue(
+                a.time < b.time || a.date < b.date,
+                "开启必须早于关闭：$a -> $b"
+            )
+        }
+    }
+
     @Test
     fun shouldModeBeOnDetectsInClass() {
         val courses = listOf(course("c1", "2026-09-28", "08:00", "08:45"))

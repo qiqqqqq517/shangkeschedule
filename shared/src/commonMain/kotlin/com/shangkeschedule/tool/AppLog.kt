@@ -9,6 +9,9 @@ package com.shangkeschedule.tool
  */
 expect object AppLog {
 
+    /** 信息：常规运行轨迹（排程摘要、同步条数等），排查时可按 tag 过滤。 */
+    fun i(tag: String, message: String, throwable: Throwable? = null)
+
     /** 警告：异常已被处理并降级，功能可用性可能受影响。 */
     fun w(tag: String, message: String, throwable: Throwable? = null)
 

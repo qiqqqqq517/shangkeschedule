@@ -4,6 +4,10 @@ import android.util.Log
 
 actual object AppLog {
 
+    actual fun i(tag: String, message: String, throwable: Throwable?) {
+        if (throwable == null) Log.i(tag, message) else Log.i(tag, message, throwable)
+    }
+
     actual fun w(tag: String, message: String, throwable: Throwable?) {
         if (throwable == null) Log.w(tag, message) else Log.w(tag, message, throwable)
     }

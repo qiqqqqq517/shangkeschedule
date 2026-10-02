@@ -13,4 +13,6 @@ actual object WidgetTroubleshootBridge {
     actual fun requestRefresh(): Boolean = false
 
     actual fun openSystemSettings(): Boolean = false
+
+    actual fun manufacturer(): String? = null
 }

@@ -3,9 +3,7 @@ package com.shangkeschedule.service.notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.schedule.NotificationScheduler
@@ -17,7 +15,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * 系统时间/时区变更监听：**闹钟时间基准的纠偏入口**。
+ * 系统时间/时区/语言变更监听：**闹钟时间基准的纠偏入口**。
  *
  * ## 为什么必须有
  *
@@ -36,14 +34,24 @@ import org.koin.core.component.inject
  * | action | 触发场景 |
  * |---|---|
  * | `ACTION_TIMEZONE_CHANGED` | 换时区 |
- * | `ACTION_TIME_CHANGED` | 改系统时间 / NTP 校时 |
+ * | `ACTION_TIME_CHANGED`（`android.intent.action.TIME_SET`） | 改系统时间 / NTP 校时 |
  * | `ACTION_DATE_CHANGED` | 跨日（`TIME_SET` 不含日期变更时的补漏） |
+ * | `ACTION_LOCALE_CHANGED` | 系统语言切换 —— 影响星期/日期的本地化渲染 |
  *
- * ## 收尾
+ * ## 注册方式：静态注册到 manifest（XL-014）
  *
- * 这三个广播都**不能**静态注册到 manifest（`ACTION_TIMEZONE_CHANGED` / `ACTION_TIME_CHANGED`
- * 从 v3 起是 manifest-only 之外的隐式广播，静默安装受限），故按项目既有做法在
- * [MyApplication] 启动期运行时注册，与进程同寿、无需反注册。
+ * 此前本类由 [MyApplication] 在启动期**运行时注册**，并在上版 KDoc 里断言
+ * 「这三个广播不能静态注册到 manifest」。该断言不成立，已按下列依据改为静态注册：
+ *
+ * 1. 以上四个 action 全部是**受保护的系统广播**（第三方应用无法发送）。
+ *    Android 8.0 的隐式广播限制针对的是「任意应用都能发的隐式广播」，
+ *    受保护系统广播不在其列，manifest 声明照常投递。
+ * 2. 实证：星链课表（targetSdk 36）的 manifest 正是把这四个 action
+ *    静态声明在其 8 个小组件 receiver 上，与本项目的目标配置一致。
+ * 3. 运行时注册的根本缺陷：与进程同寿。用户在 App 未启动时改时区/改系统时间，
+ *    已排闹钟不重排 → 课表整体偏移且 App 无感知。
+ *
+ * 静态注册后由系统直接拉起进程，不依赖用户是否打开过 App。
  */
 class TimeChangeReceiver : BroadcastReceiver(), KoinComponent {
 
@@ -54,8 +62,9 @@ class TimeChangeReceiver : BroadcastReceiver(), KoinComponent {
         if (intent.action !in HANDLED_ACTIONS) return
 
         val appContext = context.applicationContext
-        // 运行时注册的接收器在同一进程内，无需 goAsync；排程是 IO + 闹钟挂载，放后台协程。
-        Log.d(TAG, "收到 ${intent.action}，立即重排闹钟...")
+        // 与运行时注册同一个「一次 goAsync」惯例：不阻塞主线程（拉起进程 → IO + 重排 → 锁屏广播信号 → 回前台）。
+        Log.d(TAG, "收到 ${intent.action}，开始重排…")
+        val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val summary = NotificationScheduler(
@@ -65,13 +74,15 @@ class TimeChangeReceiver : BroadcastReceiver(), KoinComponent {
                 ).reschedule()
                 Log.d(
                     TAG,
-                    "时间/时区变更后重排完成：提醒 ${summary.reminderCount} 条、" +
-                        "自动模式 ${summary.autoModeCount} 条、早八 ${summary.morningAlarmResult}"
+                    "时间/时区/语言变更重排完成：课程 ${summary.reminderCount} 条" +
+                        "，自动模式 ${summary.autoModeCount} 条，${summary.morningAlarmResult}"
                 )
             } catch (e: Exception) {
-                // 读库未就绪等一律不抛给系统：闹钟旧值仍在，用户感知不到本次纠偏失败，
-                // 下次开机/零点自愈/改设置都会再排一轮。
-                Log.e(TAG, "时间/时区变更后重排失败，保留既有排程", e)
+                // 静默处理：部分系统在锁屏广播值下发期间会抛异常，重排失败无害，
+                // 下次广播 / 重开 App / WorkManager 退避重试都会补上。
+                Log.e(TAG, "时间/时区/语言变更重排失败（保持既有排程）", e)
+            } finally {
+                pendingResult.finish()
             }
         }
     }
@@ -81,25 +92,10 @@ class TimeChangeReceiver : BroadcastReceiver(), KoinComponent {
     }
 }
 
-/** Application 启动期调用一次（进程生命周期内有效，与进程同寿，无需反注册）。 */
-fun registerTimeChangeWatcher(context: Context) {
-    runCatching {
-        ContextCompat.registerReceiver(
-            context,
-            TimeChangeReceiver(),
-            IntentFilter().apply {
-                addAction(Intent.ACTION_TIMEZONE_CHANGED)
-                addAction(Intent.ACTION_TIME_CHANGED)
-                addAction(Intent.ACTION_DATE_CHANGED)
-            },
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-    }.onFailure { Log.e("TimeChangeWatcher", "注册时间/时区变更监听失败", it) }
-}
-
-/** 本接收器处理的动作集合（供 onReceive 快速过滤，也便于单测锁定）。 */
+/** 本 Receiver 处理的 action 全集：既作 manifest 声明的单一事实来源，也作 onReceive 的白名单。 */
 internal val HANDLED_ACTIONS = setOf(
     Intent.ACTION_TIMEZONE_CHANGED,
     Intent.ACTION_TIME_CHANGED,
-    Intent.ACTION_DATE_CHANGED
+    Intent.ACTION_DATE_CHANGED,
+    Intent.ACTION_LOCALE_CHANGED
 )

@@ -47,6 +47,32 @@ object NotificationChannels {
      */
     const val EXAM_COUNTDOWN = "exam_countdown_reminder_channel"
 
+    /**
+     * AOSP 实况通知（Live Updates）承载渠道（新增，XL-012）。
+     *
+     * 实况通知的「实时活动」容器由系统提供，但通知本身仍走普通渠道，因此这里只需要
+     * 一个可被提升（promote）为实况通知的渠道：IMPORTANCE_HIGH + 允许打断 +
+     * 不显示角标（角标由实况形态自己表达）。
+     *
+     * **当前尚未触发实况提升**：把普通通知提升为 Live Updates 依赖 Android 17 的
+     * `NotificationManager.canUseLiveUpdate` / 实况提升 API，本项目 compileSdk 36
+     * 拿不到这些符号。此处先把渠道建好，等升到 SDK 37 再接提升逻辑 —— 届时只需在
+     * [NotificationFormEscalation] 里补一级判断，不必改动渠道定义与已发布渠道的身份。
+     */
+    const val LIVE_UPDATE = "live_update_channel"
+
+    /**
+     * vivo 原子通知承载渠道（新增，XL-012）。
+     *
+     * 与实况通知同理：先建渠道，使通知在不支持原子通知的设备上也能正常降级为普通通知，
+     * 而不是直接不发。
+     *
+     * **当前尚未启用原子形态**：vivo 的「原子通知」需要厂商私有权限与 SDK 集成
+     * （并需在 vivo 开放平台申请场景），无公开文档可依据，不做猜测实现。
+     * 见 [NotificationFormEscalation] 的说明与优化清单 XL-012 的后续项。
+     */
+    const val VIVO_ATOMIC = "vivo_atomic_notification_channel"
+
     /** 确保所有渠道存在；可重复调用（已存在则跳过，不会覆盖用户设置）。 */
     fun ensureAll(context: Context) {
         val nm = context.getSystemService<NotificationManager>() ?: return
@@ -55,6 +81,8 @@ object NotificationChannels {
         ensureMorningAlarmChannel(context, nm)
         ensureNextClassChannel(context, nm)
         ensureExamCountdownChannel(context, nm)
+        ensureLiveUpdateChannel(context, nm)
+        ensureVivoAtomicChannel(context, nm)
     }
 
     private fun ensureCourseChannel(context: Context, nm: NotificationManager) {
@@ -128,6 +156,35 @@ object NotificationChannels {
             ).apply {
                 description = context.getString(R.string.notification_channel_exam_countdown_desc)
                 setShowBadge(true)
+            }
+        )
+    }
+
+    private fun ensureLiveUpdateChannel(context: Context, nm: NotificationManager) {
+        if (nm.getNotificationChannel(LIVE_UPDATE) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(
+                LIVE_UPDATE,
+                context.getString(R.string.notification_channel_live_update),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = context.getString(R.string.notification_channel_live_update_desc)
+                // 实况形态自己表达进度，角标会重复
+                setShowBadge(false)
+            }
+        )
+    }
+
+    private fun ensureVivoAtomicChannel(context: Context, nm: NotificationManager) {
+        if (nm.getNotificationChannel(VIVO_ATOMIC) != null) return
+        nm.createNotificationChannel(
+            NotificationChannel(
+                VIVO_ATOMIC,
+                context.getString(R.string.notification_channel_vivo_atomic),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = context.getString(R.string.notification_channel_vivo_atomic_desc)
+                setShowBadge(false)
             }
         )
     }

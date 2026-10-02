@@ -3,6 +3,7 @@ package com.shangkeschedule.tool
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -88,4 +89,6 @@ actual object WidgetTroubleshootBridge : KoinComponent {
             }
         }
     }
+
+    actual fun manufacturer(): String? = Build.MANUFACTURER
 }

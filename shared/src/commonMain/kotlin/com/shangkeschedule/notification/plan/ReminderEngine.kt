@@ -156,8 +156,23 @@ object ReminderEngine {
     /**
      * 计算自动模式的完整切换时刻序列。
      *
-     * 规则：每节课「开始 → 开启」、「结束 → 关闭」。课间相邻课（上一节结束 == 下一节开始）
-     * 会产生「关-开」同刻对，此处**合并**为一次开启，避免在课间瞬间闪一下恢复正常铃声。
+     * 做法：**先把每节课看成一段「需要静音的区间」，再把同一天内重叠或首尾相接的区间
+     * 合并成极大区间，最后每个极大区间产出一对「开始开启 / 结束关闭」。**
+     *
+     * ## 为什么合并的是「区间」而不是「转换点」
+     *
+     * 旧实现先造出所有「开/关」转换点，再按时间排序做两步归一化（同刻合并 + 相邻同态去重）。
+     * 该做法在**不重叠**与**紧邻**两种情形下正确，但在**时间重叠**时是错的：
+     *
+     * ```
+     * A 11:00-12:00   B 11:30-13:00
+     * 转换点：开11:00 开11:30 关12:00 关13:00
+     * 「相邻同态去重（保留首次出现）」会丢掉 开11:30 与 关13:00
+     * → 结果只剩 开11:00 / 关12:00
+     * → 12:00 触发关闭，而 B 一直上到 13:00 ⇒ 上课中途铃声恢复
+     * ```
+     *
+     * 改为合并区间后，同样输入得到 `开11:00 / 关13:00`，重叠与紧邻统一正确。
      *
      * 旧实现只排「下一个开 / 下一个关」两个闹钟（`findNextDndAlarmTimes`），
      * 一节课结束后若进程被杀、END 闹钟丢失，模式会**卡在开启态**直到下一次同步——
@@ -168,51 +183,53 @@ object ReminderEngine {
         skippedDates: Set<String> = emptySet()
     ): List<AutoModeTransition> {
         val effective = effectiveCourses(courses, skippedDates)
-        val transitions = mutableListOf<AutoModeTransition>()
 
+        // 按天收集「需要静音的区间」；解析失败的条目直接丢弃（与旧实现行为一致）。
+        val windowsByDate = LinkedHashMap<LocalDate, MutableList<ClosedRange<LocalTime>>>()
         for (course in effective) {
             val date = runCatching { LocalDate.parse(course.date) }.getOrNull() ?: continue
             val start = parseTime(course.startTime) ?: continue
             val end = parseTime(course.endTime) ?: continue
-            transitions += AutoModeTransition(date, start, enable = true)
-            transitions += AutoModeTransition(date, end, enable = false)
+            windowsByDate.getOrPut(date) { mutableListOf() } += start..end
         }
 
-        return mergeAdjacent(transitions)
+        val result = mutableListOf<AutoModeTransition>()
+        for (date in windowsByDate.keys.sorted()) {
+            for (window in coalesceWindows(windowsByDate.getValue(date))) {
+                result += AutoModeTransition(date, window.start, enable = true)
+                result += AutoModeTransition(date, window.endInclusive, enable = false)
+            }
+        }
+        return result
     }
 
     /**
-     * 归一化转换序列，分两步：
+     * 把同一天内的静音区间合并为**极大区间**列表。
      *
-     * 1. **同刻合并**：把「上节结束 == 下节开始」的（关, 开）同刻对压成单次**开启**
-     *    ——课间不应闪回正常铃声；
-     * 2. **连续去重**：合并后若出现相邻同态事件（如 08:00 开 与 08:45 开），
-     *    后者不制造任何状态变化，属空操作，丢弃之。
+     * 合并判据是「下一段的开始 ≤ 当前段的结束」—— 因此**重叠**（start < end）与
+     * **首尾相接**（start == end）都会并成一段。相接之所以要合并，是为了让课间
+     * 不闪回正常铃声（与旧实现「关-开同刻对压成一次开启」的意图一致）。
      */
-    private fun mergeAdjacent(transitions: List<AutoModeTransition>): List<AutoModeTransition> {
-        if (transitions.isEmpty()) return transitions
-        val sorted = transitions.sortedWith(compareBy({ it.date }, { it.time }))
-
-        // 步骤 1：同刻合并（开启优先）
-        val merged = mutableListOf<AutoModeTransition>()
-        for (t in sorted) {
-            val last = merged.lastOrNull()
-            if (last != null && last.date == t.date && last.time == t.time) {
-                if (!last.enable && t.enable) {
-                    merged[merged.lastIndex] = last.copy(enable = true)
-                }
-                continue
+    private fun coalesceWindows(
+        windows: List<ClosedRange<LocalTime>>
+    ): List<ClosedRange<LocalTime>> {
+        if (windows.isEmpty()) return emptyList()
+        val sorted = windows.sortedWith(compareBy({ it.start }, { it.endInclusive }))
+        val out = mutableListOf<ClosedRange<LocalTime>>()
+        var curStart = sorted.first().start
+        var curEnd = sorted.first().endInclusive
+        for (w in sorted.drop(1)) {
+            if (w.start <= curEnd) {
+                // 重叠或相接：并入当前区间，结束时间只允许后移（不允许缩短）
+                if (w.endInclusive > curEnd) curEnd = w.endInclusive
+            } else {
+                out += curStart..curEnd
+                curStart = w.start
+                curEnd = w.endInclusive
             }
-            merged += t
         }
-
-        // 步骤 2：连续同态去重（保留首次出现）
-        val result = mutableListOf<AutoModeTransition>()
-        for (t in merged) {
-            if (result.lastOrNull()?.enable == t.enable) continue
-            result += t
-        }
-        return result
+        out += curStart..curEnd
+        return out
     }
 
     /**

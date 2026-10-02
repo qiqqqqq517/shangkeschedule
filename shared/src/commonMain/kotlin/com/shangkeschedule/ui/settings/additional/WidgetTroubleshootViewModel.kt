@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.data.sync.WidgetDataSynchronizer
+import com.shangkeschedule.tool.OemGuide
+import com.shangkeschedule.tool.OemGuideResolver
 import com.shangkeschedule.tool.WidgetTroubleshootBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,13 @@ data class WidgetTroubleshootUiState(
     val currentWeek: Int? = null,
     val busy: Boolean = false,
     val toast: WidgetTroubleshootToast? = null,
+    /**
+     * 当前设备的厂商后台限制引导（XL-013）。
+     *
+     * null 表示「未识别厂商，无可给出的步骤」——
+     * 此时界面**不显示**该区块，而不是显示一个猜测的路径。
+     */
+    val oemGuide: OemGuide? = null,
 )
 
 /**
@@ -103,6 +112,7 @@ class WidgetTroubleshootViewModel(
                     placedCount = placement.placedCount,
                     snapshotCourseCount = courses.size,
                     currentWeek = week,
+                    oemGuide = resolveOemGuide(),
                 )
             }
         }
@@ -152,6 +162,14 @@ class WidgetTroubleshootViewModel(
     fun consumeToast() {
         _uiState.update { it.copy(toast = null) }
     }
+
+    /**
+     * 解析厂商引导：未识别厂商时返回 null，界面不展示该区块。
+     */
+    private fun resolveOemGuide(): OemGuide? =
+        runCatching { OemGuideResolver.resolve(WidgetTroubleshootBridge.manufacturer()) }
+            .getOrNull()
+            ?.takeIf { it.steps.isNotEmpty() }
 
     private companion object {
         /** 与「周课程」小组件一致：今天起 7 天。 */

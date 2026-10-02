@@ -9,4 +9,5 @@
     android:targetCellHeight="2"
     android:targetCellWidth="3"
     android:updatePeriodMillis="0"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_desc_exam_countdown" />

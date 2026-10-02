@@ -5,6 +5,11 @@ package com.shangkeschedule.tool
  */
 actual object AppLog {
 
+    actual fun i(tag: String, message: String, throwable: Throwable?) {
+        println("[I][$tag] $message")
+        throwable?.stackTraceToString()?.let { println(it) }
+    }
+
     actual fun w(tag: String, message: String, throwable: Throwable?) {
         println("[W][$tag] $message")
         throwable?.stackTraceToString()?.let { println(it) }
