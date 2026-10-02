@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="share_temp_files" path="share_temp/" />
+    <!-- 意见反馈截图由 FeedbackScreen.writeFeedbackAttachment 写在 filesDir/share/ 下，必须在此显式声明：
+         FileProvider.getUriForFile 找不到匹配的 root 时会抛 IllegalArgumentException
+         ("Failed to find configured root that contains ...")，而「发送邮件」出口
+         （FeedbackScreen:453）直接调用、没有兜底，用户点了就崩。 -->
+    <files-path name="feedback_share" path="share/" />
 </paths>
