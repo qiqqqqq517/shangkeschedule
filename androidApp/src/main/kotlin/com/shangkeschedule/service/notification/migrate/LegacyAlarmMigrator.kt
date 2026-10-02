@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.edit
+import com.shangkeschedule.service.PermissionNoticeNotifier
 
 /**
  * 升级迁移：清理旧版通知子系统遗留在系统里的闹钟与通知。
@@ -20,7 +21,8 @@ import androidx.core.content.edit
  *
  * 因此首次运行时（幂等标记）：
  *  1. 注销旧区间全部闹钟（课程提醒 50010–50110 + 自动模式 50001/50002）；
- *  2. 取消旧版槽位号充当通知 ID 的那些通知（50000–50200）；
+ *  2. 取消旧版槽位号充当通知 ID 的那些通知（50000–50200，但**跳过当前实现仍在用的
+ *     50190/50191 权限缺失提示**——旧槽位号与它们落在同一区间只是历史巧合）；
  *  3. 清掉旧的 `alarm_ids_prefs` 死数据（旧实现登记后从未真正读取生效）。
  */
 object LegacyAlarmMigrator {
@@ -103,15 +105,28 @@ object LegacyAlarmMigrator {
         }.getOrNull()
     }
 
-    /** 取消旧版「槽位号当通知 ID」的遗留通知。 */
+    /**
+     * 取消旧版「槽位号当通知 ID」的遗留通知，返回真正被清掉的数量。
+     *
+     * 旧区间里绝大多数 id 从未投递过通知，因此不能无条件累加计数
+     * （否则日志恒报 201 条，掩盖真实数量），先取活跃通知再计数。
+     */
     private fun clearLegacyNotifications(context: Context): Int {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return 0
+        val live = runCatching { nm.activeNotifications.map { it.id }.toSet() }
+            .getOrDefault(emptySet())
         var cleared = 0
         for (id in LEGACY_SLOT_RANGE) {
+            // 旧槽位号与当前权限缺失提示的固定 ID 撞在同一区间（50190/50191），
+            // 但它们仍由 PermissionNoticeNotifier 在用，误清会让「权限缺失」提示消失。
+            if (id == PermissionNoticeNotifier.NOTICE_ID_EXACT_ALARM ||
+                id == PermissionNoticeNotifier.NOTICE_ID_DND
+            ) {
+                continue
+            }
             runCatching { nm.cancel(id) }
-            cleared++
+            if (id in live) cleared++
         }
-        // 旧版权限提示通知（新实现沿用了这两个 ID，此处不取消，避免误清仍在用的提示）
         return cleared
     }
 

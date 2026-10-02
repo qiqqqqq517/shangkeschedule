@@ -57,7 +57,7 @@ object NotificationChannels {
      * **当前尚未触发实况提升**：把普通通知提升为 Live Updates 依赖 Android 17 的
      * `NotificationManager.canUseLiveUpdate` / 实况提升 API，本项目 compileSdk 36
      * 拿不到这些符号。此处先把渠道建好，等升到 SDK 37 再接提升逻辑 —— 届时只需在
-     * [NotificationFormEscalation] 里补一级判断，不必改动渠道定义与已发布渠道的身份。
+     * 通知构建处补一级形态判断（优化清单 XL-012），不必改动渠道定义与已发布渠道的身份。
      */
     const val LIVE_UPDATE = "live_update_channel"
 
@@ -69,7 +69,7 @@ object NotificationChannels {
      *
      * **当前尚未启用原子形态**：vivo 的「原子通知」需要厂商私有权限与 SDK 集成
      * （并需在 vivo 开放平台申请场景），无公开文档可依据，不做猜测实现。
-     * 见 [NotificationFormEscalation] 的说明与优化清单 XL-012 的后续项。
+     * 接入方式见优化清单 XL-012 的后续项。
      */
     const val VIVO_ATOMIC = "vivo_atomic_notification_channel"
 

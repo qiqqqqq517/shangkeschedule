@@ -19,7 +19,7 @@ import androidx.compose.ui.util.fastCoerceAtMost
 import com.shangkeschedule.tool.AppLog
 
 /**
- * 玻璃效果作用域：在 [Modifier.glassSurface] 的 `effects { }` 块内描述
+ * 玻璃效果作用域：在 [GlassSurface] 的 `effects { }` 块内描述
  * 「背景拷贝要经过哪些光学处理」。
  *
  * 与 backdrop 的 `BackdropEffectScope` 同构，但按本项目 Compose 1.11.1 的能力裁剪：

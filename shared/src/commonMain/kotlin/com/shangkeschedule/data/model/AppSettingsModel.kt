@@ -121,7 +121,8 @@ data class AppSettingsModel(
     /**
      * 考试倒计时提醒开关。
      *
-     * true  → 最近的考试进入 [EXAM_REMIND_WINDOW_DAYS] 天窗口后，每天更新一条提醒；
+     * true  → 最近的考试进入提醒窗口（当前 7 天，见 `ExamCountdownNotifier.REMIND_WINDOW_DAYS`）
+     *         后，每天更新一条提醒；
      * false → 关闭（默认）。
      *
      * 提醒内容取自「日程」页里分类为「考试」的条目，不新增数据结构。
