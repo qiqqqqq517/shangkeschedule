@@ -455,7 +455,7 @@ exit=0
 
 - `androidApp/.../receiver/AutoModeAlarmReceiver.kt` —— END 分支前置查询
 - `androidApp/.../control/AutoModeScheduler.kt` —— 暴露「当前活动会话」查询（会话区间来自已排程的 AlarmCodeBook 槽位 + 课程表）
-- 建议新增 `shared/.../data/logic/ActiveSessionProbe.kt`（与 `AutoModeStateProbe` 同层，`commonMain` 可单测）
+- 建议新增 `shared/.../data/logic/ActiveSessionProbe.kt`（与 `AutoModeStateProbe` 同层，`commonMain` 可单测）—— **未按此落地**：XL-004 最终改设计，改用既有 `NotificationScheduler.reschedule()` + `shouldModeBeOn` 重算，不新建任何探测文件（见 §0.5 的 XL-004 状态行）；2026-10-03 全仓复查确认该路径不存在
 
 **依赖** 建议等 XL-004（活动会话登记）就位后一并实现 —— 届时本项就是一次查表，工作量降到 S。若要抢在 XL-004 之前先止血，可在 `AutoModeAlarmReceiver.kt:48` 直接比较「当前时间是否落在其他已排程会话区间内」，但那是临时方案，XL-004 落地后应替换。
 
@@ -635,7 +635,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 **改动范围**
 
-- 新增 `androidApp/.../notification/registry/ActiveSessionRegistry.kt`（SharedPreferences 或 DataStore；数据量小，不需要 Room 迁移）
+- 新增 `androidApp/.../notification/registry/ActiveSessionRegistry.kt`（SharedPreferences 或 DataStore；数据量小，不需要 Room 迁移）—— **未按此落地**：XL-004 改设计后**不新建登记表**（见 §0.5 的 XL-004 状态行）；2026-10-03 全仓复查确认该路径不存在
 - `androidApp/.../schedule/NotificationScheduler.kt` —— `reschedule()` 内写入/清理登记，返回 `Summary` 时带上活动会话数
 - `androidApp/.../receiver/AutoModeAlarmReceiver.kt` —— END 分支改为查登记（XL-001 的实现落点）
 - `androidApp/.../receiver/ReminderAlarmReceiver.kt:115` —— `ACTION_MORNING_ALARM_FALLBACK` 接入登记（早八降级续链）
@@ -885,7 +885,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 **目标**：在现有排障面板基础上，按厂商给出分步操作指引 + 深链跳转（跳转失败回退应用详情页）。
 
-**改动范围** — `WidgetTroubleshootViewModel.kt`（厂商分派）、新增 `shared/.../data/model/OemGuide.kt`（数据化文案表）、`androidApp` 侧 Intent 跳转
+**改动范围** — `WidgetTroubleshootViewModel.kt`（厂商分派）、新增 `OemGuide.kt`（数据化文案表；**实际落地于 `shared/src/commonMain/kotlin/com/shangkeschedule/tool/OemGuide.kt`**，且最终实现为纯逻辑 `OemGuideResolver` + 9 条四语资源，不含硬编码文案表 —— 见 §0.5 的 XL-013 状态行）、`androidApp` 侧 Intent 跳转
 
 **依赖** 无
 

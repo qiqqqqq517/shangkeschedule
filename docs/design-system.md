@@ -2,7 +2,7 @@
 
 > 本文件是「上课 ShangKeSchedule」主题/设计系统的**约束规范**（规则，不是值表）。
 > 值表（色阶 / 圆角 / 阴影 / 字阶的具体数值）见 `claude-schedule-page.design/docs/设计token规范.md`。
-> 落地校验器：`tools/check_theme_leak.py`（本文所有"必须/不得"均尽量脚本化）。
+> 落地校验器：`scripts/check_theme_leak.py`（本文所有"必须/不得"均尽量脚本化）。
 
 状态：**P1 立规已生效**（2026-09-23）｜决策依据：`build_qa/design_review/A1-主题系统收口方案.md`（D1–D5 均取 A）
 

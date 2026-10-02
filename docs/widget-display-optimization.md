@@ -433,7 +433,7 @@
 `check_theme_leak.py` 目前只扫 `shared/src/commonMain/kotlin/.../ui/**`，**扫不到 widget 包**（`androidApp/src/main/kotlin/com/shangkeschedule/widget/**`）。建议：
 
 1. 把 widget 包**纳入 C1 扫描范围**，基线设 **0**（因为按本方案 Renderer 里确实一处都没有）；
-2. 新增 **C5 检查：widget token 对比度门禁** —— 把 §附录 A 的脚本固化为 `tools/check_widget_contrast.py`，校验 6 组合 × 全部文本色对 ≥4.5:1、非文本 ≥3:1。**这是把 B2 这类缺陷变成「不可能再引入」的唯一办法**（棘轮语义：只允许下降）。
+2. 新增 **C5 检查：widget token 对比度门禁** —— 把 §附录 A 的脚本固化为 `scripts/check_widget_contrast.py`，校验 6 组合 × 全部文本色对 ≥4.5:1、非文本 ≥3:1。**这是把 B2 这类缺陷变成「不可能再引入」的唯一办法**（棘轮语义：只允许下降）。
 
 ---
 
@@ -473,7 +473,7 @@
 
 | 编号 | 验收项 | 判定方式 |
 |---|---|---|
-| **V1** | **WCAG 2.2 AA 对比度**：所有**文本**色对 ≥ **4.5:1**；所有**非文本** UI（色条/描边/进度环/分隔线）≥ **3:1** | 跑 `tools/check_widget_contrast.py`，覆盖 **3 主题 × 深浅 × 全部文本/非文本角色**；**0 项 FAIL** 方可通过。附录 A 是可复算基线 |
+| **V1** | **WCAG 2.2 AA 对比度**：所有**文本**色对 ≥ **4.5:1**；所有**非文本** UI（色条/描边/进度环/分隔线）≥ **3:1** | 跑 `scripts/check_widget_contrast.py`，覆盖 **3 主题 × 深浅 × 全部文本/非文本角色**；**0 项 FAIL** 方可通过。附录 A 是可复算基线 |
 | **V2** | 浅色提示类文字不再出现 3.30:1 这类值 | 同上脚本；且 `#808B96` 不再作为 10sp 文本色出现（`grep` 可查） |
 | **V3** | 取色兜底可见 | 构造 `colorInt = -1` 与 `colorInt = 999` 两种异常数据，截图中色条**肉眼可见**且脚本判定 ≥3:1 |
 | **V4** | 三主题联动生效 | 依次切到 书卷/通透/柔绘，**各截浅色+深色共 6 张**；卡底/圆角/文字色/分隔线/accent **与 §6.3 表逐项一致**（圆角在截图上量取，误差 ≤1dp） |
@@ -565,7 +565,7 @@
 |---|---|
 | 新增 | `AppWidgetTokens` 结构 + 3 主题 × 深浅 6 份赋值（并入 `AppStyle.kt` / `ClaudeStyle.kt` / `IosStyle.kt` / `SoftStyle.kt`） |
 | 新增 | widget 形状 drawable × 3 主题（卡底/色条/气泡底/描边环，各含日/夜 = 约 8~12 个文件） |
-| 新增 | `tools/check_widget_contrast.py`（对比度门禁） |
+| 新增 | `scripts/check_widget_contrast.py`（对比度门禁） |
 | 新增 | 空/假期态图标 drawable × 3~4 |
 | 修改 | `WidgetSnapshot` proto（新增 `widget_style` message） |
 | 修改 | `WidgetUpdateHelper.kt`（注入 `AppSettingsRepository`、读 preset、解析 token 入快照、条数公式） |
