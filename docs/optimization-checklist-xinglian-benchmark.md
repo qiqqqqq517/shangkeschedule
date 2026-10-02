@@ -57,7 +57,7 @@
 | **XL-003** | ✅ 已修 | 新增 `AlarmPermissionReceiver`（manifest 静态注册，`exported=false`）：撤销时提示 + 降级重排，恢复时重排升级 + 撤提示 |
 | **XL-004** | ✅ 改设计后落地 | **不再新建登记表**：改用既有 `NotificationScheduler.reschedule()` 统一入口 + `shouldModeBeOn` 重算。派生状态不落盘就不会漂移；落盘的收益为零、漂移的风险不为零 |
 | **XL-010** | ⚠️ 已修，但**首版全量失败**（见 §1.2 真机验证） | `CalendarAccountManager.android.kt`：按**开始时刻**做增删改差分 + 写入后回读条数校验；课表为空时按同一键精确清理。v4.66.4 首版用的两列均被 CalendarProvider 拒绝，真机验出后于 v4.66.5 重做 |
-| **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；顺带补 `android:label`（原先 8 个组件在选择器里标题全是「上课」，见 §1.3）。**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
+| **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；顺带补 `android:label`（原先 8 个组件在选择器里标题全是「上课」，见 §1.3）；**v4.67.2 进一步把 label 由工程名（「超小课程2x1」「垂直列表课表4xN」）换成语义名（「课表 · 今日」「日程 · 考试」），description 换成一句用途说明，README / 官网功能页同步改名**。**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
 | **（本轮新增）** | ✅ 已修 | v4.67.0 新增的 4 个规格引入 5 个新色条色，不在对比度门禁清单内 ⇒ 浅色档两个色实测 2.66:1 / 2.11:1 长期漏检。v4.67.1 修正色值 + 门禁扩到 6 色（已反向验证能拦住），见 §1.4 |
 | **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
 | **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |

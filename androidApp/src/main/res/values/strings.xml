@@ -65,11 +65,11 @@
     <string name="notification_channel_morning_alarm_desc">系统无可用时钟应用时的应用内早八提醒</string>
 
     <!-- 小组件相关 -->
-    <string name="widget_name_tiny">超小课程2x1</string>
-    <string name="widget_name_compact">紧凑课程2x2</string>
-    <string name="widget_name_double_days">近日课程4x2</string>
-    <string name="widget_name_list_vertical">垂直列表课表4xN</string>
-    <string name="widget_name_next_course">下一节课3x2</string>
+    <string name="widget_name_tiny">课表 · 极简</string>
+    <string name="widget_name_compact">课表 · 今日</string>
+    <string name="widget_name_double_days">课表 · 今明两日</string>
+    <string name="widget_name_list_vertical">课表 · 纵向列表</string>
+    <string name="widget_name_next_course">课表 · 下一节课</string>
     <!-- 「下一节课」小组件运行时文案（倒计时胶囊 + 跨天兜底） -->
     <string name="widget_next_course_label">下一节课</string>
     <string name="widget_next_course_tomorrow">明日第一节</string>
@@ -77,7 +77,7 @@
     <string name="widget_next_course_ongoing">正在上课</string>
     <string name="widget_next_course_today">今日</string>
     <!-- 「考试倒计时」小组件（v4.67.0）：数据取自日程表的「考试」分类 -->
-    <string name="widget_name_exam_countdown">考试倒计时3x2</string>
+    <string name="widget_name_exam_countdown">日程 · 考试</string>
     <string name="widget_exam_label">距离考试</string>
     <string name="widget_exam_today">今天</string>
     <string name="widget_exam_tomorrow">明天</string>
@@ -86,12 +86,12 @@
     <string name="widget_exam_none_hint">在「日程」页添加考试即可倒计时</string>
     <string name="widget_exam_more">还有 %1$d 场考试</string>
     <!-- 「周课程」小组件（v4.67.0，C3）：今天起 7 天的课程列表 -->
-    <string name="widget_name_week_courses">周课程列表4xN</string>
+    <string name="widget_name_week_courses">课表 · 一周</string>
     <string name="widget_week_remaining">本周还有 %1$d 节课</string>
     <string name="widget_week_finished">本周课程已结束</string>
     <string name="widget_week_finished_hint">下周一见</string>
     <!-- 「日程清单」小组件（v4.67.0，C4）：待办 / 活动 / 作业 / 考试的统一清单 -->
-    <string name="widget_name_agenda_list">日程清单3x3</string>
+    <string name="widget_name_agenda_list">日程 · 全部</string>
     <string name="widget_agenda_today">今日日程</string>
     <string name="widget_agenda_upcoming">未来日程</string>
     <string name="widget_agenda_count">共 %1$d 项</string>
@@ -198,12 +198,12 @@
     <string name="notification_channel_vivo_atomic">原子通知</string>
     <string name="notification_channel_vivo_atomic_desc">在系统原子通知中展示课程提醒</string>
 
-    <string name="widget_desc_tiny">课表 · 极简</string>
-    <string name="widget_desc_compact">课表 · 今日</string>
-    <string name="widget_desc_double_days">课表 · 今明两日</string>
-    <string name="widget_desc_list_vertical">课表 · 纵向列表</string>
-    <string name="widget_desc_next_course">课表 · 下一节课</string>
-    <string name="widget_desc_week_courses">课表 · 一周</string>
-    <string name="widget_desc_agenda_list">日程 · 全部</string>
-    <string name="widget_desc_exam_countdown">日程 · 考试倒计时</string>
+    <string name="widget_desc_tiny">只显示当前或下一节课</string>
+    <string name="widget_desc_compact">今天的全部课程</string>
+    <string name="widget_desc_double_days">今天与明天的课程</string>
+    <string name="widget_desc_list_vertical">按时间纵向排列的课程</string>
+    <string name="widget_desc_next_course">下一节课与开始倒计时</string>
+    <string name="widget_desc_week_courses">整周课程表</string>
+    <string name="widget_desc_agenda_list">待办、活动与作业汇总</string>
+    <string name="widget_desc_exam_countdown">距下一场考试的倒计时</string>
 </resources>
