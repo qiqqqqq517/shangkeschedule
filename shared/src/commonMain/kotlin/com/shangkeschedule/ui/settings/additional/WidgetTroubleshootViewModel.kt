@@ -6,6 +6,8 @@ import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.data.sync.WidgetDataSynchronizer
 import com.shangkeschedule.tool.OemGuide
 import com.shangkeschedule.tool.OemGuideResolver
+import com.shangkeschedule.tool.WidgetPinOutcome
+import com.shangkeschedule.tool.WidgetSpec
 import com.shangkeschedule.tool.WidgetTroubleshootBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +44,12 @@ enum class WidgetTroubleshootToast {
 
     /** 当前平台没有小组件机制（桌面版 / iOS）。 */
     UNSUPPORTED,
+
+    /** 已向系统发起「固定到桌面」，用户会看到系统确认框（v4.66.6 / XL-015）。 */
+    PIN_REQUESTED,
+
+    /** 系统拒绝了固定请求 —— 桌面可能不支持，或该组件已被移除（v4.66.6 / XL-015）。 */
+    PIN_REJECTED,
 }
 
 /**
@@ -66,6 +74,12 @@ data class WidgetTroubleshootUiState(
      * 此时界面**不显示**该区块，而不是显示一个猜测的路径。
      */
     val oemGuide: OemGuide? = null,
+    /**
+     * 可逐个「添加到桌面」的小组件清单（v4.66.6 / XL-015）。
+     *
+     * 空列表表示当前平台没有小组件（桌面版 / iOS）或读取失败，此时界面不渲染该区块。
+     */
+    val specs: List<WidgetSpec> = emptyList(),
 )
 
 /**
@@ -113,6 +127,7 @@ class WidgetTroubleshootViewModel(
                     snapshotCourseCount = courses.size,
                     currentWeek = week,
                     oemGuide = resolveOemGuide(),
+                    specs = placement.specs,
                 )
             }
         }
@@ -145,6 +160,24 @@ class WidgetTroubleshootViewModel(
                 _uiState.value.placedCount == 0 -> WidgetTroubleshootToast.NOTHING_PLACED
                 WidgetTroubleshootBridge.requestRefresh() -> WidgetTroubleshootToast.REFRESHED
                 else -> WidgetTroubleshootToast.FAILED
+            }
+            _uiState.update { it.copy(busy = false, toast = toast) }
+        }
+    }
+
+    /**
+     * 请求把指定的小组件固定到桌面（v4.66.6 / XL-015）。
+     *
+     * 固定之后组件出现在桌面上，[reload] 才能读到新的 `placedCount`，所以这里要再读一次。
+     */
+    fun pin(key: String) {
+        if (_uiState.value.busy) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(busy = true) }
+            val toast = when (WidgetTroubleshootBridge.requestPin(key)) {
+                WidgetPinOutcome.REQUESTED -> WidgetTroubleshootToast.PIN_REQUESTED
+                WidgetPinOutcome.REJECTED -> WidgetTroubleshootToast.PIN_REJECTED
+                WidgetPinOutcome.UNSUPPORTED -> WidgetTroubleshootToast.UNSUPPORTED
             }
             _uiState.update { it.copy(busy = false, toast = toast) }
         }

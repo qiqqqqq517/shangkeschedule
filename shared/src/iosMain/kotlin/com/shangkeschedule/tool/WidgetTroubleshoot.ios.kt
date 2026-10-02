@@ -12,6 +12,9 @@ actual object WidgetTroubleshootBridge {
 
     actual fun requestRefresh(): Boolean = false
 
+    /** iOS 的小组件由用户自己在负一屏添加，应用无权请求固定。 */
+    actual fun requestPin(key: String): WidgetPinOutcome = WidgetPinOutcome.UNSUPPORTED
+
     actual fun openSystemSettings(): Boolean = false
 
     actual fun manufacturer(): String? = null

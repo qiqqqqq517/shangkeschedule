@@ -56,7 +56,7 @@
 | **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
 | **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |
 | **XL-014** | ✅ 已修 | `TimeChangeReceiver` 改为 manifest 静态注册（移除 `MyApplication` 运行时注册）+ 新增 `LOCALE_CHANGED`；修正其 KDoc 中与实现不符的「静态注册」表述 |
-| **XL-015** | ❌ 未做 | `requestPinAppWidget` 需平台桥接 + 新 UI 入口（当前排障页无「添加小组件」动作），单独排期 |
+| **XL-015** | ✅ 已完成（v4.67.0） | `WidgetPlacement.specs` 逐 provider 明细 + `WidgetTroubleshootBridge.requestPin(key)`（expect + android/jvm/ios 三处 actual）；排障页新增「添加到桌面」区块。**顺带修掉一个真机才暴露的问题**：8 个 provider XML 原本都没有 `android:label`，桌面选择器里 8 个条目标题全是「上课」，只靠 description 区分 —— 补 label 后每个组件在选择器里有自己的名字。详见 §1.3 |
 
 **顺带补的基础设施**：`AppLog` 增加 `i` 级别（expect + android/jvm/ios 三处 actual）—— shared 层此前只有 `w`/`e`，导致信息级日志无处可去。
 
@@ -138,6 +138,82 @@ v4.66.4 交付的 XL-010（日历增量写回）**在真机上 100% 失败**，�
 2. `adb shell` 的输出是 UTF-8，Python `subprocess` 不显式给 `encoding='utf-8'` 会被按 GBK 解成乱码；
 3. **点一下输入框后输入法弹出，整个界面会上移**（实测 y 从 797 变 319）。
    后续坐标必须重新 dump 取，不能复用 —— 我第一次长按正是因此误触了周次选择器。
+
+---
+
+### 1.3 XL-015 小组件固定到桌面（v4.67.0 / code 431）
+
+#### 做了什么
+
+排障页此前对「一个小组件都没添加」的用户只能提示「去桌面长按添加」。现在给出 8 个可点的入口：
+
+| 层 | 内容 |
+|---|---|
+| `WidgetPlacement` | 新增 `specs: List<WidgetSpec>`，逐 provider 给出 `key` / `label` / `placedCount` |
+| `WidgetTroubleshootBridge` | 新增 `requestPin(key): WidgetPinOutcome`（REQUESTED / REJECTED / UNSUPPORTED） |
+| 排障页 | 新增「添加到桌面」区块，位置在「排障操作」**之前** —— 先添加是再排障的前提 |
+| `SettingItem` | 新增 `enabled` 参数，供固定过程中防连点 |
+
+两个设计取舍：
+
+1. **`key` 用 provider 的全限定类名**，不用 `courseId:week` 式的业务键。它只在本进程内往返、从不落盘、从不上报，
+   类名不会与文案改版冲突，也省掉一层映射。
+2. **`label` 取 `AppWidgetProviderInfo.loadLabel()`**，不在 shared 里另写一套 8 条文案。
+   这样列表里的名字与用户即将在系统选择器里看到的**必然是同一个字符串**，不会出现两套名字对不上。
+
+用 `requestPinAppWidget` 而非 `ACTION_APPWIDGET_BIND`：后者要求用户输密码绑定启动器，
+那与「放一个组件到桌面」不是一回事。不传 `callback` —— 固定成功与否由系统弹窗自己交代，
+应用侧只报「请求有没有被受理」，不假装已经放好了。
+
+#### 顺带修掉一个真机才暴露的问题：8 个组件在选择器里同名
+
+provider XML 原本**都没有 `android:label`**。`AppWidgetProviderInfo.loadLabel()` 在没有 label 时会
+回落到**应用名**，也就是说桌面选择器里 8 个小组件的标题**全是「上课」**，只靠 description 那行区分：
+
+```
+上课   课表 · 超小
+上课   课表 · 紧凑
+上课   课表 · 连续两日
+```
+
+`widget_name_*` 这 8 条标签（"超小课程2x1" 等）**本来就存在于四语文案里**，只是从来没被任何 XML 引用。
+补上 `android:label="@string/widget_name_*"` 即可，**零新增文案**。
+
+真机截图确认修复后（MIUI 选择器）：
+
+```
+上课
+  超小课程2x1   紧凑课程2x2   近日课程4x2   …
+  考试倒计时… 3x2   周课程列表… 4x3   日程清单3x3 3x3
+```
+
+同一屏上 Telegram / 哔哩哔哩 仍然是「Telegram」「哔哩哔哩」那种同名重复 —— 这是**别的应用**的问题，
+不在本仓库范围内，但足以对照出本应用现在的差别。
+
+#### 真机验证
+
+| 环节 | 结果 |
+|---|---|
+| 排障页渲染 | ✅ 「添加到桌面」区块出现，8 行逐 provider 列出；`近日课程4x2` 显示「已添加 1 个」，其余显示添加提示 |
+| `loadLabel` 回退 | ✅ 未识别时回落到类名尾部，不会出现空白行 |
+| 请求送达系统 | ✅ `ActivityTaskManager: START u0 {act=android.content.pm.action.CONFIRM_PIN_APPWIDGET ... com.miui.home/.launcher.AddItemActivity}` |
+| 实际放置 | ⚠️ **未发生**，`placedCount` 前后都是 1 |
+
+最后一项要如实说明：**MIUI 桌面没有实现「就地确认并放置」**。
+它把 `CONFIRM_PIN_APPWIDGET` 这个 intent 走成了「打开小部件选择器」——
+截图上看到的是完整的「添加小部件」列表页，而不是一个「要添加这个组件吗？」的确认框。
+因此请求**路径正确**（intent 确实发到了桌面且被接收），但**落地行为由桌面实现决定**，应用侧无法保证。
+
+这也是为什么 `requestPin` 不传 callback、不假装成功：`WidgetPinOutcome.REQUESTED` 只表示
+「系统受理了请求」，用户是否真的放上桌面，取决于桌面对这个 intent 的实现。
+排障页的「已添加 N 个」始终读**系统里的真实实例数**，不会因为请求过就显示成已添加。
+
+#### 新增自动化闸
+
+`WidgetPinStringsTest`（4 例）：三个 locale 的 key 集合必须完全一致 + 占位符编号对齐。
+这一组文案是逐 locale 手写新增的，而 compose-resources 缺 key 时是**运行期**才回退默认 locale ——
+漏翻一个语言不会编译失败、不会单测失败，只会在那个语言的设备上默默显示简体字。
+上一轮 XL-013 的 9 条资源踩的是同一个坑（当时无自动闸），这次补上。
 
 ## 1. 总览速览
 

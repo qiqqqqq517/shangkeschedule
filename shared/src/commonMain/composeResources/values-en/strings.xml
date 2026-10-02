@@ -1479,4 +1479,10 @@
     <string name="widget_oem_guide_step_lock">Lock the app in the recent-apps list so it is not cleared by one-tap cleanup</string>
 
     <string name="widget_oem_guide_summary_title">Set these in order</string>
+  <string name="widget_troubleshoot_section_add">Add to home screen</string>
+  <string name="widget_troubleshoot_add_desc">Tap to confirm via the system dialog; afterwards you can resize and move it on the home screen</string>
+  <string name="widget_troubleshoot_added_count">%1$d placed</string>
+  <string name="widget_troubleshoot_added_none">Not added yet</string>
+  <string name="widget_troubleshoot_toast_pin_requested">Add requested — confirm the system prompt</string>
+  <string name="widget_troubleshoot_toast_pin_rejected">The system declined — long-press the home screen to add one manually</string>
 </resources>

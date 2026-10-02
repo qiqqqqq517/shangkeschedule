@@ -48,11 +48,14 @@ import shangkeschedule.shared.generated.resources.build_24px
 import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.sync_alt_24px
 import shangkeschedule.shared.generated.resources.title_widget_troubleshoot
-import shangkeschedule.shared.generated.resources.widget_oem_guide_title
-import shangkeschedule.shared.generated.resources.widget_oem_guide_summary_title
-import shangkeschedule.shared.generated.resources.widget_oem_guide_summary
-import shangkeschedule.shared.generated.resources.widget_oem_guide_step_fmt
 import shangkeschedule.shared.generated.resources.tune_24px
+import shangkeschedule.shared.generated.resources.widget_oem_guide_step_fmt
+import shangkeschedule.shared.generated.resources.widget_oem_guide_summary
+import shangkeschedule.shared.generated.resources.widget_oem_guide_summary_title
+import shangkeschedule.shared.generated.resources.widget_oem_guide_title
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_add_desc
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_added_count
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_added_none
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help_desc
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_help_message
@@ -66,12 +69,15 @@ import shangkeschedule.shared.generated.resources.widget_troubleshoot_rebuild_de
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_refresh
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_refresh_desc
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_section_actions
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_section_add
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_section_status
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_snapshot
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_snapshot_value
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_tip
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_failed
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_nothing_placed
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_pin_rejected
+import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_pin_requested
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_rebuilt
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_refreshed
 import shangkeschedule.shared.generated.resources.widget_troubleshoot_toast_unsupported
@@ -109,6 +115,8 @@ fun WidgetTroubleshootScreen(
     val toastNothingPlaced = stringResource(Res.string.widget_troubleshoot_toast_nothing_placed)
     val toastFailed = stringResource(Res.string.widget_troubleshoot_toast_failed)
     val toastUnsupported = stringResource(Res.string.widget_troubleshoot_toast_unsupported)
+    val toastPinRequested = stringResource(Res.string.widget_troubleshoot_toast_pin_requested)
+    val toastPinRejected = stringResource(Res.string.widget_troubleshoot_toast_pin_rejected)
 
     LaunchedEffect(uiState.toast) {
         val toast = uiState.toast ?: return@LaunchedEffect
@@ -119,6 +127,8 @@ fun WidgetTroubleshootScreen(
                 WidgetTroubleshootToast.NOTHING_PLACED -> toastNothingPlaced
                 WidgetTroubleshootToast.FAILED -> toastFailed
                 WidgetTroubleshootToast.UNSUPPORTED -> toastUnsupported
+                WidgetTroubleshootToast.PIN_REQUESTED -> toastPinRequested
+                WidgetTroubleshootToast.PIN_REJECTED -> toastPinRejected
             }
         )
         viewModel.consumeToast()
@@ -196,6 +206,33 @@ fun WidgetTroubleshootScreen(
                         } ?: stringResource(Res.string.widget_troubleshoot_week_unset),
                         trailingContent = {},
                     )
+                }
+
+                // XL-015：还没添加过小组件的用户，此前只能退回桌面长按。
+                // 放在排障操作之前 —— 「先添加」是「再排障」的前提。
+                val specs = uiState.specs
+                if (specs.isNotEmpty()) {
+                    AppSectionHeader(text = stringResource(Res.string.widget_troubleshoot_section_add))
+                    SectionCard {
+                        val addDesc = stringResource(Res.string.widget_troubleshoot_add_desc)
+                        specs.forEachIndexed { index, spec ->
+                            if (index > 0) SectionDivider()
+                            SettingItem(
+                                title = spec.label,
+                                subtitle = when {
+                                    // 已添加过的显示个数 —— 这时副标题的用途是告知现状，
+                                    // 「点一下添加」那句话只在还没添加时才有意义。
+                                    spec.placedCount > 0 -> stringResource(
+                                        Res.string.widget_troubleshoot_added_count,
+                                        spec.placedCount,
+                                    )
+                                    else -> addDesc
+                                },
+                                enabled = !uiState.busy,
+                                onClick = { viewModel.pin(spec.key) },
+                            )
+                        }
+                    }
                 }
 
                 AppSectionHeader(text = stringResource(Res.string.widget_troubleshoot_section_actions))

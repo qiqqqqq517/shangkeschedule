@@ -441,6 +441,13 @@ internal fun SettingItem(
     accent: AccentTone = AccentTone.PRIMARY,
     titleStyle: TextStyle? = null,
     verticalPadding: Dp = 6.dp,
+    /**
+     * 行是否可交互。false 时整行不可点、文字降到次级色（XL-015 固定小组件时用它做防连点）。
+     *
+     * 与 `onClick` 分开而不是用 `onClick = null` 表达「禁用」：后者会让行**彻底失去点击语义**
+     * （既没有 ripple 也没有禁用视觉），调用方分不清「禁用」和「这行本来就是纯展示」。
+     */
+    enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable () -> Unit = {
         Icon(
@@ -454,16 +461,21 @@ internal fun SettingItem(
     // 加三处 `if (isClaudePreset)`（15sp / Medium / 48dp）。根因是 token 缺失而非"需要分支"：
     // `rowTitle` 描述的是**页面行标题**（书卷 18sp），设置行是另一个角色。补 `settingsRowTitle` /
     // `settingsRowTitleWeight` / `settingsRowMinHeight` 三个 token 后，分支自然消失（规范 R1/R2）。
-    val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
+    val titleColor = if (enabled) {
+        appColors().textPrimary
+    } else {
+        appColors().textSecondary
+    }
+    val effectiveTitleStyle = (titleStyle ?: MaterialTheme.typography.titleMedium).copy(
         fontSize = appType().settingsRowTitle,
         fontWeight = appType().settingsRowTitleWeight,
-        color = appColors().textPrimary
+        color = titleColor
     )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .clickable(enabled = enabled && onClick != null) { onClick?.invoke() }
             .padding(vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

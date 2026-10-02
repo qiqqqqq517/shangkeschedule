@@ -6,6 +6,7 @@
   周期刷新统一交给 WorkManager（一次调用即渲染全部组件，粒度正确）。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/widget_name_tiny"
     android:minWidth="110dp"
     android:minHeight="40dp"
     android:targetCellWidth="2"

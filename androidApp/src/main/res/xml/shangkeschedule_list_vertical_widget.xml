@@ -9,6 +9,7 @@
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/widget_loading_placeholder"
+    android:label="@string/widget_name_list_vertical"
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="250dp"

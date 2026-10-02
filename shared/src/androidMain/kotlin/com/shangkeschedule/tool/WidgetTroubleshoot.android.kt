@@ -35,13 +35,54 @@ actual object WidgetTroubleshootBridge : KoinComponent {
         return try {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val providers = ownProviders(appWidgetManager)
+            val specs = providers.map { info ->
+                WidgetSpec(
+                    // 类名做键：只在本进程内往返，不需要人可读，也就不会随文案改版失效
+                    key = info.provider.className,
+                    // loadLabel 取的是系统选择器里那个标题（见 XML 的 android:label）。
+                    // 拿不到就退回类名尾部 —— 宁可难看也不能让界面上出现空白的一行。
+                    label = runCatching { info.loadLabel(context.packageManager).toString() }
+                        .getOrNull()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: info.provider.className.substringAfterLast('.'),
+                    placedCount = appWidgetManager.getAppWidgetIds(info.provider).size,
+                )
+            }
             WidgetPlacement(
                 providerCount = providers.size,
-                placedCount = providers.sumOf { appWidgetManager.getAppWidgetIds(it.provider).size },
+                placedCount = specs.sumOf { it.placedCount },
+                specs = specs,
             )
         } catch (t: Throwable) {
             AppLog.w(TAG, "读取小组件放置情况失败：${t.message}", t)
             WidgetPlacement(providerCount = 0, placedCount = 0)
+        }
+    }
+
+    /**
+     * 请求固定到桌面（v4.66.6 / XL-015）。
+     *
+     * 键到 provider 的映射每次现查，不缓存：`installedProviders` 会随安装/卸载变，
+     * 缓存下来的列表迟早指向一个已经不存在的类。
+     */
+    actual fun requestPin(key: String): WidgetPinOutcome {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return WidgetPinOutcome.UNSUPPORTED
+        return try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val target = ownProviders(appWidgetManager).firstOrNull { it.provider.className == key }
+                ?: return WidgetPinOutcome.REJECTED
+            // 不传 callback：固定成功与否由系统弹窗自己交代，这里只报「请求有没有被受理」。
+            // 用 requestPinAppWidget 而不是 ACTION_APPWIDGET_BIND —— 后者要用户输密码，
+            // 那是对「绑定到启动器」的要求，与「放一个组件到桌面」不是一回事。
+            if (appWidgetManager.requestPinAppWidget(target.provider, null, null)) {
+                WidgetPinOutcome.REQUESTED
+            } else {
+                AppLog.w(TAG, "系统拒绝了固定请求：$key")
+                WidgetPinOutcome.REJECTED
+            }
+        } catch (t: Throwable) {
+            AppLog.w(TAG, "请求固定小组件到桌面失败：${t.message}", t)
+            WidgetPinOutcome.REJECTED
         }
     }
 

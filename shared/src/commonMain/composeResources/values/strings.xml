@@ -1480,4 +1480,10 @@
     <string name="widget_oem_guide_step_lock">在最近任务下拉加锁，避免被一键清理</string>
 
     <string name="widget_oem_guide_summary_title">按下列步骤设置</string>
+  <string name="widget_troubleshoot_section_add">添加到桌面</string>
+  <string name="widget_troubleshoot_add_desc">点一下由系统确认添加；添加后可长按桌面调整大小和位置</string>
+  <string name="widget_troubleshoot_added_count">已添加 %1$d 个</string>
+  <string name="widget_troubleshoot_added_none">尚未添加</string>
+  <string name="widget_troubleshoot_toast_pin_requested">已请求添加，请在弹出的提示中确认</string>
+  <string name="widget_troubleshoot_toast_pin_rejected">系统未接受请求，可长按桌面手动添加</string>
 </resources>

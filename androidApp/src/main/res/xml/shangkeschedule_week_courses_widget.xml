@@ -3,6 +3,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/widget_loading_placeholder"
     android:minHeight="180dp"
+    android:label="@string/widget_name_week_courses"
     android:minWidth="250dp"
     android:previewImage="@drawable/widget_preview_week_courses"
     android:resizeMode="horizontal|vertical"
