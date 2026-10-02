@@ -44,7 +44,7 @@
 | 章 | 桶 | 条数 | P0 | P1 | P2 | 工作量合计 |
 |---|---|---|---|---|---|---|
 | 2 | 缺陷与可靠性 | 3 | 3 | — | — | M |
-| 3 | 架构：统一事件编排层 | 1 | 1 | — | — | L |
+| 3 | 架构：跨进程活动会话登记 | 1 | 1 | — | — | M |
 | 4 | 战略：小组件 Glance 迁移 | 1 | — | 1 | — | XL |
 | 5 | 功能加深 | 6 | — | 6 | — | L |
 | 6 | 新功能补齐 | 6 | — | — | 6 | L |
@@ -52,7 +52,23 @@
 | 8 | 红线 | 5 | — | — | — | S |
 | 9 | 观察项 | 2 | — | — | — | S |
 
-**建议排期顺序**：第 2 章（3 条小而急，含 1 个真 bug）→ 第 3 章（架构，先做可避免后续返工）→ 第 4 章决策点 → 其余。
+**建议排期顺序**：第 2 章（3 条小而急，含 1 个真 bug）→ 第 3 章（XL-001/002/003/004/014 建议合为一批「系统事件响应可靠性」批次落地）→ 第 4 章决策点 → 其余。
+
+---
+
+### 1.1 核对轮次记录
+
+本文档经过一轮自查核对，以下断言在核对中被**修正或撤回**（保留修正痕迹以免后续重犯）：
+
+| # | 初版断言 | 核对结论 |
+|---|---|---|
+| 1 | androidApp 有 7 个单测 | ❌ 实为 **8 个文件 / 65 个 `@Test`**（漏计 `WidgetCourseSelectionTest`） |
+| 2 | shared `androidHostTest` 10 例 | ❌ 实为 **15 个文件 / 140 个 `@Test`**（初版采信了 `REVIEW.md` 的历史快照数字） |
+| 3 | Glance 消除 `widget-display-optimization.md §9` 中「至少 9 条」不可行项 | ❌ **收回**。逐条核对 13 项后：**7 条完全消除**（1/2/4/5/6/9/11）、2 条绕过或缓解（10/13）、**4 条不解决**（3/7/8/12）。其中第 8 条「秒级整体重绘」Glance 完全不解决（渲染机制同源） |
+| 4 | 我方「缺统一事件编排层，4 条链路互不感知」 | ❌ **高估，已收回**。`NotificationScheduler.reschedule()` 已是合格的单点重排入口（单次读库 / 三套共用 `effectiveCourses` / 读库失败保留旧闹钟 / 三策略异常隔离）。XL-004 已收窄为「跨进程活动会话登记」，工作量由 L 降为 M |
+| 5 | `TimeChangeReceiver` 已覆盖 3 个 action | ⚠️ **加强**。事实成立，但漏了关键限定：由 `MyApplication` 运行时注册、**不在 manifest**，进程死亡时收不到；且其 KDoc 自称「静态注册到 manifest」与实现不符 |
+| 6 | 星链 `WidgetThemeConfig` 有 25 个字段 | ❌ 实为 **22 个**（初版目测字段列表时重复计数） |
+| 7 | 星链 `WidgetData` 有 7 个 `show*` 显示开关 | ❌ 实为 **6 个**（`showCourseTag` 被重复计入） |
 
 ---
 
@@ -87,7 +103,7 @@
 - `androidApp/.../control/AutoModeScheduler.kt` —— 暴露「当前活动会话」查询（会话区间来自已排程的 AlarmCodeBook 槽位 + 课程表）
 - 建议新增 `shared/.../data/logic/ActiveSessionProbe.kt`（与 `AutoModeStateProbe` 同层，`commonMain` 可单测）
 
-**依赖** 无（可独立做）。**若与 XL-004 同批做，可直接查统一事件表，此项降为 S。**
+**依赖** 建议等 XL-004（活动会话登记）就位后一并实现 —— 届时本项就是一次查表，工作量降到 S。若要抢在 XL-004 之前先止血，可在 `AutoModeAlarmReceiver.kt:48` 直接比较「当前时间是否落在其他已排程会话区间内」，但那是临时方案，XL-004 落地后应替换。
 
 **验收标准**
 
@@ -164,9 +180,20 @@
 
 **现状（已核实）**
 
-- `androidApp/src/main/AndroidManifest.xml` —— grep `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` **命中 0 次**
+- `androidApp/src/main/AndroidManifest.xml` —— grep `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` **命中 0 次**；manifest 共声明 **15 个 receiver**，逐一核对后无任何一个监听该 action
 - `AlarmScheduler.kt:77` 与 `DynamicIslandManager.kt:175` 均**排期时**检查 `canScheduleExactAlarms`（这点是对的）
 - 但全仓无任何 `BroadcastReceiver` 监听权限状态变更
+
+**同类失效模式已在仓库内出现（本轮核对新发现，佐证本项必要性）**
+
+`TimeChangeReceiver` 由 `MyApplication` **运行时注册**（`registerTimeChangeWatcher(context)`），**不在 manifest 中**（已逐条核对 15 个 receiver 名称确认）。后果：
+
+- 进程存活时：能收到 `ACTION_TIMEZONE_CHANGED` / `ACTION_TIME_CHANGED` / `ACTION_DATE_CHANGED`，调 `NotificationScheduler.reschedule()` —— 工作正常
+- **进程死亡时收不到**，已排程闹钟不重排。用户改了时区/系统时间后课表整体偏移，且无任何提示
+
+更需注意的是：**`TimeChangeReceiver` 的类 KDoc 自称「该广播由 `TimeChangeReceiver` 静态注册到 manifest」—— 这句注释与实际实现不符**，属过时/错误注释，会误导维护者以为进程死亡时也能收到。这与 `REVIEW.md` 第 6 轮记录的多条「名实不符」同源。
+
+这恰好说明本项**必须 manifest 注册**：权限变更与时区变更都要求「无论进程是否存活都能响应」，运行时注册的 receiver 天然做不到。
 
 **风险**
 
@@ -206,83 +233,79 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 ---
 
-## 3. P0 · 架构：统一事件编排层
+## 3. P0 · 架构：跨进程活动会话登记
 
-### XL-004 · 同一门课被拆到 4 条互不感知的链路，缺单一事实来源
+### XL-004 · 缺跨进程的「活动会话」状态，重叠保护与降级续链因此无法正确实现
 
 | 字段 | 内容 |
 |---|---|
 | **优先级** | P0（架构） |
-| **工作量** | L |
-| **类型** | 架构重构 |
+| **工作量** | M（**由 L 下调** —— 已有统一编排入口，不需要新建编排层） |
+| **类型** | 能力补全 |
 | **单独立项** | 是（用户已确认单独排期） |
 
-**现状（已核实）**
+> ⚠️ **本条为初版高估后的修正结论。** 初版判断是「缺统一事件编排层，同一门课被拆到 4 条互不感知的链路，各排各的、各消各的」。复核 `NotificationScheduler.kt` 后该判断**不成立**，详见下方「事实澄清」。
 
-androidApp 现有 10 个自定义 action 常量，分属 4 条**各自独立排程**的链路：
+**事实澄清：统一编排入口已经存在，且设计良好**
 
-| 链路 | action 常量 | 位置 |
-|---|---|---|
-| 课程提醒 | `ACTION_COURSE_REMINDER` | `receiver/ReminderAlarmReceiver.kt:109` |
-| 自动勿扰 | `ACTION_AUTO_MODE_START` / `_END` | `receiver/AutoModeAlarmReceiver.kt:61,64` |
-| 灵动岛 | `ACTION_DYNAMIC_ISLAND_START` / `_STOP` | `DynamicIslandManager.kt:126,127` |
-| 早八降级 | `ACTION_MORNING_ALARM_FALLBACK` | `receiver/ReminderAlarmReceiver.kt:115` |
+`androidApp/.../schedule/NotificationScheduler.kt` 已是一个合格的单点重排入口：
 
-关键事实：
+| 行 | 事实 |
+|---|---|
+| `:63-69` | 持有 4 套子调度器：`alarms`（`AlarmScheduler`）/ `courseReminders` / `autoMode` / `morningAlarms` |
+| `:111` | 考试倒计时**先于**课程读库执行 —— 不依赖课程库，课程库读失败时仍能更新 |
+| `:115-133` | **单次读库**供三套调度共用；读库失败时**保留既有闹钟不清空**（注释明确说明这是相对旧实现「先清后读」的改进） |
+| `:136` | 三套策略共用同一份 `ReminderEngine.effectiveCourses` 结果 |
+| `:138` | `alarms.cancelAll()` 后统一重建 |
+| `:145-149` | `guard(tag) {}` 三策略异常隔离 + `failedStrategies` 计数（`REVIEW.md` 批12「三策略异常隔离」已落地） |
 
-1. **START/END 机制已存在**（勿扰与灵动岛各有），本项**不是**「缺三闹钟」—— 这一点纠正了初步对标判断。
-2. 但四者**互不感知**：各自排程、各自取消、各自重算。唯一的共享资源是 `AlarmCodeBook`（码分配器），它只管「不撞号」，**不承载任何事件语义**。
-3. 课程提醒只有**单一 lead time**：`reminder/CourseReminderScheduler.kt` 的 KDoc 明确写「每门课程只挂一个提醒闹钟」，「关键提醒时间由逻辑层预计算，插到系统这一层并不重要」。
-4. 早八降级续链需单独接线 —— `REVIEW.md` 第 12 轮将其列为待批项。
+`TimeChangeReceiver.onReceive` 亦调用同一入口（`NotificationScheduler(...).reschedule()`）。**因此「重排一致性无保障」不成立。**
 
-**风险（均已实际发生或可推导）**
+**真实缺口（复核后收窄为 3 条）**
 
-1. **取消漏链**：`REVIEW.md` 批12 实证「`AlarmScheduler` 只按 START action 取消，END 闹钟 PendingIntent 残留」（`filterEquals` 只比 action）—— 已修，但根因未除：只要还有第二条独立链路，同类问题会复发。
-2. **重排一致性无保障**：课表一改，需 4 条链路各自重算，无原子性。任一漏算 = 幽灵闹钟或漏提醒。
-3. **XL-001 无解**：重叠守卫需要知道「当前有几条会话处于进行中」，而现在这个信息**不存在于任何单一处**。
-4. **早八降级续链**难以正确接线，因为「降级后该续哪条链」本身就是跨链路问题。
+1. **无跨进程持久化的「活动会话」状态** —— `reschedule()` 的 `Summary` 只在内存返回、不落盘。进程重启后无从得知「上一轮排了哪些会话、当前是否有会话处于进行中」。**这正是 XL-001 重叠守卫无法实现的根因**，也正是星链用 `EventAlarmStore.Record{..., quietMode}` 落盘要解决的问题。
+2. **`cancelAll()` 是全量重建，取消粒度粗** —— 无法只取消「已失效的那一条」。结构性后果已经发生过一次：`REVIEW.md` 批12 实证「`AlarmScheduler` 只按 START action 取消，END 闹钟 PendingIntent 残留」（`filterEquals` 只比 action）。虽然那处已修，但只要还是全量重建 + 各子系统自管取消，同类问题会复发。
+3. **`Summary` 不落盘 → 崩溃后无法自检** —— 若 `reschedule()` 中途崩溃（已 `cancelAll()` 但未建完），下次只能靠 Worker 退避重试或下次前台同步补上，App 自身无「上次排程是否完整」的判据。
 
 **目标**
 
-引入持久化的**事件编排表**，让「一门课在某个时间窗内应该发生什么」成为可查询的单一事实来源 —— 对齐星链的 `EventAlarmStore$Record`：
+在既有 `reschedule()` 之上补一层**轻量落盘的活动会话登记**，不做事件编排层重建：
 
 ```
-eventId, eventType, courseName, location, note,
-sectionInfo, timeInfo,
-startTimeMs, endTimeMs, upcomingTimeMs,   ← 三锚点
-quietMode                                  ← 降噪诉求随事件落盘
+新增概念（对齐星链 EventAlarmStore.Record 的最小子集）
+  eventKey, startTimeMs, endTimeMs, quietMode, armedBy
 ```
+
+- 供 XL-001 查询「当前活动会话集合」（重叠守卫）
+- 供降级续链查询「上轮是否已开启静音、本轮是否该交还」（闭环 `REVIEW.md` 第12轮待批的「早八降级续链」）
 
 **改动范围**
 
-- 新增 `shared/.../data/db/widget/EventAlarmRecord.kt` + DAO（放 `widget` 库，与 `WidgetCourse` 同域；或新开 `alarm` 库，视 `DatabaseMigrations.kt` 迁移成本定）
-- 新增 `shared/.../notification/plan/EventOrchestrator.kt`（`commonMain`，纯逻辑，可 JVM 单测）
-- 改造 `androidApp/.../alarm/AlarmScheduler.kt` —— 从「码分配器 + 单链路排程」升级为「按事件表排程」
-- 四个 Receiver 收敛为**读事件表决定行为**，不再各自判断
-- `ReminderAlarmReceiver.kt:115` 的 `ACTION_MORNING_ALARM_FALLBACK` 接入编排层（顺带闭环 `REVIEW.md` 第 12 轮待批项）
+- 新增 `androidApp/.../notification/registry/ActiveSessionRegistry.kt`（SharedPreferences 或 DataStore；数据量小，不需要 Room 迁移）
+- `androidApp/.../schedule/NotificationScheduler.kt` —— `reschedule()` 内写入/清理登记，返回 `Summary` 时带上活动会话数
+- `androidApp/.../receiver/AutoModeAlarmReceiver.kt` —— END 分支改为查登记（XL-001 的实现落点）
+- `androidApp/.../receiver/ReminderAlarmReceiver.kt:115` —— `ACTION_MORNING_ALARM_FALLBACK` 接入登记（早八降级续链）
 
-**依赖**
-
-- 建议在 XL-001/002/003 之后（它们可在编排层落地时顺带受益，但不必等待）
-- 需要先定「事件类型枚举」——建议 `COURSE_START` / `COURSE_REMIND` / `AUTO_MODE` / `DYNAMIC_ISLAND` / `MORNING_ALARM` / `EXAM`，与现有 action 一一对应
+**依赖** 无前置 —— 可独立开工。**是 XL-001 的前置**（XL-001 的重叠守卫需要查本登记）。建议与 XL-002 同批落地：三者都在 `androidApp/.../notification/` 与 `receiver/` 内，改动范围高度重叠。
 
 **验收标准**
 
-1. 单测：改一次课表 → 编排层**一次**重算 → 4 条链路的闹钟集合与预期快照完全一致
-2. 单测：构造重叠会话 → 事件表能查出「当前活动会话集合」→ XL-001 的守卫成为一次查表
-3. 单测：事件表为空/损坏时降级为「只发课程提醒，不降噪不弹岛」，不崩
-4. 真机：改课表后 `dumpsys alarm` 比对，无幽灵闹钟残留
-5. 回归：现有 7 个 widget/plan 单测 + `MorningAlarmPlanTest` 全绿
+1. 单测：登记表能正确回答「此刻有 N 条会话处于进行中」
+2. 单测：改课表 → `reschedule()` → 登记表与实际排程**完全一致**（无幽灵、无漏）
+3. 单测：进程重启后登记表仍可读（验证落盘而非仅内存）
+4. 单测：`reschedule()` 中途抛异常时，登记表保持上一轮内容不被清空（与「读库失败保留旧闹钟」语义一致）
+5. 回归：`TimeChangeReceiver` 触发的重排后登记表一致
 
 **对标依据**
 
-星链把「一个事件 = 三个时间锚点 + 一个降噪诉求」作为一个 `Record` 一次落盘（`EventAlarmStore$Record`），STARTED 负责「发通知 + 开静音 + 弹岛」、ENDED 负责「恢复」，职责正交且可重放。
+星链把「一个事件 = 三个时间锚点 + 一个降噪诉求」作为一个 `Record` 一次落盘（`EventAlarmStore$Record`），STARTED 负责「发通知 + 开静音 + 弹岛」、ENDED 负责「恢复」，职责正交且**可跨进程重放**。我们要补的是同一件事的最小必要部分。
 
 **与既有文档的关系**
 
-- **闭环** `REVIEW.md` 第 12 轮待批项「早八降级续链」
-- **根因层**覆盖批12 已修的「END 闹钟 PendingIntent 残留」（本项修的是结构，不是那一处代码）
-- 不重复 `shared/.../notification/plan/` 现有的 `ReminderEngine` / `ReminderPlan` / `MorningAlarmPlan` —— 那些是**纯选择逻辑**（哪些课该提醒、提前几分钟），已设计良好且有单测；本项在其**之上**补一层「事件编排与落盘」，两者职责不同、上下叠放
+- **闭环** `REVIEW.md` 第 12 轮待批项「早八降级续链」（缺跨链路信息，本条补上）
+- **根因层**覆盖批12 已修的「END 闹钟 PendingIntent 残留」（本条修的是结构，不是那一处代码）
+- **不重复** `REVIEW.md` 批14「RINGER_MODE_NORMAL 覆盖用户铃声偏好」（单会话内模式还原正确性，与跨会话并发正交）
+- **不重复** 现有 `shared/.../notification/plan/` 的 `ReminderEngine` / `ReminderPlan` / `MorningAlarmPlan` —— 那些是纯选择逻辑（哪些课该提醒、提前几分钟），已设计良好且有单测；本条在其**之下**补「运行时状态登记」，不改动选择逻辑
 
 ---
 
@@ -312,21 +335,41 @@ quietMode                                  ← 降噪诉求随事件落盘
 
 外加 **16 个布局 XML**（`res/layout/widget_*.xml`）。渲染入口形如 `WeekCoursesNativeRenderer.render(context, space: WidgetSpaceClass = WidgetSpaceClass.S): RemoteViews`。
 
-#### 4.2 核心论证：`docs/widget-display-optimization.md §9` 的 13 条「RemoteViews 明确不可行项」中，至少 9 条被 Glance 直接消除
+#### 4.2 核心论证：`docs/widget-display-optimization.md §9` 的 13 条「RemoteViews 明确不可行项」分类
 
-| §9 条目 | RemoteViews 限制 | Glance/Compose 对应能力 |
+> 本节数字经逐条核对 §9 原文（13 个编号条目）后重列。**初版曾把「9 条」写宽了** —— 经复核，Glance 并不能解决其中全部，详见下表分类。
+
+**A 类 · Glance 完全消除（7 条）**
+
+| §9 | RemoteViews 限制 | Glance/Compose 对应能力 |
 |---|---|---|
 | 1 | 自定义字体按主题切换（需复制整套布局） | `@Composable` 内直接换 `FontFamily` |
 | 2 | 任何动画/过渡/呼吸/庆祝动效 | 完整 Compose 动画 |
 | 4 | 圆角裁剪子元素（只能靠 shape drawable） | `Modifier.clip()` |
 | 5 | 文字自动缩放（无 `autoSizeTextType`） | `TextStyle` + 自适应布局 |
-| 6 | 按主题选布局（**Android 无此资源限定符**） | `when (preset)` 一份代码 |
-| 7 | 长按/多击手势收不到 | Glance `actionStartActivity` / `actionRunCallback` |
-| 8 | 秒级整体重绘受 15 分钟 tick 约束 | Compose 重组（Chronometer 仍为唯一跨进程方案） |
-| 9 | 每主题色条几何（需复制 item 布局） | 一份 `Modifier` |
+| 6 | 按主题选择布局/资源（**Android 无此资源限定符**） | `when (preset)` 一份代码 |
+| 9 | 每主题的色条几何（需复制 item 布局） | 一份 `Modifier` |
 | 11 | 渐变背景按主题（多份 drawable 切换） | `Brush` 直写 |
 
-第 6 条尤其关键 —— 它是 `widget-display-optimization.md` 整份方案的**技术枢纽**（§1.2 已认定「主题联动必须走运行时 setter，不能靠资源限定符」）。Glance 直接消除了这个约束。
+**第 6 条尤其关键** —— 它是 `widget-display-optimization.md` 整份方案的**技术枢纽**（§1.2 已认定「主题联动必须走运行时 setter，不能靠资源限定符」）。Glance 直接消除了这个约束。
+
+**B 类 · 绕过或缓解（2 条）**
+
+| §9 | 状况 |
+|---|---|
+| 10 | `setInt(viewId, "setBackgroundResource", …)` 反射路径 —— Glance 下 Compose 直接赋值，该 workaround 不再需要（**绕过**） |
+| 13 | 「卡片贴满边界 + 主题圆角」不可兼得 —— 系统边界裁剪仍存在，但 `W-cardInset` 这个 token 可由 `Modifier.padding` 更自然表达（**缓解，非消除**） |
+
+**C 类 · Glance 不解决（4 条）—— 初版误列，此处更正**
+
+| §9 | 为什么不解决 |
+|---|---|
+| 3 | 自绘 View 仍不能插入 —— Glance 最终也渲染为 RemoteViews，自绘仍须渲染成 `Bitmap` 经 `setImageViewBitmap` |
+| 7 | Konami 式按键序列仍收不到；`actionStartActivity` / `actionRunCallback`（后者需 API 31+）只能覆盖「点击 / 长按」这类单次交互 |
+| **8** | **秒级整体重绘不解决** —— Glance 的刷新机制与 RemoteViews 同源，仍受系统更新节流约束；`Chronometer` 依旧是唯一跨进程例外 |
+| 12 | 动态取色属产品决策而非技术限制（且与「三套锁定主题」方向冲突） |
+
+**净结论**：13 条中 **7 条完全消除 + 2 条绕过/缓解 + 4 条不解决**。收益仍然可观（尤其第 6 条解除了整个方案的技术枢纽约束），但**不应把 Glance 包装成「RemoteViews 全部限制的解」** —— 秒级重绘与自绘 View 这两类限制会原样保留。
 
 #### 4.3 阶段拆分（每阶段独立可发布、可回滚）
 
@@ -443,7 +486,7 @@ quietMode                                  ← 降噪诉求随事件落盘
 2. 8 规格在书卷/通透/柔绘 × 深浅下各截 1 张（共 24 张），卡底/圆角/文字色与 §6.3 表逐项一致
 3. 桌面选择器 8 个组件的 `android:description` 均为用户可理解的用途说明
 
-**对标依据** — 星链 `WidgetThemeConfig` 25 个字段（壁纸 type/path/color/opacity/darkness/blurLevel + **六个区域的「底/内容」双重透明度** + fontScale + cornerRadius + cellHeight + contentAlignment + `enableTextAutoContrast` + `hideFinishedCourses` + `courseColors`）；8 个 provider XML 均声明 `previewLayout`、`minResize*`、`maxResize*`（最大到 600×600）、`targetCellWidth/Height`
+**对标依据** — 星链 `WidgetThemeConfig` 22 个字段（壁纸 type/path/color/opacity/darkness/blurLevel + **六个区域的「底/内容」双重透明度** + fontScale + cornerRadius + cellHeight + contentAlignment + `enableTextAutoContrast` + `hideFinishedCourses` + `courseColors`）；8 个 provider XML 均声明 `previewLayout`、`minResize*`、`maxResize*`（最大到 600×600）、`targetCellWidth/Height`
 
 **与既有文档的关系** — 本项**不重新设计** token，沿用 `widget-display-optimization.md §6.3`；只做规格扩展 + 文档同步。
 
@@ -503,21 +546,25 @@ quietMode                                  ← 降噪诉求随事件落盘
 |---|---|
 | **优先级 / 工作量** | P1 / M |
 
-**现状（已核实）**：`TimeChangeReceiver` 已覆盖 3 个 action（`REVIEW.md` 批15 已修 `TIMEZONE_CHANGED` 缺失）。星链额外监听 `LOCALE_CHANGED` 与 `APPWIDGET_VISIBLE/HIDDEN/RESTORED`。
+**现状（已核实）**：`TimeChangeReceiver` 覆盖 3 个 action（`ACTION_TIMEZONE_CHANGED` / `ACTION_TIME_CHANGED` / `ACTION_DATE_CHANGED`，`REVIEW.md` 批15 已修 `TIMEZONE_CHANGED` 缺失），并有 `HANDLED_ACTIONS` 白名单 + `RECEIVER_NOT_EXPORTED` 运行时注册。星链额外监听 `LOCALE_CHANGED` 与 `APPWIDGET_VISIBLE/HIDDEN/RESTORED`。
+
+**但该 Receiver 由 `MyApplication` 运行时注册，不在 manifest 中**（本轮核对发现，详见 XL-003）。进程死亡时收不到这三个广播，已排程闹钟不重排：用户改了时区或系统时间后课表整体偏移，而 App 无感知。
 
 **目标**：
-1. 补 `LOCALE_CHANGED` —— 语言切换会影响「周一/周一」与日期格式渲染
+1. 补 `LOCALE_CHANGED` —— 语言切换会影响星期与日期格式渲染
 2. 核查 `APPWIDGET_VISIBLE/HIDDEN` 的必要性（桌面组件可见性变化时刷新，避免后台无谓刷新耗电）
-3. 核查跨日重算等价性：我们用 `DailyRolloverWorker` + 版本戳自愈（`REVIEW.md` 第 14 轮已修「widget 快照永不自愈」），星链用 `dataDate` 比对 + 从 `week_courses_data` 重算 —— **两者机制不同，需实测是否等价**
+3. **把 `TimeChangeReceiver` 改为 manifest 注册**，使进程死亡时也能响应。同时修正其类 KDoc 中「静态注册到 manifest」的表述 —— 该句与实际实现不符
+4. 核查跨日重算等价性：我们用 `DailyRolloverWorker` + 版本戳自愈（`REVIEW.md` 第 14 轮已修「widget 快照永不自愈」），星链用 `dataDate` 比对 + 从 `week_courses_data` 重算 —— 两者机制不同，需实测是否等价
 
-**改动范围** — `androidApp/.../service/notification/TimeChangeReceiver.kt`（action 白名单）、`WidgetUpdateHelper.kt`
+**改动范围** — `AndroidManifest.xml`（注册 `TimeChangeReceiver`）、`TimeChangeReceiver.kt`（KDoc 更正 + `HANDLED_ACTIONS` 增加 `LOCALE_CHANGED`）、`MyApplication.kt`（移除运行时注册以免重复收）、`WidgetUpdateHelper.kt`
 
-**依赖** 无
+**依赖** 建议与 XL-003 同批做（两者是同一个道理：这类广播必须在 manifest 注册）
 
 **验收标准**
 1. 切换系统语言 → 8 个小组件的星期/日期文案随之更新
 2. 跨零点（可改系统时间验证）→ 小组件自动切到新一天，无需打开 App
-3. 组件被桌面隐藏时不触发刷新（省电）
+3. **杀掉进程后改系统时区** → 重开 App 后闹钟与课表时间均已按新时区重排（当前实现会失败）
+4. 组件被桌面隐藏时不触发刷新（省电）
 
 ---
 
@@ -564,7 +611,7 @@ quietMode                                  ← 降噪诉求随事件落盘
 |---|---|---|---|
 | **XL-030** | 单一闹钟入口 | `AlarmScheduler.kt` KDoc 自述「系统闹钟层唯一入口」，`AlarmCodeBook` 统一分配槽位（200 课程 + 60 勿扰 + 1 早八 = 261） | 新增闹钟需求一律经 `AlarmScheduler`，禁止直连 `AlarmManager` |
 | **XL-031** | 静默失败兜底 | `PostedNotificationRegistry` —— 系统闹钟未真正注册时仍投递通知 | 保持该登记簿；新增通知类型接入 |
-| **XL-032** | 单元测试 | androidApp 7 个（`WidgetListCapacityTest` / `WidgetCoursePaletteTest` / `WidgetBubbleContrastTest` / `WidgetNightModeTest` / `WidgetTextScaleTest` / `MorningAlarmPlanTest` / `MorningAlarmDiffTest`）；shared 10 例 hostTest | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
+| **XL-032** | 单元测试 | androidApp **8 个测试文件 / 65 个 `@Test`**（`WidgetListCapacityTest` 12 / `WidgetCourseSelectionTest` 11 / `MorningAlarmDiffTest` 10 / `MorningAlarmPlanTest` 9 / `WidgetNightModeTest` 7 / `WidgetBubbleContrastTest` 6 / `WidgetCoursePaletteTest` 5 / `WidgetTextScaleTest` 5）；shared `androidHostTest` **15 个文件 / 140 个 `@Test`**（静态统计，含 `MorningAlarmPlanTest` / `CopySemesterNameTest` 等） | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
 | **XL-033** | 权限克制 | 12 项权限，**无** `READ_PHONE_STATE` / `CAMERA` / 位置 / `REQUEST_INSTALL_PACKAGES`；日历权限为可选功能但静态声明（可优化为按需申请） | 新增权限需在本文档登记理由 |
 | **XL-034** | 数据层工程化 | Room + `DatabaseMigrations.kt`（23KB）；`backup_rules.xml` / `data_extraction_rules.xml` / `network_security_config.xml` 三件套齐备（星链**均无** backup rules）；WebDAV 自动同步（星链无） | 迁移脚本不得省略；发版前核对 schema version |
 | **XL-035** | 对比度门禁 | `scripts/check_widget_contrast.py` 已接入 pre-commit（绝对式，0 违规） | 沿用；Glance 迁移后需适配新 token 解析（见 XL-005 验收 5） |
@@ -620,7 +667,7 @@ quietMode                                  ← 降噪诉求随事件落盘
 | 待批项 | 与本清单的关系 |
 |---|---|
 | 「DND 只认 PRIORITY 的完整『记录还原』版」（第12轮） | **= XL-002**，同一问题。实施时在该条下合并 |
-| 「早八降级续链」（第12轮） | **⊂ XL-004**（编排层落地时顺带闭环） |
+| 「早八降级续链」（第12轮） | **⊂ XL-004** —— 缺的正是「跨链路/跨进程的会话状态」，活动会话登记落地后即可闭环 |
 | 「ICS 导入不聚合（1 门 16 周裂成 16 门）」（第14轮） | 独立，本清单未收，可择机 |
 | 「ICS `UID` 每次随机 → 重导产生重复事件」（第14轮） | 独立；与 XL-010 的双向 ID 映射思路可复用 |
 | 「建表与导入分属两事务，失败留孤儿空表」（第14轮） | 独立，数据层 |
@@ -669,6 +716,12 @@ quietMode                                  ← 降噪诉求随事件落盘
 | 8 个 RemoteViews 小组件 | `androidApp/.../widget/{tiny,compact,double_days,list_vertical,agenda_list,next_course,week_courses,exam_countdown}/` |
 | 16 个小组件布局 XML | `androidApp/src/main/res/layout/widget_*.xml` |
 | 权限克制（12 项，无电话/相机/位置/安装包） | `androidApp/src/main/AndroidManifest.xml` |
+| manifest 共 15 个 receiver，逐一核对后无「精确闹钟权限变更」监听 | `androidApp/src/main/AndroidManifest.xml` L83–238 |
+| `TimeChangeReceiver` 由 `MyApplication` 运行时注册、不在 manifest；其 KDoc 自称静态注册（不符） | `TimeChangeReceiver.kt` `registerTimeChangeWatcher` + 类 KDoc |
+| 统一重排入口 `reschedule()`（单次读库 / 三套共用 `effectiveCourses` / 读库失败保留旧闹钟 / 三策略异常隔离） | `androidApp/.../schedule/NotificationScheduler.kt:103,111,115-136,138,145-149` |
+| pre-commit 已接对比度与主题泄漏门禁 | `.githooks/pre-commit`（`core.hooksPath=.githooks`）含 `check_widget_contrast` + `check_theme_leak` |
+| 8 个单测 / 65 个 `@Test` | `androidApp/src/test/kotlin/com/shangkeschedule/`（8 个 `*Test.kt`） |
+| shared `androidHostTest` 15 个文件 / 140 个 `@Test` | `shared/src/androidHostTest/`（静态统计 `@Test` 注解数） |
 | 7 个小组件与闹钟单测 | `androidApp/src/test/kotlin/com/shangkeschedule/` |
 | 小组件数据层与渲染解耦 | `shared/.../data/sync/WidgetDataSynchronizer.kt` + `WidgetRepository.kt` |
 
@@ -680,7 +733,7 @@ quietMode                                  ← 降噪诉求随事件落盘
 | 架构分层 | libapp.so 20.19MB（Dart AOT）+ classes.dex 4.74MB（Kotlin 仅 147 应用类） |
 | 8 个小组件 provider | 全部 `updatePeriodMillis=1800000`、`resizeMode=0x3`、`widgetFeatures=0x5`；`maxResize` 最大 600×600 |
 | 小组件标签 | `课表 · 一周` `课表 · 今日` `课表 · 今日(小)` `课表 · 近日` `日程 · 今日` `日程 · 本周` `日程 · 下一件` `日程 · 考试` |
-| 小组件数据契约 | `WidgetData`（7 个 `show*` 开关 + `festivals` + `themeConfig`）、`WidgetThemeConfig`（25 字段）、`CourseInfo`（含 `weekNotes: Map`） |
+| 小组件数据契约 | `WidgetData`（**6 个** `show*` 开关 + `festivals` + `themeConfig`）、`WidgetThemeConfig`（**22** 字段）、`CourseInfo`（含 `weekNotes: Map`） |
 | 统一事件编排 | `EventAlarmStore$Record{eventId, eventType, courseName, location, note, sectionInfo, timeInfo, startTimeMs, endTimeMs, upcomingTimeMs, quietMode}` |
 | 三段式 action | `EVENT_UPCOMING` / `EVENT_STARTED` / `EVENT_ENDED` |
 | 重叠守卫 | 日志「仍有进行中事件占用降噪，跳过恢复」 |
