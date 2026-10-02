@@ -103,7 +103,6 @@
             </RelativeLayout>
 
             <ImageView
-                android:id="@+id/widget_divider"
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
                 android:layout_marginHorizontal="8dp"
