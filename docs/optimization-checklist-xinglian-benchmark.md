@@ -1,9 +1,11 @@
 # 星链对标优化清单
 
-> **基线**：本仓库 `main` @ `143aae0`，版本 v4.66.0（versionCode 420）
+> **基线**：本仓库 `main` @ `f892c66`（v4.66.0，versionCode 420）。本文档的技术断言全部基于该提交的源码状态。
 > **对标对象**：星链课表 `com.xlhzcm.starcurriculum` v4.20.0（versionCode 2280），arm64-v8a 单 ABI
-> **产出日期**：2026-10-02
+> **产出日期**：2026-10-02（含一轮自查核对）
 > **状态**：待排期。本文档只列「已核实证据」与「建议」，不含任何已实施改动。
+>
+> **基线漂移提示**：本文档成稿后 `main` 又推进到 v4.66.3（`91e052e` / `7d2a0b6` / `1a67f1d`，均为「我的」页设置分区重排）。这些改动不触及本文档引用的任何文件（`androidApp/.../notification/**`、`androidApp/.../widget/**`、`shared/.../tool/CalendarAccountManager*`、`AndroidManifest.xml`），故技术断言仍然有效；若后续版本改动上述路径，请重新核对。
 
 ---
 
