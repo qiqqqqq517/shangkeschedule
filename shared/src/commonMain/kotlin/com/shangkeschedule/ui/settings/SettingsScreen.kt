@@ -86,15 +86,24 @@ import shangkeschedule.shared.generated.resources.dialog_title_set_first_day_of_
 import shangkeschedule.shared.generated.resources.item_course_conversion
 import shangkeschedule.shared.generated.resources.item_course_management
 import shangkeschedule.shared.generated.resources.item_more_options
+import shangkeschedule.shared.generated.resources.build_24px
+import shangkeschedule.shared.generated.resources.download_24px
 import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_show_non_current_week
 import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
 import shangkeschedule.shared.generated.resources.settings_group_app
 import shangkeschedule.shared.generated.resources.settings_group_display_notify
+import shangkeschedule.shared.generated.resources.settings_group_school_system
+import shangkeschedule.shared.generated.resources.settings_sub_adapter_status
 import shangkeschedule.shared.generated.resources.settings_sub_appearance
+import shangkeschedule.shared.generated.resources.settings_sub_auto_sync_adapter
 import shangkeschedule.shared.generated.resources.settings_sub_backup_restore
+import shangkeschedule.shared.generated.resources.settings_sub_cert_exam
 import shangkeschedule.shared.generated.resources.settings_sub_couple_schedule
+import shangkeschedule.shared.generated.resources.settings_sub_empty_classroom
+import shangkeschedule.shared.generated.resources.settings_sub_grade
+import shangkeschedule.shared.generated.resources.settings_sub_study_progress
 import shangkeschedule.shared.generated.resources.settings_sub_course_conversion
 import shangkeschedule.shared.generated.resources.settings_sub_course_management
 import shangkeschedule.shared.generated.resources.settings_sub_manage_course_tables
@@ -791,6 +800,25 @@ private data class SettingsSection(
  * 三行（教务适配状态 / 自动同步教务系统 / 空教室查询）并入「课表」分组 —— 这三行不在
  * v4.64.29 的 14 个可交互元素之内，属本次新增入口。「更多」页只留关于本应用 / 反馈与
  * 协议 / 联系作者。
+ *
+ * ── v4.66.1（功能更新后的再次重排 · 本轮）─────────────────────────────────
+ * v4.66.0 那次搬迁留下三处问题，本轮一并收口：
+ * 1. **「课表」组被撑到 7 条，且重新混了两种性质**：原有 4 条是课表**自身的参数**
+ *    （集合 / 学期 / 时间段 / 情侣叠加），新塞进来的 3 条是**与学校教务系统对接的能力**
+ *    （抓取脚本是否可用、能否自动更新、能否查空教室）—— 后者不改变课表本身，
+ *    依赖的是教务系统连通性，与前者不是一类操作。这正是 v4.64.29 批评过的
+ *    「课表组塞了三种东西」的复发。故把三行独立成「教务系统」组，「课表」组回到 4 条。
+ * 2. **6 条新条目没有副标题**，破坏了 v4.64.29 建立的 12 条统一说明密度
+ *    （用户必须点进去才知道能干什么）。本轮补齐至 18 条全覆盖。
+ * 3. **同组撞色 + 跨组撞图标**：
+ *    - 教务适配状态原用 OLIVE，与同组「我的课表」OLIVE **同组内撞色** → 改 PURPLE；
+ *    - 教务适配状态原用 school_24px，与「课表导入/导出」的 school_24px 撞图标
+ *      → 改 build_24px（语义＝构建脚本，比"学校"更贴）；
+ *    - 「课表导入/导出」顺势改用 download_24px（导出文件语义更准，且该图标此前闲置），
+ *      把 school_24px 让给考证查分（全页三处 school_24px → 一处）。
+ *
+ * 分组结果（6 组 / 18 条 + 身份卡）：
+ * 课表(4) · 教务系统(3) · 课程(3) · 学习(3) · 显示与提醒(4) · 应用与关于(1)
  */
 private fun buildSettingsSections(
     uiState: SettingsUiState,
@@ -818,18 +846,25 @@ private fun buildSettingsSections(
             SettingsEntry(
                 Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK,
                 Res.string.settings_sub_couple_schedule, destination = Destination.CoupleScheduleSettings
-            ),
-            // v4.66.0（IA 搬迁 · 裁决 A）：教务适配三行从「更多」页移到「课表」分组
+            )
+        )
+    ),
+    // ── 教务系统：与学校教务系统对接的能力（v4.66.0 独立成组）──────────────
+    SettingsSection(
+        labelRes = Res.string.settings_group_school_system,
+        entries = listOf(
             SettingsEntry(
-                Res.string.title_adapter_status, Res.drawable.school_24px, SettingsEntryTone.OLIVE,
-                destination = Destination.AdapterStatus
+                Res.string.title_adapter_status, Res.drawable.build_24px, SettingsEntryTone.PURPLE,
+                Res.string.settings_sub_adapter_status, destination = Destination.AdapterStatus
             ),
             SettingsEntry(
                 Res.string.item_auto_sync_adapter, Res.drawable.sync_alt_24px, SettingsEntryTone.GREEN,
+                Res.string.settings_sub_auto_sync_adapter,
                 detail = adapterSyncDetail, onClick = onAdapterSync
             ),
             SettingsEntry(
                 Res.string.title_empty_classroom, Res.drawable.search_24px, SettingsEntryTone.AMBER,
+                Res.string.settings_sub_empty_classroom,
                 destination = Destination.SchoolSelectionListScreen(WebPagePurpose.EMPTY_CLASSROOM)
             )
         )
@@ -843,7 +878,7 @@ private fun buildSettingsSections(
                 Res.string.settings_sub_course_management, destination = Destination.CourseManagementList
             ),
             SettingsEntry(
-                Res.string.item_course_conversion, Res.drawable.school_24px, SettingsEntryTone.PURPLE,
+                Res.string.item_course_conversion, Res.drawable.download_24px, SettingsEntryTone.PURPLE,
                 Res.string.settings_sub_course_conversion, destination = Destination.CourseTableConversion
             ),
             SettingsEntry(
@@ -860,9 +895,21 @@ private fun buildSettingsSections(
         // v4.66.0（IA 搬迁 · 裁决 A）：学习类入口从「更多」页上移到「我的」页独立分组
         labelRes = Res.string.settings_group_study,
         entries = listOf(
-            SettingsEntry(Res.string.grade_page_title, Res.drawable.list_alt_24px, SettingsEntryTone.PURPLE, destination = Destination.Grade),
-            SettingsEntry(Res.string.title_study_progress, Res.drawable.check_circle_24px, SettingsEntryTone.MATCHA, destination = Destination.StudyProgress),
-            SettingsEntry(Res.string.title_cert_exam, Res.drawable.school_24px, SettingsEntryTone.PINK, destination = Destination.CertExam)
+            SettingsEntry(
+                Res.string.grade_page_title, Res.drawable.list_alt_24px, SettingsEntryTone.PURPLE,
+                Res.string.settings_sub_grade, destination = Destination.Grade
+            ),
+            SettingsEntry(
+                Res.string.title_study_progress, Res.drawable.check_circle_24px, SettingsEntryTone.MATCHA,
+                Res.string.settings_sub_study_progress, destination = Destination.StudyProgress
+            ),
+            // v4.66.0 曾让考证查分与「课表导入/导出」共用 school_24px。此处改为把
+            // 导入/导出换成 download_24px（语义更贴：导出文件），把 school_24px 让给考证查分
+            // —— 证书考试本就由学校教务组织，school 语义正确，且撞图标消除。
+            SettingsEntry(
+                Res.string.title_cert_exam, Res.drawable.school_24px, SettingsEntryTone.PINK,
+                Res.string.settings_sub_cert_exam, destination = Destination.CertExam
+            )
         )
     ),
     SettingsSection(

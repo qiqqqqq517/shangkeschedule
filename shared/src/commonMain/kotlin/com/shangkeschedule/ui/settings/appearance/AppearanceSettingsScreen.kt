@@ -91,6 +91,7 @@ import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_personalization
 import shangkeschedule.shared.generated.resources.theme_mode_label
 import shangkeschedule.shared.generated.resources.theme_style_desc
+import shangkeschedule.shared.generated.resources.section_share
 import shangkeschedule.shared.generated.resources.theme_style_section
 import shangkeschedule.shared.generated.resources.title_theme_share
 
@@ -229,6 +230,10 @@ fun ThemeSettingsScreen(
                 // v4.66.0（D3）：主题分享放在主题页页尾——它就是「切换主题」的对应动作，
                 // 星链也把主题分享放在同一处；本页没有可追加行的既有卡片列表，
                 // 故按本页「分区标题 + 卡片」的节奏单独成卡，不新开独立入口、不塞页顶。
+                // v4.66.1（IA 再排）：本段原先只有卡片没有分区标题，与本页上方
+                // 「主题风格 / 深色模式」两段（有 AppearanceSectionHeader）的节奏不齐，
+                // 读起来像凭空多出来的一行。补上标题后与本页一致。
+                AppearanceSectionHeader(stringResource(Res.string.section_share))
                 SectionCard {
                     SettingItem(
                         title = stringResource(Res.string.title_theme_share),

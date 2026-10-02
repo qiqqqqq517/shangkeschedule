@@ -73,6 +73,7 @@
     <string name="settings_group_about">关于</string>
     <string name="settings_group_display_notify">显示与提醒</string>
     <string name="settings_group_app">应用与关于</string>
+    <string name="settings_group_school_system">教务系统</string>
     <string name="settings_sub_manage_course_tables">多张课表的建立、切换与归档</string>
     <string name="settings_sub_semester_settings">开学日期、总周数与当前周次</string>
     <string name="settings_sub_time_slot">作息、上下午与节次划分</string>
@@ -85,6 +86,17 @@
     <string name="settings_sub_show_non_current_week">同时显示其它周次的课程</string>
     <string name="settings_sub_show_weekends">课表与今日页包含周六、周日</string>
     <string name="settings_sub_more_options">语言、启动页、官网与开源许可</string>
+    <string name="settings_sub_adapter_status">抓取脚本的可用性与版本</string>
+    <string name="settings_sub_auto_sync_adapter">拉取最新适配，保持抓取可用</string>
+    <string name="settings_sub_empty_classroom">按教学楼与节次查空教室</string>
+    <string name="settings_sub_grade">绩点、排名与成绩明细</string>
+    <string name="settings_sub_study_progress">出勤与课堂表现统计</string>
+    <string name="settings_sub_cert_exam">四六级、教资等证书查分</string>
+    <string name="section_share">分享</string>
+    <string name="desc_user_agreement">服务条款全文，离线可读</string>
+    <string name="section_more_about">关于本应用</string>
+    <string name="section_more_feedback">反馈与协议</string>
+    <string name="section_more_contact">联系作者</string>
     <string name="text_no_courses_today">今天没有课程</string>
     <string name="text_no_courses_this_week">本周没有课程</string>
     <string name="title_vacation_until_start">假期中（距离开学还有%1$s天）</string>

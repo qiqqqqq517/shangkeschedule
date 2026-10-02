@@ -73,6 +73,7 @@
     <string name="settings_group_about">About</string>
     <string name="settings_group_display_notify">Display &amp; Reminders</string>
     <string name="settings_group_app">App &amp; About</string>
+    <string name="settings_group_school_system">School System</string>
     <string name="settings_sub_manage_course_tables">Create, switch and archive multiple timetables</string>
     <string name="settings_sub_semester_settings">Start date, total weeks and current week</string>
     <string name="settings_sub_time_slot">Daily routine, AM/PM split and periods</string>
@@ -85,6 +86,17 @@
     <string name="settings_sub_show_non_current_week">Also show classes from other weeks</string>
     <string name="settings_sub_show_weekends">Include Saturday and Sunday</string>
     <string name="settings_sub_more_options">Language, start page, website and open-source licenses</string>
+    <string name="settings_sub_adapter_status">Availability and version of scraper scripts</string>
+    <string name="settings_sub_auto_sync_adapter">Pull the latest adapters to keep scraping working</string>
+    <string name="settings_sub_empty_classroom">Find empty rooms by building and period</string>
+    <string name="settings_sub_grade">GPA, ranking and grade details</string>
+    <string name="settings_sub_study_progress">Attendance and class performance stats</string>
+    <string name="settings_sub_cert_exam">Look up CET, teaching-cert and other exam scores</string>
+    <string name="section_share">Share</string>
+    <string name="desc_user_agreement">Full terms of service, readable offline</string>
+    <string name="section_more_about">About this app</string>
+    <string name="section_more_feedback">Feedback &amp; legal</string>
+    <string name="section_more_contact">Contact the author</string>
     <string name="text_no_courses_today">No courses today</string>
     <string name="text_no_courses_this_week">No courses this week</string>
     <string name="title_vacation_until_start">Vacation (%1$s days left)</string>

@@ -36,6 +36,7 @@ import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.tool.copyToClipboard
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppDialogActions
+import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.settings.SectionCard
@@ -70,6 +71,7 @@ import shangkeschedule.shared.generated.resources.desc_community_xiaohongshu
 import shangkeschedule.shared.generated.resources.desc_contact_author
 import shangkeschedule.shared.generated.resources.desc_feedback
 import shangkeschedule.shared.generated.resources.desc_legal_offline
+import shangkeschedule.shared.generated.resources.desc_user_agreement
 import shangkeschedule.shared.generated.resources.desc_request_adapter
 import shangkeschedule.shared.generated.resources.desc_star_project
 import shangkeschedule.shared.generated.resources.edit_24px
@@ -97,6 +99,9 @@ import shangkeschedule.shared.generated.resources.link_24px
 import shangkeschedule.shared.generated.resources.list_alt_24px
 import shangkeschedule.shared.generated.resources.refresh_24px
 import shangkeschedule.shared.generated.resources.school_24px
+import shangkeschedule.shared.generated.resources.section_more_about
+import shangkeschedule.shared.generated.resources.section_more_contact
+import shangkeschedule.shared.generated.resources.section_more_feedback
 import shangkeschedule.shared.generated.resources.share_copy_failed
 import shangkeschedule.shared.generated.resources.star_24px
 import shangkeschedule.shared.generated.resources.sticky_note_2_24px
@@ -244,7 +249,15 @@ fun MoreOptionsScreen(
                 onWidgetTroubleshootClick = { onNavigate(Destination.WidgetTroubleshoot) }
             )
 
-            // 语言/启动页/官网/GitHub/开源许可证（分区大卡，组内分割）
+            // v4.66.1（IA 再排）：本页三张卡原先**都没有分区标题**（与「课表导入/导出」页
+            // 有AppSectionHeader 的节奏不一致），用户看不出三块各是什么。
+            // 补标题后：三段语义一眼可辨，且与本页其余页面的分区节奏对齐。
+            AppSectionHeader(
+                stringResource(Res.string.section_more_about),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = appSpacing().pageHorizontal)
+            )
             SectionCard(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
@@ -307,6 +320,12 @@ fun MoreOptionsScreen(
             // 本页只保留关于本应用 / 反馈与协议 / 联系作者 —— 避免新功能堆在「更多」里。
 
             // 意见反馈 / 教务适配申请 / 应用内协议（v4.65.0）
+            AppSectionHeader(
+                stringResource(Res.string.section_more_feedback),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = appSpacing().pageHorizontal)
+            )
             SectionCard(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {
@@ -333,7 +352,9 @@ fun MoreOptionsScreen(
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.item_user_agreement),
-                    subtitle = stringResource(Res.string.desc_legal_offline),
+                    // v4.66.1：原先与「隐私政策」共用 desc_legal_offline（"全文离线，无需联网"），
+                    // 两行副标题一模一样，读者无法从列表区分这两份不同的文档。给条款单独的说明。
+                    subtitle = stringResource(Res.string.desc_user_agreement),
                     leadingIcon = vectorResource(Res.drawable.sticky_note_2_24px),
                     onClick = { onNavigate(Destination.LegalDocument(LegalDocumentType.TERMS.name)) }
                 )
@@ -342,6 +363,12 @@ fun MoreOptionsScreen(
             Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
 
             // 联系作者（邮件直连；功能建议与问题反馈走上面的「意见反馈」页，那里能带上类型与联系方式）
+            AppSectionHeader(
+                stringResource(Res.string.section_more_contact),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = appSpacing().pageHorizontal)
+            )
             SectionCard(
                 modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal)
             ) {

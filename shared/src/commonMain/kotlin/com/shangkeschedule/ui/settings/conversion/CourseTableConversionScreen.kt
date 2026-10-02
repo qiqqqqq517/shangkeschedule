@@ -67,6 +67,7 @@ import shangkeschedule.shared.generated.resources.item_school_system_import
 import shangkeschedule.shared.generated.resources.item_sync_to_system_calendar
 import shangkeschedule.shared.generated.resources.section_file_conversion
 import shangkeschedule.shared.generated.resources.section_school_import
+import shangkeschedule.shared.generated.resources.section_share
 import shangkeschedule.shared.generated.resources.section_sync
 import shangkeschedule.shared.generated.resources.snackbar_file_save_canceled
 import shangkeschedule.shared.generated.resources.title_ai_import
@@ -206,12 +207,6 @@ fun CourseTableConversionScreen(
                     subtitle = stringResource(Res.string.desc_export_ics_with_alarm),
                     onClick = { viewModel.onExportIcsClick() }
                 )
-                SectionDivider()
-                SettingItem(
-                    title = stringResource(Res.string.title_course_share),
-                    subtitle = stringResource(Res.string.desc_course_share),
-                    onClick = { onNavigate(Destination.CourseShare) }
-                )
             }
 
             Spacer(Modifier.height(appSpacing().sectionGap))
@@ -253,6 +248,21 @@ fun CourseTableConversionScreen(
                     title = stringResource(Res.string.item_backup_restore),
                     subtitle = stringResource(Res.string.desc_backup_restore),
                     onClick = { onNavigate(Destination.BackupAndRestore) }
+                )
+            }
+
+            Spacer(Modifier.height(appSpacing().sectionGap))
+
+            // v4.66.1（IA 再排）：「课程分享」原先挂在「文件转换 / 导出」卡里，但分享
+            // **不做任何格式转换**——它生成的是分享卡片与二维码，与上面两条「导出成
+            // JSON / ICS 文件」不同族。挂在导出卡里会让用户以为点进去能导出文件。
+            // 故独立成「分享」分区，既归位又不给它硬凑同族。
+            AppSectionHeader(stringResource(Res.string.section_share), modifier = Modifier.fillMaxWidth())
+            SectionCard {
+                SettingItem(
+                    title = stringResource(Res.string.title_course_share),
+                    subtitle = stringResource(Res.string.desc_course_share),
+                    onClick = { onNavigate(Destination.CourseShare) }
                 )
             }
             Spacer(Modifier.height(appSpacing().contentBottom))
