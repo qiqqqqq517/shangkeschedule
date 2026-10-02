@@ -29,9 +29,7 @@ import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.tool.OemGuide
-import com.shangkeschedule.tool.OemGuideStep
 import com.shangkeschedule.tool.textRes
-import com.shangkeschedule.tool.OemVendor
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem

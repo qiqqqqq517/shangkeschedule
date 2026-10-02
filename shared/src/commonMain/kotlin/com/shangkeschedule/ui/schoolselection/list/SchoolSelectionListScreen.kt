@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,8 +23,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +55,6 @@ import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import kotlin.time.Clock
 import kotlinx.coroutines.launch
@@ -71,7 +66,6 @@ import school_index.AdapterCategory
 import school_index.School
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_request_adapter
-import shangkeschedule.shared.generated.resources.action_retry
 import shangkeschedule.shared.generated.resources.adapter_request_form_unavailable
 import shangkeschedule.shared.generated.resources.adapter_request_no_school_copied
 import shangkeschedule.shared.generated.resources.adapter_request_school_copied

@@ -47,7 +47,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -92,7 +91,6 @@ import com.shangkeschedule.data.time.currentDateFlow
 import com.shangkeschedule.navigation.AddEditCourseChannel
 import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.ui.components.AdaptiveNavigationScaffold
-import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppSnackbarHost
 import com.shangkeschedule.ui.components.CourseTablePickerDialog
 import com.shangkeschedule.ui.components.TelegramMenu
@@ -149,8 +147,6 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back_to_current_week
-import shangkeschedule.shared.generated.resources.item_course_conversion
-import shangkeschedule.shared.generated.resources.text_no_courses_this_week
 import shangkeschedule.shared.generated.resources.snackbar_course_move_failed
 import shangkeschedule.shared.generated.resources.action_select_table
 import shangkeschedule.shared.generated.resources.arrow_drop_down_24px

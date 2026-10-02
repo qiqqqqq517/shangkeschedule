@@ -72,7 +72,6 @@ import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.delete_24px
-import shangkeschedule.shared.generated.resources.edit_24px
 import shangkeschedule.shared.generated.resources.image_24px
 import shangkeschedule.shared.generated.resources.note_add_image
 import shangkeschedule.shared.generated.resources.note_cancel

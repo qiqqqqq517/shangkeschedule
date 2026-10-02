@@ -13,7 +13,6 @@ import com.shangkeschedule.widget.addCourseRows
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.setWidgetCardBackground
 import com.shangkeschedule.widget.commonCourseRow
-import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.headerSizeSp
 import com.shangkeschedule.widget.todayEmptyTip

@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
@@ -132,7 +131,6 @@ import shangkeschedule.shared.generated.resources.nav_settings
 import shangkeschedule.shared.generated.resources.title_vacation
 // v4.66.0（信息架构搬迁 · 用户 m05093 / 裁决 A）：学习与教务类入口从「更多」页上移到「我的」页
 import com.shangkeschedule.WebPagePurpose
-import kotlinx.coroutines.launch
 import shangkeschedule.shared.generated.resources.check_circle_24px
 import shangkeschedule.shared.generated.resources.grade_page_title
 import shangkeschedule.shared.generated.resources.list_alt_24px

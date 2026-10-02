@@ -4,7 +4,6 @@ import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 
@@ -22,8 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +48,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import school_index.Adapter
 import school_index.AdapterCategory
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.action_retry
 import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.a11y_back_to_school_list
 import shangkeschedule.shared.generated.resources.arrow_back_24px
