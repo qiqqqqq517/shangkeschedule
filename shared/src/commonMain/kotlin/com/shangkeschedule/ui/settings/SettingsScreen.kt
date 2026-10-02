@@ -90,6 +90,20 @@ import shangkeschedule.shared.generated.resources.item_appearance_settings
 import shangkeschedule.shared.generated.resources.item_show_non_current_week
 import shangkeschedule.shared.generated.resources.item_show_weekends
 import shangkeschedule.shared.generated.resources.item_time_slot_customization
+import shangkeschedule.shared.generated.resources.desc_backup_restore
+import shangkeschedule.shared.generated.resources.settings_group_app
+import shangkeschedule.shared.generated.resources.settings_group_display_notify
+import shangkeschedule.shared.generated.resources.settings_sub_appearance
+import shangkeschedule.shared.generated.resources.settings_sub_couple_schedule
+import shangkeschedule.shared.generated.resources.settings_sub_course_conversion
+import shangkeschedule.shared.generated.resources.settings_sub_course_management
+import shangkeschedule.shared.generated.resources.settings_sub_manage_course_tables
+import shangkeschedule.shared.generated.resources.settings_sub_more_options
+import shangkeschedule.shared.generated.resources.settings_sub_notification
+import shangkeschedule.shared.generated.resources.settings_sub_semester_settings
+import shangkeschedule.shared.generated.resources.settings_sub_show_non_current_week
+import shangkeschedule.shared.generated.resources.settings_sub_show_weekends
+import shangkeschedule.shared.generated.resources.settings_sub_time_slot
 import shangkeschedule.shared.generated.resources.calendar_today_24px
 import shangkeschedule.shared.generated.resources.schedule_24px
 import shangkeschedule.shared.generated.resources.favorite_24px
@@ -161,7 +175,12 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = appSpacing().pageHorizontal),
-                verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
+                // v4.64.29 重排：列表项间距改用 sectionGap（24dp，三主题一致）。
+                // 原用 cardGap（16dp），而本列表的"项"就是**一个整组**（组标签 + 大卡）——
+                // 组的轮廓比卡片更需要呼吸：16dp 下相邻两组几乎贴在一起，读起来像
+                // 一整块连续列表，分组标签的存在感被压掉。24dp 才让"四组"真的读成四组。
+                // 组**内部**的紧凑度不受影响（由 AppSettingsGroup 的自身内距控制）。
+                verticalArrangement = Arrangement.spacedBy(appSpacing().sectionGap),
                 // 宽屏（平板/桌面）内容限宽 640dp 居中，对齐 iPad 设置 App 行为
                 horizontalAlignment = if (page.centerContent) Alignment.CenterHorizontally else Alignment.Start,
                 // 顶部 inset 走 contentPadding：列表内容滚动到吸顶玻璃栏后（顶部不再裁切）
@@ -650,11 +669,18 @@ private data class SettingsEntryToggle(
     val onCheckedChange: (Boolean) -> Unit
 )
 
-/** 一条设置条目：[destination] 为 null 时是纯开关行（点击不导航）。 */
+/**
+ * 一条设置条目：[destination] 为 null 时是纯开关行（点击不导航）。
+ *
+ * [subtitleRes]（v4.64.29 新增）：功能说明，回答「点进去能干什么」，取代过去
+ * 「只有标题、必须点进去才知道是什么」的状态。导航行全部填满；开关行同样填写
+ * （说明该开关的影响范围），以保证 14 行的说明密度一致。
+ */
 private data class SettingsEntry(
     val titleRes: StringResource,
     val iconRes: DrawableResource,
     val tone: SettingsEntryTone,
+    val subtitleRes: StringResource? = null,
     val destination: Destination? = null,
     val toggle: SettingsEntryToggle? = null
 )
@@ -666,37 +692,96 @@ private data class SettingsSection(
 )
 
 /**
- * 构建设置主页全部分组。结构（4 组【课表 / 课程 / 偏好 / 关于】、条目、开关位置）
- * 与 v3.53.5 三份主题复制完全一致；开关条目的取值随 [uiState] 刷新。
+ * 构建设置主页全部分组（v4.64.29「我的」页功能位置重排）。
+ *
+ * ── 重排依据：按**功能性质**归位，不按「设置类型」平铺 ──────────────
+ *
+ * 旧结构是 4 组【课表 / 课程 / 偏好 / 关于】，三处归类站不住脚：
+ * 1. **「课表」组塞了三种东西**：导入导出（数据流动）、学期 / 时间段（课表参数）、
+ *    我的课表（课表集合）。它们不是同一类操作。
+ * 2. **「课程」组把情侣课表算作课程**：情侣课表是一张**独立课表**的叠加与同步，
+ *    归到「课表」才符合用户心智（用户想的是"我又有了一张表"，不是"我又加了一门课"）。
+ * 3. **「偏好」组把二级页面入口和纯开关混排**：外观 / 提醒 / 备份三个下钻页与
+ *    「显示非本周课程」「显示周末」两个开关同处一卡，开关夹在入口中间，
+ *    看不出哪行能点进去；且两个开关本质是**课表显示规则**，被"偏好"这个大词吞掉。
+ * 4. **「关于」只放「更多设置」**：而更多设置里装的是语言、启动页、官网、许可证
+ *    —— 是"应用"，不是"关于"。
+ *
+ * 新结构按功能性质重划为 4 组（条目数 4 / 3 / 4 / 1，与旧 4 / 2 / 5 / 1 相比更均衡）：
+ * - **课表**（4）：课表集合与其参数 —— 我的课表 / 学期 / 时间段 / 情侣课表
+ * - **课程**（3）：课程内容与数据进出 —— 课程管理 / 导入导出 / 备份恢复
+ * - **显示与提醒**（4）：看什么 + 何时提醒 —— 外观 / 通知 / 两个显示开关
+ * - **应用与关于**（1）：应用元信息 —— 更多设置
+ *
+ * 组内顺序统一为「高频在前」：我的课表（切表最频繁）提到组首（原排末位），
+ * 外观与样式（用户最常改的偏好）提到显示组首。开关行统一排在组尾——
+ * 开关是就地生效的次要操作，不该插在下钻入口中间抢位置。
+ *
+ * **零遗漏保证**：本页 14 个可交互元素（11 个下钻入口 + 身份卡 + 2 个开关）
+ * 与 36 个 Destination 的归属关系全部保持不变，只调整呈现分组、顺序与说明。
  */
 private fun buildSettingsSections(
     uiState: SettingsUiState,
     viewModel: SettingsViewModel
 ): List<SettingsSection> = listOf(
+    // ── 课表：集合与参数 ──────────────────────────────────────────────────
     SettingsSection(
         labelRes = Res.string.settings_group_timetable,
         entries = listOf(
-            SettingsEntry(Res.string.item_course_conversion, Res.drawable.school_24px, SettingsEntryTone.PURPLE, Destination.CourseTableConversion),
-            SettingsEntry(Res.string.section_title_semester_settings, Res.drawable.calendar_today_24px, SettingsEntryTone.ORANGE, Destination.SemesterSettings),
-            SettingsEntry(Res.string.item_time_slot_customization, Res.drawable.schedule_24px, SettingsEntryTone.RED, Destination.TimeSlotSettings()),
-            SettingsEntry(Res.string.title_manage_course_tables, Res.drawable.class_24px, SettingsEntryTone.OLIVE, Destination.ManageCourseTables)
+            SettingsEntry(
+                Res.string.title_manage_course_tables, Res.drawable.class_24px, SettingsEntryTone.OLIVE,
+                Res.string.settings_sub_manage_course_tables, destination = Destination.ManageCourseTables
+            ),
+            SettingsEntry(
+                Res.string.section_title_semester_settings, Res.drawable.calendar_today_24px, SettingsEntryTone.ORANGE,
+                Res.string.settings_sub_semester_settings, destination = Destination.SemesterSettings
+            ),
+            SettingsEntry(
+                Res.string.item_time_slot_customization, Res.drawable.schedule_24px, SettingsEntryTone.RED,
+                Res.string.settings_sub_time_slot, destination = Destination.TimeSlotSettings()
+            ),
+            // 从「课程」组迁入「课表」：情侣课表是一张独立课表的叠加，不是课程条目
+            SettingsEntry(
+                Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK,
+                Res.string.settings_sub_couple_schedule, destination = Destination.CoupleScheduleSettings
+            )
         )
     ),
+    // ── 课程：内容与数据进出 ──────────────────────────────────────────────
     SettingsSection(
         labelRes = Res.string.settings_group_courses,
         entries = listOf(
-            SettingsEntry(Res.string.item_course_management, Res.drawable.edit_24px, SettingsEntryTone.MATCHA, Destination.CourseManagementList),
-            SettingsEntry(Res.string.item_couple_schedule, Res.drawable.favorite_24px, SettingsEntryTone.PINK, Destination.CoupleScheduleSettings)
+            SettingsEntry(
+                Res.string.item_course_management, Res.drawable.edit_24px, SettingsEntryTone.MATCHA,
+                Res.string.settings_sub_course_management, destination = Destination.CourseManagementList
+            ),
+            SettingsEntry(
+                Res.string.item_course_conversion, Res.drawable.school_24px, SettingsEntryTone.PURPLE,
+                Res.string.settings_sub_course_conversion, destination = Destination.CourseTableConversion
+            ),
+            SettingsEntry(
+                Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN,
+                // 备份与恢复有专属文案 desc_backup_restore（云盘 / 本地双渠道），
+                // 此处直接复用，避免为同一含义再造一条近义串。
+                Res.string.desc_backup_restore, destination = Destination.BackupAndRestore
+            )
         )
     ),
+    // ── 显示与提醒：看什么 + 何时提醒（下钻入口在前，就地开关在后）─────────
     SettingsSection(
-        labelRes = Res.string.settings_group_preference,
+        labelRes = Res.string.settings_group_display_notify,
         entries = listOf(
-            SettingsEntry(Res.string.item_appearance_settings, Res.drawable.palette_24px, SettingsEntryTone.ORANGE, Destination.AppearanceSettings),
-            SettingsEntry(Res.string.title_course_notification_settings, Res.drawable.notifications_24px, SettingsEntryTone.PURPLE, Destination.NotificationSettings),
-            SettingsEntry(Res.string.item_backup_restore, Res.drawable.cloud_24px, SettingsEntryTone.GREEN, Destination.BackupAndRestore),
+            SettingsEntry(
+                Res.string.item_appearance_settings, Res.drawable.palette_24px, SettingsEntryTone.ORANGE,
+                Res.string.settings_sub_appearance, destination = Destination.AppearanceSettings
+            ),
+            SettingsEntry(
+                Res.string.title_course_notification_settings, Res.drawable.notifications_24px, SettingsEntryTone.PINK,
+                Res.string.settings_sub_notification, destination = Destination.NotificationSettings
+            ),
             SettingsEntry(
                 Res.string.item_show_non_current_week, Res.drawable.filter_list_24px, SettingsEntryTone.GRAY,
+                Res.string.settings_sub_show_non_current_week,
                 toggle = SettingsEntryToggle(
                     checked = uiState.appSettings.showNonCurrentWeekCourses,
                     onCheckedChange = viewModel::onShowNonCurrentWeekChanged
@@ -704,6 +789,7 @@ private fun buildSettingsSections(
             ),
             SettingsEntry(
                 Res.string.item_show_weekends, Res.drawable.view_week_24px, SettingsEntryTone.AMBER,
+                Res.string.settings_sub_show_weekends,
                 toggle = SettingsEntryToggle(
                     checked = uiState.courseConfig?.showWeekends ?: false,
                     onCheckedChange = viewModel::onShowWeekendsChanged
@@ -711,10 +797,14 @@ private fun buildSettingsSections(
             )
         )
     ),
+    // ── 应用与关于：应用元信息 ────────────────────────────────────────────
     SettingsSection(
-        labelRes = Res.string.settings_group_about,
+        labelRes = Res.string.settings_group_app,
         entries = listOf(
-            SettingsEntry(Res.string.item_more_options, Res.drawable.more_horiz_24px, SettingsEntryTone.BROWN, Destination.MoreOptions)
+            SettingsEntry(
+                Res.string.item_more_options, Res.drawable.more_horiz_24px, SettingsEntryTone.BROWN,
+                Res.string.settings_sub_more_options, destination = Destination.MoreOptions
+            )
         )
     )
 )
@@ -736,7 +826,9 @@ private fun LazyListScope.appSettingsItems(
     onNavigate: (Destination) -> Unit
 ) {
     sections.forEachIndexed { sectionIndex, section ->
-        item(key = "settings-$sectionIndex") {
+        // key 用分组标签文案而非下标：v4.64.29 重排改动了分组内容与顺序，
+        // 下标 key 会让 LazyColumn 把旧项的滚动位置/状态错配到新项上。
+        item(key = "settings-${section.labelRes}") {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -750,6 +842,7 @@ private fun LazyListScope.appSettingsItems(
                         }
                         AppSettingRow(
                             title = stringResource(entry.titleRes),
+                            subtitle = entry.subtitleRes?.let { stringResource(it) },
                             icon = vectorResource(entry.iconRes),
                             tone = entry.tone,
                             showDivider = entryIndex > 0,
