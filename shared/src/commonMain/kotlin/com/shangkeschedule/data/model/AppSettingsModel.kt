@@ -301,14 +301,9 @@ data class AppSettingsModel(
 
     /** 模型名（如 `gpt-4o-mini`）；空串 = 未配置。 */
     val aiApiModel: String = "",
-
-    /**
-     * API Key。
-     *
-     * 只存本机 DataStore，**刻意不参与云备份 / 备份文件**：
-     * 备份文件常被随手存到网盘或聊天工具，密钥不该跟着走。
-     */
-    val aiApiKey: String = "",
+    // API Key 刻意不在这里：它是「只在本机、不参与云备份」的密钥，
+    // 落在已排除备份的 api_config 存储（ApiConfigRepository.ApiKeys.Secrets），
+    // 读取入口是 AppSettingsRepository.getAiApiKey()（v4.67.16 之前的字段 aiApiKey 已移除）。
 ) {
     /**
      * 将 DataStore 的 Key 定义在伴生对象中。
@@ -379,9 +374,9 @@ data class AppSettingsModel(
         // 学业情况：类别学分要求（v4.66.0），JSON 文本存 DataStore
         val KEY_CREDIT_REQUIREMENTS = stringPreferencesKey("credit_requirements_json")
 
-        // 考证查分凭据（v4.66.0）：按模块 ID 隔离，仅存本机、不上传
-        fun keyCertName(moduleId: String) = stringPreferencesKey("cert_name_$moduleId")
-        fun keyCertTicket(moduleId: String) = stringPreferencesKey("cert_ticket_$moduleId")
+        // 考证查分凭据（v4.66.0）：按模块 ID 隔离，仅存本机、不上传。
+        // 键定义不在本存储：它们是「只在本机」的凭据，见 ApiConfigRepository.ApiKeys.Secrets
+        // （v4.67.16 起迁到已被备份规则排除的 api_config 存储）。
 
         // 教务适配远程同步记录（v4.66.0）：适配状态页展示「上次检查」
         val KEY_ADAPTER_SYNC_AT = stringPreferencesKey("adapter_sync_at")
@@ -394,8 +389,8 @@ data class AppSettingsModel(
         val KEY_AI_API_BASE_URL = stringPreferencesKey("ai_api_base_url")
         val KEY_AI_API_MODEL = stringPreferencesKey("ai_api_model")
 
-        /** API Key：只存本机，不参与备份（见 AppSettingsModel.aiApiKey）。 */
-        val KEY_AI_API_KEY = stringPreferencesKey("ai_api_key")
+        // AI API Key 同样不在此存储：键定义见 ApiConfigRepository.ApiKeys.Secrets.AI_API_KEY
+        // （v4.67.16 起迁到已被备份规则排除的 api_config 存储）。
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
@@ -454,7 +449,6 @@ data class AppSettingsModel(
                 aiImportNoticeAccepted = prefs[KEY_AI_IMPORT_NOTICE_ACCEPTED] ?: d.aiImportNoticeAccepted,
                 aiApiBaseUrl = prefs[KEY_AI_API_BASE_URL] ?: d.aiApiBaseUrl,
                 aiApiModel = prefs[KEY_AI_API_MODEL] ?: d.aiApiModel,
-                aiApiKey = prefs[KEY_AI_API_KEY] ?: d.aiApiKey,
             )
         }
     }

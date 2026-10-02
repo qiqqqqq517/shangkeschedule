@@ -3,6 +3,7 @@ package com.shangkeschedule.data.repository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.CourseTableDao
@@ -32,7 +33,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -47,6 +51,36 @@ import kotlin.time.Clock
 private const val TAG = "AppSettingsRepository"
 
 /**
+ * 历史上住在 `app_settings.preferences_pb` 里的「只在本机」键（v4.66.0–v4.67.15）。
+ *
+ * v4.67.16 起这些值改落已被备份规则排除的 `api_config.preferences_pb`；这里只保留旧键名，
+ * 供一次性惰性迁移读取并删除。新增或读取密钥请用 [ApiConfigRepository.ApiKeys.Secrets]。
+ */
+private val LEGACY_AI_API_KEY = stringPreferencesKey("ai_api_key")
+private const val LEGACY_CERT_NAME_PREFIX = "cert_name_"
+private const val LEGACY_CERT_TICKET_PREFIX = "cert_ticket_"
+
+/**
+ * 从旧存储的 Preferences 快照里挑出需要搬家的「只在本机」键值（v4.67.16 迁移用）。
+ *
+ * 纯函数，便于单测：只认全名 / 前缀匹配，且值必须是 String（其它类型一律不动）。
+ */
+internal fun collectLegacyLocalSecrets(prefs: Preferences): Map<Preferences.Key<String>, String> {
+    val result = mutableMapOf<Preferences.Key<String>, String>()
+    prefs.asMap().forEach { (key, value) ->
+        val name = key.name
+        val isLocalOnly = name == LEGACY_AI_API_KEY.name ||
+            name.startsWith(LEGACY_CERT_NAME_PREFIX) ||
+            name.startsWith(LEGACY_CERT_TICKET_PREFIX)
+        if (isLocalOnly && value is String) {
+            @Suppress("UNCHECKED_CAST")
+            result[key as Preferences.Key<String>] = value
+        }
+    }
+    return result
+}
+
+/**
  * 应用配置领域仓库
  *
  * 核心职责：
@@ -56,9 +90,52 @@ private const val TAG = "AppSettingsRepository"
 @Single
 class AppSettingsRepository(
     @Named("AppSettings") private val dataStore: DataStore<Preferences>,
+    /**
+     * 「只在本机」的密钥 / 凭据存储（v4.67.16）。
+     *
+     * 与 [dataStore] 分开的唯一原因是备份规则：这份文件已被 `backup_rules.xml` 与
+     * `data_extraction_rules.xml` 排除，云备份与换机迁移都不带它。
+     */
+    @Named("ApiConfig") private val secretsStore: DataStore<Preferences>,
     private val courseTableDao: CourseTableDao,
     private val courseTableConfigDao: CourseTableConfigDao
 ) {
+    // ------------------------------------------------------------------
+    // 「只在本机」数据的存储边界（v4.67.16）
+    //
+    // 凡是声明过「只存本机 / 不参与云备份」的数据都必须落 secretsStore：
+    // dataStore 对应的 app_settings.preferences_pb 会被 Android 自动备份上云。
+    // ------------------------------------------------------------------
+
+    private val secretsMigrationMutex = Mutex()
+    private var secretsMigrated = false
+
+    /**
+     * 一次性把历史上落在 app_settings 存储里的密钥 / 凭据搬到 secretsStore。
+     *
+     * 幂等：同一进程只跑一次；目标存储已有非空值时不覆盖（以新存储为准）；
+     * 搬完**立刻从旧存储删除** —— 不删的话旧值仍会随云备份上传，等于没修。
+     */
+    private suspend fun ensureLocalSecretsMigrated() {
+        secretsMigrationMutex.withLock {
+            if (secretsMigrated) return
+            val legacy = collectLegacyLocalSecrets(dataStore.data.first())
+            if (legacy.isNotEmpty()) {
+                secretsStore.edit { secrets ->
+                    legacy.forEach { (key, value) ->
+                        if (secrets[key].isNullOrEmpty() && value.isNotEmpty()) {
+                            secrets[key] = value
+                        }
+                    }
+                }
+                dataStore.edit { prefs ->
+                    legacy.keys.forEach { prefs.remove(it) }
+                }
+            }
+            secretsMigrated = true
+        }
+    }
+
     private val DATE_FORMATTER = LocalDate.Format {
         year()
         char('-')
@@ -467,26 +544,33 @@ class AppSettingsRepository(
      *
      * 一次读出全部模块的凭据（模块数量固定且极少），页面用一个 Map 渲染，
      * 不必为每一行各建一个 flow。
+     *
+     * **只落本机凭据存储**（v4.67.16 起，见 [ApiConfigRepository.ApiKeys.Secrets]）：
+     * 姓名与准考证号是个人凭据，不该进云备份或随换机迁移。
      */
     fun getCertCredentials(moduleIds: List<String>): Flow<Map<String, CertCredential>> =
-        dataStore.data.map { prefs ->
-            moduleIds.associateWith { moduleId ->
-                CertCredential(
-                    name = prefs[AppSettingsModel.keyCertName(moduleId)].orEmpty(),
-                    ticket = prefs[AppSettingsModel.keyCertTicket(moduleId)].orEmpty()
-                )
+        secretsStore.data
+            .onStart { ensureLocalSecretsMigrated() }
+            .map { prefs ->
+                moduleIds.associateWith { moduleId ->
+                    CertCredential(
+                        name = prefs[ApiConfigRepository.ApiKeys.Secrets.certName(moduleId)].orEmpty(),
+                        ticket = prefs[ApiConfigRepository.ApiKeys.Secrets.certTicket(moduleId)].orEmpty()
+                    )
+                }
             }
-        }
 
     /**
      * 保存某个考证模块的查询凭据（姓名 / 准考证号）。
      *
      * 只写这两个键：与 [updateGpaScale] 同理，避免整份设置写回覆盖并发修改的其它设置项。
+     * 存储位置同 [getCertCredentials]（只在本机凭据存储）。
      */
     suspend fun updateCertCredential(moduleId: String, name: String, ticket: String) {
-        dataStore.edit { prefs ->
-            prefs[AppSettingsModel.keyCertName(moduleId)] = name.trim()
-            prefs[AppSettingsModel.keyCertTicket(moduleId)] = ticket.trim()
+        ensureLocalSecretsMigrated()
+        secretsStore.edit { prefs ->
+            prefs[ApiConfigRepository.ApiKeys.Secrets.certName(moduleId)] = name.trim()
+            prefs[ApiConfigRepository.ApiKeys.Secrets.certTicket(moduleId)] = ticket.trim()
         }
     }
 
@@ -544,14 +628,31 @@ class AppSettingsRepository(
      * 三项一起写：它们是同一份配置的三个部分，分开写会留下
      * 「地址换了、Key 还没换」的中间态，下一次识别就会带着旧 Key 打新地址。
      *
-     * **API Key 只落本机 DataStore，不参与备份**（见 [AppSettingsModel.aiApiKey]）。
+     * 但**存储分成两处**：
+     * - 基地址与模型名是普通设置，落 [dataStore]，随设置一起参与云备份（换机后重新填 Key 即可用）；
+     * - **API Key 只落本机凭据存储**（[secretsStore]，v4.67.16 起），
+     *   与「密钥不该跟着备份文件走」的声明一致（见 [ApiConfigRepository.ApiKeys.Secrets.AI_API_KEY]）。
      */
     suspend fun updateAiApiConfig(baseUrl: String, model: String, apiKey: String) {
         dataStore.edit { prefs ->
             prefs[AppSettingsModel.KEY_AI_API_BASE_URL] = baseUrl.trim()
             prefs[AppSettingsModel.KEY_AI_API_MODEL] = model.trim()
-            prefs[AppSettingsModel.KEY_AI_API_KEY] = apiKey.trim()
         }
+        ensureLocalSecretsMigrated()
+        secretsStore.edit { secrets ->
+            secrets[ApiConfigRepository.ApiKeys.Secrets.AI_API_KEY] = apiKey.trim()
+        }
+    }
+
+    /**
+     * 读取只在本机的 AI 接口 Key（v4.67.16）。
+     *
+     * 单独开一个挂起读取入口，而不是放回 [AppSettingsModel]：模型每处订阅都会拿到它，
+     * 而密钥只有 AI 识别页要用。空串 = 未配置。
+     */
+    suspend fun getAiApiKey(): String {
+        ensureLocalSecretsMigrated()
+        return secretsStore.data.first()[ApiConfigRepository.ApiKeys.Secrets.AI_API_KEY].orEmpty()
     }
 
     // 课表具体物理配置 (Room)

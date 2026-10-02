@@ -38,6 +38,30 @@ class ApiConfigRepository(
             val CRYPTO_IV = stringPreferencesKey("${PREFIX}crypto_iv")
             val AUTO_SYNC_ENABLED = booleanPreferencesKey("${PREFIX}auto_sync_enabled")
         }
+
+        /**
+         * 「只在本机」的密钥与凭据命名空间（v4.67.16）。
+         *
+         * 本存储对应 `filesDir/datastore/api_config.preferences_pb`，已被
+         * `androidApp/src/main/res/xml/backup_rules.xml` 与 `data_extraction_rules.xml`
+         * 排除（云备份与设备间迁移都不带它）。凡是**声明过「只在本机」的数据都必须放这里**，
+         * 放 `app_settings.preferences_pb` 会被 Android 自动备份上传到云端。
+         *
+         * 历史背景：AI API Key 与考证查分凭据在 v4.66.0–v4.67.15 期间住在 `app_settings` 存储，
+         * 与两者的「只在本机」声明矛盾；v4.67.16 起迁到本命名空间（旧键由
+         * `AppSettingsRepository` 一次性惰性迁移后删除）。
+         */
+        object Secrets {
+
+            /** AI 识别导入的接口密钥（明文，仅本机）。 */
+            val AI_API_KEY = stringPreferencesKey("ai_api_key")
+
+            /** 考证查分凭据：姓名（按模块 ID 隔离）。 */
+            fun certName(moduleId: String) = stringPreferencesKey("cert_name_$moduleId")
+
+            /** 考证查分凭据：准考证号（按模块 ID 隔离）。 */
+            fun certTicket(moduleId: String) = stringPreferencesKey("cert_ticket_$moduleId")
+        }
     }
 
     /**

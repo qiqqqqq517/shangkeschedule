@@ -106,6 +106,8 @@ class AiImportViewModel(
     init {
         viewModelScope.launch {
             val settings = appSettingsRepository.getAppSettingsOnce()
+            // Key 不在设置模型里：它是「只在本机」的密钥，单独从凭据存储读（v4.67.16）。
+            val apiKey = appSettingsRepository.getAiApiKey()
             _uiState.update {
                 it.copy(
                     isReady = true,
@@ -113,7 +115,7 @@ class AiImportViewModel(
                     noticeAccepted = settings.aiImportNoticeAccepted,
                     baseUrl = settings.aiApiBaseUrl,
                     model = settings.aiApiModel,
-                    apiKey = settings.aiApiKey,
+                    apiKey = apiKey,
                 )
             }
         }
