@@ -51,7 +51,7 @@
 | **XL-002** | ✅ 已修 | `AutoModeController`：DND 分支补「记录—还原进入前过滤档」，两个分支均写入后回读校验，不一致返回 false 并记日志；还原失败保留记录待重试 |
 | **XL-003** | ✅ 已修 | 新增 `AlarmPermissionReceiver`（manifest 静态注册，`exported=false`）：撤销时提示 + 降级重排，恢复时重排升级 + 撤提示 |
 | **XL-004** | ✅ 改设计后落地 | **不再新建登记表**：改用既有 `NotificationScheduler.reschedule()` 统一入口 + `shouldModeBeOn` 重算。派生状态不落盘就不会漂移；落盘的收益为零、漂移的风险不为零 |
-| **XL-010** | ✅ 已修 | `CalendarAccountManager.android.kt`：稳定 UID（`sk:<courseId>:<week>`）+ 增删改差分 + 写入后回读条数校验；课表为空时按 UID 精确清理 |
+| **XL-010** | ⚠️ 已修，但**首版全量失败**（见 §1.2 真机验证） | `CalendarAccountManager.android.kt`：按**开始时刻**做增删改差分 + 写入后回读条数校验；课表为空时按同一键精确清理。v4.66.4 首版用的两列均被 CalendarProvider 拒绝，真机验出后于 v4.66.5 重做 |
 | **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
 | **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
 | **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |
@@ -64,8 +64,80 @@
 
 **本轮发现并修正的自身错误**（供后续参考）：
 1. 重写日历写回时把 `withValueBackReference` 的批次索引算错，且把提醒分钟数放进内容指纹 —— 会导致**每次同步全量重写**，正好退回旧行为。改为查询 `Reminders` 归并真实分钟数后才正确。
-2. `Events.UID` 无法通过 `CalendarContract.Events` 解析（该常量在 **protected** 的 `SyncColumns` 上），最终用具名列名常量 `COL_UID = "uid"`。
+2. ~~`Events.UID` 无法通过 `CalendarContract.Events` 解析（该常量在 **protected** 的 `SyncColumns` 上），最终用具名列名常量 `COL_UID = "uid"`。~~ **这条判断整个是错的**，见 §1.2 第 1 条。
 3. 向 data class 尾部误插一个 `}`，导致 ViewModel 语法错误被编译器报成「primary constructor must only have property」。
+
+---
+
+### 1.2 真机验证（v4.66.5 / code 430，2026-10-03）
+
+> 设备：小米 22041216UC · Android 14（SDK 34）· targetSdk 37 · debug 包
+> 动机：上一批改的 P0 四项全部只过了编译期与单测，而它们动的都是真实系统状态。
+
+#### 结论先说：真机抓到一个编译期与单测都看不见的回归
+
+v4.66.4 交付的 XL-010（日历增量写回）**在真机上 100% 失败**，且失败发生在写日历的第一步，
+用户侧表现为「点了同步到系统日历，什么也没发生」。
+
+单测之所以测不出来：这条链路全程依赖 `ContentResolver` → 真机 CalendarProvider，
+仓库里没有任何 androidTest 源集，纯 JVM 单测根本没有能力覆盖它。
+
+#### 三个被真机否定的假设（按发现顺序）
+
+| # | 当时以为 | 真机实际 | 证据 |
+|---|---|---|---|
+| 1 | `Events` 的稳定标识列叫 `uid`；常量在 protected 的 `SyncColumns` 上，取不到才用字面量 | **`android-36` 的 `CalendarContract.java` 里根本没有 `UID` 常量**（只有 `CAL_SYNC1..10` 与 `DIRTY`）。`uid` 是 Provider 内部列，不在普通调用方的投影白名单 | `IllegalArgumentException: Invalid column uid`（`readExisting` 第 160 行） |
+| 2 | 改用公开的 `Events.ORIGINAL_ID`（`"original_id"`，可读可写）即可 | 该列语义是「本事件作为**例外**所归属的原重复事件 `_id`」。在非重复事件上写它，Provider 会去解析那个不存在的原事件 | `applyBatch` 抛 `NullPointerException: Long.longValue() on null`（栈顶在 provider 进程） |
+| 3 | 按 `_id` 构造单条事件 URI 用 `appendQueryParameter("_id", …)` 即可 | Provider 不接受 query parameter 形式的 `_id` | `IllegalArgumentException: Invalid URI parameter: _id`。正确写法是 `ContentUris.withAppendedId`（路径段） |
+
+第 3 条尤其值得记：**delete / update 两条路径在首轮验证中根本没被执行过**（日历当时是空的，161 条事件全是 insert），所以前两个 bug 修完仍然只暴露出第三个。**新写的分支必须逐条触发过才算验证过。**
+
+#### 最终方案：不写任何隐藏列
+
+差分需要「认出还是那堂课」的键。隐藏列 `uid` / `original_id` 都被占用或禁止，
+于是改用**一次课的开始时刻 `dtstart` 本身**作为天然唯一键：
+
+- 同一时刻在本日历里至多一堂课 —— `IcsExportTool.processCourseInstances`
+  对每个 (课程, 周次) 只产出一个跨越全部连排节的实例；
+- 公开、可查可写，不参与任何重复规则解析；
+- 课程改名 / 换教室时**保持不变**，正好符合「同一堂课」的定义 —— 这是 `uid` 方案想达到而失败的效果。
+
+附带处理了一个真实边界：若同一开始时刻出现多条事件（日历里混进了手工事件或历史脏数据），
+多余的会被显式删除。否则它们永远匹配不上期望集合、回读校验会恒定失败、同步每次都判失败。
+
+#### 真机验收结果（四条路径逐条触发）
+
+| 场景 | 日志 | 结果 |
+|---|---|---|
+| 首次同步（日历为空） | `期望=161 回读=161 （新增 161 / 更新 0 / 删除 0）` | ✅ insert 路径 |
+| 立即重复同步 | `期望=161 回读=161 （新增 0 / 更新 0 / 删除 0）` | ✅ **零写入**，增量差分成立 |
+| 课程改名后同步 | `期望=161 回读=161 （新增 0 / 更新 29 / 删除 0）`，事件总数不变 | ✅ update 原地改，不删重建 —— 保住事件 `_id`，用户在日历 App 上加的提醒不丢 |
+| 缩减上课周次后同步 | `期望=154 回读=154 （新增 3 / 更新 0 / 删除 10）` | ✅ delete 路径 |
+
+设备侧交叉核对：`calendar_id=2` 实际 161 条事件、提醒表 10 → 171（净增 161 条，每事件一条）、
+标题分布与课表一致。
+
+#### 这次验证没能覆盖的（据实列出）
+
+- **XL-001 / XL-002**：需要真的进入上课时段，观察**响铃模式**与**勿扰状态**变化。
+  这会打断真机主人自己的通话，属侵入性操作，未做。二者目前只有编译期 + 5 例重叠单测保障。
+- **XL-003**：撤销 `SCHEDULE_EXACT_ALARM` 的广播由系统权限 UI 流程触发，
+  `adb shell cmd appops set` 改不了（只改 op 不发广播）。已核实 receiver 在**已装 APK 里**
+  （`dumpsys package` 可见 `Action: android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`），
+  但广播投递未验证。
+- **XL-014**：`TIMEZONE_CHANGED` / `LOCALE_CHANGED` / `DATE_CHANGED` 是 protected broadcast，
+  shell（uid 2000）无权发送。已核实四个 action 都在**已装 APK 的 manifest** 里，
+  但实际投递未验证。
+
+#### 方法论沉淀
+
+本轮为真机驱动写了可复用的工具（`uinav.py`：`uiautomator dump` → 按文本定位节点 → 模拟点击），
+并踩掉了三个坑，都与「UI 自动化」本身有关：
+
+1. `uiautomator dump` 要的是**设备端路径**，传 Windows 路径静默失败；
+2. `adb shell` 的输出是 UTF-8，Python `subprocess` 不显式给 `encoding='utf-8'` 会被按 GBK 解成乱码；
+3. **点一下输入框后输入法弹出，整个界面会上移**（实测 y 从 797 变 319）。
+   后续坐标必须重新 dump 取，不能复用 —— 我第一次长按正是因此误触了周次选择器。
 
 ## 1. 总览速览
 
@@ -483,10 +555,14 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 **依赖** 无
 
 **验收标准**
-1. 单测：课表改 1 门课 → 系统日历 `ContentResolver` 调用序列为 `update` 而非 `delete(all)+insert(all)`
-2. 写入后回读计数不一致 → 返回失败并给出提示文案（复用既有 i18n 资源机制，勿裸中文）
-3. 真机：连续同步 3 次，日历 App 中无重复事件、无丢失事件
-4. `CALLER_IS_SYNCADAPTER=true` 与 `applyBatch` 事务性不回归
+1. ~~单测：课表改 1 门课 → 系统日历 `ContentResolver` 调用序列为 `update` 而非 `delete(all)+insert(all)`~~ → **不可行**：链路依赖真机 `CalendarProvider`，仓库无 androidTest 源集。**改为真机驱动验证**，见 §1.2
+2. 写入后回读计数不一致 → 返回失败并给出提示文案（复用既有 i18n 资源机制，勿裸中文） ✅
+3. 真机：连续同步 3 次，日历 App 中无重复事件、无丢失事件 ✅（连续两次均为 `新增 0 / 更新 0 / 删除 0`）
+4. `CALLER_IS_SYNCADAPTER=true` 与 `applyBatch` 事务性不回归 ✅
+
+**实施结果（v4.66.5，2026-10-03）** — 目标 1 改为**以开始时刻 `dtstart` 为匹配键**，
+不建 appId ↔ eventId 映射表，理由与真机证据见 §1.2。验收标准 1 无法用单测覆盖，
+已如实改为真机验证并逐条触发 insert / 零写入 / update / delete 四条路径。
 
 **对标依据** — 星链 `SystemCalendarSync` 字段组：`CalendarRow`（9 字段含 `writable`/`syncEvents`/`isPrimary`）、`DeviceEvent`（`appEventId`↔`deviceEventId`）、`ReplaceResult`（`writtenCount`/`verifiedCount`/`usedFallback`/`userHint`）；日志含 `已写入「星链课表」。若日历里看不到，请打开系统日历 → 日历列表，勾选「星链课表」。`
 

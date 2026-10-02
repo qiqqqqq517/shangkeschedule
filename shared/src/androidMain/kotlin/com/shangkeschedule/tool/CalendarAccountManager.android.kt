@@ -39,9 +39,8 @@ private const val TAG = "CalendarAccountManager"
  *    广播「这些课被取消了」，本应用随后再重新插入，容易在云端留下一串删除记录；
  * 3. 事件数量大时批次很大，部分 OEM 日历 Provider 有事务超时风险。
  *
- * 现在改为**按稳定 UID 做差分**：新增 / 更新 / 删除分开下发，只动真正变化的那些。
- * UID 由 `courseId + weekNumber` 确定性生成（`sk:<courseId>:<weekNumber>`），不含随机量，
- * 因此同一门课在第 N 周的那一次课永远映射到同一个 UID。
+ * 现在改为**按开始时刻做差分**：新增 / 更新 / 删除分开下发，只动真正变化的那些。
+ * 匹配键取一次课的开始时刻（见 [ExistingEvent] 的说明：为什么不用隐藏列）。
  *
  * ## 写入后回读校验
  *
@@ -51,20 +50,6 @@ private const val TAG = "CalendarAccountManager"
 actual object CalendarAccountManager : KoinComponent {
 
     private const val ACCOUNT_TYPE = CalendarContract.ACCOUNT_TYPE_LOCAL
-
-    /**
-     * `Events.uid` 列名。
-     *
-     * 为什么用字面量而不写 `CalendarContract.Events.UID`：该常量实际声明在
-     * `CalendarContract.SyncColumns` 上，而这个接口在 SDK 里是 **protected**；
-     * `Events` 只是 `implements` 它，Kotlin 不会把接口常量当作 `Events` 的成员解析。
-     * 列名本身是 CalendarProvider 的公开契约（见 SDK 文档 Events 表），用具名常量
-     * 固定可读、且避免拼错后静默返回空集。
-     */
-    private const val COL_UID = "uid"
-
-    /** 本应用写入的事件在日历里的稳定标识前缀，用于把「自己的事件」与用户自建事件区分开。 */
-    private const val UID_PREFIX = "sk:"
 
     // 通过 Koin 动态注入全局 Application Context
     private val context: Context by inject()
@@ -114,7 +99,6 @@ actual object CalendarAccountManager : KoinComponent {
 
     /** 一次课在目标日历里应有的全部内容。 */
     private class DesiredEvent(
-        val uid: String,
         val title: String,
         val location: String,
         val description: String,
@@ -130,27 +114,59 @@ actual object CalendarAccountManager : KoinComponent {
          * 对事件行做 `update` 改不动已存在的提醒记录，所以提醒变化要走「删事件+重建」。
          * 因此读回时必须把 `Reminders.MINUTES` 一并查出，否则每次同步都会把全部
          * 带提醒的事件误判成「变了」而全量重写（那等于退回旧行为，只是更慢）。
+         *
+         * `startMillis` 不进指纹 —— 它是匹配键本身（见 [ExistingEvent]）。
          */
         val fingerprint: String
-            get() = "$startMillis|$endMillis|$title|$location|$description|${alarmMinutes ?: NO_ALARM}"
+            get() = "$endMillis|$title|$location|$description|${alarmMinutes ?: NO_ALARM}"
     }
 
-    /** 日历里已存在的一次课（按 UID 索引）。 */
+    /**
+     * 日历里已存在的一次课。
+     *
+     * ## 为什么用开始时刻当匹配键（v4.66.5 真机修复）
+     *
+     * 差分需要一个能跨次同步认出「还是那堂课」的稳定键。v4.66.4 曾试图把
+     * `courseId:weekNumber` 写进日历的隐藏列，两种写法都被真机证伪：
+     *
+     * - `"uid"`：Provider 不在普通调用方的投影白名单里，查询即抛
+     *   `IllegalArgumentException: Invalid column uid`；
+     * - `Events.ORIGINAL_ID`：语义是「本事件作为例外所归属的**原重复事件**的
+     *   `_id`」。在非重复事件上写它，Provider 会去解析那个不存在的原事件，
+     *   `applyBatch` 抛 `NullPointerException: Long.longValue() on null`。
+     *
+     * 与其找一个「能塞进日历又没被占用语义」的隐藏列，不如承认 **`dtstart` 本身就是
+     * 天然唯一键**：同一时刻在本日历里至多一堂课（`processCourseInstances` 对每个
+     * (课程, 周次) 只产出一个跨越全部连排节的实例）。它公开、可查可写、不参与任何
+     * 重复规则解析，且课程改名 / 换教室时保持不变 —— 正好符合「同一堂课」的定义。
+     */
     private class ExistingEvent(val eventId: Long, val fingerprint: String)
 
+    /** 本日历下的现状快照。 */
+    private class ExistingSnapshot(
+        /** 开始时刻 -> 已存在事件。 */
+        val byStart: Map<Long, ExistingEvent>,
+        /**
+         * 同一开始时刻出现多条事件时的**多余**那几条。
+         *
+         * 达不到「一个时刻至多一条」就说明日历里混进了手工事件（或历史脏数据）。
+         * 它们必须被显式删掉，否则回读校验会永远对不上、每次同步都判失败。
+         */
+        val duplicateIds: List<Long>
+    )
+
     /**
-     * 读出本日历下已存在、由本应用写入的事件（按 UID 索引）。
+     * 读出本日历下的全部事件，按开始时刻索引。
      *
      * 分两次查询：先取事件行，再取提醒分钟数并按 EVENT_ID 归并。
-     * 本应用用的是 `ACCOUNT_TYPE_LOCAL` 的本地日历，事件量与学期周数同阶，
-     * 全表扫 Reminders 的开销可以忽略。
+     * 本应用用的是 `ACCOUNT_TYPE_LOCAL` 的**专用**本地日历（账号名固定为本包名），
+     * 其下事件全部由本应用写入，因此整表扫的代价与事件量同阶，可忽略。
      */
-    private fun readExisting(resolver: ContentResolver, calendarId: Long): Map<String, ExistingEvent> {
-        val events = LinkedHashMap<Long, Array<String>>()   // eventId -> 指纹的字段数组
-        val uidById = LinkedHashMap<Long, String>()
+    private fun readExisting(resolver: ContentResolver, calendarId: Long): ExistingSnapshot {
+        val rows = LinkedHashMap<Long, Array<String>>()   // eventId -> 指纹的字段数组
+        val startById = LinkedHashMap<Long, Long>()
         val projection = arrayOf(
             CalendarContract.Events._ID,
-            COL_UID,
             CalendarContract.Events.DTSTART,
             CalendarContract.Events.DTEND,
             CalendarContract.Events.TITLE,
@@ -160,24 +176,20 @@ actual object CalendarAccountManager : KoinComponent {
         resolver.query(
             CalendarContract.Events.CONTENT_URI,
             projection,
-            "${CalendarContract.Events.CALENDAR_ID} = ? AND ${COL_UID} LIKE ?",
-            arrayOf(calendarId.toString(), "$UID_PREFIX%"),
+            "${CalendarContract.Events.CALENDAR_ID} = ?",
+            arrayOf(calendarId.toString()),
             null
         )?.use { c ->
             val idIdx = c.getColumnIndexOrThrow(CalendarContract.Events._ID)
-            val uidIdx = c.getColumnIndexOrThrow(COL_UID)
             val startIdx = c.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)
             val endIdx = c.getColumnIndexOrThrow(CalendarContract.Events.DTEND)
             val titleIdx = c.getColumnIndexOrThrow(CalendarContract.Events.TITLE)
             val locIdx = c.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)
             val descIdx = c.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
             while (c.moveToNext()) {
-                val uid = c.getString(uidIdx) ?: continue
-                if (!uid.startsWith(UID_PREFIX)) continue
                 val id = c.getLong(idIdx)
-                uidById[id] = uid
-                events[id] = arrayOf(
-                    c.getLong(startIdx).toString(),
+                startById[id] = c.getLong(startIdx)
+                rows[id] = arrayOf(
                     c.getLong(endIdx).toString(),
                     c.getString(titleIdx).orEmpty(),
                     c.getString(locIdx).orEmpty(),
@@ -186,7 +198,7 @@ actual object CalendarAccountManager : KoinComponent {
                 )
             }
         }
-        if (events.isEmpty()) return emptyMap()
+        if (rows.isEmpty()) return ExistingSnapshot(emptyMap(), emptyList())
 
         // 归并提醒分钟数（同一事件可能有多条提醒，取第一条即可 —— 我们只会建一条）
         resolver.query(
@@ -198,26 +210,30 @@ actual object CalendarAccountManager : KoinComponent {
             val minIdx = c.getColumnIndexOrThrow(CalendarContract.Reminders.MINUTES)
             while (c.moveToNext()) {
                 val id = c.getLong(evIdx)
-                val fields = events[id] ?: continue
-                if (fields[5] == NO_ALARM.toString()) {
-                    fields[5] = c.getInt(minIdx).toString()
+                val fields = rows[id] ?: continue
+                if (fields[4] == NO_ALARM.toString()) {
+                    fields[4] = c.getInt(minIdx).toString()
                 }
             }
         }
 
-        return events.mapNotNull { (id, fields) ->
-            val uid = uidById[id] ?: return@mapNotNull null
-            uid to ExistingEvent(id, fields.joinToString("|"))
-        }.toMap()
+        val byStart = LinkedHashMap<Long, ExistingEvent>()
+        val duplicates = ArrayList<Long>()
+        for ((id, fields) in rows) {
+            val start = startById[id] ?: continue
+            val kept = byStart.put(start, ExistingEvent(id, fields.joinToString("|")))
+            if (kept != null) duplicates.add(id)
+        }
+        return ExistingSnapshot(byStart, duplicates)
     }
 
-    /** 回读校验：本日历下由本应用写入的事件条数。 */
+    /** 回读校验：本日历下的事件条数（该日历由本应用独占，故无需再按前缀过滤）。 */
     private fun verifyCount(resolver: ContentResolver, calendarId: Long): Int {
         val cursor: Cursor? = resolver.query(
             CalendarContract.Events.CONTENT_URI,
             arrayOf(CalendarContract.Events._ID),
-            "${CalendarContract.Events.CALENDAR_ID} = ? AND ${COL_UID} LIKE ?",
-            arrayOf(calendarId.toString(), "$UID_PREFIX%"),
+            "${CalendarContract.Events.CALENDAR_ID} = ?",
+            arrayOf(calendarId.toString()),
             null
         )
         var count = 0
@@ -241,8 +257,6 @@ actual object CalendarAccountManager : KoinComponent {
         ops.add(
             ContentProviderOperation.newInsert(CalendarContract.Events.CONTENT_URI)
                 .withValue(CalendarContract.Events.CALENDAR_ID, calendarId)
-                .withValue(COL_UID, e.uid)
-                .withValue(CalendarContract.Events.ORIGINAL_ID, e.uid)
                 .withValue(CalendarContract.Events.TITLE, e.title)
                 .withValue(CalendarContract.Events.EVENT_LOCATION, e.location)
                 .withValue(CalendarContract.Events.DESCRIPTION, e.description)
@@ -263,23 +277,31 @@ actual object CalendarAccountManager : KoinComponent {
         }
     }
 
-    private fun deleteOp(eventId: Long): ContentProviderOperation =
-        ContentProviderOperation.newDelete(
-            CalendarContract.Events.CONTENT_URI.buildUpon()
-                .appendQueryParameter(CalendarContract.Events._ID, eventId.toString())
-                .build()
-        ).build()
+    /**
+     * 定位单条事件的 item URI。
+     *
+     * 必须用 `ContentUris.withAppendedId` 把 `_id` 作为**路径段**拼上去，
+     * 不能 `appendQueryParameter("_id", …)` —— CalendarProvider 会拒绝后者并抛
+     * `IllegalArgumentException: Invalid URI parameter: _id`（v4.66.5 真机实测）。
+     */
+    private fun eventUri(eventId: Long): Uri =
+        ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
 
+    private fun deleteOp(eventId: Long): ContentProviderOperation =
+        ContentProviderOperation.newDelete(eventUri(eventId)).build()
+
+    /**
+     * 改一次课的内容。
+     *
+     * 不带 `DTSTART`：它就是匹配键，本分支能走到说明日历里的开始时刻与期望一致。
+     * 反过来，若用户把事件在日历 App 里挪了时间，读回的 `dtstart` 就不再匹配任何期望项，
+     * 那条事件会被当成「多余」删掉再按正确时间重建 —— 时间因此始终以课表为准。
+     */
     private fun updateOp(eventId: Long, e: DesiredEvent): ContentProviderOperation =
-        ContentProviderOperation.newUpdate(
-            CalendarContract.Events.CONTENT_URI.buildUpon()
-                .appendQueryParameter(CalendarContract.Events._ID, eventId.toString())
-                .build()
-        )
+        ContentProviderOperation.newUpdate(eventUri(eventId))
             .withValue(CalendarContract.Events.TITLE, e.title)
             .withValue(CalendarContract.Events.EVENT_LOCATION, e.location)
             .withValue(CalendarContract.Events.DESCRIPTION, e.description)
-            .withValue(CalendarContract.Events.DTSTART, e.startMillis)
             .withValue(CalendarContract.Events.DTEND, e.endMillis)
             .withValue(CalendarContract.Events.EVENT_TIMEZONE, e.timeZoneId)
             .build()
@@ -300,14 +322,16 @@ actual object CalendarAccountManager : KoinComponent {
 
                 val resolver = context.contentResolver
 
-                // 学期内没有课时：把本应用写入的事件清空即达成「日历与课表一致」。
+                // 学期内没有课时：把本日历下的事件清空即达成「日历与课表一致」。
                 if (semesterTotalWeeks <= 0 || courses.isEmpty()) {
                     val stale = readExisting(resolver, calendarId)
-                    if (stale.isNotEmpty()) {
-                        val ops = ArrayList<ContentProviderOperation>(stale.size)
-                        stale.values.forEach { ops.add(deleteOp(it.eventId)) }
+                    val total = stale.byStart.size + stale.duplicateIds.size
+                    if (total > 0) {
+                        val ops = ArrayList<ContentProviderOperation>(total)
+                        stale.byStart.values.forEach { ops.add(deleteOp(it.eventId)) }
+                        stale.duplicateIds.forEach { ops.add(deleteOp(it)) }
                         resolver.applyBatch(CalendarContract.AUTHORITY, ops)
-                        AppLog.i(TAG, "课表为空，已清理 ${stale.size} 条日历事件")
+                        AppLog.i(TAG, "课表为空，已清理 $total 条日历事件")
                     }
                     return@withContext true
                 }
@@ -315,8 +339,8 @@ actual object CalendarAccountManager : KoinComponent {
                 val timeZone = TimeZone.currentSystemDefault()
                 val effectiveAlarm = alarmMinutes?.takeIf { it in 0..60 }
 
-                // ---- 1. 算出期望集合 ----
-                val desired = LinkedHashMap<String, DesiredEvent>()
+                // ---- 1. 算出期望集合（键 = 一次课的开始时刻）----
+                val desired = LinkedHashMap<Long, DesiredEvent>()
                 IcsExportTool.processCourseInstances(
                     courses = courses,
                     timeSlots = timeSlots,
@@ -324,17 +348,16 @@ actual object CalendarAccountManager : KoinComponent {
                     semesterTotalWeeks = semesterTotalWeeks,
                     firstDayOfWeekInt = firstDayOfWeekInt,
                     skippedDates = skippedDates
-                ) { course, start, end, weekNumber ->
+                ) { course, start, end, _ ->
                     val teacherDescription = if (course.teacher.isNotBlank()) {
                         getString(Res.string.course_teacher_prefix, course.teacher)
                     } else ""
-                    val uid = "$UID_PREFIX${course.id}:$weekNumber"
-                    desired[uid] = DesiredEvent(
-                        uid = uid,
+                    val startMillis = start.toInstant(timeZone).toEpochMilliseconds()
+                    desired[startMillis] = DesiredEvent(
                         title = course.name,
                         location = course.position,
                         description = teacherDescription,
-                        startMillis = start.toInstant(timeZone).toEpochMilliseconds(),
+                        startMillis = startMillis,
                         endMillis = end.toInstant(timeZone).toEpochMilliseconds(),
                         timeZoneId = timeZone.id,
                         alarmMinutes = effectiveAlarm
@@ -348,15 +371,21 @@ actual object CalendarAccountManager : KoinComponent {
                 var updated = 0
                 var deleted = 0
 
-                // 2a. 多余的（课被删 / 调到别的周 / 学期缩短）→ 删
-                for ((uid, old) in existing) {
-                    if (uid in desired) continue
+                // 2a. 同一开始时刻的多余副本（日历里混进了手工事件）→ 删
+                existing.duplicateIds.forEach {
+                    ops.add(deleteOp(it))
+                    deleted++
+                }
+
+                // 2b. 多余的（课被删 / 调到别的周 / 学期缩短）→ 删
+                for ((startMillis, old) in existing.byStart) {
+                    if (startMillis in desired) continue
                     ops.add(deleteOp(old.eventId))
                     deleted++
                 }
 
-                for ((uid, want) in desired) {
-                    val old = existing[uid]
+                for ((startMillis, want) in desired) {
+                    val old = existing.byStart[startMillis]
                     when {
                         old == null -> {
                             appendInsert(ops, calendarId, want)
