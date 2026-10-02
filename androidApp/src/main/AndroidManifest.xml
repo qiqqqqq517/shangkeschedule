@@ -291,10 +291,20 @@
             </intent-filter>
         </receiver>
 
+        <!-- App Startup：只摘掉 WorkManager 的自动初始化，交给 Koin 的 workManagerFactory() 接管
+             （见 MyApplication.onCreate）。这里必须用 meta-data 级移除：整个 InitializationProvider
+             节点同时承载 emoji2 / profileinstaller / lifecycle-process / okhttp-android 四个库声明的
+             初始化器，一起删掉会让它们静默失效；其中 okhttp-android 的 PlatformInitializer 是应用
+             Context 的唯一来源，缺它时 PlatformRegistry.getApplicationContext() 为 null，OkHttp 无法
+             加载 publicsuffix 资产（okhttp 自己的报错文案就叫 "Startup Initializer possibly disabled"）。 -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
-            tools:node="remove" />
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
+        </provider>
 
         <provider
             android:name="androidx.core.content.FileProvider"
