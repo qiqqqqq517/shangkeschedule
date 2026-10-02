@@ -1,11 +1,16 @@
 # 星链对标优化清单
 
-> **基线**：本仓库 `main` @ `f892c66`（v4.66.0，versionCode 420）。本文档的技术断言全部基于该提交的源码状态。
+> **基线**：本仓库 `main` @ `796d24f`（v4.67.1，versionCode 432）。本文档的技术断言成稿于 `f892c66`（v4.66.0 / 420），此后已推进 5 个版本；**已逐条复核引用路径未被触及，断言仍成立**，漂移台账见 §0.6。
 > **对标对象**：星链课表 `com.xlhzcm.starcurriculum` v4.20.0（versionCode 2280），arm64-v8a 单 ABI
-> **产出日期**：2026-10-02（含一轮自查核对）
-> **状态**：待排期。本文档只列「已核实证据」与「建议」，不含任何已实施改动。
+> **产出日期**：2026-10-02（含一轮自查核对 + 一轮 watchdog 数字复核）
+> **状态**：P0 全部 + P1 可完成项已实施（逐项状态见 §0.5）；余下条目待排期。
 >
-> **基线漂移提示**：本文档成稿后 `main` 又推进到 v4.66.3（`91e052e` / `7d2a0b6` / `1a67f1d`，均为「我的」页设置分区重排）。这些改动不触及本文档引用的任何文件（`androidApp/.../notification/**`、`androidApp/.../widget/**`、`shared/.../tool/CalendarAccountManager*`、`AndroidManifest.xml`），故技术断言仍然有效；若后续版本改动上述路径，请重新核对。
+> **基线漂移提示（已复核，2026-10-02 watchdog 第 3 轮）**：本文档成稿后 `main` 推进到 v4.67.1（`796d24f`）。经逐条核对，
+> **本文档引用的所有技术断言所依赖的文件路径均未被触及** —— `androidApp/.../notification/**`、`androidApp/.../receiver/**`、
+> `androidApp/.../control/**`、`androidApp/.../widget/**`、`androidApp/src/main/AndroidManifest.xml`、
+> `shared/.../tool/CalendarAccountManager*`、`shared/.../data/sync/WidgetDataSynchronizer.kt` 全部未发生语义变更
+> （相关改动均为新增文件与新增资源，不改动既有断言）。故技术断言仍然有效。
+> **但文档中的三处数字已过时**，已在 §0.6 记录并就地修正。
 
 ---
 
@@ -62,11 +67,50 @@
 **顺带补的基础设施**：`AppLog` 增加 `i` 级别（expect + android/jvm/ios 三处 actual）—— shared 层此前只有 `w`/`e`，导致信息级日志无处可去。
 
 **验证**：`:shared:compileKotlinJvm` + `:desktopApp:compileKotlin` + `:androidApp:assembleDebug` 全绿；单测 **217 例全通过、0 失败 0 跳过**（新增 5 例重叠回归 + 7 例厂商识别）。
+> **数字已过时（2026-10-02 watchdog 第 3 轮实测）**：本批次当时的 217 例是对的，但仓库此后又增 4 例（v4.67.0 的 `WidgetPinStringsTest`）。
+> **当前真实口径 = 221 例 / 0 失败 / 0 错误 / 0 跳过**（shared 156 + androidApp 65）。
+> 另注：本仓库 L3 的真实 Gradle 任务是 `:shared:testAndroidHostTest` + `:androidApp:testDebugUnitTest`；
+> `:shared:jvmTest` 是 `NO-SOURCE`（`shared/src` 下无 `jvmTest` 源集），写成它会**静默漏跑 156 例**。
 
 **本轮发现并修正的自身错误**（供后续参考）：
 1. 重写日历写回时把 `withValueBackReference` 的批次索引算错，且把提醒分钟数放进内容指纹 —— 会导致**每次同步全量重写**，正好退回旧行为。改为查询 `Reminders` 归并真实分钟数后才正确。
 2. ~~`Events.UID` 无法通过 `CalendarContract.Events` 解析（该常量在 **protected** 的 `SyncColumns` 上），最终用具名列名常量 `COL_UID = "uid"`。~~ **这条判断整个是错的**，见 §1.2 第 1 条。
 3. 向 data class 尾部误插一个 `}`，导致 ViewModel 语法错误被编译器报成「primary constructor must only have property」。
+
+---
+
+### 0.6 漂移台账（watchdog 第 3 轮复核，2026-10-02）
+
+本节记录「文档数字随代码演进而过时」的逐条台账。**原则：文档里凡是能被静态计数验证的数字，都必须随代码一起更新**，
+否则下一个读者会拿一个过时的数字当验收基线 —— 这与 v4.67.1 的对比度门禁漏洞是同一类问题（清单没跟上代码）。
+
+| # | 位置 | 成稿时 | 复核实测 | 处理 |
+|---|---|---|---|---|
+| 1 | §0.5 验证口径 | 单测 217 例 | **221 例**（shared 156 + androidApp 65），0 失败 0 错误 0 跳过 | 就地加注「已过时 + 当前值」，保留原数字并说明其当时是对的 |
+| 2 | §7 XL-032 证据 | shared `androidHostTest` 15 文件 / 140 `@Test` | **17 文件 / 156 `@Test`** | 已就地修正 |
+| 3 | 附录 · 证据索引 | 同上「15 文件 / 140 例」 | 同上 | 已就地修正 |
+| 4 | §7 XL-032 证据 | androidApp 8 文件 / 65 `@Test` | **8 文件 / 65 `@Test`** | ✅ 复核仍准确，不动 |
+| 5 | `docs/widget-display-optimization.md` | 全文按 **4 个规格**撰写（7 处：「4 个主布局」「影响 4 个规格 × 全部状态」「4 规格 × 全状态 × 3 主题 × 深浅 = 24 个组合」等） | 实际已 **8 个规格** | **本轮不改**，见下方「为何不动」 |
+
+#### 为何第 5 项本轮不动
+
+`widget-display-optimization.md` 属**方案设计文档**（`§4.4` 明确写它是「与 XL-005 的排期决策点」耦合的）。
+按 `docs/agents/neverstop-watchdog.md` §7.3 与本仓库 `AGENTS.md`，watchdog **无权自行修改方案文档与发版流程**；
+且 4→8 规格的 token 扩展本身就是 **XL-011 的工作内容**（该文档 §6.3 的 12 token × 6 取值需补到 48 组合），
+不是把「4」改成「8」就能收尾 —— 改了数字而不补 token 表，反而会让文档更自相矛盾。
+
+**需要用户决定**：XL-011 与 XL-005 §4.4 是同一个排期决策点（先 Glance S1 试点 / 还是先补 token 扩展）。
+建议先定这条，再回来一次性把 `widget-display-optimization.md` 改到位（含 token 表与排期），避免改两遍。
+
+#### 复核方法（可复现）
+
+```powershell
+# 测试口径：两份独立计数互相印证（Gradle XML 结果 vs @Test 注解数），不一致即为异常
+python build_qa/watchdog/count_tests.py          # 解析 build/test-results/**/*.xml
+Select-String -Path (Get-ChildItem -Recurse shared\src\androidHostTest -Filter *.kt).FullName -Pattern '^\s*@Test'
+```
+
+两份口径本次均得到 shared 156 / androidApp 65，**互相印证**后才写入文档 —— 不采信任何单一口径。
 
 ---
 
@@ -284,6 +328,64 @@ exit=0
 这一组文案是逐 locale 手写新增的，而 compose-resources 缺 key 时是**运行期**才回退默认 locale ——
 漏翻一个语言不会编译失败、不会单测失败，只会在那个语言的设备上默默显示简体字。
 上一轮 XL-013 的 9 条资源踩的是同一个坑（当时无自动闸），这次补上。
+
+---
+
+### 1.5 对手 APK 实测复核（v4.20.0 / code 2280，2026-10-02）
+
+> 样本：`C:\Users\30458\Downloads\星链.apk`，35.4 MB，SHA-256 `78B3CF1149A169B5E0861C846D1E826F9D7E2EFC2BDC53F87417623A422578A8`
+> 工具：`aapt2 dump badging` / `aapt2 dump xmltree --file AndroidManifest.xml` / `apksigner verify --print-certs`（build-tools 37.0.0）
+> 目的：对本文档中**可被静态验证**的断言做一次独立复算，防止「文档转述几轮之后与事实脱节」——
+> 这与 §0.6 记录的三个过时数字是同一个风险，只是方向相反。
+
+#### 与文档既有断言的一致性
+
+| 文档断言 | 实测 | 结论 |
+|---|---|---|
+| package `com.xlhzcm.starcurriculum` / 4.20.0 / code 2280 | 一致 | ✅ |
+| min 24 / target 36 / compile 37（platformBuild 17） | 一致 | ✅ |
+| XL-042：调试证书 `CN=Android Debug` | `C=US, O=Android, CN=Android Debug`，SHA-256 **`e4c2dee99824269cc4d3c8a4ed11a543aa22f60c49244b92da5f220b5b3f40bd`** | ✅ **确认是调试证书**（与我方正式签名 `4ae49d8c…2475f` 完全不同） |
+| XL-033「我们无位置/相机/电话/安装包权限」 | 对方 manifest 实测声明 `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` + `CAMERA`（`uses-feature required=false`）+ `READ_PHONE_STATE` + `REQUEST_INSTALL_PACKAGES` | ✅ **我方权限克制优势成立**，且证据比原文档更具体 |
+| XL-003：`AlarmPermissionReceiver` + `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` | receiver 实测存在，`exported=false`，intent-filter **只挂这一个 action**（manifest line 470-479） | ✅ 一致；我方 `AndroidManifest.xml:103-107` 已完全对齐（同样 `exported=false` + 单一 action） |
+
+#### 本次新发现（文档此前未记录）
+
+1. **对方 8 个小组件全部是 Glance 实现，且每个 receiver 监听同一组 8 个 action**
+
+   类名一律 `com.xlhzcm.starcurriculum.glance.*GlanceWidgetReceiver`，共 8 个（与文档「8 个 provider」数量吻合）：
+   `WeekCourses` / `TodayCourses` / `SmallTodayCourses` / `RecentCourses` /
+   `ExamCountdown` / `NextSchedule` / `TodayAgenda` / `WeekAgenda`。
+
+   每个 receiver 的 intent-filter 固定为**同一组 8 个 action**：
+   `APPWIDGET_UPDATE` / `ENABLED` / `DISABLED` / `DELETED` / `RESTORED` / **`VISIBLE`** / **`HIDDEN`**
+   + 时间四件套（`DATE_CHANGED` / `TIMEZONE_CHANGED` / `TIME_SET` / `LOCALE_CHANGED`），
+   外加厂商私有 `miui.appwidget.action.APPWIDGET_UPDATE`，并声明 `miuiWidget=false` meta-data。
+
+   → **这为 XL-014 第 2 条「核查 `APPWIDGET_VISIBLE/HIDDEN` 的必要性」给出了确定答案**：对方确实监听，
+   且是**每个 provider 都监听**。我方当前 manifest 仅在 `TimeChangeReceiver`（:123）挂了 `LOCALE_CHANGED`，
+   **未挂 `APPWIDGET_VISIBLE/HIDDEN`** —— 属可对标的真实差距，已记入 pending 等用户决策（属行为变更，非纯文档）。
+
+2. **对方有独立的 `BootReceiver` 与 `DndActionReceiver`**
+   `com.xlhzcm.starcurriculum.receiver.BootReceiver`、
+   `com.xlhzcm.starcurriculum.receiver.DndActionReceiver`（对应自定义 action `ACTION_ENABLE_DND`）。
+   → 我方开屏重排走 `LOCKED_BOOT_COMPLETED`（`REVIEW.md` 批12 已清理过死配置）。
+   本轮**未核对**我方 `BOOT_COMPLETED` 一路是否仍完整，留待后续轮次。
+
+3. **对方确无 backup rules（再次确认）**
+   `application` 段未出现 `android:allowBackup` / `android:dataExtractionRules`，
+   与 XL-034「我们三件套齐备、星链均无」一致。✅
+
+4. **对方的 Glance 落地印证了 XL-005 的技术可行性**
+   8 个 receiver 全为 `glance.*` 命名空间，说明 **XL-005 路径 A（先 Glance S1 试点）在对方处已完整跑通**，
+   可直接作为我方 S1 的可行性背书。但**不等于**应当照搬 —— 收益仍需按 §4.6 逐阶段实测。
+
+#### 本轮未产生任何代码改动
+
+以上全部为**文档层复核**，未触及 `androidApp/` / `shared/` 任何源文件，故不触发 watchdog §6 收尾流程（不 bump、不提交）。
+真正待做的两条（`APPWIDGET_VISIBLE/HIDDEN` 补齐、`BOOT_COMPLETED` 核对）属**行为变更**，
+按 watchdog §1.11「不扩大范围」不自行开工，已写入 `build_qa/watchdog/pending.md` 等用户决策。
+
+---
 
 ## 1. 总览速览
 
@@ -861,7 +963,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 |---|---|---|---|
 | **XL-030** | 单一闹钟入口 | `AlarmScheduler.kt` KDoc 自述「系统闹钟层唯一入口」，`AlarmCodeBook` 统一分配槽位（200 课程 + 60 勿扰 + 1 早八 = 261） | 新增闹钟需求一律经 `AlarmScheduler`，禁止直连 `AlarmManager` |
 | **XL-031** | 静默失败兜底 | `PostedNotificationRegistry` —— 系统闹钟未真正注册时仍投递通知 | 保持该登记簿；新增通知类型接入 |
-| **XL-032** | 单元测试 | androidApp **8 个测试文件 / 65 个 `@Test`**（`WidgetListCapacityTest` 12 / `WidgetCourseSelectionTest` 11 / `MorningAlarmDiffTest` 10 / `MorningAlarmPlanTest` 9 / `WidgetNightModeTest` 7 / `WidgetBubbleContrastTest` 6 / `WidgetCoursePaletteTest` 5 / `WidgetTextScaleTest` 5）；shared `androidHostTest` **15 个文件 / 140 个 `@Test`**（静态统计，含 `MorningAlarmPlanTest` / `CopySemesterNameTest` 等） | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
+| **XL-032** | 单元测试 | androidApp **8 个测试文件 / 65 个 `@Test`**（`WidgetListCapacityTest` 12 / `WidgetCourseSelectionTest` 11 / `MorningAlarmDiffTest` 10 / `MorningAlarmPlanTest` 9 / `WidgetNightModeTest` 7 / `WidgetBubbleContrastTest` 6 / `WidgetCoursePaletteTest` 5 / `WidgetTextScaleTest` 5）；shared `androidHostTest` **17 个文件 / 156 个 `@Test`**（**2026-10-02 实测复核**：原记「15 文件 / 140 例」已过时 —— v4.66.5 新增 `AutoModePlanTest` 5 例、v4.67.0 新增 `OemGuideResolverTest` 7 例与 `WidgetPinStringsTest` 4 例；两份口径实测与 `@Test` 注解数完全一致） | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
 | **XL-033** | 权限克制 | 12 项权限，**无** `READ_PHONE_STATE` / `CAMERA` / 位置 / `REQUEST_INSTALL_PACKAGES`；日历权限为可选功能但静态声明（可优化为按需申请） | 新增权限需在本文档登记理由 |
 | **XL-034** | 数据层工程化 | Room + `DatabaseMigrations.kt`（23KB）；`backup_rules.xml` / `data_extraction_rules.xml` / `network_security_config.xml` 三件套齐备（星链**均无** backup rules）；WebDAV 自动同步（星链无） | 迁移脚本不得省略；发版前核对 schema version |
 | **XL-035** | 对比度门禁 | `scripts/check_widget_contrast.py` 已接入 pre-commit（绝对式，0 违规） | 沿用；Glance 迁移后需适配新 token 解析（见 XL-005 验收 5） |
@@ -970,8 +1072,8 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 | `TimeChangeReceiver` 由 `MyApplication` 运行时注册、不在 manifest；其 KDoc 自称静态注册（不符） | `TimeChangeReceiver.kt` `registerTimeChangeWatcher` + 类 KDoc |
 | 统一重排入口 `reschedule()`（单次读库 / 三套共用 `effectiveCourses` / 读库失败保留旧闹钟 / 三策略异常隔离） | `androidApp/.../schedule/NotificationScheduler.kt:103,111,115-136,138,145-149` |
 | pre-commit 已接对比度与主题泄漏门禁 | `.githooks/pre-commit`（`core.hooksPath=.githooks`）含 `check_widget_contrast` + `check_theme_leak` |
-| 8 个单测 / 65 个 `@Test` | `androidApp/src/test/kotlin/com/shangkeschedule/`（8 个 `*Test.kt`） |
-| shared `androidHostTest` 15 个文件 / 140 个 `@Test` | `shared/src/androidHostTest/`（静态统计 `@Test` 注解数） |
+| 8 个单测 / 65 个 `@Test` | `androidApp/src/test/kotlin/com/shangkeschedule/`（8 个 `*Test.kt`，2026-10-02 复核仍准确） |
+| shared `androidHostTest` 17 个文件 / 156 个 `@Test` | `shared/src/androidHostTest/`（2026-10-02 实测复核；**原记「15 文件 / 140 例」已过时**，见 §0.6） |
 | 7 个小组件与闹钟单测 | `androidApp/src/test/kotlin/com/shangkeschedule/` |
 | 小组件数据层与渲染解耦 | `shared/.../data/sync/WidgetDataSynchronizer.kt` + `WidgetRepository.kt` |
 
