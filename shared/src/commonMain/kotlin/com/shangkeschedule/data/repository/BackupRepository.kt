@@ -624,15 +624,18 @@ class BackupRepository(
                 showNonCurrentWeekCourses = bm.showNonCurrentWeekCourses,
                 startScreen = runCatching { StartScreen.valueOf(bm.startScreen) }.getOrNull() ?: currentSettings.startScreen,
                 themeMode = runCatching { AppThemeMode.valueOf(bm.themeMode) }.getOrNull() ?: currentSettings.themeMode,
-                themePreset = runCatching { AppThemePreset.valueOf(bm.themePreset) }.getOrNull() ?: currentSettings.themePreset,
+                // 主题预设走 fromString 而非 valueOf：旧备份里可能存着已删除的取值
+                // （ORIGINAL / SLEEPY / TIMETABLE / AIRY），valueOf 会解析失败并静默退回设备现值
+                themePreset = bm.themePreset?.let { AppThemePreset.fromString(it) } ?: currentSettings.themePreset,
                 developerModeEnabled = bm.developerModeEnabled,
                 coupleScheduleEnabled = bm.coupleScheduleEnabled,
                 coupleShowTimeRanges = bm.coupleShowTimeRanges ?: currentSettings.coupleShowTimeRanges,
                 selfCourseColorIndex = bm.selfCourseColorIndex,
                 crushCourseColorIndex = bm.crushCourseColorIndex,
                 scheduleViewMode = runCatching { com.shangkeschedule.ui.schedule.ScheduleViewMode.valueOf(bm.scheduleViewMode) }.getOrNull() ?: currentSettings.scheduleViewMode,
-                // 旧版备份缺字段时 kotlinx 用默认值 4f 兜底，与 App 默认一致
-                glassBlurRadiusDp = bm.glassBlurRadiusDp.coerceIn(0f, 24f),
+                // 可空字段：v3.25.0 之前的备份没有该字段 ⇒ 解码为 null ⇒ 保留设备现值，
+                // 不被旧默认值 4dp 静默重置（App 现默认 8dp）
+                glassBlurRadiusDp = bm.glassBlurRadiusDp?.coerceIn(0f, 24f) ?: currentSettings.glassBlurRadiusDp,
                 // 折射可空字段：旧备份解码为 null ⇒ 保留设备现值，不被默认值静默重置
                 glassRefractionEnabled = bm.glassRefractionEnabled ?: currentSettings.glassRefractionEnabled,
                 glassRefractionHeightDp = bm.glassRefractionHeightDp ?: currentSettings.glassRefractionHeightDp,

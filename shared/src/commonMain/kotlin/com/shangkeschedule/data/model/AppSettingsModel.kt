@@ -183,7 +183,8 @@ data class AppSettingsModel(
     /**
      * 液态玻璃（底栏胶囊 / 悬浮圆钮 / 挂起条 / 玻璃 AppFab）统一的高斯模糊半径，单位 dp。
      * v3.25.0 起由「外观与样式 → 个性化显示」调节；0f = 关闭模糊（只保留表面 tint 与边缘光学）。
-     * 默认 4dp 对应原编译期常量 LiquidGlassBlurRadius；全局一处生效，不存在各件分叉。
+     * 默认 8dp，与编译期常量 `ui/theme/LiquidGlass.kt` 的 `LiquidGlassBlurRadius` 一致
+     * （v3.50.7 起由 4dp 调整为 8dp，4dp 现在是「轻」档位）；全局一处生效，不存在各件分叉。
      */
     val glassBlurRadiusDp: Float = 8f,
 

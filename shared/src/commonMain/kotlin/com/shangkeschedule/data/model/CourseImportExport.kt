@@ -173,6 +173,19 @@ const val USER_DATA_SCHEMA_VERSION = 3
         val settings: AppSettingsBackupModel
     )
 
+    /**
+     * 应用设置备份模型（App 自身备份通道：本地 zip / WebDAV）。
+     *
+     * 字符串编码契约（两套编码，**不要混用**）：本模型的枚举字段一律存**枚举常量名**
+     * （`.name`，如 `HZ_120` / `SCALE_4`），恢复端按同名 `valueOf` 解析；DataStore 侧存的是
+     * **枚举 value**（刷新率存 `"120"`、绩点制存 `"4.0"`），读取走 `fromString`。两者只对
+     * 大多数取值恰好同形，`RefreshRateMode` 与 `GpaScale` 并不同形。
+     *
+     * 可空字段（`?`）的约定：旧备份缺该字段 ⇒ 解码为 null ⇒ 恢复时**保留设备现值**；
+     * 反之非空字段的默认值会在旧备份里兜底写入，所以默认值必须与 `AppSettingsModel` 一致
+     * （v3.25.0 之前的备份没有 `glassBlurRadiusDp`，历史上正是这样把模糊半径写回 4dp 的）。
+     * `themePreset` 还额外要求恢复端走 `AppThemePreset.fromString`（含已删除取值迁移）。
+     */
     @Serializable
     data class AppSettingsBackupModel(
         val currentCourseTableId: String = "",
@@ -185,7 +198,10 @@ const val USER_DATA_SCHEMA_VERSION = 3
         val showNonCurrentWeekCourses: Boolean = false,
         val startScreen: String = "COURSE_SCHEDULE",
         val themeMode: String = "FOLLOW_SYSTEM",
-        val themePreset: String = "ORIGINAL",
+        // 必须可空：旧备份缺字段 ⇒ 恢复时保留设备现值。
+        // 早期取值 ORIGINAL / SLEEPY / TIMETABLE / AIRY 已从枚举删除，故这里不能写死 "ORIGINAL"：
+        // 那是已不存在的枚举名，恢复端用 valueOf 解析会失败并静默丢掉备份里的主题选择（应经 fromString 迁移）。
+        val themePreset: String? = null,
         val developerModeEnabled: Boolean = false,
         val coupleScheduleEnabled: Boolean = false,
         /** 情侣叠加显示课程时间段（v3.53.3 起随备份迁移）；可空：旧备份缺字段 ⇒ 恢复时保留设备现值 */
@@ -193,8 +209,12 @@ const val USER_DATA_SCHEMA_VERSION = 3
         val selfCourseColorIndex: Int = 5,
         val crushCourseColorIndex: Int = 1,
         val scheduleViewMode: String = "WEEK",
-        /** 液态玻璃模糊半径（dp），0 = 关闭模糊；v3.25.0 新增 */
-        val glassBlurRadiusDp: Float = 4f,
+        /**
+         * 液态玻璃模糊半径（dp），0 = 关闭模糊；v3.25.0 新增。
+         * 必须可空：v3.25.0 之前的备份没有该字段，若用非空默认值（4f）解码，恢复时会把用户
+         * 已调好的模糊半径静默重置为 4dp（App 现默认 8dp，见 AppSettingsModel.glassBlurRadiusDp）。
+         */
+        val glassBlurRadiusDp: Float? = null,
         /**
          * 液态玻璃边缘折射（v3.49.3 起随备份迁移）。
          * 必须可空：旧版本备份缺这些字段时 CBOR 解码为 null ⇒ 恢复时保留设备现值；
