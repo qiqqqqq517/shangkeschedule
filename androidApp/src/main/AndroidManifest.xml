@@ -27,6 +27,31 @@
         <intent>
             <action android:name="android.intent.action.SET_ALARM" />
         </intent>
+        <!--
+          文件导入/导出：FileManager.android.kt 在 buildImportIntent() / canCreateDocument() 里用
+          `resolveActivity` / `queryIntentActivities` 探测这三类「文件选择器」的处理者。
+          DocumentsUI（com.android.documentsui）不在系统自动可见集合内（AOSP 默认只有
+          com.android.settings、com.android.providers.settings 强制可查询），自身也未声明
+          android:forceQueryable，缺此声明时三处查询恒为 null / 空集：buildImportIntent 的
+          三级选路退化成最裸的 GET_CONTENT（即本类 KDoc 记录的 MIUI「选择器一闪而过」），
+          canCreateDocument() 恒 false 使导出永远落到「下载/ShangKe」兜底、无法自选位置。
+          与 SET_ALARM 那条不同，这里必须带 <data android:mimeType="*/*"/>：
+          IntentFilter.matchData 对「自身声明了 MIME 类型的 filter」走 findMimeType(type)，
+          而 findMimeType(null) 直接返回 false ⇒ 不带 data 的声明匹配不上任何文件选择器。
+          （<category> 无需声明：文档明确「加 category 对匹配无影响，除非 Intent 里指定了它」。）
+        -->
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="*/*" />
+        </intent>
     </queries>
 
     <application
