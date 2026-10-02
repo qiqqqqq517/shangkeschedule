@@ -295,8 +295,16 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             .setShowWhen(true)
             .addAction(0, closeActionText, dismissPI)
             .setContentIntent(
+                // 「打开应用」的 PendingIntent 身份是 (requestCode = 0, filterEquals)，而
+                // filterEquals 不比较 Intent.flags —— 这与 WidgetRemoteViews.bindWidgetClickIntent
+                // 和 DynamicIslandService 的「打开应用」共用同一个身份；FLAG_UPDATE_CURRENT 只替换
+                // extras，所以三处必须写出完全相同的 Intent.flags，否则谁先创建谁生效、后创建者的
+                // flags 被静默丢弃。此处与另两处保持一致（缺 NEW_TASK 时非 Activity 上下文发起会被平台拒绝）。
                 PendingIntent.getActivity(
-                    context, 0, Intent(context, MainActivity::class.java),
+                    context, 0,
+                    Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
