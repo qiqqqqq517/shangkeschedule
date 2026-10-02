@@ -16,7 +16,9 @@ import kotlinx.datetime.LocalDateTime
  *
  * 从 `NotificationScheduler` 按作用拆出，只负责课程提醒这一件事：
  *  1. 用 [ReminderEngine.reminderDateTime] 算每节课的提醒时刻，已过期的跳过；
- *  2. 请求码经 [AlarmScheduler] 按 occurrence 身份分配（同一次课恒得同一个码，便于精确撤销）；
+ *  2. 请求码经 [AlarmScheduler] 按 occurrence 身份分配（**本轮内**同一 occurrence 复用同一个码，
+ *     跨轮不保证稳定——见 `AlarmCodeBook`：每轮 `reset()` 后重新编号。精确撤销靠
+ *     `AlarmScheduler.cancelAll()` 每轮全量扫掉 `61000–61199` 整段，不依赖记住某个码）；
  *  3. 已投递、但本轮不再计划的提醒通知由 [PostedNotificationRegistry] 回收
  *     —— 旧实现只 `AlarmManager.cancel()` 不 `NotificationManager.cancel()`，提醒会永久残留状态栏。
  *
