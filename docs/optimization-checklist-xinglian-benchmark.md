@@ -52,7 +52,8 @@
 | **XL-003** | ✅ 已修 | 新增 `AlarmPermissionReceiver`（manifest 静态注册，`exported=false`）：撤销时提示 + 降级重排，恢复时重排升级 + 撤提示 |
 | **XL-004** | ✅ 改设计后落地 | **不再新建登记表**：改用既有 `NotificationScheduler.reschedule()` 统一入口 + `shouldModeBeOn` 重算。派生状态不落盘就不会漂移；落盘的收益为零、漂移的风险不为零 |
 | **XL-010** | ⚠️ 已修，但**首版全量失败**（见 §1.2 真机验证） | `CalendarAccountManager.android.kt`：按**开始时刻**做增删改差分 + 写入后回读条数校验；课表为空时按同一键精确清理。v4.66.4 首版用的两列均被 CalendarProvider 拒绝，真机验出后于 v4.66.5 重做 |
-| **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
+| **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；顺带补 `android:label`（原先 8 个组件在选择器里标题全是「上课」，见 §1.3）。**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
+| **（本轮新增）** | ✅ 已修 | v4.67.0 新增的 4 个规格引入 5 个新色条色，不在对比度门禁清单内 ⇒ 浅色档两个色实测 2.66:1 / 2.11:1 长期漏检。v4.67.1 修正色值 + 门禁扩到 6 色（已反向验证能拦住），见 §1.4 |
 | **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
 | **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |
 | **XL-014** | ✅ 已修 | `TimeChangeReceiver` 改为 manifest 静态注册（移除 `MyApplication` 运行时注册）+ 新增 `LOCALE_CHANGED`；修正其 KDoc 中与实现不符的「静态注册」表述 |
@@ -208,7 +209,76 @@ provider XML 原本**都没有 `android:label`**。`AppWidgetProviderInfo.loadLa
 「系统受理了请求」，用户是否真的放上桌面，取决于桌面对这个 intent 的实现。
 排障页的「已添加 N 个」始终读**系统里的真实实例数**，不会因为请求过就显示成已添加。
 
-#### 新增自动化闸
+---
+
+### 1.4 小组件对比度门禁的覆盖漏洞（v4.67.1 / code 432）
+
+#### 漏洞本身
+
+v4.67.0 把小组件从 4 个规格扩到 8 个，新增的「日程清单」与「考试倒计时」各自引入了一组左侧色条色。
+而 `scripts/check_widget_contrast.py` 的 `NON_TEXT_CHECKS` 里只有 **一个**色（`widget_course_fallback`）
+加两个文字色 —— **这 5 个新色从来不在门禁覆盖范围内**。
+
+门禁漏检与缺陷是同一件事的两面：既然没检查，就没人会发现不合格。
+
+#### 实测结果：两个色不达 WCAG 2.2 §1.4.11
+
+| 色 | 原值 | 浅色档 | 深色档 | 判定 |
+|---|---|---|---|---|
+| `widget_agenda_activity`（活动） | `#2BAE85` | **2.66:1** | 9.22:1 | ❌ 浅色独有 |
+| `widget_agenda_homework`（作业） | `#E0A32E` | **2.11:1** | 10.71:1 | ❌ 浅色独有 |
+| `widget_agenda_todo`（待办） | `#5B8DEF` | 3.07:1 | 7.79:1 | ✅ |
+| `widget_agenda_other`（其他） | `#8E8E93` | 3.10:1 | 8.05:1 | ✅ |
+| `widget_exam_accent`（考试） | `#C0392B` | 5.17:1 | 6.70:1 | ✅ |
+
+#### 为什么判定为「承载信息」而非装饰
+
+门禁的 `DECORATIVE_CHECKS` 里 `widget_divider` 是 1.13:1 却判定为「不强制」，依据是
+§1.4.11 只约束「识别组件与状态**必需**的视觉信息」。这两个色不一样：
+
+- 用在 `layout/widget_course_color_bar.xml` 的 `course_bar_light` / `course_bar_dark`
+- 4dp 宽、`match_parent` 高的实心色块
+- 颜色区分的是**日程类别** —— 哪一条是待办 / 活动 / 作业
+
+也就是说，用户**靠这个色块识别类别**，去掉它信息就丢了。这正是 §1.4.11 的适用情形。
+
+#### 修法：沿亮度轴最小调整，不重新设计色相
+
+| 色 | 修后 | 浅色档 | 与主文字色 `#2C3E50` 的对比 |
+|---|---|---|---|
+| `widget_agenda_activity` | `#28A37D` | 3.01:1 | 3.47:1 |
+| `widget_agenda_homework` | `#BE861C` | 3.02:1 | 3.46:1 |
+
+在 HLS 空间只动 L、保持色相与饱和度，**刚过 3:1 就停**，不刻意加深。
+理由：色条是 4dp 的窄色块，加深到 6:1 会与左侧主文字抢注意力，反而损害可读性。
+调整后两者对比 3.46:1，类别色与正文仍可区分。
+
+**深色档一个色都没改** —— 同样这四个色在 `#141218` 上是 7.79 / 9.22 / 10.71 / 8.05 :1 全部合格，
+缺陷是浅色独有的。
+
+#### 门禁扩充，并做了反向验证
+
+`NON_TEXT_CHECKS` 从 1 项扩到 6 项（加 `widget_exam_accent` + 4 个 `widget_agenda_*`）。
+
+加完清单后**必须确认它真的会拦**，否则只是加了一行永远 PASS 的装饰。所以做了反向验证：
+
+```
+# 把两个色改回原值
+$ python scripts/check_widget_contrast.py
+  [FAIL] widget_agenda_activity   #2BAE85  需 ≥3.0:1  实测 2.66:1
+  [FAIL] widget_agenda_homework   #E0A32E  需 ≥3.0:1  实测 2.11:1
+exit=1
+
+# 恢复修复值
+$ python scripts/check_widget_contrast.py --quiet
+[widget-contrast] 通过
+exit=0
+```
+
+**遗留**：本轮只改颜色资源，未装机。真机浅色档下「日程清单」色条的实际观感
+（加深后是否仍与主文字协调）需要肉眼确认一遍 —— 数值达标不等于观感达标。
+
+#### 新增自动化闸（上一轮）
 
 `WidgetPinStringsTest`（4 例）：三个 locale 的 key 集合必须完全一致 + 占位符编号对齐。
 这一组文案是逐 locale 手写新增的，而 compose-resources 缺 key 时是**运行期**才回退默认 locale ——
