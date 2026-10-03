@@ -212,11 +212,14 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override suspend fun migrate(connection: SQLiteConnection) {
         // --- 步骤 1: 创建 time_slot_schemes 表 ---
+        // 注意：schemeId 刻意不带 DEFAULT —— 实体 TimeSlotScheme.schemeId 未声明
+        // @ColumnInfo(defaultValue)（只有 TimeSlot.schemeId 有，见 TimeSlot.kt），照抄 time_slots
+        // 的建表语句会造出「升级库带默认值、新装库不带」的库间差异（2026-10-03 巡检第 30 轮取证）。
         connection.execSQL(
             """
             CREATE TABLE IF NOT EXISTS `time_slot_schemes` (
                 `courseTableId` TEXT NOT NULL,
-                `schemeId` TEXT NOT NULL DEFAULT 'default',
+                `schemeId` TEXT NOT NULL,
                 `startMonthDay` TEXT,
                 `endMonthDay` TEXT,
                 PRIMARY KEY(`courseTableId`, `schemeId`),
