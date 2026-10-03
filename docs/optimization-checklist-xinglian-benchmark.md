@@ -68,9 +68,10 @@
 
 **验证**：`:shared:compileKotlinJvm` + `:desktopApp:compileKotlin` + `:androidApp:assembleDebug` 全绿；单测 **217 例全通过、0 失败 0 跳过**（新增 5 例重叠回归 + 7 例厂商识别）。
 > **数字已过时（2026-10-02 watchdog 第 3 轮实测）**：本批次当时的 217 例是对的，但仓库此后又增 4 例（v4.67.0 的 `WidgetPinStringsTest`）。
-> **当前真实口径 = 221 例 / 0 失败 / 0 错误 / 0 跳过**（shared 156 + androidApp 65）。
+> **口径演进（每一步都可静态复现）**：217（v4.66.4 批次）→ 221（2026-10-02 复核）→ **229（2026-10-03 watchdog 第 39 轮实测，v4.67.29）**。
+> **当前真实口径 = 229 例 / 0 失败 / 0 错误 / 0 跳过**（shared **162** + androidApp **67**；两次独立计数 —— Gradle XML `count_tests.py` 与 `@Test` 注解数 —— 完全一致）。
 > 另注：本仓库 L3 的真实 Gradle 任务是 `:shared:testAndroidHostTest` + `:androidApp:testDebugUnitTest`；
-> `:shared:jvmTest` 是 `NO-SOURCE`（`shared/src` 下无 `jvmTest` 源集），写成它会**静默漏跑 156 例**。
+> `:shared:jvmTest` 是 `NO-SOURCE`（`shared/src` 下无 `jvmTest` 源集），写成它会**静默漏跑 162 例**。
 
 **本轮发现并修正的自身错误**（供后续参考）：
 1. 重写日历写回时把 `withValueBackReference` 的批次索引算错，且把提醒分钟数放进内容指纹 —— 会导致**每次同步全量重写**，正好退回旧行为。改为查询 `Reminders` 归并真实分钟数后才正确。
@@ -110,7 +111,29 @@ python build_qa/watchdog/count_tests.py          # 解析 build/test-results/**/
 Select-String -Path (Get-ChildItem -Recurse shared\src\androidHostTest -Filter *.kt).FullName -Pattern '^\s*@Test'
 ```
 
-两份口径本次均得到 shared 156 / androidApp 65，**互相印证**后才写入文档 —— 不采信任何单一口径。
+两份口径本次（2026-10-02）均得到 shared 156 / androidApp 65，**互相印证**后才写入文档 —— 不采信任何单一口径。
+
+#### 2026-10-03 watchdog 第 39 轮复核（v4.67.29 / code 460）
+
+上一轮台账之后仓库又演进了一天，**被计数的对象本身又变了** —— 正是本节要防的同一类问题，故再记一轮。方法同上（两份独立计数），结论如下：
+
+| # | 位置 | 上轮台账值 | 本轮实测 | 变化来源（逐条可 `git log` 复现） |
+|---|---|---|---|---|
+| 6 | §0.5 验证口径 / 附录 · 证据索引 | 221 例（shared 156 + androidApp 65） | **229 例**（shared **162** + androidApp **67**） | shared：`abc5f4d`（v4.67.16）新增 `LocalSecretsMigrationTest` 3 例；androidApp：v4.67.29 给 `WidgetListCapacityTest` 增 2 例 |
+| 7 | §7 XL-032 · shared 口径 | 18 文件 / 159 `@Test` | **19 文件 / 162 `@Test`** | 同第 6 行 shared 侧（`abc5f4d` 那 3 例） |
+| 8 | §7 XL-032 · androidApp 口径 | 8 文件 / 65 `@Test` | **8 文件 / 67 `@Test`** | v4.67.29 新增 2 例 |
+| 9 | 附录 · manifest receiver 数 | 「15 个 receiver」（v4.66.0 审计快照 `7077564`） | **17 个**（含 8 个小组件 provider） | 本清单自己已实施的两条各加 1 个：XL-003 的 `AlarmPermissionReceiver`、XL-014 把 `TimeChangeReceiver` 由运行时注册改为 manifest 静态注册（同一提交 `ece7a90` v4.66.4）；`7077564` → HEAD 无移除 |
+| 10 | 附录 · 小组件布局数 | 「16 个小组件布局 XML」 | **16（`res/layout/`）+ 4（`res/layout-night/` 同名深色档）= 20** | 深色档只覆盖其中 4 份；按 `res/layout*/widget_*.xml` 数会得到 20，故补注口径 |
+| 11 | §7 XL-034 · 数据层 | `DatabaseMigrations.kt`（23KB） | **24854 B ≈ 24.3 KiB** | 迁移脚本与注释持续增补 |
+| 12 | 附录 · manifest 行范围 | 「L83–238」 | **receiver 段现为 L108–286**（文件共 293 行） | 期间新增/调整了组件与 `<meta-data>` |
+| 13 | 附录 · 精确闹钟监听 / `TimeChangeReceiver` 两行 | 按「现状」写成「未监听」「由 `MyApplication` 运行时注册、不在 manifest（不符）」 | **两处均已修**（XL-003 的 `AlarmPermissionReceiver`；XL-014 的静态注册 + KDoc 改正），行内已加「审计时 / 已修」限定 | 附录是证据索引、读法默认「现状」；审计发现一旦被修复就必须标注，否则与本清单 §0.5 的 ✅ 自相矛盾 |
+| 14 | 附录 · 日历锚点 | `CalendarAccountManager.android.kt:93,143`、`CALLER_IS_SYNCADAPTER :64` | **`:288-291` / `:333` / `:414`、`:86`** | XL-010 按「开始时刻」增量差分重写该文件，旧行号全部失效 |
+
+**处理原则（本轮起明确写下）**：**带日期的历史记录不改写，声称「当前」的口径必须准确。**
+§0.5 的两条注记、§7 XL-032、附录 · 证据索引里所有**当前口径**数字已就地更新为上表实测值；
+§1.1「核对轮次记录」与 §0.6 第 1–5 行是**当时那次核对的历史记录**，保留原值不动（否则历史就无法复现「当时为什么改」）。
+另注：§7 XL-032 原写「两份口径实测与 `@Test` 注解数完全一致」—— 该句子本身没错，但它的一致性是在**写文档那一刻**成立的；
+本轮复发现，此后只要有人加测试而不同步本文档，数字就会再次漂移。**这是本文档的结构性风险：它的验收基线同时是它自己的统计对象。**
 
 ---
 
@@ -423,6 +446,9 @@ exit=0
 | 5 | `TimeChangeReceiver` 已覆盖 3 个 action | ⚠️ **加强**。事实成立，但漏了关键限定：由 `MyApplication` 运行时注册、**不在 manifest**，进程死亡时收不到；且其 KDoc 自称「静态注册到 manifest」与实现不符 |
 | 6 | 星链 `WidgetThemeConfig` 有 25 个字段 | ❌ 实为 **22 个**（初版目测字段列表时重复计数） |
 | 7 | 星链 `WidgetData` 有 7 个 `show*` 显示开关 | ❌ 实为 **6 个**（`showCourseTag` 被重复计入） |
+
+> **本节是历史记录，不改写**：上表里的「8 个文件 / 65 例」「15 个文件 / 140 例」都是**当时那次核对**的实测值。
+> 截止 2026-10-03（v4.67.29）的当前口径是 **shared 19 文件 / 162 例 + androidApp 8 文件 / 67 例 = 229 例 / 0 失败**，见 §0.6 与 §7 XL-032。
 
 ---
 
@@ -969,9 +995,9 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 |---|---|---|---|
 | **XL-030** | 单一闹钟入口 | `AlarmScheduler.kt` 统一分配并挂载三类闹钟：课程提醒 **61000–61199**（上限 200）、自动勿扰 START/END **63000–63059**（上限 60）、早八降级 **65000**（单条）＝ **261**；`AlarmCodeBook` 负责课程槽位分配与全量注销。**2026-10-03 复核补充**：另有 **2 处已登记例外**直连 `AlarmManager` —— `DynamicIslandManager`（60001/60002，独立窗口生命周期）与 `LegacyAlarmMigrator`（50000–50200，反射还原冻结类 Intent 做旧版清理）；两者组件与区间均独立，PendingIntent 按「请求码 + 组件 + action」匹配，不构成误取消 | 新增闹钟需求一律经 `AlarmScheduler`（不得再开新基址）；上述两处例外不得扩大 |
 | **XL-031** | 静默失败兜底 | `PostedNotificationRegistry`（occKey → 通知 ID，SharedPreferences）在**重排 `pruneExcept` / 关总开关 `clear` / 升级迁移**三时机回收已投递提醒，专治旧实现「只 `AlarmManager.cancel()` 不 `NotificationManager.cancel()`」造成的常驻提醒残留。**2026-10-03 更正**：该登记簿**不**提供「闹钟未注册仍投递」的兜底（原文表述与代码不符）；真正的静默失败缓解是 ① `AlarmScheduler.setExact` 无 `SCHEDULE_EXACT_ALARM` 时降级 `setAndAllowWhileIdle` + 一轮一次提示（不静默放弃）、② `NotificationScheduler.reschedule` 的 `guard`（单策略抛异常不中断其余）、③ 「下一节课」常驻通知由 `NextClassNotificationWorker`（WorkManager 15 分钟周期）驱动，不依赖闹钟投递 | 保持该登记簿；新增通知类型接入；「闹钟未触发也投递」属新机制，需先立项 |
-| **XL-032** | 单元测试 | androidApp **8 个测试文件 / 65 个 `@Test`**（`WidgetListCapacityTest` 12 / `WidgetCourseSelectionTest` 11 / `MorningAlarmDiffTest` 10 / `MorningAlarmPlanTest` 9 / `WidgetNightModeTest` 7 / `WidgetBubbleContrastTest` 6 / `WidgetCoursePaletteTest` 5 / `WidgetTextScaleTest` 5）；shared `androidHostTest` **18 个文件 / 159 个 `@Test`**（**2026-10-03 实测复核**：原记「15 文件 / 140 例」已过时 —— v4.66.5 新增 `AutoModePlanTest` 5 例、v4.67.0 新增 `OemGuideResolverTest` 7 例与 `WidgetPinStringsTest` 4 例、v4.67.4 新增 `DatabaseMigrationChainTest` 3 例；两份口径实测与 `@Test` 注解数完全一致） | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
+| **XL-032** | 单元测试 | androidApp **8 个测试文件 / 67 个 `@Test`**（`WidgetListCapacityTest` 14 / `WidgetCourseSelectionTest` 11 / `MorningAlarmDiffTest` 10 / `MorningAlarmPlanTest` 9 / `WidgetNightModeTest` 7 / `WidgetBubbleContrastTest` 6 / `WidgetCoursePaletteTest` 5 / `WidgetTextScaleTest` 5）；shared `androidHostTest` **19 个文件 / 162 个 `@Test`**（**2026-10-03 watchdog 第 39 轮实测复核**：原记「15 文件 / 140 例」已过时 —— v4.66.5 新增 `AutoModePlanTest` 5 例、v4.67.0 新增 `OemGuideResolverTest` 7 例与 `WidgetPinStringsTest` 4 例、v4.67.4 新增 `DatabaseMigrationChainTest` 3 例；此后 `abc5f4d`（v4.67.16）又新增 `LocalSecretsMigrationTest` 3 例 ⇒ 19 文件 / 162 例。两份口径（Gradle XML vs `@Test` 注解）本轮再次实测一致，合计 **229 例 / 0 失败 / 0 错误 / 0 跳过**，见 §0.6） | 本清单每条 P0/P1 的验收标准均含单测；新功能须带测 |
 | **XL-033** | 权限克制 | 12 项权限，**无** `READ_PHONE_STATE` / `CAMERA` / 位置 / `REQUEST_INSTALL_PACKAGES`；日历权限为可选功能但静态声明（可优化为按需申请）。**2026-10-03 轮 10 补记**：日历同步权限门此前只检查/申请 `WRITE_CALENDAR`，而该功能同步前有 4 处 `ContentResolver.query`（`Calendars` / `Events` / `Reminders` / 回读计数）需要 `READ_CALENDAR`，权限门无法保证其后继调用的前置条件 ⇒ 已改为读写双检 + `RequestMultiplePermissions` 一并申请（v4.67.6） | 新增权限需在本文档登记理由 |
-| **XL-034** | 数据层工程化 | Room + `DatabaseMigrations.kt`（23KB）；`backup_rules.xml` / `data_extraction_rules.xml` / `network_security_config.xml` 三件套齐备（星链**均无** backup rules）；WebDAV 自动同步（星链无）。**2026-10-03 核实补充**：迁移链 1→2、2→3、5→6…14→15 齐备；对外发布过的 schema 实测最低为 **9**（122 个 tag 全量扫描），9 → 当前版本**无缺口**；缺 `MIGRATION_3_4` / `MIGRATION_4_5` 是**对外发布之前开发期**的历史遗留（`shared/schemas/` 恰从 `3.json` 起导出，`git log -S "Migration(3, 4)"` 零命中），无证据表明有设备停留在此，成因与不补的理由见 `DatabaseMigrations.kt` 内注释 | 迁移脚本不得省略；发版前核对 schema version；**已由 `shared/src/androidHostTest/kotlin/DatabaseMigrationChainTest.kt` 自动守住**（提版本不补迁移 ⇒ L3 直接失败） |
+| **XL-034** | 数据层工程化 | Room + `DatabaseMigrations.kt`（24854 B ≈ 24.3 KiB，2026-10-03 实测）；`backup_rules.xml` / `data_extraction_rules.xml` / `network_security_config.xml` 三件套齐备（星链**均无** backup rules）；WebDAV 自动同步（星链无）。**2026-10-03 核实补充**：迁移链 1→2、2→3、5→6…14→15 齐备；对外发布过的 schema 实测最低为 **9**（122 个 tag 全量扫描），9 → 当前版本**无缺口**；缺 `MIGRATION_3_4` / `MIGRATION_4_5` 是**对外发布之前开发期**的历史遗留（`shared/schemas/` 恰从 `3.json` 起导出，`git log -S "Migration(3, 4)"` 零命中），无证据表明有设备停留在此，成因与不补的理由见 `DatabaseMigrations.kt` 内注释 | 迁移脚本不得省略；发版前核对 schema version；**已由 `shared/src/androidHostTest/kotlin/DatabaseMigrationChainTest.kt` 自动守住**（提版本不补迁移 ⇒ L3 直接失败） |
 | **XL-035** | 对比度门禁 | `scripts/check_widget_contrast.py` 已接入 pre-commit（绝对式，0 违规） | 沿用；Glance 迁移后需适配新 token 解析（见 XL-005 验收 5） |
 
 ---
@@ -1064,23 +1090,23 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 | `toggleSilent` 成功路径直接 true（XL-002） | `androidApp/.../control/AutoModeController.kt:97` |
 | DND 分支无「进入前状态」记录 | `androidApp/.../control/AutoModeStateProbe.kt:24-33` |
 | `canScheduleExactAlarms` 排期时检查（已有） | `androidApp/.../alarm/AlarmScheduler.kt:77`；`DynamicIslandManager.kt:175` |
-| 精确闹钟权限变更广播未监听（XL-003） | `androidApp/src/main/AndroidManifest.xml` grep 命中 0 |
+| 精确闹钟权限变更广播未监听（**审计时**的 XL-003 缺口，**已修**：v4.66.4 新增 `AlarmPermissionReceiver`） | 审计时 `AndroidManifest.xml` 对该 action grep 命中 0；现状见 §2 XL-003 与下方 receiver 行 |
 | 每课程独立槽位、旧方案跨课共用已废弃 | `androidApp/.../alarm/AlarmScheduler.kt:27` |
 | 精确闹钟提示去重机制（XL-003 复用） | `androidApp/.../alarm/AlarmScheduler.kt:44` |
 | 课程提醒单一 lead time | `androidApp/.../reminder/CourseReminderScheduler.kt` KDoc |
 | 4 条独立链路 × 10 个 action 常量 | `ReminderAlarmReceiver.kt:109,112,115`；`AutoModeAlarmReceiver.kt:61,64`；`DynamicIslandManager.kt:126,127`；`CourseAlarmReceiver.kt:52` |
-| 日历全量删除 + 事务批量插入 | `shared/src/androidMain/.../CalendarAccountManager.android.kt:93,143` |
-| 日历 `CALLER_IS_SYNCADAPTER` | 同上 `:64` |
+| 旧实现「全量删除 + 事务批量插入」（XL-010 已重写为按开始时刻增量差分） | 旧代码已不在仓库；当前文件 `shared/src/androidMain/.../CalendarAccountManager.android.kt`：删除路径 `:288-291`、`applyBatch` 批量写入 `:333` / `:414`（2026-10-03 复核行号，原记 `:93,143` 随重写失效） |
+| 日历 `CALLER_IS_SYNCADAPTER` | 同上 `:86`（2026-10-03 复核；原记 `:64` 已失效） |
 | 8 个 RemoteViews 小组件 | `androidApp/.../widget/{tiny,compact,double_days,list_vertical,agenda_list,next_course,week_courses,exam_countdown}/` |
-| 16 个小组件布局 XML | `androidApp/src/main/res/layout/widget_*.xml` |
+| 16 个小组件布局 XML（另有 `res/layout-night/` 4 份深色档同名覆盖，合计 20） | `androidApp/src/main/res/layout/widget_*.xml` + `androidApp/src/main/res/layout-night/` |
 | 权限克制（12 项，无电话/相机/位置/安装包） | `androidApp/src/main/AndroidManifest.xml` |
-| manifest 共 15 个 receiver，逐一核对后无「精确闹钟权限变更」监听 | `androidApp/src/main/AndroidManifest.xml` L83–238 |
-| `TimeChangeReceiver` 由 `MyApplication` 运行时注册、不在 manifest；其 KDoc 自称静态注册（不符） | `TimeChangeReceiver.kt` `registerTimeChangeWatcher` + 类 KDoc |
+| manifest 共 **17** 个 receiver（`7077564` v4.66.0 审计时为 15；XL-003 增 `AlarmPermissionReceiver`、XL-014 把 `TimeChangeReceiver` 改为 manifest 静态注册，同属 v4.66.4）；审计时「无精确闹钟权限变更监听」这一缺口**已由 XL-003 修复**，不再是现状 | `androidApp/src/main/AndroidManifest.xml` L108–286（文件共 293 行） |
+| `TimeChangeReceiver` 原先由 `MyApplication` 运行时注册、不在 manifest，且其 KDoc 自称「静态注册」与实现不符（**审计时**的事实；**已修**：XL-014 改为 manifest 静态注册 + 新增 `LOCALE_CHANGED`，并改正 KDoc） | `TimeChangeReceiver.kt` + `AndroidManifest.xml`（现 manifest 中已存在该 receiver，见上方 receiver 行） |
 | 统一重排入口 `reschedule()`（单次读库 / 三套共用 `effectiveCourses` / 读库失败保留旧闹钟 / 三策略异常隔离） | `androidApp/.../schedule/NotificationScheduler.kt:103,111,115-136,138,145-149` |
 | pre-commit 已接对比度与主题泄漏门禁 | `.githooks/pre-commit`（`core.hooksPath=.githooks`）含 `check_widget_contrast` + `check_theme_leak` |
-| 8 个单测 / 65 个 `@Test` | `androidApp/src/test/kotlin/com/shangkeschedule/`（8 个 `*Test.kt`，2026-10-02 复核仍准确） |
-| shared `androidHostTest` 17 个文件 / 156 个 `@Test` | `shared/src/androidHostTest/`（2026-10-02 实测复核；**原记「15 文件 / 140 例」已过时**，见 §0.6） |
-| 7 个小组件与闹钟单测 | `androidApp/src/test/kotlin/com/shangkeschedule/` |
+| 8 个单测 / 67 个 `@Test` | `androidApp/src/test/kotlin/com/shangkeschedule/`（8 个 `*Test.kt`，**2026-10-03 第 39 轮实测**；2026-10-02 时为 65 例，v4.67.29 给 `WidgetListCapacityTest` 增 2 例） |
+| shared `androidHostTest` **19 个文件 / 162 个 `@Test`** | `shared/src/androidHostTest/`（**2026-10-03 第 39 轮实测**；2026-10-02 为 17 文件 / 156 例，此后 `abc5f4d`（v4.67.16）新增 `LocalSecretsMigrationTest` 3 例；**原记「15 文件 / 140 例」已过时**，见 §0.6） |
+| 8 个小组件与闹钟单测（6 个小组件 + 2 个闹钟；原记 7 个是漏计 `WidgetCourseSelectionTest` 的旧数） | `androidApp/src/test/kotlin/com/shangkeschedule/` |
 | 小组件数据层与渲染解耦 | `shared/.../data/sync/WidgetDataSynchronizer.kt` + `WidgetRepository.kt` |
 
 ### 星链课表（APK 实测）
