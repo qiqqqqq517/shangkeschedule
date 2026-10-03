@@ -27,6 +27,41 @@ import shangkeschedule.shared.generated.resources.course_teacher_prefix
 private const val TAG = "CalendarAccountManager"
 
 /**
+ * 本应用写入事件的**归属标记**（v4.68.2）。
+ *
+ * ## 要解决什么
+ *
+ * 差分删除原先是「本日历里凡是不在期望集合中的，一律删掉」
+ * （`CalendarAccountManager` 的 2b 分支：按开始时刻判断）。这个判据问的是
+ * 「**这一刻有没有课**」，而不是「**这条事件是不是本应用写的**」——
+ * 两者不等价，于是有一类数据会**被误删且不可恢复**：
+ *
+ * 用户在这个日历里手工加的事件（生日、社团活动、临时提醒），只要开始时刻
+ * 恰好没有对应的课，下一次同步就会被删掉。用户不会知道是谁删的，
+ * 也不会有任何报错 —— 因为从代码看这是「预期行为」。
+ *
+ * ## 为什么不用隐藏列
+ *
+ * 既有 KDoc 已记录两种尝试均被真机证伪：`uid` 不在调用方投影白名单里（查询即抛
+ * `Invalid column uid`）；`Events.ORIGINAL_ID` 语义是「本事件作为例外所归属的原重复事件
+ * 的 _id」，在非重复事件上写它会让 Provider 去解析不存在的原事件，
+ * `applyBatch` 抛 `NullPointerException`。
+ *
+ * 故最终落在**公开列 `DESCRIPTION`**：它是事件的可写字段、可查可投影、不参与任何
+ * 重复规则解析，且本应用自己也在用它存教师信息 —— 把标记作为**行内哨兵前缀**写进去，
+ * 既不新增字段依赖，又能稳定识别归属。
+ *
+ * ## 为什么不改用 `customAppUri`（星链的做法）
+ *
+ * 星链用的是 `customAppUri = starcurriculum://event/<id>`。该列确实可写，
+ * 但它是 Android 14 起才稳定存在的语义（用于「事件关联外部深链」），在更早的
+ * targetSdk/ROM 上可能为空或被 Provider 忽略；而 `DESCRIPTION` 从 API 1 就有。
+ * 本仓 minSdk 26，覆盖面优先于语义纯度，故取 DESCRIPTION；两种方案的取舍已写在此处，
+ * 避免下一个人重新推演一遍。
+ */
+private const val OWNER_MARK_PREFIX = CalendarOwnerMark.OWNER_MARK_PREFIX
+
+/**
  * 课表 → 系统日历的写回。
  *
  * ## 增量而非全量重建（XL-010）
@@ -140,7 +175,8 @@ actual object CalendarAccountManager : KoinComponent {
      * (课程, 周次) 只产出一个跨越全部连排节的实例）。它公开、可查可写、不参与任何
      * 重复规则解析，且课程改名 / 换教室时保持不变 —— 正好符合「同一堂课」的定义。
      */
-    private class ExistingEvent(val eventId: Long, val fingerprint: String)
+    /** 日历里已存在的一次课。 */
+    private class ExistingEvent(val eventId: Long, val fingerprint: String, val ownedByUs: Boolean)
 
     /** 本日历下的现状快照。 */
     private class ExistingSnapshot(
@@ -151,6 +187,10 @@ actual object CalendarAccountManager : KoinComponent {
          *
          * 达不到「一个时刻至多一条」就说明日历里混进了手工事件（或历史脏数据）。
          * 它们必须被显式删掉，否则回读校验会永远对不上、每次同步都判失败。
+         *
+         * ⚠️ v4.68.2：**只删本应用写的那些**（`ownedByUs = true`）。
+         * 手工事件与本应用的课撞在同一时刻时，保留手工的那条 ——
+         * 删错的是用户数据，删对的只是「一条重复的课」，后者下次同步仍会补回来。
          */
         val duplicateIds: List<Long>
     )
@@ -221,23 +261,49 @@ actual object CalendarAccountManager : KoinComponent {
         val duplicates = ArrayList<Long>()
         for ((id, fields) in rows) {
             val start = startById[id] ?: continue
-            val kept = byStart.put(start, ExistingEvent(id, fields.joinToString("|")))
-            if (kept != null) duplicates.add(id)
+            val description = fields[3]
+            val owned = CalendarOwnerMark.isOwnedBy(description)
+            // 指纹里的描述用**去掉标记的正文**，否则标记一旦变化就会把
+            // 「内容其实没变」误判成「变了」而全量重写。
+            val event = ExistingEvent(
+                eventId = id,
+                fingerprint = fields.toMutableList().apply { this[3] = CalendarOwnerMark.unmark(description).orEmpty() }
+                    .joinToString("|"),
+                ownedByUs = owned
+            )
+            val kept = byStart.put(start, event)
+            if (kept != null) {
+                // 同一时刻有两条：只把**本应用写的**那条当多余副本。
+                // 若两条都不是本应用写的（全是手工事件），一条都不动。
+                val redundant = when {
+                    kept.ownedByUs && !event.ownedByUs -> kept.eventId
+                    !kept.ownedByUs && event.ownedByUs -> id
+                    else -> id
+                }
+                duplicates.add(redundant)
+            }
         }
         return ExistingSnapshot(byStart, duplicates)
     }
 
-    /** 回读校验：本日历下的事件条数（该日历由本应用独占，故无需再按前缀过滤）。 */
+    /** 回读校验：本日历下**由本应用写入**的事件条数。 */
     private fun verifyCount(resolver: ContentResolver, calendarId: Long): Int {
         val cursor: Cursor? = resolver.query(
             CalendarContract.Events.CONTENT_URI,
-            arrayOf(CalendarContract.Events._ID),
+            arrayOf(CalendarContract.Events._ID, CalendarContract.Events.DESCRIPTION),
             "${CalendarContract.Events.CALENDAR_ID} = ?",
             arrayOf(calendarId.toString()),
             null
         )
         var count = 0
-        cursor?.use { while (it.moveToNext()) count++ }
+        cursor?.use {
+            val descIdx = it.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
+            // 只数本应用写的：用户手工加的事件不参与校验，否则它会让本应用
+            // 每次同步都判「少写了事件」而反复失败。
+            while (it.moveToNext()) {
+                if (CalendarOwnerMark.isOwnedBy(it.getString(descIdx))) count++
+            }
+        }
         return count
     }
 
@@ -325,13 +391,23 @@ actual object CalendarAccountManager : KoinComponent {
                 // 学期内没有课时：把本日历下的事件清空即达成「日历与课表一致」。
                 if (semesterTotalWeeks <= 0 || courses.isEmpty()) {
                     val stale = readExisting(resolver, calendarId)
-                    val total = stale.byStart.size + stale.duplicateIds.size
-                    if (total > 0) {
-                        val ops = ArrayList<ContentProviderOperation>(total)
-                        stale.byStart.values.forEach { ops.add(deleteOp(it.eventId)) }
-                        stale.duplicateIds.forEach { ops.add(deleteOp(it)) }
+                    // ⚠️ v4.68.2：**只清本应用写的**。原实现把 `byStart` 与 `duplicateIds`
+                    // 全删，等于「课表为空 = 把这个日历清空」—— 用户手工加的事件会被一起清掉，
+                    // 且这是最容易触发的路径（删掉课表/切换空课表即命中）。
+                    val ownedIds = buildList {
+                        stale.byStart.values.forEach { if (it.ownedByUs) add(it.eventId) }
+                        stale.duplicateIds.forEach { add(it) }   // 2a 已只收本应用写的
+                    }
+                    val kept = stale.byStart.size + stale.duplicateIds.size - ownedIds.size
+                    if (ownedIds.isNotEmpty()) {
+                        val ops = ArrayList<ContentProviderOperation>(ownedIds.size)
+                        ownedIds.forEach { ops.add(deleteOp(it)) }
                         resolver.applyBatch(CalendarContract.AUTHORITY, ops)
-                        AppLog.i(TAG, "课表为空，已清理 $total 条日历事件")
+                        AppLog.i(
+                            TAG,
+                            "课表为空，已清理 ${ownedIds.size} 条本应用写入的日历事件" +
+                                (if (kept > 0) "（保留 $kept 条用户手工事件）" else "")
+                        )
                     }
                     return@withContext true
                 }
@@ -350,8 +426,15 @@ actual object CalendarAccountManager : KoinComponent {
                     skippedDates = skippedDates
                 ) { course, start, end, _ ->
                     val teacherDescription = if (course.teacher.isNotBlank()) {
-                        getString(Res.string.course_teacher_prefix, course.teacher)
-                    } else ""
+                        // 带归属标记（v4.68.2）：差分删除据此区分「本应用写的」与
+                        // 「用户手工加的」—— 后者若无标记会在下一次同步被误删。
+                        CalendarOwnerMark.stamp(
+                            getString(Res.string.course_teacher_prefix, course.teacher)
+                        )
+                    } else {
+                        // 无教师也要打标记，否则这条事件会被当成「不是本应用写的」而永远删不掉。
+                        CalendarOwnerMark.stamp("")
+                    }
                     val startMillis = start.toInstant(timeZone).toEpochMilliseconds()
                     desired[startMillis] = DesiredEvent(
                         title = course.name,
@@ -378,16 +461,40 @@ actual object CalendarAccountManager : KoinComponent {
                 }
 
                 // 2b. 多余的（课被删 / 调到别的周 / 学期缩短）→ 删
+                // ⚠️ v4.68.2：**只删本应用写的**。原判据是「开始时刻不在期望集合里就删」，
+                // 那会连用户在这个日历里**手工添加**的事件（生日 / 社团 / 临时提醒）一起删掉 ——
+                // 用户既不知道是谁删的，也看不到任何报错。改为按「归属标记」判定后，
+                // 手工事件完整保留，而真正该清的陈旧课程一条都不会漏。
+                var skippedForeign = 0
                 for ((startMillis, old) in existing.byStart) {
                     if (startMillis in desired) continue
+                    if (!old.ownedByUs) {
+                        skippedForeign++
+                        continue
+                    }
                     ops.add(deleteOp(old.eventId))
                     deleted++
+                }
+                if (skippedForeign > 0) {
+                    AppLog.i(
+                        TAG,
+                        "保留 $skippedForeign 条非本应用写入的事件（用户手工添加，不参与课表同步）"
+                    )
                 }
 
                 for ((startMillis, want) in desired) {
                     val old = existing.byStart[startMillis]
                     when {
                         old == null -> {
+                            appendInsert(ops, calendarId, want)
+                            inserted++
+                        }
+
+                        // ⚠️ v4.68.2：该时刻占位的是**用户手工加**的事件 → 不动它，
+                        // 另插一条本应用的课。原先走 update 分支会把用户的「生日/社团」
+                        // 直接改写成课程内容，是**静默的数据破坏**且不可恢复。
+                        // 代价是日历里同一时刻出现两条（手工 + 课程），符合用户「两者都要」的意图。
+                        !old.ownedByUs -> {
                             appendInsert(ops, calendarId, want)
                             inserted++
                         }
