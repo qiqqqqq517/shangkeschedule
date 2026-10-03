@@ -269,6 +269,8 @@ private suspend fun performUpdate(context: Context) {
         //     而桌面没有该规格组件时算出的值永远不被消费 —— 无探针即可证伪的纯浪费。
         //     [RowHeights] 保持「首次需要时才测」，测量本身纯读 density + inflate、无副作用。
         val density = context.resources.displayMetrics.density
+        // 头部文字高度随系统字体缩放，故 chrome 不能取常量（v4.67.29）。
+        val fontScale = context.resources.configuration.fontScale
         val rowHeights = RowHeights(context)
 
         // 5. 统一分发更新
@@ -288,7 +290,7 @@ private suspend fun performUpdate(context: Context) {
                         val remoteViews = renderFunc(
                             context,
                             snapshot,
-                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, rowHeights, density),
+                            resolveMaxCourseCount(kind, appWidgetManager, widgetId, rowHeights, density, fontScale),
                             space
                         )
                         appWidgetManager.updateAppWidget(widgetId, remoteViews)
@@ -421,6 +423,8 @@ private fun resolveSpaceClass(
  * - v3.66.3 之前：四种规格共用一套 `minHeight` 阈值并硬顶 3 条，废掉了 ListVertical 的「4×N」。
  * - v3.66.4：改为按类型分别计算，但 ListVertical 用了偏小的行高常量（36dp），条数偏高 ⇒ 溢出。
  * - v3.66.5（本次）：行高改为**实测**；高度基准改用 `MAX_HEIGHT`；并扣除卡片 padding 与头部占位。
+ * - v4.67.29：头部占位不再恒按 fontScale = 1.0 的 39dp，改为 `chromeDpFor(fontScale)` ——
+ *   条目行高带 fontScale、头部却是常量，放大字体时可用高度被高估，末条可能被静默裁切。
  *
  * `OPTION_APPWIDGET_MIN_HEIGHT` 是可缩放的**下界**，代表不了当前可用高度，故改用
  * `OPTION_APPWIDGET_MAX_HEIGHT`（当前高度上界）；缺失时回落 MIN，再回落 110dp。
@@ -430,7 +434,8 @@ private fun resolveMaxCourseCount(
     appWidgetManager: AppWidgetManager,
     widgetId: Int,
     rowHeights: RowHeights,
-    density: Float
+    density: Float,
+    fontScale: Float
 ): Int {
     val options = appWidgetManager.getAppWidgetOptions(widgetId)
     val heightDp = options.getInt(
@@ -438,10 +443,10 @@ private fun resolveMaxCourseCount(
         options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
     )
 
-    // 三种列表型规格共用同一公式，只有实测行高不同。
+    // 三种列表型规格共用同一公式，只有实测行高不同；chrome 随 fontScale 缩放（v4.67.29）。
     fun rowsFor(rowHeightPx: Int): Int = WidgetListCapacity.rowsFor(
         heightDp = heightDp,
-        chromeDp = WidgetListCapacity.CHROME_DP,
+        chromeDp = WidgetListCapacity.chromeDpFor(fontScale),
         rowHeightPx = rowHeightPx,
         density = density,
         maxRows = WidgetListCapacity.MAX_ROWS

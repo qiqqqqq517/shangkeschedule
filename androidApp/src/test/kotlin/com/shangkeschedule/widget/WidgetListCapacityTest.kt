@@ -16,6 +16,10 @@ import org.junit.Test
  * 余量不足 5×(N-1)，就算多一条 —— 而 `container_courses` 是 LinearLayout（不滚动），
  * 多算即末条被静默裁切，与 v3.66.4 同形。
  *
+ * 回归目标三（v4.67.29）：`CHROME_DP` 曾是常数 39dp，而条目行高是**实测**（带 fontScale）。
+ * 系统字体放大后头部文字更高，恒定 39dp 把可用高度算大 ⇒ 临界高度下会多算一条、末条被裁切。
+ * 现改为 `chromeDpFor(fontScale)`：1.0 倍仍是 39dp，高倍率下随之变大。
+ *
  * 本测试锁死「宁可少显示、不可多算」的方向性约束。
  */
 class WidgetListCapacityTest {
@@ -146,5 +150,41 @@ class WidgetListCapacityTest {
     fun `分隔线占位不合法时按 0 处理（不崩溃、不算少）`() {
         val negative = WidgetListCapacity.rowsFor(350, chrome, rowPx, 1f, maxRows, dividerDp = -5)
         assertEquals(6, negative)   // 与 dividerDp=0 同解
+    }
+
+    @Test
+    fun `chrome 随 fontScale 缩放，1 倍仍是 39dp`() {
+        assertEquals(39, WidgetListCapacity.chromeDpFor(1f))
+        assertEquals(WidgetListCapacity.CHROME_DP, WidgetListCapacity.chromeDpFor(1f))
+        assertEquals(44, WidgetListCapacity.chromeDpFor(1.3f))
+        assertEquals(48, WidgetListCapacity.chromeDpFor(1.5f))
+        assertEquals(56, WidgetListCapacity.chromeDpFor(2f))
+        // 小于 1 倍时按 1 处理：真实头部比 1 倍还小，取 1 倍值即保守方向
+        assertEquals(39, WidgetListCapacity.chromeDpFor(0.85f))
+        // 单调不减（fontScale 越大 → 头部越高 → chrome 只增不减）
+        var prev = 0
+        for (f in listOf(1f, 1.15f, 1.3f, 1.5f, 1.75f, 2f)) {
+            val cur = WidgetListCapacity.chromeDpFor(f)
+            assertTrue("chrome 必须随 fontScale 单调不减（f=$f）", cur >= prev)
+            prev = cur
+        }
+    }
+
+    @Test
+    fun `放大字体时 chrome 变大——旧常量在临界高度会多算一条`() {
+        // 高度 200dp / 行高 49dp：1.0 倍 chrome 39 → 可用 161 → 3 条（3 条需 157，第 4 条需 211）
+        //                        1.5 倍 chrome 48 → 可用 152 → 2 条（3 条需 157 > 152）
+        // 若沿用旧常量 39dp，1.5 倍字体下会给出 3 条 ⇒ 末条被裁切（v3.66.4 同形事故）。
+        val normal = WidgetListCapacity.rowsFor(
+            200, WidgetListCapacity.chromeDpFor(1f), rowPx, 1f, maxRows
+        )
+        val large = WidgetListCapacity.rowsFor(
+            200, WidgetListCapacity.chromeDpFor(1.5f), rowPx, 1f, maxRows
+        )
+        val legacyConstant = WidgetListCapacity.rowsFor(200, 39, rowPx, 1f, maxRows)
+        assertEquals(3, normal)
+        assertEquals(2, large)
+        assertEquals("旧常量确实会多算一条", 3, legacyConstant)
+        assertTrue("放大字体后条数必须不增", large <= normal)
     }
 }
