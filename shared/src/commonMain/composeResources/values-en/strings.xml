@@ -521,10 +521,8 @@
     <string name="a11y_search">Search</string>
     <string name="a11y_clear_search">Clear search</string>
     <string name="a11y_school_icon">School icon</string>
-    <string name="category_bachelor_associate">Undergraduate/Associate</string>
-    <string name="category_postgraduate">Postgraduate</string>
+    <string name="category_academic_system">School System</string>
     <string name="category_general_tool">General tools</string>
-    <string name="category_other">Other</string>
     <string name="a11y_back_to_school_list">Back to school list</string>
     <string name="text_no_detailed_description">No detailed description.</string>
     <string name="label_contributor_unknown">Unknown</string>
@@ -534,6 +532,7 @@
     <string name="a11y_cancel_editing">Cancel editing</string>
     <string name="placeholder_enter_url_full">Enter URL (https://...)</string>
     <string name="a11y_load">Load</string>
+    <string name="action_use_current_url">Use current address</string>
     <string name="a11y_enter_url">Enter URL</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_switch_to_phone_mode">Switch to mobile mode</string>

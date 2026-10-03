@@ -13,7 +13,9 @@
 south_soft*�
 GENERAL_SOUTHSOFT南软教务系统"south_soft.js2N适用于所有南软教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_CHAOXING超星教务系统（通用）cxjwxt"chaoxing_jiaowu*�
-GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
+GENERAL_CHAOXING超星教务系统"chaoxing.js2N适用于所有超星教务系统高校，输入学校教务网址即可导入:general-platform�
+GENERAL_CHENGFANG乘方教务系统（通用）cfjwxt"	chengfang*�
+GENERAL_CHENGFANG乘方教务系统"chengfang.js2�适用于广州乘方科技教务系统（老版 Struts2 与新版 /new/ 两条产品线），输入学校教务网址即可导入:general-platform�
 MANUAL_JNMC济宁医学院jnyxy"JNMC*y
 jnmc_01乘方教务系统"jnmc.js*http://210.44.16.13/2,手动注册，类型: 乘方教务(Struts2):manual-jnmc�
 

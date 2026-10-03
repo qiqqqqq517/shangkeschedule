@@ -55,36 +55,52 @@
         return false;
     }
 
-    function parseWeeks(s) {
+function parseWeeks(s) {
         if (!s) return [];
         var weeks = {};
         var found = false;
-        var isOdd = /[（(]\s*单\s*[）)]/.test(s);
-        var isEven = /[（(]\s*双\s*[）)]/.test(s);
-        var re = /(\d+)\s*(?:[-~－—至到]\s*(\d+))?\s*周/g;
-        var m;
-        while ((m = re.exec(s)) !== null) {
-            var start = parseInt(m[1], 10);
-            var end = m[2] ? parseInt(m[2], 10) : start;
-            if (isNaN(start) || start < 1) continue;
-            if (isNaN(end) || end < start) end = start;
-            if (end > 32) end = 32;
-            for (var w = start; w <= end; w++) {
-                weeks[w] = true;
-                found = true;
-            }
+        var isOdd = /[（(]\s*单(?:周)?\s*[）)]/.test(s);
+        var isEven = /[（(]\s*双(?:周)?\s*[）)]/.test(s);
+
+        function addRange(a, b) {
+            var start = parseInt(a, 10);
+            if (isNaN(start) || start < 1 || start > 32) return;
+            var end = b ? parseInt(b, 10) : start;
+            if (isNaN(end) || end < start || end > 32) end = start;
+            for (var w = start; w <= end; w++) { weeks[w] = true; found = true; }
+        }
+
+        // 先剥掉节次方括号：否则 "[01-02节]" 里的数字会被当成周次混进来。
+        var core = String(s).replace(/\[[^\]]*\]/g, ' ');
+
+        // 按逗号分段逐段解析。逐段判断「本段是否带周字」而不是对全文 search(周) 后硬截断：
+        // 后者会把 "1-3周,5周" 里只有第一段带「周」的 ",5" 一起切掉，反而丢周次。
+        var segRe = /[^,，]+/g;
+        var seg;
+        while ((seg = segRe.exec(core)) !== null) {
+            var piece = String(seg[0]).trim();
+            if (!piece) continue;
+            var m = piece.match(/(\d{1,2})\s*(?:[-~－—至到]\s*(\d{1,2}))?/);
+            if (!m) continue;
+            addRange(m[1], m[2]);
+        }
+
+        // 旧写法兜底："1-16周" / "第5周" / "5周"（万一分段解析没命中）
+        if (!found) {
+            var oldRe = /(\d{1,2})\s*(?:[-~－—至到]\s*(\d{1,2}))?\s*周/g;
+            var mm;
+            while ((mm = oldRe.exec(core)) !== null) { addRange(mm[1], mm[2]); }
         }
         if (!found) {
-            var single = s.match(/(\d+)\s*周/g);
+            var single = String(s).match(/(\d{1,2})\s*周/g);
             if (single) {
-                for (var i = 0; i < single.length; i++) {
-                    var nn = parseInt(single[i], 10);
-                    if (nn >= 1 && nn <= 32) { weeks[nn] = true; found = true; }
-                }
+                for (var i = 0; i < single.length; i++) { addRange(single[i], null); }
             }
         }
+
         if (!found) return [];
-        var list = Object.keys(weeks).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
+        var list = Object.keys(weeks).map(function (k) { return parseInt(k, 10); })
+            .sort(function (a, b) { return a - b; });
         if (isOdd) list = list.filter(function (w) { return w % 2 === 1; });
         else if (isEven) list = list.filter(function (w) { return w % 2 === 0; });
         return list;

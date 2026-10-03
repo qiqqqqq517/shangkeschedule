@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.WebPagePurpose
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.tool.copyToClipboard
@@ -62,7 +63,6 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
-import school_index.AdapterCategory
 import school_index.School
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.action_request_adapter
@@ -76,10 +76,8 @@ import shangkeschedule.shared.generated.resources.a11y_delete
 import shangkeschedule.shared.generated.resources.a11y_school_icon
 import shangkeschedule.shared.generated.resources.a11y_search
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.category_bachelor_associate
+import shangkeschedule.shared.generated.resources.category_academic_system
 import shangkeschedule.shared.generated.resources.category_general_tool
-import shangkeschedule.shared.generated.resources.category_other
-import shangkeschedule.shared.generated.resources.category_postgraduate
 import shangkeschedule.shared.generated.resources.close_24px
 import shangkeschedule.shared.generated.resources.label_recent_visit
 import shangkeschedule.shared.generated.resources.school_24px
@@ -103,7 +101,7 @@ fun SchoolSelectionListScreen(
 ) {
     // 观察 ViewModel 状态
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val filteredSchools by viewModel.filteredSchools.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val schoolHistory by viewModel.schoolHistory.collectAsStateWithLifecycle()
@@ -149,7 +147,7 @@ fun SchoolSelectionListScreen(
                         Destination.AdapterSelection(
                             schoolId = selectedSchool.id,
                             schoolName = selectedSchool.name,
-                            categoryNumber = selectedCategory.value,
+                            tabNumber = selectedTab.ordinal,
                             resourceFolder = selectedSchool.resource_folder,
                             purpose = purpose,
                         )
@@ -167,12 +165,12 @@ fun SchoolSelectionListScreen(
                     .padding(paddingValues)
             ) {
                 CategoryTabs(
-                    selectedCategory = selectedCategory,
-                    onCategorySelected = { category ->
-                        viewModel.updateSelectedCategory(category)
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        viewModel.updateSelectedTab(tab)
                         coroutineScope.launch { lazyListState.scrollToItem(0) }
                     },
-                    displayCategories = viewModel.displayCategories
+                    displayTabs = viewModel.displayTabs
                 )
 
                 SchoolContent(
@@ -181,17 +179,17 @@ fun SchoolSelectionListScreen(
                     onRetry = viewModel::retryLoad,
                     filteredSchools = filteredSchools,
                     lazyListState = lazyListState,
-                    selectedCategory = selectedCategory,
+                    selectedTab = selectedTab,
                     schoolHistory = schoolHistory,
                     onClearHistory = { viewModel.clearHistory(it) },
-                    onSchoolSelected = { school, category ->
+                    onSchoolSelected = { school, tab ->
                         viewModel.saveLastSchool(school)
                         // 列表点击跳转
                         onNavigate(
                             Destination.AdapterSelection(
                                 schoolId = school.id,
                                 schoolName = school.name,
-                                categoryNumber = category.value,
+                                tabNumber = tab.ordinal,
                                 resourceFolder = school.resource_folder,
                                 purpose = purpose,
                                 )
@@ -250,16 +248,15 @@ private fun SchoolContent(
     onRetry: () -> Unit,
     filteredSchools: List<School>,
     lazyListState: LazyListState,
-    selectedCategory: AdapterCategory,
+    selectedTab: SchoolCategoryTab,
     schoolHistory: SchoolHistoryModel,
-    onClearHistory: (AdapterCategory) -> Unit,
-    onSchoolSelected: (School, AdapterCategory) -> Unit
+    onClearHistory: (SchoolCategoryTab) -> Unit,
+    onSchoolSelected: (School, SchoolCategoryTab) -> Unit
 ) {
-    val recentRecord = when (selectedCategory) {
-        AdapterCategory.BACHELOR_AND_ASSOCIATE -> schoolHistory.bachelor
-        AdapterCategory.POSTGRADUATE -> schoolHistory.postgraduate
-        AdapterCategory.GENERAL_TOOL -> schoolHistory.general
-        else -> null
+    // 「教务系统」是本科/专科与研究生合并后的口径，最近访问取两者中有效的那条
+    val recentRecord = when (selectedTab) {
+        SchoolCategoryTab.ACADEMIC_SYSTEM -> schoolHistory.academic
+        SchoolCategoryTab.GENERAL_TOOL -> schoolHistory.general
     }
 
     when {
@@ -293,7 +290,7 @@ private fun SchoolContent(
                     // 历史记录可能保存了旧的 resource_folder（学校适配更新后旧值会失效，
                     // 如沈阳农业 urp→syau），若沿用旧值会把脚本路径拼错并提示“导入脚本文件不存在”。
                     // 这里优先用当前索引中同 id 学校的最新数据；索引中已无该校时回退到历史记录。
-                    val recentSchool = if (recentRecord != null && !recentRecord.isEmpty) {
+                    val recentSchool = if (!recentRecord.isEmpty) {
                         filteredSchools.firstOrNull { it.id == recentRecord.id } ?: recentRecord.toSchool()
                     } else {
                         null
@@ -309,10 +306,10 @@ private fun SchoolContent(
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 SchoolItem(
                                     school = recentSchool,
-                                    onClick = { onSchoolSelected(it, selectedCategory) }
+                                    onClick = { onSchoolSelected(it, selectedTab) }
                                 )
                                 IconButton(
-                                    onClick = { onClearHistory(selectedCategory) },
+                                    onClick = { onClearHistory(selectedTab) },
                                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
                                 ) {
                                     Icon(
@@ -335,7 +332,7 @@ private fun SchoolContent(
                 Box(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 2.dp)) {
                     SchoolItem(
                         school = school,
-                        onClick = { onSchoolSelected(it, selectedCategory) }
+                        onClick = { onSchoolSelected(it, selectedTab) }
                     )
                 }
             }
@@ -344,31 +341,31 @@ private fun SchoolContent(
 }
 
 /**
- * 类别选择器，使用胶囊分段控件替代 M3 PrimaryTabRow。
+ * 分类选择器，使用胶囊分段控件替代 M3 PrimaryTabRow。
+ *
+ * v4.70.0：本科/专科与研究生合并成「教务系统」一个口径，胶囊由 3 段变 2 段。
  */
 @Composable
 fun CategoryTabs(
-    selectedCategory: AdapterCategory,
-    onCategorySelected: (AdapterCategory) -> Unit,
-    displayCategories: List<AdapterCategory>
+    selectedTab: SchoolCategoryTab,
+    onTabSelected: (SchoolCategoryTab) -> Unit,
+    displayTabs: List<SchoolCategoryTab>
 ) {
     @Composable
-    fun getDisplayName(category: AdapterCategory): String {
-        return when (category) {
-            AdapterCategory.BACHELOR_AND_ASSOCIATE -> stringResource(Res.string.category_bachelor_associate)
-            AdapterCategory.POSTGRADUATE -> stringResource(Res.string.category_postgraduate)
-            AdapterCategory.GENERAL_TOOL -> stringResource(Res.string.category_general_tool)
-            else -> stringResource(Res.string.category_other)
+    fun getDisplayName(tab: SchoolCategoryTab): String {
+        return when (tab) {
+            SchoolCategoryTab.ACADEMIC_SYSTEM -> stringResource(Res.string.category_academic_system)
+            SchoolCategoryTab.GENERAL_TOOL -> stringResource(Res.string.category_general_tool)
         }
     }
 
-    val selectedIndex = displayCategories.indexOf(selectedCategory).coerceAtLeast(0)
-    val options = displayCategories.map { getDisplayName(it) }
+    val selectedIndex = displayTabs.indexOf(selectedTab).coerceAtLeast(0)
+    val options = displayTabs.map { getDisplayName(it) }
 
     AppSegmentedControl(
         options = options,
         selectedIndex = selectedIndex,
-        onSelect = { index -> onCategorySelected(displayCategories[index]) },
+        onSelect = { index -> onTabSelected(displayTabs[index]) },
         modifier = Modifier.fillMaxWidth()
     )
 }

@@ -3,6 +3,7 @@ package com.shangkeschedule
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.NavMetadataKey
 import androidx.savedstate.serialization.SavedStateConfiguration
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -168,7 +169,14 @@ sealed interface Destination : NavKey {
     data class AdapterSelection(
         val schoolId: String,
         val schoolName: String,
-        val categoryNumber: Int,
+        /**
+         * 分类口径：`SchoolCategoryTab` 的 ordinal（v4.70.0 起本科/专科与研究生合并为
+         * 「教务系统」，故只取「教务系统」/「通用工具」两个值，反解见 `SchoolCategoryTab.fromNumber`）。
+         *
+         * 序列化名沿用旧的 `categoryNumber`：字段语义在 v4.70.0 由「单个 AdapterCategory」
+         * 改为「分类口径」，改名只为让代码自洽，不改动已保存返回栈的解码。
+         */
+        @SerialName("categoryNumber") val tabNumber: Int,
         val resourceFolder: String,
         /** 用途，原样透传给 [WebView.mode]，保证「导入课表」与「抓取成绩」走各自的脚本。 */
         val purpose: String = WebPagePurpose.COURSE

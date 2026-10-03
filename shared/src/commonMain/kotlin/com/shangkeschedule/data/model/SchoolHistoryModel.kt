@@ -2,7 +2,6 @@ package com.shangkeschedule.data.model
 
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import school_index.AdapterCategory
 import school_index.School
 
 /**
@@ -31,23 +30,48 @@ data class CategoryLastSchool(
 }
 
 /**
+ * 一组「上次选择的学校」DataStore 键（id / 名称 / 适配目录）。
+ */
+data class SchoolHistoryKeys(
+    val id: Preferences.Key<String>,
+    val name: Preferences.Key<String>,
+    val folder: Preferences.Key<String>
+)
+
+/**
  * 学校选择记录模型 (SchoolHistoryModel)
- * 分类存储“本科/专科”、“研究生”和“通用工具”三个标签页对应的上次打开学校。
+ *
+ * 按 [SchoolCategoryTab] 的两个分类口径存储上次打开学校：教务系统、通用工具。
+ *
+ * v4.70.0 把本科/专科与研究生合并成「教务系统」后的字段口径：
+ * - [bachelor]：**合并后「教务系统」的写入槽位**（键名 `last_school_bachelor_*` 保持不变，
+ *   老版本写下的记录因此能直接继续用）；
+ * - [postgraduate]：旧版「研究生」槽位，现在只读，仅作 [academic] 的回退来源；
+ * - [general]：通用工具槽位，语义不变。
  */
 data class SchoolHistoryModel(
     val bachelor: CategoryLastSchool = CategoryLastSchool(),
     val postgraduate: CategoryLastSchool = CategoryLastSchool(),
     val general: CategoryLastSchool = CategoryLastSchool()
 ) {
+    /**
+     * 「教务系统」这一类别的最近一次选择。
+     *
+     * 优先取本科/专科槽位（合并后的写入目标）；升级前最后一次选的是研究生学校的用户，
+     * 本科槽位为空，这里回退到旧版研究生槽位 —— 否则「最近访问」会凭空消失。
+     */
+    val academic: CategoryLastSchool
+        get() = if (!bachelor.isEmpty) bachelor else postgraduate
+
     companion object {
         // --- Preferences DataStore 存储键定义 ---
 
-        // 本科/专科分类
+        // 本科/专科分类（v4.70.0 起 = 合并后的「教务系统」）
         private val KEY_BACHELOR_ID = stringPreferencesKey("last_school_bachelor_id")
         private val KEY_BACHELOR_NAME = stringPreferencesKey("last_school_bachelor_name")
         private val KEY_BACHELOR_FOLDER = stringPreferencesKey("last_school_bachelor_folder")
 
-        // 研究生分类
+        // 研究生分类（v4.70.0 起只读：合并前的遗留槽位）
         private val KEY_POSTGRAD_ID = stringPreferencesKey("last_school_postgrad_id")
         private val KEY_POSTGRAD_NAME = stringPreferencesKey("last_school_postgrad_name")
         private val KEY_POSTGRAD_FOLDER = stringPreferencesKey("last_school_postgrad_folder")
@@ -81,23 +105,27 @@ data class SchoolHistoryModel(
         }
 
         /**
-         * 辅助方法：根据类别返回对应的一组 DataStore Keys
-         * 由于开启了 enumMode = "enum_class"，可以直接进行类型安全的匹配
+         * 某一分类口径对应的写入 / 读取键。
          */
-        fun getKeysForCategory(category: AdapterCategory): Triple<Preferences.Key<String>, Preferences.Key<String>, Preferences.Key<String>> {
-            return when (category) {
-                AdapterCategory.BACHELOR_AND_ASSOCIATE ->
-                    Triple(KEY_BACHELOR_ID, KEY_BACHELOR_NAME, KEY_BACHELOR_FOLDER)
+        fun getPrimaryKeys(tab: SchoolCategoryTab): SchoolHistoryKeys = when (tab) {
+            SchoolCategoryTab.ACADEMIC_SYSTEM ->
+                SchoolHistoryKeys(KEY_BACHELOR_ID, KEY_BACHELOR_NAME, KEY_BACHELOR_FOLDER)
 
-                AdapterCategory.POSTGRADUATE ->
-                    Triple(KEY_POSTGRAD_ID, KEY_POSTGRAD_NAME, KEY_POSTGRAD_FOLDER)
+            SchoolCategoryTab.GENERAL_TOOL ->
+                SchoolHistoryKeys(KEY_GENERAL_ID, KEY_GENERAL_NAME, KEY_GENERAL_FOLDER)
+        }
 
-                AdapterCategory.GENERAL_TOOL ->
-                    Triple(KEY_GENERAL_ID, KEY_GENERAL_NAME, KEY_GENERAL_FOLDER)
+        /**
+         * 该口径下需要一并清理的遗留键。
+         *
+         * 「教务系统」除了自己的主键，还要清掉合并前的研究生槽位，否则旧记录会在
+         * 清空「最近访问」后从 [academic] 的回退分支里再冒出来。
+         */
+        fun getLegacyKeys(tab: SchoolCategoryTab): List<SchoolHistoryKeys> = when (tab) {
+            SchoolCategoryTab.ACADEMIC_SYSTEM ->
+                listOf(SchoolHistoryKeys(KEY_POSTGRAD_ID, KEY_POSTGRAD_NAME, KEY_POSTGRAD_FOLDER))
 
-                // 处理未定义或未知情况
-                else -> Triple(KEY_BACHELOR_ID, KEY_BACHELOR_NAME, KEY_BACHELOR_FOLDER)
-            }
+            SchoolCategoryTab.GENERAL_TOOL -> emptyList()
         }
     }
 }

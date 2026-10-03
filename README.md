@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-4.69.0-blueviolet)
+![Version](https://img.shields.io/badge/version-4.72.0-blueviolet)
 ![Release](https://img.shields.io/github/v/release/qiqqqqq517/shangkeschedule)
 ![Website](https://img.shields.io/badge/website-shangke.asia-c96442)
 
@@ -46,7 +46,7 @@
 | 今日课表 | 当天课程速览、下节课倒计时卡、「正在上课」高亮、下拉刷新、今日待办 |
 | 周课表 | 左右滑动切换周次、课程块长按调整、撞色自动修正、隐藏周末 / 非本周课程 |
 | 日程 | 日期轴 + 整月日历、待办 / 活动 / 考试 / 作业分类、与今日页完成状态双向同步 |
-| 教务导入 | 内置 1700+ 所高校索引、7 类通用适配器、160+ 所学校专属适配脚本、在线安全更新 |
+| 教务导入 | 内置 1700+ 所高校索引、8 类通用适配器、160+ 所学校专属适配脚本、在线安全更新 |
 | 情侣课表 | 独立课表：完整编辑、教务 / 文件多形式导入、独立作息、双人同显叠加 |
 | 多作息方案 | 夏令时 / 冬令时多方案、按日期自动切换、自定义时间段（编辑后后方节次自动顺延） |
 | 学期管理 | 多学期并排管理、点击即设当前学期、状态自动判定、学期进度条 |
@@ -105,9 +105,9 @@
 
 <img src="picture/import-school.jpg" width="220" alt="选择学校" />
 
-- **1700+ 所高校索引** + **7 类通用教务适配器**（超星、正方、URP、青果、强智、金智、南软等）。
+- **1700+ 所高校索引** + **8 类通用教务适配器**（超星、正方、URP、青果、强智、金智、南软、乘方等）。
 - **160+ 所学校专属适配脚本**，适配特殊教务页面与登录流程（如汕头大学强制电脑版 + 一次点击完成导入、沈阳农业大学 WebVPN 双入口、西安医学院 API 直取等）。
-- 学校列表提供本科 / 专科、研究生、通用工具三类分组与 A–Z 字母索引，数千所学校也能秒定位。
+- 学校列表提供教务系统（本科 / 专科与研究生合并为同一入口，该校两类适配器在同一页可选）、通用工具两类分组与 A–Z 字母索引，一次搜索即可覆盖全部教务学校，数千所学校也能秒定位。
 - 通用适配器支持桌面 UA + 1280px 视口修复，解决部分学校手机端教务菜单无法打开课表的问题。
 - 适配资源支持**在线安全更新**（私有适配仓库 + 逐文件 sha256 校验，校验失败自动回退内置资源，不影响导入）；三层结构与自动同步流程见 [教务适配与自动同步](#教务适配与自动同步)。
 - 支持**学期选择**、**一键导航到课表**、验证码 / CAS / WebVPN 等多种登录形态。
@@ -250,7 +250,7 @@ v4.66.0 起，与学期相关的几件事也收进同一个 App，数据同样�
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| ① 离线内置资源 | APP 内置 `school_index.pb` 与 `schools/resources/` | 1700+ 所高校索引、7 类通用适配器、160+ 所学校专属适配脚本；**完全离线可用**，装完即可导入 |
+| ① 离线内置资源 | APP 内置 `school_index.pb` 与 `schools/resources/` | 1700+ 所高校索引、8 类通用适配器、160+ 所学校专属适配脚本；**完全离线可用**，装完即可导入 |
 | ② 私有适配仓库 | `schedule-adapter-private`（保持私有） | 适配脚本与清单 `index.json` 的唯一权威来源，逐文件记录 sha256 |
 | ③ 鉴权网关 | Cloudflare Worker `schedule-adapter-gateway`，正式入口 **`adapter.shangke.asia`** | APP 与私有仓库之间的唯一通道：只放行 `index.json` 与 `adapters/**`，其余路径一律 `403` |
 

@@ -42,19 +42,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.WebPagePurpose
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import school_index.Adapter
-import school_index.AdapterCategory
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.error_load_failed
 import shangkeschedule.shared.generated.resources.a11y_back_to_school_list
 import shangkeschedule.shared.generated.resources.arrow_back_24px
-import shangkeschedule.shared.generated.resources.category_bachelor_associate
+import shangkeschedule.shared.generated.resources.category_academic_system
 import shangkeschedule.shared.generated.resources.category_general_tool
-import shangkeschedule.shared.generated.resources.category_other
-import shangkeschedule.shared.generated.resources.category_postgraduate
 import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.label_contributor_format
 import shangkeschedule.shared.generated.resources.label_contributor_unknown
@@ -91,7 +89,10 @@ private val FORCE_DESKTOP_MODE_SCHOOL_IDS = setOf(
 )
 
 /**
- * 二级页面：显示特定学校和当前类别下的所有适配器列表。
+ * 二级页面：显示特定学校和当前分类口径下的所有适配器列表。
+ *
+ * v4.70.0：「教务系统」口径覆盖本科/专科与研究生，这两类适配器在**同一页**一起列出
+ * （此前按单个类别过滤，选错分类就看不到另一类适配器），标题只显示学校名。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +101,7 @@ fun AdapterSelectionScreen(
     onBack: () -> Unit,
     schoolId: String,
     schoolName: String,
-    categoryNumber: Int,
+    tabNumber: Int,
     resourceFolder: String,
     /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩 / EMPTY_CLASSROOM = 查询空教室），原样透传给内嵌 WebView。 */
     purpose: String = WebPagePurpose.COURSE,
@@ -113,28 +114,23 @@ fun AdapterSelectionScreen(
     var loadFailed by remember { mutableStateOf(false) }
     var retryKey by remember { mutableIntStateOf(0) }
 
-    // 从传入的 number 计算当前的 AdapterCategory
-    val currentCategory = remember(categoryNumber) {
-        AdapterCategory.fromValue(categoryNumber) ?: AdapterCategory.BACHELOR_AND_ASSOCIATE
-    }
+    // 从传入的 number 计算当前的分类口径
+    val currentTab = remember(tabNumber) { SchoolCategoryTab.fromNumber(tabNumber) }
 
     @Composable
-    fun getCategoryDisplayName(): String {
-        return when (currentCategory) {
-            AdapterCategory.BACHELOR_AND_ASSOCIATE -> stringResource(Res.string.category_bachelor_associate)
-            AdapterCategory.POSTGRADUATE -> stringResource(Res.string.category_postgraduate)
-            AdapterCategory.GENERAL_TOOL -> stringResource(Res.string.category_general_tool)
-            else -> stringResource(Res.string.category_other)
+    fun getTabDisplayName(): String {
+        return when (currentTab) {
+            SchoolCategoryTab.ACADEMIC_SYSTEM -> stringResource(Res.string.category_academic_system)
+            SchoolCategoryTab.GENERAL_TOOL -> stringResource(Res.string.category_general_tool)
         }
     }
 
     // 数据加载逻辑
-    LaunchedEffect(schoolId, currentCategory, retryKey) {
+    LaunchedEffect(schoolId, currentTab, retryKey) {
         isLoading = true
         loadFailed = false
         try {
-            viewModel.updateSelectedCategory(currentCategory)
-            adapters = viewModel.getAdaptersForSchoolAndCategory(schoolId)
+            adapters = viewModel.getAdaptersForSchoolInTab(schoolId, currentTab)
         } catch (e: Exception) {
             adapters = emptyList()
             loadFailed = true
@@ -143,12 +139,12 @@ fun AdapterSelectionScreen(
         }
     }
 
-    val categoryDisplayName = getCategoryDisplayName()
+    val tabDisplayName = getTabDisplayName()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("$schoolName - $categoryDisplayName", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(schoolName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -179,7 +175,7 @@ fun AdapterSelectionScreen(
                 }
                 adapters.isEmpty() -> {
                     AppEmptyState(
-                        hint = stringResource(Res.string.text_no_adapter_for_category_school, categoryDisplayName),
+                        hint = stringResource(Res.string.text_no_adapter_for_category_school, tabDisplayName),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

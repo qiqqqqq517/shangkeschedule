@@ -517,10 +517,8 @@
     <string name="a11y_search">搜尋</string>
     <string name="a11y_clear_search">清除搜尋</string>
     <string name="a11y_school_icon">學校圖示</string>
-    <string name="category_bachelor_associate">大學/專科</string>
-    <string name="category_postgraduate">研究所</string>
+    <string name="category_academic_system">教務系統</string>
     <string name="category_general_tool">通用工具</string>
-    <string name="category_other">其他</string>
     <string name="a11y_back_to_school_list">返回學校清單</string>
     <string name="text_no_detailed_description">無詳細說明。</string>
     <string name="label_contributor_unknown">未知</string>
@@ -530,6 +528,7 @@
     <string name="a11y_cancel_editing">取消編輯</string>
     <string name="placeholder_enter_url_full">輸入網址 (https://...)</string>
     <string name="a11y_load">載入</string>
+    <string name="action_use_current_url">使用目前網址</string>
     <string name="a11y_enter_url">輸入網址</string>
     <string name="action_refresh">重新整理</string>
     <string name="action_switch_to_phone_mode">切換到手機模式</string>

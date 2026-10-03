@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.data.model.AdapterSyncRecord
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
@@ -54,10 +55,8 @@ import shangkeschedule.shared.generated.resources.adapter_status_selected_title
 import shangkeschedule.shared.generated.resources.adapter_status_sync_title
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.build_24px
-import shangkeschedule.shared.generated.resources.category_bachelor_associate
+import shangkeschedule.shared.generated.resources.category_academic_system
 import shangkeschedule.shared.generated.resources.category_general_tool
-import shangkeschedule.shared.generated.resources.category_other
-import shangkeschedule.shared.generated.resources.category_postgraduate
 import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.school_24px
 import shangkeschedule.shared.generated.resources.sync_status_disabled
@@ -66,7 +65,6 @@ import shangkeschedule.shared.generated.resources.sync_status_syncing
 import shangkeschedule.shared.generated.resources.sync_status_up_to_date
 import shangkeschedule.shared.generated.resources.sync_status_updated
 import shangkeschedule.shared.generated.resources.title_adapter_status
-import school_index.AdapterCategory
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -159,7 +157,7 @@ fun AdapterStatusScreen(
                             state.selectedSchools.forEachIndexed { index, school ->
                                 if (index > 0) SectionDivider()
                                 SettingItem(
-                                    title = "${categoryLabel(school.category)} · ${school.schoolName}",
+                                    title = "${categoryLabel(school.tab)} · ${school.schoolName}",
                                     subtitle = schoolSubtitle(school),
                                     leadingIcon = vectorResource(Res.drawable.school_24px),
                                     trailingContent = {}
@@ -231,14 +229,14 @@ private fun StatusSection(title: String, content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * 分类口径标签（v4.70.0：本科/专科与研究生合并为「教务系统」）。
+ */
 @Composable
-private fun categoryLabel(category: AdapterCategory): String = stringResource(
-    when (category) {
-        AdapterCategory.BACHELOR_AND_ASSOCIATE -> Res.string.category_bachelor_associate
-        AdapterCategory.POSTGRADUATE -> Res.string.category_postgraduate
-        AdapterCategory.GENERAL_TOOL -> Res.string.category_general_tool
-        // protobuf 枚举带 UNKNOWN：与学校选择页保持一致的兜底文案
-        else -> Res.string.category_other
+private fun categoryLabel(tab: SchoolCategoryTab): String = stringResource(
+    when (tab) {
+        SchoolCategoryTab.ACADEMIC_SYSTEM -> Res.string.category_academic_system
+        SchoolCategoryTab.GENERAL_TOOL -> Res.string.category_general_tool
     }
 )
 

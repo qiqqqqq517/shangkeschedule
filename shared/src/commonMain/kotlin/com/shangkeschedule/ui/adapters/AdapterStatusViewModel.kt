@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.model.AdapterSyncRecord
 import com.shangkeschedule.data.model.CategoryLastSchool
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.SchoolHistoryRepository
 import com.shangkeschedule.data.repository.SchoolRepository
@@ -21,7 +22,6 @@ import okio.FileSystem
 import okio.Path
 import org.koin.core.annotation.KoinViewModel
 import org.koin.core.annotation.Named
-import school_index.AdapterCategory
 import kotlin.time.Clock
 
 /**
@@ -45,14 +45,14 @@ data class AdapterStatusUiState(
 )
 
 /**
- * 某分类下已选学校与它命中的适配脚本状态。
+ * 某个分类口径下已选学校与它命中的适配脚本状态。
  *
  * [folder] 是**有效**目录：优先用当前索引里同 id 学校的最新 `resource_folder`，
  * 索引里已无该校时才回退到历史记录 —— 与学校选择页的取值口径一致
  * （历史值可能过期，如沈阳农业 urp→syau）。
  */
 data class SelectedSchoolStatus(
-    val category: AdapterCategory,
+    val tab: SchoolCategoryTab,
     val schoolName: String,
     val folder: String,
     val scriptCount: Int,
@@ -66,7 +66,7 @@ data class SelectedSchoolStatus(
  * 数据来源全部是本机文件与已有的仓库接口，不需要任何后端配合：
  * - 适配脚本数：遍历 `repo/schools/resources`；
  * - 学校索引数：[SchoolRepository.getSchools]；
- * - 已选学校：`SchoolHistory` 的三条记录 + 索引校对；
+ * - 已选学校：`SchoolHistory` 的两个分类口径记录（教务系统 / 通用工具）+ 索引校对；
  * - 上次检查结果：[AdapterSyncRecord]（本页新增落盘，此前只存在于内存）。
  */
 @KoinViewModel
@@ -144,15 +144,15 @@ class AdapterStatusViewModel(
         val history = runCatching { schoolHistoryRepository.historyFlow.first() }.getOrNull()
 
         val selected = listOf(
-            AdapterCategory.BACHELOR_AND_ASSOCIATE to (history?.bachelor ?: CategoryLastSchool()),
-            AdapterCategory.POSTGRADUATE to (history?.postgraduate ?: CategoryLastSchool()),
-            AdapterCategory.GENERAL_TOOL to (history?.general ?: CategoryLastSchool())
-        ).filter { (_, last) -> !last.isEmpty }.map { (category, last) ->
+            // v4.70.0：本科/专科与研究生合并为「教务系统」，这里也只列两个口径
+            SchoolCategoryTab.ACADEMIC_SYSTEM to (history?.academic ?: CategoryLastSchool()),
+            SchoolCategoryTab.GENERAL_TOOL to (history?.general ?: CategoryLastSchool())
+        ).filter { (_, last) -> !last.isEmpty }.map { (tab, last) ->
             val indexed = schools.firstOrNull { it.id == last.id }
             val indexedFolder = indexed?.resource_folder?.takeIf { it.isNotBlank() }
             val folder = indexedFolder ?: last.resourceFolder
             SelectedSchoolStatus(
-                category = category,
+                tab = tab,
                 schoolName = indexed?.name?.takeIf { it.isNotBlank() } ?: last.name,
                 folder = folder,
                 scriptCount = countScriptsInFolder(folder),

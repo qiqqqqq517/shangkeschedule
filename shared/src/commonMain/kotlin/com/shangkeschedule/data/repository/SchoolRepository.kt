@@ -3,6 +3,7 @@ package com.shangkeschedule.data.repository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.Dispatchers
@@ -35,12 +36,10 @@ class SchoolRepository(
     @Named("FilesDir") private val filesDir: Path
 ) {
 
-    // 定义需要在一级菜单中显示的教务类别
-    private val RELEVANT_MENU_CATEGORIES = setOf(
-        AdapterCategory.BACHELOR_AND_ASSOCIATE,
-        AdapterCategory.POSTGRADUATE,
-        AdapterCategory.GENERAL_TOOL
-    )
+    // 定义需要在一级菜单中显示的教务类别。
+    // 由分类口径（SchoolCategoryTab）反推，避免「口径清单」和「类别清单」两处各写一份而对不上。
+    private val RELEVANT_MENU_CATEGORIES: Set<AdapterCategory> =
+        SchoolCategoryTab.entries.flatMapTo(mutableSetOf()) { it.categories }
 
     /**
      * 索引内存缓存：避免每次查询都重新读盘并 decode 全量 school_index.pb。
@@ -137,24 +136,26 @@ class SchoolHistoryRepository(
      * 保存上次选择的学校
      * 适配点：resourceFolder -> resource_folder
      */
-    suspend fun saveLastSchool(category: AdapterCategory, school: School) {
+    suspend fun saveLastSchool(tab: SchoolCategoryTab, school: School) {
         dataStore.edit { prefs ->
-            val keys = SchoolHistoryModel.getKeysForCategory(category)
-            prefs[keys.first] = school.id
-            prefs[keys.second] = school.name
-            prefs[keys.third] = school.resource_folder
+            val keys = SchoolHistoryModel.getPrimaryKeys(tab)
+            prefs[keys.id] = school.id
+            prefs[keys.name] = school.name
+            prefs[keys.folder] = school.resource_folder
         }
     }
 
     /**
-     * 清除历史记录
+     * 清除历史记录（含该口径下旧版本遗留的槽位，见 [SchoolHistoryModel.getLegacyKeys]）
      */
-    suspend fun clearHistory(category: AdapterCategory) {
+    suspend fun clearHistory(tab: SchoolCategoryTab) {
         dataStore.edit { prefs ->
-            val keys = SchoolHistoryModel.getKeysForCategory(category)
-            prefs.remove(keys.first)
-            prefs.remove(keys.second)
-            prefs.remove(keys.third)
+            val keysList = SchoolHistoryModel.getLegacyKeys(tab) + SchoolHistoryModel.getPrimaryKeys(tab)
+            keysList.forEach { keys ->
+                prefs.remove(keys.id)
+                prefs.remove(keys.name)
+                prefs.remove(keys.folder)
+            }
         }
     }
 }

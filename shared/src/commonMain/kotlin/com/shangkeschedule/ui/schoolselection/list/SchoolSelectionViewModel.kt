@@ -2,12 +2,12 @@ package com.shangkeschedule.ui.schoolselection.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.data.repository.SchoolHistoryRepository
 import com.shangkeschedule.data.repository.SchoolRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import school_index.AdapterCategory
 import school_index.School
 import org.koin.core.annotation.KoinViewModel
 
@@ -25,8 +25,8 @@ class SchoolSelectionViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    private val _selectedCategory = MutableStateFlow(AdapterCategory.BACHELOR_AND_ASSOCIATE)
-    val selectedCategory: StateFlow<AdapterCategory> = _selectedCategory
+    private val _selectedTab = MutableStateFlow(SchoolCategoryTab.ACADEMIC_SYSTEM)
+    val selectedTab: StateFlow<SchoolCategoryTab> = _selectedTab
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -47,20 +47,17 @@ class SchoolSelectionViewModel(
         loadSchools()
     }
 
-    val displayCategories: List<AdapterCategory> = listOf(
-        AdapterCategory.BACHELOR_AND_ASSOCIATE,
-        AdapterCategory.POSTGRADUATE,
-        AdapterCategory.GENERAL_TOOL
-    )
+    // 分类胶囊：v4.70.0 起本科/专科与研究生合并为「教务系统」，只保留两个口径
+    val displayTabs: List<SchoolCategoryTab> = SchoolCategoryTab.entries
 
     // 过滤逻辑
     val filteredSchools: StateFlow<List<School>> = combine(
         _allSchools,
         _searchQuery,
-        _selectedCategory
-    ) { allSchools, query, category ->
+        _selectedTab
+    ) { allSchools, query, tab ->
         val categoryFiltered = allSchools.filter { school ->
-            school.adapters.any { adapter -> adapter.category == category }
+            school.adapters.any { adapter -> tab.matches(adapter.category) }
         }
 
         val searched = if (query.isBlank()) {
@@ -105,30 +102,34 @@ class SchoolSelectionViewModel(
         _searchQuery.value = query
     }
 
-    fun updateSelectedCategory(category: AdapterCategory) {
-        _selectedCategory.value = category
+    fun updateSelectedTab(tab: SchoolCategoryTab) {
+        _selectedTab.value = tab
     }
 
     fun saveLastSchool(school: School) {
         viewModelScope.launch {
-            historyRepository.saveLastSchool(_selectedCategory.value, school)
+            historyRepository.saveLastSchool(_selectedTab.value, school)
         }
     }
 
-    fun clearHistory(category: AdapterCategory) {
+    fun clearHistory(tab: SchoolCategoryTab) {
         viewModelScope.launch {
-            historyRepository.clearHistory(category)
+            historyRepository.clearHistory(tab)
         }
     }
 
     /**
-     * 获取当前选中的适配器列表
+     * 获取某校在指定分类口径下的适配器列表。
+     *
+     * 「教务系统」口径 = 本科/专科 + 研究生，二级页因此会把两类适配器放在一起给用户选。
+     * 口径由调用方显式传入：二级页有独立的 ViewModel 实例，不能依赖本页当前选中的分类。
      */
-    suspend fun getAdaptersForSchoolAndCategory(schoolId: String): List<school_index.Adapter> {
-        val allAdapters = schoolRepository.getAdaptersForSchool(schoolId)
-        val currentCategory = _selectedCategory.value
-        return allAdapters.filter { adapter ->
-            adapter.category == currentCategory
+    suspend fun getAdaptersForSchoolInTab(
+        schoolId: String,
+        tab: SchoolCategoryTab
+    ): List<school_index.Adapter> {
+        return schoolRepository.getAdaptersForSchool(schoolId).filter { adapter ->
+            tab.matches(adapter.category)
         }
     }
 }

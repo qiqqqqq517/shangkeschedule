@@ -98,6 +98,7 @@ import shangkeschedule.shared.generated.resources.action_refresh
 import shangkeschedule.shared.generated.resources.action_retry
 import shangkeschedule.shared.generated.resources.action_switch_to_desktop_mode
 import shangkeschedule.shared.generated.resources.action_switch_to_phone_mode
+import shangkeschedule.shared.generated.resources.action_use_current_url
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.arrow_forward_24px
 import shangkeschedule.shared.generated.resources.build_24px
@@ -167,7 +168,9 @@ fun WebViewScreen(
 
     val isDeveloperModeEnabled by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val startedEmpty = remember { initialUrl.isNullOrBlank() || initialUrl == "about:blank" }
-    val showAddressBarToggleButton = startedEmpty || isDeveloperModeEnabled
+    // v4.72.0：原先的 `showAddressBarToggleButton = startedEmpty || isDeveloperModeEnabled`
+    // 已删除 —— 顶栏的地址栏编辑按钮现在对**所有用户、所有教务用途**常驻可见，
+    // 不再有条件分支。放开的原因与风险见顶栏 actions 里「进入编辑态」处的注释。
 
     val titleEnterUrl = stringResource(Res.string.title_enter_url)
     val titleLoading = stringResource(Res.string.title_loading)
@@ -373,9 +376,10 @@ fun WebViewScreen(
             // 而不是去操作被盖住、看不见的网页历史。
             onBack()
         } else if (isEditingUrl) {
+            // v4.72.0：取消编辑**保留用户刚输入的内容**。
+            // 此前这里无条件把 inputUrl 覆盖成 WebView 当前地址，用户输了一半按返回键，
+            // 输入被静默冲掉；地址栏放开给普通用户后，这个「输了白输」更容易踩到。
             isEditingUrl = false
-            val rawUrl = webViewController.currentUrl
-            inputUrl = if (rawUrl.isBlank() || rawUrl == "about:blank") "" else rawUrl
             keyboardController?.hide()
         } else {
             if (webViewController.canGoBack()) {
@@ -388,6 +392,15 @@ fun WebViewScreen(
 
     PlatformBackHandler(enabled = true, onBack = handleBackAction)
 
+
+    // 注：v4.73.0 曾在此实现「页面加载完成后自动导航到课表页」，但按用户要求已**整体撤回**，
+    // 连带撤掉了为此新增的 `onPageLoadFinished` 钩子（commonMain/androidMain/jvmMain 三处
+    // 的签名与实现都已复原）。撤回理由：教务导入涉及账号密码与验证码，页面何时跳转、
+    // 点开哪个菜单必须完全交给用户决定，App 不应替用户自动点击或跳转登录/教务页面。
+    // 「一键导航到课表」仍是底部栏的**手动**按钮，行为与撤回前完全一致。
+    //
+    // 后续若还要在此加自动化，只允许做**只读**能力（如「是否停在登录页」的提示）；
+    // 任何自动跳转 / 自动点击一律不得引入。
 
     val onSearch: (String) -> Unit = { query ->
         val trimmed = query.trim()
@@ -448,15 +461,40 @@ fun WebViewScreen(
                         if (isEditingUrl) {
                             IconButton(
                                 onClick = { onSearch(inputUrl) },
-                                enabled = inputUrl.trim().isNotBlank() && inputUrl.trim() != "https://"
+                                // v4.72.0：原先只挡了 http:// 与 https:// 两种空壳，用户输入
+                                // "https:// " 这类（只有协议头）时按钮可点但必然加载失败。
+                                // 改成「协议头之后还得有主机名」才允许提交。
+                                enabled = inputUrl.trim().let { t ->
+                                    t.isNotBlank() && !t.startsWith("about:") &&
+                                            !Regex("^https?:///?$", RegexOption.IGNORE_CASE).matches(t)
+                                }
                             ) {
                                 Icon(vectorResource(Res.drawable.arrow_forward_24px), contentDescription = stringResource(Res.string.a11y_load))
                             }
-                        } else if (showAddressBarToggleButton) {
+                        } else {
+                            // v4.72.0：地址栏编辑对所有用户、所有教务用途（课表 / 成绩 / 空教室）
+                            // 常驻可用。此前它被限制在「通用平台入口（startedEmpty）」或
+                            // 「开发者模式」—— 选具体学校后按钮直接消失，用户卡在索引给的
+                            // 地址上却无处可改；而索引每所学校只能记一个入口，实际使用中
+                            // 校内直连 / 校外 WebVPN / 门户跳转后教务 往往只对其中一条通。
+                            //
+                            // ⚠️ 前提：改地址**不换脚本**。改的只是入口地址，注入的仍是所选
+                            // 学校的适配脚本（assetJsPath 由选校页决定，与本页地址无关）。
+                            // 用户若把地址改到另一套教务系统上，脚本多半对不上，导入会以
+                            // 「未找到导入入口 / 未解析出课程」明确失败，而非静默导入错数据。
                             IconButton(onClick = {
                                 isEditingUrl = true
-                                val rawUrl = webViewController.currentUrl
-                                inputUrl = if (rawUrl.isBlank() || rawUrl == "about:blank") "" else rawUrl
+                                // 预填「所选学校/平台的注册地址」（initialUrl），而不是 WebView
+                                // 当前地址：教务系统登录后往往已被框架页接管（如
+                                // /jsxsd/framework/xsMainV.htmlx），预填当前地址会让用户误以为
+                                // 那是学校入口地址，照着改反而把地址改坏。
+                                // 当前地址仍可通过「⋯ → 使用当前地址」一键带入。
+                                inputUrl = (initialUrl ?: "")
+                                    .takeIf { it.isNotBlank() && it != "about:blank" }
+                                    ?: run {
+                                        val rawUrl = webViewController.currentUrl
+                                        if (rawUrl.isBlank() || rawUrl == "about:blank") "" else rawUrl
+                                    }
                                 keyboardController?.show()
                             }) {
                                 Icon(vectorResource(Res.drawable.link_24px), contentDescription = stringResource(Res.string.a11y_enter_url))
@@ -477,6 +515,25 @@ fun WebViewScreen(
                                 onClick = {
                                     webViewController.reload()
                                     expanded = false
+                                }
+                            )
+
+                            // v4.72.0：地址栏预填的是「注册地址」，用户若想接着当前页
+                            // （比如已经从门户跳转到了教务子页，想固化这个可用地址），
+                            // 给一条一键带入的入口，不必手抄长 URL。
+                            TelegramMenuItem(
+                                icon = vectorResource(Res.drawable.link_24px),
+                                text = stringResource(Res.string.action_use_current_url),
+                                onClick = {
+                                    val rawUrl = webViewController.currentUrl
+                                    inputUrl = if (rawUrl.isBlank() || rawUrl == "about:blank") {
+                                        inputUrl
+                                    } else {
+                                        rawUrl
+                                    }
+                                    isEditingUrl = true
+                                    expanded = false
+                                    keyboardController?.show()
                                 }
                             )
 
