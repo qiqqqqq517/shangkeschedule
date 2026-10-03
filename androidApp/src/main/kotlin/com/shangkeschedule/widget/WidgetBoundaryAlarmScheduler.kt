@@ -9,11 +9,9 @@ import com.shangkeschedule.notification.plan.WidgetRefreshEngine
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * 小组件「课表边界」精确闹钟的排程侧（v4.67.36）。

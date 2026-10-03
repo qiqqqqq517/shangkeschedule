@@ -27,41 +27,6 @@ import shangkeschedule.shared.generated.resources.course_teacher_prefix
 private const val TAG = "CalendarAccountManager"
 
 /**
- * 本应用写入事件的**归属标记**（v4.68.2）。
- *
- * ## 要解决什么
- *
- * 差分删除原先是「本日历里凡是不在期望集合中的，一律删掉」
- * （`CalendarAccountManager` 的 2b 分支：按开始时刻判断）。这个判据问的是
- * 「**这一刻有没有课**」，而不是「**这条事件是不是本应用写的**」——
- * 两者不等价，于是有一类数据会**被误删且不可恢复**：
- *
- * 用户在这个日历里手工加的事件（生日、社团活动、临时提醒），只要开始时刻
- * 恰好没有对应的课，下一次同步就会被删掉。用户不会知道是谁删的，
- * 也不会有任何报错 —— 因为从代码看这是「预期行为」。
- *
- * ## 为什么不用隐藏列
- *
- * 既有 KDoc 已记录两种尝试均被真机证伪：`uid` 不在调用方投影白名单里（查询即抛
- * `Invalid column uid`）；`Events.ORIGINAL_ID` 语义是「本事件作为例外所归属的原重复事件
- * 的 _id」，在非重复事件上写它会让 Provider 去解析不存在的原事件，
- * `applyBatch` 抛 `NullPointerException`。
- *
- * 故最终落在**公开列 `DESCRIPTION`**：它是事件的可写字段、可查可投影、不参与任何
- * 重复规则解析，且本应用自己也在用它存教师信息 —— 把标记作为**行内哨兵前缀**写进去，
- * 既不新增字段依赖，又能稳定识别归属。
- *
- * ## 为什么不改用 `customAppUri`（星链的做法）
- *
- * 星链用的是 `customAppUri = starcurriculum://event/<id>`。该列确实可写，
- * 但它是 Android 14 起才稳定存在的语义（用于「事件关联外部深链」），在更早的
- * targetSdk/ROM 上可能为空或被 Provider 忽略；而 `DESCRIPTION` 从 API 1 就有。
- * 本仓 minSdk 26，覆盖面优先于语义纯度，故取 DESCRIPTION；两种方案的取舍已写在此处，
- * 避免下一个人重新推演一遍。
- */
-private const val OWNER_MARK_PREFIX = CalendarOwnerMark.OWNER_MARK_PREFIX
-
-/**
  * 课表 → 系统日历的写回。
  *
  * ## 增量而非全量重建（XL-010）

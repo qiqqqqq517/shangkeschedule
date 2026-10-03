@@ -27,7 +27,25 @@ package com.shangkeschedule.tool
  */
 object CalendarOwnerMark {
 
-    /** 归属标记前缀，与 `CalendarAccountManager.OWNER_MARK_PREFIX` 保持一致。 */
+    /**
+     * 归属标记前缀（本仓写入系统日历的唯一归属凭据，v4.68.2 引入）。
+     *
+     * ## 为什么必须落在 `DESCRIPTION`（本常量是那个决定的载体）
+     *
+     * 另两个看似更"正统"的列都已被真机证伪，不要再走一遍：
+     *
+     * - `uid`：不在调用方的投影白名单里，查询即抛 `Invalid column uid`；
+     * - `Events.ORIGINAL_ID`：语义是「本事件作为例外所归属的原重复事件的 _id」，
+     *   在非重复事件上写它会让 Provider 去解析一个不存在的原事件，
+     *   `applyBatch` 直接抛 `NullPointerException`。
+     *
+     * `DESCRIPTION` 则从 API 1 就有：可写、可查可投影、不参与任何重复规则解析，
+     * 且本应用自己已在用它存教师信息 —— 把标记作为**行内哨兵前缀**写进去，
+     * 既不新增字段依赖，又能稳定识别归属。
+     *
+     * 之所以用哨兵前缀而不是新字段，是因为识别端只需回答一个问题：
+     * 「这条事件是谁写的」。答案必须来自事件自身，不能来自"它和课表吻合"这种推断。
+     */
     const val OWNER_MARK_PREFIX: String = "[上课:"
 
     /** 归属标记的结束符。用明确的收尾，避免前缀与正文互相吞并。 */
