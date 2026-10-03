@@ -1011,7 +1011,7 @@
     <string name="action_view_timetable">查看课表</string>
     <string name="action_semester_settings">学期设置</string>
     <string name="semester_progress_label">学期进度</string>
-    <string name="progress_percent_format">已过 %1$d%</string>
+    <string name="progress_percent_format">已过 %1$d%%</string>
     <string name="school_year_format">%1$d-%2$d 学年</string>
     <string name="status_semester_completed">已完成</string>
     <string name="action_view">查看</string>
