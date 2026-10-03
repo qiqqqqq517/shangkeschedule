@@ -22,4 +22,18 @@
       database 域补 -journal/-wal、sharedpref 域补 .xml，不会连带排除伴生文件。
     -->
     <exclude domain="file" path="datastore/api_config.preferences_pb.tmp" />
+    <!--
+      FIX（第 47 轮）：以下四项都不该进自动备份。
+      1) repo/ 是离线学校仓库（195 个适配脚本 + 索引，解压后约 3.1 MB），
+         内置包可重放、启动期还会远程补齐，属于可再生的体积大户；
+      2) temp_offline_schools.zip 只在解压窗口内存在，可随时重建；
+      3) share/ 是反馈截图的临时交接目录（用户点出口才写、同名覆盖）；
+      4) glass_fallback.flag 是玻璃特效的崩溃降级锁存（内容=versionCode），
+         设备/版本特定，跨设备恢复会把降级状态带过去。
+      目录级排除剪整棵子树：AOSP 的遍历命中排除即 continue，且不再入队子项。
+    -->
+    <exclude domain="file" path="repo" />
+    <exclude domain="file" path="temp_offline_schools.zip" />
+    <exclude domain="file" path="share" />
+    <exclude domain="file" path="glass_fallback.flag" />
 </full-backup-content>
