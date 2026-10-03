@@ -42,8 +42,8 @@
       Non-text Contrast 约束的「识别组件与状态所必需的视觉信息」，阈值 3:1，不是装饰。
 
       两个色在浅色档上原先不达标（对比度缺陷修复，v4.67.1）：
-        - 活动   #28A37D → 2.66:1  ❌
-        - 作业   #BE861C → 2.11:1  ❌
+        - 活动   #2BAE85 → 2.66:1  ❌
+        - 作业   #E0A32E → 2.11:1  ❌
       按 HLS 空间沿亮度轴最小幅度调整（色相、饱和度不变），修到刚过 3:1 即可，
       不刻意加深 —— 色条是 4dp 宽的色块，过深会与左侧主文字抢注意力。
       另两个色待办 3.07:1 / 其他 3.10:1 本就合格，未动。
@@ -53,7 +53,7 @@
       新增规格时引入的，不在门禁清单里。门禁已同步扩充（见脚本 NON_TEXT_CHECKS）。
     -->
     <color name="widget_agenda_todo">#5B8DEF</color> # 待办：蓝（3.07:1）
-    <color name="widget_agenda_activity">#28A37D</color> # 活动：绿（3.00:1，原 #28A37D 仅 2.66:1）
-    <color name="widget_agenda_homework">#BE861C</color> # 作业：琥珀（3.01:1，原 #BE861C 仅 2.11:1）
+    <color name="widget_agenda_activity">#28A37D</color> # 活动：绿（3.01:1，原 #2BAE85 仅 2.66:1）
+    <color name="widget_agenda_homework">#BE861C</color> # 作业：琥珀（3.02:1，原 #E0A32E 仅 2.11:1）
     <color name="widget_agenda_other">#8E8E93</color> # 其他：灰（3.10:1）
 </resources>
