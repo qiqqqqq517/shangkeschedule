@@ -14,11 +14,12 @@ import com.shangkeschedule.R
  * **渠道 ID 的唯一来源**：全部渠道 ID 只在本文件定义，其它模块一律引用这里的常量，
  * 不得再写字面量——ID 一旦分裂，就等于把用户的渠道自定义（静音、置顶、重要性）重置。
  *
- * 渠道创建的主入口是 `ensureAll()`；以下三处例外各自保留一次幂等创建（属性与本文件完全一致），
- * 因为它们的调用路径可能在进程冷启动时先于 `ensureAll()` 发通知：
- *  - `CourseAlarmReceiver`（闹钟广播，被系统冷启动拉起）；
- *  - `PermissionNoticeNotifier`（WorkManager 周期任务）；
- *  - `DynamicIslandService`（前台服务随显示窗口启停，见 DYNAMIC_ISLAND 的说明）。
+ * 渠道创建的主入口是 `ensureAll()`；以下三处例外各自保留一次幂等创建，因为它们的调用路径
+ * 可能在进程冷启动时先于 `ensureAll()` 发通知：
+ *  - `CourseAlarmReceiver`（闹钟广播，被系统冷启动拉起；属性与本文件一致）；
+ *  - `PermissionNoticeNotifier`（WorkManager 周期任务；属性与本文件一致）；
+ *  - `DynamicIslandService`（前台服务随显示窗口启停，见 DYNAMIC_ISLAND 的说明；
+ *    该渠道的规范定义就在服务侧，`ensureAll()` 不含它）。
  *
  * **渠道 ID 全部保持与旧版一致**：Android 上渠道的重要性/声音等属性由用户掌控，
  * 一旦换个新 ID 就等于把用户的渠道自定义（静音、置顶、重要性）全部重置。
@@ -140,6 +141,9 @@ object NotificationChannels {
                     .build()
                 setSound(alarmSound, attrs)
             }
+            // 渠道的震动默认是关的（NotificationChannel.mVibrationEnabled 初值 false），
+            // 只设铃声不会带来震动；上面「响铃与震动（对齐系统闹钟的体感）」的契约必须在这里显式打开。
+            enableVibration(true)
         }
         nm.createNotificationChannel(channel)
     }
@@ -170,6 +174,8 @@ object NotificationChannels {
             ).apply {
                 description = context.getString(R.string.notification_channel_exam_countdown_desc)
                 setShowBadge(true)
+                // 渠道震动默认关闭；「首次出现时响/震一次」（见 ExamCountdownNotifier 的说明）依赖这里打开。
+                enableVibration(true)
             }
         )
     }
