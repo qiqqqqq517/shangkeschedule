@@ -15,10 +15,12 @@ import androidx.core.content.getSystemService
  * 于是每次重排后，旧提醒会一直挂在状态栏，直到用户手动逐条关闭：
  * 课表变更越频繁，状态栏堆积越多「上课提醒」。
  *
- * 修复：所有主动投递的课程提醒通知先行登记，在三个时机统一回收——
- *  1. 重新排程（课表/设置变更）：回收「已不在新计划里」的那些
- *  2. 关闭课程提醒总开关：全部回收
- *  3. 升级迁移：清掉旧版遗留槽位通知
+ * 修复：所有主动投递的课程提醒通知先行登记，在**两个**时机统一回收——
+ *  1. 重新排程（课表/设置变更）：`pruneExcept` 回收「已不在新计划里」的那些
+ *  2. 关闭课程提醒总开关：`clear` 全部回收
+ *
+ * 升级迁移的清理由 `LegacyAlarmMigrator` 负责（按旧槽位 ID 区间直接 `cancel()`），
+ * **不经本登记簿**：旧版通知从未登记过，登记簿里没有它们的记录。
  *
  * 用 SharedPreferences 而非内存集合：投递发生在广播接收器（可能由系统冷启动进程），
  * 回收发生在 Worker，两者不共享内存。
@@ -70,7 +72,7 @@ class PostedNotificationRegistry(context: Context) {
         return stale.size
     }
 
-    /** 回收全部已登记通知（关闭总开关 / 迁移清理）。 */
+    /** 回收全部已登记通知（关闭课程提醒总开关）。 */
     fun clear(): Int {
         val current = load()
         if (current.isEmpty()) return 0

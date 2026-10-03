@@ -49,7 +49,10 @@ object NotificationIds {
      * 换基数**不影响**已投递通知的 dismiss 对应关系：dismiss 的 requestCode /
      * extra / identifier 与通知 ID 在同一次 `build()` 内派生（CourseReminderNotifier），
      * 而登记簿的键是 occurrenceKey 原文、不是 ID 派生值（PostedNotificationRegistry）。
-     * 升级前已投递的通知仍是旧 ID，靠自身 `setTimeoutAfter` 到上课时刻自清。
+     * 升级前已投递的旧 ID 通知**不靠超时自清**：`setTimeoutAfter` 只存在于新管线的
+     * CourseReminderNotifier，冻结的 CourseAlarmReceiver 从未调用它。旧通知由一次性
+     * `LegacyAlarmMigrator` 按 50_000–50_200 区间批量 `NotificationManager.cancel()` 清理，
+     * 漏网的那些只能靠通知自带的「关闭」动作手动关掉。
      *
      * 区间 1_000_000–1_999_999 仍与 [RESERVED_ID_RANGE]（50_000–50_200）、
      * 早八闹钟的 700_100 和 [DYNAMIC_ISLAND_ID]（2_024_0904）完全隔离。
@@ -59,7 +62,7 @@ object NotificationIds {
     /** 旧实现的通知 ID 区间下界（含自动模式与权限提示）。 */
     val RESERVED_ID_RANGE = 50_000..50_200
 
-    /** 灵动岛通知 ID（属另一命名空间，此处仅作断言用常量）。 */
+    /** 灵动岛通知 ID 的**定义端**：`DynamicIslandService.NOTIFICATION_ID` 引用本常量（属另一命名空间）。 */
     const val DYNAMIC_ISLAND_ID = 2_024_0904
 
     /**
@@ -106,7 +109,12 @@ object NotificationIds {
         return NAMESPACE_BASE + (hash % NAMESPACE_SIZE)
     }
 
-    /** 判断一个通知 ID 是否属于本命名空间（供迁移清理与测试断言使用）。 */
+    /**
+     * 判断一个通知 ID 是否属于本命名空间（occurrence 派生通知）。
+     *
+     * 当前**无生产调用点**：旧通知的清理由 `LegacyAlarmMigrator` 按 50_000–50_200 区间
+     * 直接 `cancel()`，不经过本函数。保留它是为「某 ID 是否属本命名空间」提供唯一判据。
+     */
     fun isOwned(id: Int): Boolean =
         id >= NAMESPACE_BASE && id < NAMESPACE_BASE + NAMESPACE_SIZE
 
