@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4690">v4.69.0 · 新增湖北医药学院教务适配</a></li>
         <li><a href="#v4660">v4.66.0 · 课表之外：成绩、考证、小组件与 AI 识别导入</a></li>
         <li><a href="#v46425">v4.64.25 · 插入课表不再静默清空该表全部课程</a></li>
         <li><a href="#v46423">v4.64.23 · 通知与导入链的一批实打实修复</a></li>
@@ -164,6 +165,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4690">
+        <div><span class="tl-ver">v4.69.0</span><span class="tl-date">2026-10-03</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>新增湖北医药学院（湖医药，`jw.hbmu.edu.cn`）课表导入</h3>
+          <ul>
+            <li>在该校教务系统登录后选择学期，即可一次导入整学期课表，并同时写入本校作息（第 1–12 节）。</li>
+            <li>学期列表直接读取教务系统自己的学期下拉框，不再让用户手算学年学期。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>该校原有适配脚本取错接口，导入必然一门课都拿不到</h3>
+          <ul>
+            <li>脚本请求的是另一个查询，实测恒返回 0 条记录。现改用教务系统自身课表页所用的接口，实测覆盖第 5–17 周、与教务官网课表逐项一致。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4660">
         <div><span class="tl-ver">v4.66.0</span><span class="tl-date">2026-10-01</span></div>

@@ -23,7 +23,9 @@ manual-ahu�
 MANUAL_CHZU滁州学院czxy"CHZU*�
 chzu_01$教务系统（统一身份认证）"chzu.js*\https://sso.chzu.edu.cn/login?service=https%3A%2F%2Fjwgl.chzu.edu.cn%2Feams%2FhomeExt.action22手动注册，类型: 金智EAMS老版(联创SSO):manual-chzu�
 MANUAL_UCAS中国科学院大学zgkxydx"UCAS*�
-ucas_01SEP 教育业务平台"ucas.js*https://sep.ucas.ac.cn/21手动注册，类型: SEP平台课表(DOM解析):manual-ucas�
+ucas_01SEP 教育业务平台"ucas.js*https://sep.ucas.ac.cn/21手动注册，类型: SEP平台课表(DOM解析):manual-ucas�
+MANUAL_HBMU湖北医药学院hbyyxy"HBMU*|
+hbmu_01乘方教务系统"hbmu.js*https://jw.hbmu.edu.cn/2,手动注册，类型: 乘方教务(Struts2):manual-hbmu�
 pku北京大学bjdx"urp*w
 pku_01URP教务系统"urp.js*https://elective.pku.edu.cn/2'自动导入自 timetable，类型: urp:auto-import�
 tsinghua清华大学qhdx"urp*�

@@ -1,243 +1,314 @@
-// 功能：从湖医药教务系统获取课程表，通过桥接 API 导入到上课
+// 湖北医药学院（湖医药）教务系统适配器 v2
+// 目标系统：广州乘方科技 教务管理系统 · https://jw.hbmu.edu.cn/
+//
+// ---------- 系统特征（2026-10-03 实测） ----------
+//   登录页：layui + 图形验证码；登录 POST /new/login（AES-ECB，密钥 = 验证码 × 4，PKCS7）
+//   学期列表：/xsgrkbcx!getXsgrbkList.action 内的 <select id="xnxqdm">（value=202601 等，含 selected）
+//   课表数据：GET /xsgrkbcx!getKbRq.action?xnxqdm=<学期代码>&zc=<周次>
+//     · zc 留空 = 全学期。实测 129 条事件覆盖第 5-17 周，且与逐周（zc=1..20）查询
+//       逐周条数完全一致（0 处不符），故一次请求即可拿全，无需按周循环。
+//     · 返回 [[事件...], [星期→日期...]]。事件字段：
+//         kcmc 课程名 · teaxms 教师 · jxcdmc 地点 · xq 星期(1-7)
+//         jcdm2 节次("04,05") · jcdm 节次("0405") · zc 周次
+//         jxbmc 教学班 · jxhjmc 教学形式(理论 / 实验教学 / 课外实践) · kcdm / kcbh 课程号
+//   作息：第1-5节 08:00 08:50 09:40 10:30 11:20 · 第6-9节 14:30 15:20 16:10 17:00 ·
+//         第10-12节 19:00 19:50 20:40（由 /default!getCalendar.action 的 ps/pe + qssj/jssj
+//         反推，并与站内课表节次一致）
+//
+// ---------- 与 v1 的差异（重要） ----------
+//   v1 请求 /xsgrkbcx!getDataList.action，实测恒返回 {"total":0,"rows":[]}（那是另一个查询），
+//   导入必然 0 门课；且 v1 让用户手填学年 + 学期，实际学期代码应取自教务系统的学期下拉。
+//   v2 改为「读学期下拉 → 选学期 → 调 getKbRq（一次拿全学期）」，并以节次/周次为准落库。
+//
+// 桥接契约：注入器自动调用 window.shangkeImportEntry()（见 WebBridgeProtocol.JS_IMPORT_AUTOSTART）。
 
-// ---------- 全局验证函数 ----------
-function validateYearInput(input) {
-    if (/^\d{4}$/.test(input)) {
-        return false; // 验证通过
-    } else {
-        return "请输入四位数字的年份（例如 2024）";
-    }
-}
+(function () {
+    'use strict';
 
-// ---------- 工具函数 ----------
-function parseWeeks(weeksStr) {
-    weeksStr = weeksStr.replace('周', '');
-    const parts = weeksStr.split(',');
-    const weeks = [];
-    for (const part of parts) {
-        if (part.includes('-')) {
-            const [start, end] = part.split('-').map(Number);
-            for (let i = start; i <= end; i++) weeks.push(i);
-        } else {
-            weeks.push(Number(part));
-        }
-    }
-    return weeks;
-}
+    var SEMESTER_PAGE = '/xsgrkbcx!getXsgrbkList.action';
+    var KB_API = '/xsgrkbcx!getKbRq.action';
 
-function parseSections(jcdm) {
-    const str = String(jcdm);
-    const sections = [];
-    if (str.includes('-')) {
-        const [start, end] = str.split('-').map(Number);
-        for (let i = start; i <= end; i++) sections.push(i);
-    } else if (/^\d+$/.test(str)) {
-        for (let i = 0; i < str.length; i += 2) {
-            const sec = parseInt(str.substring(i, i + 2), 10);
-            if (!isNaN(sec)) sections.push(sec);
-        }
-    } else {
-        sections.push(parseInt(str));
-    }
-    return sections;
-}
-
-function parseRawCourses(rawData) {
-    const courseInfos = [];
-    for (const course of rawData) {
-        const name = course.kcmc;
-        const teacher = course.teaxms;
-        const position = course.jxcdmc;
-        const weeks = parseWeeks(course.zc);
-        const day = parseInt(course.xq);
-        const sections = parseSections(course.jcdm);
-        courseInfos.push({ name, teacher, position, weeks, day, sections });
-    }
-    return courseInfos;
-}
-
-function convertToTargetCourses(middleCourses) {
-    return middleCourses.map(c => ({
-        name: c.name,
-        teacher: c.teacher,
-        position: c.position,
-        day: c.day,
-        startSection: c.sections[0],
-        endSection: c.sections[c.sections.length - 1],
-        weeks: c.weeks,
-        isCustomTime: false
-    }));
-}
-
-function getTimeSlots() {
-    return [
-        { number: 1, startTime: "08:00", endTime: "08:40" },
-        { number: 2, startTime: "08:50", endTime: "09:30" },
-        { number: 3, startTime: "09:40", endTime: "10:20" },
-        { number: 4, startTime: "10:30", endTime: "11:10" },
-        { number: 5, startTime: "11:20", endTime: "12:00" },
-        { number: 6, startTime: "14:30", endTime: "15:10" },
-        { number: 7, startTime: "15:20", endTime: "16:00" },
-        { number: 8, startTime: "16:10", endTime: "16:50" },
-        { number: 9, startTime: "17:00", endTime: "17:40" },
-        { number: 10, startTime: "19:00", endTime: "19:40" },
-        { number: 11, startTime: "19:50", endTime: "20:30" },
-        { number: 12, startTime: "20:40", endTime: "21:20" }
+    // 湖北医药学院作息（节次 → 起止时间）
+    var TIME_SLOTS = [
+        { number: 1, startTime: '08:00', endTime: '08:40' },
+        { number: 2, startTime: '08:50', endTime: '09:30' },
+        { number: 3, startTime: '09:40', endTime: '10:20' },
+        { number: 4, startTime: '10:30', endTime: '11:10' },
+        { number: 5, startTime: '11:20', endTime: '12:00' },
+        { number: 6, startTime: '14:30', endTime: '15:10' },
+        { number: 7, startTime: '15:20', endTime: '16:00' },
+        { number: 8, startTime: '16:10', endTime: '16:50' },
+        { number: 9, startTime: '17:00', endTime: '17:40' },
+        { number: 10, startTime: '19:00', endTime: '19:40' },
+        { number: 11, startTime: '19:50', endTime: '20:30' },
+        { number: 12, startTime: '20:40', endTime: '21:20' }
     ];
-}
 
-// ---------- 网络请求 ----------
-async function fetchCourseData(xnxqdm) {
-    let page = 1;
-    const rowsPerPage = 100;
-    let allRows = [];
-    let total = 0;
+    // ---------- Bridge 包装 ----------
+    function toast(msg) {
+        try {
+            if (window.shangkeBridge && typeof window.shangkeBridge.showToast === 'function') {
+                window.shangkeBridge.showToast(msg);
+            }
+        } catch (e) { /* 提示失败不影响主流程 */ }
+    }
 
-    while (true) {
-        const res = await fetch("https://jw.hbmu.edu.cn/xsgrkbcx!getDataList.action", {
-            headers: {
-                "accept": "application/json, text/javascript, */*; q=0.01",
-                "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "x-requested-with": "XMLHttpRequest"
-            },
-            body: `xnxqdm=${xnxqdm}&page=${page}&rows=${rowsPerPage}`,
-            method: "POST",
-            credentials: "include"
+    function showAlert(title, msg, btn) {
+        return window.shangkeBridgePromise.showAlert(title, msg, btn);
+    }
+
+    function finish() {
+        try {
+            if (window.shangkeBridge && typeof window.shangkeBridge.notifyTaskCompletion === 'function') {
+                window.shangkeBridge.notifyTaskCompletion();
+            }
+        } catch (e) { /* 收尾失败不影响已落库的数据 */ }
+    }
+
+    // ---------- 网络 ----------
+    // 同源请求，credentials:'include' 携带教务系统登录态
+    function httpGetText(path, params) {
+        var url = path;
+        if (params) {
+            var qs = [];
+            for (var k in params) {
+                if (Object.prototype.hasOwnProperty.call(params, k)) {
+                    qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+                }
+            }
+            if (qs.length) url += '?' + qs.join('&');
+        }
+        return fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (r) {
+            if (!r.ok) throw new Error('教务系统返回 HTTP ' + r.status);
+            return r.text();
         });
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        const ret = await res.json();
-        if (!ret.rows || !Array.isArray(ret.rows)) {
-            throw new Error("返回数据格式不正确");
-        }
-        total = ret.total;
-        allRows = allRows.concat(ret.rows);
-        if (allRows.length >= total) break;
-        page++;
-        if (page > 10) break;
     }
-    return allRows;
-}
 
-// ---------- 用户交互 ----------
-async function promptUserToStart() {
-    return await window.shangkeBridgePromise.showAlert(
-        "重要提醒",
-        "请确保您已登录湖医药教务系统，且当前页面为教务系统内任意页面。\n\n点击确定继续。",
-        "确定"
-    );
-}
-
-async function getAcademicYear() {
-    return await window.shangkeBridgePromise.showPrompt(
-        "学年设置",
-        "请输入本学年开始的年份\n（例如 2024，代表 2024-2025 学年）",
-        "2024",
-        "validateYearInput"  // 传入验证函数名
-    );
-}
-
-async function selectSemester() {
-    const semesterOptions = ["上学期", "下学期", "短学期"];
-    const index = await window.shangkeBridgePromise.showSingleSelection(
-        "选择学期",
-        JSON.stringify(semesterOptions),
-        0
-    );
-    if (index === null || index < 0) return null;
-    return index;
-}
-
-// ---------- 主流程 ----------
-async function run() {
-    try {
-        // 1. 公告
-        const confirmed = await promptUserToStart();
-        if (!confirmed) {
-            window.shangkeBridge.showToast("用户取消了导入流程。");
-            return;
-        }
-
-        // 2. 获取学年
-        const yearInput = await getAcademicYear();
-        if (yearInput === null) {
-            window.shangkeBridge.showToast("导入已取消。");
-            return;
-        }
-        const yearNum = parseInt(yearInput);
-        if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
-            await window.shangkeBridgePromise.showAlert("错误", "学年输入无效，请输入2000-2100之间的数字。", "确定");
-            return;
-        }
-
-        // 3. 获取学期
-        const semesterIndex = await selectSemester();
-        if (semesterIndex === null) {
-            window.shangkeBridge.showToast("导入已取消。");
-            return;
-        }
-        const termCode = semesterIndex === 0 ? "01" : (semesterIndex === 1 ? "02" : "03");
-        const xnxqdm = `${yearNum}${termCode}`;
-
-        // 4. 请求课表
-        window.shangkeBridge.showToast("正在获取课表，请稍候...");
-        let rawData;
-        try {
-            rawData = await fetchCourseData(xnxqdm);
-        } catch (fetchErr) {
-            await window.shangkeBridgePromise.showAlert(
-                "网络请求失败",
-                `请求教务系统失败：${fetchErr.message}\n\n请检查网络连接和登录状态。`,
-                "确定"
-            );
-            return;
-        }
-
-        if (!rawData.length) {
-            await window.shangkeBridgePromise.showAlert("提示", "未获取到任何课程数据。请确认已登录教务系统并选择正确的学年学期。", "确定");
-            return;
-        }
-
-        // 5. 解析并转换
-        const middleCourses = parseRawCourses(rawData);
-        const targetCourses = convertToTargetCourses(middleCourses);
-
-        // 6. 保存课程
-        try {
-            await window.shangkeBridgePromise.saveImportedCourses(JSON.stringify(targetCourses));
-            window.shangkeBridge.showToast(`课程数据已导入（共 ${targetCourses.length} 条）`);
-        } catch (saveErr) {
-            await window.shangkeBridgePromise.showAlert("保存课程失败", saveErr.message, "确定");
-            return;
-        }
-
-        // 7. 保存时间段
-        const timeSlots = getTimeSlots();
-        try {
-            await window.shangkeBridgePromise.savePresetTimeSlots(JSON.stringify(timeSlots));
-            window.shangkeBridge.showToast("时间段数据已导入");
-        } catch (slotErr) {
-            // 时间段保存失败不终止流程，只提示
-            window.shangkeBridge.showToast(`时间段保存失败：${slotErr.message}`);
-        }
-
-        // 8. 完成通知
-        window.shangkeBridge.showToast("导入完成！");
-        window.shangkeBridge.notifyTaskCompletion();
-
-    } catch (err) {
-        // 捕获所有未预料的错误
-        console.error("run error:", err);
-        await window.shangkeBridgePromise.showAlert(
-            "导入失败",
-            `未知错误：${err.message || err}\n\n请联系开发者。`,
-            "确定"
-        );
-        // 仍然通知完成，但可能不会生成有效文件
-        window.shangkeBridge.notifyTaskCompletion();
+    // ---------- 登录态与学期列表 ----------
+    function looksLikeLoginPage(html) {
+        return html.indexOf('login-form') !== -1 || html.indexOf('name="account"') !== -1;
     }
-}
 
-// 启动
-run();
+    // 解析 <select id="xnxqdm"> 得到学期列表与当前选中项
+    function parseSemesters(html) {
+        var blockMatch = html.match(/<select[^>]*id=['"]xnxqdm['"][\s\S]*?<\/select>/i);
+        if (!blockMatch) return null;
+
+        var optionRe = /<option[^>]*value=['"]([^'"]*)['"]([^>]*)>([\s\S]*?)<\/option>/gi;
+        var labels = [], values = [], defaultIndex = 0, m;
+        while ((m = optionRe.exec(blockMatch[0])) !== null) {
+            var value = m[1];
+            var attrs = m[2] || '';
+            var label = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            if (!value || !label) continue;
+            if (/\bselected\b/i.test(attrs)) defaultIndex = labels.length;
+            labels.push(label);
+            values.push(value);
+        }
+        if (!labels.length) return null;
+        return { labels: labels, values: values, defaultIndex: defaultIndex };
+    }
+
+    // ---------- 课表数据 ----------
+    // zc 传空串 = 全学期
+    function fetchEvents(xnxqdm) {
+        return httpGetText(KB_API, { xnxqdm: xnxqdm, zc: '' }).then(function (text) {
+            var json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                throw new Error('课表接口未返回有效数据，登录可能已失效，请重新登录后重试。');
+            }
+            if (!json || !json[0]) return [];
+            return json[0];
+        });
+    }
+
+    // 节次：优先 jcdm2("04,05")，回退 jcdm("0405") 每两位一节
+    function parseSections(ev) {
+        var nums = [];
+        var i;
+
+        if (ev.jcdm2) {
+            var parts = String(ev.jcdm2).split(/[,，、]/);
+            for (i = 0; i < parts.length; i++) {
+                var n = parseInt(parts[i], 10);
+                if (!isNaN(n)) nums.push(n);
+            }
+        }
+        if (!nums.length && ev.jcdm) {
+            var digits = String(ev.jcdm).replace(/\D/g, '');
+            for (i = 0; i + 1 < digits.length; i += 2) {
+                nums.push(parseInt(digits.substr(i, 2), 10));
+            }
+            if (!nums.length && digits) nums.push(parseInt(digits, 10));
+        }
+
+        nums = nums.filter(function (n) { return !isNaN(n) && n >= 1 && n <= 30; });
+        if (!nums.length) return null;
+        nums.sort(function (a, b) { return a - b; });
+        // 教务系统的节次是连续段（实测 jcdm2 全部为连续值），取首尾即起止节
+        return { start: nums[0], end: nums[nums.length - 1] };
+    }
+
+    function cleanCourseName(v) {
+        return String(v === null || v === undefined ? '' : v)
+            .replace(/【[^】]*】/g, '')
+            .replace(/[■◆▲●★]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function cleanTeacher(v) {
+        var s = String(v === null || v === undefined ? '' : v)
+            .replace(/（[^）]*）/g, '')
+            .replace(/\([^)]*\)/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return s || '未安排';
+    }
+
+    // 事件列表 → 课程列表（同 课程/教师/地点/星期/节次 的行合并周次）
+    //
+    // 分组键含「教师 / 地点」是本仓既定口径（同 HEBMU / JNMC / NIIT 的
+    // 「课程|教师|场地|星期|节次」）。湖医药常见「同一课位按周轮换讲师」
+    // （实测系统解剖学 周一第1-2节 10 周换了 10 位老师）—— 按 DLUT 的既定判据
+    // 「合授（同周次多教师）合并为一条，代课（不同周次不同教师）按周次拆分」，
+    // 此处同样按周次拆开，保证「第几周是哪位老师」不丢信息。
+    // 同格的其它老师条目周次互不重叠，周视图/今日视图同一时刻只会显示当周那一条。
+    function buildCourses(events) {
+        var order = [], byKey = {};
+
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            if (!ev) continue;
+
+            var name = cleanCourseName(ev.kcmc);
+            if (!name) continue;
+
+            var day = parseInt(ev.xq, 10);
+            if (isNaN(day) || day < 1 || day > 7) continue;
+
+            var sec = parseSections(ev);
+            if (!sec) continue;
+
+            var week = parseInt(ev.zc, 10);
+            if (isNaN(week) || week < 1 || week > 30) continue;
+
+            var teacher = cleanTeacher(ev.teaxms);
+            var position = String(ev.jxcdmc === null || ev.jxcdmc === undefined ? '' : ev.jxcdmc).trim() || '待定';
+            var type = String(ev.jxhjmc === null || ev.jxhjmc === undefined ? '' : ev.jxhjmc).trim();
+
+            var key = [name, teacher, position, day, sec.start, sec.end].join('\u0001');
+            var item = byKey[key];
+            if (!item) {
+                var remarkParts = [];
+                if (type) remarkParts.push('课程类型：' + type);
+                var jxbmc = String(ev.jxbmc === null || ev.jxbmc === undefined ? '' : ev.jxbmc).trim();
+                if (jxbmc) remarkParts.push('教学班：' + jxbmc);
+
+                item = byKey[key] = {
+                    name: name,
+                    teacher: teacher,
+                    position: position,
+                    day: day,
+                    startSection: sec.start,
+                    endSection: sec.end,
+                    weeks: [],
+                    remark: remarkParts.join('；'),
+                    isLab: type === '实验教学'
+                };
+                order.push(item);
+            }
+            item.weeks.push(week);
+        }
+
+        // 周次去重并升序（合同约定 weeks 必须升序）
+        for (var k = 0; k < order.length; k++) {
+            var seen = {}, weeks = [], arr = order[k].weeks;
+            for (var w = 0; w < arr.length; w++) {
+                if (!seen[arr[w]]) {
+                    seen[arr[w]] = true;
+                    weeks.push(arr[w]);
+                }
+            }
+            weeks.sort(function (a, b) { return a - b; });
+            order[k].weeks = weeks;
+        }
+        return order;
+    }
+
+    // ---------- 主流程 ----------
+    function runImport() {
+        var semesterLabel = '';
+
+        toast('正在检测登录状态...');
+
+        return httpGetText(SEMESTER_PAGE).then(function (html) {
+            if (looksLikeLoginPage(html)) {
+                throw new Error('尚未登录教务系统。请先在本页面完成登录（学号 + 密码 + 验证码），'
+                    + '登录成功后进入「信息查询 → 课表查询」，再点「执行导入」。');
+            }
+            var sem = parseSemesters(html);
+            if (!sem) {
+                throw new Error('未能读取学期列表。请确认已登录教务系统，并打开「信息查询 → 课表查询」页面后重试。');
+            }
+            return window.shangkeBridgePromise
+                .showSingleSelection('选择学期', JSON.stringify(sem.labels), sem.defaultIndex)
+                .then(function (idx) {
+                    if (idx === null || idx === undefined || idx < 0 || idx >= sem.values.length) {
+                        toast('导入已取消');
+                        return null;
+                    }
+                    semesterLabel = sem.labels[idx];
+                    return sem.values[idx];
+                });
+        }).then(function (xnxqdm) {
+            if (!xnxqdm) return null;
+
+            toast('正在获取「' + semesterLabel + '」课表...');
+            return fetchEvents(xnxqdm).then(function (events) {
+                var courses = buildCourses(events);
+                if (!courses.length) {
+                    throw new Error('「' + semesterLabel + '」未查询到课程数据。'
+                        + '请确认该学期确实有课，或改选其它学期后重试。');
+                }
+                return courses;
+            });
+        }).then(function (courses) {
+            if (!courses) return null;
+
+            return window.shangkeBridgePromise.saveImportedCourses(JSON.stringify(courses))
+                .then(function () {
+                    // 作息保存失败不阻断导入，仅提示
+                    return window.shangkeBridgePromise.savePresetTimeSlots(JSON.stringify(TIME_SLOTS))
+                        .catch(function (e) {
+                            toast('作息时间保存失败：' + ((e && e.message) || e));
+                        });
+                })
+                .then(function () {
+                    return showAlert(
+                        '导入完成',
+                        '已导入「' + semesterLabel + '」共 ' + courses.length + ' 门课程。\n\n'
+                        + '说明：本次按教务系统的节次与周次导入；如上下课时间与学校作息不符，'
+                        + '请到「设置 → 自定义时间段」调整。',
+                        '完成'
+                    );
+                })
+                .then(function () {
+                    finish();
+                });
+        }).catch(function (err) {
+            return showAlert('导入失败', (err && err.message) || String(err), '确定');
+        });
+    }
+
+    // 注入器（JS_IMPORT_AUTOSTART）会调用 window.shangkeImportEntry
+    if (typeof window !== 'undefined') {
+        window.shangkeImportEntry = runImport;
+    }
+})();
