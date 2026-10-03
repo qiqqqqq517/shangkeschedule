@@ -42,7 +42,8 @@ sealed interface Destination : NavKey {
      * 教务系统学校列表（选学校 → 选适配方案 → 打开教务系统内嵌页）。
      *
      * [purpose] 决定内嵌页注入哪段脚本、抓取结果如何回写：
-     * COURSE = 导入课表（默认，走适配仓库的适配脚本）；GRADE = 抓取成绩（走内置通用成绩识别脚本）。
+     * COURSE = 导入课表（默认，走适配仓库的适配脚本）；GRADE = 抓取成绩（走内置通用成绩识别脚本）；
+     * EMPTY_CLASSROOM = 查询空教室（走内置通用空教室识别脚本）。
      */
     @Serializable data class SchoolSelectionListScreen(
         val purpose: String = WebPagePurpose.COURSE
@@ -182,6 +183,7 @@ sealed interface Destination : NavKey {
          * 内嵌页用途：
          * - [WebPagePurpose.COURSE]（默认）：注入适配仓库里该学校的适配脚本，抓取课表；
          * - [WebPagePurpose.GRADE]：注入应用内置的通用成绩表格识别脚本，抓取成绩；
+         * - [WebPagePurpose.CERT]：纯浏览器模式（考证查分等），不注入脚本、不显示识别按钮；
          * - [WebPagePurpose.EMPTY_CLASSROOM]：注入应用内置的通用空教室表格识别脚本，
          *   定位并读取教务页里的空教室查询结果。
          */

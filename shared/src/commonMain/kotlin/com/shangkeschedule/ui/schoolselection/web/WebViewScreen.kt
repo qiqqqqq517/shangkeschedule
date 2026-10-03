@@ -152,7 +152,9 @@ fun WebViewScreen(
      * 内嵌页面用途，见 [WebPagePurpose]：
      * - `COURSE`：底部显示「执行导入 / 跳到课表」（原有行为）；
      * - `GRADE`：底部显示「识别本页成绩」，用内置通用脚本抓成绩；
-     * - `CERT`：纯浏览器（考证查分），底部不显示任何业务按钮。
+     * - `CERT`：纯浏览器（考证查分），底部不显示任何业务按钮；
+     * - `EMPTY_CLASSROOM`：底部显示「定位空教室页 / 读取本页空教室」，
+     *   用内置通用脚本读取本页空教室查询结果。
      */
     mode: String = WebPagePurpose.COURSE,
     // 导入真的落库成功后才通知调用方：本页（连同它下面的学校列表/适配器选择）可以
@@ -185,7 +187,8 @@ fun WebViewScreen(
     val toastDevToolsEnabled = stringResource(Res.string.toast_devtools_enabled_format, statusEnabled)
     val toastDevToolsDisabled = stringResource(Res.string.toast_devtools_enabled_format, statusDisabled)
 
-    // 用途分流：COURSE = 课表导入（原有行为），GRADE = 成绩识别，CERT = 纯浏览器
+    // 用途分流：COURSE = 课表导入（原有行为），GRADE = 成绩识别，CERT = 纯浏览器，
+    // EMPTY_CLASSROOM = 空教室查询（定位空教室页 / 读取本页结果）
     val isCourseMode = mode == WebPagePurpose.COURSE
     val isGradeMode = mode == WebPagePurpose.GRADE
     val isEmptyClassroomMode = mode == WebPagePurpose.EMPTY_CLASSROOM

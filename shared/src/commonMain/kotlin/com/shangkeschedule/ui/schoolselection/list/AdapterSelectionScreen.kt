@@ -102,7 +102,7 @@ fun AdapterSelectionScreen(
     schoolName: String,
     categoryNumber: Int,
     resourceFolder: String,
-    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩），原样透传给内嵌 WebView。 */
+    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩 / EMPTY_CLASSROOM = 查询空教室），原样透传给内嵌 WebView。 */
     purpose: String = WebPagePurpose.COURSE,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {

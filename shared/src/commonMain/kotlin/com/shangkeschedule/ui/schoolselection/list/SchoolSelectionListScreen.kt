@@ -97,7 +97,7 @@ import shangkeschedule.shared.generated.resources.title_select_school
 fun SchoolSelectionListScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩），透传给适配方案选择与内嵌 WebView。 */
+    /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩 / EMPTY_CLASSROOM = 查询空教室），透传给适配方案选择与内嵌 WebView。 */
     purpose: String = WebPagePurpose.COURSE,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
