@@ -15,6 +15,8 @@ import com.shangkeschedule.service.notification.notify.NextClassNotifier
 import com.shangkeschedule.service.notification.notify.NotificationChannels
 import com.shangkeschedule.service.notification.reminder.CourseReminderScheduler
 import com.shangkeschedule.widget.WidgetBoundaryAlarmScheduler
+import com.shangkeschedule.widget.WidgetRefreshReason
+import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -194,6 +196,26 @@ class NotificationScheduler(
         runCatching {
             WidgetBoundaryAlarmScheduler(context).reschedule(effective, today, now)
         }.onFailure { Log.w(TAG, "小组件边界刷新排程失败，不影响其余排程: ${it.message}") }
+
+        // 小组件**数据**重绘（v4.68.1）。
+        //
+        // 组件快照以 `LocalDate.now()` 为锚（`WidgetUpdateHelper` 读的是 today→tomorrow 窗口），
+        // 而本方法正是「日期/时区/语言变了」的统一入口 —— 但它此前**只重排闹钟、不重绘组件**，
+        // 于是跨零点后桌面会继续显示**昨天的课表**，最长要等一个 15 分钟 tick 才自愈。
+        //
+        // 竞品星链课表对同样的四个广播显式 `trigger()` 重绘组件
+        // （`WidgetRefreshScheduler.handleAction` 里 DATE_CHANGED / TIMEZONE_CHANGED /
+        //   TIME_SET / LOCALE_CHANGED 四个 action 均走 trigger + schedule）。
+        //
+        // 为什么必须放这里而不是各调用点各自刷：`reschedule()` 有 4 个调用方
+        // （SyncManager / TimeChangeReceiver / AlarmPermissionReceiver / NotificationSyncWorker），
+        // 逐个补会漏，而漏掉的那个调用方正是「跨天自愈」路径。
+        //
+        // 失败不影响任何排程结果：组件刷新失败的后果只是「下次 tick 再刷一次」，
+        // 而反过来让整个重排失败则会导致当日提醒真空。
+        runCatching {
+            updateAllWidgets(context.applicationContext, WidgetRefreshReason.REQUIRED)
+        }.onFailure { Log.w(TAG, "小组件重绘失败，不影响其余排程: ${it.message}") }
 
         return Summary(
             reminderCount = reminderCount,
