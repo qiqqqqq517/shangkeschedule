@@ -59,21 +59,33 @@ internal class WidgetBoundaryAlarmScheduler(private val context: Context) {
         // 先清本命名空间：与 AlarmScheduler 同策略「无残留、无碰撞」。
         cancelRange(am, WIDGET_REFRESH_CODE_BASE, WIDGET_REFRESH_CODE_LIMIT)
 
+        // 把「两天课表 → 刷新点」合并成一份，再**一次性**分配请求码。
+        //
+        // 必须合并后调一次：若按天各调一次 allocate，每天都会从 WIDGET_REFRESH_CODE_BASE
+        // 重新开始 ⇒ 跨天请求码重复 ⇒ 一天的闹钟被另一天顶掉而漏刷。
+        // 该契约由 WidgetRefreshEngineTest 钉死（跨天码唯一 + 全落在命名空间内）。
+        val points = (0 until WINDOW_DAYS)
+            .flatMap { WidgetRefreshEngine.scheduleFor(courses, today.plus(it, DateTimeUnit.DAY)) }
+        val scheduled = WidgetRefreshEngine.allocate(
+            points = points,
+            now = now,
+            codeBase = WIDGET_REFRESH_CODE_BASE,
+            codeLimit = WIDGET_REFRESH_CODE_LIMIT
+        )
+        // 少了的点分两类，都不是故障、但都值得留痕：① 已过期的点（正常）② 超出槽位上限（异常）。
+        if (points.size != scheduled.size) {
+            Log.w(
+                TAG,
+                "刷新点 ${points.size} 个 → 排 ${scheduled.size} 个" +
+                    "（差额 = 已过期 ${points.count { LocalDateTime(it.date, it.time) <= now }}" +
+                    " + 超出上限 ${(points.size - scheduled.size - points.count { LocalDateTime(it.date, it.time) <= now }).coerceAtLeast(0)}）"
+            )
+        }
+
         var count = 0
-        for (offset in 0 until WINDOW_DAYS) {
-            val date = today.plus(offset, DateTimeUnit.DAY)
-            val points = WidgetRefreshEngine.scheduleFor(courses, date)
-            for (point in points) {
-                val triggerAt = LocalDateTime(point.date, point.time)
-                // 过期点直接跳过：排一个已经过去的闹钟只会立刻触发一次无用刷新。
-                if (triggerAt <= now) continue
-                if (!setExact(am, triggerAt, offset * WIDGET_REFRESH_CODE_LIMIT + count)) continue
-                count++
-                if (count >= WIDGET_REFRESH_CODE_LIMIT) {
-                    Log.w(TAG, "小组件刷新闹钟已达上限 $WIDGET_REFRESH_CODE_LIMIT，多余刷新点被丢弃")
-                    return count
-                }
-            }
+        for (item in scheduled) {
+            // 单个点挂不上（OEM 抛 SecurityException 等）不应中断整轮
+            if (setExact(am, item.triggerAt, item.requestCode)) count++
         }
         return count
     }
@@ -137,8 +149,13 @@ internal class WidgetBoundaryAlarmScheduler(private val context: Context) {
         const val WIDGET_REFRESH_CODE_BASE = 64_000
 
         /**
-         * 上限。两天 × 每天 8 节课 × 4 个点 = 64，200 已有大量余量。
-         * 留够余量是为了「未来某天排了极密课表」时不会静默截断。
+         * 上限（对应请求码 64000–64199，**整个排程窗口共用这一段**）。
+         *
+         * 两天 × 每天 8 节课 × 4 个点 = 64，200 已有大量余量；
+         * 留余量是为了「某天排了极密课表」时不会静默截断。
+         *
+         * 必须是「全局连续分配」而非按天分段 —— [cancelRange] 只扫这一段，
+         * 任何落到段外的请求码都永远撤不掉，每轮重排都会叠加一批孤儿闹钟。
          */
         const val WIDGET_REFRESH_CODE_LIMIT = 200
 

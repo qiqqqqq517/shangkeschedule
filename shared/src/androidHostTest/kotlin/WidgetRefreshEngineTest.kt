@@ -1,8 +1,11 @@
 package com.shangkeschedule.notification.plan
 
 import com.shangkeschedule.data.db.widget.WidgetCourse
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -185,4 +188,151 @@ class WidgetRefreshEngineTest {
             2 < WidgetRefreshEngine.NIGHT_GAP_HOURS
         )
     }
+
+    // ---------------------------------------------------------------------
+    // 请求码分配（v4.67.36 自审新增）
+    //
+    // 平台层注销是「扫 [codeBase, codeBase+limit) 整段」，
+    // 因此**任何落到段外的请求码都永远撤不掉**，每轮重排都会叠加一批孤儿闹钟。
+    // 首版正是按天加了偏移（offset * limit + count）而踩中，故此处用单测钉死。
+    // ---------------------------------------------------------------------
+
+    private val now = LocalDateTime(date, LocalTime(9, 0))
+    private val codeBase = 64_000
+    private val codeLimit = 200
+
+    @Test
+    fun allocatedCodesAllFallInsideNamespace() {
+        // 两天各 4 节课，**合并成一份**后一次分配（与平台层用法一致）
+        val days = listOf(date, date.plus(1L, DateTimeUnit.DAY))
+        val points = days.flatMap { WidgetRefreshEngine.scheduleFor(MANY_COURSES, it) }
+        val all = WidgetRefreshEngine.allocate(points, now, codeBase, codeLimit)
+        assertTrue("应排出若干闹钟", all.isNotEmpty())
+        all.forEach {
+            assertTrue(
+                "请求码 ${it.requestCode} 落在命名空间之外，永远撤不掉",
+                it.requestCode in codeBase until (codeBase + codeLimit)
+            )
+        }
+        // 且码必须唯一 —— 重复码会让两个刷新点互相覆盖（FLAG_UPDATE_CURRENT）
+        assertEquals(
+            "请求码必须唯一",
+            all.size,
+            all.map { it.requestCode }.distinct().size
+        )
+    }
+
+    /**
+     * 回归：按天**各调一次** allocate 会让跨天请求码重复。
+     *
+     * 这是首版的第二个坑 —— `WidgetBoundaryAlarmScheduler` 最初写成
+     * `days.flatMap { allocate(scheduleFor(courses, it), codeBase = …) }`，
+     * 每天都从同一基址重新计数，于是第二天的闹钟与第一天的码相同、
+     * 被 `FLAG_UPDATE_CURRENT` 覆盖 ⇒ 一天里的刷新点被静默顶掉。
+     *
+     * 本测试**故意走那条错误用法**，断言它确实产生重复码，
+     * 从而把「必须合并成一次分配」这条契约变成可执行的说明。
+     *
+     * 注：课表必须按日期生成（[coursesOn]）—— 若沿用固定在 `date` 上的课程，
+     * 第二天会因日期不匹配被 [WidgetRefreshEngine.refreshPoints] 全量过滤掉，
+     * 第二天自然排出 0 个闹钟，于是「无重复」是因为「压根没排」而非「不冲突」，
+     * 断言会假绿。
+     */
+    @Test
+    fun perDayAllocationWouldCollideAcrossDays() {
+        val day1 = date
+        val day2 = date.plus(1L, DateTimeUnit.DAY)
+        val wrongWay = listOf(day1, day2).flatMap { d ->
+            WidgetRefreshEngine.allocate(
+                WidgetRefreshEngine.scheduleFor(coursesOn(d), d),
+                now = now,
+                codeBase = codeBase,
+                codeLimit = codeLimit
+            )
+        }
+        assertTrue(
+            "两天都应各自排出闹钟，实际 ${wrongWay.size} 个",
+            wrongWay.size >= 4
+        )
+        assertTrue(
+            "按天各调一次必然产生重复请求码；本测试用于说明「必须合并成一次分配」",
+            wrongWay.map { it.requestCode }.distinct().size < wrongWay.size
+        )
+    }
+
+    /** 同一天的正确用法：合并成一次分配 ⇒ 码唯一且全在命名空间内。 */
+    @Test
+    fun mergedAllocationHasNoCollisionAcrossDays() {
+        val day1 = date
+        val day2 = date.plus(1L, DateTimeUnit.DAY)
+        val points = listOf(day1, day2).flatMap { d ->
+            WidgetRefreshEngine.scheduleFor(coursesOn(d), d)
+        }
+        val all = WidgetRefreshEngine.allocate(points, now, codeBase, codeLimit)
+        assertTrue("两天都应排出闹钟", all.size >= 4)
+        assertEquals(
+            "合并分配后请求码必须唯一",
+            all.size,
+            all.map { it.requestCode }.distinct().size
+        )
+        // 且按触发时间递增
+        val times = all.map { it.triggerAt }
+        assertEquals(times.sorted(), times)
+    }
+
+    @Test
+    fun allocationIsContiguousFromBase() {
+        val points = WidgetRefreshEngine.refreshPoints(MANY_COURSES, date)
+        val allocated = WidgetRefreshEngine.allocate(points, now, codeBase, codeLimit)
+        allocated.forEachIndexed { i, item ->
+            assertEquals("第 $i 个码必须是 base + $i", codeBase + i, item.requestCode)
+        }
+    }
+
+    @Test
+    fun pastPointsAreNotScheduled() {
+        val points = WidgetRefreshEngine.refreshPoints(MANY_COURSES, date)
+        // 把 now 设到当天 23:59 ⇒ 全部刷新点都已过去
+        val allocated = WidgetRefreshEngine.allocate(
+            points,
+            now = LocalDateTime(date, LocalTime(23, 59)),
+            codeBase = codeBase,
+            codeLimit = codeLimit
+        )
+        assertTrue("已过期的点不得排出闹钟", allocated.isEmpty())
+    }
+
+    @Test
+    fun allocationIsTruncatedAtLimit() {
+        val points = WidgetRefreshEngine.refreshPoints(MANY_COURSES, date)
+        val allocated = WidgetRefreshEngine.allocate(points, now, codeBase, codeLimit = 3)
+        assertEquals("超出上限的部分必须截断，不得越界", 3, allocated.size)
+        assertTrue(allocated.last().requestCode < codeBase + 3)
+    }
+
+    @Test
+    fun allocatedTriggerTimesMatchTheirPoints() {
+        val points = WidgetRefreshEngine.refreshPoints(MANY_COURSES, date)
+        val allocated = WidgetRefreshEngine.allocate(points, now, codeBase, codeLimit)
+        assertEquals(
+            allocated.map { it.triggerAt.time }.toSet(),
+            points.filter { LocalDateTime(it.date, it.time) > now }.map { it.time }.toSet()
+        )
+    }
+
+    /** 四节课固定落在 [date] 当天（供只关心单日行为的测试用）。 */
+    private val MANY_COURSES = listOf(
+        course("a", "08:00", "09:40"),
+        course("b", "10:00", "11:40"),
+        course("c", "14:00", "15:40"),
+        course("d", "16:00", "17:40")
+    )
+
+    /** 同样四节课，但改挂到 [on] 当天 —— 跨天场景必须用它，否则第二天会被整批过滤掉。 */
+    private fun coursesOn(on: LocalDate): List<WidgetCourse> = listOf(
+        course("a", "08:00", "09:40", onDate = on.toString()),
+        course("b", "10:00", "11:40", onDate = on.toString()),
+        course("c", "14:00", "15:40", onDate = on.toString()),
+        course("d", "16:00", "17:40", onDate = on.toString())
+    )
 }

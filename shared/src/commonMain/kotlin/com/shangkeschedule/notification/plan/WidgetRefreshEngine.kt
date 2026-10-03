@@ -2,6 +2,7 @@ package com.shangkeschedule.notification.plan
 
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 
 /**
@@ -153,6 +154,8 @@ object WidgetRefreshEngine {
      *
      * 白天空档（如 12:00→14:00）间隔只有 2 小时 < 3，**不会**被降频 ——
      * 这正是我们想要的：课间仍要准时刷新。
+     *
+     * 输入须**按时刻升序**（[refreshPoints] 已保证）；本方法不会重排输入。
      */
     fun thinNightGaps(points: List<RefreshPoint>): List<RefreshPoint> {
         if (points.size <= 2) return points
@@ -177,4 +180,64 @@ object WidgetRefreshEngine {
         courses: List<WidgetCourse>,
         date: LocalDate
     ): List<RefreshPoint> = thinNightGaps(refreshPoints(courses, date))
+
+    /**
+     * 一个刷新点的最终排程结果：请求码 + 触发时刻。
+     *
+     * @property requestCode [requestCodes] 分配的请求码
+     * @property triggerAt 触发时刻（日期 + 时刻）
+     */
+    data class ScheduledRefresh(
+        val requestCode: Int,
+        val triggerAt: LocalDateTime
+    )
+
+    /**
+     * 把刷新点分配成请求码（v4.67.36）。
+     *
+     * ## 为什么请求码分配必须是纯逻辑
+     *
+     * 平台层（`WidgetBoundaryAlarmScheduler`）的注销是「扫 [codeBase]–[codeBase]+[limit]」
+     * 这一整段（`AlarmManager.cancel` 没有「按前缀批量删」的 API，只能逐码试）。
+     * 于是**只要有任何一个请求码落到该段之外，它就永远撤不掉** ——
+     * 每轮重排（课表每次变更、开 App、每日零点自愈）都会再叠一批孤儿闹钟，
+     * 且它们仍会在原定时刻触发刷新，直到进程被系统清理。
+     *
+     * 首版实现踩了两个坑，都由本函数的单测钉死：
+     * ① 按天加了偏移（`offset * limit + count`）⇒ 第二天的码全落到段外，永远撤不掉；
+     * ② **按天各调一次本函数** ⇒ 每天都从 [codeBase] 重新开始 ⇒ 跨天**码重复**，
+     *    两个刷新点互相覆盖（`FLAG_UPDATE_CURRENT`）⇒ 一天里的闹钟被另一天顶掉而漏刷。
+     *
+     * 因此正确用法是：**把整个排程窗口的刷新点合并成一份**再调一次本函数，
+     * 让请求码在全局连续分配。调用方（`WidgetBoundaryAlarmScheduler`）已按此接线。
+     *
+     * @param points  已按时刻升序的刷新点（可跨多天，跨天时必须是**整体升序**）
+     * @param now     当前时刻；**早于它的点直接剔除**（排一个已过去的闹钟只会立刻触发一次无用刷新）
+     * @param codeBase 请求码基址
+     * @param codeLimit 该命名空间的槽位上限；超出部分**截断**（不越界分配）
+     * @return 按序分配的排程结果
+     */
+    fun allocate(
+        points: List<RefreshPoint>,
+        now: LocalDateTime,
+        codeBase: Int,
+        codeLimit: Int
+    ): List<ScheduledRefresh> {
+        val out = mutableListOf<ScheduledRefresh>()
+        // 全局升序后再分配：调用方可能把多天的刷新点拼在一起，
+        // 若不排序，跨天的先后顺序不确定，而请求码必须按「触发顺序」递增才便于核对。
+        val ordered = points.sortedWith(compareBy({ it.date }, { it.time }))
+        for (point in ordered) {
+            if (out.size >= codeLimit) break
+            val triggerAt = LocalDateTime(point.date, point.time)
+            if (triggerAt <= now) continue
+            // 关键：连续分配（base + 已用槽位数），绝不按天分段 ——
+            // 任何落在 [codeBase, codeBase+codeLimit) 之外的码都撤不掉。
+            out += ScheduledRefresh(
+                requestCode = codeBase + out.size,
+                triggerAt = triggerAt
+            )
+        }
+        return out
+    }
 }
