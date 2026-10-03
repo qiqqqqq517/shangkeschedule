@@ -47,6 +47,8 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.tool.AppExternalLinks
 import com.shangkeschedule.tool.ExternalTextImport
+import com.shangkeschedule.widget.WidgetRoute
+import com.shangkeschedule.widget.WidgetRouteHandoff
 import androidx.compose.ui.platform.LocalUriHandler
 import kotlinx.coroutines.flow.first
 import kotlin.time.Clock
@@ -249,6 +251,25 @@ fun AppNavigation(startDestination: Destination) {
         if (!pendingExternalText.isNullOrBlank()) {
             onNavigate(Destination.ShareTextImport)
         }
+    }
+
+    // v4.67.39：桌面组件点击路由 —— 点「考试倒计时」直接落到日程页，
+    // 点「周课程」落到课程表页，点「下一节课」落到今日页。
+    // 此前 8 个组件一律无参数跳默认页，桌面省下的那一次点击被又还了回去。
+    //
+    // 与 ExternalTextImport 同理用一次性交接位：组件点击可能在进程已死时发生，
+    // 此时导航栈不存在，路由参数无处可挂。**跳转后必须 clear**，
+    // 否则用户手动切页后再点组件会跳不动（值还挂着）。
+    val pendingWidgetRoute by WidgetRouteHandoff.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingWidgetRoute) {
+        val route = pendingWidgetRoute ?: return@LaunchedEffect
+        val target: Destination = when (route) {
+            WidgetRoute.SCHEDULE -> Destination.CourseSchedule
+            WidgetRoute.AGENDA -> Destination.Schedule
+            else -> Destination.TodaySchedule
+        }
+        onNavigate(target)
+        WidgetRouteHandoff.clear()
     }
 
     // ── 页面自我摘栈（v4.64.27）───────────────────────────────────────────────

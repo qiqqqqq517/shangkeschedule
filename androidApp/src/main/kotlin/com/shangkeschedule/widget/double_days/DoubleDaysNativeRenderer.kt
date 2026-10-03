@@ -36,7 +36,7 @@ object DoubleDaysNativeRenderer {
         resetWidgetState(rv)
 
         // 点击跳转逻辑
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, DoubleDaysNativeProvider::class.java)
 
         // 全局状态判断
         val currentWeek = snapshot.currentWeekOrNull()

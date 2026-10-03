@@ -51,7 +51,7 @@ object NextCourseNativeRenderer {
         // 卡片背景按单夜色感知 ID 显式指定（容错：空态卡也要有底色，全屏状态时两者都上背景）
         rv.setWidgetCardBackground(R.id.inner_content_card, R.id.container_status)
         resetWidgetState(rv)
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, NextCourseNativeProvider::class.java)
 
         val currentWeek = snapshot.currentWeekOrNull()
         if (currentWeek == null) {

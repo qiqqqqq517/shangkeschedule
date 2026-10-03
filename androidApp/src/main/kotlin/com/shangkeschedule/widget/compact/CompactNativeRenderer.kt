@@ -37,7 +37,7 @@ object CompactNativeRenderer {
         resetWidgetState(rv)
 
         // 设置点击跳转
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, CompactNativeProvider::class.java)
 
         // 栏头按空间放大（v4.61.0）
         rv.setTextViewTextSize(R.id.tv_header_title, TypedValue.COMPLEX_UNIT_SP, headerSizeSp(space))

@@ -35,7 +35,7 @@ object TinyNativeRenderer {
         resetWidgetState(rv)
 
         // 设置点击跳转
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, TinyNativeProvider::class.java)
 
         // 数据准备
         val currentWeek = snapshot.currentWeekOrNull()

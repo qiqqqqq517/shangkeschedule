@@ -53,7 +53,7 @@ object WeekCoursesNativeRenderer {
         rv.setViewVisibility(R.id.container_status, View.GONE)
         rv.removeAllViews(R.id.container_courses)
 
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, WeekCoursesNativeProvider::class.java)
 
         val currentWeek = snapshot.currentWeekOrNull()
         if (currentWeek == null) {

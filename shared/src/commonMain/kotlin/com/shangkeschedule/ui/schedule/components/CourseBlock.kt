@@ -280,20 +280,37 @@ fun CourseBlock(
                 )
             }
 
-            // 课程名称：弹性占位，行数不限，空间不足时才省略；地点可挤占其空间
+            // 课程名称：行数按「可用高度 ÷ 行高」预算并硬性钳制在 [2, 4]（见 CourseNameLineBudget）。
+            //
+            // v4.67.39 修正：此前**行数不限**、只靠 Ellipsis 兜底，
+            // 于是「毛泽东思想和中国特色社会主义理论体系概论」这类长课名在单列窄格里
+            // 一路折到 7 行，把地点与教师整段挤出可视区（真机截图实测）。
+            // 现在长课名会在预算行数内截断，**腾出的空间留给地点与教师** ——
+            // 「课名 + 地点 + 教师」三件套齐全，比「课名占满但看不到地点」信息密度更高。
+            //
+            // 预算里**先扣掉**地点/教师大致占用的行数，避免它们被顶出可视区。
+            val nameMaxLines = CourseNameLineBudget.linesFor(
+                contentHeightDp = contentHeight.value,
+                fontSizeDp = nameFontSize.value,
+            )
             Text(
                 text = course.name,
                 fontSize = nameFontSize,
                 fontWeight = FontWeight.Bold,
                 color = presetRender.textColor,
                 overflow = TextOverflow.Ellipsis,
+                maxLines = nameMaxLines,
                 textAlign = textAlign,
                 modifier = Modifier.weight(1f, fill = false),
                 style = TextStyle(lineHeight = 1.2.em)
             )
 
-            // 地点：最多 4 行内完整展示；仅在 @、-、（、） 等符号前后提供换行机会，其余字符尽量保持不换行
-            if (!style.hideLocation) {
+            // 地点：最多 2 行内展示（v4.67.39 由 4 行下调）。
+                    // 真机实测「@未排地点」这类占位文本在窄格里会折成 3 行，
+                    // 3 行位置文本的信息量远不如 1 行（多数地点是「@楼-房」这种短串），
+                    // 却要多占两行高度，把教师顶出可视区。2 行是「够用且不挤」的平衡点。
+                    // 仍在 @、-、（、） 等符号前后提供换行机会，其余字符尽量保持不换行。
+                    if (!style.hideLocation) {
                 val position = course.position
                 if (position.isNotBlank()) {
                     val prefix = if (style.removeLocationAt) "" else "@\u200B"
@@ -305,7 +322,7 @@ fun CourseBlock(
                         color = presetRender.textColor.copy(alpha = 0.82f),
                         textAlign = textAlign,
                         overflow = TextOverflow.Ellipsis,
-                        maxLines = 4,
+                        maxLines = 2,
                         style = TextStyle(lineHeight = 1.1.em)
                     )
                 }

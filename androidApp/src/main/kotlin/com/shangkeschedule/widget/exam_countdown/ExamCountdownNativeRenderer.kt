@@ -50,7 +50,7 @@ object ExamCountdownNativeRenderer {
         val rv = RemoteViews(context.packageName, R.layout.widget_exam_countdown_native)
         rv.setWidgetCardBackground(R.id.inner_content_card, R.id.container_status)
         resetWidgetState(rv)
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, ExamCountdownNativeProvider::class.java)
 
         // 快照侧已按日期升序，这里再排一次：protobuf 的 repeated 顺序是契约的一部分，
         // 但渲染器不假设上游一定守约（与 ListVertical 的防御口径一致）。

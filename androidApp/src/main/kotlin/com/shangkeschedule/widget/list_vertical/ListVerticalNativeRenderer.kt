@@ -34,7 +34,7 @@ object ListVerticalNativeRenderer {
 
         resetWidgetState(rv)
 
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, ListVerticalNativeProvider::class.java)
 
         val now = LocalTime.now()
         val nowMinutes = now.hour * 60 + now.minute

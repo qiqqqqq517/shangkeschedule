@@ -19,6 +19,8 @@ import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.tool.ExternalTextImport
+import com.shangkeschedule.widget.WidgetRoute
+import com.shangkeschedule.widget.WidgetRouteHandoff
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -67,6 +69,9 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         // 已在后台/前台时走 onNewIntent（launchMode=singleTask）。这里只做交接，
         // 由 AppNavigation 把「文本粘贴导入」页推到栈顶并预填。
         handleProcessTextIntent(intent)
+        // v4.67.39：桌面组件点击路由。组件点开后应落到**对应的页面**（今日/课程表/日程），
+        // 而不是一个无参数的默认页。冷启动走 onCreate、热启动走 onNewIntent，两条都要接。
+        handleWidgetRouteIntent(intent)
 
         setContent {
             App()
@@ -78,6 +83,20 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         super.onNewIntent(intent)
         setIntent(intent)
         handleProcessTextIntent(intent)
+        handleWidgetRouteIntent(intent)
+    }
+
+    /**
+     * 取桌面组件带来的路由并交给导航层；无路由 / 非法路由由 [WidgetRoute.sanitize] 收敛到回退页。
+     *
+     * 这里**只认自己的 extra**，不按 action 分发：组件的 PendingIntent 用的就是
+     * `Intent(context, MainActivity)`（无 action），因此不能靠 action 区分来源，
+     * 也不能靠 action 区分它与「灵动岛点通知打开 App」—— 后者不带本 extra，天然不受影响。
+     */
+    private fun handleWidgetRouteIntent(intent: Intent?) {
+        if (intent == null) return
+        val route = intent.getStringExtra(WidgetRoute.EXTRA_ROUTE) ?: return
+        WidgetRouteHandoff.offer(route)
     }
 
     /**

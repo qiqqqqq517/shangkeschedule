@@ -47,7 +47,7 @@ object AgendaListNativeRenderer {
         rv.setViewVisibility(R.id.container_status, View.GONE)
         rv.removeAllViews(R.id.container_courses)
 
-        bindWidgetClickIntent(context, rv)
+        bindWidgetClickIntent(context, rv, AgendaListNativeProvider::class.java)
 
         val today = LocalDate.now()
         val todayStr = today.toString()
