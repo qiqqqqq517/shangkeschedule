@@ -17,5 +17,8 @@ actual object WidgetTroubleshootBridge {
 
     actual fun openSystemSettings(): Boolean = false
 
+    /** 桌面端没有国产 ROM 那套厂商自启动机制，也不该弹一个打不开的假入口。 */
+    actual fun openOemStartupSettings(): Boolean = false
+
     actual fun manufacturer(): String? = null
 }

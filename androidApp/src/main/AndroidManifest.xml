@@ -15,6 +15,16 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!--
+      电池优化白名单：设置页「电池优化」入口用
+      `Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 直接弹白名单申请对话框，
+      比只跳到「优化策略」列表页少两步。
+      AOSP `Settings.java` 对该 action 的说明明写「For an app to use this, it also must hold
+      the REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission」——缺本权限时系统直接拒绝该
+      Intent，设置页入口在真机上点不动（`NotificationSettingUtils.openIgnoreBatteryOptimizationSettings`）。
+      仅 normal 级权限、不弹运行时授权框；最终是否放行仍由用户在系统对话框决定。
+    -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!--
       包可见性（Android 11+ / targetSdk 37）：早八写入系统时钟前用
@@ -114,6 +124,19 @@
             android:name=".service.notification.receiver.ReminderAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- 小组件「课表边界」精确闹钟接收器（v4.67.36）：在每节课的开始前 15 分 / 开始 /
+             开始后 6 分 / 结束四个时刻直接刷新桌面组件，使「正在上课 → 下一节课」这类
+             时刻型内容准时翻转，而不必等 15 分钟 tick。
+             必须静态注册：闹钟可能在进程被杀时触发，运行时注册收不到。 -->
+        <receiver
+            android:name=".widget.WidgetRefreshAlarmReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.shangkeschedule.action.WIDGET_BOUNDARY_REFRESH" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".service.notification.receiver.AutoModeAlarmReceiver"

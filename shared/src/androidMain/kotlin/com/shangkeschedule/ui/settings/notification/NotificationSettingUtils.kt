@@ -89,14 +89,28 @@ fun openAppSettings(context: Context) {
 
 /**
  * 打开忽略电池优化设置页
+ *
+ * 走 [Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS]（直接弹白名单申请对话框），
+ * 依赖 `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（见 AndroidManifest）——
+ * 缺该权限时系统会拒绝此 Intent。
+ *
+ * 部分 ROM（以及白名单已在册时）无此 Activity，此时回退到「电池优化策略」列表页，
+ * 再不行才回应用详情页。
  */
-fun openIgnoreBatteryOptimizationSettings(context: Context) {    val intent = Intent(
+fun openIgnoreBatteryOptimizationSettings(context: Context) {
+    val requestIntent = Intent(
         Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
         "package:${context.packageName}".toUri()
     ).apply {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
-    safelyStartActivity(context, intent) { openAppSettings(context) }
+    safelyStartActivity(context, requestIntent) {
+        // 回退：只打开「优化策略」列表页（不需要该权限），用户仍可自行找到本应用。
+        val listIntent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        safelyStartActivity(context, listIntent) { openAppSettings(context) }
+    }
 }
 
 /**

@@ -14,6 +14,7 @@ import com.shangkeschedule.service.notification.notify.ExamCountdownNotifier
 import com.shangkeschedule.service.notification.notify.NextClassNotifier
 import com.shangkeschedule.service.notification.notify.NotificationChannels
 import com.shangkeschedule.service.notification.reminder.CourseReminderScheduler
+import com.shangkeschedule.widget.WidgetBoundaryAlarmScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -182,6 +183,17 @@ class NotificationScheduler(
         // KDoc 早已声明「由 SyncManager 在同步完成时调用」，这里补上缺失的那一环。
         runCatching { dynamicIsland?.sync() }
             .onFailure { Log.w(TAG, "灵动岛窗口重排失败，不影响其余排程: ${it.message}") }
+
+        // 小组件「课表边界」精确闹钟（v4.67.36）：在每节课的开始前 15 分 / 开始 /
+        // 开始后 6 分 / 结束四个点直接刷新组件，让「正在上课 → 下一节课」的时刻型内容
+        // 准时翻转，而不必等 15 分钟 tick。
+        //
+        // 复用上面已读好的 [effective]（已剔除跳过日），不再多读一次库。
+        // 组件上的静态内容（日期、课名、颜色）仍由 tick 与数据变更驱动 —— 两类刷新职责不同，
+        // 这里只管时间推进，因此不必也不应取代 tick（见 WidgetRefreshAlarmReceiver 的 KDoc）。
+        runCatching {
+            WidgetBoundaryAlarmScheduler(context).reschedule(effective, today, now)
+        }.onFailure { Log.w(TAG, "小组件边界刷新排程失败，不影响其余排程: ${it.message}") }
 
         return Summary(
             reminderCount = reminderCount,

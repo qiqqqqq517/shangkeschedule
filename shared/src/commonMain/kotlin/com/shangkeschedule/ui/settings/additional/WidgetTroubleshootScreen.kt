@@ -29,6 +29,7 @@ import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.tool.OemGuide
+import com.shangkeschedule.tool.WidgetTroubleshootBridge
 import com.shangkeschedule.tool.textRes
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
@@ -47,6 +48,7 @@ import shangkeschedule.shared.generated.resources.info_24px
 import shangkeschedule.shared.generated.resources.sync_alt_24px
 import shangkeschedule.shared.generated.resources.title_widget_troubleshoot
 import shangkeschedule.shared.generated.resources.tune_24px
+import shangkeschedule.shared.generated.resources.widget_oem_guide_open_settings
 import shangkeschedule.shared.generated.resources.widget_oem_guide_step_fmt
 import shangkeschedule.shared.generated.resources.widget_oem_guide_summary
 import shangkeschedule.shared.generated.resources.widget_oem_guide_summary_title
@@ -296,6 +298,13 @@ fun WidgetTroubleshootScreen(
  * 全部用 [SettingItem] 行搭建，不自行 `padding`：行内边距由 SettingItem 统一
  * 维护，手写 `padding` 会与 token 进行体系化脱结。
  * 文案从 StringResource 取，四语维护在 composeResources，不在 commonMain 里硬编码中文。
+ *
+ * v4.67.36：新增「一键打开自启动设置」入口。
+ * 此前本区块是**纯文案**——用户读到了「允许关联启动」，却要自己去找那个开关在哪，
+ * 而国产 ROM 的自启动页往往深达三级且入口随版本漂移（这正是竞品星链课表
+ * 用 `OemReminderGuide.startupIntents()` 解决的问题）。跳转由
+ * [WidgetTroubleshootBridge.openOemStartupSettings] 承担，它内部逐个试探厂商私有入口、
+ * 全部失败再回退应用详情页；非 Android 平台恒 false，故此处只在 Android 显示该行。
  */
 @Composable
 private fun OemGuideSection(guide: OemGuide) {
@@ -312,6 +321,14 @@ private fun OemGuideSection(guide: OemGuide) {
                 title = stringResource(Res.string.widget_oem_guide_step_fmt, index + 1),
                 subtitle = stringResource(step.textRes()),
                 trailingContent = {},
+            )
+        }
+        // 「一键打开」放在步骤之后而不是之前：用户先知道要做什么，点下去才知道去哪做。
+        if (WidgetTroubleshootBridge.manufacturer() != null) {
+            SectionDivider()
+            SettingItem(
+                title = stringResource(Res.string.widget_oem_guide_open_settings),
+                onClick = { WidgetTroubleshootBridge.openOemStartupSettings() },
             )
         }
     }

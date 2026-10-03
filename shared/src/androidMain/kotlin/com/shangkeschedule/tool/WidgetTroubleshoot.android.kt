@@ -131,5 +131,101 @@ actual object WidgetTroubleshootBridge : KoinComponent {
         }
     }
 
+    /**
+     * 打开厂商「自启动 / 后台运行」管理页（v4.67.36 / XL-013）。
+     *
+     * 三段式：**私有候选逐个试探 → 系统级电池优化页 → 应用详情页 → 系统设置根页**。
+     *
+     * 为什么不能只给一个 Intent：这些组件名是各家的**非公开约定**，同一品牌在不同
+     * 版本 / 渠道 ROM 上也会变（如 OPPO 从 `com.oppo.safe` 迁到了 `com.coloros.safecenter`）。
+     * 写死一个等于赌 —— 赌输的表现是「点了没反应」，用户只会认定这个引导是假的。
+     *
+     * 最后一级回退到应用详情页（`openSystemSettings`）是有意义的：AOSP 保证它一定存在，
+     * 用户在那里至少能找到「电池」与「应用信息」。
+     */
+    actual fun openOemStartupSettings(): Boolean {
+        val candidates = oemStartupCandidates(Build.MANUFACTURER.orEmpty().lowercase())
+        for (intent in candidates) {
+            if (tryStart(intent)) return true
+        }
+        // 私有入口全探不到：先退到「电池优化策略」列表页（不需要任何权限，AOSP 保证存在），
+        // 再退应用详情页。让用户有路可走，而不是引导到一半断掉。
+        if (tryStart(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
+            return true
+        }
+        return openSystemSettings()
+    }
+
+    /** 该厂商的私有入口候选，按「命中率从高到低」排列。 */
+    private fun oemStartupCandidates(brand: String): List<Intent> = when {
+        brand.containsAny("xiaomi", "redmi", "poco") -> listOf(
+            component("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+            component("com.miui.securitycenter", "com.miui.powercenter.PowerSettings"),
+        )
+
+        brand.containsAny("huawei") -> listOf(
+            component("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+            component("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"),
+        )
+
+        brand.containsAny("honor") -> listOf(
+            component("com.hihonor.systemmanager", "com.hihonor.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+            component("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        )
+
+        brand.containsAny("vivo", "iqoo") -> listOf(
+            component("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+            component("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"),
+        )
+
+        brand.containsAny("oppo") -> listOf(
+            component("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+            component("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"),
+            component("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"),
+        )
+
+        brand.containsAny("oneplus") -> listOf(
+            component("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"),
+            component("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+        )
+
+        brand.containsAny("realme") -> listOf(
+            component("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+            component("com.oplus.safecenter", "com.oplus.safecenter.startupapp.StartupAppListActivity"),
+        )
+
+        brand.containsAny("meizu") -> listOf(
+            component("com.meizu.safe", "com.meizu.safe.security.SHOW_APPSEC"),
+        )
+
+        // 三星没有独立的自启动页，用「应用电池用量」页代替（语义最接近）。
+        brand.containsAny("samsung") -> listOf(
+            component("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+        )
+
+        else -> emptyList()
+    }
+
+    /**
+     * 构造「打开指定包下指定 Activity」的显式 [Intent]。
+     *
+     * 这些是**跨应用显式意图**，是否可达完全由目标系统应用自己的 `exported` 声明决定，
+     * 本应用既不需要权限、也无法保证它一直可达 —— 故上面才要按优先级多个候选。
+     */
+    private fun component(pkg: String, cls: String): Intent =
+        Intent().setClassName(pkg, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** 试探拉起一页；探不到（组件不存在 / 未导出 / 被 ROM 拦截）只记 W 并继续下一个候选。 */
+    private fun tryStart(intent: Intent): Boolean = try {
+        context.startActivity(intent)
+        true
+    } catch (t: Throwable) {
+        AppLog.w(TAG, "该入口不可用，换下一个：${intent.component ?: intent.action}", t)
+        false
+    }
+
+    private fun String.containsAny(vararg needles: String) = needles.any { contains(it) }
+
     actual fun manufacturer(): String? = Build.MANUFACTURER
 }

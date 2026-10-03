@@ -17,5 +17,8 @@ actual object WidgetTroubleshootBridge {
 
     actual fun openSystemSettings(): Boolean = false
 
+    /** iOS 没有「厂商自启动」这类机制（iOS 不杀后台），恒 false。 */
+    actual fun openOemStartupSettings(): Boolean = false
+
     actual fun manufacturer(): String? = null
 }

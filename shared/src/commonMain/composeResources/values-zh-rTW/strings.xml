@@ -1484,6 +1484,7 @@
     <string name="widget_oem_guide_step_lock">在最新任務下拉加鎖，避免被一鍵清理</string>
 
     <string name="widget_oem_guide_summary_title">按下列步驟設定</string>
+    <string name="widget_oem_guide_open_settings">一鍵開啟自啟動設定</string>
   <string name="widget_troubleshoot_section_add">加入桌面</string>
   <string name="widget_troubleshoot_add_desc">點一下由系統確認加入；加入後可長按桌面調整大小和位置</string>
   <string name="widget_troubleshoot_added_count">已加入 %1$d 個</string>

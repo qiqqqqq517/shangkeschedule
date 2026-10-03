@@ -84,6 +84,21 @@ expect object WidgetTroubleshootBridge {
     fun openSystemSettings(): Boolean
 
     /**
+     * 打开**本厂商**的「自启动 / 后台运行」管理页（v4.67.36 / XL-013）。
+     *
+     * 与 [openSystemSettings] 的区别：后者是 AOSP 标准的应用详情页（人人都有），
+     * 而本方法优先跳厂商私有的启动管理页 —— 小米「自启动」、华为「应用启动管理」、
+     * OPPO「自启动管理」… 那里才是真正要开的开关，应用详情页里根本没有。
+     *
+     * 国产 ROM 的私有意图既不公开、也不保证长期有效，故实现侧必须
+     * **逐个候选试探 → 全部失败回退应用详情页**，绝不能让引导停在原地
+     * （这正是竞品星链课表 `OemReminderGuide.startupIntents()` 的做法）。
+     *
+     * 非 Android 平台恒 false（没有「厂商自启动」这套机制）。
+     */
+    fun openOemStartupSettings(): Boolean
+
+    /**
      * 设备制造商（小米 / 华为 / vivo …），用于选择后台限制的引导方案。
      *
      * 非 Android 平台返回 null（那些平台无此机制）。
