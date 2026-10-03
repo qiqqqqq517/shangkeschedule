@@ -59,7 +59,7 @@
 | **XL-010** | ⚠️ 已修，但**首版全量失败**（见 §1.2 真机验证） | `CalendarAccountManager.android.kt`：按**开始时刻**做增删改差分 + 写入后回读条数校验；课表为空时按同一键精确清理。v4.66.4 首版用的两列均被 CalendarProvider 拒绝，真机验出后于 v4.66.5 重做 |
 | **XL-011** | ✅ 部分完成 | 8 个 provider XML 全部补 `android:description`（桌面选择器不再只显示工程名）+ 四语文案；顺带补 `android:label`（原先 8 个组件在选择器里标题全是「上课」，见 §1.3）；**v4.67.2 进一步把 label 由工程名（「超小课程2x1」「垂直列表课表4xN」）换成语义名（「课表 · 今日」「日程 · 考试」），description 换成一句用途说明，README / 官网功能页同步改名**。**12 个 widget token × 6 取值的规格扩展未做** —— 与 XL-005 排期决策点耦合，待定 |
 | **（本轮新增）** | ✅ 已修 | v4.67.0 新增的 4 个规格引入 5 个新色条色，不在对比度门禁清单内 ⇒ 浅色档两个色实测 2.66:1 / 2.11:1 长期漏检。v4.67.1 修正色值 + 门禁扩到 6 色（已反向验证能拦住），见 §1.4 |
-| **XL-012** | ⚠️ 部分完成 | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**形态提升未做**：AOSP 实况提升需 Android 17 的 SDK API（本项目 compileSdk 36 取不到该符号）；vivo 原子通知需厂商私有权限与 SDK，无公开文档。**不做猜测实现** |
+| **XL-012** | ⚠️ 部分完成（**2026-10-03 第 40 轮更正：AOSP 一级其实早已落地**，原记「形态提升未做」有误） | 已建 `LIVE_UPDATE` / `VIVO_ATOMIC` 两个渠道 + 四语文案，使不支持时能正常降级为普通通知。**AOSP 实况提升（Live Updates / 推广常驻）已实现**（v4.66.0 `70775649`，即本清单自身的落地批次）：四处投递点 `setRequestPromotedOngoing(true)` + `setShortCriticalText(...)` —— `CourseReminderNotifier.kt:131-135`、`NextClassNotifier.kt:169-173`（经 `LiveUpdateSupport.supportsLiveUpdate()` 门控 + `runCatching` 降级）、`CourseAlarmReceiver.kt:312-316`、`DynamicIslandService.kt:501-503`；能力探测 `shared/src/androidMain/kotlin/com/shangkeschedule/notification/live/LiveUpdateSupport.kt:30-36`（`SDK_INT >= BAKLAVA(36)` 且 `canPostPromotedNotifications()`）；权限 `POST_PROMOTED_NOTIFICATIONS`（`AndroidManifest.xml:13`）；设置页有实况能力卡。**仍未做**：vivo 原子通知（需厂商私有权限与 SDK，无公开文档）⇒ **不做猜测实现**。原稿「需 Android 17 的 SDK API、本项目 compileSdk 36 取不到该符号」已被实测证伪：现 `compileSdk = 37`，且 `javap` 实测 `android-37.0/android.jar` 里就有这些符号（实现走的是 `NotificationCompat`，本来也不依赖平台符号） |
 | **XL-013** | ✅ 已完成 | 新增 `OemGuide` / `OemGuideResolver`（纯逻辑、无文案、7 个单测）+ `WidgetTroubleshootBridge.manufacturer()`（expect + 3 actual）+ 排障页新增引导区块（9 条四语资源）。未识别厂商**不给猜测步骤** |
 | **XL-014** | ✅ 已修 | `TimeChangeReceiver` 改为 manifest 静态注册（移除 `MyApplication` 运行时注册）+ 新增 `LOCALE_CHANGED`；修正其 KDoc 中与实现不符的「静态注册」表述 |
 | **XL-015** | ✅ 已完成（v4.67.0） | `WidgetPlacement.specs` 逐 provider 明细 + `WidgetTroubleshootBridge.requestPin(key)`（expect + android/jvm/ios 三处 actual）；排障页新增「添加到桌面」区块。**顺带修掉一个真机才暴露的问题**：8 个 provider XML 原本都没有 `android:label`，桌面选择器里 8 个条目标题全是「上课」，只靠 description 区分 —— 补 label 后每个组件在选择器里有自己的名字。详见 §1.3 |
@@ -134,6 +134,37 @@ Select-String -Path (Get-ChildItem -Recurse shared\src\androidHostTest -Filter *
 §1.1「核对轮次记录」与 §0.6 第 1–5 行是**当时那次核对的历史记录**，保留原值不动（否则历史就无法复现「当时为什么改」）。
 另注：§7 XL-032 原写「两份口径实测与 `@Test` 注解数完全一致」—— 该句子本身没错，但它的一致性是在**写文档那一刻**成立的；
 本轮复发现，此后只要有人加测试而不同步本文档，数字就会再次漂移。**这是本文档的结构性风险：它的验收基线同时是它自己的统计对象。**
+
+#### 2026-10-03 watchdog 第 40 轮复核（v4.67.30 / code 461）
+
+第 39 轮修的是**当前口径数字**；本轮修的是同一根因的另一半：**已修条目的审计块仍在用「现状」语气叙述旧事实**，
+外加一处对标对象的**实测数字与自身枚举自相矛盾**。方法：`aapt2 dump xmltree --file AndroidManifest.xml 星链.apk` 实测对手，
+`Select-String`/逐行读本仓库 manifest 实测自己 —— 两侧都以命令输出为准，不采信旧稿。
+
+| # | 位置 | 上轮台账值 | 本轮实测 | 变化来源 |
+|---|---|---|---|---|
+| 15 | §0.6 · 对标段「对方 receiver 的 action 组」 | 「同一组 **8 个** action」 | **12 个**（7 个 `APPWIDGET_*` + 时间四件套 + 1 个厂商私有） | aapt2 实测 8 个 widget receiver **各 12 条**，每个 action 名恰好出现 8 次；原稿标题数字与紧随枚举 7+4+1 自相矛盾 |
+| 16 | §0.6 · 对标段「我方 `LOCALE_CHANGED` 位置」 | `TimeChangeReceiver`（`:123`） | **`AndroidManifest.xml:141`**（intent-filter `:144-149`） | 组件增删后行号漂移；并补「时间四件套与星链逐字一致」的实测口径 |
+| 17 | §2 XL-003 审计块 | 「manifest 共 15 个 receiver」「grep 命中 0 次」「`TimeChangeReceiver` 运行时注册、不在 manifest」 | 加 `> **状态**` 行：**17 个** receiver；监听者 = `AlarmPermissionReceiver`（`:127-134`）；`TimeChangeReceiver` 已**静态注册**（`:141`） | 该条在 §0.5 是 ✅ 已修 ⇒ 审计块不得被读成现状 |
+| 18 | §2 XL-010 审计块 | `:64` / `:93-95` / `:122-136` | 加 `> **状态**` 行：**`:86`** / **`:288-291`** / **`:333`、`:414`** | XL-010 按「开始时刻」增量差分重写该文件，旧行号全部失效 |
+| 19 | §2 XL-014 审计块 | 「覆盖 3 个 action」「由 `MyApplication` 运行时注册，不在 manifest」 | 加 `> **状态**` 行：**4 个 action**；已**manifest 静态注册**；`APPWIDGET_VISIBLE/HIDDEN` 按 2026-10-02 决策不跟 | 同第 17 行根因 |
+| 20 | §2 章节首 · 读法 | 无（各 XL 块直接以「现状（已核实）」开头） | 章节首加「读法」引用块：**审计快照 ≠ 现状，落地状态以 §0.5 为准** | 系统性歧义：读者会把问题陈述读成当前状态 |
+| 21 | §0.6 · 对标表「我方对齐 XL-003」 | 我方 `AndroidManifest.xml:103-107` | **`:127-134`** | 同一提交新增 `AlarmPermissionReceiver` 后行号漂移；原稿是唯一一处被静态证伪的「我方」锚点 |
+| 22 | 附录 · 证据索引 `AlarmScheduler.kt` 三处 | `:77`（权限检查）/ `:27`（旧槽位注释）/ `:44`（提示去重） | **`:92`** / **`:42`** / **`:65`**（使用 `:92-96`、重置 `:126`） | 该文件头 KDoc 被重写为「请求码命名空间全表（2026-10-03 逐行实测）」，`setExact` 下移，三处锚点整体漂移 |
+| 23 | 附录 · 证据索引 `AutoMode*` 四处 | `AutoModeAlarmReceiver.kt:48`（END 无条件恢复）、`:61,64`（action 常量）、`AutoModeController.kt:62-63`、`:97` | **`:48` 已是 KDoc**（判定在 `:59` + `:106`）；常量在 **`:122,125`**；`toggleDnd` 在 **`:67`**（`:127` 回读确认后才 true）；`toggleSilent` 在 **`:138`** | XL-001/XL-002 已修 ⇒ 索引引用的正是**被删掉的旧实现**；`AutoModeStateProbe.kt:24-33` 复核仍 ✓，`NotificationScheduler.kt:103,111,115-136,138,145-149` 复核仍 ✓ |
+| 24 | 附录 · 证据索引「4 条链路 × 10 个 action 常量」 | `ReminderAlarmReceiver.kt:109,112,115`；`AutoModeAlarmReceiver.kt:61,64`；`DynamicIslandManager.kt:126,127` ✓；`CourseAlarmReceiver.kt:52` | **`:111,114,117`**；**`:122,125`**；`:126,127` ✓；**`:53`** | 各接收器 KDoc/常量顺序调整；`DynamicIslandManager.kt` 的 `canScheduleExactAlarms` 复核仍在 `:175` ✓ |
+| 25 | 附录 · 章节首 · 读法 | 无（表格直接以结论行开头） | 章节首加「读法」引用块：**本表是审计快照的证据索引，✅ 已修条目引用的是审计当时行号** | 与 §2 同一系统性歧义：证据索引默认被读成当前状态 |
+| 26 | §0.5 XL-012 行 + §2 XL-012 现状 | 「**形态提升未做**」「**未见** AOSP 实况通知（Android 17）」 | **AOSP 一级早已实现**（v4.66.0 `70775649`）：四处 `setRequestPromotedOngoing(true)` + `setShortCriticalText`（`CourseReminderNotifier.kt:131-135`、`NextClassNotifier.kt:169-173`、`CourseAlarmReceiver.kt:312-316`、`DynamicIslandService.kt:501-503`）+ `LiveUpdateSupport.kt:30-36` 能力探测 + `LIVE_UPDATE` 渠道 + `POST_PROMOTED_NOTIFICATIONS`（`AndroidManifest.xml:13`）+ 设置页能力卡；仍未做的只有 vivo 原子通知 | **方向相反的同一类漂移**（第 39 轮是「已修写成现状」，这条是「已做写成未做」）：清单把自家落地批次（`70775649`）里的实现记成了待办 |
+| 27 | §0.5 XL-012 理由句 | 「需 Android 17 的 SDK API（本项目 **compileSdk 36** 取不到该符号）」 | `gradle/libs.versions.toml:4 android-compileSdk = "37"`；`javap` 实测 `android-37.0/android.jar` 含 `Notification$Builder.setRequestPromotedOngoing(boolean)` / `NotificationManager.canPostPromotedNotifications()` / `Notification.FLAG_PROMOTED_ONGOING` | 版本目录升到 37 后该理由失效；且实现用的是 `NotificationCompat`，从不依赖平台符号 |
+
+**校验方法（可复现，本轮用过的三条）**：
+1. **只查可能漂移的文件** —— `git diff --name-only 796d24f..HEAD`（审计基线 `796d24f` = v4.67.1）给出「可能漂移」的文件白名单，白名单外的锚点按定义仍有效（如 `AutoModeStateProbe.kt`、`NotificationScheduler.kt` 本轮复核 ✓）。
+2. **两侧都取命令输出** —— 对手数字用 `aapt2 dump xmltree --file AndroidManifest.xml 星链.apk`，自己用 `Select-String` 逐行打印，不以旧稿为准。
+3. **按「断言类型」分层** —— 行号/条数 → 必须就地纠正；定性描述 → 只加读法注，不重写（否则文档不可维护）。
+
+**本轮处理原则（对第 39 轮原则的补充）**：**「已修」不是删除审计块的理由，但必须让审计块无法被误读成现状** ——
+保留问题陈述（它是条目存在的理由），在块内补一行带日期的 `> **状态**`，并只在含**可静态证伪的数字/行号**的块上做（XL-003/010/014）；
+纯定性描述的块不逐条重排，避免把文档改成无法维护的形态。
 
 ---
 
@@ -369,24 +400,29 @@ exit=0
 | min 24 / target 36 / compile 37（platformBuild 17） | 一致 | ✅ |
 | XL-042：调试证书 `CN=Android Debug` | `C=US, O=Android, CN=Android Debug`，SHA-256 **`e4c2dee99824269cc4d3c8a4ed11a543aa22f60c49244b92da5f220b5b3f40bd`** | ✅ **确认是调试证书**（与我方正式签名 `4ae49d8c…2475f` 完全不同） |
 | XL-033「我们无位置/相机/电话/安装包权限」 | 对方 manifest 实测声明 `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` + `CAMERA`（`uses-feature required=false`）+ `READ_PHONE_STATE` + `REQUEST_INSTALL_PACKAGES` | ✅ **我方权限克制优势成立**，且证据比原文档更具体 |
-| XL-003：`AlarmPermissionReceiver` + `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` | receiver 实测存在，`exported=false`，intent-filter **只挂这一个 action**（manifest line 470-479） | ✅ 一致；我方 `AndroidManifest.xml:103-107` 已完全对齐（同样 `exported=false` + 单一 action） |
+| XL-003：`AlarmPermissionReceiver` + `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` | receiver 实测存在，`exported=false`，intent-filter **只挂这一个 action**（manifest line 470-479） | ✅ 一致；我方 `AndroidManifest.xml:127-134`（2026-10-03 复核；原记 `:103-107` 已失效）已完全对齐（同样 `exported=false` + 单一 action） |
 
 #### 本次新发现（文档此前未记录）
 
-1. **对方 8 个小组件全部是 Glance 实现，且每个 receiver 监听同一组 8 个 action**
+1. **对方 8 个小组件全部是 Glance 实现，且每个 receiver 监听同一组 12 个 action**
 
    类名一律 `com.xlhzcm.starcurriculum.glance.*GlanceWidgetReceiver`，共 8 个（与文档「8 个 provider」数量吻合）：
    `WeekCourses` / `TodayCourses` / `SmallTodayCourses` / `RecentCourses` /
    `ExamCountdown` / `NextSchedule` / `TodayAgenda` / `WeekAgenda`。
 
-   每个 receiver 的 intent-filter 固定为**同一组 8 个 action**：
-   `APPWIDGET_UPDATE` / `ENABLED` / `DISABLED` / `DELETED` / `RESTORED` / **`VISIBLE`** / **`HIDDEN`**
-   + 时间四件套（`DATE_CHANGED` / `TIMEZONE_CHANGED` / `TIME_SET` / `LOCALE_CHANGED`），
-   外加厂商私有 `miui.appwidget.action.APPWIDGET_UPDATE`，并声明 `miuiWidget=false` meta-data。
+   每个 receiver 的 intent-filter 固定为**同一组 12 个 action**
+   （2026-10-03 `aapt2 dump xmltree` 实测：8 个 receiver 各 12 条，且每个 action 名恰好出现 8 次）：
+   `APPWIDGET_UPDATE` / `ENABLED` / `DISABLED` / `DELETED` / `RESTORED` / **`VISIBLE`** / **`HIDDEN`**（7 个）
+   + 时间四件套（`DATE_CHANGED` / `TIMEZONE_CHANGED` / `TIME_SET` / `LOCALE_CHANGED`，4 个）
+   + 厂商私有 `miui.appwidget.action.APPWIDGET_UPDATE`（1 个），并声明 `miuiWidget=false` meta-data。
+   > 原稿此处写「同一组 **8 个** action」，与紧随其后的枚举（7 + 4 + 1 = **12**）自相矛盾；
+   > 2026-10-03 watchdog 第 40 轮以 aapt2 实测纠正为 12。
 
    → **这为 XL-014 第 2 条「核查 `APPWIDGET_VISIBLE/HIDDEN` 的必要性」给出了确定答案**：对方确实监听，
-   且是**每个 provider 都监听**。我方当前 manifest 仅在 `TimeChangeReceiver`（:123）挂了 `LOCALE_CHANGED`，
-   **未挂 `APPWIDGET_VISIBLE/HIDDEN`**。
+   且是**每个 provider 都监听**。我方当前 manifest 仅在 `TimeChangeReceiver`
+   （`AndroidManifest.xml:141`，intent-filter `:144-149`）挂了 `LOCALE_CHANGED`
+   —— 2026-10-03 复核：该 filter 已含完整**时间四件套**（`TIMEZONE_CHANGED` / `TIME_SET` / `DATE_CHANGED` / `LOCALE_CHANGED`），
+   与星链逐字一致；**未挂 `APPWIDGET_VISIBLE/HIDDEN`**。
 
    **✅ 已决策（2026-10-02，用户裁定）：选 (a) 隐藏时不刷新，以省电。**
    即对齐我方现有行为与本清单 XL-014 验收标准第 4 条「组件被桌面隐藏时不触发刷新（省电）」，
@@ -454,6 +490,11 @@ exit=0
 
 ## 2. P0 · 缺陷与可靠性
 
+> **读法（2026-10-03 watchdog 第 40 轮补注）**：本节每条 XL 的「现状（已核实）」都是 **2026-10-02 的审计快照**（问题陈述），
+> 不是「当前状态」；条目的落地状态一律以 §0.5 状态表为准。其中 **XL-003 / XL-010 / XL-014** 的审计块里含有可被静态证伪的
+> **条数与行号**，它们随实现演进已漂移，故在这三条块内各加了 `> **状态**` 行给出 2026-10-03 的实测口径；
+> 其余条目的「现状」基本为定性描述，个别锚点漂移处就地标注「现 `:NN`」（2026-10-03 逐行复核）。
+
 ### XL-001 · 重叠会话无守卫，A 课结束会恢复 B 课期间的铃声
 
 | 字段 | 内容 |
@@ -467,7 +508,7 @@ exit=0
 - `androidApp/.../receiver/AutoModeAlarmReceiver.kt:48` 在 `ACTION_AUTO_MODE_END` 分支**无条件**调用
   `AutoModeController.toggle(ctx, enable = false, modeType)`
 - 全模块 grep `overlap|activeSession|currentSessions|ongoingSessions|冲突|重叠` → **仅命中 1 条无关注释**，无任何守卫
-- 自动勿扰采用**每会话独立闹钟槽位**（`AlarmScheduler.kt:27` 注释明确记载旧方案 `50001/50002` 跨课共用已废弃，现按课表分逻辑独立分配，`autoModeSlotLimit = AUTO_MODE_SLOT_LIMIT`）
+- 自动勿扰采用**每会话独立闹钟槽位**（`AlarmScheduler.kt:27` 注释明确记载旧方案 `50001/50002` 跨课共用已废弃，现按课表分逻辑独立分配，`autoModeSlotLimit = AUTO_MODE_SLOT_LIMIT`；**2026-10-03 复核：该注释现位于 `:42`**）
 
 **风险**
 
@@ -561,7 +602,7 @@ exit=0
 **现状（已核实）**
 
 - `androidApp/src/main/AndroidManifest.xml` —— grep `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` **命中 0 次**；manifest 共声明 **15 个 receiver**，逐一核对后无任何一个监听该 action
-- `AlarmScheduler.kt:77` 与 `DynamicIslandManager.kt:175` 均**排期时**检查 `canScheduleExactAlarms`（这点是对的）
+- `AlarmScheduler.kt:77` 与 `DynamicIslandManager.kt:175` 均**排期时**检查 `canScheduleExactAlarms`（这点是对的；**2026-10-03 复核：`AlarmScheduler.kt` 侧现为 `:92`**）
 - 但全仓无任何 `BroadcastReceiver` 监听权限状态变更
 
 **同类失效模式已在仓库内出现（本轮核对新发现，佐证本项必要性）**
@@ -572,6 +613,11 @@ exit=0
 - **进程死亡时收不到**，已排程闹钟不重排。用户改了时区/系统时间后课表整体偏移，且无任何提示
 
 更需注意的是：**`TimeChangeReceiver` 的类 KDoc 自称「该广播由 `TimeChangeReceiver` 静态注册到 manifest」—— 这句注释与实际实现不符**，属过时/错误注释，会误导维护者以为进程死亡时也能收到。这与 `REVIEW.md` 第 6 轮记录的多条「名实不符」同源。
+
+> **状态（2026-10-03 watchdog 第 40 轮实测）**：✅ **已修**（见 §0.5 XL-003 / XL-014）。上方三段均为 2026-10-02 审计快照，其中三项数字都已变化：
+> `AndroidManifest.xml` 的 receiver 由 **15 → 17**；`SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` 的监听者是新增的
+> `.service.notification.receiver.AlarmPermissionReceiver`（`AndroidManifest.xml:127-134`，静态注册、`exported=false`）；
+> `TimeChangeReceiver` 已改为 **manifest 静态注册**（`AndroidManifest.xml:141`，intent-filter `:144-149`），`MyApplication` 不再运行时注册，KDoc 亦已改正。
 
 这恰好说明本项**必须 manifest 注册**：权限变更与时区变更都要求「无论进程是否存活都能响应」，运行时注册的 receiver 天然做不到。
 
@@ -592,7 +638,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 - 新增 `androidApp/.../receiver/AlarmPermissionReceiver.kt`
 - `androidApp/src/main/AndroidManifest.xml` —— 注册 action（Receiver 须 `exported=false`，同 `ReminderAlarmReceiver` 现有做法）
 - `androidApp/.../notification/alarm/AlarmScheduler.kt` —— 抽出「按当前权限重排」入口供 Receiver 调用
-- 复用既有 `PermissionNoticeNotifier`（`AlarmScheduler.kt:44` 已有 `exactAlarmNoticeSentThisRound` 去重，防 261 次 `resolveActivity` 重复提示 —— 沿用该机制）
+- 复用既有 `PermissionNoticeNotifier`（`AlarmScheduler.kt:44` 已有 `exactAlarmNoticeSentThisRound` 去重，防 261 次 `resolveActivity` 重复提示 —— 沿用该机制；**2026-10-03 复核：声明现为 `:65`，使用在 `:92-96`**）
 
 **依赖** 无
 
@@ -824,6 +870,11 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 **风险**：全量删除重建意味着每次同步都产生 261+ 次事件 ID 变更，系统日历 App 会视为「全部删除再全部新增」→ 用户的历史通知/提醒被连带清除；且部分 OEM 日历对批量删除+新增有事务超时风险，失败时无回滚无提示。
 
+> **状态（2026-10-03 watchdog 第 40 轮实测）**：⚠️ **已修**（见 §0.5 XL-010）。上表三处行号均为审计快照，当前
+> `shared/src/androidMain/kotlin/com/shangkeschedule/tool/CalendarAccountManager.android.kt` 中：
+> `CALLER_IS_SYNCADAPTER` 在 `:86`（原记 `:64`）、删除路径 `:288-291`（原记 `:93-95` 的 `resolver.delete(EVENTS, …)` 全量删除已不存在）、
+> `applyBatch` 在 `:333` / `:414`（原记 `:122-136`）。全量删除重建已改为按**开始时刻**做增删改差分 + 写入后回读条数校验。
+
 **目标**（对齐星链 `SystemCalendarSync`）
 1. 建立双向 ID 映射（星链字段名：`IncomingEvent.appId` ↔ `DeviceEvent.deviceEventId`）
 2. 增量 diff：新增/更新/删除三类操作分开下发
@@ -884,6 +935,18 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 **现状**：已具备小米超级岛（`DynamicIslandManager` / `DynamicIslandService` / `DynamicIslandAlarmReceiver`）。**未见** vivo 原子通知与 AOSP 实况通知（Android 17）。
 
+> **状态（2026-10-03 watchdog 第 40 轮实测）**：**AOSP 实况通知（Live Updates / 推广常驻）已实现** —— 就在 v4.66.0（`70775649`）这个批次里随 XL-012 一起进来的，
+> 四处投递点声明 `setRequestPromotedOngoing(true)` + `setShortCriticalText(...)`：`CourseReminderNotifier.kt:131-135`、
+> `NextClassNotifier.kt:169-173`（经 `LiveUpdateSupport.supportsLiveUpdate()` 门控 + `runCatching` 降级为普通常驻）、
+> `CourseAlarmReceiver.kt:312-316`、`DynamicIslandService.kt:501-503`；能力探测 `LiveUpdateSupport.kt:30-36`
+> （`SDK_INT >= BAKLAVA(36)` 且 `canPostPromotedNotifications()`）；渠道 `LIVE_UPDATE`（`NotificationChannels.kt:77,184-192`）与
+> 权限 `POST_PROMOTED_NOTIFICATIONS`（`AndroidManifest.xml:13`）均在位；设置页有实况能力卡（`GeneralSettingsCard.kt:239-250`，三态：支持 / 不支持 / 厂商自渲染）。
+> 故上句「**未见** AOSP 实况通知」与 §0.5 原记的「compileSdk 36 取不到该符号」**两处均被实测证伪**：
+> `gradle/libs.versions.toml:4 android-compileSdk = "37"`，且 `javap` 实测 `D:\Android\SDK\platforms\android-37.0\android.jar` 中存在
+> `Notification$Builder.setRequestPromotedOngoing(boolean)`、`NotificationManager.canPostPromotedNotifications()`、`Notification.FLAG_PROMOTED_ONGOING`
+> —— 另外实现走的是 `NotificationCompat.Builder`（androidx），本就不依赖平台符号是否存在。
+> **仍未做且明确不猜做的**：vivo 原子通知（厂商私有权限 + 无公开协议）。
+
 **目标**：按能力探测逐级升级通知形态，每级失败降级到下一级。
 
 **改动范围** — `androidApp/.../notify/NotificationChannels.kt`（新增 2 个 channel：`vivo_atom_notification_channel`、AOSP Live Updates）、`NotificationScheduler.kt`（形态选择）、vivo METTING 场景能力探测
@@ -933,6 +996,12 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 **现状（已核实）**：`TimeChangeReceiver` 覆盖 3 个 action（`ACTION_TIMEZONE_CHANGED` / `ACTION_TIME_CHANGED` / `ACTION_DATE_CHANGED`，`REVIEW.md` 批15 已修 `TIMEZONE_CHANGED` 缺失），并有 `HANDLED_ACTIONS` 白名单 + `RECEIVER_NOT_EXPORTED` 运行时注册。星链额外监听 `LOCALE_CHANGED` 与 `APPWIDGET_VISIBLE/HIDDEN/RESTORED`。
 
 **但该 Receiver 由 `MyApplication` 运行时注册，不在 manifest 中**（本轮核对发现，详见 XL-003）。进程死亡时收不到这三个广播，已排程闹钟不重排：用户改了时区或系统时间后课表整体偏移，而 App 无感知。
+
+> **状态（2026-10-03 watchdog 第 40 轮实测）**：✅ **已修**（见 §0.5 XL-014）。上两段为 2026-10-02 审计快照。当前口径：
+> `TimeChangeReceiver` 覆盖 **4 个 action** —— `TIMEZONE_CHANGED` / `TIME_SET` / `DATE_CHANGED` / `LOCALE_CHANGED`
+> （`AndroidManifest.xml:144-149`），与星链的时间四件套逐字一致（aapt2 实测星链 8 个 widget receiver 各含这 4 条）；
+> 且已由运行时注册改为 **manifest 静态注册**（`:141`），`MyApplication` 不再注册，进程死亡时也能收到。第 2 条 `APPWIDGET_VISIBLE/HIDDEN`
+> 经 2026-10-02 决策为「隐藏时不刷新」，保持不变。
 
 **目标**：
 1. 补 `LOCALE_CHANGED` —— 语言切换会影响星期与日期格式渲染
@@ -1082,19 +1151,23 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 ### 本仓库（全部经 grep / Read 核实）
 
+> **读法（2026-10-03 watchdog 第 40 轮）**：本表是**审计快照的证据索引** —— §0.5 标 ✅ 的条目，其引用行号指向的是**审计当时**的代码；
+> 修复落地后该行可能已变（甚至那段代码已不存在）。本轮已对全部引用行逐行复核，凡漂移处就地标注
+> 「审计时 `:NN` → 现 `:MM`」或「修复后该行已不存在」。**引用行号前请先看本列标注。**
+
 | 结论 | 位置 |
 |---|---|
-| 自动勿扰 END 无条件恢复（XL-001 根因） | `androidApp/.../receiver/AutoModeAlarmReceiver.kt:48` |
-| 勿扰 START/END action 常量 | `androidApp/.../receiver/AutoModeAlarmReceiver.kt:61,64` |
-| `toggleDnd` 乐观返回 true（XL-002） | `androidApp/.../control/AutoModeController.kt:62-63` |
-| `toggleSilent` 成功路径直接 true（XL-002） | `androidApp/.../control/AutoModeController.kt:97` |
-| DND 分支无「进入前状态」记录 | `androidApp/.../control/AutoModeStateProbe.kt:24-33` |
-| `canScheduleExactAlarms` 排期时检查（已有） | `androidApp/.../alarm/AlarmScheduler.kt:77`；`DynamicIslandManager.kt:175` |
+| 自动勿扰 END 无条件恢复（XL-001 根因） | `androidApp/.../receiver/AutoModeAlarmReceiver.kt:48`（**审计时**；修复后 `:48` 已是 KDoc，判定改在 `:59` 的 `ACTION_AUTO_MODE_END -> false` + `:106` 的 `shouldModeBeOn` 重算） |
+| 勿扰 START/END action 常量 | `androidApp/.../receiver/AutoModeAlarmReceiver.kt:122,125`（2026-10-03 复核；审计时记 `:61,64`，文件重写为 KDoc 优先后整体下移） |
+| `toggleDnd` 乐观返回 true（XL-002） | `androidApp/.../control/AutoModeController.kt`（**审计时**记 `:62-63`；修复后 `toggleDnd` 在 `:67`，成功路径改为**回读确认**后 `:127` 才 `return true`） |
+| `toggleSilent` 成功路径直接 true（XL-002） | `androidApp/.../control/AutoModeController.kt`（**审计时**记 `:97`；修复后 `toggleSilent` 在 `:138`，`:97` 现为 `INTERRUPTION_FILTER_ALL` 常量引用） |
+| DND 分支无「进入前状态」记录 | `androidApp/.../control/AutoModeStateProbe.kt:24-33`（复核：该文件 35 行，`:24` 即 `fun isModeOn`） |
+| `canScheduleExactAlarms` 排期时检查（已有） | `androidApp/.../alarm/AlarmScheduler.kt:92`（2026-10-03 复核；审计时记 `:77`）；`DynamicIslandManager.kt:175` ✓ |
 | 精确闹钟权限变更广播未监听（**审计时**的 XL-003 缺口，**已修**：v4.66.4 新增 `AlarmPermissionReceiver`） | 审计时 `AndroidManifest.xml` 对该 action grep 命中 0；现状见 §2 XL-003 与下方 receiver 行 |
-| 每课程独立槽位、旧方案跨课共用已废弃 | `androidApp/.../alarm/AlarmScheduler.kt:27` |
-| 精确闹钟提示去重机制（XL-003 复用） | `androidApp/.../alarm/AlarmScheduler.kt:44` |
+| 每课程独立槽位、旧方案跨课共用已废弃 | `androidApp/.../alarm/AlarmScheduler.kt:42`（2026-10-03 复核；审计时记 `:27`，文件头 KDoc 重写后下移） |
+| 精确闹钟提示去重机制（XL-003 复用） | `androidApp/.../alarm/AlarmScheduler.kt:65`（声明 `exactAlarmNoticeSentThisRound`；使用在 `:92-96`，每轮重置在 `:126`。2026-10-03 复核；审计时记 `:44`） |
 | 课程提醒单一 lead time | `androidApp/.../reminder/CourseReminderScheduler.kt` KDoc |
-| 4 条独立链路 × 10 个 action 常量 | `ReminderAlarmReceiver.kt:109,112,115`；`AutoModeAlarmReceiver.kt:61,64`；`DynamicIslandManager.kt:126,127`；`CourseAlarmReceiver.kt:52` |
+| 4 条独立链路 × 10 个 action 常量 | `ReminderAlarmReceiver.kt:111,114,117`；`AutoModeAlarmReceiver.kt:122,125`；`DynamicIslandManager.kt:126,127` ✓；`CourseAlarmReceiver.kt:53`（2026-10-03 复核；审计时记 `109,112,115` / `61,64` / `126,127` / `52`） |
 | 旧实现「全量删除 + 事务批量插入」（XL-010 已重写为按开始时刻增量差分） | 旧代码已不在仓库；当前文件 `shared/src/androidMain/.../CalendarAccountManager.android.kt`：删除路径 `:288-291`、`applyBatch` 批量写入 `:333` / `:414`（2026-10-03 复核行号，原记 `:93,143` 随重写失效） |
 | 日历 `CALLER_IS_SYNCADAPTER` | 同上 `:86`（2026-10-03 复核；原记 `:64` 已失效） |
 | 8 个 RemoteViews 小组件 | `androidApp/.../widget/{tiny,compact,double_days,list_vertical,agenda_list,next_course,week_courses,exam_countdown}/` |
