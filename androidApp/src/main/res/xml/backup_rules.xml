@@ -16,4 +16,10 @@
       没有上传到云端的必要；换机恢复后重新填写即可。
     -->
     <exclude domain="file" path="datastore/api_config.preferences_pb" />
+    <!--
+      FIX: DataStore 写入时先生成同目录伴生文件 <path>.tmp 再原子改名，崩溃或被系统杀死
+      会残留内容与正本相同的副本。AOSP 对 domain="file" 的排除是精确路径匹配，只在
+      database 域补 -journal/-wal、sharedpref 域补 .xml，不会连带排除伴生文件。
+    -->
+    <exclude domain="file" path="datastore/api_config.preferences_pb.tmp" />
 </full-backup-content>

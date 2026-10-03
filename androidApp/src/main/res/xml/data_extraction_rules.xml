@@ -10,9 +10,13 @@
           其余课程数据仍参与云备份，保证换机可恢复课表。
         -->
         <exclude domain="file" path="datastore/api_config.preferences_pb" />
+        <!-- FIX: 同上，DataStore 的 <path>.tmp 伴生文件也要排除。 -->
+        <exclude domain="file" path="datastore/api_config.preferences_pb.tmp" />
     </cloud-backup>
     <device-transfer>
         <!-- FIX: 设备间迁移同样排除凭据文件。 -->
         <exclude domain="file" path="datastore/api_config.preferences_pb" />
+        <!-- FIX: 设备间迁移同样排除伴生文件。 -->
+        <exclude domain="file" path="datastore/api_config.preferences_pb.tmp" />
     </device-transfer>
 </data-extraction-rules>
