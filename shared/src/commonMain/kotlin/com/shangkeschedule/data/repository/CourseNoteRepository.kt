@@ -91,10 +91,18 @@ class CourseNoteRepository(
      * 课程被删除时，笔记行由外键 CASCADE 清掉，仓库收不到任何回调，`notes/` 里的图片
      * 文件就成了孤儿。这里按「数据库里还在引用的路径集合」反向清理目录，
      * 由应用启动时的资源初始化阶段调用一次即可。
+     *
+     * 保存笔记是「先落盘图片、再把路径写进行」两步（见 `CourseNoteViewModel.saveNote`）。
+     * 启动清理的数据库快照若恰好落在这两步之间，刚写入的图片会因为「库里还没有引用」
+     * 被误判成孤儿删掉 —— 用户刚添加的照片静默丢失，且无法恢复。因此只清理「静置」
+     * 够久的文件：比 [ORPHAN_GRACE_MILLIS] 更新的、以及读不到时间戳的，一律保留，
+     * 交给下次启动再判（真孤儿最多多留一轮启动，在途图片不可能被误删）。
      */
     suspend fun pruneOrphanImages() = withContext(Dispatchers.Default) {
         runCatching {
             if (!fileSystem.exists(notesDir)) return@runCatching
+            // 静置期基准要在读取数据库「引用集」之前取，才能覆盖本次清理开始后才落盘的在途图片。
+            val cutoff = Clock.System.now().toEpochMilliseconds() - ORPHAN_GRACE_MILLIS
             val alive = courseNoteDao.getAllNotesOnce()
                 .mapNotNull { it.imagePaths }
                 .flatMap { it.split('\n') }
@@ -102,9 +110,10 @@ class CourseNoteRepository(
                 .filter { it.isNotEmpty() }
                 .toSet()
             fileSystem.list(notesDir).forEach { path ->
-                if (path.toString() !in alive) {
-                    runCatching { fileSystem.delete(path) }
-                }
+                if (path.toString() in alive) return@forEach
+                val writtenAt = fileSystem.metadataOrNull(path)?.lastModifiedAtMillis
+                if (writtenAt == null || writtenAt >= cutoff) return@forEach
+                runCatching { fileSystem.delete(path) }
             }
         }
     }
@@ -112,4 +121,14 @@ class CourseNoteRepository(
     /** 生成一个新的笔记 id（本地，不依赖服务端）。 */
     @OptIn(ExperimentalUuidApi::class)
     fun newNoteId(): String = Uuid.random().toString()
+
+    private companion object {
+        /**
+         * 孤儿图片判定静置期（10 分钟）。
+         *
+         * 取值远大于「一张图片落盘 → 笔记行落库」的间隔（毫秒级），又远小于两次启动之间的
+         * 正常间隔：真实孤儿最多多留一轮启动，而在途写入的图片不可能被误删。
+         */
+        const val ORPHAN_GRACE_MILLIS = 10 * 60 * 1000L
+    }
 }

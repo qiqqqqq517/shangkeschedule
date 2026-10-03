@@ -110,22 +110,25 @@ class StyleSettingsViewModel(
             val currentStyle = styleRepository.getStyleOnce()
             val currentPath = currentStyle.backgroundImagePath ?: ""
 
-            if (currentPath.isNotEmpty()) {
-                val oldPath = currentPath.toPath()
-                if (fileSystem.exists(oldPath)) {
-                    fileSystem.delete(oldPath)
-                }
-            }
-
             val newFileName = "wallpaper_${Uuid.random()}.jpg"
             val newFile = filesDir / newFileName
 
+            // 先写新文件 → 更新路径 → 最后删旧文件，与 saveProfileAvatar 是同一套
+            // "先写新、再删旧"顺序。原实现先删旧：一旦写入抛异常、或进程在这两步之间被杀，
+            // 用户原有壁纸会被永久销毁，而数据库里仍指向已删除的旧路径（背景变空白）。
             // 直接将字节写入文件
             fileSystem.write(newFile) {
                 write(imageBytes)
             }
 
             styleRepository.setBackgroundImagePath(newFile.toString())
+
+            if (currentPath.isNotEmpty()) {
+                val oldPath = currentPath.toPath()
+                if (fileSystem.exists(oldPath)) {
+                    fileSystem.delete(oldPath)
+                }
+            }
         } catch (e: Exception) {
             AppLog.e(TAG, "保存壁纸失败", e)
         }

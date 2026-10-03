@@ -85,7 +85,7 @@ class ResourceInitializerManager(
                 return@runCatching
             }
 
-            val tempZipFile = filesDir / "temp_offline_schools.zip"
+            val tempZipFile = filesDir / TEMP_OFFLINE_ZIP_NAME
 
             fileSystem.write(tempZipFile) {
                 write(zipBytes)
@@ -123,10 +123,21 @@ class ResourceInitializerManager(
                 fileSystem.deleteRecursively(shareTempDir)
             }
 
+            // 离线仓库解压用的临时 zip：正常路径由 initializeOfflineRepo 的 finally 删除。
+            // 若进程恰好在写完 `.version` 之后、删临时文件之前被杀，下次启动会因版本一致
+            // 而在 :84 提前返回，该文件就永久留在 filesDir（属自动备份 root 域，且离线包含数 MB）。
+            val tempOfflineZip = filesDir / TEMP_OFFLINE_ZIP_NAME
+            if (fileSystem.exists(tempOfflineZip)) fileSystem.delete(tempOfflineZip)
+
             val tempSchoolsRepo = cacheDir / "temp_schools_repo"
             val tempIndexRepo = cacheDir / "temp_index_repo"
             if (fileSystem.exists(tempSchoolsRepo)) fileSystem.deleteRecursively(tempSchoolsRepo)
             if (fileSystem.exists(tempIndexRepo)) fileSystem.deleteRecursively(tempIndexRepo)
         }
+    }
+
+    private companion object {
+        /** 离线仓库解压用的临时 zip 名：写入点与清理点共用，避免两处字符串漂移。 */
+        const val TEMP_OFFLINE_ZIP_NAME = "temp_offline_schools.zip"
     }
 }
