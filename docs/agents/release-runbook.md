@@ -23,6 +23,38 @@ git rev-list --left-right --count origin/main...HEAD   # 期望 0  0
 git status --short                                     # 只应剩 .mimosa/ 之类未跟踪产物
 ```
 
+### 1.1 ⚠️ 含适配脚本改动时：私有仓库必须已 push（漏做会让包内新脚本被热更新顶掉）
+
+**适用**：本版本包含适配脚本改动（新增/修改 `shared/assets/offline_repo/schools/resources/**/*.js`，
+或重建了 `school_index.pb`）。纯 UI / 逻辑改动可跳过本小节。
+
+**为什么必须查**：APK 里的适配脚本是「发版那一刻的快照」，而 App 每次启动还会用远端热更新覆盖它。
+远端若比包内旧，**包内的新脚本会被 OTA 覆盖回旧版** —— 症状是「原有功能正常、本次新增的功能全部失效」，
+极易误判成新代码写错而去翻 Kotlin。**2026-10-04 实际发生过一次**（成绩 / 空教室 / 学业三处钩子全失效，
+根因是私有仓库只重建未推送）。
+
+```powershell
+cd .adapter_private
+git status --short                                        # 必须为空
+git rev-parse HEAD; git rev-parse origin/main             # 两者必须相同
+cd ..
+```
+
+线上核验（**不要只看本地 git 状态**；现成脚本 `build_qa/verify_live_adapters.py` 可改清单复用）：
+
+```powershell
+$s = ((Select-String -Path adapter_secrets.properties -Pattern '^adapter\.appSecret\s*=').Line -split '=',2)[1].Trim()
+# ① 清单可达，file_count 与本次一致
+Invoke-RestMethod 'https://adapter.shangke.asia/index.json' -Headers @{'X-App-Secret'=$s} | Select-Object file_count
+# ② 本次改动的脚本：远端 sha256 应等于本地 sha256（逐字节，含行尾）
+# ③ 实际下载正文，确认含本次新增的特征串
+```
+
+> Worker 缓存最长 5 分钟：刚推完立刻核验可能仍是旧值，等约 5 分钟再确认；
+> **不要因一次核验失败就重复推送** —— 先确认远端 git 已更新，再等缓存过期。
+
+细则与成因见 `docs/adapter-sop.md` §6.4、§8.1、§9 第 16 条。
+
 ## 2. 本地构建正式版
 
 ```powershell

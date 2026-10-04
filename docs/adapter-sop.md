@@ -545,6 +545,53 @@ git push
 
 推送后 Worker **无需任何操作**：缓存最长 5 分钟自动过期，App 下次启动 `sync()` 即拉到新适配；失败静默回退内置资源，不影响既有功能。
 
+> ⚠️ 本节「必须真的推上去」不是可选项 —— 漏推送会让 App 用远端旧版覆盖包内新版（详见 §6.4），
+> 且发布包含该脚本的版本前还有一道必查（见 §8.1）。
+
+### 6.4 ⚠️ 硬性检查：私有仓库必须已 push（漏做会导致新功能被旧脚本覆盖）
+
+**`build_index.py` + `verify_index.py` 通过只证明「本地工作副本自洽」，不等于「远端已是新版」。**
+只重建不推送的后果不是「更新没生效」这么轻 —— 而是**远端旧版会把 App 内的新版覆盖掉**：
+
+```
+本地脚本（含新改动）→ 打包进 APK ✅
+App 启动 → AdapterRemoteUpdater.sync()
+        → 逐文件比对 sha256（AdapterRemoteUpdater.kt，localHashMatches 不通过即下载）
+        → 远端仍是旧版 ⇒ 下载并原子覆盖本地脚本 ❌
+最终：包内新功能被 OTA 自己顶掉
+```
+
+**症状具有强欺骗性**：旧脚本往往仍能完成「原有功能」（如课表导入照常），
+**只有本次新增的能力失效**（如三个钩子探测返回 `missing`，提示「本校暂未适配」），
+因此很容易被误判成「新代码写错了」而去翻 Kotlin —— 实际是脚本投递环节的问题。
+
+**每次改完适配脚本，收尾必跑这三条**（缺一不可）：
+
+```powershell
+cd .adapter_private
+git status --short                 # 必须为空（无未提交改动）
+git log --oneline -1               # 确认最新提交就是本次改动
+git rev-parse HEAD; git rev-parse origin/main   # 两个哈希必须相同（本地已推送）
+```
+
+**推送后打穿到线上核验**（不要只看本地 git 状态就收工）：
+
+```powershell
+# 1) 清单可达且文件数与本次一致（secret 存在仓库根 adapter_secrets.properties，gitignore，勿外传）
+$s = ((Select-String -Path ..\adapter_secrets.properties -Pattern '^adapter\.appSecret\s*=').Line -split '=',2)[1].Trim()
+Invoke-RestMethod 'https://adapter.shangke.asia/index.json' -Headers @{'X-App-Secret'=$s} |
+  Select-Object file_count
+
+# 2) 关键脚本的远端 sha256 与本地一致（逐字节，含行尾）
+#    注意 Worker 缓存最长 5 分钟，刚推完可能仍是旧值；等约 5 分钟或稍后重试
+# 3) 再实际下载一次正文，确认新增特征串确实存在
+Invoke-WebRequest 'https://adapter.shangke.asia/adapters/<CODE>/<js>' -Headers @{'X-App-Secret'=$s} |
+  Select-Object -ExpandProperty Content | Select-String '<本次新增的函数名/常量>'
+```
+
+> 现成脚本：`build_qa/verify_live_adapters.py`（比对指定脚本的远端/本地 sha256，并下载正文检查钩子字符串），
+> 可作为模板改成要核验的文件清单。
+
 ---
 
 ## 七、阶段五 · 线上验收
@@ -588,6 +635,25 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "X-App-Secret: $APP_SECRET" "$BASE/i
 
 发版操作严格按 `docs/agents/release-runbook.md` 执行；发版说明中涉及适配变更的，按 `CHANGELOG.md` 分类写入「适配」一节。
 
+### 8.1 发版前必查：私有仓库是否已推送（§6.4）
+
+**发版与热更新是两条独立通道，但用户在同一个包里同时拿到两者 —— 这正是事故来源。**
+
+APK 里的适配脚本是「**发版那一刻**主仓库工作区的快照」；而 App 每次启动还会拿远端热更新覆盖它。
+只要远端比包内旧，**包内的新脚本就会被顶掉**（§9 第 16 条）。
+所以「本版本包含新适配」这句话，只有**远端也已同步**才成立。
+
+发版前逐条打勾：
+
+- [ ] `.adapter_private` 内 `git status --short` **为空**；
+- [ ] `git rev-parse HEAD` 与 `git rev-parse origin/main` **相同**；
+- [ ] 线上核验：`https://adapter.shangke.asia/index.json` 的 `file_count` 与本次一致，且**本次改动的脚本远端 sha256 = 本地 sha256**；
+- [ ] 若本版本对外宣称「新增/更新了某校适配」，该脚本的**远端正文**确实含本次新增的特征串；
+- [ ] 仅涉及主仓库、不涉及适配脚本的版本（如纯 UI / 逻辑改动）可跳过以上各项。
+
+> 缓存提示：Worker 缓存最长 5 分钟。刚推完立刻核验可能仍看到旧值，等约 5 分钟再确认，
+> **不要因为一次核验失败就重复推送**（先确认远端 git 是否已更新，再看缓存）。
+
 ---
 
 ## 九、常见坑与故障排查（历史事故沉淀）
@@ -607,6 +673,11 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "X-App-Secret: $APP_SECRET" "$BASE/i
 13. **学业情况把平台行与叶子行都回传**：同一个平台被算两遍，总学分翻倍（实测 NTU：310 vs 真实 172）。对策：平台行只用于定位父级，不入结果。
 14. **钩子里自己写 `postMessage`**：载荷需 Base64 包装以规避 `evaluateJavascript` 的二次 JSON 转义，手写极易出错。对策：只 `return` 数据，拼装与投递由 App 完成。
 15. **把「已获学分」也回传**：学校口径与本机成绩表必然不一致（是否含重修 / 未出分课程）。对策：钩子只回传「要求学分」，已获一律由 `GradeRepository.computeStudyProgress` 现算。
+16. **私有仓库只重建未 push，导致新功能被 OTA 用旧版覆盖**（2026-10-04 实际发生，后果严重且症状极具误导性）：
+    - **现象**：发版后「课表导入一切正常，但本次新增的功能全部失效」（当时是成绩 / 空教室 / 学业三处钩子探测返回 `missing`，提示「本校暂未适配」）。
+    - **原因**：`build_index.py` + `verify_index.py` 通过只说明**本地工作副本自洽**；改动没 commit / 没 push，远端清单与脚本仍是旧版。App 启动时 `AdapterRemoteUpdater.sync()` 逐文件比对 sha256，不通过即**下载远端旧版覆盖本地** —— 包内的新脚本被 OTA 自己顶掉。
+    - **为什么难查**：旧脚本通常仍能完成原有功能（旧版照样导课表），只有**新增能力**失效，容易误判成「新代码写错了」而反复翻 Kotlin 源码，实际问题在脚本投递环节。
+    - **对策**：凡改适配脚本，收尾必须 `git status` 干净 + `git rev-parse HEAD` 与 `origin/main` 相同（见 §6.4），再**打穿到线上**核验远端 sha256 与正文特征串 —— 不要只看本地 git 状态就收工。发版前把这一条列为检查项。
 
 ---
 

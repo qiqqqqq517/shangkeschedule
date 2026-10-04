@@ -42,6 +42,7 @@
 
 - **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中手动禁用（2026-09-29 经 `gh api` 核实；`dco.yml`、`dependency-submission.yml` 与 Dependabot 仍在启用，与构建发布无关），**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
 - **前置：`CHANGELOG.md` 必须已有对应版本条目**。Release body 直接取自该条目（或与之相同的内容）；条目未就绪不得发版。
+- **前置：涉及适配脚本改动时，私有适配仓库必须已 commit + push**（`cd .adapter_private` → `git status` 干净 → `HEAD` 与 `origin/main` 相同 → 线上核对远端 sha256 与正文特征串）。**只跑 `build_index.py` 不算已经同步**：远端若比包内旧，App 启动时 `AdapterRemoteUpdater.sync()` 会用旧版**覆盖掉包内新脚本**，症状是「原有功能正常、本次新增功能全失效」，极难排查（2026-10-04 实际发生）。纯 UI / 逻辑改动可跳过。细则见 `docs/adapter-sop.md` §6.4 / §8.1 与 `docs/agents/release-runbook.md` §1.1。
 - 正式版一律**本地构建**：`./gradlew :androidApp:assembleRelease`，产物为 `androidApp/build/outputs/apk/release/shangke-vX.Y.Z-<abi>-release.apk`（按 ABI 拆分，arm64-v8a / armeabi-v7a / x86_64）。
   - 本机 `JAVA_HOME` 环境变量是坏的，每条 Gradle 命令前必须显式设为本机 JBR：`C:\Program Files\Android\Android Studio\jbr`。
   - 若构建整体 `UP-TO-DATE`，**必须核对产物 mtime 晚于 `HEAD` 提交时间**才能认定产物含本次改动；否则加 `--rerun-tasks` 重打。
