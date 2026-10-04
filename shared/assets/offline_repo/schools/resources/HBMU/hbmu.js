@@ -21,12 +21,19 @@
 //   v2 改为「读学期下拉 → 选学期 → 调 getKbRq（一次拿全学期）」，并以节次/周次为准落库。
 //
 // 桥接契约：注入器自动调用 window.shangkeImportEntry()（见 WebBridgeProtocol.JS_IMPORT_AUTOSTART）。
+// 能力钩子：window.shangkeScanGrades() 回传成绩与绩点（契约见 ADAPTER_GUIDE「能力钩子」）；
+// 空教室 / 学业情况本校无可信数据源，不声明钩子。
 
 (function () {
     'use strict';
 
     var SEMESTER_PAGE = '/xsgrkbcx!getXsgrbkList.action';
     var KB_API = '/xsgrkbcx!getKbRq.action';
+
+    // 成绩查询：easyui datagrid 分页接口（同乘方老版课表 getDataList 的返回形态）
+    var GRADE_API = '/xskccjxx!getDataList.action';
+    var GRADE_PAGE_ROWS = 200;
+    var GRADE_MAX_PAGES = 10;
 
     // 湖北医药学院作息（节次 → 起止时间）
     var TIME_SLOTS = [
@@ -307,8 +314,100 @@
         });
     }
 
+    // ---------- 能力钩子：成绩与绩点 ----------
+    //
+    // 契约见 schools/ADAPTER_GUIDE.md「能力钩子」：钩子只 return 数据，不自己 postMessage，
+    // 由 App 注入的调用脚本负责拼装与投递。
+    //
+    // 本校空教室、学业情况（培养方案学分要求）两个用途：教务系统内**没有空教室模块**，
+    // 培养方案 / 学习计划模块虽在但查询结果恒为空，无法取得可信数据，故**不声明**对应钩子
+    // （缺失时 App 会明确提示「本校暂未适配」，好过回传猜出来的数字）。
+
+    // 按候选字段名取第一个非空值：乘方各校字段名有出入，用候选表兜住
+    function pickField(row, candidates) {
+        for (var i = 0; i < candidates.length; i++) {
+            var v = row[candidates[i]];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+        }
+        return '';
+    }
+
+    // 学期显示值：优先用教务返回的名称；若只有 6 位编码（如 202601）则还原为「2026-2027-1」
+    function semesterText(row) {
+        var name = String(pickField(row, ['xnxqmc', 'xnxq', 'xqmc', 'semesterName'])).trim();
+        if (name) return name;
+        var code = String(pickField(row, ['xnxqdm', 'xqdm'])).trim();
+        if (/^\d{6}$/.test(code)) {
+            var year = parseInt(code.substring(0, 4), 10);
+            var term = parseInt(code.substring(4), 10);
+            if (year > 2000 && term >= 1 && term <= 3) return year + '-' + (year + 1) + '-' + term;
+        }
+        return code || null;
+    }
+
+    // 分页拉全量成绩：easyui datagrid {total, rows:[...]}；接口不存在/无数据时交回已拿到的
+    function fetchGradeRows(page, acc) {
+        var params = {
+            xnxqdm: '',          // 空 = 全部学期（只查当前学期会漏历史成绩）
+            jhlxdm: '', jhlx: '', // 计划类型：留空 = 不限
+            page: page,
+            rows: GRADE_PAGE_ROWS
+        };
+        return httpGetText(GRADE_API, params).then(function (text) {
+            var json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                throw new Error('成绩接口未返回有效数据，登录可能已失效，请重新登录后重试。');
+            }
+            var rows = null;
+            if (Object.prototype.toString.call(json) === '[object Array]') rows = json;
+            else if (json && Object.prototype.toString.call(json.rows) === '[object Array]') rows = json.rows;
+            if (!rows) return acc;
+
+            var all = acc.concat(rows);
+            var total = parseInt(json && json.total, 10);
+            if (rows.length === 0 || page >= GRADE_MAX_PAGES
+                || (!isNaN(total) && all.length >= total)) {
+                return all;
+            }
+            return fetchGradeRows(page + 1, all);
+        });
+    }
+
+    // 成绩钩子：返回 GradeItem 数组（字段见 ADAPTER_GUIDE「shangkeScanGrades」）
+    function shangkeScanGrades() {
+        return fetchGradeRows(1, []).then(function (rows) {
+            var out = [];
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (!row) continue;
+
+                var courseName = String(pickField(row, ['kcmc', 'courseName', 'kcbmc'])).trim();
+                if (!courseName) continue;
+
+                // 数字成绩优先（便于算平均分 / 绩点）；等级制课程回落到显示成绩
+                var scoreText = String(pickField(row, ['zcj', 'zzcj', 'cj', 'kscj', 'score'])).trim();
+                if (!scoreText) continue;
+
+                var creditRaw = String(pickField(row, ['xf', 'credit', 'kxf'])).trim();
+                var credit = creditRaw === '' ? null : Number(creditRaw);
+
+                out.push({
+                    courseName: courseName,
+                    credit: isFinite(credit) ? credit : null,
+                    scoreText: scoreText,
+                    semester: semesterText(row),
+                    category: String(pickField(row, ['kclbmc', 'kcxzmc', 'jhlxmc', 'category'])).trim() || null
+                });
+            }
+            return out;
+        });
+    }
+
     // 注入器（JS_IMPORT_AUTOSTART）会调用 window.shangkeImportEntry
     if (typeof window !== 'undefined') {
         window.shangkeImportEntry = runImport;
+        window.shangkeScanGrades = shangkeScanGrades;
     }
 })();
