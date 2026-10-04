@@ -38,7 +38,11 @@ try:
 except Exception:
     pass
 
-ROOT = os.path.join("shared", "src", "commonMain", "kotlin")
+# ⚠️ 必须用 __file__ 定位仓库根，**不得**用 CWD 相对路径：
+# 此前写成 os.path.join("shared", ...) ⇒ 一旦从非仓库目录运行（CI、别的工具链、
+# 手工在别处执行），os.walk 走空目录 ⇒ 扫到 0 个文件却仍输出「✅ 通过」= 假 PASS。
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.join(REPO_ROOT, "shared", "src", "commonMain", "kotlin")
 
 # 独立图标按钮：内部没有文字，图标描述是唯一语义来源
 ICON_BUTTON_CALLS = ("IconButton(", "IconToggleButton(", "FloatingActionButton(")
@@ -223,17 +227,25 @@ def unidentifiable_clickable(path, src):
 
 
 def scan():
+    """返回 (A 类, B 类, 实际扫描的 .kt 文件数)。
+
+    文件数必须返回：调用方据此判定「门禁是否真的跑起来了」——
+    扫到 0 个文件时一律判失败，绝不允许空扫被读成「0 违规 = 通过」。
+    """
     a, b = [], []
+    scanned = 0
     for dp, _, fns in os.walk(ROOT):
         for fn in sorted(fns):
             if not fn.endswith(".kt"):
                 continue
             p = os.path.join(dp, fn)
-            rel = os.path.relpath(p, ".").replace("\\", "/")
+            # 相对仓库根而非 CWD：否则换目录运行时报告里的文件路径全是错的
+            rel = os.path.relpath(p, REPO_ROOT).replace("\\", "/")
             src = open(p, encoding="utf-8", errors="replace").read()
+            scanned += 1
             a += icon_button_violations(rel, src)
             b += unidentifiable_clickable(rel, src)
-    return a, b
+    return a, b, scanned
 
 
 def main():
@@ -242,11 +254,21 @@ def main():
     ap.add_argument("--update-baseline", default=None)
     args = ap.parse_args()
 
-    a, b = scan()
+    a, b, scanned = scan()
+
+    # 空扫即失败（fail-closed）：这是本仓付过学费的一类事故 ——
+    # 门禁因路径/环境失效而什么都没检查，却稳定输出绿灯。
+    if scanned == 0:
+        print(f"[a11y] ❌ 未扫描到任何 .kt 文件，门禁未生效，不得视为通过")
+        print(f"       ROOT = {ROOT}")
+        print(f"       请确认在仓库内运行、且该目录存在")
+        return 2
+
     counts = {"a_icon_button_no_desc": len(a), "b_unidentifiable_clickable": len(b)}
     total = len(a) + len(b)
 
     print("=== AC2 无障碍语义棘轮 ===")
+    print(f"扫描文件：{scanned} 个 .kt")
     print(f"A 类 · 独立图标按钮无描述：{counts['a_icon_button_no_desc']}")
     for v in a:
         print(f"  - {v['file']}:{v['line']}  {v['detail']}")

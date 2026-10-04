@@ -35,7 +35,12 @@ try:
 except Exception:
     pass
 
-ROOT = os.path.join("shared", "src", "commonMain", "kotlin")
+# ⚠️ 必须用 __file__ 定位仓库根，**不得**用 CWD 相对路径。
+# 本脚本的 `?`（可能裁切）计数被当作**跨轮回归信号**（「较上轮增长即挂起」），
+# 而 CWD 相对路径一旦漂移就会空扫 ⇒ `?` 计数变 0，**会被读成「改善了」**，
+# 实为门禁瞎了 —— 比不报更危险。实测：从非仓库目录运行输出「0 处」且退出码 0。
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.join(REPO_ROOT, "shared", "src", "commonMain", "kotlin")
 CONTAINERS = ("Row", "Box", "Column", "Surface", "Card", "Button", "TextButton", "Scaffold")
 LINE_BOX_RATIO = 1.4  # 行盒 ≈ 字号 × 1.4（经验值）
 
@@ -93,13 +98,16 @@ def enclosing_container(src, pos):
 def scan(scale):
     hits = []
     maxlines1 = []
+    scanned = 0
     for dp, _, fns in os.walk(ROOT):
         for fn in sorted(fns):
             if not fn.endswith(".kt"):
                 continue
             p = os.path.join(dp, fn)
-            rel = os.path.relpath(p, ".").replace("\\", "/")
+            # 相对仓库根而非 CWD：否则换目录运行时报告里的文件路径全是错的
+            rel = os.path.relpath(p, REPO_ROOT).replace("\\", "/")
             src = open(p, encoding="utf-8", errors="replace").read()
+            scanned += 1
 
             # 遍历容器调用：**height 必须出现在该容器自身的参数区**才算它的固定高度。
             # 否则会错配 —— `Spacer(Modifier.height(4.dp))` 的 4dp 曾被当成其前面
@@ -148,7 +156,7 @@ def scan(scale):
                         "line": src[: m.start()].count("\n") + 1,
                         "container": name,
                     })
-    return hits, maxlines1
+    return hits, maxlines1, scanned
 
 
 def main():
@@ -156,8 +164,17 @@ def main():
     ap.add_argument("--scale", type=float, default=2.0)
     args = ap.parse_args()
 
-    hits, maxlines1 = scan(args.scale)
+    hits, maxlines1, scanned = scan(args.scale)
+
+    # 空扫即失败（fail-closed）：`?` 计数是跨轮回归信号，空扫会把它变成 0，
+    # 被后续会话读成「裁切候选减少了」——比不报更危险。
+    if scanned == 0:
+        print(f"[font-scale] ❌ 未扫描到任何 .kt 文件，门禁未生效，不得视为通过")
+        print(f"             ROOT = {ROOT}")
+        return 2
+
     print(f"=== AC4 字体缩放审计（{args.scale}×，行盒系数 {LINE_BOX_RATIO}）===")
+    print(f"扫描文件：{scanned} 个 .kt")
     print(f"垂直裁切风险：{len(hits)} 处")
     for h in hits:
         print(f"  ✗ {h['file']}:{h['line']}  {h['container']}(height {h['height']}dp)")
