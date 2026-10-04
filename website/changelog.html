@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.73.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>480</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.74.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>481</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4740">v4.74.0 · 湖北医药学院成绩与绩点适配</a></li>
         <li><a href="#v4730">v4.73.0 · 成绩 / 空教室 / 学业可挂学校级适配 + 正方适配标准</a></li>
 <li><a href="#v4720">v4.72.0 · 教务系统合并 + 通用适配补齐「乘方」+ 地址可改</a></li>
       <li><a href="#v4690">v4.69.0 · 新增湖北医药学院教务适配</a></li>
@@ -167,6 +168,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4740">
+        <div><span class="tl-ver">v4.74.0</span><span class="tl-date">2026-10-04</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>湖北医药学院新增「成绩与绩点」适配</h3>
+          <ul>
+            <li>在该校教务系统登录后进入成绩页点「从教务导入」，即可一次取回<strong>全部学期</strong>成绩（含学分与真实学期），不必再靠内置通用脚本按表头猜列、逐条手改学期。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-feat">适配</span>本校只声明成绩适配</h3>
+          <ul>
+            <li>该校教务系统内<strong>没有空教室模块</strong>；培养方案查询与学习计划模块虽在，但查询结果恒为空、取不到各类别要求学分。因此<strong>不做空教室与学业情况适配</strong> —— 应用会明确提示「本校暂未适配」，而不是给出猜出来的数字。</li>
+            <li>成绩接口经登录会话确认存在并返回合法数据结构；本次<strong>未在真机端到端走查</strong>（如实标注，未做掩盖）。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4730">
         <div><span class="tl-ver">v4.73.0</span><span class="tl-date">2026-10-04</span></div>
