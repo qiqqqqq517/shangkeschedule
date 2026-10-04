@@ -237,6 +237,19 @@ def compute_metrics():
 
 GATED_KEYS = ("c1_branch", "c2_collapse", "c3_missing", "c4_patch", "total")
 
+# 棘轮比对键 = 硬指标 + c1_identity。
+#
+# 缺口背景：save_baseline 一直把 c1_identity 写进基线（见下方 payload），
+# 而 check_baseline 只遍历 GATED_KEYS ⇒ **写入基线却从不比对**。
+# 实测后果：基线记 14、当前 17，漂移 +3 却始终 exit 0。
+#
+# 为何不把 c1_identity 直接塞进 GATED_KEYS：
+#   GATED_KEYS 的语义是「硬指标」，部分调用方/文档按「目标归零」理解它；
+#   c1_identity 是**提示项**（需人工判定 —— 其中含按主题选不同 Composable 实现
+#   这类 token 表达不了的架构性合法用法），**不宜要求归零**（会误报）。
+# 但它必须是**棘轮项**：只允许下降，不得上升。
+RATCHET_KEYS = GATED_KEYS + ("c1_identity",)
+
 
 def load_baseline(path: str):
     """读取基线。返回 (baseline | None, error | None)。
@@ -265,7 +278,7 @@ def save_baseline(path: str, metrics: dict) -> None:
     payload = {
         "_comment": "A1 主题系统收口 · 棘轮基线。只允许下降；上升即为回归，pre-commit 会拦截。",
         "updated": date.today().isoformat(),
-        "counts": {k: metrics[k] for k in GATED_KEYS} | {"c1_identity": metrics["c1_identity"]},
+        "counts": {k: metrics[k] for k in RATCHET_KEYS},
     }
     p.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[baseline] 已写入 {p}", file=sys.stderr)
@@ -275,7 +288,7 @@ def check_baseline(metrics: dict, baseline: dict) -> list[str]:
     """返回回归项描述；空列表 = 通过。"""
     base = (baseline or {}).get("counts") or {}
     regressions = []
-    for k in GATED_KEYS:
+    for k in RATCHET_KEYS:
         if k not in base:
             continue
         if metrics[k] > base[k]:
@@ -324,7 +337,7 @@ def main() -> int:
             return 1
         improved = [
             f"{k}: {baseline['counts'][k]} → {metrics[k]}"
-            for k in GATED_KEYS
+            for k in RATCHET_KEYS
             if k in baseline.get("counts", {}) and metrics[k] < baseline["counts"][k]
         ]
         if args.quiet:

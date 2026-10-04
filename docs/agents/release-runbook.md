@@ -53,6 +53,17 @@ Invoke-RestMethod 'https://adapter.shangke.asia/index.json' -Headers @{'X-App-Se
 > Worker 缓存最长 5 分钟：刚推完立刻核验可能仍是旧值，等约 5 分钟再确认；
 > **不要因一次核验失败就重复推送** —— 先确认远端 git 已更新，再等缓存过期。
 
+**发版前显式跑一次带私有仓库要求的体检**（本机应有私有仓库，缺失即失败，不要静默跳过）：
+
+```powershell
+python scripts/check_adapters.py --require-private      # 含双落点主仓库↔私有仓一致性
+```
+
+> 为何要 `--require-private`：双落点校验**只在 `.adapter_private/` 存在时才运行**，
+> 缺失时旧版脚本只记 WARN，而 WARN 默认不影响退出码 ⇒ 门禁静默变绿。
+> 发版是本项目最需要这条防线的场合，故必须让它**显式失败**而非静默跳过。
+> 注：`.githooks/pre-commit` 在暂存了适配脚本时已默认带上该开关。
+
 细则与成因见 `docs/adapter-sop.md` §6.4、§8.1、§9 第 16 条。
 
 ## 2. 本地构建正式版

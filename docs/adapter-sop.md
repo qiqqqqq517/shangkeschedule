@@ -433,7 +433,16 @@ python tools/build_schools.py
 ```powershell
 python scripts/check_adapters.py            # 全量体检 + 双落点核对
 python scripts/check_adapters.py --strict   # 提示项也判失败（CI 用）
+python scripts/check_adapters.py --require-private   # 私有仓库必须存在，缺失即 ERROR
 ```
+
+> ⚠️ **`--require-private` 的用途与必要性**：双落点校验**只在 `.adapter_private/` 存在时才运行**。
+> 缺失时旧版脚本只记 WARN，而 WARN 在默认模式下**不影响退出码** ⇒ 门禁静默变绿。
+> 而「新 worktree / 未 clone 私有仓库」恰恰是最需要这条防线的场景（远端旧脚本会覆盖包内新版，
+> 见 §6.4）。因此**凡本次确实改了适配脚本**的场合（pre-commit 已默认带上该开关、
+> 发版 runbook 与 CI 亦应带上），一律用 `--require-private`，让"拿不到私有仓库"变成**显式失败**
+> 而不是静默跳过；确实未 clone 私有仓库的本机，用 `git commit --no-verify` 显式放行。
+> 也可用环境变量 `ADAPTER_REQUIRE_PRIVATE=1` 达到同样效果。
 
 > ⚠️ 为什么不能逐字节比：主仓库工作副本是 CRLF、私有仓库是 LF，同一份文件会因行尾被误报成
 > 不一致（历史案例：`DLUT/dlut.js` —— 493 行 CRLF 22681 B ↔ 493 行 LF 22188 B，LF 归一化后
@@ -591,6 +600,17 @@ Invoke-WebRequest 'https://adapter.shangke.asia/adapters/<CODE>/<js>' -Headers @
 
 > 现成脚本：`build_qa/verify_live_adapters.py`（比对指定脚本的远端/本地 sha256，并下载正文检查钩子字符串），
 > 可作为模板改成要核验的文件清单。
+
+**已加的前置拦截（2026-10-05）**：`.githooks/pre-commit` 在我改动适配脚本（暂存路径命中
+`shared/assets/offline_repo/`、`.adapter_private/`、`adapter-worker/`）时，会以
+`check_adapters.py --skip-node --require-private` 运行体检 ——
+**私有仓库工作副本缺失即判 ERROR 并拦截提交**。
+
+> 拦的是哪一类事故：以前「改了适配脚本、但本机没有 `.adapter_private/`」（典型是新 worktree）
+> 时，双落点校验会**静默跳过**且默认模式下不影响退出码 —— 于是提交照过、发版照发，
+> 而 OTA 会用远端旧脚本覆盖包内新版，症状就是本节的「原有功能正常、新增功能全失效」。
+> 现在这条路径会在**提交那一刻**被拦住，而不是等到线上排查。
+> 确实拿不到私有仓库的本机，用 `git commit --no-verify` 显式放行（属有意为之，非默认）。
 
 ---
 

@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -193,6 +194,11 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true", help="WARN 也视为失败")
     parser.add_argument("--skip-node", action="store_true", help="跳过 node --check 语法校验")
     parser.add_argument("--private-repo", default=str(DEFAULT_PRIVATE_DIR), help="私有适配仓库工作副本目录")
+    parser.add_argument(
+        "--require-private",
+        action="store_true",
+        help="私有仓库工作副本必须存在；缺失即为 ERROR（不再静默跳过双落点校验）",
+    )
     parser.add_argument("--json", dest="json_out", default=None, help="把机器可读报告写到该文件")
     parser.add_argument("--max-list", type=int, default=20, help="每类问题最多列多少条")
     args = parser.parse_args()
@@ -255,6 +261,7 @@ def main() -> int:
     # ---- 2. 双落点一致性（LF 归一化哈希）----
     private_dir = Path(args.private_repo)
     dual: dict[str, object] = {}
+    dual_skipped = False
     if private_dir.is_dir():
         private_scripts = collect_scripts(private_dir)
         only_public = sorted(set(public_scripts) - set(private_scripts))
@@ -288,7 +295,22 @@ def main() -> int:
             "raw_only": raw_only,
         }
     else:
-        warns.append(f"私有仓库工作副本不存在，跳过双落点校验: {private_dir}")
+        # 私有仓库工作副本缺失 ⇒ 双落点校验（2026-10-04 OTA 事故的核心防线）**整体失效**。
+        #
+        # 为何不能无条件判 ERROR：新 worktree / 未 clone 私有仓库的贡献者本来就拿不到它，
+        # 一律拦截会让门禁变成噪音（噪音门禁 = 下一个恒绿门禁）。
+        # 但也不能像从前那样只记 WARN —— 默认模式下 warns 不影响退出码，
+        # 于是「最需要这条防线的场景」恰恰是它静默失效的场景。
+        #
+        # 处置：默认仍为 WARN，但**提升可见性**；当显式声明"本环境应当有它"
+        # （--require-private 或环境变量 ADAPTER_REQUIRE_PRIVATE=1）时判 ERROR。
+        # 发版 runbook / CI / 主工作区应带 --require-private。
+        msg = f"私有仓库工作副本不存在，跳过双落点校验: {private_dir}"
+        if args.require_private or os.environ.get("ADAPTER_REQUIRE_PRIVATE") == "1":
+            errors.append(f"{msg}（已声明 --require-private，缺失即为失败）")
+        else:
+            warns.append(msg)
+        dual_skipped = True
 
     # ---- 3. 孤儿适配器（未被内置索引 school_index.pb 引用）----
     orphans: list[str] = []
@@ -360,6 +382,7 @@ def main() -> int:
         "dangerous_api": dangerous_hits,
         "orphans": orphans,
         "dual_location": dual,
+        "dual_skipped": dual_skipped,
         "errors": errors,
         "warnings": warns,
         "strict": args.strict,

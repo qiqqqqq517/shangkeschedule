@@ -121,13 +121,22 @@ rm -f "$(git rev-parse --git-dir)/shangke-forbidden.tmp"
 ADAPTER_TOUCHED="$(echo "$STAGED" | grep -E '^(shared/assets/offline_repo/|\.adapter_private/|adapter-worker/)' || true)"
 if [ -n "$ADAPTER_TOUCHED" ]; then
   echo "[adapters] 检测到适配脚本改动，运行适配置体检（--skip-node）..." >&2
-  "$PY" scripts/check_adapters.py --skip-node
+  # --require-private：**改了适配脚本却没有私有仓库工作副本**时直接拦截。
+  #
+  # 背景（2026-10-04 OTA 事故的核心防线）：
+  #   双落点校验（主仓库 ↔ 私有仓一致性）只有在 .adapter_private 存在时才运行；
+  #   缺失时旧版脚本只记 WARN，而 WARN 默认不影响退出码 ⇒ 门禁静默变绿。
+  #   而「新 worktree / 未 clone 私有仓库」恰恰是最需要这条防线的场景：
+  #   远端比包内旧 ⇒ AdapterRemoteUpdater.sync() 用旧版覆盖包内新脚本，
+  #   症状为「原有功能正常、本次新增功能全失效」，极难排查。
+  # 因此：一旦本次提交**确实改了适配脚本**，就要求私有仓库必须在场。
+  "$PY" scripts/check_adapters.py --skip-node --require-private
   ADSTATUS=$?
   if [ "$ADSTATUS" -ne 0 ]; then
     echo "" >&2
     echo "[adapters] 提交被拦截：教务适配脚本存在 ERROR（见上方明细）。" >&2
     echo "  看完整报告（含 node 语法校验）：python scripts/check_adapters.py" >&2
-    echo "  本次跳过  ：git commit --no-verify" >&2
+    echo "  若本机确实拿不到私有仓库（未 clone）：git commit --no-verify" >&2
     exit 1
   fi
 fi
