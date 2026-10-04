@@ -37,6 +37,13 @@ import kotlinx.coroutines.launch
 
 /**
  * JS Bridge 消息处理器，负责路由通信请求并与 Native 业务及 UI 进行交互。
+ *
+ * @param onAdapterScanDelivered 适配脚本钩子回传抓取结果时的回调（成绩 / 空教室 / 学业）。
+ *   三个动作分别以 [AdapterScanActions] 中的常量作为 key；载荷是钩子返回值的
+ *   Base64(JSON) 原文，由调用方（WebViewScreen）按用途各自的模型解析 ——
+ *   解析失败与「钩子没适配」都表现为空结果，调用方据此回落到通用脚本。
+ * @param onAdapterScanFailed 适配脚本钩子抛错时的回调：调用方据此回落通用脚本，
+ *   而不是把「本校钩子坏了」直接报成失败（通用脚本往往仍能认出同一张表）。
  */
 class WebBridgeHandler(
     private val coroutineScope: CoroutineScope,
@@ -44,7 +51,9 @@ class WebBridgeHandler(
     private val courseConversionRepository: CourseConversionRepository,
     private val onTaskCompleted: () -> Unit,
     private val evaluateJs: (script: String, callback: ((String?) -> Unit)?) -> Unit,
-    private val onImportStateChanged: (ImportRunState) -> Unit = {}
+    private val onImportStateChanged: (ImportRunState) -> Unit = {},
+    private val onAdapterScanDelivered: (action: String, base64Json: String) -> Unit = { _, _ -> },
+    private val onAdapterScanFailed: (action: String) -> Unit = {}
 ) {
     private val json = CourseImportExport.json
     private var importTableId: String? = null
@@ -54,6 +63,20 @@ class WebBridgeHandler(
 
     /** 弹窗事件序号，单调递增，保证 UI 层可以稳定区分前后两个弹窗。 */
     private var nextEventId = 0L
+
+    /**
+     * 正在等待结果的适配脚本钩子（成绩 / 空教室 / 学业）。
+     *
+     * 作用只有一个：钩子抛错时让 [reportAdapterError] 知道「这条错误属于某个
+     * 扫描动作」，从而回落通用脚本而不是弹「适配脚本出错」。
+     * 一次只会有一个扫描在跑（按钮在运行期间被禁用），因此用集合而不是队列。
+     */
+    private val pendingScanActions = mutableSetOf<String>()
+
+    /** 标记开始等待某个钩子的结果；投递成功或失败后自动清除。 */
+    fun beginAdapterScan(action: String) {
+        pendingScanActions.add(action)
+    }
 
     /**
      * 导入看门狗。仅在「已注入脚本但一条桥接消息都没收到」时触发，
@@ -227,6 +250,13 @@ class WebBridgeHandler(
 
                 "reportAdapterError" -> parsePayload<ReportErrorPayload>(message.payload)?.let {
                     reportAdapterError(it)
+                }
+
+                AdapterScanActions.GRADES,
+                AdapterScanActions.EMPTY_CLASSROOMS,
+                AdapterScanActions.STUDY -> parsePayload<AdapterScanPayload>(message.payload)?.let {
+                    pendingScanActions.remove(message.action)
+                    onAdapterScanDelivered(message.action, it.dataJsonString)
                 }
 
                 "notifyTaskCompletion" -> notifyTaskCompletion()
@@ -504,6 +534,10 @@ class WebBridgeHandler(
      *
      * 只有在一次导入确实运行中时才提示用户并复位按钮；用户单纯浏览教务页面时，
      * 页面自身的报错只写日志，避免刷屏。
+     *
+     * 适配脚本钩子（成绩 / 空教室 / 学业）抛错时**不**走用户提示：调用方会回落到
+     * 内置通用脚本，多数情况下仍能认出同一张表，此时弹「适配脚本出错」只会误导
+     * （用户以为学校没适配，实际是钩子过时、通用解析依然可用）。
      */
     private fun reportAdapterError(payload: ReportErrorPayload) {
         coroutineScope.launch(Dispatchers.Main) {
@@ -519,7 +553,15 @@ class WebBridgeHandler(
                 "适配脚本错误上报 kind=${payload.kind} message=${payload.message}"
             )
 
-            if (importState is ImportRunState.Running) {
+            // 钩子失败：先告诉调用方去回落通用脚本，再决定要不要给用户提示。
+            val handledByScan = pendingScanActions.isNotEmpty()
+            if (handledByScan) {
+                val action = pendingScanActions.first()
+                pendingScanActions.clear()
+                onAdapterScanFailed(action)
+            }
+
+            if (!handledByScan && importState is ImportRunState.Running) {
                 // 一次会话只报第一条失败，避免与脚本自己的 catch 提示互相覆盖
                 notifyImportFailure(text)
                 updateImportState(ImportRunState.Failed(text))

@@ -1364,6 +1364,14 @@
     <string name="empty_classroom_copy">Copy all</string>
     <string name="empty_classroom_copied">Copied to clipboard</string>
     <string name="empty_classroom_capacity">%1$d seats</string>
+    <!-- v4.73.0: study progress (curriculum credit requirements) import -->
+    <string name="study_import_entry">Import curriculum from portal</string>
+    <string name="study_import_entry_desc">Connect to your school portal and read the required credits per category</string>
+    <string name="study_import_recognize">Read curriculum credit requirements</string>
+    <string name="study_import_reading">Reading curriculum…</string>
+    <string name="study_import_success">Imported credit requirements for %1$d categories</string>
+    <string name="study_import_no_adapter">Your school is not adapted for curriculum import yet. You can enter credit requirements manually on the Study progress page.</string>
+    <string name="study_import_no_result">No curriculum credit requirements found. Make sure the current page is your school's curriculum or credit summary page.</string>
     <string name="title_course_notes">Class notes</string>
     <string name="desc_course_notes">Notes per class session, with board photos. Deleted together with the course.</string>
     <string name="note_new">New note</string>

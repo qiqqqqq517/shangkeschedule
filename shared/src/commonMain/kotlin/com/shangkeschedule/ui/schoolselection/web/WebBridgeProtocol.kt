@@ -69,6 +69,60 @@ data class SaveTimeSlotsPayload(
 )
 
 /**
+ * 「适配脚本回传抓取结果」的统一载荷（成绩 / 空教室 / 学业情况三种钩子共用）。
+ *
+ * [dataJsonString] 是钩子返回值的 JSON 串原文，由 Native 侧按用途各自的模型解析：
+ * - 成绩：[ScannedGradePayload] 数组；
+ * - 空教室：与 [EmptyClassroomRoom] 同形的对象数组；
+ * - 学业：[ScannedStudyPayload] 对象。
+ *
+ * 为什么不在钩子侧就解析成强类型再逐个字段回传：三种用途的字段差异很大，
+ * 且真正的模型定义在 Native（Kotlin）侧，保持「JS 只搬运 JSON、Native 负责解释」
+ * 这条既有分工，接入新钩子时不必改协议。
+ */
+@Serializable
+data class AdapterScanPayload(
+    val dataJsonString: String = ""
+)
+
+/**
+ * 适配脚本钩子「识别本页成绩」回传的单条成绩。
+ *
+ * 比通用脚本 [ScannedGrade] 多两个字段，因为**适配脚本知道学校自己的表结构**：
+ * - [semester]：本校成绩页的学期（如「2024-2025-1」）。通用脚本一律落到「未标注学期」，
+ *   适配脚本能把真实学期带回来，用户不必逐条改；
+ * - [category]：课程性质（必修 / 选修 / 通识…），学业情况页按它分类统计学分，
+ *   通用脚本只能读表里恰好有的「性质」列。
+ */
+@Serializable
+data class ScannedGradePayload(
+    val courseName: String = "",
+    val credit: Double? = null,
+    val scoreText: String = "",
+    val semester: String? = null,
+    val category: String? = null
+)
+
+/**
+ * 适配脚本钩子「识别学业情况」回传的培养方案学分要求。
+ *
+ * 只有「要求」是学校侧的事实（培养方案规定的各类别应修学分），
+ * 「已获学分」永远由本机成绩表现算（见 `GradeRepository.computeStudyProgress`），
+ * 因此钩子**不回传已修学分**——两份数据算学分必然打架。
+ */
+@Serializable
+data class ScannedStudyPayload(
+    val requirements: List<ScannedStudyRequirementPayload> = emptyList()
+)
+
+/** 单条培养方案学分要求。 */
+@Serializable
+data class ScannedStudyRequirementPayload(
+    val category: String = "",
+    val requiredCredits: Double = 0.0
+)
+
+/**
  * 适配脚本错误上报。
  *
  * [kind] 取值：`adapter`（适配脚本自行抛出/Promise 拒绝）、`error`（window 未捕获异常）、
@@ -742,6 +796,119 @@ val JS_SCAN_GRADES = """
     }
 })();
 """.trimIndent()
+
+/**
+ * 适配脚本钩子名称：由适配脚本自行声明，返回本校的成绩 / 空教室 / 学业情况。
+ *
+ * 命名与既有的 `window.shangkeNavigateToTimetable` / `shangkeNavigateToEmptyClassroom`
+ * 保持一致（`shangke` 前缀 + 动词短语），避免与教务页自身的全局函数撞名。
+ */
+object AdapterHooks {
+    /** 识别本页成绩：`function () => Promise|Array<ScannedGradePayload>`。 */
+    const val SCAN_GRADES = "shangkeScanGrades"
+
+    /** 读取本页空教室：`function () => Promise|Array<EmptyClassroomRoom>`。 */
+    const val SCAN_EMPTY_CLASSROOMS = "shangkeScanEmptyClassrooms"
+
+    /** 识别学业情况（培养方案学分要求）：`function () => Promise|ScannedStudyPayload`。 */
+    const val SCAN_STUDY = "shangkeScanStudy"
+}
+
+/** 三个钩子各自对应的 JS→Native 投递动作名（与 [WebBridgeHandler.onMessageReceived] 对齐）。 */
+object AdapterScanActions {
+    const val GRADES = "deliverAdapterGrades"
+    const val EMPTY_CLASSROOMS = "deliverAdapterEmptyClassrooms"
+    const val STUDY = "deliverAdapterStudy"
+}
+
+/**
+ * 探测适配脚本是否声明了某个钩子，返回 `'present'` / `'missing'`。
+ *
+ * 为什么要先探测而不是直接注入调用：钩子是**可选**的（195 个适配脚本里绝大多数没有），
+ * 直接调用会在页面上抛 `undefined is not a function`，而这类异常会被
+ * `reportScriptError` 捕获并弹「适配脚本出错」，把「本校没适配」误报成「脚本坏了」。
+ *
+ * @param adapterJsCode 适配脚本源码；探测时一并注入，注入是幂等的（脚本自带 IIFE 守卫）。
+ * @param hookName [AdapterHooks] 中的钩子名。
+ */
+fun buildAdapterHookProbeScript(adapterJsCode: String, hookName: String): String {
+    val safeHook = bridgeJson.encodeToString(hookName)
+    return """
+    $adapterJsCode
+    ;(function () {
+        try {
+            return typeof window[$safeHook] === 'function' ? 'present' : 'missing';
+        } catch (e) {
+            return 'missing';
+        }
+    })();
+    """.trimIndent()
+}
+
+/**
+ * 组装「调用适配脚本钩子并回传结果」的注入脚本。
+ *
+ * 钩子允许是异步的（适配脚本多半要 `fetch` 本校接口），因此这里统一用
+ * `Promise.resolve(...)` 包一层：同步返回值与 Promise 走同一条路径。
+ * 结果经 [AdapterScanActions] 对应的动作回传 Native —— 复用既有的桥接管道，
+ * 而不是让 Native 侧轮询全局变量或依赖 `evaluateJavascript` 的同步返回值
+ * （后者对 Promise 只会拿到 `{}`，是这条链路最容易踩的坑）。
+ *
+ * 钩子抛错 / Promise 拒绝时回传一条 `reportAdapterError`，由 Native 侧
+ * 按既有逻辑提示用户并回落到通用脚本。
+ *
+ * @param adapterJsCode 适配脚本源码。
+ * @param hookName [AdapterHooks] 中的钩子名。
+ * @param action [AdapterScanActions] 中对应的投递动作名。
+ */
+fun buildAdapterHookInvokeScript(
+    adapterJsCode: String,
+    hookName: String,
+    action: String
+): String {
+    val safeHook = bridgeJson.encodeToString(hookName)
+    val safeAction = bridgeJson.encodeToString(action)
+    return """
+    $adapterJsCode
+    ;(function () {
+        function post(action, payload) {
+            try {
+                var msg = JSON.stringify({
+                    action: action,
+                    callbackId: null,
+                    payload: JSON.stringify(payload)
+                });
+                if (window._shangkeNativeBridge && typeof window._shangkeNativeBridge.postMessage === 'function') {
+                    window._shangkeNativeBridge.postMessage(msg);
+                }
+            } catch (e) {
+            }
+        }
+        function toBase64(str) {
+            var bytes = new TextEncoder().encode(str);
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            var out = '';
+            for (var i = 0; i < bytes.length; i += 3) {
+                var b0 = bytes[i];
+                var b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+                var b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+                out += chars[b0 >> 2];
+                out += chars[((b0 & 3) << 4) | (b1 >> 4)];
+                out += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+                out += i + 2 < bytes.length ? chars[b2 & 63] : '=';
+            }
+            return out;
+        }
+        try {
+            Promise.resolve(window[$safeHook]())
+                .then(function (result) { post($safeAction, { dataJsonString: toBase64(JSON.stringify(result === undefined ? null : result)) }); })
+                .catch(function (error) { post('reportAdapterError', { kind: 'adapter', message: String(error && error.message ? error.message : error), stack: '' }); });
+        } catch (e) {
+            post('reportAdapterError', { kind: 'adapter', message: String(e && e.message ? e.message : e), stack: '' });
+        }
+    })();
+    """.trimIndent()
+}
 
 /**
  * 「定位空教室查询页」注入脚本。

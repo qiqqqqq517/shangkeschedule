@@ -167,7 +167,14 @@ sealed interface Destination : NavKey {
     // --- 动态传参页面 ---
     @Serializable
     data class AdapterSelection(
-        val schoolId: String,
+        /**
+         * 目标学校的**全部**索引记录 id（v4.73.0）。
+         *
+         * 同一所学校在索引里可能有本科、研究生两条独立记录（各有各的
+         * `resource_folder` 与适配器），选校页已按校名合并为一行；此处把组内所有 id
+         * 一并传下去，二级页才能把两类适配器一起列出。绝大多数学校只有 1 个 id。
+         */
+        val schoolIds: List<String>,
         val schoolName: String,
         /**
          * 分类口径：`SchoolCategoryTab` 的 ordinal（v4.70.0 起本科/专科与研究生合并为
@@ -177,7 +184,6 @@ sealed interface Destination : NavKey {
          * 改为「分类口径」，改名只为让代码自洽，不改动已保存返回栈的解码。
          */
         @SerialName("categoryNumber") val tabNumber: Int,
-        val resourceFolder: String,
         /** 用途，原样透传给 [WebView.mode]，保证「导入课表」与「抓取成绩」走各自的脚本。 */
         val purpose: String = WebPagePurpose.COURSE
     ) : Destination
@@ -192,8 +198,11 @@ sealed interface Destination : NavKey {
          * - [WebPagePurpose.COURSE]（默认）：注入适配仓库里该学校的适配脚本，抓取课表；
          * - [WebPagePurpose.GRADE]：注入应用内置的通用成绩表格识别脚本，抓取成绩；
          * - [WebPagePurpose.CERT]：纯浏览器模式（考证查分等），不注入脚本、不显示识别按钮；
-         * - [WebPagePurpose.EMPTY_CLASSROOM]：注入应用内置的通用空教室表格识别脚本，
-         *   定位并读取教务页里的空教室查询结果。
+         * - [WebPagePurpose.EMPTY_CLASSROOM]：定位空教室页并读取空教室结果；
+         * - [WebPagePurpose.STUDY]：读取培养方案学分要求（走适配脚本钩子）。
+         *
+         * 三种抓取用途（GRADE / EMPTY_CLASSROOM / STUDY）都会先试适配脚本钩子，
+         * 钩子缺失或失败时成绩与空教室回落内置通用脚本，学业则明确提示未适配。
          */
         val mode: String = WebPagePurpose.COURSE
     ) : Destination
@@ -234,8 +243,20 @@ object WebPagePurpose {
     /**
      * 空教室查询（v4.66.0）：底部显示「定位空教室页 / 读取本页空教室」，
      * 由应用内置的通用脚本解析教务页里的空教室结果表，识别结果可一键复制。
+     *
+     * v4.73.0 起，成绩 / 空教室 / 学业三个用途都会**先尝试适配脚本钩子**
+     * （`window.shangkeScanEmptyClassrooms` 等），钩子缺失或失败时再回落内置通用脚本。
      */
     const val EMPTY_CLASSROOM = "EMPTY_CLASSROOM"
+
+    /**
+     * 学业情况（v4.73.0）：底部显示「读取培养方案学分要求」，向适配脚本钩子
+     * `window.shangkeScanStudy()` 要各类别的应修学分。
+     *
+     * 这个用途**没有通用回落脚本**：培养方案格式各校千差万别，硬猜出来的要求学分
+     * 比没有更糟（用户会照着错的要求规划选课），所以钩子缺失时明确提示未适配。
+     */
+    const val STUDY = "STUDY"
 }
 
 /**

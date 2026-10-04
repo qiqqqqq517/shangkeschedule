@@ -85,6 +85,11 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
 | `saveCourseConfig` | 保存课表配置 | `{ semesterStartDate, ... }` |
 | `savePresetTimeSlots` | 保存作息 | `{ timeSlots[] }` |
 | `notifyTaskCompletion` | 任务完成 | `{ success, message }` |
+| `deliverAdapterGrades` | **钩子回传**成绩扫描结果 | `{ dataJsonString }`（Base64(JSON)，见下节） |
+| `deliverAdapterEmptyClassrooms` | **钩子回传**空教室扫描结果 | 同上 |
+| `deliverAdapterStudy` | **钩子回传**学业情况扫描结果 | 同上 |
+
+> 后三个动作**不需要适配脚本手写**：声明钩子后由 App 注入的调用脚本负责拼装与发送（见「能力钩子」）。
 
 ### 课程 JSON 格式
 
@@ -101,6 +106,147 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
   "remark": ""
 }
 ```
+
+## 能力钩子（成绩 / 空教室 / 学业情况）
+
+课表导入之外，App 还有三个**抓取用途**：成绩与绩点、空教室查询、学业情况。
+它们过去只跑 App 内置的通用脚本（按表头猜列），**学校层无法参与**。
+
+适配脚本可以通过在 `window` 上声明同名函数来接管其中任意一个 —— 这就是「钩子」。
+声明是可选的：不声明就自动回落通用脚本（学业情况除外，见下）。
+
+| 钩子名 | 用途 | 返回值 |
+|---|---|---|
+| `window.shangkeScanGrades` | 识别成绩 | `Array<GradeItem>` 或 Promise |
+| `window.shangkeScanEmptyClassrooms` | 读取空教室 | `Array<RoomItem>` 或 Promise |
+| `window.shangkeScanStudy` | 读取培养方案学分要求 | `{ requirements: Requirement[] }` 或 Promise |
+
+**统一规则**：
+
+1. **可以返回 Promise** —— 钩子里直接 `fetch` 本校接口是最推荐的写法（不受页面是否已渲染影响），
+   结果由 App 自动经桥接回传，脚本**不需要**自己调 `postMessage`；
+2. **不声明就回落**：`shangkeScanGrades` / `shangkeScanEmptyClassrooms` 缺失、抛错、或返回空数组时，
+   App 自动改用内置通用脚本（按表头解析）；
+3. **`shangkeScanStudy` 没有通用回落**：培养方案格式各校千差万别，硬猜出来的要求学分比没有更糟
+   （用户会照着错的要求规划选课），因此缺失时 App 明确提示「本校暂未适配」；
+4. **不能引入顶层副作用**：三个用途也会注入本文件，若顶层无条件启动课表导入，
+   用户一打开成绩页就会弹出导入对话框（见下「自启动守卫」）。
+
+### `shangkeScanGrades` → `Array<GradeItem>`
+
+```json
+[
+  {
+    "courseName": "大学物理B（一）",
+    "credit": 3,
+    "scoreText": "90",
+    "semester": "2025-2026-2",
+    "category": "必修"
+  }
+]
+```
+
+| 字段 | 类型 | 约定 |
+|---|---|---|
+| `courseName` | string | 必填，空则该项被丢弃 |
+| `credit` | number \| null | 学分；拿不到填 `null`，**不要填 0**（0 会拉低学分统计） |
+| `scoreText` | string | 必填，空则该项被丢弃。数字成绩优先（便于算平均分 / 绩点），等级制课程填「优秀 / 良好 / 及格」 |
+| `semester` | string \| null | **本校真实学期**（如 `2025-2026-1`）。通用脚本拿不到学期，一律落到「未标注学期」；钩子能给就必须给 |
+| `category` | string \| null | 课程性质（必修 / 选修 / 通识教育选修…），学业情况页按它分类统计学分 |
+
+> ⚠️ **学期务必用显示值而非接口的学期编码**。正方教务 V9 的 `xqm` 是内部编码
+> （实测 `xqm=3` = 第 **1** 学期、`xqm=12` = 第 2 学期），直接回传编码会把「第 1 学期」
+> 写成「第 3 学期」，且用户极难发现。取接口返回的 `xnmmc` + `xqmmc` 拼接。
+
+### `shangkeScanEmptyClassrooms` → `Array<RoomItem>`
+
+```json
+[
+  {
+    "room": "18-C610生科微格",
+    "campus": "啬园校区",
+    "building": "",
+    "capacity": 40,
+    "freeSlots": "多媒体微格教室"
+  }
+]
+```
+
+| 字段 | 类型 | 约定 |
+|---|---|---|
+| `room` | string | 必填，教室名，空则该项被丢弃 |
+| `campus` | string | 校区 |
+| `building` | string | 楼栋；**「无楼号」这类占位文本要归一成空串**，否则会拼进展示串 |
+| `capacity` | number \| null | 座位数 |
+| `freeSlots` | string | 可用时段 / 场地类别等补充说明 |
+
+> 空教室是即时信息，**不落库**：结果只在弹窗里展示、支持一键复制。
+
+### `shangkeScanStudy` → `{ requirements: Requirement[] }`
+
+```json
+{
+  "requirements": [
+    { "category": "通识教育课程平台/必修", "requiredCredits": 41 },
+    { "category": "通识教育课程平台/选修", "requiredCredits": 6 }
+  ]
+}
+```
+
+| 字段 | 类型 | 约定 |
+|---|---|---|
+| `category` | string | 类别 key，**必须与本机成绩的 `category` 对得上**，否则学分归不进该类 |
+| `requiredCredits` | number | 培养方案要求的学分，`> 0` 才生效 |
+
+四条硬约束：
+
+1. **只回传「要求」，绝不回传「已获学分」**。已获学分一律由 App 按本机成绩表现算
+   （`GradeRepository.computeStudyProgress`）。学校页面的「获得学分」与本机成绩表的统计口径
+   必然不一致（是否含重修、是否含未出分课程），两份数据一起用必然打架。
+2. **只回传叶子类别，不要回传平台 / 汇总行**。培养方案页通常是「平台 → 必修 | 选修」两级，
+   若平台行与子行都回传，同一个平台会被算两遍
+   （实测南通大学：11 条全传得 **310** 学分，只传叶子才是真实的 **172**）。
+   注意 `li.querySelectorAll()` 返回的是**全部后代**而非直接子级，
+   用「递归下行 + 总遍历」的实现会重复访问同一行（实测会报出双份），
+   正确做法是**单趟遍历所有行**，逐行判断「它是否还有后代带要求学分」。
+3. **类别名各校写法不同，不要靠固定关键词识别**：南通大学写
+   `通识教育课程平台要求学分:47.0` + 子行 `必修课程要求学分:41.0`；
+   江苏科技大学直接写 `通识教育基础课程-必修要求学分:61.0`（**没有「课程平台」字样**）。
+   按「课程平台」写正则会在一整类学校上产出 0 条。
+   建议：类别名取行首原文，仅当名称是无区分度的通用名
+   （`必修课程`/`选修课程`/`任选课程`/`限选课程`）时才用平台名做前缀消歧 ——
+   南通大学四个平台各有一条 `必修课程`，不加前缀会合并成一个数字
+   （41 + 11 + 69 + 37），完全失去意义。
+4. **不要事后归一类别名**：App 侧按类别名**精确匹配**成绩的 `category`
+   统计已获学分，改名会让已获学分归零。用页面上怎么写就怎么传。
+
+App 侧写入是**合并而非覆盖**：学校培养方案里出现的类别以学校为准，
+其余保留用户已手工填写的设置。
+
+### 自启动守卫（三个抓取用途的必需项）
+
+钩子要求本文件在**成绩页 / 空教室页 / 学业情况页**也被注入 —— 这些都不是课表页。
+因此**顶层无条件启动导入的脚本必须加页面判定**，否则用户一打开成绩页就会弹出
+「课表导入」对话框，并因当前页没有课表而失败：
+
+```js
+function isTimetablePage() {
+    const path = window.location.pathname;
+    if (/\/kbcx\/xskbcx/i.test(path) || /\/kbdy\/bjkbdy/i.test(path)) return true;
+    const action = document.querySelector("#ajaxForm")?.getAttribute("action") || "";
+    return /xskbcx_cxXskbcxIndex|bjkbdy_cxBjkbdyIndex/i.test(action);
+}
+
+if (isTimetablePage()) runImport();
+```
+
+> 只影响「页面加载时自动跑」这一条路径；用户点「执行导入」的显式路径行为不变。
+
+### 参考实现
+
+`resources/NTU/ntu.js`（南通大学 · 正方教务 V9）是本标准的参考实现，三个钩子齐全，
+**接口地址与字段均经真实登录会话实测**（非按教务系统惯例推测）。写同平台脚本时直接参照它，
+避免重复踩坑。
 
 ## 通用工具库 API
 

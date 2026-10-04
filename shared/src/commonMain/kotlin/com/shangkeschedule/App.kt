@@ -627,7 +627,7 @@ fun ScreenContent(
         )
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(
-            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.tabNumber, targetDest.resourceFolder,
+            onNavigate, onBack, targetDest.schoolIds, targetDest.schoolName, targetDest.tabNumber,
             purpose = targetDest.purpose
         )
         is Destination.WebView -> WebViewScreen(

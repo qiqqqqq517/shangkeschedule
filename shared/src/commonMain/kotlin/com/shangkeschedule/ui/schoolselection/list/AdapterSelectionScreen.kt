@@ -60,6 +60,18 @@ import shangkeschedule.shared.generated.resources.text_no_adapter_for_category_s
 import shangkeschedule.shared.generated.resources.text_no_detailed_description
 
 /**
+ * 一条待展示的适配器 + 它**自己那条索引记录**的资源目录（v4.73.0）。
+ *
+ * 为什么必须逐条带目录：同一所学校的本科与研究生记录分属不同 `resource_folder`
+ * （南开：本科 `qiangzhi/`、研究生 `NANKAI_YJS/`），而适配脚本路径按
+ * `<resource_folder>/<脚本名>` 拼接 —— 用统一目录会让其中一半指向不存在的路径。
+ */
+data class AdapterWithFolder(
+    val adapter: Adapter,
+    val resourceFolder: String
+)
+
+/**
  * 需要强制以「电脑版」进入的学校 ID 集合。
  *
  * 这些学校的教务 / 门户页面是**固定宽度的桌面布局**，在手机 UA + `width=device-width` 视口下会被压扁，
@@ -89,26 +101,28 @@ private val FORCE_DESKTOP_MODE_SCHOOL_IDS = setOf(
 )
 
 /**
- * 二级页面：显示特定学校和当前分类口径下的所有适配器列表。
+ * 二级页面：显示某所学校在当前分类口径下的所有适配器。
  *
- * v4.70.0：「教务系统」口径覆盖本科/专科与研究生，这两类适配器在**同一页**一起列出
- * （此前按单个类别过滤，选错分类就看不到另一类适配器），标题只显示学校名。
+ * v4.70.0：「教务系统」口径覆盖本科/专科与研究生，这两类适配器在**同一页**一起列出。
+ * v4.73.0：改收 [schoolIds]（**全部**索引记录 id）而非单个 id —— 同一所学校在索引里
+ * 可能拆成本科、研究生两条记录，合并成一行后要把两边的适配器一起列出来；
+ * 且每条适配器要用**它自己那条记录**的 `resource_folder` 拼脚本路径（南开本科是
+ * `qiangzhi/`、研究生是 `NANKAI_YJS/`，用同一个目录必然有一半找不到脚本）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdapterSelectionScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    schoolId: String,
+    schoolIds: List<String>,
     schoolName: String,
     tabNumber: Int,
-    resourceFolder: String,
     /** 用途（COURSE = 导入课表 / GRADE = 抓取成绩 / EMPTY_CLASSROOM = 查询空教室），原样透传给内嵌 WebView。 */
     purpose: String = WebPagePurpose.COURSE,
     viewModel: SchoolSelectionViewModel = koinViewModel()
 ) {
     // 异步加载状态
-    var adapters by remember { mutableStateOf<List<Adapter>>(emptyList()) }
+    var adapters by remember { mutableStateOf<List<AdapterWithFolder>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     // 区分「加载失败」与「该分类下确实没有适配器」（v3.54.0）：失败给重试入口
     var loadFailed by remember { mutableStateOf(false) }
@@ -125,12 +139,12 @@ fun AdapterSelectionScreen(
         }
     }
 
-    // 数据加载逻辑
-    LaunchedEffect(schoolId, currentTab, retryKey) {
+    // 数据加载逻辑：跨该校的每条索引记录汇总，每条适配器带上自己那条记录的资源目录
+    LaunchedEffect(schoolIds, currentTab, retryKey) {
         isLoading = true
         loadFailed = false
         try {
-            adapters = viewModel.getAdaptersForSchoolInTab(schoolId, currentTab)
+            adapters = viewModel.adaptersWithFolders(schoolIds, currentTab)
         } catch (e: Exception) {
             adapters = emptyList()
             loadFailed = true
@@ -188,9 +202,9 @@ fun AdapterSelectionScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                     ) {
-                        items(adapters, key = { it.adapter_id }) { adapter ->
+                        items(adapters, key = { it.adapter.adapter_id }) { item ->
                             AdapterCard(
-                                adapter = adapter,
+                                adapter = item.adapter,
                                 onClick = { selectedAdapter ->
                                     val rawUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
                                     // 学校数据中的 import_url 可能不带协议（如 ehall.szit.edu.cn/...），
@@ -207,18 +221,21 @@ fun AdapterSelectionScreen(
                                     }
                                     val jsFileName = selectedAdapter.asset_js_path
 
-                                    // 构建正确的 JS 路径
+                                    // v4.73.0：脚本路径必须用**该适配器自己那条索引记录**的
+                                    // resource_folder，不能用入参的 resourceFolder —— 后者是主
+                                    // 记录（本科那条）的目录，用它拼研究生适配器会指向
+                                    // 不存在的路径，报「适配脚本文件不存在」。
                                     val assetJsPath = if (jsFileName.isNotBlank()) {
-                                        "$resourceFolder/$jsFileName"
+                                        "${item.resourceFolder}/$jsFileName"
                                     } else {
-                                        "$resourceFolder/${selectedAdapter.adapter_id}.js"
+                                        "${item.resourceFolder}/${selectedAdapter.adapter_id}.js"
                                     }
                                     onNavigate(
                                         Destination.WebView(
                                             initialUrl = initialUrl,
                                             assetJsPath = assetJsPath,
                                             // 名单与判定理由见文件顶部 FORCE_DESKTOP_MODE_SCHOOL_IDS
-                                            forceDesktopMode = schoolId in FORCE_DESKTOP_MODE_SCHOOL_IDS,
+                                            forceDesktopMode = schoolIds.any { it in FORCE_DESKTOP_MODE_SCHOOL_IDS },
                                             mode = purpose
                                         )
                                     )

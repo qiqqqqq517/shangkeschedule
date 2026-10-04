@@ -43,6 +43,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +62,9 @@ import com.shangkeschedule.data.parser.formatEmptyClassroomLine
 import com.shangkeschedule.data.parser.formatEmptyClassroomText
 import com.shangkeschedule.data.repository.CourseConversionRepository
 import com.shangkeschedule.data.repository.GradeRepository
+import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.model.CreditRequirement
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppErrorState
@@ -116,6 +121,11 @@ import shangkeschedule.shared.generated.resources.empty_classroom_locate_not_fou
 import shangkeschedule.shared.generated.resources.empty_classroom_no_result
 import shangkeschedule.shared.generated.resources.empty_classroom_scan
 import shangkeschedule.shared.generated.resources.empty_classroom_scanning
+import shangkeschedule.shared.generated.resources.study_import_no_adapter
+import shangkeschedule.shared.generated.resources.study_import_no_result
+import shangkeschedule.shared.generated.resources.study_import_reading
+import shangkeschedule.shared.generated.resources.study_import_recognize
+import shangkeschedule.shared.generated.resources.study_import_success
 import shangkeschedule.shared.generated.resources.grade_import_no_result
 import shangkeschedule.shared.generated.resources.grade_import_recognize
 import shangkeschedule.shared.generated.resources.grade_import_success
@@ -195,6 +205,7 @@ fun WebViewScreen(
     val isCourseMode = mode == WebPagePurpose.COURSE
     val isGradeMode = mode == WebPagePurpose.GRADE
     val isEmptyClassroomMode = mode == WebPagePurpose.EMPTY_CLASSROOM
+    val isStudyMode = mode == WebPagePurpose.STUDY
     val toastGradeNoResult = stringResource(Res.string.grade_import_no_result)
     val toastEmptyNoResult = stringResource(Res.string.empty_classroom_no_result)
     val toastEmptyLocateFound = stringResource(Res.string.empty_classroom_locate_found)
@@ -207,6 +218,9 @@ fun WebViewScreen(
     // 座位数模板（如「%1$d 人」）：不带参数取回原始模板，交给 data.parser 拼行
     val emptyCapacityPattern = stringResource(Res.string.empty_classroom_capacity)
     val statusReadingEmpty = stringResource(Res.string.empty_classroom_scanning)
+    val toastStudyNoAdapter = stringResource(Res.string.study_import_no_adapter)
+    val toastStudyNoResult = stringResource(Res.string.study_import_no_result)
+    val statusReadingStudy = stringResource(Res.string.study_import_reading)
 
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
     var inputUrl by remember { mutableStateOf(if (startedEmpty) "" else (initialUrl ?: "")) }
@@ -225,6 +239,29 @@ fun WebViewScreen(
     var pendingAdapterJsCode by remember { mutableStateOf<String?>(null) }
     // 成绩识别运行状态：Running 期间禁用按钮，避免重复注入扫描脚本
     var gradeScanRunning by remember { mutableStateOf(false) }
+    // 适配脚本源码：与课表导入共用同一个 assetJsPath，但成绩 / 空教室 / 学业三个
+    // 用途**在打开页面时就读进内存**（导入是点击后才读），因为钩子探测要在用户
+    // 点按钮时立刻可用，不能让读盘失败卡在点击路径上。
+    var adapterJsCode by remember { mutableStateOf<String?>(null) }
+    // 学业识别（培养方案学分要求）运行状态
+    var studyScanRunning by remember { mutableStateOf(false) }
+    // 回落用的脚本引用：钩子结果为空 / 钩子抛错时要能立刻走通用脚本，而通用脚本
+    // 又需要用到挂在下面的状态与仓库实例。用 ref 而不是把逻辑内联进回调，
+    // 是为了让「钩子失败」与「没有钩子」两条路径共用同一段回落代码。
+    val runGenericGradeScanRef = remember { mutableStateOf<((String?) -> Unit)?>(null) }
+    val runGenericEmptyClassroomScanRef = remember { mutableStateOf<(() -> Unit)?>(null) }
+    val commitEmptyClassroomsRef = remember { mutableStateOf<suspend (List<EmptyClassroomRoom>) -> Unit>({}) }
+    LaunchedEffect(assetJsPath) {
+        val jsPath = assetJsPath ?: return@LaunchedEffect
+        val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / jsPath
+        adapterJsCode = runCatching {
+            if (viewModel.fileSystem.exists(jsFilePath)) {
+                viewModel.fileSystem.read(jsFilePath) { readUtf8() }
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
     // 空教室读取运行状态与结果：结果只在内存里（弹窗展示 + 一键复制），不落库
     var emptyScanRunning by remember { mutableStateOf(false) }
     var emptyRooms by remember { mutableStateOf<List<EmptyClassroomRoom>>(emptyList()) }
@@ -237,8 +274,111 @@ fun WebViewScreen(
     val coroutineScope = rememberCoroutineScope()
     val courseConversionRepository: CourseConversionRepository = koinInject()
     val gradeRepository: GradeRepository = koinInject()
+    // 学业情况钩子回传的培养方案学分要求要写进应用设置（与学业情况页同源）
+    val appSettingsRepository: AppSettingsRepository = koinInject()
     val uiEventChannel = remember { Channel<WebUiEvent>(Channel.UNLIMITED) }
     val uiEventsFlow = remember(uiEventChannel) { uiEventChannel.receiveAsFlow() }
+
+    // 成绩落库：三个调用点（钩子回调、通用回落、钩子失败回落）都在协程里，
+    // 且本函数声明在它们之前，因此直接调用即可，不需要 ref 转发。
+    suspend fun commitScannedGrades(
+        items: List<ScannedGrade>,
+        defaultSemester: String
+    ) {
+        gradeRepository.importGrades(
+            items.map { item ->
+                gradeRepository.buildGrade(
+                    semester = item.semester?.trim().takeUnless { it.isNullOrEmpty() } ?: defaultSemester,
+                    courseName = item.courseName,
+                    credit = item.credit,
+                    scoreText = item.scoreText,
+                    source = Grade.SOURCE_IMPORT,
+                    category = item.category
+                )
+            }
+        )
+    }
+
+    // 适配钩子投递结果的处理器：handler 是 remember 出来的、构造时就得拿到回调，
+    // 而回调里要用到的状态（成绩落库 / 弹窗 / 导航）在每次重组都可能变化。
+    // 这里用 rememberUpdatedState 持有**最新的那一份**，既避免重建 handler
+    // （重建会丢掉导入会话状态），又保证回调不读到旧闭包。
+    val onAdapterScanDeliveredState by rememberUpdatedState(
+        newValue = { action: String, base64Json: String ->
+            when (action) {
+                AdapterScanActions.GRADES -> {
+                    coroutineScope.launch {
+                        gradeScanRunning = false
+                        val scanned = decodeScannedGrades(base64Json)
+                        if (scanned.isEmpty()) {
+                            // 钩子返回空（页面没打开成绩页 / 学校接口变了）→ 回落通用脚本，
+                            // 而不是直接报「没识别到」：通用表头解析往往仍能救回来。
+                            runGenericGradeScanRef.value?.invoke("钩子返回空")
+                        } else {
+                            commitScannedGrades(scanned, getString(Res.string.grade_semester_unknown))
+                            ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
+                            onNavigate(Destination.Grade)
+                        }
+                    }
+                }
+
+                AdapterScanActions.EMPTY_CLASSROOMS -> {
+                    coroutineScope.launch {
+                        val scanned = decodeEmptyClassrooms(base64Json)
+                        if (scanned.isEmpty()) {
+                            runGenericEmptyClassroomScanRef.value?.invoke()
+                        } else {
+                            commitEmptyClassroomsRef.value(scanned)
+                        }
+                    }
+                }
+
+                AdapterScanActions.STUDY -> {
+                    coroutineScope.launch {
+                        studyScanRunning = false
+                        val payload = decodeScannedStudy(base64Json)
+                        if (payload == null || payload.requirements.isEmpty()) {
+                            ToastManager.show(toastStudyNoResult)
+                        } else {
+                            appSettingsRepository.mutateCreditRequirements { current ->
+                                // 合并而不是覆盖：用户可能已经手工填过某些类别的要求，
+                                // 学校培养方案里同类别以学校为准，其余保留用户的设置。
+                                val incoming = payload.requirements
+                                    .filter { it.category.isNotBlank() && it.requiredCredits > 0.0 }
+                                val incomingKeys = incoming.map { it.category.trim() }.toSet()
+                                val kept = current.filter { it.category.trim() !in incomingKeys }
+                                kept + incoming.map {
+                                    CreditRequirement(
+                                        category = it.category.trim(),
+                                        requiredCredits = it.requiredCredits
+                                            .coerceIn(0.0, CreditRequirement.MAX_REQUIRED_CREDITS)
+                                    )
+                                }
+                            }
+                            ToastManager.show(
+                                getString(Res.string.study_import_success, payload.requirements.size)
+                            )
+                            onNavigate(Destination.StudyProgress)
+                        }
+                    }
+                }
+            }
+        }
+    )
+    val onAdapterScanFailedState by rememberUpdatedState(
+        newValue = { action: String ->
+            when (action) {
+                AdapterScanActions.GRADES -> runGenericGradeScanRef.value?.invoke("钩子抛错")
+                AdapterScanActions.EMPTY_CLASSROOMS -> runGenericEmptyClassroomScanRef.value?.invoke()
+                // 学业没有通用回落：钩子失败只能如实告知
+                AdapterScanActions.STUDY -> {
+                    studyScanRunning = false
+                    ToastManager.show(toastStudyNoResult)
+                }
+                else -> Unit
+            }
+        }
+    )
 
     val bridgeHandler = remember(coroutineScope, courseConversionRepository, webViewController) {
         WebBridgeHandler(
@@ -278,43 +418,66 @@ fun WebViewScreen(
             evaluateJs = { script, callback ->
                 webViewController.evaluateJavascript(script, callback)
             },
-            onImportStateChanged = { importRunState = it }
+            onImportStateChanged = { importRunState = it },
+            onAdapterScanDelivered = { action, base64Json ->
+                onAdapterScanDeliveredState(action, base64Json)
+            },
+            onAdapterScanFailed = { action -> onAdapterScanFailedState(action) }
         )
     }
 
     /**
-     * 成绩识别：把内置通用扫描脚本注入当前页面，取回 Base64(JSON) 结果后落库并回到成绩页。
+     * 成绩识别：**优先调用适配脚本钩子** `window.shangkeScanGrades()`，
+     * 钩子缺失 / 抛错 / 返回空时回落到内置通用扫描脚本。
      *
-     * 结果为空（页面不是成绩表 / 表结构识别不了）只提示，不落库 —— 用户可直接退回
-     * 成绩页用「粘贴导入」兜底，不会因为自动识别失败而卡住。
+     * 为什么要有钩子：通用脚本只能按表头猜列，而适配脚本知道本校用的哪个接口——
+     * 南通大学（正方 V9）可以直接按学期调 `xskccjxxhcx` 接口，拿回**真实学期**与
+     * 课程性质，比在 DOM 上猜可靠得多；也顺带解决了「成绩页要逐页翻」的问题。
+     *
+     * 结果为空（页面不是成绩表 / 钩子与通用脚本都认不出）只提示，不落库 ——
+     * 用户可直接退回成绩页用「粘贴导入」兜底，不会因为自动识别失败而卡住。
      */
+    val runGenericGradeScan: (String?) -> Unit = { fallbackReason ->
+        // fallbackReason 只为调试留痕：钩子失败的原因已在 reportAdapterError 里记过日志
+        if (fallbackReason != null) {
+            AppLog.w("WebViewScreen", "成绩钩子不可用（$fallbackReason），回落通用脚本")
+        }
+        webViewController.evaluateJavascript(JS_SCAN_GRADES) { result ->
+            coroutineScope.launch {
+                gradeScanRunning = false
+                val scanned = decodeScannedGrades(result)
+                if (scanned.isEmpty()) {
+                    ToastManager.show(toastGradeNoResult)
+                } else {
+                    commitScannedGrades(scanned, getString(Res.string.grade_semester_unknown))
+                    ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
+                    onNavigate(Destination.Grade)
+                }
+            }
+        }
+    }
+
     val startGradeScan: () -> Unit = {
         if (!gradeScanRunning) {
             gradeScanRunning = true
-            webViewController.evaluateJavascript(JS_SCAN_GRADES) { result ->
-                coroutineScope.launch {
-                    gradeScanRunning = false
-                    val scanned = decodeScannedGrades(result)
-                    if (scanned.isEmpty()) {
-                        ToastManager.show(toastGradeNoResult)
-                    } else {
-                        // 学校成绩页普遍不在一张表里写学期，统一落到「未标注学期」，
-                        // 用户可在成绩页逐条改学期（比猜错学期更安全）
-                        val semester = getString(Res.string.grade_semester_unknown)
-                        gradeRepository.importGrades(
-                            scanned.map { item ->
-                                gradeRepository.buildGrade(
-                                    semester = semester,
-                                    courseName = item.courseName,
-                                    credit = item.credit,
-                                    scoreText = item.scoreText,
-                                    source = Grade.SOURCE_IMPORT,
-                                    category = item.category
-                                )
-                            }
+            val adapterCode = adapterJsCode
+            if (adapterCode == null) {
+                runGenericGradeScan("无适配脚本")
+            } else {
+                webViewController.evaluateJavascript(
+                    buildAdapterHookProbeScript(adapterCode, AdapterHooks.SCAN_GRADES)
+                ) { probe ->
+                    if (probe?.trim('"') == "present") {
+                        bridgeHandler.beginAdapterScan(AdapterScanActions.GRADES)
+                        webViewController.executeScript(
+                            buildAdapterHookInvokeScript(
+                                adapterCode,
+                                AdapterHooks.SCAN_GRADES,
+                                AdapterScanActions.GRADES
+                            )
                         )
-                        ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
-                        onNavigate(Destination.Grade)
+                    } else {
+                        runGenericGradeScan("适配脚本未提供钩子")
                     }
                 }
             }
@@ -322,30 +485,102 @@ fun WebViewScreen(
     }
 
     /**
-     * 读取本页空教室：把内置通用空教室识别脚本注入当前页面，取回 Base64(JSON) 结果后
-     * 弹窗展示并支持一键复制。
+     * 读取本页空教室：**优先调用适配脚本钩子** `window.shangkeScanEmptyClassrooms()`，
+     * 钩子缺失 / 抛错 / 返回空时回落到内置通用识别脚本。
+     *
+     * 钩子能做的事比通用脚本多一整档：通用脚本只能读**用户已经查出来的结果表**，
+     * 而适配脚本可以直接按校区 / 楼栋 / 周次 / 节次调本校接口查询（如南通大学
+     * 正方 V9 的 `kxjsjxqxx` 接口），用户不必先自己在教务页点一遍查询。
+     * 钩子没适配时旧路径完全不变，不构成回归。
      *
      * 与成绩识别不同，这里**不落库**：空教室是即时信息（换一周就作废），
      * 识别为空只提示，用户可在教务页改条件后直接再读一次，不会写脏本机数据。
      */
+    suspend fun commitEmptyClassrooms(scanned: List<EmptyClassroomRoom>) {
+        emptyScanRunning = false
+        if (scanned.isEmpty()) {
+            ToastManager.show(toastEmptyNoResult)
+        } else {
+            emptyRooms = scanned
+            showEmptyRooms = true
+            ToastManager.show(getString(Res.string.empty_classroom_found, scanned.size))
+        }
+    }
+    LaunchedEffect(commitEmptyClassroomsRef) { commitEmptyClassroomsRef.value = ::commitEmptyClassrooms }
+
+    val runGenericEmptyClassroomScan: () -> Unit = {
+        webViewController.evaluateJavascript(JS_SCAN_EMPTY_CLASSROOMS) { result ->
+            coroutineScope.launch { commitEmptyClassrooms(decodeEmptyClassrooms(result)) }
+        }
+    }
     val startEmptyClassroomScan: () -> Unit = {
         if (!emptyScanRunning) {
             emptyScanRunning = true
-            webViewController.evaluateJavascript(JS_SCAN_EMPTY_CLASSROOMS) { result ->
-                coroutineScope.launch {
-                    emptyScanRunning = false
-                    val scanned = decodeEmptyClassrooms(result)
-                    if (scanned.isEmpty()) {
-                        ToastManager.show(toastEmptyNoResult)
+            val adapterCode = adapterJsCode
+            if (adapterCode == null) {
+                runGenericEmptyClassroomScan()
+            } else {
+                webViewController.evaluateJavascript(
+                    buildAdapterHookProbeScript(adapterCode, AdapterHooks.SCAN_EMPTY_CLASSROOMS)
+                ) { probe ->
+                    if (probe?.trim('"') == "present") {
+                        bridgeHandler.beginAdapterScan(AdapterScanActions.EMPTY_CLASSROOMS)
+                        webViewController.executeScript(
+                            buildAdapterHookInvokeScript(
+                                adapterCode,
+                                AdapterHooks.SCAN_EMPTY_CLASSROOMS,
+                                AdapterScanActions.EMPTY_CLASSROOMS
+                            )
+                        )
                     } else {
-                        emptyRooms = scanned
-                        showEmptyRooms = true
-                        ToastManager.show(getString(Res.string.empty_classroom_found, scanned.size))
+                        runGenericEmptyClassroomScan()
                     }
                 }
             }
         }
     }
+
+    /**
+     * 学业情况：**只走适配脚本钩子** `window.shangkeScanStudy()`。
+     *
+     * 与成绩 / 空教室不同，这里没有通用回落脚本：培养方案「各类别应修学分」不存在
+     * 可猜的通用表结构，硬猜出来的数字比没有更糟（用户会照着错的要求规划选课）。
+     * 因此钩子缺失时明确提示「本校暂未适配」，不做假动作。
+     *
+     * 钩子只回传**要求**，已修学分由本机成绩表现算（见 GradeRepository.computeStudyProgress）。
+     */
+    val startStudyScan: () -> Unit = {
+        if (!studyScanRunning) {
+            studyScanRunning = true
+            val adapterCode = adapterJsCode
+            if (adapterCode == null) {
+                studyScanRunning = false
+                ToastManager.show(toastStudyNoAdapter)
+            } else {
+                webViewController.evaluateJavascript(
+                    buildAdapterHookProbeScript(adapterCode, AdapterHooks.SCAN_STUDY)
+                ) { probe ->
+                    if (probe?.trim('"') == "present") {
+                        bridgeHandler.beginAdapterScan(AdapterScanActions.STUDY)
+                        webViewController.executeScript(
+                            buildAdapterHookInvokeScript(
+                                adapterCode,
+                                AdapterHooks.SCAN_STUDY,
+                                AdapterScanActions.STUDY
+                            )
+                        )
+                    } else {
+                        studyScanRunning = false
+                        ToastManager.show(toastStudyNoAdapter)
+                    }
+                }
+            }
+        }
+    }
+
+    // 把回落逻辑挂到 ref 上：钩子路径（在 bridgeHandler 回调里）与无钩子路径共用同一份实现
+    runGenericGradeScanRef.value = runGenericGradeScan
+    runGenericEmptyClassroomScanRef.value = runGenericEmptyClassroomScan
 
     // 「前置校验适配脚本 → 选课表 → 注入脚本」的唯一入口：导入按钮与失败重试共用，
     // 避免两处各写一遍读盘/校验（重试时重新读一遍脚本，适配脚本被更新过也能立刻生效）。
@@ -671,6 +906,15 @@ fun WebViewScreen(
                                 Text(stringResource(Res.string.empty_classroom_scan))
                             }
                         }
+                        if (isStudyMode) {
+                            Button(
+                                onClick = startStudyScan,
+                                enabled = !studyScanRunning,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(Res.string.study_import_recognize))
+                            }
+                        }
                     }
                 }
             )
@@ -712,7 +956,8 @@ fun WebViewScreen(
 
             if ((isCourseMode && importRunState is ImportRunState.Running) ||
                 (isGradeMode && gradeScanRunning) ||
-                (isEmptyClassroomMode && emptyScanRunning)
+                (isEmptyClassroomMode && emptyScanRunning) ||
+                (isStudyMode && studyScanRunning)
             ) {
                 Row(
                     modifier = Modifier
@@ -725,7 +970,11 @@ fun WebViewScreen(
                 ) {
                     ThemedLoadingIndicator(modifier = Modifier.size(16.dp))
                     Text(
-                        text = if (isEmptyClassroomMode) statusReadingEmpty else toastExecutingImport,
+                        text = when {
+                            isEmptyClassroomMode -> statusReadingEmpty
+                            isStudyMode -> statusReadingStudy
+                            else -> toastExecutingImport
+                        },
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = appType().body),
                         color = appColors().textSecondary
                     )
@@ -832,12 +1081,16 @@ fun WebViewScreen(
 
 /**
  * 「识别本页成绩」脚本回传的成绩条目（字段名与注入脚本里的 JSON 键一一对应）。
+ *
+ * [semester] 只有**适配脚本钩子**会回传（通用脚本一律留空，由调用方落到「未标注学期」）：
+ * 本校成绩页的学期信息只有懂本校表结构的钩子拿得到。
  */
 @Serializable
 private data class ScannedGrade(
     val courseName: String = "",
     val credit: Double? = null,
     val scoreText: String = "",
+    val semester: String? = null,
     val category: String? = null
 )
 
@@ -862,9 +1115,7 @@ private fun decodeScannedGrades(raw: String?): List<ScannedGrade> {
     }
 }
 
-private val scannedEmptyRoomJson = Json { ignoreUnknownKeys = true }
-
-/**
+private val scannedEmptyRoomJson = Json { ignoreUnknownKeys = true }/**
  * 解析注入脚本回传的 `Base64(JSON)` 空教室列表（编码理由同 [decodeScannedGrades]）。
  * 结果为空 / 解码失败 / 当前页不是空教室结果表，一律返回空列表，由调用方提示用户。
  */
@@ -878,6 +1129,25 @@ private fun decodeEmptyClassrooms(raw: String?): List<EmptyClassroomRoom> {
         )
     } catch (e: Exception) {
         emptyList()
+    }
+}
+
+/**
+ * 解析学业情况钩子回传的 `Base64(JSON)` 培养方案学分要求（编码理由同 [decodeScannedGrades]）。
+ *
+ * 解析失败返回 null：学业钩子**没有通用回落**，调用方据此提示「本校暂未适配」，
+ * 而不是把一个半解析的对象写进应用设置。
+ */
+@OptIn(ExperimentalEncodingApi::class)
+private fun decodeScannedStudy(raw: String?): ScannedStudyPayload? {
+    val base64 = raw?.trim()?.trim('"')?.trim().orEmpty()
+    if (base64.isEmpty()) return null
+    return try {
+        scannedGradeJson.decodeFromString<ScannedStudyPayload>(
+            Base64.decode(base64).decodeToString()
+        )
+    } catch (e: Exception) {
+        null
     }
 }
 

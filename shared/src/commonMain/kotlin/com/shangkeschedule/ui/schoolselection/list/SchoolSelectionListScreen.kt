@@ -102,7 +102,7 @@ fun SchoolSelectionListScreen(
     // 观察 ViewModel 状态
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    val filteredSchools by viewModel.filteredSchools.collectAsStateWithLifecycle()
+    val filteredEntries by viewModel.filteredEntries.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val schoolHistory by viewModel.schoolHistory.collectAsStateWithLifecycle()
 
@@ -140,15 +140,15 @@ fun SchoolSelectionListScreen(
                 },
                 placeholderText = placeholderText,
                 titleText = titleText,
-                filteredSchools = filteredSchools,
-                onSchoolSelected = { selectedSchool ->
-                    viewModel.saveLastSchool(selectedSchool)
+                filteredEntries = filteredEntries,
+                onEntrySelected = { entry ->
+                    viewModel.saveLastSchool(entry)
                     onNavigate(
                         Destination.AdapterSelection(
-                            schoolId = selectedSchool.id,
-                            schoolName = selectedSchool.name,
+                            // 传**全部**索引记录 id：同校本科/研究生两条要一起带到二级页
+                            schoolIds = entry.entries.map { it.id },
+                            schoolName = entry.name,
                             tabNumber = selectedTab.ordinal,
-                            resourceFolder = selectedSchool.resource_folder,
                             purpose = purpose,
                         )
                     )
@@ -177,20 +177,21 @@ fun SchoolSelectionListScreen(
                     isLoading = isLoading,
                     loadFailed = loadFailed,
                     onRetry = viewModel::retryLoad,
-                    filteredSchools = filteredSchools,
+                    filteredEntries = filteredEntries,
+                    allEntries = viewModel.allEntriesSnapshot,
                     lazyListState = lazyListState,
                     selectedTab = selectedTab,
                     schoolHistory = schoolHistory,
                     onClearHistory = { viewModel.clearHistory(it) },
-                    onSchoolSelected = { school, tab ->
-                        viewModel.saveLastSchool(school)
+                    resolveEntryById = viewModel::resolveEntryById,
+                    onEntrySelected = { entry, tab ->
+                        viewModel.saveLastSchool(entry)
                         // 列表点击跳转
                         onNavigate(
                             Destination.AdapterSelection(
-                                schoolId = school.id,
-                                schoolName = school.name,
+                                schoolIds = entry.entries.map { it.id },
+                                schoolName = entry.name,
                                 tabNumber = tab.ordinal,
-                                resourceFolder = school.resource_folder,
                                 purpose = purpose,
                                 )
                         )
@@ -246,12 +247,14 @@ private fun SchoolContent(
     isLoading: Boolean,
     loadFailed: Boolean,
     onRetry: () -> Unit,
-    filteredSchools: List<School>,
+    filteredEntries: List<SchoolListEntry>,
+    allEntries: List<SchoolListEntry>,
     lazyListState: LazyListState,
     selectedTab: SchoolCategoryTab,
     schoolHistory: SchoolHistoryModel,
     onClearHistory: (SchoolCategoryTab) -> Unit,
-    onSchoolSelected: (School, SchoolCategoryTab) -> Unit
+    resolveEntryById: (String) -> SchoolListEntry?,
+    onEntrySelected: (SchoolListEntry, SchoolCategoryTab) -> Unit
 ) {
     // 「教务系统」是本科/专科与研究生合并后的口径，最近访问取两者中有效的那条
     val recentRecord = when (selectedTab) {
@@ -271,7 +274,7 @@ private fun SchoolContent(
                 onRetry = onRetry
             )
         }
-        filteredSchools.isEmpty() && !isLoading -> {
+        filteredEntries.isEmpty() && !isLoading -> {
             // 统一空状态：淡灰胶囊 + 辅助文案（v4.65.0 起附「申请适配」入口）
             val requestAdapter = rememberAdapterRequestAction()
             AppEmptyState(
@@ -283,19 +286,24 @@ private fun SchoolContent(
         }
         else -> {
             AlphabetIndexerList(
-                data = filteredSchools,
+                data = filteredEntries,
                 getInitial = { it.initial.firstOrNull()?.uppercase() ?: "#" },
                 lazyListState = lazyListState,
                 headerContent = {
                     // 历史记录可能保存了旧的 resource_folder（学校适配更新后旧值会失效，
                     // 如沈阳农业 urp→syau），若沿用旧值会把脚本路径拼错并提示“导入脚本文件不存在”。
                     // 这里优先用当前索引中同 id 学校的最新数据；索引中已无该校时回退到历史记录。
-                    val recentSchool = if (!recentRecord.isEmpty) {
-                        filteredSchools.firstOrNull { it.id == recentRecord.id } ?: recentRecord.toSchool()
+                    //
+                    // v4.73.0：回查必须跨**整份列表**而非只看当前分类的过滤结果 ——
+                    // 历史里存的可能是合并前的研究生记录 id，且该校正不在 filteredEntries 里
+                    // （例如切到「通用工具」分类时），故用 allEntries。
+                    val recentEntry = if (!recentRecord.isEmpty) {
+                        resolveEntryById(recentRecord.id)
+                            ?: recentRecord.toSchool().let { SchoolListEntry(listOf(it)) }
                     } else {
                         null
                     }
-                    if (recentSchool != null) {
+                    if (recentEntry != null) {
                         Column(modifier = Modifier.padding(start = appSpacing().cardInner, end = appSpacing().cardInner, bottom = appSpacing().listGap)) {
                             Text(
                                 text = stringResource(Res.string.label_recent_visit),
@@ -305,8 +313,8 @@ private fun SchoolContent(
                             )
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 SchoolItem(
-                                    school = recentSchool,
-                                    onClick = { onSchoolSelected(it, selectedTab) }
+                                    entry = recentEntry,
+                                    onClick = { onEntrySelected(it, selectedTab) }
                                 )
                                 IconButton(
                                     onClick = { onClearHistory(selectedTab) },
@@ -328,11 +336,11 @@ private fun SchoolContent(
                         }
                     }
                 }
-            ) { school ->
+            ) { entry ->
                 Box(modifier = Modifier.padding(horizontal = appSpacing().cardInner, vertical = 2.dp)) {
                     SchoolItem(
-                        school = school,
-                        onClick = { onSchoolSelected(it, selectedTab) }
+                        entry = entry,
+                        onClick = { onEntrySelected(it, selectedTab) }
                     )
                 }
             }
@@ -383,8 +391,8 @@ fun SearchBarWithTitle(
     onSearchActiveChange: (Boolean) -> Unit,
     placeholderText: String,
     titleText: String,
-    filteredSchools: List<School>,
-    onSchoolSelected: (School) -> Unit
+    filteredEntries: List<SchoolListEntry>,
+    onEntrySelected: (SchoolListEntry) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val tokens = appColors()
@@ -452,7 +460,7 @@ fun SearchBarWithTitle(
 
         if (searchActive) {
             // 搜索结果内容
-            if (filteredSchools.isEmpty() && searchQuery.isNotBlank()) {
+            if (filteredEntries.isEmpty() && searchQuery.isNotBlank()) {
                 // v4.65.0：搜索无结果时把学校名带进「申请适配」入口（点一次即复制 + 打开表单）
                 val requestAdapter = rememberAdapterRequestAction()
                 AppEmptyState(
@@ -467,8 +475,8 @@ fun SearchBarWithTitle(
                     contentPadding = PaddingValues(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().cardGap),
                     verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
                 ) {
-                    items(filteredSchools, key = { it.id }) { school ->
-                        SchoolItem(school = school) { onSchoolSelected(it) }
+                    items(filteredEntries, key = { it.id }) { entry ->
+                        SchoolItem(entry = entry) { onEntrySelected(it) }
                     }
                 }
             }
@@ -477,10 +485,13 @@ fun SearchBarWithTitle(
 }
 
 /**
- * 学校列表项
+ * 学校列表项。
+ *
+ * v4.73.0：参数由 `School` 改为 [SchoolListEntry] —— **一行就是一所学校**，
+ * 本科与研究生两条索引记录已合并（见 [SchoolListEntry] 的注释）。
  */
 @Composable
-fun SchoolItem(school: School, onClick: (School) -> Unit) {
+fun SchoolItem(entry: SchoolListEntry, onClick: (SchoolListEntry) -> Unit) {
     // R1-012b：快速双击只进一次选校页（500ms 节流，item 作用域）
     var lastClickMs by remember { mutableStateOf(0L) }
     AppCard(
@@ -489,7 +500,7 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
             val nowMs = Clock.System.now().toEpochMilliseconds()
             if (nowMs - lastClickMs > 500) {
                 lastClickMs = nowMs
-                onClick(school)
+                onClick(entry)
             }
         }
     ) {
@@ -507,7 +518,7 @@ fun SchoolItem(school: School, onClick: (School) -> Unit) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = school.name,
+                    text = entry.name,
                     style = MaterialTheme.typography.titleMedium,
                     // 学校名是行主标题：用主文字色（原 onSurfaceVariant 层级偏弱）
                     color = appColors().textPrimary

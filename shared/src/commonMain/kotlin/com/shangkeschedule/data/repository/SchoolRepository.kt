@@ -3,6 +3,7 @@ package com.shangkeschedule.data.repository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import com.shangkeschedule.data.model.CategoryLastSchool
 import com.shangkeschedule.data.model.SchoolCategoryTab
 import com.shangkeschedule.data.model.SchoolHistoryModel
 import com.shangkeschedule.tool.AppLog
@@ -117,6 +118,24 @@ class SchoolRepository(
         }
     }
 
+    /**
+     * 【二级页面数据】根据一组学校 ID 获取这些**记录本身**（v4.73.0）。
+     *
+     * 为什么要「记录」而不是「适配器」：同一所学校在索引里可能拆成本科、研究生两条记录，
+     * 分属不同 `resource_folder`；适配脚本路径按 `<resource_folder>/<脚本名>` 拼接，
+     * 只拿适配器就丢了「它属于哪条记录」这一信息，脚本路径会拼错。
+     *
+     * [ids] 的顺序即返回顺序（调用方传主记录在前，保证展示顺序稳定）。
+     */
+    suspend fun getSchoolsByIds(ids: List<String>): List<School> {
+        if (ids.isEmpty()) return emptyList()
+        return withContext(Dispatchers.IO) {
+            val index = loadIndex() ?: return@withContext emptyList()
+            // 按请求顺序返回，避免依赖索引内部顺序
+            ids.mapNotNull { id -> index.schools.find { it.id == id } }
+        }
+    }
+
 }
 
 
@@ -133,15 +152,18 @@ class SchoolHistoryRepository(
     }
 
     /**
-     * 保存上次选择的学校
-     * 适配点：resourceFolder -> resource_folder
+     * 保存上次选择的学校。
+     *
+     * v4.73.0：入参改为业务模型 [CategoryLastSchool] 而非 wire 的 [School] ——
+     * 选校列表现在按校名合并成 [SchoolListEntry]，写入时取主记录转换而来；
+     * 仓库层本就不该依赖 wire 生成类型（`getSchools()` 除外，它必须读原始索引）。
      */
-    suspend fun saveLastSchool(tab: SchoolCategoryTab, school: School) {
+    suspend fun saveLastSchool(tab: SchoolCategoryTab, school: CategoryLastSchool) {
         dataStore.edit { prefs ->
             val keys = SchoolHistoryModel.getPrimaryKeys(tab)
             prefs[keys.id] = school.id
             prefs[keys.name] = school.name
-            prefs[keys.folder] = school.resource_folder
+            prefs[keys.folder] = school.resourceFolder
         }
     }
 

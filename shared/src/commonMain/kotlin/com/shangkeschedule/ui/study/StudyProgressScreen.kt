@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.Destination
+import com.shangkeschedule.WebPagePurpose
 import com.shangkeschedule.data.model.CreditRequirement
 import com.shangkeschedule.data.model.StudyCategoryProgress
 import com.shangkeschedule.data.model.StudyProgress
@@ -50,14 +51,17 @@ import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
 import kotlin.math.roundToInt
+import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
-import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.edit_24px
+import shangkeschedule.shared.generated.resources.school_24px
+import shangkeschedule.shared.generated.resources.study_import_entry
+import shangkeschedule.shared.generated.resources.study_import_entry_desc
 import shangkeschedule.shared.generated.resources.grade_cancel
 import shangkeschedule.shared.generated.resources.grade_save
 import shangkeschedule.shared.generated.resources.grade_saved
@@ -182,6 +186,20 @@ fun StudyProgressScreen(
                     subtitle = stringResource(Res.string.study_category_add_hint),
                     leadingIcon = vectorResource(Res.drawable.add_24px),
                     onClick = { adding = true }
+                )
+            }
+            // v4.73.0：从教务一键读培养方案学分要求（走适配脚本钩子 shangkeScanStudy）。
+            // 排在手填入口之后：手填是永远可用的兜底，教务导入只在适配过的学校可用。
+            item(key = "study-curriculum-import") {
+                SettingItem(
+                    title = stringResource(Res.string.study_import_entry),
+                    subtitle = stringResource(Res.string.study_import_entry_desc),
+                    leadingIcon = vectorResource(Res.drawable.school_24px),
+                    onClick = {
+                        onNavigate(
+                            Destination.SchoolSelectionListScreen(purpose = WebPagePurpose.STUDY)
+                        )
+                    }
                 )
             }
             item(key = "study-footnote") {

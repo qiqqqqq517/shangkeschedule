@@ -258,6 +258,194 @@ async function fetchClassApiCourses() {
     }
 }
 
+// ============================================================================
+// 适配钩子（v4.73.0）：成绩 / 空教室 / 学业情况
+//
+// 「上课」在成绩、空教室、学业三个用途的教务页里会先探测本文件是否声明了对应钩子，
+// 有就调用，没有才回落到应用内置的通用脚本。钩子允许返回 Promise（下面三个都是
+// async），结果经桥接回传，因此可以直接调本校接口，不必依赖页面把结果渲染出来。
+//
+// 以下接口地址与字段均为 2026-10-04 在南通大学正方 V9（tdjw.ntu.edu.cn）实测所得，
+// 不是按 V9 惯例推测；实测记录见仓库 build_qa/ntu-portal-probe.md。
+//
+// ⚠️ 与 zhengfang/zhengfang.js 的关系（改一处务必核对另一处）：
+//   通用平台脚本里有一份**逻辑等价的**钩子实现，供其余 1022 所正方学校使用
+//   （它们没有专用脚本，走 zhengfang/）。本文件是**经真实登录会话实测验证**的那一份，
+//   是正方钩子的基准件。两者解析逻辑应保持一致；本文件若修正了字段/口径，
+//   需同步回 zhengfang.js，反之亦然。差异仅在两处，都是有意的：
+//     1. 本文件用 async/await 与模板串，平台脚本用 ES5 风格以兼容更多页面环境；
+//     2. 本文件可调用自身已有的 pickText() 等工具函数。
+// ============================================================================
+
+// 同源 POST，带上课 V9 需要的三个头；credentials 带上 JSESSIONID（教务登录态）
+async function postForm(path, body) {
+    const response = await fetch(new URL(path, window.location.origin).href, {
+        method: "POST",
+        headers: {
+            "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "x-requested-with": "XMLHttpRequest",
+            accept: "application/json, text/javascript, */*; q=0.01"
+        },
+        body,
+        credentials: "include"
+    });
+    return response.json();
+}
+
+// 读取当前页/地址栏里的学年学期（正方 V9 的页面一般都有 #xnm / #xqm 隐藏域）
+function readSemesterParams() {
+    const xnm = document.querySelector("#xnm")?.value;
+    const xqm = document.querySelector("#xqm")?.value;
+    return { xnm: xnm || "", xqm: xqm || "" };
+}
+
+/**
+ * 成绩钩子：调本校成绩查询接口，回传**带真实学期与课程性质**的成绩列表。
+ *
+ * 关键点：请求参数 xnm/xqm 是内部编码（xqm=3 表示第 1 学期），而返回里的
+ * xnmmc/xqmmc 才是显示值。这里一律用 xnmmc + xqmmc 拼学期，避免把「第 1 学期」
+ * 写成「第 3 学期」—— 这类错误用户很难发现。
+ */
+async function shangkeScanGrades() {
+    // xnm/xqm 留空 = 全部学期；成绩页默认只查当前学期，那样会漏掉历史成绩
+    const data = await postForm(
+        "/jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query",
+        "xnm=&xqm=&sfzgcj=&kcbj=&pkey=&_search=false&nd=" + Date.now() +
+        "&queryModel.showCount=500&queryModel.currentPage=1" +
+        "&queryModel.sortName=&queryModel.sortOrder=asc&time=0"
+    );
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const grades = [];
+    for (const item of items) {
+        const courseName = String(item.kcmc || "").trim();
+        if (!courseName) continue;
+        // 数字成绩优先（便于算平均分/绩点），等级制课程回落到显示成绩（优良中及格）
+        const scoreText = String(pickText(item.bfzcj, item.cj) || "").trim();
+        if (!scoreText) continue;
+        const creditText = String(item.xf ?? "").trim();
+        const credit = creditText === "" ? null : Number(creditText);
+        const semesterYear = String(item.xnmmc || "").trim();
+        const semesterTerm = String(item.xqmmc || "").trim();
+        const semester = semesterYear && semesterTerm ? semesterYear + "-" + semesterTerm : "";
+        grades.push({
+            courseName,
+            credit: Number.isFinite(credit) ? credit : null,
+            scoreText,
+            semester: semester || null,
+            category: pickText(item.kcxzmc, item.kclbmc) || null
+        });
+    }
+    console.log("NTU grade hook:", grades.length, "of", items.length);
+    return grades;
+}
+
+/**
+ * 空教室钩子：按校区 + 楼栋 + 座位数直接查本校接口，不要求用户先在页面上查询。
+ *
+ * 条件从当前页面控件读取（用户在教务页选好校区/楼栋再点「读取本页空教室」即可），
+ * 读不到就用默认值：全部楼栋、不限座位数、当前学期。
+ */
+async function shangkeScanEmptyClassrooms() {
+    const read = (selector) => document.querySelector(selector)?.value ?? "";
+    const semester = readSemesterParams();
+    const xnm = semester.xnm;
+    const xqm = semester.xqm;
+    const xqhId = read("#xqh_id") || "1";           // 1=啬园 2=启秀 5=启东
+    const building = read("#lh");                    // 楼号，空=全部
+    const categoryId = read("#cdlb_id");             // 场地类别，空=全部
+    const minSeats = read("#qszws");
+    const maxSeats = read("#jszws");
+    const roomKeyword = read("#cdmc");
+    const body = new URLSearchParams({
+        xnm: xnm || "",
+        xqm: xqm || "",
+        dm: xnm && xqm ? xnm + "-" + xqm : "",
+        xqh_id: xqhId,
+        lh: building,
+        cdlb_id: categoryId,
+        cdejlb_id: "",
+        cdmc: roomKeyword,
+        qszws: minSeats,
+        jszws: maxSeats,
+        jyfs: "2",                                   // 2=按节次
+        qssj: "", jssj: "", sjfw: "", qssd: "", jssd: "",
+        _search: "false",
+        nd: String(Date.now()),
+        "queryModel.showCount": "500",
+        "queryModel.currentPage": "1",
+        "queryModel.sortName": "",
+        "queryModel.sortOrder": "asc",
+        time: "0"
+    });
+    const data = await postForm("/jwglxt/cdjy/cdjy_cxKxcdlb.html?doType=query", body);
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const rooms = [];
+    for (const item of items) {
+        const room = String(item.cdmc || "").trim();
+        if (!room) continue;
+        const seats = Number(String(item.zws ?? "").trim());
+        rooms.push({
+            room,
+            campus: String(item.xqmc || "").trim(),
+            // 「无楼号」是正方占位文本，当作没有楼号，避免拼进展示串
+            building: String(item.jxlmc || "").trim().replace(/^无楼号$/, ""),
+            capacity: Number.isFinite(seats) ? seats : null,
+            freeSlots: String(item.cdlbmc || "").trim()
+        });
+    }
+    console.log("NTU empty-classroom hook:", rooms.length, "of", items.length);
+    return rooms;
+}
+
+/**
+ * 学业情况钩子：从本校学业情况页读培养方案各类别的**要求学分**。
+ *
+ * 只回传要求学分，「已获学分」交给本机成绩表现算 —— 学校页面的「获得学分」与本机
+ * 成绩表的统计口径不一致（是否含重修/未出分课程），混用必然对不上。
+ *
+ * 类别 key 用「平台 / 必修|选修」两级：实测南通大学四个课程平台各有独立的必修、
+ * 选修要求，只用「必修」会把 41+11+69+37 合并成一个数字，完全失去意义。
+ *
+ * **只回传叶子类别（必修/选修），不回传平台汇总行**：学业情况页会把每个平台的
+ * 「要求学分」作为总需求逐项相加，若平台行与子行都回传，同一个平台会被算两遍
+ * （实测 11 条全部回传会得到 310 学分，而实际培养方案总量约 174）。
+ */
+async function shangkeScanStudy() {
+    const rows = document.querySelectorAll("ul.treeview p.title1");
+    const requirements = [];
+    let currentPlatform = "";
+    for (const row of rows) {
+        const text = String(row.textContent || "").replace(/\s+/g, "");
+        const required = text.match(/要求学分[:：]([\d.]+)/);
+        if (!required) continue;
+        const credits = Number(required[1]);
+        if (!Number.isFinite(credits)) continue;
+
+        // 平台行：「XXX课程平台要求学分:…」；子行：「必修课程要求学分:…」
+        const platformMatch = text.match(/^(.+?课程平台)要求学分/);
+        if (platformMatch) {
+            // 只用来给下面的叶子行定位父平台，本身不入结果（避免总量重复计算）
+            currentPlatform = platformMatch[1];
+            continue;
+        }
+        const categoryMatch = text.match(/^(必修课程|选修课程|任选课程|限选课程)要求学分/);
+        if (categoryMatch && currentPlatform) {
+            requirements.push({
+                category: currentPlatform + "/" + categoryMatch[1].replace("课程", ""),
+                requiredCredits: credits
+            });
+        }
+    }
+    console.log("NTU study hook: read", requirements.length, "requirements");
+    // 页面还没展开（用户没打开学业情况页）时返回空数组，由应用侧提示
+    return { requirements };
+}
+
+// 声明钩子：应用按这三个名字探测并调用
+window.shangkeScanGrades = shangkeScanGrades;
+window.shangkeScanEmptyClassrooms = shangkeScanEmptyClassrooms;
+window.shangkeScanStudy = shangkeScanStudy;
+
 async function runImport() {
     try {
         if (!await window.shangkeBridgePromise.showAlert("南通大学课表导入", "导入前请确保已登录南通大学教务系统。", "开始导入")) return;
@@ -287,5 +475,26 @@ async function runImport() {
     }
 }
 
-runImport();
+/**
+ * 只在「课表页」自动启动课表导入。
+ *
+ * 这段守卫在 v4.73.0 起是必需的：成绩 / 空教室 / 学业三个用途也会把本文件注入页面
+ * （为了声明下面的钩子），如果还是无条件 runImport()，用户一打开成绩页就会弹出
+ * 「南通大学课表导入」对话框，并且因为当前页没有课表而失败。
+ *
+ * 判定依据：个人课表页在 /kbcx/ 下，班级课表页在 /kbdy/ 下；两者之外一律不自动启动。
+ * 纯浏览器模式（考证查分等）用户手动点按钮时，导入仍按原逻辑走 beginImport()。
+ */
+function isTimetablePage() {
+    const path = window.location.pathname;
+    if (/\/kbcx\/xskbcx/i.test(path) || /\/kbdy\/bjkbdy/i.test(path)) return true;
+    const formAction = document.querySelector("#ajaxForm")?.getAttribute("action") || "";
+    return /xskbcx_cxXskbcxIndex|bjkbdy_cxBjkbdyIndex/i.test(formAction);
+}
+
+if (isTimetablePage()) {
+    runImport();
+} else {
+    console.log("NTU adapter: not a timetable page, hooks only:", window.location.pathname);
+}
 })();

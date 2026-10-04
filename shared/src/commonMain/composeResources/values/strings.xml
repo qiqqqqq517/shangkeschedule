@@ -1365,6 +1365,14 @@
     <string name="empty_classroom_copy">复制全部</string>
     <string name="empty_classroom_copied">已复制到剪贴板</string>
     <string name="empty_classroom_capacity">%1$d 人</string>
+    <!-- v4.73.0：学业情况（培养方案学分要求）识别 -->
+    <string name="study_import_entry">从教务导入培养方案</string>
+    <string name="study_import_entry_desc">连接本校教务系统，自动读取各类别应修学分</string>
+    <string name="study_import_recognize">读取培养方案学分要求</string>
+    <string name="study_import_reading">正在读取培养方案…</string>
+    <string name="study_import_success">已导入 %1$d 个类别的学分要求</string>
+    <string name="study_import_no_adapter">本校暂未适配培养方案读取，可在学业情况页手动填写各类别学分要求</string>
+    <string name="study_import_no_result">未读取到培养方案学分要求，请确认当前页面是本校培养方案 / 学分统计页</string>
     <string name="title_course_notes">课堂笔记</string>
     <string name="desc_course_notes">按课次记录听课内容，可附板书照片；随课程一起删除</string>
     <string name="note_new">新建笔记</string>

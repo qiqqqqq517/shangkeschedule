@@ -1,4 +1,4 @@
-﻿// 正方教务系统通用适配器
+// 正方教务系统通用适配器
 // 适配新版正方教务 (jwglxt)
 // 使用 Bridge 方式与原生通信
 // 优先解析当前页面已渲染的课表，接口抓取作为兜底
@@ -629,8 +629,222 @@
     // 统一入口声明：导入脚本执行完毕后由宿主自动调用，避免依赖全局属性扫描
     window.shangkeImportEntry = fetchCourses;
 
+    // ========================================================================
+    // 能力钩子（v4.73.0）：成绩 / 空教室 / 学业情况
+    //
+    // 正方 V9 这三个功能的接口路径是**平台级**的（各校一致，见各函数注释），
+    // 因此通用实现在这里写一次，1024 所正方学校即可零改动受益；
+    // 学校有定制的再用专用脚本覆盖同名钩子。
+    //
+    // 三条纪律（详见 schools/ADAPTER_GUIDE.md「能力钩子」）：
+    //   1. 钩子只 return 数据，不自己 postMessage —— 拼装与投递由 App 侧完成；
+    //   2. 学期一律用接口返回的显示值（xnmmc/xqmmc），不用请求参数里的内部编码；
+    //   3. 学业情况只回传「要求学分」的叶子类别，不回传平台汇总行、不回传已获学分。
+    // ========================================================================
+
+    // 同源 POST，携带教务登录态（JSESSIONID）
+    function zfPost(path, body) {
+        return fetch(path, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'x-requested-with': 'XMLHttpRequest'
+            },
+            body: body,
+            credentials: 'include'
+        }).then(function (response) {
+            return response.json();
+        });
+    }
+
+    /**
+     * 成绩识别钩子。
+     *
+     * 接口：POST /jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query
+     * xnm/xqm 留空 = 全部学期（成绩页默认只查当前学期，那样会漏掉历史成绩）。
+     */
+    window.shangkeScanGrades = function () {
+        return zfPost('/jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query',
+            'xnm=&xqm=&sfzgcj=&kcbj=&pkey=&_search=false&nd=' + Date.now() +
+            '&queryModel.showCount=500&queryModel.currentPage=1' +
+            '&queryModel.sortName=&queryModel.sortOrder=asc&time=0'
+        ).then(function (data) {
+            var items = (data && data.items) || [];
+            var grades = [];
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var courseName = String(item.kcmc || '').trim();
+                if (!courseName) continue;
+                // 数字成绩优先（便于算平均分/绩点），等级制课程回落到显示成绩
+                var scoreText = String(item.bfzcj || item.cj || '').trim();
+                if (!scoreText) continue;
+                var creditText = String(item.xf == null ? '' : item.xf).trim();
+                var credit = creditText === '' ? null : Number(creditText);
+                // 学期用显示值：请求参数 xqm 是内部编码（3=第1学期、12=第2学期），
+                // 直接回传会把「第 1 学期」写成「第 3 学期」
+                var year = String(item.xnmmc || '').trim();
+                var term = String(item.xqmmc || '').trim();
+                grades.push({
+                    courseName: courseName,
+                    credit: isFinite(credit) ? credit : null,
+                    scoreText: scoreText,
+                    semester: (year && term) ? (year + '-' + term) : null,
+                    category: String(item.kcxzmc || item.kclbmc || '').trim() || null
+                });
+            }
+            return grades;
+        });
+    };
+
+    /**
+     * 空教室读取钩子。
+     *
+     * 接口：POST /jwglxt/cdjy/cdjy_cxKxcdlb.html?doType=query
+     * 条件优先从当前页控件读取（用户在教务页选好校区/楼栋再点读取即可），
+     * 读不到就用默认：全部楼栋、不限座位数。
+     */
+    window.shangkeScanEmptyClassrooms = function () {
+        function val(id) {
+            var el = document.getElementById(id);
+            return el && el.value != null ? String(el.value) : '';
+        }
+        var xnxq = getXnxq();
+        var body = 'xnm=' + encodeURIComponent(xnxq.xnm) +
+            '&xqm=' + encodeURIComponent(xnxq.xqm) +
+            '&dm=' + encodeURIComponent(xnxq.xnm + '-' + xnxq.xqm) +
+            '&xqh_id=' + encodeURIComponent(val('xqh_id') || '1') +
+            '&lh=' + encodeURIComponent(val('lh')) +
+            '&cdlb_id=' + encodeURIComponent(val('cdlb_id')) +
+            '&cdmc=' + encodeURIComponent(val('cdmc')) +
+            '&qszws=' + encodeURIComponent(val('qszws')) +
+            '&jszws=' + encodeURIComponent(val('jszws')) +
+            '&cdejlb_id=&jyfs=2&qssj=&jssj=&sjfw=&qssd=&jssd=' +
+            '&_search=false&nd=' + Date.now() +
+            '&queryModel.showCount=500&queryModel.currentPage=1' +
+            '&queryModel.sortName=&queryModel.sortOrder=asc&time=0';
+
+        return zfPost('/jwglxt/cdjy/cdjy_cxKxcdlb.html?doType=query', body)
+            .then(function (data) {
+                var items = (data && data.items) || [];
+                var rooms = [];
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var room = String(item.cdmc || '').trim();
+                    if (!room) continue;
+                    var seats = Number(String(item.zws == null ? '' : item.zws).trim());
+                    rooms.push({
+                        room: room,
+                        campus: String(item.xqmc || '').trim(),
+                        // 「无楼号」是正方占位文本，归一成空串，否则会拼进展示串
+                        building: String(item.jxlmc || '').trim().replace(/^无楼号$/, ''),
+                        capacity: isFinite(seats) ? seats : null,
+                        freeSlots: String(item.cdlbmc || '').trim()
+                    });
+                }
+                return rooms;
+            });
+    };
+
+    /**
+     * 学业情况钩子：读培养方案各类别的**要求学分**。
+     *
+     * 要求学分直接渲染在学业情况页 DOM 里（ul.treeview p.title1），无需额外接口。
+     * 「已获学分」一律不回传，由 App 按本机成绩表现算（学校口径与本机必然不一致）。
+     *
+     * ── 解析规则（在**两所**正方学校的真实页面上核对过，勿凭单校经验改）──────────
+     *
+     * 正方各校的类别**命名方式并不统一**，实测两例：
+     *   南通大学：`通识教育课程平台要求学分:47.0` → 子行 `必修课程要求学分:41.0`
+     *   江苏科技大学：`通识教育基础课程-必修要求学分:61.0`（**没有「课程平台」字样**）
+     * 因此**不能靠固定关键词识别类别**（按「课程平台」写会在一校产出 0 条）。
+     *
+     * 通用做法：**只取真叶子行**，并做一次**消歧前缀**——
+     *   · 「真叶子」= 该 li 内除自己外没有别的行也带「要求学分」；
+     *     这样父行（如江苏科技大学 `外语类` 10 学分）与其子行（`英语` / `日语` 各 10 学分）
+     *     不会同时入结果，避免同一份要求被算两遍；
+     *   · 消歧：类别名若是 `必修课程` / `选修课程` / `任选课程` / `限选课程` 这类**通用名**，
+     *     单独出现毫无区分度（南通大学四个平台各有一条 `必修课程`，不加前缀会合并成一条），
+     *     此时用**最近的祖先标签**拼成 `通识教育课程平台/必修`；
+     *     而江苏科技大学的 `通识教育基础课程-必修` 本身就自带区分度，保持原样不加前缀。
+     *   · 类别名**不做事后归一** —— App 侧按类别名精确匹配成绩的 `category` 统计已获学分
+     *     （见 GradeRepository.computeStudyProgress），改名会让已获学分归零。
+     *
+     * ⚠️ 已知局限（不隐瞒）：江苏科技大学 `外语类` 下 `英语`/`日语` 各 10 学分是
+     * 「二选一」，取叶子后两者相加会得到 20 而非 10，**该类别的总量会偏高**。
+     * 页面本身没给出「二选一」的结构化表达，无法可靠推断，故照实回传。
+     * 用户可在学业情况页手动修正该类别的要求。
+     */
+    window.shangkeScanStudy = function () {
+        // 无区分度的通用类别名：必须在前面缀上所属平台，否则多个平台会合并成一条
+        var GENERIC_LABELS = ['必修课程', '选修课程', '任选课程', '限选课程'];
+        // 一次拿到**所有**行（含顶层），下面单趟遍历，不做递归下发 ——
+        // 递归会与这个总遍历重复访问子行（li.querySelectorAll 返回的是全部后代，
+        // 不只是直接子级），导致同一条要求被报多次。
+        var rows = document.querySelectorAll('ul.treeview p.title1, ul.treeview .title');
+        var requirements = [];
+
+        // 收集某行的「祖先标签」，供通用类别名消歧（沿 li 逐级上溯）
+        function ancestorLabels(row) {
+            var labels = [];
+            var li = row.closest ? row.closest('li') : null;
+            while (li) {
+                var parentUl = li.parentElement;
+                var grandLi = parentUl ? parentUl.closest('li') : null;
+                if (!grandLi) break;
+                var pr = grandLi.querySelector ? grandLi.querySelector('p.title1, .title') : null;
+                if (pr) {
+                    var lbl = String(pr.textContent || '').replace(/\s+/g, ' ').trim().replace(/要求学分[:：].*$/, '').trim();
+                    if (lbl) labels.unshift(lbl);
+                }
+                li = grandLi;
+            }
+            return labels;
+        }
+
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var text = String(row.textContent || '').replace(/\s+/g, ' ').trim();
+            var matched = text.match(/要求学分[:：]([\d.]+)/);
+            if (!matched) continue;
+            var credits = Number(matched[1]);
+            if (!isFinite(credits) || credits <= 0) continue;
+
+            // 父行判定：该 li 的后代里还有别的行带「要求学分」→ 交给那些行报，自己跳过
+            var li = row.closest ? row.closest('li') : null;
+            if (li) {
+                var nested = li.querySelectorAll('ul p.title1');
+                var isParent = false;
+                for (var k = 0; k < nested.length; k++) {
+                    if (nested[k] === row) continue;
+                    if (/要求学分/.test(nested[k].textContent || '')) { isParent = true; break; }
+                }
+                if (isParent) continue;
+            }
+
+            var label = text.replace(/要求学分[:：].*$/, '').trim();
+            if (!label) continue;
+
+            // 通用名（必修课程/选修课程…）单独无区分度 → 用最近的有意义祖先做前缀
+            var finalLabel = label;
+            var generic = false;
+            for (var g = 0; g < GENERIC_LABELS.length; g++) {
+                if (label === GENERIC_LABELS[g]) { generic = true; break; }
+            }
+            if (generic) {
+                var anc = ancestorLabels(row);
+                if (anc.length) {
+                    finalLabel = anc[anc.length - 1].replace(/课程$/, '') + '/' + label.replace('课程', '');
+                }
+            }
+            requirements.push({ category: finalLabel, requiredCredits: credits });
+        }
+        return { requirements: requirements };
+    };
+
     // 自动检测并提示
-    if (isZhengfangPage()) {
+    // 注意：三个抓取用途（成绩/空教室/学业）也会注入本文件，它们不是课表页，
+    // 因此提示只在课表页给出，避免用户打开成绩页时看到无关的课表提示。
+    if (isZhengfangPage() && /\/kbcx\/|\/kbdy\/|xskbcx|bjkbdy/i.test(window.location.href)) {
         Bridge.showToast('检测到正方教务系统，点击导入按钮抓取课表');
     }
 })();

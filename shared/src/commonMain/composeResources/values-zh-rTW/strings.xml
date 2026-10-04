@@ -1365,6 +1365,14 @@
     <string name="empty_classroom_copy">複製全部</string>
     <string name="empty_classroom_copied">已複製到剪貼簿</string>
     <string name="empty_classroom_capacity">%1$d 人</string>
+    <!-- v4.73.0：學業情況（培養方案學分要求）識別 -->
+    <string name="study_import_entry">從教務匯入培養方案</string>
+    <string name="study_import_entry_desc">連線本校教務系統，自動讀取各類別應修學分</string>
+    <string name="study_import_recognize">讀取培養方案學分要求</string>
+    <string name="study_import_reading">正在讀取培養方案…</string>
+    <string name="study_import_success">已匯入 %1$d 個類別的學分要求</string>
+    <string name="study_import_no_adapter">本校尚未適配培養方案讀取，可在學業情況頁手動填寫各類別學分要求</string>
+    <string name="study_import_no_result">未讀取到培養方案學分要求，請確認目前頁面是本校培養方案／學分統計頁</string>
     <string name="title_course_notes">課堂筆記</string>
     <string name="desc_course_notes">按課次記錄聽課內容，可附板書照片；隨課程一起刪除</string>
     <string name="note_new">新增筆記</string>
