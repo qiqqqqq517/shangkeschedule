@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.72.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>478</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.73.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>480</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,7 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
-        <li><a href="#v4720">v4.72.0 · 教务系统合并 + 通用适配补齐「乘方」+ 地址可改</a></li>
+        <li><a href="#v4730">v4.73.0 · 成绩 / 空教室 / 学业可挂学校级适配 + 正方适配标准</a></li>
+<li><a href="#v4720">v4.72.0 · 教务系统合并 + 通用适配补齐「乘方」+ 地址可改</a></li>
       <li><a href="#v4690">v4.69.0 · 新增湖北医药学院教务适配</a></li>
         <li><a href="#v4660">v4.66.0 · 课表之外：成绩、考证、小组件与 AI 识别导入</a></li>
         <li><a href="#v46425">v4.64.25 · 插入课表不再静默清空该表全部课程</a></li>
@@ -166,6 +167,40 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4730">
+        <div><span class="tl-ver">v4.73.0</span><span class="tl-date">2026-10-04</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">功能</span>成绩、空教室、学业情况三个功能，现在能按学校适配了</h3>
+          <ul>
+            <li>此前适配脚本只在「导入课表」时被执行，成绩和空教室只能靠应用内置的通用脚本按表头猜列 —— 学校层完全没有地方能表达「我们学校该怎么查」。现在适配脚本可以接管这三个功能，直接调用本校接口。</li>
+            <li>适配是<strong>可选</strong>的：没有适配的学校行为完全不变，成绩与空教室会自动回落到原有的通用识别。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-feat">功能</span>成绩导入会带上真实学期与课程性质</h3>
+          <ul>
+            <li>以前成绩一律落在「未标注学期」，需要逐条手改。现在适配过的学校能取回真实学期（如 2025-2026-1）与课程性质（必修 / 选修 / 通识教育选修…），学业情况页据此分类统计学分。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-feat">功能</span>学业情况页新增「从教务导入培养方案」</h3>
+          <ul>
+            <li>一键读取培养方案里各类别的应修学分，不必再逐个手填。学校培养方案里已有的类别以学校为准，<strong>其余保留你手工填写的设置</strong>。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-feat">适配</span>正方教务适配标准落地，覆盖 1022 所学校</h3>
+          <ul>
+            <li>正方是站内最大的教务平台（索引中 1024 所学校）。本次以<strong>南通大学</strong>的实现作为基准件，并把三个功能的通用实现写进正方平台脚本 —— 其余 1022 所没有专用脚本的正方学校<strong>零改动即可用</strong>；学校有定制时，专用脚本优先于平台脚本。</li>
+            <li>新增南通大学成绩 / 空教室 / 学业情况适配：接口地址与字段均经真实登录会话实测取得，非按教务系统惯例推测。成绩按学期直接取回（含学分、绩点、课程性质）；空教室按校区 + 楼栋 + 座位数直接查询，不必先自己在该校教务页查一遍。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>正方学业情况解析在两处会失效</h3>
+          <ul>
+            <li>按「课程平台」字样识别类别 —— 该字样只在部分学校出现（如江苏科技大学全页没有这四个字），照此实现会在<strong>整类学校产出 0 条</strong>，用户点「读取培养方案」只会看到「未读取到」。</li>
+            <li>父行判定会让同一条要求被记录两次，<strong>总学分翻倍</strong>（实测南通大学 172 被算成 344）。</li>
+            <li>两处均已在<strong>两所真实学校</strong>上核对修复。已知局限（如实呈现）：江苏科技大学「外语类」下英语 / 日语各 10 学分为<strong>二选一</strong>，页面未提供结构化表达，该类别的要求学分会被算成 20 而非 10，可在学业情况页手动修正。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4720">
         <div><span class="tl-ver">v4.72.0</span><span class="tl-date">2026-10-04</span></div>
