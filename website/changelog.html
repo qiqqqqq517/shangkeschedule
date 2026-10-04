@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.74.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>481</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.74.1</b></span>
+        <span>versionCode <b class="mono" data-version-code>482</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,7 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
-        <li><a href="#v4740">v4.74.0 · 湖北医药学院成绩与绩点适配</a></li>
+        <li><a href="#v4741">v4.74.1 · 修复两处质量门禁的「假通过」</a></li>
+<li><a href="#v4740">v4.74.0 · 湖北医药学院成绩与绩点适配</a></li>
         <li><a href="#v4730">v4.73.0 · 成绩 / 空教室 / 学业可挂学校级适配 + 正方适配标准</a></li>
 <li><a href="#v4720">v4.72.0 · 教务系统合并 + 通用适配补齐「乘方」+ 地址可改</a></li>
       <li><a href="#v4690">v4.69.0 · 新增湖北医药学院教务适配</a></li>
@@ -168,6 +169,25 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4741">
+        <div><span class="tl-ver">v4.74.1</span><span class="tl-date">2026-10-04</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>两处发布自检「什么都没检查却报通过」</h3>
+          <p><strong>本版 App 行为无任何变化</strong>：改动全部位于发布用的自检脚本，不涉及 App 代码、资源、数据库或学校适配。
+            之所以仍然发版，是因为这类脚本决定「发布前的绿灯是否可信」。</p>
+          <ul>
+            <li>无障碍检查与字体缩放检查两道脚本，此前用<strong>「当前工作目录」</strong>去找源码（其余四道用脚本自身位置）。
+              一旦从非仓库目录运行（CI、其他工具链、在别处手工执行），二者会<strong>扫描到 0 个文件却仍然输出「通过」</strong>。</li>
+            <li>实测：字体缩放检查在该情况下报「横向溢出候选 0 处」（真实为 7 处），无障碍检查报「合计 0」而实际未读取任何文件 —— 两者退出码都是 0。</li>
+            <li><strong>为什么这比报错更危险</strong>：字体缩放的候选计数被当作<strong>跨版本回归信号</strong>。
+              一旦空扫，计数变成 0，会被读成「候选减少了、改善了」，等于把门禁失效伪装成质量提升。</li>
+            <li>现改为用脚本自身位置定位，并加上<strong>「扫描到 0 个文件即判失败」</strong>的硬保护：会以非零码退出、
+              打印它实际查找的路径，明确写出「门禁未生效，不得视为通过」。报告里的文件路径也不再随运行目录漂移。</li>
+          </ul>
+          <p>若你遇到的是具体功能问题，请反馈具体现象 —— 本版不会改变界面或功能表现。</p>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4740">
         <div><span class="tl-ver">v4.74.0</span><span class="tl-date">2026-10-04</span></div>
@@ -1393,7 +1413,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.72.0</span>
+        下载 <span class="mono" data-version>v4.74.1</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>
