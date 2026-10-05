@@ -96,6 +96,13 @@ private val SoftInfoLight = Color(0xFF7FA8C4)
 private val SoftWarningLight = Color(0xFFD9A97E)
 private val SoftAmberLight = Color(0xFFD8C089)
 private val SoftDangerLight = Color(0xFFCC8A8A)
+/**
+ * 徽标底色（角标数字背景）。**与 `SoftDangerLight` 分开** —— 后者同时是
+ * `error` / `danger` 的语义色，不应为了角标对比度而改动。
+ * 角标是 `labelSmall` 真实文本，白字需 ≥4.5:1；`#CC8A8A` 仅 2.77:1，
+ * 取同色相 `#9E6262` 后实测 4.80:1。
+ */
+private val SoftBadgeDangerLight = Color(0xFF9E6262)
 private val SoftFavoriteLight = Color(0xFFC98FA8)
 
 // --- 柔绘色板（深色）：同样的低饱和逻辑，亮度反向 -----------------------------
@@ -191,7 +198,7 @@ internal fun softLightAppColorTokens(): AppColorTokens = AppColorTokens(
     gradientEnd = Color(0xFF9A93B8),
     navBarBg = Color(0xE6F7F5FA),              // 底栏：薄涂半透明，柔光透上来
     navSelectedBg = Color(0x1F7C86C9),
-    badgeBg = SoftDangerLight,
+    badgeBg = SoftBadgeDangerLight,
     badgeFg = Color(0xFFFFFFFF),
     snackbarBg = Color(0xE63A3742),
     snackbarFg = Color(0xFFF4F3F7),

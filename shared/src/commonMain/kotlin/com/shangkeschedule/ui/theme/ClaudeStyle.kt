@@ -41,6 +41,13 @@ import shangkeschedule.shared.generated.resources.Res
 private val ClaudeBrand50 = Color(0xFFFBF2ED)
 private val ClaudeBrand400 = Color(0xFFD6866A)
 private val ClaudeBrand500 = Color(0xFFC96442)
+/**
+ * 徽标底色（角标数字背景）。**与 `ClaudeBrand500` 分开** —— 后者是**主色**
+ * （primary + 渐变起点），改它会连带重派生整套 Material 配色，影响面远大于角标。
+ * 角标是 `labelSmall` 真实文本（白字），需 ≥4.5:1；`#C96442` 仅 3.90:1，
+ * 取同色相的 `#A04A2E` 后实测 5.98:1。
+ */
+private val ClaudeBadgeBrand500 = Color(0xFFA04A2E)
 private val ClaudeBrand600 = Color(0xFFB0562F)
 private val ClaudeBrand800 = Color(0xFF753A22)
 
@@ -188,7 +195,7 @@ fun claudeLightAppColorTokens(): AppColorTokens = AppColorTokens(
     // 底部导航 / 徽标 —— 取 sidebar 语义色
     navBarBg = Color(0xFFF5F4EE),             // sidebar #f5f4ee
     navSelectedBg = ClaudeSecondaryLight,     // sidebar-accent #e9e6dc
-    badgeBg = ClaudeBrand500,                 // brand-500 徽标
+    badgeBg = ClaudeBadgeBrand500,             // brand-500 加深版，仅用于徽标（主色不受影响）
     badgeFg = Color(0xFFFFFFFF),
     // Snackbar —— 深底浅字（暖炭底 + 暖砂字）
     snackbarBg = ClaudeText800,               // text-800 #3d3929

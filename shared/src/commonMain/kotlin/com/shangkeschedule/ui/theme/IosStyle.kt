@@ -58,6 +58,14 @@ private val IosBlueLight = Color(0xFF007AFF)
 private val IosGreenLight = Color(0xFF34C759)
 private val IosOrangeLight = Color(0xFFFF9500)
 private val IosRedLight = Color(0xFFFF3B30)
+/**
+ * 徽标底色（角标数字的背景）。**与 `IosRedLight` 分开定义** —— 后者同时是
+ * `error` / `danger` 的语义色，不能为了角标对比度而加深它（会连带改变错误提示与
+ * 危险操作的红色）。
+ * 角标是 `labelSmall` 的真实文本（`StyleComponents.kt` 的 Badge），白字需 ≥4.5:1；
+ * `#FF3B30` 只有 3.55:1，取同色相的 `#C0271F` 后实测 5.91:1。
+ */
+private val IosBadgeRedLight = Color(0xFFC0271F)
 private val IosPinkLight = Color(0xFFFF2D55)
 private val IosTealLight = Color(0xFF5AC8FA)
 private val IosIndigoLight = Color(0xFF5856D6)
@@ -67,6 +75,8 @@ private val IosBlueDark = Color(0xFF0A84FF)
 private val IosGreenDark = Color(0xFF30D158)
 private val IosOrangeDark = Color(0xFFFF9F0A)
 private val IosRedDark = Color(0xFFFF453A)
+/** 徽标底色（通透深色档）。白字在 #FF453A 上仅 3.41:1，取更深的 #C4302F（探针实测达标）。 */
+private val IosBadgeRedDark = Color(0xFFC4302F)
 private val IosPinkDark = Color(0xFFFF375F)
 private val IosTealDark = Color(0xFF64D2FF)
 private val IosIndigoDark = Color(0xFF5E5CE6)
@@ -159,7 +169,7 @@ internal fun iosLightAppColorTokens(): AppColorTokens = AppColorTokens(
     // 底部导航 / 徽标 —— Liquid Glass 底栏：近乎透明，靠 blur 与边缘光学立形
     navBarBg = Color(0xD9F9F9F9),                  // 85% 系统底 + 玻璃模糊
     navSelectedBg = Color(0x1F007AFF),
-    badgeBg = IosRedLight,
+    badgeBg = IosBadgeRedLight,
     badgeFg = Color(0xFFFFFFFF),
     // Snackbar —— iOS 深色毛玻璃提示条
     snackbarBg = Color(0xE61C1C1E),
@@ -211,7 +221,7 @@ internal fun iosDarkAppColorTokens(): AppColorTokens = run {
         // 底部导航 / 徽标 —— 深色玻璃底栏
         navBarBg = Color(0xD91C1C1E),
         navSelectedBg = Color(0x3D0A84FF),
-        badgeBg = IosRedDark,
+        badgeBg = IosBadgeRedDark,
         badgeFg = Color(0xFFFFFFFF),
         // Snackbar
         snackbarBg = Color(0xF22C2C2E),
