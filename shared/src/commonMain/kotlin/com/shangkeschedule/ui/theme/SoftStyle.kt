@@ -87,14 +87,14 @@ private val SoftTextPrimaryLight = Color(0xFF4A4756)
 private val SoftTextSecondaryLight = Color(0xFF666370)
 
 /** 主色：低饱和的雾蓝紫，作为唯一强调色。 */
-private val SoftPrimaryLight = Color(0xFF7C86C9)
+private val SoftPrimaryLight = Color(0xFF5F6899)
 private val SoftPrimaryDeepLight = Color(0xFF5F68A8)
 
 /** 语义色：统一降到马卡龙档（饱和度 ~35%），互相之间饱和度一致。 */
-private val SoftSuccessLight = Color(0xFF7BAE8C)
-private val SoftInfoLight = Color(0xFF7FA8C4)
-private val SoftWarningLight = Color(0xFFD9A97E)
-private val SoftAmberLight = Color(0xFFD8C089)
+private val SoftSuccessLight = Color(0xFF5C8A6B)
+private val SoftInfoLight = Color(0xFF5F849D)
+private val SoftWarningLight = Color(0xFFAE8261)
+private val SoftAmberLight = Color(0xFF8F7C55)
 private val SoftDangerLight = Color(0xFFCC8A8A)
 /**
  * 徽标底色（角标数字背景）。**与 `SoftDangerLight` 分开** —— 后者同时是
@@ -103,7 +103,7 @@ private val SoftDangerLight = Color(0xFFCC8A8A)
  * 取同色相 `#9E6262` 后实测 4.80:1。
  */
 private val SoftBadgeDangerLight = Color(0xFF9E6262)
-private val SoftFavoriteLight = Color(0xFFC98FA8)
+private val SoftFavoriteLight = Color(0xFF9E6C81)
 
 // --- 柔绘色板（深色）：同样的低饱和逻辑，亮度反向 -----------------------------
 
