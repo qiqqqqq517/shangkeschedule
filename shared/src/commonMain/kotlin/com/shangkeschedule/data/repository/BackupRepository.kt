@@ -35,10 +35,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import com.shangkeschedule.tool.AppLog
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okio.FileSystem
+import okio.Path
 import okio.SYSTEM
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Named
@@ -186,9 +188,14 @@ class BackupRepository(
                     return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_empty)))
                 }
 
+            // P2-16：临时明文备份必须在 finally 里删净。
+            // 临时路径声明在 try 之外 —— Kotlin 的 finally 看不到 try 块内声明的变量。
+            val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+            val tempFiles = mutableListOf<Path>()
+
             try {
-                val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
                 val metaPath = tempDir / "meta.json"
+                tempFiles.add(metaPath)
                 FileSystem.SYSTEM.write(metaPath) {
                     writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
                 }
@@ -198,6 +205,7 @@ class BackupRepository(
 
                 for ((key, bytes) in backupPackage.payloadMap) {
                     val modulePath = tempDir / "$key.cbor"
+                    tempFiles.add(modulePath)
                     FileSystem.SYSTEM.write(modulePath) {
                         write(bytes)
                     }
@@ -206,9 +214,23 @@ class BackupRepository(
                     }
                 }
                 Result.success(Unit)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // P2-15：原先此处 `catch (_: Exception)` 把真因整个吞掉 ——
+                // 用户只看到「上传失败」，日志里没有任何线索。现记录堆栈。
+                AppLog.e(TAG, "云端备份上传失败", e)
                 Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
             } finally {
+                // P2-16：meta.json / *.cbor 是**未加密的用户数据明文副本**，
+                // 原先只 close() 客户端、从不删文件 —— 与同仓 zip 路径（BackupViewModel
+                // 的 importFromLocalZip）已确立的清理纪律不一致。逐文件删并记日志，
+                // 单个删除失败不影响其余文件。
+                tempFiles.forEach { path ->
+                    try {
+                        FileSystem.SYSTEM.delete(path)
+                    } catch (cleanupError: Exception) {
+                        AppLog.w(TAG, "删除临时备份文件失败: ${path.name}", cleanupError)
+                    }
+                }
                 client.close()
             }
         }
@@ -856,3 +878,6 @@ class BackupRepository(
         }
     }
 }
+
+/** 日志模块标签（P2-15：备份链路的异常不再静默吞掉）。 */
+private const val TAG = "BackupRepository"

@@ -24,6 +24,7 @@ import kotlinx.serialization.json.Json
 import okio.BufferedSink
 import okio.BufferedSource
 import okio.FileSystem
+import okio.Path
 import okio.Path.Companion.toPath
 import okio.SYSTEM
 import okio.buffer
@@ -223,9 +224,14 @@ class BackupViewModel(
             // P1-15 静默降级显性化：云端个别模块下载失败被跳过的 key，完成后提示用户
             val skippedModuleKeys = mutableListOf<String>()
             val result = withContext(Dispatchers.IO) {
+                // P2-16：下载落地的 meta_restore.json / *_restore.cbor 是**未加密的用户数据
+                // 明文副本**，原先从不删除 —— 与同文件 importFromLocalZip 已确立的 zip 清理
+                // 纪律不一致。临时路径声明在 try 之外，finally 才能看到。
+                val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+                val tempFiles = mutableListOf<Path>()
                 try {
-                    val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
                     val metaPath = tempDir / "meta_restore.json"
+                    tempFiles.add(metaPath)
 
                     val corruptedMsg = getString(Res.string.backup_err_corrupted)
                     if (!client.downloadFile("$FIXED_BACKUP_DIR/meta.json", metaPath)) {
@@ -247,6 +253,7 @@ class BackupViewModel(
                             continue
                         }
                         val modulePath = tempDir / "${module.key}_restore.cbor"
+                        tempFiles.add(modulePath)
                         if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", modulePath)) {
                             val bytes = FileSystem.SYSTEM.read(modulePath) { readByteArray() }
                             payloadMap[module.key] = bytes
@@ -266,7 +273,19 @@ class BackupViewModel(
                     val packageObj = AppBackupPackage(safeMeta, payloadMap)
                     backupRepository.restoreFullSoftwareBackup(packageObj)
                 } catch (e: Exception) {
+                    // 原为静默 `Result.failure(e)`：失败原因只在 UI 里以 message 出现一次，
+                    // 日志无痕。补日志，便于用户反馈时定位。
+                    AppLog.e(TAG, "云端备份恢复失败", e)
                     Result.failure(e)
+                } finally {
+                    // P2-16：无论成功、失败还是中途 return，都必须删净明文临时副本。
+                    tempFiles.forEach { path ->
+                        try {
+                            FileSystem.SYSTEM.delete(path)
+                        } catch (cleanupError: Exception) {
+                            AppLog.w(TAG, "删除临时备份文件失败: ${path.name}", cleanupError)
+                        }
+                    }
                 }
             }
 
