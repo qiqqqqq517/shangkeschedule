@@ -59,7 +59,19 @@ main_app_database.db
 工作日志.md
 工作日志_archive.md
 工作日志.md.bak
-tools/
+# tools/ 绝大多数是一次性 UI 调试脚本（parse_ui / where / fix_* / verify_*_v34x 等），
+# 不入库；但**发版强制入口必须入库** —— 否则新克隆 / 换机根本拿不到它们，
+# 而 AGENTS.md 与 docs/agents/release-runbook.md 都把它们当硬性命令（2026-10-05 修正）。
+# 白名单只放「无其它依赖、可独立执行」的发布脚本；带依赖的一并列出。
+tools/*
+!tools/publish_new_version.py
+!tools/update_website.py
+!tools/build_schools.py
+!tools/rebuild_zip.py
+!tools/school_index_pb2.py
+!tools/worklog/
+tools/worklog/*
+!tools/worklog/worklog.py
 _*.py
 _*.html
 _*.png
