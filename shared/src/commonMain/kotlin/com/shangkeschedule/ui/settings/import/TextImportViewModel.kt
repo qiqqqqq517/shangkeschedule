@@ -1,27 +1,11 @@
 package com.shangkeschedule.ui.settings.import
 
-import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.import_fmt_share_code
-import shangkeschedule.shared.generated.resources.tivm_error_empty_file
-import shangkeschedule.shared.generated.resources.tivm_error_empty_input
-import shangkeschedule.shared.generated.resources.tivm_error_no_courses
-import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
-import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
-import shangkeschedule.shared.generated.resources.tivm_error_old_xls
-import shangkeschedule.shared.generated.resources.tivm_error_parse_first
-import shangkeschedule.shared.generated.resources.tivm_error_share_code_invalid
-import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
-import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
-import shangkeschedule.shared.generated.resources.tivm_json_parse_failed
-
-import org.jetbrains.compose.resources.getString
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shangkeschedule.data.codec.CourseShareCodec
 import com.shangkeschedule.data.di.AppStorage
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
-import com.shangkeschedule.data.codec.CourseShareCodec
 import com.shangkeschedule.data.parser.ExcelScheduleParser
 import com.shangkeschedule.data.parser.TextImportFormat
 import com.shangkeschedule.data.parser.UniversalScheduleParser
@@ -33,7 +17,49 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.import_fmt_share_code
+import shangkeschedule.shared.generated.resources.parser_err_csv_empty
+import shangkeschedule.shared.generated.resources.parser_err_csv_failed
+import shangkeschedule.shared.generated.resources.parser_err_csv_no_courses
+import shangkeschedule.shared.generated.resources.parser_err_empty_content
+import shangkeschedule.shared.generated.resources.parser_err_excel_empty
+import shangkeschedule.shared.generated.resources.parser_err_excel_no_courses
+import shangkeschedule.shared.generated.resources.parser_err_grid_no_courses
+import shangkeschedule.shared.generated.resources.parser_err_grid_not_timetable
+import shangkeschedule.shared.generated.resources.parser_err_html_failed
+import shangkeschedule.shared.generated.resources.parser_err_html_no_courses
+import shangkeschedule.shared.generated.resources.parser_err_html_no_rows
+import shangkeschedule.shared.generated.resources.parser_err_ics_failed
+import shangkeschedule.shared.generated.resources.parser_err_ics_no_events
+import shangkeschedule.shared.generated.resources.parser_err_json_failed
+import shangkeschedule.shared.generated.resources.parser_err_json_no_courses
+import shangkeschedule.shared.generated.resources.parser_err_text_empty
+import shangkeschedule.shared.generated.resources.parser_err_text_failed
+import shangkeschedule.shared.generated.resources.parser_err_text_format_unknown
+import shangkeschedule.shared.generated.resources.parser_err_unrecognized_format
+import shangkeschedule.shared.generated.resources.parser_err_wakeup_no_json
+import shangkeschedule.shared.generated.resources.parser_err_wakeup_text_failed
+import shangkeschedule.shared.generated.resources.parser_fmt_csv
+import shangkeschedule.shared.generated.resources.parser_fmt_excel_grid
+import shangkeschedule.shared.generated.resources.parser_fmt_excel_list
+import shangkeschedule.shared.generated.resources.parser_fmt_excel_position_map
+import shangkeschedule.shared.generated.resources.parser_fmt_html_table
+import shangkeschedule.shared.generated.resources.parser_fmt_ics_calendar
+import shangkeschedule.shared.generated.resources.parser_fmt_plain_text
+import shangkeschedule.shared.generated.resources.tivm_error_empty_file
+import shangkeschedule.shared.generated.resources.tivm_error_empty_input
+import shangkeschedule.shared.generated.resources.tivm_error_no_courses
+import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
+import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
+import shangkeschedule.shared.generated.resources.tivm_error_old_xls
+import shangkeschedule.shared.generated.resources.tivm_error_parse_first
+import shangkeschedule.shared.generated.resources.tivm_error_share_code_invalid
+import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
+import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
+import shangkeschedule.shared.generated.resources.tivm_json_parse_failed
 
 /**
  * 文本/文件导入 ViewModel
@@ -275,21 +301,65 @@ class TextImportViewModel(
         }
     }
 
-    private fun applyParseResult(result: UniversalScheduleParser.ParseResult) {
+    /**
+     * 把解析结果写入 UI 状态。
+     *
+     * 无编号-4 / P0-3：解析层原先直接给出中文文案（`Error.message` / `Success.format`），
+     * 这里原样赋值给 `uiState.error` / `uiState.detectedFormat` 渲染 ⇒
+     * **英文 / 繁体用户看到简体中文**。
+     * 现改为：解析层只给**码**，本函数（suspend，调用点都在 `viewModelScope.launch` 内）
+     * 用 `getString` 解析成当前语言文案；码为 null 时（如分享串路径已自行本地化）
+     * 才回落到文案本身。
+     */
+    private suspend fun applyParseResult(result: UniversalScheduleParser.ParseResult) {
         _uiState.value = when (result) {
             is UniversalScheduleParser.ParseResult.Success -> _uiState.value.copy(
                 parseResult = result.model,
-                detectedFormat = result.format,
+                detectedFormat = result.formatCode?.let { getString(formatResOf(it)) } ?: result.format,
                 error = null,
                 isLoading = false
             )
             is UniversalScheduleParser.ParseResult.Error -> _uiState.value.copy(
-                error = result.message,
+                error = result.code?.let { getString(errorResOf(it)) } ?: result.message,
                 parseResult = null,
                 detectedFormat = "",
                 isLoading = false
             )
         }
+    }
+
+    private fun errorResOf(code: UniversalScheduleParser.ParseErrorCode) = when (code) {
+        UniversalScheduleParser.ParseErrorCode.EMPTY_CONTENT -> Res.string.parser_err_empty_content
+        UniversalScheduleParser.ParseErrorCode.UNRECOGNIZED_FORMAT -> Res.string.parser_err_unrecognized_format
+        UniversalScheduleParser.ParseErrorCode.EXCEL_EMPTY -> Res.string.parser_err_excel_empty
+        UniversalScheduleParser.ParseErrorCode.WAKEUP_NO_JSON -> Res.string.parser_err_wakeup_no_json
+        UniversalScheduleParser.ParseErrorCode.WAKEUP_TEXT_FAILED -> Res.string.parser_err_wakeup_text_failed
+        UniversalScheduleParser.ParseErrorCode.JSON_NO_COURSES -> Res.string.parser_err_json_no_courses
+        UniversalScheduleParser.ParseErrorCode.JSON_FAILED -> Res.string.parser_err_json_failed
+        UniversalScheduleParser.ParseErrorCode.ICS_NO_EVENTS -> Res.string.parser_err_ics_no_events
+        UniversalScheduleParser.ParseErrorCode.ICS_FAILED -> Res.string.parser_err_ics_failed
+        UniversalScheduleParser.ParseErrorCode.CSV_EMPTY -> Res.string.parser_err_csv_empty
+        UniversalScheduleParser.ParseErrorCode.CSV_NO_COURSES -> Res.string.parser_err_csv_no_courses
+        UniversalScheduleParser.ParseErrorCode.CSV_FAILED -> Res.string.parser_err_csv_failed
+        UniversalScheduleParser.ParseErrorCode.HTML_NO_ROWS -> Res.string.parser_err_html_no_rows
+        UniversalScheduleParser.ParseErrorCode.HTML_NO_COURSES -> Res.string.parser_err_html_no_courses
+        UniversalScheduleParser.ParseErrorCode.HTML_FAILED -> Res.string.parser_err_html_failed
+        UniversalScheduleParser.ParseErrorCode.TEXT_EMPTY -> Res.string.parser_err_text_empty
+        UniversalScheduleParser.ParseErrorCode.TEXT_FORMAT_UNKNOWN -> Res.string.parser_err_text_format_unknown
+        UniversalScheduleParser.ParseErrorCode.TEXT_FAILED -> Res.string.parser_err_text_failed
+        UniversalScheduleParser.ParseErrorCode.GRID_NOT_TIMETABLE -> Res.string.parser_err_grid_not_timetable
+        UniversalScheduleParser.ParseErrorCode.GRID_NO_COURSES -> Res.string.parser_err_grid_no_courses
+        UniversalScheduleParser.ParseErrorCode.EXCEL_NO_COURSES -> Res.string.parser_err_excel_no_courses
+    }
+
+    private fun formatResOf(code: UniversalScheduleParser.ParseFormatCode) = when (code) {
+        UniversalScheduleParser.ParseFormatCode.ICS_CALENDAR -> Res.string.parser_fmt_ics_calendar
+        UniversalScheduleParser.ParseFormatCode.CSV -> Res.string.parser_fmt_csv
+        UniversalScheduleParser.ParseFormatCode.HTML_TABLE -> Res.string.parser_fmt_html_table
+        UniversalScheduleParser.ParseFormatCode.PLAIN_TEXT -> Res.string.parser_fmt_plain_text
+        UniversalScheduleParser.ParseFormatCode.EXCEL_GRID -> Res.string.parser_fmt_excel_grid
+        UniversalScheduleParser.ParseFormatCode.EXCEL_LIST -> Res.string.parser_fmt_excel_list
+        UniversalScheduleParser.ParseFormatCode.EXCEL_POSITION_MAP -> Res.string.parser_fmt_excel_position_map
     }
 
     fun reset() {

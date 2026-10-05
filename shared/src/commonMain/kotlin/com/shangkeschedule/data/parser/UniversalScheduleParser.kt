@@ -58,7 +58,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
 
     fun parseAuto(content: String): ParseResult {
         val trimmed = content.trim()
-        if (trimmed.isEmpty()) return ParseResult.Error("内容为空")
+        if (trimmed.isEmpty()) return ParseResult.Error("内容为空", ParseErrorCode.EMPTY_CONTENT)
 
         // 候选解析器按置信度排序；任何一个成功立即返回，全部失败时返回最后一个错误。
         // 这样修复了此前「被误判成 CSV 后直接报错、不再尝试其他格式」导致文本导入不可用的问题。
@@ -88,7 +88,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 is ParseResult.Error -> lastError = result
             }
         }
-        return lastError ?: ParseResult.Error("无法识别内容格式")
+        return lastError ?: ParseResult.Error("无法识别内容格式", ParseErrorCode.UNRECOGNIZED_FORMAT)
     }
 
     /**
@@ -97,7 +97,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
      */
     fun parseWithFormat(content: String, format: TextImportFormat?): ParseResult {
         val trimmed = content.trim()
-        if (trimmed.isEmpty()) return ParseResult.Error("内容为空")
+        if (trimmed.isEmpty()) return ParseResult.Error("内容为空", ParseErrorCode.EMPTY_CONTENT)
         return when (format) {
             null -> parseAuto(trimmed)
             TextImportFormat.WAKEUP -> parseWakeUpShareText(trimmed)
@@ -116,14 +116,72 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
 
     /** Excel 二维网格解析（ExcelScheduleParser.extractGrid 的后续步骤） */
     fun parseExcelGrid(grid: List<List<String>>): ParseResult {
-        if (grid.isEmpty()) return ParseResult.Error("Excel 内容为空")
+        if (grid.isEmpty()) return ParseResult.Error("Excel 内容为空", ParseErrorCode.EXCEL_EMPTY)
         parseGridTimetable(grid).let { result -> if (result is ParseResult.Success) return result }
         return parseExcelAsList(grid)
     }
 
+    /**
+     * 解析失败的**可本地化错误码**（无编号-4 / P0-3）。
+     *
+     * 背景：解析器原先直接把中文文案塞进 `ParseResult.Error.message`，调用方原样渲染 ⇒
+     * 英文 / 繁体用户看到简体中文。解析层是**纯离线逻辑**，不该依赖 Compose 资源
+     * （`getString` 是 suspend，会把整条解析链染成 suspend），因此这里只产出**码**，
+     * 由 UI 层（`TextImportViewModel`）用 `getString` 解析为当前语言文案。
+     */
+    enum class ParseErrorCode {
+        EMPTY_CONTENT,
+        UNRECOGNIZED_FORMAT,
+        EXCEL_EMPTY,
+        WAKEUP_NO_JSON,
+        WAKEUP_TEXT_FAILED,
+        JSON_NO_COURSES,
+        JSON_FAILED,
+        ICS_NO_EVENTS,
+        ICS_FAILED,
+        CSV_EMPTY,
+        CSV_NO_COURSES,
+        CSV_FAILED,
+        HTML_NO_ROWS,
+        HTML_NO_COURSES,
+        HTML_FAILED,
+        TEXT_EMPTY,
+        TEXT_FORMAT_UNKNOWN,
+        TEXT_FAILED,
+        GRID_NOT_TIMETABLE,
+        GRID_NO_COURSES,
+        EXCEL_NO_COURSES,
+    }
+
+    /** 识别到的来源格式码（同样需要本地化，见 [ParseErrorCode] 的说明）。 */
+    enum class ParseFormatCode {
+        ICS_CALENDAR,
+        CSV,
+        HTML_TABLE,
+        PLAIN_TEXT,
+        EXCEL_GRID,
+        EXCEL_LIST,
+        EXCEL_POSITION_MAP,
+    }
+
     sealed class ParseResult {
-        data class Success(val model: CourseTableImportModel, val format: String) : ParseResult()
-        data class Error(val message: String) : ParseResult()
+        /**
+         * @param format 人类可读的来源格式（**仅作日志/测试兜底**，界面一律用 [formatCode] 渲染）
+         */
+        data class Success(
+            val model: CourseTableImportModel,
+            val format: String,
+            val formatCode: ParseFormatCode? = null,
+        ) : ParseResult()
+
+        /**
+         * @param message 中文兜底文案（**仅作日志/测试兜底**，界面一律用 [code] 渲染）
+         * @param code    可本地化错误码；为 null 表示「调用方已自行本地化」（如分享串路径）
+         */
+        data class Error(
+            val message: String,
+            val code: ParseErrorCode? = null,
+        ) : ParseResult()
     }
 
     // ========== WakeUp 分享文本 ==========
@@ -131,7 +189,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private fun parseWakeUpShareText(text: String): ParseResult {
         return try {
             val jsonStart = text.indexOf("{")
-            if (jsonStart == -1) return ParseResult.Error("无法找到JSON数据")
+            if (jsonStart == -1) return ParseResult.Error("无法找到JSON数据", ParseErrorCode.WAKEUP_NO_JSON)
 
             val jsonStr = text.substring(jsonStart).trim()
                 .replace("%7B", "{").replace("%7D", "}")
@@ -143,7 +201,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             parseWakeUpJson(jsonStr)
         } catch (e: Exception) {
             AppLog.e(TAG, "WakeUp文本解析失败", e)
-            ParseResult.Error("WakeUp文本解析失败")
+            ParseResult.Error("WakeUp文本解析失败", ParseErrorCode.WAKEUP_TEXT_FAILED)
         }
     }
 
@@ -182,12 +240,12 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 )
             }?.filter { it.number > 0 } ?: emptyList()
 
-            if (courses.isEmpty()) return ParseResult.Error("JSON中未找到有效课程")
+            if (courses.isEmpty()) return ParseResult.Error("JSON中未找到有效课程", ParseErrorCode.JSON_NO_COURSES)
 
             ParseResult.Success(CourseTableImportModel(courses = courses, timeSlots = timeSlots), "WakeUp JSON")
         } catch (e: Exception) {
             AppLog.e(TAG, "JSON解析失败", e)
-            ParseResult.Error("JSON解析失败")
+            ParseResult.Error("JSON解析失败", ParseErrorCode.JSON_FAILED)
         }
     }
 
@@ -196,7 +254,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private fun parseIcs(content: String): ParseResult {
         return try {
             val events = parseIcsEvents(content)
-            if (events.isEmpty()) return ParseResult.Error("ICS中未找到有效课程事件")
+            if (events.isEmpty()) return ParseResult.Error("ICS中未找到有效课程事件", ParseErrorCode.ICS_NO_EVENTS)
 
             // 基准日期：所有事件 DTSTART 最小日期作为「第 1 周」（绝对日期 → 相对周次）
             val baseDate = events.mapNotNull { ev ->
@@ -276,12 +334,12 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 )
             }.filter { it.name.isNotBlank() && it.day in 1..7 }
 
-            if (courses.isEmpty()) return ParseResult.Error("ICS中未找到有效课程事件")
+            if (courses.isEmpty()) return ParseResult.Error("ICS中未找到有效课程事件", ParseErrorCode.ICS_NO_EVENTS)
 
-            ParseResult.Success(CourseTableImportModel(courses = courses), "ICS日历")
+            ParseResult.Success(CourseTableImportModel(courses = courses), "ICS日历", ParseFormatCode.ICS_CALENDAR)
         } catch (e: Exception) {
             AppLog.e(TAG, "ICS解析失败", e)
-            ParseResult.Error("ICS解析失败")
+            ParseResult.Error("ICS解析失败", ParseErrorCode.ICS_FAILED)
         }
     }
 
@@ -465,7 +523,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private fun parseCsv(content: String): ParseResult {
         return try {
             val lines = content.lines().filter { it.isNotBlank() }
-            if (lines.isEmpty()) return ParseResult.Error("CSV内容为空")
+            if (lines.isEmpty()) return ParseResult.Error("CSV内容为空", ParseErrorCode.CSV_EMPTY)
 
             val header = lines.first().split(",").map { it.trim().lowercase() }
             val dataLines = if (hasCsvHeader(header)) lines.drop(1) else lines
@@ -502,11 +560,11 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 )
             }
 
-            if (courses.isEmpty()) return ParseResult.Error("CSV中未找到有效课程")
-            ParseResult.Success(CourseTableImportModel(courses = courses), "CSV")
+            if (courses.isEmpty()) return ParseResult.Error("CSV中未找到有效课程", ParseErrorCode.CSV_NO_COURSES)
+            ParseResult.Success(CourseTableImportModel(courses = courses), "CSV", ParseFormatCode.CSV)
         } catch (e: Exception) {
             AppLog.e(TAG, "CSV解析失败", e)
-            ParseResult.Error("CSV解析失败")
+            ParseResult.Error("CSV解析失败", ParseErrorCode.CSV_FAILED)
         }
     }
 
@@ -521,7 +579,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             val rows = RE_HTML_ROW
                 .findAll(content).map { it.groupValues[1] }.toList()
 
-            if (rows.isEmpty()) return ParseResult.Error("未找到HTML表格行")
+            if (rows.isEmpty()) return ParseResult.Error("未找到HTML表格行", ParseErrorCode.HTML_NO_ROWS)
 
             val courses = mutableListOf<ImportCourseJsonModel>()
             for (row in rows) {
@@ -548,11 +606,11 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 }
             }
 
-            if (courses.isEmpty()) return ParseResult.Error("HTML表格中未找到有效课程")
-            ParseResult.Success(CourseTableImportModel(courses = courses), "HTML表格")
+            if (courses.isEmpty()) return ParseResult.Error("HTML表格中未找到有效课程", ParseErrorCode.HTML_NO_COURSES)
+            ParseResult.Success(CourseTableImportModel(courses = courses), "HTML表格", ParseFormatCode.HTML_TABLE)
         } catch (e: Exception) {
             AppLog.e(TAG, "HTML解析失败", e)
-            ParseResult.Error("HTML解析失败")
+            ParseResult.Error("HTML解析失败", ParseErrorCode.HTML_FAILED)
         }
     }
 
@@ -561,7 +619,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private fun parsePlainText(content: String): ParseResult {
         return try {
             val lines = content.lines().filter { it.isNotBlank() }
-            if (lines.isEmpty()) return ParseResult.Error("文本内容为空")
+            if (lines.isEmpty()) return ParseResult.Error("文本内容为空", ParseErrorCode.TEXT_EMPTY)
 
             val courses = lines.mapNotNull { line ->
                 // 先按强分隔符（制表符/逗号/竖线/连续空格/中文分隔符）切分；
@@ -587,12 +645,12 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             }
 
             if (courses.isEmpty()) {
-                return ParseResult.Error("无法识别文本格式。请确保每行包含：课程名 教师 教室 星期 节次 周次")
+                return ParseResult.Error("无法识别文本格式。请确保每行包含：课程名 教师 教室 星期 节次 周次", ParseErrorCode.TEXT_FORMAT_UNKNOWN)
             }
-            ParseResult.Success(CourseTableImportModel(courses = courses), "纯文本")
+            ParseResult.Success(CourseTableImportModel(courses = courses), "纯文本", ParseFormatCode.PLAIN_TEXT)
         } catch (e: Exception) {
             AppLog.e(TAG, "文本解析失败", e)
-            ParseResult.Error("文本解析失败")
+            ParseResult.Error("文本解析失败", ParseErrorCode.TEXT_FAILED)
         }
     }
 
@@ -671,13 +729,13 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
         val headerRowIndex = grid.indexOfFirst { row ->
             row.count { dayOfHeaderStrict(it) != null } >= 2
         }
-        if (headerRowIndex == -1) return ParseResult.Error("未识别为网格课表")
+        if (headerRowIndex == -1) return ParseResult.Error("未识别为网格课表", ParseErrorCode.GRID_NOT_TIMETABLE)
 
         val dayColumns = sortedMapOf<Int, Int>()
         grid[headerRowIndex].forEachIndexed { col, cell ->
             dayOfHeaderStrict(cell)?.let { day -> dayColumns[col] = day }
         }
-        if (dayColumns.isEmpty()) return ParseResult.Error("未识别为网格课表")
+        if (dayColumns.isEmpty()) return ParseResult.Error("未识别为网格课表", ParseErrorCode.GRID_NOT_TIMETABLE)
 
         val firstDayCol = dayColumns.firstKey()
         val maxLabelCol = firstDayCol - 1
@@ -713,8 +771,8 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             .filter { it.name.isNotBlank() && it.day in 1..7 }
             .distinctBy { "${it.name}|${it.day}|${it.startSection}|${it.endSection}|${it.weeks}" }
 
-        if (uniqueCourses.isEmpty()) return ParseResult.Error("网格课表中未识别到课程")
-        return ParseResult.Success(CourseTableImportModel(courses = uniqueCourses), "Excel 网格课表")
+        if (uniqueCourses.isEmpty()) return ParseResult.Error("网格课表中未识别到课程", ParseErrorCode.GRID_NO_COURSES)
+        return ParseResult.Success(CourseTableImportModel(courses = uniqueCourses), "Excel 网格课表", ParseFormatCode.EXCEL_GRID)
     }
 
     /** 严格匹配表头单元格：星期一 / 周一 / 礼拜天 / Mon 等；防止把课程内容误判为表头 */
@@ -971,10 +1029,11 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             )
         }
 
-        if (courses.isEmpty()) return ParseResult.Error("Excel 中未识别到课程（请确认是课表文件）")
+        if (courses.isEmpty()) return ParseResult.Error("Excel 中未识别到课程（请确认是课表文件）", ParseErrorCode.EXCEL_NO_COURSES)
         return ParseResult.Success(
             CourseTableImportModel(courses = courses),
-            if (headerIdx >= 0) "Excel 列表课表" else "Excel 位置映射"
+            if (headerIdx >= 0) "Excel 列表课表" else "Excel 位置映射",
+            if (headerIdx >= 0) ParseFormatCode.EXCEL_LIST else ParseFormatCode.EXCEL_POSITION_MAP,
         )
     }
 }
