@@ -133,7 +133,7 @@ private fun lightAppColorTokens() = AppColorTokens(
     divider = Color(0xFFECEDF3),
     dividerSoft = Color(0x0F000000),
     textPrimary = Color(0xFF191B22),
-    textSecondary = Color(0xFF8A8F99),
+    textSecondary = Color(0xFF636366),             // 原 #8A8F99 仅 2.91~3.25，未达 WCAG AA 4.5
     textOnPrimary = Color.White,
     primary = Color(0xFF6C5CE7),
     primarySoft = Color(0xFFE8EAF9),
@@ -181,7 +181,7 @@ private fun darkAppColorTokens() = run {
         divider = Color(0xFF262A32),
         dividerSoft = Color(0x14FFFFFF),
         textPrimary = textPrimary,
-        textSecondary = Color(0xFF8B909B),
+        textSecondary = Color(0xFF9095A0),         // 原 #8B909B 在 elevated 底仅 4.35，未达 AA
         textOnPrimary = Color.White,
         primary = primary,
         primarySoft = primary.copy(alpha = 0.22f),

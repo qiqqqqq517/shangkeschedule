@@ -1077,7 +1077,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 
 | ID | 红线 | 对方实测证据 | 我们的现状与守门 |
 |---|---|---|---|
-| **XL-040** | **密钥 / secret 绝不进包** | `assets/flutter_assets/.env` 与 `.env.production` 均明文含 `WECHAT_APP_SECRET=3157a13029a38362f655dcd4257e7ad7` 与 `ENCRYPT_KEY=StarLinkCurriculum2026AesKey32Bx`（AES-256-CBC 密钥）⇒ 攻击者解包即得密钥，所有课表/成绩数据形同明文 | 我们已有 `SecureCrypto.kt`；**新增任何密钥前必须确认只走 Keystore 或服务端**，不进 `assets`、不进源码 |
+| **XL-040** | **密钥 / secret 绝不进包** | `assets/flutter_assets/.env` 与 `.env.production` 均明文含 `WECHAT_APP_SECRET=<32 位十六进制>` 与 `ENCRYPT_KEY=<32 字节 AES 密钥>`（AES-256-CBC 密钥）⇒ 攻击者解包即得密钥，所有课表/成绩数据形同明文（**原文取值已脱敏，仅保留形态**） | 我们已有 `SecureCrypto.kt`；**新增任何密钥前必须确认只走 Keystore 或服务端**，不进 `assets`、不进源码 |
 | **XL-041** | **`network_security_config` 按域名收窄** | 对方 `cleartextTrafficPermitted=true` + trust-anchors 含 `<certificates src="user">` ⇒ 全链路可被中间人抓包改包 | 我们已有 `network_security_config.xml`，**发版前核对未被改成全局放开** |
 | **XL-042** | **正式版必须正式签名** | 对方 `apksigner` 显示 `CN=Android Debug, O=Android, C=US` —— 调试证书，非正式发布包 | 按 `AGENTS.md` 发版流程：逐包校验 V2 证书 SHA-256 = `4ae49d8c…2475f` |
 | **XL-043** | **生产包剥离调试日志** | 对方 `libapp.so` 含上千条中文调试日志（`渲染课表: 第`、`小格子数据:`）与内部数据键名（`week_courses_data`），而 `ENABLE_DEBUG_LOG=false` | 我们已用 `AppLog` 统一（`REVIEW.md` 批5 清零 `println`），**新增日志必须走 `AppLog` 而非 `println`**；发版前抽查 |

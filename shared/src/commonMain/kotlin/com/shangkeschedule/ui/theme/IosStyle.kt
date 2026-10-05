@@ -136,7 +136,7 @@ internal fun iosLightAppColorTokens(): AppColorTokens = AppColorTokens(
     outlineVariant = MaterialBaselineOutlineVariant,
     // 文本
     textPrimary = IosLabelLight,
-    textSecondary = Color(0xFF8E8E93),             // systemGray（secondaryLabel 实色档）
+    textSecondary = Color(0xFF636366),             // systemGray2（WCAG AA ≥4.5；见下方对比度说明）
     textOnPrimary = Color(0xFFFFFFFF),
     // 语义色 —— 严格 Apple 系统色
     primary = IosBlueLight,
