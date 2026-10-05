@@ -221,7 +221,16 @@ fi
 #       发版 runbook 与 CI 前置检查里跑。
 # 放行：确属误报：python scripts/check_adapters.py --strict（看明细）或 --no-verify。
 # ---------------------------------------------------------------------------
-ADAPTER_TOUCHED="$(echo "$STAGED" | grep -E '^(shared/assets/offline_repo/|\.adapter_private/|adapter-worker/)' || true)"
+# P2-18（2026-10-05）：原触发正则写作
+#     '^(shared/assets/offline_repo/|\.adapter_private/|adapter-worker/)'
+# 其中 `\.adapter_private/` 是**不可达分支** —— 该目录被 .gitignore:92 忽略，
+# 永远进不了暂存区（git diff --cached 不会列出它），因此：
+#   · 私有仓的改动**不受本 hook 约束**，也不会触发本门禁；
+#   · 把该分支留在触发集里会给人「私有仓改动也被覆盖」的错觉（比没有更糟）。
+# 私有仓的一致性由**发版 runbook**（docs/adapter-sop.md §6.4 / §8.1）与本门禁的
+# `--require-private`（一旦主仓适配脚本有改动，就要求私有仓工作副本在场）共同保证。
+# 故此处**移除**该死分支，只保留两个真实可达的触发源。
+ADAPTER_TOUCHED="$(echo "$STAGED" | grep -E '^(shared/assets/offline_repo/|adapter-worker/)' || true)"
 if [ -n "$ADAPTER_TOUCHED" ]; then
   echo "[adapters] 检测到适配脚本改动，运行适配置体检（--skip-node）..." >&2
   # --require-private：**改了适配脚本却没有私有仓库工作副本**时直接拦截。
@@ -248,6 +257,11 @@ if [ -n "$ADAPTER_TOUCHED" ]; then
     echo "  若本机确实拿不到私有仓库（未 clone）：git commit --no-verify" >&2
     exit 1
   fi
+else
+  # P3-143（2026-10-05）：**未触发时必须显式说出来**。
+  # 原实现在条件不满足时什么都不打印 ⇒ 提交输出里「门禁通过」与「门禁根本没跑」
+  # 长得一模一样，看日志的人会把「没校验」读成「校验通过」。
+  echo "[adapters] 未触发：暂存区未碰适配脚本，本次未做适配体检（非通过，是没跑）。" >&2
 fi
 
 # ---------------------------------------------------------------------------
@@ -283,6 +297,9 @@ if [ -n "$VERSION_TOUCHED" ]; then
     echo "  本次跳过      ：git commit --no-verify" >&2
     exit 1
   fi
+else
+  # P3-143（2026-10-05）：同 adapters —— 未触发也要显式说明，别让「没跑」冒充「通过」。
+  echo "[version] 未触发：暂存区未碰版本源/官网/README/CHANGELOG，本次未校验版本一致性（非通过，是没跑）。" >&2
 fi
 
 exit 0
