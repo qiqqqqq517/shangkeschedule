@@ -51,6 +51,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+# 输出编码固定为 UTF-8：报告含中文，Windows 控制台默认 GBK 会让 print() 按 GBK 编码
+# 写出、并让下游（pre-commit 捕获、核验脚本、CI 日志解析）按 UTF-8 读时全变成 U+FFFD，
+# 于是「按消息文本判定门禁结论」的一类消费全部失效（实测：断言『危险 API』『基线不存在』
+# 在 UTF-8 侧恒 False）。固定编码后，本脚本输出可被机器稳定消费。
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC_DIR = ROOT / "shared" / "assets" / "offline_repo" / "schools" / "resources"
 DEFAULT_PRIVATE_DIR = ROOT / ".adapter_private" / "adapters"
@@ -58,6 +67,30 @@ DEFAULT_PRIVATE_DIR = ROOT / ".adapter_private" / "adapters"
 SCHOOL_INDEX_PB = ROOT / "shared" / "assets" / "offline_repo" / "index" / "school_index.pb"
 # `_common/`、`_timetable_parsers/` 是被复用的共享库，不是学校导入入口脚本
 SHARED_LIB_PREFIX = "_"
+
+
+class NodeUnavailable(RuntimeError):
+    """node 不可用：语法校验无法进行，不得当作「语法全对」。"""
+
+
+def load_dangerous_baseline(path: str):
+    """读取危险 API 棘轮基线。返回 (count | None, error | None)。
+
+    与 check_theme_leak.py 同契约：不存在与解析失败都 fail-closed（调用方判 ERROR），
+    绝不静默跳过 —— 「门禁悄悄失效」比「门禁吵一次」危险得多。
+    """
+    p = Path(path)
+    if not p.exists():
+        return None, None
+    try:
+        # utf-8-sig 容忍 Windows 侧写入的 BOM
+        data = json.loads(p.read_text(encoding="utf-8-sig"))
+    except Exception as e:  # noqa: BLE001
+        return None, str(e)
+    n = data.get("dangerous_api_count")
+    if not isinstance(n, int):
+        return None, "缺少整数字段 dangerous_api_count"
+    return n, None
 
 ENTRY_EXPLICIT = "shangkeImportEntry"
 ENTRY_CONVENTIONAL = (
@@ -98,12 +131,52 @@ def is_shared_lib(rel: str) -> bool:
 
 
 def strip_block_comments(text: str) -> str:
-    """去掉 /* ... */ 块注释（保留换行以便行号对齐）。"""
+    """去掉 /* ... */ 块注释（保留换行以便行号对齐）。
 
-    def _blank(match: re.Match[str]) -> str:
-        return "".join("\n" if ch == "\n" else " " for ch in match.group(0))
+    P2-23：**不能用裸正则 `re.sub(r"/\\*.*?\\*/", ...)`**。JS 的字符串字面量里
+    完全可以出现 `/*`（例如 `const re = "a/*b";` 或 `url = "http://x/*y"`），
+    裸正则会把从这里开始到**下一个** `*/`（可能在几十行后）之间的**真实代码**
+    整段当注释吞掉 ⇒ 该段内的危险 API / 裸对话框全部漏检（fail-open）。
 
-    return re.sub(r"/\*.*?\*/", _blank, text, flags=re.S)
+    正确做法：按字符扫描，跟踪 '  "  ` 三种引号与转义，
+    仅在「不在字符串里」时才把 `/*` 视为注释开始。块注释同样保留换行以对齐行号。
+    """
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    quote: str | None = None
+    while i < n:
+        ch = text[i]
+        if quote is not None:
+            # 字符串内部：原样保留，只跟踪转义与闭合
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i:i + 2])
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            out.append(ch)
+            i += 1
+            continue
+        if ch in ("'", '"', "`"):
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "*":
+            # 块注释开始：吞到匹配的 */（JS 不支持嵌套块注释），换行原样保留
+            j = text.find("*/", i + 2)
+            if j == -1:
+                seg = text[i:]
+                i = n
+            else:
+                seg = text[i:j + 2]
+                i = j + 2
+            out.append("".join("\n" if c == "\n" else " " for c in seg))
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def strip_line_comment(line: str) -> str:
@@ -126,22 +199,42 @@ def strip_line_comment(line: str) -> str:
     return line
 
 
-def defines_dialog_function(text: str, name: str) -> bool:
-    return re.search(r"\bfunction\s+%s\s*\(" % re.escape(name), text) is not None
+def dialog_definition_line(text: str, name: str) -> int | None:
+    """返回文件内 `function <name>(` 定义的 **0 基行号**；无则 None。"""
+    m = re.search(r"(?m)^[^\n]*\bfunction\s+%s\s*\(" % re.escape(name), text)
+    if m is None:
+        return None
+    return text[: m.start()].count("\n")
 
 
 def find_unguarded_dialogs(lines: list[str], text: str) -> list[tuple[int, str]]:
-    """返回 (行号, 对话框名) —— 只含未被 bridge 分支保护的裸调用。"""
+    """返回 (行号, 对话框名) —— 只含未被 bridge 分支保护的裸调用。
+
+    P2-24：此前只要文件里出现 `function alert(...)` 就 **continue 掉整文件**，
+    抑制范围过宽 —— 该文件内**其它**未走封装的裸调用（例如定义之前的调用、
+    或定义在某个 if 分支里而全局仍是原生）会一并豁免。同时「一行注释即可
+    关闭检测」的弱点也在此收口：注释行不参与判定。
+
+    现改为**逐调用点**判定：仅当该调用出现在同名函数定义**之后**时才视为
+    走业务封装（定义之前调用的是原生对话框）；文件内无同名定义则一律检查。
+    """
     found: list[tuple[int, str]] = []
     for name in NATIVE_DIALOGS:
-        # 文件自己定义了同名函数（形如 function alert(title, msg, btn)）说明调用是
-        # 走业务封装的，不是 WebView 原生对话框。
-        if defines_dialog_function(text, name):
-            continue
+        def_line = dialog_definition_line(text, name)
         pattern = re.compile(r"(^|[^.\w$])%s\s*\(" % re.escape(name))
         for index, raw_line in enumerate(lines):
+            # 注释行不参与判定（避免「一行注释关掉检测」）
+            if raw_line.strip().startswith(("//", "*", "/*")):
+                continue
             line = strip_line_comment(raw_line)
             if not pattern.search(line):
+                continue
+            # 调用点是否落在同名函数定义的**包裹范围内**：
+            #   · index == def_line —— 就是定义行自身（含 `alert(` 字面量），排除；
+            #   · index  > def_line —— 定义之后的调用，视为走业务封装，排除；
+            #   · index  < def_line —— 定义**之前**的调用，走的仍是 WebView 原生，**保留**。
+            # （若整文件都当封装跳过，就会漏掉「定义之前」的裸调用 —— 即 P2-24 的过宽抑制。）
+            if def_line is not None and index >= def_line:
                 continue
             lo = max(0, index - GUARD_WINDOW)
             window = "\n".join(lines[lo:index])
@@ -152,6 +245,12 @@ def find_unguarded_dialogs(lines: list[str], text: str) -> list[tuple[int, str]]
 
 
 def node_syntax_error(path: Path) -> str | None:
+    """返回语法错误描述；None = 语法 OK。
+
+    注意：node 不可用（未安装 / 不在 PATH）**不是**「语法 OK」。曾把 FileNotFoundError
+    静默 return None，与「全对」逐字节同值 ⇒ 语法校验整类 fail-open。
+    现在抛 NodeUnavailable，由调用方显式处置（默认记 ERROR）。
+    """
     try:
         proc = subprocess.run(
             ["node", "--check", str(path)],
@@ -160,8 +259,8 @@ def node_syntax_error(path: Path) -> str | None:
             encoding="utf-8",
             errors="replace",
         )
-    except FileNotFoundError:
-        return None
+    except FileNotFoundError as e:
+        raise NodeUnavailable("node 不在 PATH 或未安装") from e
     if proc.returncode == 0:
         return None
     detail = (proc.stderr or proc.stdout or "").strip().splitlines()
@@ -199,6 +298,23 @@ def main() -> int:
         action="store_true",
         help="私有仓库工作副本必须存在；缺失即为 ERROR（不再静默跳过双落点校验）",
     )
+    parser.add_argument(
+        "--allow-node-missing",
+        action="store_true",
+        help="node 不可用时只记 WARN 不判失败（默认 ERROR，因为语法校验会整体失效）",
+    )
+    parser.add_argument(
+        "--dangerous-baseline",
+        default=None,
+        metavar="PATH",
+        help="危险 API 棘轮基线 JSON；命中数高于基线即 ERROR（不给则命中即 ERROR）",
+    )
+    parser.add_argument(
+        "--update-dangerous-baseline",
+        default=None,
+        metavar="PATH",
+        help="把当前危险 API 命中数写为基线并退出",
+    )
     parser.add_argument("--json", dest="json_out", default=None, help="把机器可读报告写到该文件")
     parser.add_argument("--max-list", type=int, default=20, help="每类问题最多列多少条")
     args = parser.parse_args()
@@ -221,6 +337,7 @@ def main() -> int:
     dangerous_hits: list[str] = []
     missing_bridge: list[str] = []
     syntax_hits: list[str] = []
+    node_unavailable: list[str] = []
 
     for rel, path in public_scripts.items():
         text = read_lf(path)
@@ -249,14 +366,70 @@ def main() -> int:
             missing_bridge.append(f"{rel} 未调用 saveImportedCourses")
 
         if not args.skip_node:
-            detail = node_syntax_error(path)
+            try:
+                detail = node_syntax_error(path)
+            except NodeUnavailable as e:
+                node_unavailable.append(str(e))
+                detail = None
             if detail:
                 syntax_hits.append(f"{rel} {detail}")
 
-    # 语法错误属硬问题；其余为提示
+    if args.update_dangerous_baseline:
+        from datetime import date
+        _payload = {
+            "_comment": "危险 API 棘轮基线（适配脚本）。只允许下降；上升即为回归。",
+            "updated": date.today().isoformat(),
+            "dangerous_api_count": len(dangerous_hits),
+            "detail": dangerous_hits,
+        }
+        _bp = Path(args.update_dangerous_baseline)
+        _bp.parent.mkdir(parents=True, exist_ok=True)
+        _bp.write_text(json.dumps(_payload, ensure_ascii=False, indent=2) + "\n",
+                       encoding="utf-8")
+        print(f"[dangerous-baseline] 已写入 {_bp}（{len(dangerous_hits)} 处）")
+        return 0
+
+    # 语法错误属硬问题；危险 API / 危险对话框 / 入口缺失属需要人看的发现。
+    #
+    # 历史缺陷：dangerous_hits 与 no_catch 只被 append 进数据字典并 print，
+    # **从未接进 errors/warns** ⇒ 危险 API 一类零否决权（P1-20 / 「缺 1」）。
+    #
+    # 处置采用**棘轮**（与 check_theme_leak.py / check_a11y.py 同一套打法）：
+    # 存量 26 处危险 API 是历史存量，一次性判 ERROR 会让每次适配脚本提交都变红，
+    # 进而被 --no-verify 常态化绕过 —— 那等于再造一个「噪音门禁」。
+    # 故：以 --dangerous-baseline 记存量，**只允许下降、不得上升**；
+    # 未给基线时退化为「有命中即 ERROR」（严格模式，供 runbook / CI 使用）。
     errors.extend(syntax_hits)
     warns.extend(missing_bridge)
     warns.extend(native_dialog_hits)
+    warns.extend(no_catch)
+
+    dangerous_regressions: list[str] = []
+    if dangerous_hits:
+        if args.dangerous_baseline:
+            base_n, base_err = load_dangerous_baseline(args.dangerous_baseline)
+            if base_err is not None:
+                errors.append(
+                    f"危险 API 基线存在但无法解析：{args.dangerous_baseline}（{base_err}）")
+            elif base_n is None:
+                errors.append(
+                    f"危险 API 基线不存在：{args.dangerous_baseline}（门禁无基准可依）")
+            elif len(dangerous_hits) > base_n:
+                dangerous_regressions = [
+                    f"危险 API {base_n} → {len(dangerous_hits)}（+{len(dangerous_hits) - base_n}）"]
+                errors.append("危险 API 命中数较基线增加：" + "；".join(dangerous_regressions))
+        else:
+            errors.extend(dangerous_hits)
+
+    if node_unavailable:
+        # node 缺失 ⇒ 语法校验整体没跑。默认 ERROR（fail-closed）；
+        # 显式 --skip-node 是「我知道我不跑」，--allow-node-missing 是「跑不了但接受」。
+        _msg = "node 不可用，语法校验未执行（{} 例，首例：{}）".format(
+            len(node_unavailable), node_unavailable[0])
+        if args.allow_node_missing:
+            warns.append(_msg)
+        else:
+            errors.append(_msg)
 
     # ---- 2. 双落点一致性（LF 归一化哈希）----
     private_dir = Path(args.private_repo)
@@ -383,14 +556,26 @@ def main() -> int:
         "orphans": orphans,
         "dual_location": dual,
         "dual_skipped": dual_skipped,
+        "node_unavailable": node_unavailable,
+        "dangerous_api_count": len(dangerous_hits),
+        "dangerous_regressions": dangerous_regressions,
         "errors": errors,
         "warnings": warns,
         "strict": args.strict,
+        "allow_node_missing": args.allow_node_missing,
     }
     if args.json_out:
-        Path(args.json_out).write_text(
-            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        # P1-6：此前直接 write_text ⇒ 目标**目录**不存在时，会在跑完全部检查后
+        # 才崩溃（白跑一趟且退出码语义变成「脚本坏了」而非「有 ERROR」）。
+        # 现在先建目录并给出明确错误。
+        try:
+            _jp = Path(args.json_out)
+            _jp.parent.mkdir(parents=True, exist_ok=True)
+            _jp.write_text(json.dumps(report, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+        except OSError as e:
+            print(f"[check-adapters] ❌ 无法写出报告到 {args.json_out}：{e}", file=sys.stderr)
+            return 2
         print(f"\n报告已写入 {args.json_out}")
 
     if errors or (args.strict and warns):

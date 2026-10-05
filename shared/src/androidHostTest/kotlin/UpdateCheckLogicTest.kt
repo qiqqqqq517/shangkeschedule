@@ -27,7 +27,7 @@ class UpdateCheckLogicTest {
               "versionCode": 420,
               "versionName": "4.66.0",
               "downloadUrl": "https://pan.quark.cn/s/02947cbc1d4e",
-              "shareToken": "/~9a263aTFyF~/",
+              "shareToken": "~9a263aTFyF~:/",
               "releaseNotesUrl": "https://shangke.asia/changelog.html"
             }
         """.trimIndent()
@@ -36,7 +36,7 @@ class UpdateCheckLogicTest {
         assertEquals(420, manifest.versionCode)
         assertEquals("4.66.0", manifest.versionName)
         assertEquals("https://pan.quark.cn/s/02947cbc1d4e", manifest.downloadUrl)
-        assertEquals("/~9a263aTFyF~/", manifest.shareToken)
+        assertEquals("~9a263aTFyF~:/", manifest.shareToken)
         assertEquals("https://shangke.asia/changelog.html", manifest.releaseNotesUrl)
     }
 
@@ -123,7 +123,7 @@ class UpdateCheckLogicTest {
             versionCode = 420,
             versionName = "4.66.0",
             downloadUrl = "https://pan.quark.cn/s/02947cbc1d4e",
-            shareToken = "/~9a263aTFyF~/",
+            shareToken = "~9a263aTFyF~:/",
             releaseNotesUrl = "https://shangke.asia/changelog.html",
         )
 

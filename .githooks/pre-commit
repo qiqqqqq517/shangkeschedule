@@ -49,9 +49,21 @@ fi
 #       不参与 App 主题 token 体系，上面的 check_theme_leak.py 覆盖不到它。
 # 规则：文本 ≥4.5:1、有意义的非文本 UI ≥3:1（WCAG 2.2 AA），且不得出现已废弃色名。
 # 依据：docs/widget-display-optimization.md §6.6 / §8 V1–V2、V15
+#
+# 否决权（P1-13 / P1-46）：此前把退出码存进 WSTATUS 后**从未参与判定** ⇒ 该门禁
+# 报了违规也不拦提交，等于「只读报告」。现改为与其余门禁同级的硬拦截。
 # ---------------------------------------------------------------------------
 "$PY" scripts/check_widget_contrast.py --quiet
 WSTATUS=$?
+
+if [ "$WSTATUS" -ne 0 ]; then
+  echo "" >&2
+  echo "[widget-contrast] 提交被拦截：小组件配色对比度不达标（见上方明细）。" >&2
+  echo "  规则：文本 ≥4.5:1、非文本 UI ≥3:1（WCAG 2.2 AA），且不得出现已废弃色名。" >&2
+  echo "  看完整报告：python scripts/check_widget_contrast.py" >&2
+  echo "  本次跳过  ：git commit --no-verify" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # AC2 无障碍语义门禁（棘轮式）
@@ -64,6 +76,26 @@ WSTATUS=$?
 # ---------------------------------------------------------------------------
 "$PY" scripts/check_a11y.py --baseline scripts/a11y-baseline.json
 ASTATUS=$?
+
+# ---------------------------------------------------------------------------
+# AC4 字体缩放门禁（棘轮式）
+#
+# 背景：此前 check_font_scale.py **从未接入任何门禁**，且脚本自身检出垂直裁切
+#       风险后仍无条件 return 0 ⇒ 该类零否决权、零调用（双失效）。
+# 规则：2.0× 系统字号下，固定高度容器的可用高度 < 文本行盒 ⇒ 判风险；只允许下降。
+# 校验器：scripts/check_font_scale.py   基线：scripts/font-scale-baseline.json
+# ---------------------------------------------------------------------------
+"$PY" scripts/check_font_scale.py --baseline scripts/font-scale-baseline.json
+FSTATUS=$?
+
+if [ "$FSTATUS" -ne 0 ]; then
+  echo "" >&2
+  echo "[font-scale] 提交被拦截：字体缩放裁切风险数高于基线（见上方明细）。" >&2
+  echo "  看完整报告：python scripts/check_font_scale.py" >&2
+  echo "  确认属预期：python scripts/check_font_scale.py --update-baseline scripts/font-scale-baseline.json" >&2
+  echo "  本次跳过  ：git commit --no-verify" >&2
+  exit 1
+fi
 
 if [ "$ASTATUS" -ne 0 ]; then
   echo "" >&2
@@ -107,6 +139,77 @@ fi
 rm -f "$(git rev-parse --git-dir)/shangke-forbidden.tmp"
 
 # ---------------------------------------------------------------------------
+# 内容级密钥扫描（**绝对式**：命中即拦截）
+#
+# 背景（P1-64）：上面的红线门**只按文件名拦**。任何被改名的密钥文件、
+#   或把密钥直接写进 .md / .kt / .json / .js 的正文，都能一路通过 ——
+#   而「含明文第三方密钥的 .md」在本仓历史上真实存在过（P1-63）。
+# 规则：对暂存区**新增行**做高置信度密钥模式匹配。
+#   · 只扫 diff 的 `+` 行 ⇒ 不误伤历史存量，也不因一次提交就要求清理旧文件；
+#   · **不回显密钥原值**：只打印「文件:行号 + 规则名 + 命中长度」，
+#     避免把密钥二次写进终端记录 / CI 日志 / 会话转录（用户级硬规则）。
+# 放行：确属误报（如示例占位符）时 `git commit --no-verify`。
+# ---------------------------------------------------------------------------
+SECRET_REPORT="$("$PY" - <<'PYEOF' 2>/dev/null
+import re, subprocess
+
+PATTERNS = [
+    ("private-key-block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    ("aws-akid",          re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("github-pat",        re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b")),
+    ("google-api-key",    re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
+    ("slack-token",       re.compile(r"\bxox[abprs]-[0-9A-Za-z\-]{10,}\b")),
+    ("openai-key",        re.compile(r"\bsk-[A-Za-z0-9]{32,}\b")),
+    ("cf-app-secret",     re.compile(r"appSecret\s*[=:]\s*[\"'][A-Za-z0-9_\-]{16,}[\"']")),
+    ("generic-secret",    re.compile(r"(?i)\b(secret|api[_-]?key|token|password)\b\s*[=:]\s*[\"'][A-Za-z0-9+/_\-]{24,}[\"']")),
+]
+
+
+def staged_plus_lines():
+    """产出 (文件, 行号, 文本) —— 仅 diff 的**新增**行。"""
+    d = subprocess.run(["git", "diff", "--cached", "--unified=0", "--diff-filter=ACMR"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    out, cur, ln = [], None, 0
+    for raw in (d.stdout or "").splitlines():
+        if raw.startswith("+++ "):
+            cur = raw[6:].strip()
+            if cur.startswith("b/"):
+                cur = cur[2:]
+            continue
+        m = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", raw)
+        if m:
+            ln = int(m.group(1))
+            continue
+        if cur is None:
+            continue
+        if raw.startswith("+"):
+            out.append((cur, ln, raw[1:]))
+            ln += 1
+        elif not raw.startswith("-"):
+            ln += 1
+    return out
+
+
+for f, ln, text in staged_plus_lines():
+    for name, pat in PATTERNS:
+        for m in pat.finditer(text):
+            # 只打印长度，绝不回显原值
+            print("%s:%d  [%s]（命中 %d 字符）" % (f, ln, name, len(m.group(0))))
+PYEOF
+)"
+
+if [ -n "$SECRET_REPORT" ]; then
+  echo "" >&2
+  echo "[secret-scan] 提交被拦截：暂存区新增行疑似明文密钥。" >&2
+  echo "$SECRET_REPORT" | sed 's/^/    - /' >&2
+  echo "  说明：出于安全，本门禁**不显示**密钥原文，请自行核对上述位置。" >&2
+  echo "  处置：改用占位符 / 环境变量 / 本地配置文件（并加入 .gitignore）；" >&2
+  echo "        已提交过的密钥应视为已泄露并按需轮换。" >&2
+  echo "  确属误报：git commit --no-verify" >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # 教务适配脚本门禁（**条件触发**：仅当暂存区碰了适配脚本时才跑）
 #
 # 背景：适配脚本（178 校 / 196 文件）是产品的护城河，却零自动化测试；
@@ -130,12 +233,18 @@ if [ -n "$ADAPTER_TOUCHED" ]; then
   #   远端比包内旧 ⇒ AdapterRemoteUpdater.sync() 用旧版覆盖包内新脚本，
   #   症状为「原有功能正常、本次新增功能全失效」，极难排查。
   # 因此：一旦本次提交**确实改了适配脚本**，就要求私有仓库必须在场。
-  "$PY" scripts/check_adapters.py --skip-node --require-private
+  #
+  # --dangerous-baseline：危险 API 一类此前**从不参与退出码**（只 print 明细），
+  #   等于该类零否决权。现改为棘轮：存量 26 处记入 scripts/adapters-dangerous-baseline.json，
+  #   只允许下降、不得上升；基线缺失/损坏一律 fail-closed。
+  "$PY" scripts/check_adapters.py --skip-node --require-private \
+    --dangerous-baseline scripts/adapters-dangerous-baseline.json
   ADSTATUS=$?
   if [ "$ADSTATUS" -ne 0 ]; then
     echo "" >&2
     echo "[adapters] 提交被拦截：教务适配脚本存在 ERROR（见上方明细）。" >&2
     echo "  看完整报告（含 node 语法校验）：python scripts/check_adapters.py" >&2
+    echo "  新增危险 API 确属预期时：python scripts/check_adapters.py --update-dangerous-baseline scripts/adapters-dangerous-baseline.json" >&2
     echo "  若本机确实拿不到私有仓库（未 clone）：git commit --no-verify" >&2
     exit 1
   fi
@@ -149,14 +258,20 @@ fi
 #       data-version 占位符。两者一旦漂移，用户从官网点下载拿到的是旧包 —— 而本
 #       repo 的 tools/ 整目录被 gitignore，负责同步的 update_website.py 在新
 #       worktree 里根本不存在，漂移可以完全静默地发生。
-# 说明：scripts/check_version_sync.py 只对齐 (1)(2) 两个文件的四个字段，
-#       不涉及 CHANGELOG / GitHub Release（那两者无机器可校验锚点）。
+# 说明：scripts/check_version_sync.py 对齐 (1)(2)(3) 三个文件的字段，并单独
+#       校验 website/version.json 的形制与区间；不涉及 CHANGELOG / GitHub Release
+#       （那两者无机器可校验锚点）。
 #       注意：纯工具链提交会 bump versionName 但不出 Release，此时
 #       site.js 同步到新版本、changelog.html 停留在上一已发布版本 —— 这是
 #       update_website.py 的既有设计，不是违规，本门禁不涉及这一点。
+# 触发集必须与判据对象重合（P1-35 / P2-49）：
+#   · README.md —— 判据校验其版本徽章，故改徽章也必须触发；
+#   · website/version.json —— 判据校验其形制/区间/口令同源（P1-56），
+#     此前它不在触发集、也不在判据集、也不在写入清单 ⇒ 三道防线全缺，
+#     实际冻结在 4.66.0/420 长达 63 次版本迭代。
 # 放行：确属误报：git commit --no-verify
 # ---------------------------------------------------------------------------
-VERSION_TOUCHED="$(echo "$STAGED" | grep -E '^(androidApp/build\.gradle\.kts|website/assets/js/site\.js|CHANGELOG\.md)$' || true)"
+VERSION_TOUCHED="$(echo "$STAGED" | grep -E '^(androidApp/build\.gradle\.kts|website/assets/js/site\.js|website/version\.json|README\.md|CHANGELOG\.md)$' || true)"
 if [ -n "$VERSION_TOUCHED" ]; then
   "$PY" scripts/check_version_sync.py --quiet
   VSTATUS=$?

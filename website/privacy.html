@@ -75,7 +75,7 @@
         这一页说明 App 实际会读写哪些数据、申请哪些系统权限、以及在什么情况下才会联网。
       </p>
       <div class="doc-meta">
-        <span>最后更新：2026-09-14</span>
+        <span>最后更新：2026-10-05</span>
         <span>适用于：Android 版 v3.56.5</span>
       </div>
     </div>
@@ -98,9 +98,10 @@
         <table>
           <thead><tr><th>权限</th><th>用途</th></tr></thead>
           <tbody>
-            <tr><td><code>INTERNET</code>、<code>ACCESS_NETWORK_STATE</code></td><td>访问你学校的教务系统进行课表导入、检查适配资源更新、以及你主动开启的 WebDAV 云备份</td></tr>
+            <tr><td><code>INTERNET</code>、<code>ACCESS_NETWORK_STATE</code></td><td>访问你学校的教务系统进行课表导入、检查适配资源更新、拉取公开节假日数据，以及你主动开启的 WebDAV 云备份与 AI 识别导入</td></tr>
             <tr><td><code>POST_NOTIFICATIONS</code>、<code>POST_PROMOTED_NOTIFICATIONS</code></td><td>发送课前提醒与当前课程状态通知</td></tr>
-            <tr><td><code>SCHEDULE_EXACT_ALARM</code></td><td>精确调度课前提醒，避免课程开始后才收到通知</td></tr>
+            <tr><td><code>SCHEDULE_EXACT_ALARM</code></td><td>精确调度课前提醒，避免课程开始后才收到通知（未授予时降级为普通准点提醒）</td></tr>
+            <tr><td><code>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</code></td><td>在你主动开启时，请求系统不要因省电策略杀掉提醒与小组件所需的后台任务；不申请也不影响手工使用</td></tr>
             <tr><td><code>FOREGROUND_SERVICE</code>、<code>FOREGROUND_SERVICE_SPECIAL_USE</code></td><td>上课期间维持状态栏课程进度显示（灵动岛 / 常驻通知）</td></tr>
             <tr><td><code>ACCESS_NOTIFICATION_POLICY</code></td><td>上课期间自动切换勿扰或静音模式，下课后自动恢复</td></tr>
             <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>开机后恢复课表同步、提醒与小组件调度</td></tr>
@@ -114,6 +115,8 @@
       <ol>
         <li><strong>教务导入</strong>：在你的设备上打开你所在学校的教务系统页面并抓取课表。学校名称、教务系统类型等适配信息是公开的公共信息，不包含个人身份数据。</li>
         <li><strong>适配资源更新</strong>：从项目的适配仓库拉取最新学校适配脚本，逐文件做 <code>sha256</code> 校验；校验失败会自动回退到 App 内置的离线资源。</li>
+        <li><strong>节假日数据</strong>：拉取公开节假日接口（timor.tech）以标注调休与放假，只发送年份与月份参数，不发送任何本机数据。</li>
+        <li><strong>AI 识别导入（默认关闭）</strong>：仅在你主动开启该开关、自行填写接口地址与模型名之后才会联网，把<strong>你选择的那张课表截图或那段课表文字</strong>上传到<strong>你自己填写的那个接口</strong>做识别，详见第五节。</li>
         <li><strong>WebDAV 云备份</strong>：仅在你于「备份与恢复」中自行填写服务器地址并开启后才会执行，备份文件上传到你自己的服务器，开发者无法访问。</li>
         <li><strong>跳转外部链接</strong>：如「我的 → 更多」中的 GitHub 仓库、开源许可证等，会通过系统浏览器打开。</li>
       </ol>
@@ -122,31 +125,50 @@
         仍建议你按所在学校的账号安全要求使用，并自行判断是否在第三方 App 中输入校园账号。
       </div>
 
-      <h2>五、第三方组件</h2>
+      <h2>五、第三方渠道</h2>
+      <p>以下操作会把内容交给第三方页面或服务，它们各自适用其运营方的隐私政策与用户条款：</p>
+      <ul>
+        <li>
+          <strong>AI 识别导入（默认关闭，需你显式开启）</strong>：开启后，「AI 导入」页会把<strong>你选中的那一张课表截图或那一段课表文字</strong>，连同你的识别指令，上传到<strong>你自己在设置里填写的 OpenAI 兼容接口</strong>（基地址与模型名均由你填写，App 不预置、不代管）。要点：
+          <ul>
+            <li><strong>发给谁</strong>：只发给你自己填的接口，开发者不参与、不中转、不记录；</li>
+            <li><strong>发什么</strong>：只有你主动选择的那份课表内容；课表以外的本机数据（日程、待办、笔记、成绩、账号、设备信息等）一律不发送；</li>
+            <li><strong>不含什么</strong>：不上传你的教务系统账号密码；API Key 只存在本机且<strong>不参与云备份</strong>；</li>
+            <li><strong>关闭时</strong>：开关关闭则完全不发起任何请求；其余本地导入路径（文本粘贴 / 文件 / Excel / 分享串）不受影响；</li>
+            <li>若你填写的接口属于第三方服务商，其对该内容的使用适用<strong>该服务商自己的隐私政策</strong>，请自行确认。</li>
+          </ul>
+        </li>
+        <li><strong>教务系统适配申请</strong>：跳转到 WPS 表单（f.wps.cn）填写学校与教务入口，表单服务由 WPS 提供。</li>
+        <li><strong>意见反馈</strong>：可选择通过你自己的邮件客户端发送，或在 GitHub 提交 Issue。</li>
+        <li><strong>节假日数据</strong>：使用公开接口 timor.tech 获取放假与调休安排（只发送年份、月份）。</li>
+        <li><strong>软件下载与更新</strong>：跳出到夸克网盘领取安装包。</li>
+      </ul>
+
+      <h2>六、第三方组件</h2>
       <p>App 使用的第三方依赖均为开源库（如 Kotlin / Compose Multiplatform 生态组件、本地数据库与 WorkManager 等），用于界面渲染、数据存储与任务调度，不包含广告或用户行为分析用途。</p>
       <p>相关依赖清单与许可证可在 GitHub 仓库的构建配置中查看。</p>
 
-      <h2>六、你的数据权利</h2>
+      <h2>七、你的数据权利</h2>
       <ul>
         <li><strong>导出</strong>：随时通过「课表导入 / 导出」把全部数据导出为 JSON 或 ICS 文件。</li>
         <li><strong>删除</strong>：在 App 内删除课表、学期或待办；或直接卸载 App 以清除全部本机数据。</li>
         <li><strong>不联网使用</strong>：除教务导入与适配更新外的所有功能（手工建课、日历、小组件、提醒等）均可离线使用。</li>
       </ul>
 
-      <h2>七、未成年人</h2>
+      <h2>八、未成年人</h2>
       <p>App 不面向未满 14 周岁的儿童设计，也不会有意收集儿童的个人信息——事实上它不收集任何用户的个人信息。</p>
 
-      <h2>八、政策变更</h2>
+      <h2>九、政策变更</h2>
       <p>若未来功能变化导致本政策需要调整，我们会在本页与 GitHub 仓库同步更新，并注明生效日期。由于 App 本身不收集联系方式，无法逐一通知，建议在版本更新时留意本页。</p>
 
-      <h2>九、联系我们</h2>
+      <h2>十、联系我们</h2>
       <p>对本政策有疑问，或发现任何与上述描述不符的行为，欢迎通过以下方式联系：</p>
       <ul>
         <li>邮箱：<a data-email href="mailto:hhixingchen520@163.com">hhixingchen520@163.com</a></li>
         <li>GitHub Issues：<a data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">qiqqqqq517/shangkeschedule</a></li>
       </ul>
 
-      <h2>十、关于本站</h2>
+      <h2>十一、关于本站</h2>
       <p>
         本网站（shangke.asia）是由项目维护者部署在 Cloudflare 上的纯静态页面。
         它不设置 Cookie、不使用第三方统计或广告脚本，仅在本地浏览器存储中记录你的「深色 / 浅色模式」偏好。

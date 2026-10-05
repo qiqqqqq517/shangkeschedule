@@ -1,0 +1,33 @@
+{
+  "_comment": "危险 API 棘轮基线（适配脚本）。只允许下降；上升即为回归。",
+  "updated": "2026-10-05",
+  "dangerous_api_count": 26,
+  "detail": [
+    "BUPT/bupt_01.js 含 innerHTML=",
+    "CCIT/ccit.js 含 innerHTML=",
+    "CQRK/cqrk_01.js 含 innerHTML=",
+    "CSUFT/csuft.js 含 innerHTML=",
+    "DLMU/dlmu_01.js 含 new Function(",
+    "GXDLXY/gxdlxy_01.js 含 innerHTML=",
+    "HBGUHX/hbguhx_01.js 含 innerHTML=",
+    "HBLGXY/hblgxy_01.js 含 innerHTML=",
+    "HHTC/hhtc.js 含 innerHTML=",
+    "HIST/hist.js 含 innerHTML=",
+    "HNIU/hniu_01.js 含 innerHTML=",
+    "HNUST/HNUST_01.js 含 innerHTML=",
+    "HUSE/HUSE.js 含 innerHTML=",
+    "HYNU/hynu_01.js 含 innerHTML=",
+    "JSNU/JSNU_01.js 含 innerHTML=",
+    "NANKAI_YJS/nankai_yjs.js 含 innerHTML=",
+    "NEU/neu.js 含 innerHTML=",
+    "NJFU/njfu_01.js 含 innerHTML=",
+    "QAU/qau_01.js 含 innerHTML=",
+    "SCUEC/scuec.js 含 innerHTML=",
+    "SDJTU/sdjtu.js 含 innerHTML=",
+    "STCNCHU/stcnchu.js 含 innerHTML=",
+    "UPC/upc.js 含 innerHTML=",
+    "XAUT/XAUT_01.js 含 innerHTML=",
+    "XJIE/xjie_01.js 含 innerHTML=",
+    "YNUFE/ynufe.js 含 innerHTML="
+  ]
+}

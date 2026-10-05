@@ -24,11 +24,19 @@
 用法：
   python scripts/check_font_scale.py            # 打印审计结果
   python scripts/check_font_scale.py --scale 1.5 # 指定缩放倍数（默认 2.0）
+  python scripts/check_font_scale.py --baseline scripts/font-scale-baseline.json
+                                                # 棘轮门禁：裁切风险数高于基线即 exit 1
+  python scripts/check_font_scale.py --update-baseline scripts/font-scale-baseline.json
+
+退出码：0 = 通过；1 = 裁切风险数高于基线（或基线不可用）；2 = 空扫（门禁未生效）。
 """
 import argparse
+import io
+import json
 import os
 import re
 import sys
+from pathlib import Path
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -162,6 +170,10 @@ def scan(scale):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scale", type=float, default=2.0)
+    ap.add_argument("--baseline", default=None,
+                    help="棘轮基线 JSON；裁切风险数高于基线则 exit 1")
+    ap.add_argument("--update-baseline", default=None, metavar="PATH",
+                    help="把当前裁切风险数写为基线并退出")
     args = ap.parse_args()
 
     hits, maxlines1, scanned = scan(args.scale)
@@ -192,6 +204,49 @@ def main():
         print(f"  ? {h['file']}:{h['line']}  {h['container']}")
 
     print("\n注：本脚本为保守启发式判定，真机实测（系统字号 1.0/1.3/1.5/2.0）仍是最终依据。")
+
+    if args.update_baseline:
+        from datetime import date
+        payload = {
+            "_comment": "AC4 字体缩放 · 垂直裁切风险棘轮基线（只允许下降）。",
+            "updated": date.today().isoformat(),
+            "scale": args.scale,
+            "vertical_clip_count": len(hits),
+        }
+        p = Path(args.update_baseline)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"\n[font-scale] 已写入基线 {p}（{len(hits)} 处）")
+        return 0
+
+    # 棘轮判定：检出裁切风险 **必须影响退出码**。
+    # 历史缺陷（P1-14）：本脚本唯一否决路径是空扫，检出真实风险后仍无条件 return 0
+    # ⇒ 「检出垂直裁切风险」这一类零否决权，门禁形同只读报告。
+    if args.baseline:
+        p = Path(args.baseline)
+        if not p.exists():
+            print(f"[font-scale] ❌ 基线文件不存在：{p}（门禁无基准可依，不得视为通过）")
+            print("    生成基线：python scripts/check_font_scale.py --update-baseline " + str(p))
+            return 1
+        try:
+            base = json.loads(p.read_text(encoding="utf-8-sig"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[font-scale] ❌ 基线文件存在但无法解析：{p}（{e}）")
+            return 1
+        base_n = base.get("vertical_clip_count")
+        if not isinstance(base_n, int):
+            print(f"[font-scale] ❌ 基线缺少整数字段 vertical_clip_count：{p}")
+            return 1
+        if len(hits) > base_n:
+            print(f"[font-scale] ❌ 垂直裁切风险较基线增加：{base_n} → {len(hits)}"
+                  f"（+{len(hits) - base_n}）")
+            print("    详见上方 ✗ 明细；确属预期：--update-baseline 锁定新基线")
+            return 1
+        if len(hits) < base_n:
+            print(f"[font-scale] ✅ 通过；已下降 {base_n} → {len(hits)} —— 建议更新基线锁定收益")
+        else:
+            print(f"[font-scale] ✅ 通过（裁切风险 {len(hits)}，基线 {base_n}）")
+
     return 0
 
 

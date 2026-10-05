@@ -27,6 +27,14 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 控制台默认 GBK：报告正文含 ✅/❌ 等字符，print 会抛 UnicodeEncodeError
+# 把「门禁报违规」变成「门禁自己崩」，退出码语义被污染（rc=1 与「有违规」同值）。
+# 实测本仓只此脚本命中（其余 6 道 check_*.py 不在 stdout 打这些字符）。
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 UI_DIR = ROOT / "shared/src/commonMain/kotlin/com/shangkeschedule/ui"
 THEME_DIR = UI_DIR / "theme"
@@ -209,6 +217,16 @@ def c4_primary_patch():
 
 # ---------------------------------------------------------------- 指标与基线（棘轮）
 
+def count_scanned_kt() -> int:
+    """统计本次实际扫过的 .kt 文件数（UI_DIR 下，排除主题目录）。
+
+    作用：门禁用「扫到几个文件」判定自己是否真的跑起来了。空扫（UI_DIR 不存在 /
+    路径写错 / 检出不全）时四项硬指标恰好全为 0，输出与「真的扫干净了」逐字节相同，
+    会被读成绿灯 —— 本仓付过学费的一类事故，故必须显式 fail-closed。
+    """
+    return sum(1 for _ in iter_kt(UI_DIR, exclude=THEME_DIR))
+
+
 def compute_metrics():
     branch, identity, mentions = c1_theme_leak()
     tone = c2_tone_injectivity()
@@ -227,6 +245,7 @@ def compute_metrics():
         "c1_comment": len(mentions),
     }
     m["total"] = m["c1_branch"] + m["c2_collapse"] + m["c3_missing"] + m["c4_patch"]
+    m["scanned"] = count_scanned_kt()
     data = {
         "branch": branch, "identity": identity, "mentions": mentions,
         "tone": tone, "role_name": role_name, "role_n": role_n,
@@ -254,7 +273,9 @@ RATCHET_KEYS = GATED_KEYS + ("c1_identity",)
 def load_baseline(path: str):
     """读取基线。返回 (baseline | None, error | None)。
 
-    - 文件不存在 → (None, None)：调用方 fail-open（开发机上可能还没生成）
+    - 文件不存在 → (None, None)：调用方 **fail-closed**（return 1）。
+      曾为 fail-open（静默跳过门禁），与 check_a11y.py 行为相反，已统一为
+      fail-closed：门禁悄悄失效比吵一次危险得多。
     - 文件存在但读不出/解析失败 → (None, "原因")：调用方 **fail-closed**，
       因为"门禁悄悄失效"比"门禁吵一次"危险得多（已踩：Windows 编辑器写入 UTF-8 BOM
       会让 json.loads 直接抛错，若当作"缺失"就会被静默跳过）。
@@ -309,6 +330,16 @@ def main() -> int:
 
     metrics, d = compute_metrics()
 
+    # 空扫即失败（fail-closed）：与 check_a11y.py 同一条纪律。
+    # UI_DIR 不存在 / 路径错 / 检出不全时，四项硬指标恰好全为 0，
+    # 输出与「真扫干净」逐字节相同 ⇒ 必须显式判死，不得被读成绿灯。
+    # 注意：scanned 只是健康信号，**不进 RATCHET_KEYS**（它不是违规计数）。
+    if metrics["scanned"] == 0:
+        print("[theme-leak] ❌ 未扫描到任何 .kt 文件，门禁未生效，不得视为通过", file=sys.stderr)
+        print(f"    UI_DIR = {UI_DIR}", file=sys.stderr)
+        print("    请确认在仓库内运行、且该目录存在且非空", file=sys.stderr)
+        return 2
+
     if args.update_baseline:
         save_baseline(args.update_baseline, metrics)
         return 0
@@ -322,8 +353,13 @@ def main() -> int:
             print("    修复：python scripts/check_theme_leak.py --update-baseline scripts/theme-leak-baseline.json", file=sys.stderr)
             return 1  # fail-closed：门禁不可静默失效
         if baseline is None:
-            print(f"[theme-leak] 基线文件不存在：{args.baseline}（跳过门禁，不阻断）", file=sys.stderr)
-            return 0
+            # fail-closed（与 check_a11y.py 一致）：基线缺失 = 门禁无基准可依，
+            # 曾静默 return 0，等于「没基线就永远绿灯」。开发机首次生成基线请显式
+            # 走 --update-baseline。
+            print(f"[theme-leak] ❌ 基线文件不存在：{args.baseline}", file=sys.stderr)
+            print("    门禁无基准可依，不得视为通过。", file=sys.stderr)
+            print("    生成基线：python scripts/check_theme_leak.py --update-baseline scripts/theme-leak-baseline.json", file=sys.stderr)
+            return 1
         if not isinstance(baseline.get("counts"), dict):
             print(f"[theme-leak] ❌ 基线文件缺少 counts 字段：{args.baseline}", file=sys.stderr)
             return 1
