@@ -90,4 +90,84 @@ class IcsParseTest {
         assertEquals("教学楼202", eng.position)
         assertEquals("李老师", eng.teacher)
     }
+
+    /**
+     * N12：RFC 5545 折行（folding）必须展开。
+     *
+     * 规范要求单行 ≤75 字节，超长内容拆成多行，续行以**一个空格**开头。
+     * 用字符串拼接而非 trimIndent 构造，避免 trimIndent 把续行行首那个
+     * 空格（也就是折行标记）一并吃掉。
+     */
+    @Test
+    fun foldedSummaryIsUnfoldedPerRfc5545() {
+        val ics = "BEGIN:VCALENDAR\n" +
+            "VERSION:2.0\n" +
+            "BEGIN:VEVENT\n" +
+            "SUMMARY:大学生心理健\n" +
+            " 康教育\n" +                       // 行首一个空格 = 续行标记
+            "DTSTART:20250901T080000\n" +
+            "DTEND:20250901T094000\n" +
+            "RRULE:FREQ=WEEKLY;COUNT=4;INTERVAL=1\n" +
+            "LOCATION:教学楼101\n" +
+            "END:VEVENT\n" +
+            "END:VCALENDAR\n"
+
+        val result = UniversalScheduleParser.parseAuto(ics)
+        assertTrue(result is UniversalScheduleParser.ParseResult.Success, "got: $result")
+        val courses = (result as UniversalScheduleParser.ParseResult.Success).model.courses
+        assertEquals(1, courses.size)
+        // 折行展开后是完整课名；未展开时只会得到「大学生心理健」
+        assertEquals("大学生心理健康教育", courses.first().name)
+    }
+
+    /**
+     * N13：转义还原必须单遍扫描。
+     *
+     * ICS 文本里的 `\\n`（反斜杠 + 反斜杠 + n）按 RFC 表示「一个字面反斜杠，紧跟字母 n」。
+     * 原实现先做 `\\` → `\`、再做 `\n` → 换行，于是被误解码成换行。
+     */
+    @Test
+    fun escapedBackslashFollowedByNIsNotANewline() {
+        val ics = "BEGIN:VCALENDAR\n" +
+            "VERSION:2.0\n" +
+            "BEGIN:VEVENT\n" +
+            "SUMMARY:实验\\\\n记录\n" +          // ICS 正文 = 实验\\n记录（字面反斜杠 + n）
+            "DTSTART:20250901T080000\n" +
+            "DTEND:20250901T094000\n" +
+            "RRULE:FREQ=WEEKLY;COUNT=4;INTERVAL=1\n" +
+            "LOCATION:教学楼101\n" +
+            "END:VEVENT\n" +
+            "END:VCALENDAR\n"
+
+        val result = UniversalScheduleParser.parseAuto(ics)
+        assertTrue(result is UniversalScheduleParser.ParseResult.Success, "got: $result")
+        val name = (result as UniversalScheduleParser.ParseResult.Success).model.courses.first().name
+        // 期望：字面反斜杠 + 字母 n；错误实现会给出带换行的「实验\n记录」
+        assertEquals("实验\\n记录", name)
+        assertTrue(!name.contains('\n'), "不得把 \\\\n 解码成换行，实际 = $name")
+    }
+
+    /**
+     * P2-10：含空格的课名不得被截断。
+     *
+     * 原实现按 " " 切分取 parts[0] ⇒「高等数学 A」只剩「高等数学」。
+     */
+    @Test
+    fun courseNameWithSpaceIsNotTruncated() {
+        val ics = "BEGIN:VCALENDAR\n" +
+            "VERSION:2.0\n" +
+            "BEGIN:VEVENT\n" +
+            "SUMMARY:高等数学 A\n" +
+            "DTSTART:20250901T080000\n" +
+            "DTEND:20250901T094000\n" +
+            "RRULE:FREQ=WEEKLY;COUNT=4;INTERVAL=1\n" +
+            "LOCATION:教学楼101\n" +
+            "END:VEVENT\n" +
+            "END:VCALENDAR\n"
+
+        val result = UniversalScheduleParser.parseAuto(ics)
+        assertTrue(result is UniversalScheduleParser.ParseResult.Success, "got: $result")
+        val name = (result as UniversalScheduleParser.ParseResult.Success).model.courses.first().name
+        assertEquals("高等数学 A", name)
+    }
 }

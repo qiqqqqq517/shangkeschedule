@@ -4,6 +4,7 @@ import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
 import com.shangkeschedule.data.model.CourseImportExport.ImportCourseJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.TimeSlotJsonModel
+import com.shangkeschedule.tool.AppLog
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -20,6 +21,14 @@ object UniversalScheduleParser {
     // 原实现把这些 Regex 写在函数体内，逐次调用/逐行循环都会重新编译 Pattern；
     // 提到 object 级只编译一次，行为完全等价。
     private val RE_ICS_DESC_SECTIONS = Regex("第\\s*(\\d+)\\s*[-~至]\\s*(\\d+)\\s*节")
+/**
+ * ICS SUMMARY 末尾的教师线索（P2-10）。
+ *
+ * 只用于 DESCRIPTION 未给出教师时的兜底，**不参与课名切分** ——
+ * 课名必须完整保留，不能被空格或连字符切断。
+ * 形如「高等数学 张三」「高等数学-张三」时捕获「张三」。
+ */
+private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private val RE_WHITESPACE = Regex("\\s+")
     private val RE_RRULE_INTERVAL = Regex("INTERVAL=(\\d+)")
     private val RE_RRULE_COUNT = Regex("COUNT=(\\d+)")
@@ -133,7 +142,8 @@ object UniversalScheduleParser {
 
             parseWakeUpJson(jsonStr)
         } catch (e: Exception) {
-            ParseResult.Error("WakeUp文本解析失败: ${e.message}")
+            AppLog.e(TAG, "WakeUp文本解析失败", e)
+            ParseResult.Error("WakeUp文本解析失败")
         }
     }
 
@@ -176,7 +186,8 @@ object UniversalScheduleParser {
 
             ParseResult.Success(CourseTableImportModel(courses = courses, timeSlots = timeSlots), "WakeUp JSON")
         } catch (e: Exception) {
-            ParseResult.Error("JSON解析失败: ${e.message}")
+            AppLog.e(TAG, "JSON解析失败", e)
+            ParseResult.Error("JSON解析失败")
         }
     }
 
@@ -202,9 +213,20 @@ object UniversalScheduleParser {
                 val endStr = ev["DTEND"] ?: return@mapNotNull null
 
                 val summaryClean = icsUnescape(summary)
-                val parts = summaryClean.split("@", "-", " ", "（", "(").map { it.trim() }.filter { it.isNotBlank() }
-                val name = parts.firstOrNull() ?: summaryClean
-                val teacherHint = parts.getOrNull(1) ?: ""
+                // P2-10：课程名**不得**因空格 / 连字符被截断。
+                // 原实现 `split("@", "-", " ", "（", "(")` 取 parts[0] 当课名 ——
+                // SUMMARY 为「高等数学 A 张三」时课名只剩「高等数学」，
+                // 而「大学物理-实验」这类课名本身含连字符的会被切碎。
+                // 现只在**无歧义的显式分隔符**（@、（、(）处切分；名称完整保留。
+                val explicitIdx = summaryClean.indexOfFirst { it == '@' || it == '（' || it == '(' }
+                val name = if (explicitIdx > 0) summaryClean.substring(0, explicitIdx).trim()
+                else summaryClean.trim()
+                // 教师线索：仅作为 DESCRIPTION 缺失时的兜底，取**末尾**一个空白/连字符分隔的词，
+                // 且绝不用它改写 name（避免再次截断课名）。
+                val teacherHint = if (explicitIdx <= 0) {
+                    val m = RE_ICS_TEACHER_HINT.find(summaryClean.trim())
+                    m?.groupValues?.getOrNull(1)?.trim() ?: ""
+                } else ""
 
                 // DESCRIPTION（WakeUp 导出格式：第1行节次、第2行地点、第3行教师）
                 val desc = icsUnescape(ev["DESCRIPTION"] ?: "")
@@ -258,14 +280,38 @@ object UniversalScheduleParser {
 
             ParseResult.Success(CourseTableImportModel(courses = courses), "ICS日历")
         } catch (e: Exception) {
-            ParseResult.Error("ICS解析失败: ${e.message}")
+            AppLog.e(TAG, "ICS解析失败", e)
+            ParseResult.Error("ICS解析失败")
         }
+    }
+
+    /**
+     * RFC 5545 折行（folding）展开。
+     *
+     * 规范要求单行不超过 75 字节，超长内容会被拆成多行，续行以**一个空格或制表符**开头。
+     * 原实现直接 `content.lines()` 逐行读，把续行当成独立行 —— 于是被折行的
+     * SUMMARY / DESCRIPTION / LOCATION 只保留第一段，**静默截断**且没有任何提示。
+     * 中文课程名一个字符 3 字节，很容易触发折行。
+     */
+    private fun unfoldIcsLines(content: String): List<String> {
+        val raw = content.replace("\r\n", "\n").replace('\r', '\n').split('\n')
+        val out = mutableListOf<String>()
+        for (line in raw) {
+            val isContinuation = line.isNotEmpty() && (line[0] == ' ' || line[0] == '\t')
+            if (isContinuation && out.isNotEmpty()) {
+                // 去掉折行标记（那一个空白字符）后并回上一行
+                out[out.size - 1] = out[out.size - 1] + line.substring(1)
+            } else {
+                out.add(line)
+            }
+        }
+        return out
     }
 
     /** 解析 VEVENT，跳过 VALARM 子块（避免 VALARM 的 DESCRIPTION 等字段覆盖 VEVENT 字段） */
     private fun parseIcsEvents(content: String): List<Map<String, String>> {
         val events = mutableListOf<Map<String, String>>()
-        val lines = content.lines()
+        val lines = unfoldIcsLines(content)
         var i = 0
         while (i < lines.size) {
             if (lines[i].trim() == "BEGIN:VEVENT") {
@@ -296,9 +342,38 @@ object UniversalScheduleParser {
         return events
     }
 
-    /** ICS 转义还原：\, → ,  \n → 换行  \; → ;  \\ → \ */
-    private fun icsUnescape(s: String): String =
-        s.replace("\\,", ",").replace("\\;", ";").replace("\\\\", "\\").replace("\\n", "\n")
+    /**
+     * ICS 转义还原：`\,` → `,`　`\;` → `;`　`\n`/`\N` → 换行　`\\` → `\`
+     *
+     * N13：必须**单遍扫描**。原实现是一串顺序 `replace`：
+     *     `.replace("\\,", ",").replace("\\;", ";").replace("\\\\", "\\").replace("\\n", "\n")`
+     * 问题出在最后两步的先后：输入 `\\n`（反斜杠 + 反斜杠 + n）按 RFC 表示
+     * 「一个字面反斜杠，紧跟一个字母 n」。原实现先被 `\\` → `\` 折成 `\n`，
+     * 再被最后一步当成换行 ⇒ **字面反斜杠+n 被误解码为换行**。
+     * 单遍扫描不存在这个先后依赖：每个转义在读取时一次性消费掉。
+     */
+    private fun icsUnescape(s: String): String {
+        if (!s.contains('\\')) return s
+        val sb = StringBuilder(s.length)
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            if (c != '\\' || i == s.length - 1) {
+                sb.append(c)
+                i++
+                continue
+            }
+            when (val next = s[i + 1]) {
+                'n', 'N' -> { sb.append('\n'); i += 2 }
+                ',' -> { sb.append(','); i += 2 }
+                ';' -> { sb.append(';'); i += 2 }
+                '\\' -> { sb.append('\\'); i += 2 }
+                // 未定义的转义（如 `\t`）按 RFC 保留反斜杠本身，不吞字符
+                else -> { sb.append(c).append(next); i += 2 }
+            }
+        }
+        return sb.toString()
+    }
 
     private fun parseIcsDay(s: String): Int {
         // 格式：20250825T080000 或 2025-08-25
@@ -430,7 +505,8 @@ object UniversalScheduleParser {
             if (courses.isEmpty()) return ParseResult.Error("CSV中未找到有效课程")
             ParseResult.Success(CourseTableImportModel(courses = courses), "CSV")
         } catch (e: Exception) {
-            ParseResult.Error("CSV解析失败: ${e.message}")
+            AppLog.e(TAG, "CSV解析失败", e)
+            ParseResult.Error("CSV解析失败")
         }
     }
 
@@ -475,7 +551,8 @@ object UniversalScheduleParser {
             if (courses.isEmpty()) return ParseResult.Error("HTML表格中未找到有效课程")
             ParseResult.Success(CourseTableImportModel(courses = courses), "HTML表格")
         } catch (e: Exception) {
-            ParseResult.Error("HTML解析失败: ${e.message}")
+            AppLog.e(TAG, "HTML解析失败", e)
+            ParseResult.Error("HTML解析失败")
         }
     }
 
@@ -514,7 +591,8 @@ object UniversalScheduleParser {
             }
             ParseResult.Success(CourseTableImportModel(courses = courses), "纯文本")
         } catch (e: Exception) {
-            ParseResult.Error("文本解析失败: ${e.message}")
+            AppLog.e(TAG, "文本解析失败", e)
+            ParseResult.Error("文本解析失败")
         }
     }
 
@@ -900,3 +978,12 @@ object UniversalScheduleParser {
         )
     }
 }
+
+/**
+ * 日志模块标签。
+ *
+ * N19：解析失败时**不再把原始异常文案回显给用户**（原为 `"ICS解析失败: ${e.message}"`，
+ * 会把 `NumberFormatException: For input string: "abc"` 这类内部细节直接渲染到界面），
+ * 改为详情进日志、界面只显示一类通用文案。
+ */
+private const val TAG = "UniversalScheduleParser"
