@@ -186,6 +186,9 @@ fun MoreOptionsScreen(
                 AdapterSyncResult.Disabled -> getString(Res.string.sync_status_disabled)
                 is AdapterSyncResult.VerificationFailed ->
                     getString(Res.string.adapter_remote_update_failed)
+                // P2-6：部分成功如实告知「更新了几个」——不假装全部成功，也不整轮判失败。
+                is AdapterSyncResult.PartiallyUpdated ->
+                    getString(Res.string.sync_status_updated, result.updated)
                 is AdapterSyncResult.Failed -> getString(Res.string.sync_status_failed)
             }
             adapterSyncing = false

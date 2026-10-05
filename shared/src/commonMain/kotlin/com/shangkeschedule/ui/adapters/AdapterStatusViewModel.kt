@@ -213,5 +213,7 @@ private fun AdapterSyncResult.toRecordKind(): String = when (this) {
     AdapterSyncResult.UpToDate -> AdapterSyncRecord.KIND_UP_TO_DATE
     AdapterSyncResult.Disabled -> AdapterSyncRecord.KIND_DISABLED
     is AdapterSyncResult.VerificationFailed -> AdapterSyncRecord.KIND_VERIFICATION_FAILED
+    // P2-6：部分成功按「已更新」归档 —— 本轮确实落地了文件，页面文案复用 KIND_UPDATED 即可。
+    is AdapterSyncResult.PartiallyUpdated -> AdapterSyncRecord.KIND_UPDATED
     is AdapterSyncResult.Failed -> AdapterSyncRecord.KIND_FAILED
 }
