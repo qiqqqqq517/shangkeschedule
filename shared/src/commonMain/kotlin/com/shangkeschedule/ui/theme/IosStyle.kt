@@ -186,7 +186,9 @@ internal fun iosDarkAppColorTokens(): AppColorTokens = run {
         outlineVariant = MaterialBaselineOutlineVariant,
         // 文本
         textPrimary = IosLabelDark,
-        textSecondary = Color(0xFF98989D),         // systemGray (dark)
+        // systemGray 略提亮：#98989D 在深色档**输入底**（inputBg）上仅 4.45:1，
+        // 低于 WCAG AA 的 4.5:1；输入框内的占位符/标签偏弱。取 #9EA0A5 后达标。
+        textSecondary = Color(0xFF9EA0A5),         // systemGray (dark, AA ≥4.5)
         textOnPrimary = Color(0xFFFFFFFF),
         // 语义色 —— Apple 深色系统色
         primary = primary,

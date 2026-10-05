@@ -74,7 +74,17 @@ private val SoftInputBgLight = Color(0xFFEFEDF4)
 
 /** 正文：不用纯黑。低对比设计里"黑"会在柔和底色上形成硬边。 */
 private val SoftTextPrimaryLight = Color(0xFF4A4756)
-private val SoftTextSecondaryLight = Color(0xFF8B8798)
+/**
+ * 正文次级色。原 `#8B8798` 在柔绘浅色底上仅 **3.16:1**，远低于 WCAG 2.2 AA 的 4.5:1
+ * —— 说明文字、时间戳、字段提示在柔绘主题下弱到难以辨认。
+ *
+ * 现取 `#666370`（沿原色相向暗方向位移，保持低饱和的柔绘设计语言不变）。
+ * 数值来自**运行时探针实测**（`desktopApp` 的 `ContrastProbeKt` 直接调 `appColorTokens()`），
+ * 非静态估算：柔绘浅色在 pageBg / cardBg / cardBgElevated / inputBg / navBarBg
+ * 五种底色上分别为 **5.30 / 5.68 / 5.41 / 5.05 / 5.41**，全部 ≥4.5。
+ * 复验：`:desktopApp:run "-PpreviewMainClass=com.shangkeschedule.ContrastProbeKt"`
+ */
+private val SoftTextSecondaryLight = Color(0xFF666370)
 
 /** 主色：低饱和的雾蓝紫，作为唯一强调色。 */
 private val SoftPrimaryLight = Color(0xFF7C86C9)
@@ -95,7 +105,8 @@ private val SoftCardBgDark = Color(0xFF2A2830)
 private val SoftCardElevatedDark = Color(0xFF322F39)
 private val SoftInputBgDark = Color(0xFF37343F)
 private val SoftTextPrimaryDark = Color(0xFFE8E5EE)
-private val SoftTextSecondaryDark = Color(0xFF9C98A8)
+// 深色档在**输入底**（inputBg #37343F，比卡片亮一档）上仅 4.33:1，取 `#A29EAE` 提至约 4.66:1。
+private val SoftTextSecondaryDark = Color(0xFFA29EAE)
 
 /**
  * 柔绘锁定的 M3 ColorScheme（浅色）。

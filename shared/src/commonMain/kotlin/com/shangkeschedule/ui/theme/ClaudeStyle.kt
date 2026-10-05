@@ -44,7 +44,12 @@ private val ClaudeBrand500 = Color(0xFFC96442)
 private val ClaudeBrand600 = Color(0xFFB0562F)
 private val ClaudeBrand800 = Color(0xFF753A22)
 
-private val ClaudeText500 = Color(0xFF6E6D68)
+// 书卷次级文字色。原 `#6E6D68` 在浅色档的**输入底**（inputBg = bg-300 #EDE9DE）上仅 4.27:1，
+// 低于 WCAG 2.2 AA 的 4.5:1 —— 输入框内的占位符/标签偏弱。
+// 现取 `#66655F`（沿原色相向暗位移，保持书卷的低对比暖调不变）。
+// 运行时探针实测：书卷浅色在 pageBg / cardBg / cardBgElevated / inputBg / navBarBg
+// 上分别为 **5.55 / 5.31 / 5.85 / 4.82 / 5.31**，全部 ≥4.5。
+private val ClaudeText500 = Color(0xFF66655F)
 private val ClaudeText600 = Color(0xFF535146)
 private val ClaudeText700 = Color(0xFF46443B)
 private val ClaudeText800 = Color(0xFF3D3929)
