@@ -117,9 +117,31 @@ DANGEROUS = {
 
 
 def read_lf(path: Path) -> str:
-    """按 UTF-8 读取并把行尾统一成 LF。"""
-    raw = path.read_bytes().decode("utf-8", errors="replace")
-    return raw.replace("\r\n", "\n").replace("\r", "\n")
+    """按 UTF-8 读取并把行尾统一成 LF。
+
+    第 41 轮（P2-5）修正：原实现用 ``errors="replace"``，会把**非法 UTF-8 字节
+    静默替换成 U+FFFD** ⇒ 适配脚本若因编码损坏而含裸字节，语法校验与危险 API
+    扫描都会在「已修复」的字面文本上进行，损坏点被彻底掩盖，门禁照样 PASS。
+    现改为：**先严格解码**；确有损坏时登记到 ``_ENCODING_BROKEN`` 并回退到
+    ``replace``，让后续检查继续跑完，但该文件会在汇总阶段**判为硬错误**
+    （见 ``report_encoding_broken``），不会静默通过。
+    """
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        _ENCODING_BROKEN.append(str(path))
+        text = raw.decode("utf-8", errors="replace")
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+# 编码损坏的适配脚本（内容 + 首次出错位置），由 read_lf 填充
+_ENCODING_BROKEN: list[str] = []
+
+
+def report_encoding_broken() -> list[str]:
+    """返回编码损坏文件列表（供 main 判硬错误）。"""
+    return list(_ENCODING_BROKEN)
 
 
 def sha256_lf(path: Path) -> str:
@@ -177,6 +199,17 @@ def strip_block_comments(text: str) -> str:
         out.append(ch)
         i += 1
     return "".join(out)
+
+
+def strip_comments(text: str) -> str:
+    """块注释 + 行注释一起剥除，**保留换行与行长**（第 41 轮 / P3-26）。
+
+    危险 API 扫描原先直接匹配**原始 text**，于是注释里写到的
+    `// 不要再写 el.innerHTML = x` 会被当成真实命中 ⇒ 计数虚高，
+    并可能把一条纯注释顶过棘轮基线。本函数供危险 API 扫描专用。
+    """
+    stripped = strip_block_comments(text)
+    return "\n".join(strip_line_comment(ln) for ln in stripped.split("\n"))
 
 
 def strip_line_comment(line: str) -> str:
@@ -358,8 +391,11 @@ def main() -> int:
         for line_no, name in find_unguarded_dialogs(lines, text):
             native_dialog_hits.append(f"{rel}:{line_no} 裸 {name}()")
 
+        # 第 41 轮（P3-26）：危险 API 扫描必须用**去注释**文本 ——
+        # 原实现匹配原始 text，注释里写到的 `.innerHTML =` 会被算成真实命中。
+        dangerous_text = strip_comments(text)
         for label, pattern in DANGEROUS.items():
-            if pattern.search(text):
+            if pattern.search(dangerous_text):
                 dangerous_hits.append(f"{rel} 含 {label}")
 
         if "saveImportedCourses" not in text and not is_shared_lib(rel):
@@ -373,6 +409,15 @@ def main() -> int:
                 detail = None
             if detail:
                 syntax_hits.append(f"{rel} {detail}")
+
+    # 第 41 轮（P2-5）：编码损坏的适配脚本必须**硬错误**，不能因 replace 兜底而静默通过。
+    # 位置刻意放在 `--update-dangerous-baseline` 的早返回**之前** —— 否则一次基线重生成
+    # 就能把编码损坏顺带静默带过（fail-closed）。
+    _broken = report_encoding_broken()
+    if _broken:
+        errors.append(
+            "适配脚本含非法 UTF-8 字节（{} 个文件，内容不可信，已用 replace 兜底扫描）：{}"
+            .format(len(_broken), "；".join(sorted(_broken)[:5])))
 
     if args.update_dangerous_baseline:
         from datetime import date
