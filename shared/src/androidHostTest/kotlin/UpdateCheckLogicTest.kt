@@ -160,6 +160,63 @@ class UpdateCheckLogicTest {
         )
     }
 
+    /**
+     * P1-34：上面那条体检**只验形制**（正数 / 非空 / 前缀），不比对版本号 ——
+     * 结果是 `website/version.json` 可以停在任意旧版本而体检**恒过**：
+     * 实测该文件曾冻结在 4.66.0/420 长达 63 次版本迭代，导致存量用户被提示
+     * 「发现新版本 4.66.0」、新用户永远「已是最新」。
+     *
+     * 这里补两条**版本区间**断言：
+     *   ① versionName 必须真实出现在 CHANGELOG 里（不是笔误/不存在的版本）；
+     *   ② versionCode 不得高于 `build.gradle.kts`（不得指向尚未构建的版本）。
+     *
+     * **刻意不在这里断言「不得落后 N 个版本」**：`version.json` 的口径是
+     * 「最新**已真实发布**的版本」，而不是「最新的 CHANGELOG 条目」。
+     * 本仓实测 `v4.74.1` 之后的 4.74.2~4.74.13 **全部未构建、未发 Release**
+     * （CHANGELOG 各条均写明），因此 version.json 正确地停在 4.74.1 ——
+     * 按「落后 CHANGELOG 几版」来判会**假阳性**。
+     * 「是否落后于最新已发布版本」需要 git tag，单测里没有 git；
+     * 该判据放在 `scripts/check_version_sync.py`（Python 门禁，可调 git）。
+     */
+    @Test
+    fun `version_json 的版本号必须真实存在且不得指向未来`() {
+        val manifest = assertNotNull(
+            parseUpdateManifest(File(repoRoot(), "website/version.json").readText()),
+            "website/version.json 必须是合法清单",
+        )
+
+        // gradle = APK 的真实版本源
+        val gradleText = File(repoRoot(), "androidApp/build.gradle.kts").readText()
+        val gCode = Regex("""^\s*versionCode\s*=\s*(\d+)\s*$""", RegexOption.MULTILINE)
+            .find(gradleText)?.groupValues?.get(1)?.toInt()
+            ?: fail("无法从 build.gradle.kts 解析 versionCode")
+        val gName = Regex("""^\s*versionName\s*=\s*"([^"]+)"\s*$""", RegexOption.MULTILINE)
+            .find(gradleText)?.groupValues?.get(1)
+            ?: fail("无法从 build.gradle.kts 解析 versionName")
+
+        // CHANGELOG 里的版本，按文件顺序（新 → 旧）
+        val changelogVersions = Regex("""^### v(\d+\.\d+\.\d+)""", RegexOption.MULTILINE)
+            .findAll(File(repoRoot(), "CHANGELOG.md").readText())
+            .map { it.groupValues[1] }
+            .toList()
+
+        assertTrue(changelogVersions.isNotEmpty(), "CHANGELOG.md 里没有解析到任何版本条目")
+
+        // ① 必须是真实发布过的版本 —— 否则说明 version.json 写了个不存在的版本
+        assertTrue(
+            manifest.versionName in changelogVersions,
+            "website/version.json 的 versionName「${manifest.versionName}」不在 CHANGELOG 里，" +
+                "说明它不是真实发布过的版本（CHANGELOG 最新几条：${changelogVersions.take(3)}）",
+        )
+
+        // ② 不得指向未来
+        assertTrue(
+            manifest.versionCode <= gCode,
+            "website/version.json 的 versionCode（${manifest.versionCode}）高于 " +
+                "build.gradle.kts 的（$gCode / $gName）—— 不得指向尚未构建的版本",
+        )
+    }
+
     /** 仓库根由 Gradle 通过 `shangke.repoRoot` 系统属性注入，避免依赖测试进程工作目录。 */
     private fun repoRoot(): File {
         val path = System.getProperty("shangke.repoRoot")

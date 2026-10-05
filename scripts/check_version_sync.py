@@ -28,6 +28,7 @@
 import io
 import os
 import re
+import subprocess
 import sys
 
 # 输出编码固定 UTF-8。
@@ -225,6 +226,53 @@ def html_fallback_issues(g_code, g_name):
     return issues
 
 
+def version_json_latest_release_issues(vj):
+    """校验 `version.json` 是否指向**最新的已发布版本**（需要 git tag）。
+
+    P1-34 的另一半：`version.json` 的口径是「最新**已真实发布**的版本」，
+    而「已发布」在本仓只有 `git tag` 能证明（CHANGELOG 里会写「未构建 APK、
+    未发 Release」的条目，4.74.2~4.74.13 就是这种）。因此：
+
+      · 取所有形如 `vX.Y.Z` 的 tag，比较出版本最大的那个 `latest_tag`；
+      · 若 `version.json.versionName` 与 `latest_tag` 不一致 ⇒ **报失败**
+        （说明要么漏更新，要么指向了尚未发布的版本）。
+
+    注意「空比较不得算通过」：一个 tag 都没有、或拿不到 tag 列表时，
+    返回一条**显式的 SKIP 说明**（记为 INFO 而非失败），不得静默当作通过。
+    """
+    if vj is None:
+        return [], ["未读取到 website/version.json，跳过「是否落后最新已发布版本」判定"]
+    name = str(vj.get("versionName") or "").strip()
+    if not name:
+        return [], ["website/version.json 缺 versionName，跳过「是否落后最新已发布版本」判定"]
+
+    try:
+        out = subprocess.run(
+            ["git", "tag", "--list", "v*"],
+            cwd=ROOT, capture_output=True, text=True, timeout=15,
+        )
+    except Exception as e:  # noqa: BLE001
+        return [], [f"无法调用 git 读取 tag（{type(e).__name__}），跳过该项判定"]
+    if out.returncode != 0:
+        return [], ["git tag 返回非 0（可能不在 git 工作树内），跳过该项判定"]
+
+    tags = [t.strip() for t in out.stdout.splitlines() if re.fullmatch(r"v\d+\.\d+\.\d+", t.strip())]
+    if not tags:
+        return [], ["仓库内没有形如 vX.Y.Z 的 tag，跳过「是否落后最新已发布版本」判定"]
+
+    def key(t):
+        return tuple(int(x) for x in t[1:].split("."))
+
+    latest = max(tags, key=key)
+    if name != latest[1:]:
+        return [
+            f"website/version.json 指向 {name}，但仓库最新的已发布 tag 是 {latest}"
+            f"（差 {len(tags)} 个 tag 中共取最大）—— 应指向最新已发布版本，"
+            f"否则存量用户会被告知一个陈旧/不存在的新版本号"
+        ], []
+    return [], [f"version.json = {name}，与最新已发布 tag {latest} 一致"]
+
+
 def readme_version():
     """README.md 顶部版本徽章 `badge/version-X.Y.Z-<颜色>`。
 
@@ -284,6 +332,9 @@ def main():
     # website/*.html 里被 site.js 覆写的兜底文本（P1-9）
     html_issues = html_fallback_issues(g_code, g_name)
 
+    # version.json 是否指向最新已发布版本（P1-34 的另一半，需 git tag）
+    vj_release_issues, vj_skips = version_json_latest_release_issues(version_json_manifest())
+
     if not quiet:
         for label, a_src, a_val, b_src, b_val in checks:
             mark = "OK  " if a_val == b_val else "FAIL"
@@ -292,6 +343,8 @@ def main():
             print(f"  [FAIL] website/*.html 兜底版本：{len(html_issues)} 处与真值不符")
         else:
             print("  [OK  ] website/*.html 兜底版本与真值一致")
+        for it in vj_skips:
+            print(f"  [INFO] {it}")
         _m = version_json_manifest()
         if _m is None:
             print("  [FAIL] website/version.json 缺失或无法解析")
@@ -336,7 +389,13 @@ def main():
         print("  修法：把这些元素标签内的静态文本改成与真值一致；")
         print("        `tools/update_website.py` 已一并同步这三类兜底文本。")
 
-    if failed or vj_issues or html_issues:
+    if vj_release_issues:
+        print()
+        print("[version-sync] 未通过：website/version.json 未指向最新已发布版本")
+        for it in vj_release_issues:
+            print("  - " + it)
+
+    if failed or vj_issues or html_issues or vj_release_issues:
         return 1
 
     _m = version_json_manifest()

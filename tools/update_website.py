@@ -22,10 +22,21 @@
 
 import argparse
 import datetime
+import io
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+# P1-55 续：本机 stdout 默认是 GBK，打印 `✓`（U+2713）会抛
+# `UnicodeEncodeError: 'gbk' codec can't encode character '\u2713'` ——
+# 实测该异常发生在**部署成功之后**的收尾 print 上，于是「部署明明成功、
+# 脚本却以非 0 退出」。统一把两路输出绑成 UTF-8，避免这类假失败。
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 WEBSITE = ROOT / "website"
@@ -211,7 +222,16 @@ def deploy(dry_run):
         print("[dry-run] 部署命令:", " ".join(cmd))
         return
     print(">>> 部署到 Cloudflare Pages:", " ".join(cmd))
-    subprocess.run(cmd, cwd=str(ROOT), check=True)
+    # P1-55 续：Windows 上 `npx` 实际是 `npx.cmd`，而 subprocess **不走 shell**
+    # 时无法解析 `.cmd`（实测报 FileNotFoundError [WinError 2]）—— 也就是说
+    # 这条部署路径在本机**从来跑不通**：即便去掉 `--no-deploy` 也会失败，
+    # 与「线上长期落后」互为因果。改为显式解析可执行文件，解析不到才回退 shell。
+    exe = shutil.which(cmd[0])
+    if exe:
+        argv = [exe] + cmd[1:]
+        subprocess.run(argv, cwd=str(ROOT), check=True)
+    else:
+        subprocess.run(" ".join(cmd), cwd=str(ROOT), check=True, shell=True)
     print(">>> 部署完成 ✓")
 
 

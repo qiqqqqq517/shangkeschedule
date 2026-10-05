@@ -169,6 +169,38 @@ git ls-remote --tags origin 'refs/tags/vX.Y.Z'
 - `website/changelog.html`：时间轴加 `tl-item`（`id="vXYZ"`）、TOC 顶部加锚点、页头 `data-version` / `data-version-code`。
 - `website/assets/js/site.js`：`SITE.version` / `SITE.versionCode`（页头版本号由它渲染，改一处即可）。
 - `website/sitemap.xml`：`/changelog` 的 `lastmod`。
+- **三类「兜底文本」（易漏，P1-9）**：`index.html` / `features.html` / `changelog.html` 里 `data-version` / `data-version-code` / `data-asset-name` 元素的**标签内静态文本**。它们被 `site.js` 在运行时覆写，但**禁用 JS / 爬虫 / 查看源码**时看的就是这些写死的值；实测曾停在 `v3.71.2`／`290`（落后约 100 个版本）。同步工具：`python scripts/sync_web_version_fallbacks.py --check|--apply`（已接入 `update_website.py` 第 4 步）。
+
+一条命令完成以上全部同步（**不含部署**）：
+
+```powershell
+python tools\update_website.py --no-deploy
+```
+
+同步后必须先过门禁，确认「App / site.js / README 徽章 / 各页兜底文本 / version.json 指向最新 tag」五处一致：
+
+```powershell
+python scripts\check_version_sync.py
+```
+
+### 5.1 部署（硬规则：只同步不部署 = 线上仍是旧版）
+
+**这一步以前不在本 runbook 里、发版流程又一律用 `--no-deploy`，导致线上曾停在 `v4.69.0` 落后 5 个版本（P1-55）。**
+
+```powershell
+npx wrangler pages deploy website --project-name shangkeschedule --branch main
+```
+
+（`python tools\update_website.py` **不带** `--no-deploy` 时会在同步后自动执行上面这条；`--no-deploy` 仅限本地试跑/预览。）
+
+部署后核验线上实际内容（**必须用 `curl.exe`**；Cloudflare Pages 有缓存，未生效时**间隔数分钟复查，不要因一次核验失败就重复部署**）：
+
+```powershell
+curl.exe -s https://shangke.asia/ | Select-String -Pattern 'data-version'
+curl.exe -s https://shangke.asia/version.json
+```
+
+期望：页面里的版本号与 `version.json` 都与本版一致（`version.json` 按「最新已真实发布」口径，可低于当前代码版本，但必须等于最新 tag）。
 
 ## 6. 夸克网盘同步（每次发版必做）
 
