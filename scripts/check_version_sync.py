@@ -45,6 +45,7 @@ GRADLE = os.path.join(ROOT, "androidApp", "build.gradle.kts")
 SITE_JS = os.path.join(ROOT, "website", "assets", "js", "site.js")
 README = os.path.join(ROOT, "README.md")
 VERSION_JSON = os.path.join(ROOT, "website", "version.json")
+WEB_DIR = os.path.join(ROOT, "website")
 
 
 class MissingFile(Exception):
@@ -142,12 +143,86 @@ def version_json_issues(g_code, g_name):
 
 
 def site_versions():
+    """从 `const SITE = { ... }` 对象字面量里取 version / versionCode。
+
+    P1-33：原实现是 `re.search(r"version:\\s*'([^']+)'", text)` —— **全文首个匹配**。
+    site.js 里任何一处更早出现的 `version:`（例如别人新增的另一个配置块、或一句带引号的
+    注释）都会抢先命中；只要那处的值恰好与 gradle 相同，门禁就 rc=0「通过」，
+    而**真正生效的** `SITE.version` 仍是陈旧的 ⇒ 典型 fail-open。
+    现改为：先定位 `const SITE = {` 到对应 `};` 的对象体，**只在该体内**取值，
+    并要求 `version` / `versionCode` 在体内**各恰好出现一次**（多了即判失败，
+    因为无法确定哪个生效）。
+    """
     text = read(SITE_JS)
-    ver = re.search(r"version:\s*'([^']+)'", text)
-    code = re.search(r"versionCode:\s*'(\d+)'", text)
-    if not ver or not code:
-        return None, None
-    return ver.group(1), code.group(1)
+    m = re.search(r"const\s+SITE\s*=\s*\{(.*?)\n\};", text, re.S)
+    if not m:
+        return None, None, "未找到 `const SITE = { ... };` 对象字面量（脚本结构变了？）"
+    body = m.group(1)
+    vers = re.findall(r"\bversion:\s*'([^']+)'", body)
+    codes = re.findall(r"\bversionCode:\s*'([^']+)'", body)
+    if len(vers) != 1:
+        return None, None, f"SITE 体内 version 键出现 {len(vers)} 次（必须恰好 1 次）：{vers}"
+    if len(codes) != 1:
+        return None, None, f"SITE 体内 versionCode 键出现 {len(codes)} 次（必须恰好 1 次）：{codes}"
+    return vers[0], codes[0], None
+
+
+# site.js 运行时覆写的三个属性 → 该元素的**静态兜底文本**应当是什么
+def html_fallback_issues(g_code, g_name):
+    """校验 website/*.html 里被 site.js 覆写的「兜底文本」。
+
+    P1-9：site.js 会在运行时把
+      `[data-version]`      → `'v' + SITE.version`
+      `[data-version-code]` → `SITE.versionCode`
+      `[data-asset-name]`   → `shangke-v<SITE.version>-<abi>-release.apk`
+    写进对应元素。HTML 里**写死的静态文本**是「禁用 JS / 爬虫 / 查看源码」时
+    用户实际看到的内容 —— 实测 index.html / features.html 停在 `v3.71.2` / `290`
+    （落后约 100 个版本），属**用户可见**的陈旧版本。
+
+    枚举来自 `website/*.html` **目录穷举**，不是关键词搜索（否则会漏载体）。
+    """
+    issues = []
+    scanned = 0
+    # 注意交替式顺序：Python 的 `|` 取**最左**匹配，把 `version` 放在
+    # `version-code` 前面会让 `data-version-code` 被误判成 `data-version`
+    # （实测这样把「版本号 482」判成「应等于 v4.74.12」，是量具自身的假阳性）。
+    # 长串必须排在短串前面。
+    pat = re.compile(
+        r"<(\w+)([^>]*\bdata-(asset-name|version-code|version)\b[^>]*)>([^<]*)</\1>",
+        re.S | re.I,
+    )
+    for fn in sorted(os.listdir(WEB_DIR)):
+        if not fn.endswith(".html"):
+            continue
+        p = os.path.join(WEB_DIR, fn)
+        if not os.path.exists(p):
+            continue
+        txt = read(p)
+        for m in pat.finditer(txt):
+            scanned += 1
+            ln = txt[: m.start()].count("\n") + 1
+            kind = m.group(3).lower()
+            attrs = m.group(2)
+            fb = m.group(4).strip()
+            if kind == "version":
+                expect = "v" + g_name
+            elif kind == "version-code":
+                expect = g_code
+            else:
+                am = re.search(r'data-asset-name="([^"]+)"', attrs)
+                abi = am.group(1) if am else "?"
+                expect = f"shangke-v{g_name}-{abi}-release.apk"
+            if fb != expect:
+                issues.append(
+                    f"{fn}:{ln} [data-{kind}] 兜底文本 = {fb!r}，应为 {expect!r}"
+                )
+    if scanned == 0:
+        # 「空比较」不得算通过：一个都没扫到说明选择器/结构变了，必须显式报出。
+        issues.append(
+            "website/*.html 里没有扫到任何 data-version / data-version-code / "
+            "data-asset-name 元素 —— 选择器或页面结构可能已变，本次**未校验**"
+        )
+    return issues
 
 
 def readme_version():
@@ -165,7 +240,7 @@ def main():
 
     try:
         g_code, g_name = gradle_versions()
-        s_name, s_code = site_versions()
+        s_name, s_code, s_problem = site_versions()
         r_name = readme_version()
     except MissingFile as e:
         # 与「版本不一致」区分开（P2-37）：缺文件是环境问题，不是版本漂移。
@@ -177,8 +252,12 @@ def main():
     if g_code is None or g_name is None:
         print("[FAIL] 无法从 build.gradle.kts 解析 versionCode / versionName")
         return 1
-    if s_name is None or s_code is None:
-        print("[FAIL] 无法从 site.js 解析 SITE.version / SITE.versionCode")
+    if s_problem is not None or s_name is None or s_code is None:
+        # P1-33：结构异常（找不到 SITE 对象体 / 同名键出现多次）必须**显式失败**，
+        # 不能静默降级成「跳过该项」—— 那正是原实现的 fail-open 形态。
+        print(f"[FAIL] 解析 site.js 失败：{s_problem}")
+        print("       修法：保持 `const SITE = { version: 'x.y.z', versionCode: 'NNN', ... };`"
+              " 的单一对象写法。")
         return 1
 
     checks = [
@@ -202,10 +281,17 @@ def main():
     # website/version.json —— 形制 + 区间（不要求等于 gradle 版本，见函数文档）
     vj_issues = version_json_issues(g_code, g_name)
 
+    # website/*.html 里被 site.js 覆写的兜底文本（P1-9）
+    html_issues = html_fallback_issues(g_code, g_name)
+
     if not quiet:
         for label, a_src, a_val, b_src, b_val in checks:
             mark = "OK  " if a_val == b_val else "FAIL"
             print(f"  [{mark}] {label}: {a_src}={a_val}  {b_src}={b_val}")
+        if html_issues:
+            print(f"  [FAIL] website/*.html 兜底版本：{len(html_issues)} 处与真值不符")
+        else:
+            print("  [OK  ] website/*.html 兜底版本与真值一致")
         _m = version_json_manifest()
         if _m is None:
             print("  [FAIL] website/version.json 缺失或无法解析")
@@ -240,7 +326,17 @@ def main():
             print("    · 同步 README.md 顶部版本徽章（badge/version-X.Y.Z-<颜色>）")
         print("    · 勿改 build.gradle.kts —— 那是 APK 的真实版本。")
 
-    if failed or vj_issues:
+    if html_issues:
+        print()
+        print("[version-sync] 未通过：website/*.html 里的兜底版本与 App 实际版本不一致")
+        for it in html_issues:
+            print(f"  - {it}")
+        print("  影响：禁用 JS、爬虫、查看源码时看到的是**写死的**旧版本号，")
+        print("        与站点其它位置（site.js 覆写后）自相矛盾。")
+        print("  修法：把这些元素标签内的静态文本改成与真值一致；")
+        print("        `tools/update_website.py` 已一并同步这三类兜底文本。")
+
+    if failed or vj_issues or html_issues:
         return 1
 
     _m = version_json_manifest()

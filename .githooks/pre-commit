@@ -285,7 +285,11 @@ fi
 #     实际冻结在 4.66.0/420 长达 63 次版本迭代。
 # 放行：确属误报：git commit --no-verify
 # ---------------------------------------------------------------------------
-VERSION_TOUCHED="$(echo "$STAGED" | grep -E '^(androidApp/build\.gradle\.kts|website/assets/js/site\.js|website/version\.json|README\.md|CHANGELOG\.md)$' || true)"
+# P1-9（2026-10-05 补）：`website/*.html` 里被 site.js 覆写的兜底版本文本
+#   （data-version / data-version-code / data-asset-name 的元素文本）也是对外载体 ——
+#   实测 index.html / features.html 停在 v3.71.2 / 290 而无人被拦，因为
+#   HTML 既不在本触发集、也不在门禁判据集。现两处都补上。
+VERSION_TOUCHED="$(echo "$STAGED" | grep -E '^(androidApp/build\.gradle\.kts|website/assets/js/site\.js|website/version\.json|website/.*\.html|README\.md|CHANGELOG\.md)$' || true)"
 if [ -n "$VERSION_TOUCHED" ]; then
   "$PY" scripts/check_version_sync.py --quiet
   VSTATUS=$?

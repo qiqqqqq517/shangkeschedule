@@ -252,6 +252,25 @@ def main():
     new_sitemap, sm_changed = patch_sitemap()
     print("sitemap.xml：lastmod" + ("已更新" if sm_changed else "未变化"))
 
+    # 4) website/*.html 里被 site.js 覆写的「兜底文本」（P1-9）
+    #
+    # data-version / data-version-code / data-asset-name 三个载体的元素文本此前
+    # 不在本脚本的写入清单里，导致 index.html / features.html 长期停在
+    # v3.71.2 / 290（落后约 100 个版本）—— 禁用 JS、爬虫、查看源码时看到旧版本。
+    # 复用**已入库**的 scripts/sync_web_version_fallbacks.py，避免两份逻辑漂移。
+    fb = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "sync_web_version_fallbacks.py"), "--apply"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    fb_lines = (fb.stdout or "").strip().splitlines()
+    print("website/*.html 兜底版本：" + (fb_lines[-2] if len(fb_lines) >= 2 else
+                                       (fb_lines[0] if fb_lines else f"rc={fb.returncode}")))
+    if fb.returncode != 0:
+        # 不静默吞掉：改不动就在 stdout 明说，便于发版时立刻发现
+        print(f"  [WARN] sync_web_version_fallbacks.py rc={fb.returncode}")
+        for line in fb_lines[-6:]:
+            print("        " + line)
+
     if args.dry_run:
         print("\n[dry-run] 本轮将写入：")
         if js_changed:
