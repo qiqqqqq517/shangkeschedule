@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4744">v4.74.4 · 浅色主题次级文字对比度提升至无障碍标准</a></li>
+        <li><a href="#v4743">v4.74.3 · 修复「检查更新」失效、统一夸克口令、补齐隐私披露</a></li>
         <li><a href="#v4741">v4.74.1 · 修复两处质量门禁的「假通过」</a></li>
 <li><a href="#v4740">v4.74.0 · 湖北医药学院成绩与绩点适配</a></li>
         <li><a href="#v4730">v4.73.0 · 成绩 / 空教室 / 学业可挂学校级适配 + 正方适配标准</a></li>
@@ -169,6 +171,37 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4744">
+        <div><span class="tl-ver">v4.74.4</span><span class="tl-date">2026-10-05</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">外观</span>浅色主题次级文字对比度提升至无障碍标准</h3>
+          <p>「通透」与「柔绘 / 书卷」两个主题的<strong>浅色档</strong>次级文字（说明文字、时间戳、字段提示等）此前对比度仅约 2.8~3.3:1，<strong>未达 WCAG 2.2 AA 要求的 4.5:1</strong>，浅色背景上偏淡、弱光环境下不易辨认。现统一加深至 <strong>5.2:1 以上</strong>。深色档次级文字亦微调至 4.6:1 以上。</p>
+          <p>主色（通透蓝）与其余配色<strong>保持不变</strong>：该色是「通透」主题刻意锁定的 Apple 系统色，且作为配色种子派生全站色板，改动会影响整体观感。影响范围为所有使用次级文字色的界面与小组件。</p>
+          <h3><span class="tl-tag tag-fix">修复</span>文档脱敏</h3>
+          <p>对标分析文档中此前逐字记录了第三方 App 的明文密钥取值，现改为只保留「形态」描述（如「32 位十六进制」），分析结论与对照价值完整保留。</p>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4743">
+        <div><span class="tl-ver">v4.74.3</span><span class="tl-date">2026-10-05</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>App「检查更新」长期失效</h3>
+          <p>官网版本源长期停留在旧版本，且经过 60 多次版本迭代从未同步：<strong>版本号更高的用户永远收到「已是最新」</strong>，版本号更低的用户被提示去下载一个落后十余个版本的包。现已修正，并把该文件纳入版本一致性校验与提交前检查（此前三道防线都不覆盖它）。</p>
+          <h3><span class="tl-tag tag-fix">修复</span>夸克网盘口令不可用</h3>
+          <p>同一个口令在官网页面与 App 内「复制分享口令」两处写法不同，至少一处粘贴后无法识别。现全站统一。</p>
+          <h3><span class="tl-tag tag-compliance">隐私</span>补齐隐私披露</h3>
+          <p>App 内隐私政策与官网隐私页此前均未提及「AI 识别导入」会把用户选中的课表截图或文字上传到<strong>用户自己填写的接口</strong>；亦未披露公开节假日数据接口、以及官网权限表漏列的 3 项已声明权限，并补充了系统级自动备份的范围说明。用户协议与两份隐私政策的版本口径同步更新。</p>
+          <h3><span class="tl-tag tag-fix">工程</span>多处发布流程与质量门禁修复</h3>
+          <ul>
+            <li>版本迭代脚本的 <code>--help</code> 此前会真的重建索引并改写官网，现已修正。</li>
+            <li>「部署」此前被硬编码跳过，导致线上整站冻结；现改为可选并在失败时明确报错。</li>
+            <li>完整构建路径此前会因调用一个已废弃的打包脚本而必然中途失败，现已改用正确的构建任务。</li>
+            <li>若干质量检查此前「报了问题但不拦截提交」，现已改为真正可拦截。</li>
+            <li>提交前新增密钥内容扫描（只报告位置，不显示密钥原文）。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4741">
         <div><span class="tl-ver">v4.74.1</span><span class="tl-date">2026-10-04</span></div>
