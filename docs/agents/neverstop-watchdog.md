@@ -147,8 +147,8 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 > ⚠️ **任务名订正（2026-10-04，v4.68.5）**：本节原先写的是 `:shared:jvmTest`，
 > 而该任务在本仓是 **`NO-SOURCE`** —— `shared/src/jvmTest` **目录不存在**，
-> 全部 25 个 shared 测试文件都在 `shared/src/androidHostTest`。
-> 即原命令对 shared 的 **206 例测试零覆盖**，却照样报 `BUILD SUCCESSFUL`，
+> 全部 shared 测试文件都在 `shared/src/androidHostTest`。
+> 即原命令对 shared 的一批测试零覆盖，却照样报 `BUILD SUCCESSFUL`，
 > 是一条**恒绿的假门禁**（历史口径「221 例 / 273 例」实际都来自 `testAndroidHostTest`）。
 > 正确任务名为 `:shared:testAndroidHostTest`。已获用户授权订正。
 
@@ -160,9 +160,17 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 `NO-SOURCE` 的任务同样会让整体构建成功。须解析测试报告确认
 执行数 = `@Test` 注解数（本仓口径见下），若二者不等即说明有测试被静默跳过。
 
-历史口径（2026-10-04，v4.68.4）：全量 **276 例，0 失败 0 错误 0 跳过**
-（`testAndroidHostTest` 209 + `androidApp:testDebugUnitTest` 67）。
-测试数只应因新增测试而增加；无理由减少即挂起。
+**测试数量口径（P2-19 · 2026-10-05 修正）**：此前本节把总数写死为 276，
+而仓库同时存在 229 / 265 / 273 / 276 四个数字在不同文档里并行引用，
+巡检无法判断「多少才算对」。现改为**现场核对**：
+
+- 当前实测（2026-10-05）：**291 例 / 0 失败 / 0 错误 / 0 跳过**
+  （`:shared:testAndroidHostTest` 224 + `:androidApp:testDebugUnitTest` 67；
+   源集为 shared 28 文件 / androidApp 8 文件）。
+- **每轮以实跑为准**：解析 `build/test-results/**/TEST-*.xml` 的 `tests` 属性求和，
+  再与 `@Test` 注解计数对拍；二者不等即判 FAIL 并挂起。
+- 数字只应因**新增测试**而增加；无理由减少即挂起。
+- **文档不得再写死历史数字**（`工作日志.md` 的历史记录除外，它记录的是当时事实）。
 
 ### L4 · 周期深检（每 4 小时一次，与轮次解耦计时）
 
