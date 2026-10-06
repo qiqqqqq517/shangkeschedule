@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-4.74.19-blueviolet)
+![Version](https://img.shields.io/badge/version-4.74.20-blueviolet)
 ![Release](https://img.shields.io/github/v/release/qiqqqqq517/shangkeschedule)
 ![Website](https://img.shields.io/badge/website-shangke.asia-c96442)
 

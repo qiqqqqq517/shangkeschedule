@@ -387,6 +387,49 @@ class AppSettingsRepository(
     }
 
     /**
+     * **原子**写入「`insertOrUpdateAppSettings` 不覆盖的那批键」。
+     *
+     * P2-21：备份恢复此前对这部分逐字段调用 `updateProfileInfo` /
+     * `updateProfileAvatarPath` / `updateMorningAlarmEnabled` /
+     * `updateMorningAlarmLeadMinutes` / `updateNextClassNotificationEnabled` /
+     * `updateExamCountdownReminderEnabled` / `updateGpaScale` /
+     * `updateCreditRequirements` —— **每次一个独立的 `dataStore.edit` 事务**。
+     * 中途失败即留下一套**半恢复**的设置（个人信息换了、闹钟没换、绩点制还是旧的），
+     * 而恢复流程只会报一个笼统的失败，用户既不知道恢复了多少、也不知道该重试哪一步。
+     *
+     * 现合并为**单次 `edit`**：要么全部落盘，要么全部不落盘。
+     *
+     * 与「按单字段更新」的那批方法并存是有意的：那些方法服务于**交互式单点修改**
+     * （用户改一项就只写一项，避免覆盖并发修改的其它设置项）；
+     * 而这里是**整体恢复**，本就应当一次性写完，拆开反而制造半恢复状态。
+     */
+    suspend fun updateSupplementalSettingsAtomically(settings: AppSettingsModel) {
+        dataStore.edit { prefs ->
+            // 个人信息
+            prefs[AppSettingsModel.KEY_PROFILE_NICKNAME] = settings.profileNickname
+            prefs[AppSettingsModel.KEY_PROFILE_SCHOOL] = settings.profileSchool
+            prefs[AppSettingsModel.KEY_PROFILE_COLLEGE] = settings.profileCollege
+            prefs[AppSettingsModel.KEY_PROFILE_MAJOR] = settings.profileMajor
+            prefs[AppSettingsModel.KEY_PROFILE_GRADE] = settings.profileGrade
+            prefs[AppSettingsModel.KEY_PROFILE_SIGNATURE] = settings.profileSignature
+            prefs[AppSettingsModel.KEY_PROFILE_AVATAR_PATH] = settings.profileAvatarPath
+            // 早八闹钟
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] = settings.morningAlarmEnabled
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] =
+                settings.morningAlarmLeadMinutes.coerceIn(0, 180)
+            // 常驻通知开关
+            prefs[AppSettingsModel.KEY_NEXT_CLASS_NOTIFICATION_ENABLED] =
+                settings.nextClassNotificationEnabled
+            prefs[AppSettingsModel.KEY_EXAM_COUNTDOWN_REMINDER_ENABLED] =
+                settings.examCountdownReminderEnabled
+            // 学业
+            prefs[AppSettingsModel.KEY_GPA_SCALE] = settings.gpaScale.value
+            prefs[AppSettingsModel.KEY_CREDIT_REQUIREMENTS] =
+                CreditRequirement.encode(settings.creditRequirements)
+        }
+    }
+
+    /**
      * 单独持久化液态玻璃模糊半径（v3.25.0）。
      * 只写这一个键：避免整份 copy 写回时与其他并发修改互相覆盖。
      */

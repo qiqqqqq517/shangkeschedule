@@ -161,6 +161,27 @@ internal fun migrateStyleProtoBytes(
 }
 
 /**
+ * N21：备份模块的**恢复顺序**是硬约束，不得依赖备份文件里 `meta.modules` 的排列。
+ *
+ * 依赖来自外键：`CourseNote.courseId → Course.id ON DELETE CASCADE`。
+ * 「先恢复课表」必然连带删除课堂笔记，因此 **USER_DATA 必须在 COURSE 之后**，
+ * 否则笔记写入时找不到父课程行而被拒绝（或在部分实现下被静默丢弃）。
+ * APP_SETTINGS 里含 `currentCourseTableId`，同样应在课表就位之后再写。
+ *
+ * 此前两处都直接 `meta.modules.forEach`，顺序完全由备份文件决定 ——
+ * 任何一端改变列表顺序（新增模块、按字典序排序、手工编辑 JSON）都会静默丢光课堂笔记。
+ *
+ * 现改为：按 [RESTORE_ORDER] 固定顺序分发；备份里没出现的模块跳过，
+ * 多余/未知模块忽略。这样顺序由**代码**保证，而不是由文件内容约定。
+ */
+internal val RESTORE_ORDER: List<BackupModule> = listOf(
+    BackupModule.COURSE,
+    BackupModule.STYLE,
+    BackupModule.USER_DATA,
+    BackupModule.APP_SETTINGS,
+)
+
+/**
  * 备份与恢复的中央总仓库（KMP 共享层）
  * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
  */
@@ -403,18 +424,21 @@ class BackupRepository(
             val userDataSnapshot = exportUserDataBytes()
 
             try {
-                backupPackage.meta.modules.forEach { info ->
-                    val data = backupPackage.payloadMap[info.key] ?: return@forEach
-                    val result = when (info.key) {
-                        BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
-                        BackupModule.STYLE.key -> restoreAppStyleBytes(data)
-                        BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
-                        BackupModule.USER_DATA.key -> restoreUserDataBytes(data)
-                        else -> Result.success(Unit)
+                // N21：按固定顺序分发，不看备份文件里 modules 的排列（见 RESTORE_ORDER）。
+                // 备份里没有的模块自然跳过，未知模块忽略。
+                val presentKeys = backupPackage.meta.modules.map { it.key }.toSet()
+                for (module in RESTORE_ORDER) {
+                    if (module.key !in presentKeys) continue
+                    val data = backupPackage.payloadMap[module.key] ?: continue
+                    val result = when (module) {
+                        BackupModule.COURSE -> restoreAllCourseTablesCbor(data)
+                        BackupModule.STYLE -> restoreAppStyleBytes(data)
+                        BackupModule.APP_SETTINGS -> restoreAppSettingsBytes(data)
+                        BackupModule.USER_DATA -> restoreUserDataBytes(data)
                     }
                     if (result.isFailure) {
                         throw result.exceptionOrNull()
-                            ?: IllegalStateException("备份模块恢复失败：${info.key}")
+                            ?: IllegalStateException("备份模块恢复失败：${module.key}")
                     }
                 }
                 Result.success(Unit)
@@ -929,26 +953,17 @@ class BackupRepository(
                 examCountdownReminderEnabled = bm.examCountdownReminderEnabled
                     ?: currentSettings.examCountdownReminderEnabled
             )
+            // P2-21：此前这批「insertOrUpdateAppSettings 未覆盖的键」是**逐字段**调 setter，
+            // 每个 setter 各自一个 dataStore.edit 事务（合计 8 次）⇒ 中途失败即留下**半恢复**设置
+            //（个人信息换了、闹钟没换、绩点制还是旧的），而恢复流程只报一个笼统的失败。
+            // 现改为：主键组与补充键组各自**单次事务**写完。
             appSettingsRepository.insertOrUpdateAppSettings(restoredSettings)
             // 补写 insertOrUpdateAppSettings 未覆盖的键：该函数只一次性写回 31 个键，
             // 个人信息、早八闹钟、学业要求、绩点制与两个常驻通知开关不在其中 ——
             // 若只靠上面这行，这些字段会「算对了但没落盘」，表现为恢复后设置没生效。
-            // 故这里按单字段原子更新逐个补齐（与 AppSettingsRepository 的设计保持一致）。
-            appSettingsRepository.updateProfileInfo(
-                nickname = restoredSettings.profileNickname,
-                school = restoredSettings.profileSchool,
-                college = restoredSettings.profileCollege,
-                major = restoredSettings.profileMajor,
-                grade = restoredSettings.profileGrade,
-                signature = restoredSettings.profileSignature
-            )
-            appSettingsRepository.updateProfileAvatarPath(restoredSettings.profileAvatarPath)
-            appSettingsRepository.updateMorningAlarmEnabled(restoredSettings.morningAlarmEnabled)
-            appSettingsRepository.updateMorningAlarmLeadMinutes(restoredSettings.morningAlarmLeadMinutes)
-            appSettingsRepository.updateNextClassNotificationEnabled(restoredSettings.nextClassNotificationEnabled)
-            appSettingsRepository.updateExamCountdownReminderEnabled(restoredSettings.examCountdownReminderEnabled)
-            appSettingsRepository.updateGpaScale(restoredSettings.gpaScale)
-            appSettingsRepository.updateCreditRequirements(restoredSettings.creditRequirements)
+            // 现由 updateSupplementalSettingsAtomically 在**一个事务**内写齐，
+            // 避免出现「一半新一半旧」的设置。
+            appSettingsRepository.updateSupplementalSettingsAtomically(restoredSettings)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
