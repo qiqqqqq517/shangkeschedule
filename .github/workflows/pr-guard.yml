@@ -35,9 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出 PR 提交（含完整历史）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # 本 job 只读提交历史做判定，不需要向远端回写：不保留 GITHUB_TOKEN 凭据
+          persist-credentials: false
 
       - name: 检查 PR 来源
         env:

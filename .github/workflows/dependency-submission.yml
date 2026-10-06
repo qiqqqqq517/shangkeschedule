@@ -12,12 +12,14 @@ permissions:
 jobs:
   dependency-submission:
     runs-on: ubuntu-latest
+    # 手动触发、无超时上限时，依赖解析卡死会一直占用 runner（历史上有 3 次失败运行）
+    timeout-minutes: 20
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 设置 JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -26,6 +28,9 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: 生成并提交依赖图谱
+        # 刻意停在 v4：v6 起 gradle-actions-caching 已转为闭源商业组件
+        # （https://blog.gradle.org/github-actions-for-gradle-v6），升级即接受
+        # gradle.com/legal/terms-of-use。本步骤使用 cache-write-only，正属该组件。
         uses: gradle/actions/dependency-submission@v4
         with:
           # 海外 runner 不走阿里云镜像，否则 502 会导致依赖解析失败

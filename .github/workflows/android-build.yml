@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: 检出代码 (Checkout)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 克隆索引文件 (Clone Index PB File)
         run: |
@@ -101,13 +101,13 @@ jobs:
           .github/scripts/build_contributors.sh    
 
       - name: 设置 JDK 21 (Setup JDK)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
 
       - name: 设置 Gradle 缓存 (Cache Gradle Dependencies)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -151,7 +151,7 @@ jobs:
           exit 1
 
       - name: 上传构建产物到仓库 (Upload Artifact)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-apk
           path: androidApp/build/outputs/apk/release/*.apk
