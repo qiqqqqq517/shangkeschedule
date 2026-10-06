@@ -1011,7 +1011,7 @@
     <string name="action_view_timetable">View timetable</string>
     <string name="action_semester_settings">Semester settings</string>
     <string name="semester_progress_label">Semester progress</string>
-    <string name="progress_percent_format">%1$d%% elapsed</string>
+    <string name="progress_percent_format">%1$d% elapsed</string>
     <string name="school_year_format">%1$d-%2$d school year</string>
     <string name="status_semester_completed">Completed</string>
     <string name="action_view">View</string>
