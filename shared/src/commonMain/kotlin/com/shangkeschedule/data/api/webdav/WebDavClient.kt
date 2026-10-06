@@ -206,6 +206,58 @@ class WebDavClient(
         }
     }
 
+    /**
+     * 删除远端文件 (DELETE)
+     *
+     * P2-11：云端备份改为「暂存目录 + 最后提交」后，需要在提交失败时清场；
+     * 也用于清理本次备份已不再包含的旧模块文件（否则旧模块会一直留在云端，
+     * 恢复时按 meta.json 取用，若某模块被删过则会取到**陈旧**数据）。
+     *
+     * 语义：**远端文件不存在也返回 true**（幂等，清理动作不该因「本来就没有」而失败）。
+     */
+    suspend fun deleteFile(remoteFileName: String): Boolean {
+        val fullUrl = buildFullUrl(remoteFileName)
+        return try {
+            val response = client.delete(fullUrl)
+            response.status.isSuccess() || response.status.value == 404
+        } catch (e: Exception) {
+            AppLog.w(TAG, "删除远端文件失败: ${remoteFileName.substringAfterLast('/')}", e)
+            false
+        }
+    }
+
+    /**
+     * 移动远端文件 (MOVE)，源不存在时删除目标。
+     *
+     * WebDAV `MOVE` 的标准语义之一就是「覆盖已有目标」。部分服务端实现不覆盖，
+     * 故移动**之前**先删一次目标，保证行为一致。
+     */
+    suspend fun moveFile(fromRemote: String, toRemote: String): Boolean {
+        val fullFrom = buildFullUrl(fromRemote)
+        val fullTo = buildFullUrl(toRemote)
+        return try {
+            // 先删目标：绕开「服务端 MOVE 不覆盖」的差异
+            runCatching {
+                val del = client.delete(fullTo)
+                del.status.isSuccess() || del.status.value == 404
+            }
+            // Ktor 的 HttpMethod 没有 Move 常量，按 WebDAV RFC 4918 用原始方法名。
+            val moveMethod = io.ktor.http.HttpMethod("MOVE")
+            val response = client.request(fullFrom) {
+                method = moveMethod
+                header(io.ktor.http.HttpHeaders.Destination, fullTo)
+            }
+            response.status.isSuccess()
+        } catch (e: Exception) {
+            AppLog.w(
+                TAG,
+                "移动远端文件失败: ${fromRemote.substringAfterLast('/')} → ${toRemote.substringAfterLast('/')}",
+                e
+            )
+            false
+        }
+    }
+
     fun close() = client.close()
 }
 

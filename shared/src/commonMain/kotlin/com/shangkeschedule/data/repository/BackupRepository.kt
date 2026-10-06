@@ -99,6 +99,68 @@ data class ModuleInfo(
 private const val WEBDAV_BACKUP_DIR = "Backup"
 
 /**
+ * 云端备份暂存目录名（P2-11）。
+ *
+ * 两阶段提交：模块先落在这里，全部成功后才 MOVE 到正式目录，
+ * 最后写 `meta.json` 作为提交标记（恢复端先读 meta 才知道取哪些模块）。
+ * 「meta 出现」才代表一份新备份完整落地 —— 中途失败不会留下新旧混合的现场。
+ */
+private const val WEBDAV_STAGING_SUFFIX = "_staging"
+
+/**
+ * 全部备份模块的 key（P2-11）。
+ *
+ * 用于「本次备份不再包含的旧模块文件必须从云端清掉」——
+ * 否则那些陈旧模块会一直留在云端、将来被误当作有效数据取用。
+ *
+ * 取自 `BackupModule.entries` 而非手写清单：手写会随新增模块漏改，
+ * 漏改的后果正是「旧模块永不清除」这个缺陷本身。
+ */
+private val ALL_BACKUP_MODULE_KEYS: Set<String> = BackupModule.entries.map { it.key }.toSet()
+
+/**
+ * R1-003：样式备份的版本闸门与迁移分派（顶层函数，便于不依赖 DataStore 即可回归测试）。
+ *
+ * 原实现：
+ * ```
+ * if (envelope.appVersionCode > STYLE_SCHEMA_VERSION) return failure   // 只拦「更新」
+ * // TODO: 样式版本迁移逻辑待实现（当前版本兼容，直接使用原始字节）
+ * val migratedProtoBytes = envelope.styleProtoBytes                      // 无条件下钳
+ * ```
+ * 两个问题：
+ *  1. **TODO 悬空**：一旦 `STYLE_SCHEMA_VERSION` 升到 2 且改了 proto 结构，
+ *     v1 备份会被**原样喂进新版解析器**——不报错、样式直接错乱，且极难排查。
+ *  2. **只拦上不拦下**：`appVersionCode` 小于当前版本（含 0 / 负数 / 损坏值）时直接放行。
+ *
+ * 现改为**显式分派 + fail closed**：
+ *  - 高于当前版本 ⇒ 拒绝（备份来自更新的 App，不认识）。
+ *  - 已知历史版本 ⇒ 走对应迁移分支（当前只有 v1，迁移为空操作）。
+ *  - 未知/非法版本 ⇒ **拒绝**，而不是「原样使用」。
+ *
+ * 新增版本时的约定：在此处补一条 `when` 分支并写清迁移步骤，
+ * 同时在 `STYLE_SCHEMA_VERSION` 的注释里登记该版本的格式变更。
+ */
+internal fun migrateStyleProtoBytes(
+    appVersionCode: Int,
+    currentVersion: Int,
+    protoBytes: ByteArray
+): Result<ByteArray> {
+    if (appVersionCode > currentVersion) {
+        return Result.failure(IllegalArgumentException("STYLE_TOO_NEW:$appVersionCode"))
+    }
+    if (appVersionCode <= 0) {
+        // 非法的版本号（0 / 负数 / 解析损坏）——放行等于把任意字节喂进解析器
+        return Result.failure(IllegalArgumentException("STYLE_VERSION_INVALID:$appVersionCode"))
+    }
+    return when (appVersionCode) {
+        // v1 是目前唯一发布过的版本，proto 格式与当前一致 ⇒ 迁移为空操作。
+        1 -> Result.success(protoBytes)
+        // 未知版本：宁可拒绝，也不能原样放行。
+        else -> Result.failure(IllegalArgumentException("STYLE_VERSION_UNSUPPORTED:$appVersionCode"))
+    }
+}
+
+/**
  * 备份与恢复的中央总仓库（KMP 共享层）
  * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
  */
@@ -114,6 +176,16 @@ class BackupRepository(
     private val styleSettingsRepository: StyleSettingsRepository,
     private val apiConfigRepository: ApiConfigRepository
 ) {
+    /**
+     * 云端备份链路的互斥锁。
+     *
+     * P2-18：原先只有 `uploadFullBackupToWebDav()` 上了这把锁，
+     * `restoreFullSoftwareBackup()` **没有** ⇒ 自动同步与手动恢复可以并发：
+     * 恢复进行到一半（课表已换成备份内容、设置还没恢复）时，自动上传会把这份
+     * **半恢复状态**传到云端，覆盖掉用户唯一的完整备份 —— 属不可逆的数据损失。
+     *
+     * 现在恢复入口同样持锁：备份/恢复在云端链路这一侧严格互斥。
+     */
     private val webDavBackupMutex = Mutex()
 
     /**
@@ -196,24 +268,72 @@ class BackupRepository(
             val tempFiles = mutableListOf<Path>()
 
             try {
-                val metaPath = tempDir / "meta.json"
-                tempFiles.add(metaPath)
-                FileSystem.SYSTEM.write(metaPath) {
-                    writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
-                }
-                if (!client.uploadFile(metaPath, "$WEBDAV_BACKUP_DIR/meta.json")) {
-                    return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
-                }
+                // P2-11：云端备份此前是「先传 meta.json，再逐模块覆盖」——
+                // 中途失败即留下**新旧混合**的一套文件：meta.json 已经宣称是新备份，
+                // 但部分模块还是旧的（甚至缺失）⇒ 恢复出来是一份拼接数据，且用户无从察觉。
+                // 另：本次备份不再包含的**旧模块文件**此前从不清除，会一直留在云端。
+                //
+                // 现改为两阶段提交：
+                //  阶段一：模块写入**暂存目录** staging/，此时对恢复端完全不可见；
+                // 阶段二：全部成功后，**最后**上传 meta.json 作为提交标记，
+                //         再把暂存模块逐个 MOVE 到正式位置。
+                //         meta.json 是恢复的入口（先读它才知道要取哪些模块），
+                //         所以「meta 出现」= 提交完成，此前任何失败都不会被误读成新备份。
+                val stagingDir = "$WEBDAV_BACKUP_DIR/$WEBDAV_STAGING_SUFFIX"
 
+                // 阶段一：全部模块先落暂存目录
+                val stagedKeys = mutableListOf<String>()
                 for ((key, bytes) in backupPackage.payloadMap) {
                     val modulePath = tempDir / "$key.cbor"
                     tempFiles.add(modulePath)
                     FileSystem.SYSTEM.write(modulePath) {
                         write(bytes)
                     }
-                    if (!client.uploadFile(modulePath, "$WEBDAV_BACKUP_DIR/$key.cbor")) {
-                        return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
+                    if (!client.uploadFile(modulePath, "$stagingDir/$key.cbor")) {
+                        // 清场：把已写入暂存区的部分删掉，避免下次上传时被 MOVE 带上来
+                        stagedKeys.forEach { stale ->
+                            client.deleteFile("$stagingDir/$stale.cbor")
+                        }
+                        return@withContext Result.failure(
+                            IllegalStateException(getString(Res.string.backup_err_upload_failed))
+                        )
                     }
+                    stagedKeys += key
+                }
+
+                // 阶段二：先写 meta.json（提交标记），再把暂存模块搬到正式位置
+                val metaPath = tempDir / "meta.json"
+                tempFiles.add(metaPath)
+                FileSystem.SYSTEM.write(metaPath) {
+                    writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
+                }
+                if (!client.uploadFile(metaPath, "$WEBDAV_BACKUP_DIR/meta.json")) {
+                    stagedKeys.forEach { stale -> client.deleteFile("$stagingDir/$stale.cbor") }
+                    return@withContext Result.failure(
+                        IllegalStateException(getString(Res.string.backup_err_upload_failed))
+                    )
+                }
+
+                var movedAll = true
+                for (key in stagedKeys) {
+                    if (!client.moveFile("$stagingDir/$key.cbor", "$WEBDAV_BACKUP_DIR/$key.cbor")) {
+                        movedAll = false
+                        AppLog.w(TAG, "提交阶段移动模块失败: $key")
+                    }
+                }
+
+                // 清场：本次备份**不包含**的旧模块文件必须删掉，
+                // 否则它们会一直留在云端，将来被误当作有效模块取用。
+                for (oldKey in ALL_BACKUP_MODULE_KEYS) {
+                    if (oldKey in stagedKeys) continue
+                    if (oldKey in backupPackage.payloadMap.keys) continue
+                    client.deleteFile("$WEBDAV_BACKUP_DIR/$oldKey.cbor")
+                }
+
+                if (!movedAll) {
+                    return@withContext Result.failure(
+                        IllegalStateException(getString(Res.string.backup_err_upload_failed))
+                    )
                 }
                 Result.success(Unit)
             } catch (e: Exception) {
@@ -240,8 +360,18 @@ class BackupRepository(
 
     /**
      * 原子化分发恢复网关
+     *
+     * P2-18：整段持 `webDavBackupMutex`，与云端上传互斥 ——
+     * 避免「恢复进行中」与「自动同步上传」并发，把半恢复状态覆盖到云端唯一备份。
      */
-    suspend fun restoreFullSoftwareBackup(backupPackage: AppBackupPackage): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun restoreFullSoftwareBackup(backupPackage: AppBackupPackage): Result<Unit> =
+        webDavBackupMutex.withLock {
+            restoreFullSoftwareBackupLocked(backupPackage)
+        }
+
+    private suspend fun restoreFullSoftwareBackupLocked(
+        backupPackage: AppBackupPackage
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             backupPackage.meta.modules.forEach { info ->
                 when (info.key) {
@@ -607,12 +737,18 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
-                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            // R1-003：版本闸门与迁移交由 migrateStyleProtoBytes（显式分派 + fail closed），
+            // 不再是「只拦更新、其余一律原样使用」。
+            val migratedProtoBytes = migrateStyleProtoBytes(
+                envelope.appVersionCode,
+                StyleSettingsRepository.STYLE_SCHEMA_VERSION,
+                envelope.styleProtoBytes
+            ).getOrElse { err ->
+                AppLog.w(TAG, "样式备份版本闸门拒绝: ${err.message}")
+                return@withContext Result.failure(
+                    IllegalStateException(getString(Res.string.backup_err_version_too_new))
+                )
             }
-
-            // TODO: 样式版本迁移逻辑待实现（当前版本兼容，直接使用原始字节）
-            val migratedProtoBytes = envelope.styleProtoBytes
             styleSettingsRepository.restoreRawStyleBytes(migratedProtoBytes)
         } catch (e: Exception) {
             Result.failure(e)
