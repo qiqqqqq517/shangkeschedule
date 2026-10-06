@@ -28,6 +28,41 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
+ * 解析导入后应沿用的作息方案ID。
+ *
+ * [CourseConfigJsonModel] 是 v2 备份模型，携带 `currentSchemeId`；但教务端下发的课表配置
+ * 不含该字段，会落到默认值 `"default"`。因此把「等于默认值」视为**未指定**，
+ * 保留用户既有设置；只有显式带了一个非默认方案名的备份，才采纳它。
+ *
+ * 独立成顶层函数，便于在不启动数据库的前提下做回归测试。
+ */
+internal fun resolveImportedSchemeId(
+    incoming: String,
+    current: CourseTableConfig?
+): String {
+    val isUnspecified = incoming.isBlank() || incoming == TimeSlot.DEFAULT_SCHEME_ID
+    return if (isUnspecified) {
+        current?.currentSchemeId ?: TimeSlot.DEFAULT_SCHEME_ID
+    } else {
+        incoming
+    }
+}
+
+/**
+ * 解析导入后应沿用的「冬夏作息自动切换」开关。
+ *
+ * 教务端下发的配置同样不含该字段，恒为 `false`。关掉自动切换是**用户可感知的设置**，
+ * 不能被一次无关的导入悄悄改掉；v2 备份里 `true` 才代表用户显式开启过，
+ * 故取「两者之一为 true 即为 true」。
+ */
+internal fun resolveImportedAutoSwitch(
+    incoming: Boolean,
+    current: CourseTableConfig?
+): Boolean {
+    return incoming || (current?.autoSwitchScheme ?: false)
+}
+
+/**
  * 课表转换仓库，负责处理课程数据的导入、导出以及 ICS 生成等逻辑。
  */
 @OptIn(ExperimentalUuidApi::class)
@@ -451,7 +486,22 @@ class CourseConversionRepository(
             semesterTotalWeeks = configJsonModel.semesterTotalWeeks,
             defaultClassDuration = configJsonModel.defaultClassDuration,
             defaultBreakDuration = configJsonModel.defaultBreakDuration,
-            firstDayOfWeek = configJsonModel.firstDayOfWeek
+            firstDayOfWeek = configJsonModel.firstDayOfWeek,
+            // 作息方案：insertOrUpdateCourseConfig 是整行 REPLACE（未列出的字段回落为实体默认值）。
+            // 本函数此前只列了 6 个字段，漏掉 currentSchemeId / autoSwitchScheme 两项
+            // ⇒ 每次从教务导入课表配置，用户的作息方案被无声重置为「default」、冬夏自动切换被无声关掉。
+            //
+            // 注意：CourseConfigJsonModel 是 v2 备份模型，**本身就带这两个字段**
+            // （currentSchemeId / autoSwitchScheme），所以这里不能一律沿用旧配置 ——
+            // 导入备份时应当采纳文件里的值；只有 v1 旧备份/教务端不提供该字段时才回落旧配置。
+            // 判据：教务端下发的课表配置 JSON 不含这两项（走序列化默认值 "default"/false），
+            // 因此「与当前配置相同或为默认值」一律视为「未指定」，保留用户既有设置。
+            currentSchemeId = resolveImportedSchemeId(
+                configJsonModel.currentSchemeId, currentConfig
+            ),
+            autoSwitchScheme = resolveImportedAutoSwitch(
+                configJsonModel.autoSwitchScheme, currentConfig
+            )
         )
 
         appSettingsRepository.insertOrUpdateCourseConfig(updatedConfig)
