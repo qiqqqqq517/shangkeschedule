@@ -44,7 +44,7 @@
 
 - ⚠️ **CI 构建流与发布路径已于 2026-10-06 按用户明确要求放开**（原规则「严禁使用 CI 构建正式版」**整体废止**，用户已知悉风险并接受）：
   - `android-build.yml` 现为 **active**，已配置 4 个仓库级 secret（`KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`），并**端到端实测通过**：运行 37503332665 `success`，产物三包逐个校验三项全过，**V2 证书 SHA-256 与下方生产证书逐字符一致** ⇒ CI 产物与本地正式版同签名、可覆盖安装升级。
-  - 触发方式仍为 `workflow_dispatch`（**仅手动**，不随 push 自动跑）；所在 `Release-Signing` environment 的保护规则是 `wait_timer=15` 分钟（非人工审批）。
+  - 触发方式仍为 `workflow_dispatch`（**仅手动**，不随 push 自动跑）；所在 `Release-Signing` environment **已无任何保护规则**（`protection_rules: []`，2026-10-07 按用户要求清除原 15 分钟 `wait_timer`），触发后立即开始，无需等待或审批。
   - ✅ **CI 可以作为正式发布路径**：CI 产出的三个 APK 可用于正式发布，但**仍必须走下方同一套校验与发布流程**（逐包校验三条 → `gh release create` → 官网同步 + 部署 → 夸克网盘 → arm64 归档），并同样在 `工作日志.md` 追加 `BUILD` 记录。
   - ⚠️ **`android-release.yml`（「需要审核的发布操作」）保持 disabled**（用户 2026-10-07 明确要求）：对外发布仍走 `gh release create` 手动上传，不启用该 workflow 链路。它依赖的 `Production-Release` environment 当前也不存在。
   - **本地构建与 CI 构建并行可选**：两者产物同签名，可按当次情况任选其一；本地路径命令见下方各条与 `docs/agents/release-runbook.md`。
@@ -57,7 +57,7 @@
 - **前置：涉及适配脚本改动时，私有适配仓库必须已 commit + push**（`cd .adapter_private` → `git status` 干净 → `HEAD` 与 `origin/main` 相同 → 线上核对远端 sha256 与正文特征串）。**只跑 `build_index.py` 不算已经同步**：远端若比包内旧，App 启动时 `AdapterRemoteUpdater.sync()` 会用旧版**覆盖掉包内新脚本**，症状是「原有功能正常、本次新增功能全失效」，极难排查（2026-10-04 实际发生）。纯 UI / 逻辑改动可跳过。细则见 `docs/adapter-sop.md` §6.4 / §8.1 与 `docs/agents/release-runbook.md` §1.1。
 - 构建方式**二选一**（产物同签名，见本节首条）：**本地构建** `./gradlew :androidApp:assembleRelease`，或 **CI 构建**（触发 `android-build.yml`，下载 `app-release-apk` artifact）。产物均为按 ABI 拆分的三个 APK：`shangke-vX.Y.Z-<abi>-release.apk`（arm64-v8a / armeabi-v7a / x86_64）。
   - **本地构建**注意：本机 `JAVA_HOME` 环境变量是坏的，每条 Gradle 命令前必须显式设为本机 JBR：`C:\Program Files\Android\Android Studio\jbr`。
-  - **CI 构建**注意：`Release-Signing` environment 有 15 分钟 `wait_timer`（非人工审批，等即可）；用 `gh run watch <id>` 跟进，产物用 `gh run download <id> -n app-release-apk` 取回。
+  - **CI 构建**注意：`Release-Signing` environment **无保护规则，触发后立即开跑**（无需等待/审批）；用 `gh run watch <id>` 跟进，产物用 `gh run download <id> -n app-release-apk` 取回（约 8–11 分钟）。
   - 若构建整体 `UP-TO-DATE`，**必须核对产物 mtime 晚于 `HEAD` 提交时间**才能认定产物含本次改动；否则加 `--rerun-tasks` 重打（CI 侧为全新环境，无此问题）。
 - **发布前必须逐包校验三条**（任一不过即不得发布）：① `aapt2 dump badging` 的 `versionCode`/`versionName` 与本次版本一致；② `native-code` 每包**只有单一 ABI**；③ `apksigner verify --print-certs` 的 V2 证书 SHA-256 = `4ae49d8c97d881c7c249115b833f932c70f9b429624e88e68807e8fc2232475f`（三包一致且与历史一致）。工具在 `D:\Android\SDK\build-tools\37.0.0\`。
 - **上传方式（最快路径）**：`gh` 一条命令建草稿并上传全部资产（账号 `qiqqqqq517`；`gh` 2.101 已装并登录该账号，2026-09-29 实测）：`gh release create vX.Y.Z --draft --target <发布提交> --notes-file <CHANGELOG 段落文件> <三个 APK>` → `gh release edit vX.Y.Z --draft=false` 转正式 → `git ls-remote` 核验 tag 指向发布提交。逐条命令见 `docs/agents/release-runbook.md` §4（REST API 逐步操作降为备用）。**不得绕过校验在网页手工上传**；构建产物可来自本地或 CI（见本节首条），但**逐包校验三条必须对实际要发布的那份产物执行**。
