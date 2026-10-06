@@ -57,6 +57,14 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
         private const val TAG = "CourseAlarmReceiver"
         private const val LAUNCHER_ICON_SIZE_PX = 192
 
+        /**
+         * 旧版闹钟通知的自动失效窗口（P2-26 / 37-7）。
+         *
+         * 覆盖一整节课的展示需求；到点后系统自动撤下 ongoing 通知，避免永久驻留状态栏。
+         * 新管线按课程 startTime 精算，本旧入口只有字符串字段，故用固定窗口。
+         */
+        private const val LEGACY_ALARM_NOTIFICATION_TIMEOUT_MILLIS = 90L * 60L * 1000L
+
         /** 回退图圆角比例（相对半边长）：方图圆角 ≈ 22.5%，与系统自适应图标观感接近。 */
         private const val LAUNCHER_ICON_CORNER_RATIO = 0.45f
 
@@ -290,6 +298,12 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             .setOngoing(!isCompatMode)
             .setAutoCancel(isCompatMode)
 
+            // 升级过渡期兜底（P2-26 / 挂起清单 37-7）：非兼容模式下 ongoing=true 且 autoCancel=false，
+            // 若没有任何回收路径，这条提醒会**永久**钉在状态栏、用户划不掉。
+            // 新管线 CourseReminderNotifier.applyWearableCompatSemantics 已用 setTimeoutAfter 修正；
+            // 本接收器是升级过渡期仍在生效的旧入口，故补同一套语义：上课时刻到达后自动消失。
+            .applyCompatTimeout(isCompatMode)
+
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setShowWhen(true)
@@ -317,6 +331,19 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
         nm.notify(notificationId, builder.build())
     }
+
+    /**
+     * 升级过渡期兜底（P2-26 / 挂起清单 37-7）：给通知设一个自动失效期限。
+     *
+     * 本接收器由旧版 AlarmManager 排程触发，**触发时刻即「上课提醒时刻」**，因此从投递时刻
+     * 起算一个有限窗口即可覆盖整节课的展示需求，之后由系统自动撤下，避免 `ongoing=true`
+     * 且无回收路径导致通知永久钉在状态栏。
+     *
+     * 新管线由 CourseReminderNotifier 按课程 startTime 精确计算；本处只有字符串字段、
+     * 拿不到结构化时刻，故退化为固定窗口常量，属有意的保守选择。
+     */
+    private fun NotificationCompat.Builder.applyCompatTimeout(@Suppress("UNUSED_PARAMETER") isCompatMode: Boolean):
+        NotificationCompat.Builder = setTimeoutAfter(LEGACY_ALARM_NOTIFICATION_TIMEOUT_MILLIS)
 
     private fun removeAlarmIdFromPrefs(context: Context, courseId: String) {
         val sp = context.getSharedPreferences(ALARM_IDS_PREFS, Context.MODE_PRIVATE)

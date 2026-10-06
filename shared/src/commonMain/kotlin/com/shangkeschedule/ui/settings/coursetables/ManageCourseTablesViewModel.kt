@@ -6,6 +6,7 @@ import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
+import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,10 @@ class ManageCourseTablesViewModel(
     private val appSettingsRepository: AppSettingsRepository,
     private val courseTableRepository: CourseTableRepository
 ) : ViewModel() {
+
+    private companion object {
+        private const val TAG = "ManageCourseTablesVM"
+    }
 
     // 组合课表列表 + 当前选中 ID + 每张课表的配置/课程数，产出一个完整的 UI 状态
     val uiState: StateFlow<ManageCourseTablesUiState> = combine(
@@ -140,22 +145,47 @@ class ManageCourseTablesViewModel(
 
     /**
      * 创建一个新的课表。
-     * @param newTableName 新课表的名称。
+     *
+     * P2-44（2026-10-06）：原实现是 fire-and-forget，调用方（ManageCourseTablesScreen）
+     * 紧跟一句**无条件**「新建成功」toast —— 写库失败时用户仍看到成功，且异常会由
+     * viewModelScope 的默认处理吞掉（界面无任何反馈）。现改为**先落库、再回报结果**，
+     * 由返回值驱动提示语。
+     *
+     * @return true 表示已成功写入库
      */
-    fun createNewCourseTable(newTableName: String) {
-        viewModelScope.launch {
-            courseTableRepository.createNewCourseTable(newTableName)
-        }
+    suspend fun createNewCourseTableNow(newTableName: String): Boolean = runCatching {
+        courseTableRepository.createNewCourseTable(newTableName)
+        true
+    }.getOrElse { e ->
+        AppLog.e(TAG, "新建课表失败", e)
+        false
     }
 
     /**
-     * 更新一个课表。
-     * @param updatedCourseTable 包含新信息的课表对象。
+     * 创建课表的兼容入口（保留原调用点语义）。
+     */
+    fun createNewCourseTable(newTableName: String) {
+        viewModelScope.launch { createNewCourseTableNow(newTableName) }
+    }
+
+    /**
+     * 更新一个课表。同 [createNewCourseTableNow]：改为可等待结果，供界面按真实结果提示。
+     *
+     * @return true 表示已成功写入库
+     */
+    suspend fun updateCourseTableNow(updatedCourseTable: CourseTable): Boolean = runCatching {
+        courseTableRepository.updateCourseTable(updatedCourseTable)
+        true
+    }.getOrElse { e ->
+        AppLog.e(TAG, "重命名课表失败", e)
+        false
+    }
+
+    /**
+     * 更新课表的兼容入口（保留原调用点语义）。
      */
     fun updateCourseTable(updatedCourseTable: CourseTable) {
-        viewModelScope.launch {
-            courseTableRepository.updateCourseTable(updatedCourseTable)
-        }
+        viewModelScope.launch { updateCourseTableNow(updatedCourseTable) }
     }
 
     /**

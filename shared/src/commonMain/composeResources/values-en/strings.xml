@@ -371,6 +371,8 @@
     <string name="toast_add_table_success">Schedule \'%1$s\' added</string>
     <string name="dialog_title_edit_table">Edit schedule name</string>
     <string name="toast_edit_table_success">Schedule name updated</string>
+    <string name="toast_create_table_failed">Couldn\'t create the schedule. Please try again.</string>
+    <string name="toast_rename_table_failed">Rename failed. Please try again.</string>
     <string name="dialog_text_confirm_delete">Are you sure you want to delete schedule \'%1$s\'? This cannot be undone.</string>
     <string name="toast_delete_table_success">%1$s deleted</string>
     <string name="toast_delete_last_table_failed">Cannot delete the last schedule</string>

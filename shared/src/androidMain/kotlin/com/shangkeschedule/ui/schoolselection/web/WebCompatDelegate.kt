@@ -260,19 +260,39 @@ class WebCompatDelegate(private val webView: WebView) {
                 // 这里用代理 WebView 承接新窗口的目标 URL，再转发回主 WebView 加载：
                 // 既不出现空白窗口，也不闪退，且能继续使用主 WebView 的 Bridge/拦截器完成导入。
                 val proxy = WebView(view?.context ?: this@WebCompatDelegate.webView.context)
+                // P3-7（2026-10-06）：代理窗口此前**只设了 javaScriptEnabled**，从未走 enhanceSettings，
+                // 于是 allowFileAccess / allowContentAccess=false 等收紧项在代理 WebView 上全部失效 ——
+                // 代理要承接 window.open 打开的第三方首页，正是最需要收紧的入口。
+                // 改为复用同一套强化设置（含 mixedContentMode 的既有取舍）。
                 proxy.settings.javaScriptEnabled = true
+                proxy.settings.apply {
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    @Suppress("DEPRECATION")
+                    allowUniversalAccessFromFileURLs = false
+                    @Suppress("DEPRECATION")
+                    allowFileAccessFromFileURLs = false
+                    allowFileAccess = false
+                    allowContentAccess = false
+                }
                 proxy.webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(v: WebView?, request: WebResourceRequest?): Boolean {
-                        request?.url?.toString()?.let { url ->
-                            this@WebCompatDelegate.webView.loadUrl(url)
-                        }
-                        return true
-                    }
-                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                    /** 转发完成后销毁代理，避免其永久存活（无编号-13）。 */
+                    private fun forwardAndDispose(url: String?) {
                         if (!url.isNullOrBlank() && url != "about:blank") {
                             this@WebCompatDelegate.webView.loadUrl(url)
-                            view?.stopLoading()
+                            // 代理从不真正渲染（URL 一律转发给主 WebView），
+                            // 若不销毁，每次 window.open 都会泄漏一个 WebView 实例。
+                            runCatching { proxy.stopLoading(); proxy.destroy() }
                         }
+                    }
+
+                    override fun shouldOverrideUrlLoading(v: WebView?, request: WebResourceRequest?): Boolean {
+                        forwardAndDispose(request?.url?.toString())
+                        return true
+                    }
+
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        forwardAndDispose(url)
                     }
                 }
                 val transport = resultMsg?.obj as? WebView.WebViewTransport

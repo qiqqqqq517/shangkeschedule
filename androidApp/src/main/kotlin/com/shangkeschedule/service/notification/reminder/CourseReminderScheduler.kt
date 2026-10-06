@@ -9,6 +9,7 @@ import com.shangkeschedule.notification.plan.ReminderPlan
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.notify.PostedNotificationRegistry
 import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
+import com.shangkeschedule.tool.AppLog
 import kotlinx.datetime.LocalDateTime
 
 /**
@@ -30,6 +31,10 @@ internal class CourseReminderScheduler(
 ) {
 
     private val registry = PostedNotificationRegistry(context)
+
+    private companion object {
+        private const val TAG = "CourseReminderScheduler"
+    }
 
     /**
      * 按总开关排程课程提醒。
@@ -62,13 +67,23 @@ internal class CourseReminderScheduler(
             codeOf = alarms::codeFor
         )
 
+        // P2-25（2026-10-06）：逐条隔离异常。此前这一循环没有任何 try/catch，任一条 setExact
+        // 抛 SecurityException（部分 OEM 对精确闹钟的数量/权限施加额外限制）就会中止整轮，
+        // 导致**当天其余课程全部没有提醒**，并且连下面的 registry.pruneExcept 也一并跳过 ——
+        // 后者留着会让「已删除/已改期课程」的陈旧通知继续驻留。
+        var scheduled = 0
         for (entry in entries) {
-            alarms.setExact(applicationIntent(entry.course), entry.code, entry.triggerAt)
+            try {
+                alarms.setExact(applicationIntent(entry.course), entry.code, entry.triggerAt)
+                scheduled++
+            } catch (e: Exception) {
+                AppLog.w(TAG, "课程提醒排程失败（已跳过该条，不影响其余课程）：${entry.key}", e)
+            }
         }
 
         // 回收：已不在本轮计划里的提醒通知（课程被删/改期/已上完）
         registry.pruneExcept(entries.map { it.key }.toSet())
-        return entries.size
+        return scheduled
     }
 
     /** 课程提醒广播的 Intent（接收器 = [ReminderAlarmReceiver]）。 */

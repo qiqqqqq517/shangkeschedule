@@ -556,7 +556,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                     name = name, teacher = teacher,
                     position = position.ifBlank { "待定" },
                     day = day, startSection = startSec, endSection = endSec,
-                    weeks = weeks.ifEmpty { (1..16).toList() }
+                    weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() }
                 )
             }
 
@@ -601,7 +601,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                         name = name, teacher = teacher,
                         position = position.ifBlank { "待定" },
                         day = day, startSection = startSec, endSection = endSec,
-                        weeks = weeks.ifEmpty { (1..16).toList() }
+                        weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() }
                     ))
                 }
             }
@@ -640,7 +640,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                     name = name, teacher = teacher,
                     position = position.ifBlank { "待定" },
                     day = day, startSection = startSec, endSection = endSec,
-                    weeks = weeks.ifEmpty { (1..16).toList() }
+                    weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() }
                 )
             }
 
@@ -911,7 +911,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             day = day,
             startSection = sections?.first,
             endSection = sections?.second,
-            weeks = weeks.ifEmpty { (1..16).toList() },
+            weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() },
             credit = credit,
             remark = remark
         )
@@ -956,7 +956,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             day = day,
             startSection = sections?.first,
             endSection = sections?.second,
-            weeks = weeks.ifEmpty { (1..16).toList() }
+            weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() }
         )
     }
 
@@ -1025,7 +1025,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
                 day = day,
                 startSection = startSec,
                 endSection = endSec,
-                weeks = weeks.ifEmpty { (1..16).toList() }
+                weeks = weeks.ifEmpty { (1..DEFAULT_WEEKS_WHEN_UNSPECIFIED).toList() }
             )
         }
 
@@ -1046,3 +1046,16 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
  * 改为详情进日志、界面只显示一类通用文案。
  */
 private const val TAG = "UniversalScheduleParser"
+
+/**
+ * 解析结果缺少周次信息时的兜底周数（P2-11，2026-10-06）。
+ *
+ * 六处解析入口原先各自硬编码 `(1..16)`，而全应用默认学期周数是
+ * **20**（`CourseTableConfig.semesterTotalWeeks` / `WidgetAppSettings` / `AppSettingsRepository`
+ * 三处默认值均为 20）。两者不一致会导致：教务系统若未返回周次，课程被写到第 1~16 周，
+ * **第 17~20 周被静默裁掉** —— 用户看到「某些周课表凭空少课」。
+ *
+ * 这里统一为与默认学期一致的 20 周，并集中成一个具名常量，避免再次各自漂移。
+ * （若将来支持「导入时按当前表学期周数兜底」，应在此处接入 courseConfig 而非再改字面量。）
+ */
+private const val DEFAULT_WEEKS_WHEN_UNSPECIFIED = 20

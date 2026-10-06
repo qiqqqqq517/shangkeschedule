@@ -296,39 +296,63 @@ class CourseTableRepository(
      * 删除本人课表时级联删除其配对情侣课表（情侣课表依附于配对关系，不独立存活）。
      */
     suspend fun deleteCourseTableAndResolveCurrent(courseTable: CourseTable): Boolean {
-        val allTables = courseTableDao.getAllCourseTables().first()
-        if (allTables.size <= 1 || allTables.none { it.id == courseTable.id }) return false
+        // P2-10（2026-10-06）：数量判定与快照读取原先都在 withWriteTransaction **之外**，
+        // 两个并发删除各自读到「还有 2 张表」后都会通过 `size <= 1` 守卫，最终把课表删光
+        // 并把 currentCourseTableId 留成悬空指针。
+        // 修法：把「读快照 + 判数量 + 算回退表 + 删行」整体收进**同一个**写事务（Room 写事务串行化），
+        // 使判定与变更原子；DataStore 指针与 Room 不能同事务，故指针修正仍放在事务前后按
+        // 「先落盘指针、再删行」的顺序（保持既有语义：删行失败时用户只停在备用课表，不留悬空指针）。
+        var fallbackId: String? = null
+        var deletedIds: Set<String> = emptySet()
+        var deletedCouple = false
+        var tablesToDelete: List<CourseTable> = emptyList()
 
-        // 待删除集合：本人表 + 其配对情侣表（若有）
-        val coupleOfSelf = if (!courseTable.isCouple) {
-            courseTableDao.getCoupleTableByPairedIdOnce(courseTable.id)
-        } else null
-        val tablesToDelete = listOfNotNull(courseTable, coupleOfSelf)
-        val deletedIds = tablesToDelete.map { it.id }.toSet()
+        database.withWriteTransaction {
+            val allTables = courseTableDao.getAllCourseTables().first()
+            if (allTables.size <= 1 || allTables.none { it.id == courseTable.id }) return@withWriteTransaction
 
-        // 删除后必须至少剩余一张课表（例如仅剩「本人表+其情侣表」时删本人表应拒绝）
-        // 删除情侣表时优先回退到其配对本人表，避免落到无关的历史学期
-        val fallbackTable = if (courseTable.isCouple && courseTable.pairedCourseTableId != null &&
-            allTables.any { it.id == courseTable.pairedCourseTableId && it.id !in deletedIds }
-        ) {
-            allTables.first { it.id == courseTable.pairedCourseTableId && it.id !in deletedIds }
-        } else {
-            allTables.firstOrNull { it.id !in deletedIds } ?: return false
+            // 待删除集合：本人表 + 其配对情侣表（若有）
+            val coupleOfSelf = if (!courseTable.isCouple) {
+                courseTableDao.getCoupleTableByPairedIdOnce(courseTable.id)
+            } else null
+            val allToDelete = listOfNotNull(courseTable, coupleOfSelf)
+            val ids = allToDelete.map { it.id }.toSet()
+
+            // 删除后必须至少剩余一张课表（例如仅剩「本人表+其情侣表」时删本人表应拒绝）
+            // 删除情侣表时优先回退到其配对本人表，避免落到无关的历史学期
+            val fallbackTable = if (courseTable.isCouple && courseTable.pairedCourseTableId != null &&
+                allTables.any { it.id == courseTable.pairedCourseTableId && it.id !in ids }
+            ) {
+                allTables.first { it.id == courseTable.pairedCourseTableId && it.id !in ids }
+            } else {
+                allTables.firstOrNull { it.id !in ids } ?: return@withWriteTransaction
+            }
+
+            // 指针修正必须在删行之前落盘：删行失败时用户只停在备用课表，不会悬空。
+            val currentSettings = appSettingsRepository.getAppSettingsOnce()
+            if (currentSettings.currentCourseTableId in ids) {
+                fallbackId = fallbackTable.id
+            }
+            tablesToDelete = allToDelete
+            deletedIds = ids
+            deletedCouple = allToDelete.any { it.isCouple }
         }
-        val currentSettings = appSettingsRepository.getAppSettingsOnce()
-        if (currentSettings.currentCourseTableId in deletedIds) {
-            appSettingsRepository.insertOrUpdateAppSettings(
-                currentSettings.copy(currentCourseTableId = fallbackTable.id)
-            )
+        val resolvedFallbackId = fallbackId
+        if (resolvedFallbackId != null) {
+            val currentSettings = appSettingsRepository.getAppSettingsOnce()
+            if (currentSettings.currentCourseTableId in deletedIds) {
+                appSettingsRepository.insertOrUpdateAppSettings(
+                    currentSettings.copy(currentCourseTableId = resolvedFallbackId)
+                )
+            }
         }
-
         database.withWriteTransaction {
             tablesToDelete.forEach { courseTableDao.delete(it) }
         }
 
         // 删除涉及情侣课表（直删或级联）时复位「双人同显」开关：
         // 否则残留 true 后重建情侣表，叠加会静默重新生效（学期管理页与设置页两条删除入口统一收口）
-        if (tablesToDelete.any { it.isCouple }) {
+        if (deletedCouple) {
             val settings = appSettingsRepository.getAppSettingsOnce()
             if (settings.coupleScheduleEnabled) {
                 appSettingsRepository.insertOrUpdateAppSettings(

@@ -162,6 +162,8 @@ import shangkeschedule.shared.generated.resources.text_no_semesters_hint
 import shangkeschedule.shared.generated.resources.title_add_semester_ways
 import shangkeschedule.shared.generated.resources.title_semester_management
 import shangkeschedule.shared.generated.resources.toast_add_table_success
+import shangkeschedule.shared.generated.resources.toast_create_table_failed
+import shangkeschedule.shared.generated.resources.toast_rename_table_failed
 import shangkeschedule.shared.generated.resources.toast_copy_semester_failed
 import shangkeschedule.shared.generated.resources.toast_copy_semester_success
 import shangkeschedule.shared.generated.resources.toast_delete_last_table_failed
@@ -221,6 +223,9 @@ fun ManageCourseTablesScreen(
     val actionCancel = stringResource(Res.string.action_cancel)
     val toastNameEmpty = stringResource(Res.string.toast_name_empty)
     val toastEditSuccess = stringResource(Res.string.toast_edit_table_success)
+    // P2-44：落库失败时的提示（原实现无论成败都报成功）
+    val toastCreateFailed = stringResource(Res.string.toast_create_table_failed)
+    val toastRenameFailed = stringResource(Res.string.toast_rename_table_failed)
     val dialogTitleEditTable = stringResource(Res.string.dialog_title_edit_table)
     val a11ySave = stringResource(Res.string.a11y_save)
     val dialogTitleConfirmDelete = stringResource(Res.string.confirm_delete)
@@ -375,8 +380,12 @@ fun ManageCourseTablesScreen(
                         confirmText = actionAdd,
                         onConfirm = {
                             if (newTableName.isNotBlank()) {
-                                viewModel.createNewCourseTable(newTableName)
-                                ToastManager.show(addSuccessMsg)
+                                // P2-44（2026-10-06）：先落库、按真实结果提示，不再无条件报成功
+                                val nameToCreate = newTableName
+                                coroutineScope.launch {
+                                    val ok = viewModel.createNewCourseTableNow(nameToCreate)
+                                    ToastManager.show(if (ok) addSuccessMsg else toastCreateFailed)
+                                }
                                 showAddTableDialog = false
                                 newTableName = ""
                             } else {
@@ -418,8 +427,12 @@ fun ManageCourseTablesScreen(
                         onConfirm = {
                             if (editedTableName.isNotBlank()) {
                                 editingTableInfo?.let { tableToEdit ->
-                                    viewModel.updateCourseTable(tableToEdit.copy(name = editedTableName))
-                                    ToastManager.show(toastEditSuccess)
+                                    // P2-44（2026-10-06）：同「新建」，按真实落库结果提示
+                                    val renamed = tableToEdit.copy(name = editedTableName)
+                                    coroutineScope.launch {
+                                        val ok = viewModel.updateCourseTableNow(renamed)
+                                        ToastManager.show(if (ok) toastEditSuccess else toastRenameFailed)
+                                    }
                                     showEditTableDialog = false
                                     editingTableInfo = null
                                     editedTableName = ""

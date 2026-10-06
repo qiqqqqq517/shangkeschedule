@@ -371,6 +371,8 @@
     <string name="toast_add_table_success">课表 \'%1$s\' 已添加</string>
     <string name="dialog_title_edit_table">编辑课表名称</string>
     <string name="toast_edit_table_success">课表名称已更新</string>
+    <string name="toast_create_table_failed">新建课表失败，请重试</string>
+    <string name="toast_rename_table_failed">重命名失败，请重试</string>
     <string name="dialog_text_confirm_delete">您确定要删除课表 \'%1$s\' 吗？此操作无法撤销。</string>
     <string name="toast_delete_table_success">%1$s 已删除</string>
     <string name="toast_delete_last_table_failed">不能删除最后一个课表</string>
