@@ -560,9 +560,11 @@ def main():
     pb_bytes = new_index.SerializeToString()
     print(f'生成 Protobuf 大小: {len(pb_bytes)} 字节')
 
-    with open(output_pb, 'wb') as f:
-        f.write(pb_bytes)
-    print(f'已写入: {output_pb}')
+    # P1-2（修正）：**先校验、后落盘**。
+    # 此前本段紧跟 `f.write(pb_bytes)`，而 `--strict` 的 `sys.exit(1)` 在下方孤儿检查里 ——
+    # 一次「判定为失败」的运行**已经把 school_index.pb 改写了**，随后才以非 0 退出。
+    # 结果：CI/脚本看到红色退出码，但产物已被失败运行污染，且旧的好产物被覆盖，无法回退。
+    # 现改为：序列化结果先放在内存里跑完全部校验，只有通过（或非 strict 模式）才写文件。
 
     # 4.5 校验：确保所有 adapter 指向的 JS 文件真实存在，避免"点击导入无反应"
     invalid_paths = []
@@ -571,14 +573,6 @@ def main():
             rel_path = os.path.join(sc.resource_folder, ad.asset_js_path)
             if not os.path.isfile(os.path.join(resources_dir, rel_path)):
                 invalid_paths.append(rel_path)
-
-    if invalid_paths:
-        path_counter = Counter(invalid_paths)
-        print(f'\n[警告] 有 {len(invalid_paths)} 个 adapter 指向不存在的 JS 文件：')
-        for rel_path, count in path_counter.most_common(20):
-            print(f'  {rel_path} （{count} 个学校）')
-    else:
-        print('\n校验通过：所有 adapter 均指向存在的 JS 文件')
 
     # 4.6 反向校验：磁盘上有、但没有任何学校引用的适配器（孤儿）
     #
@@ -604,11 +598,38 @@ def main():
         if len(orphans) > 40:
             print(f'  ...（其余 {len(orphans) - 40} 个省略）')
         print('  处理方式：要么在 SPECIAL_ADAPTERS / timetable_schools.json 中接线，要么删除该文件。')
-        if '--strict' in sys.argv:
-            print('[strict] 存在孤儿适配器，按 --strict 要求退出(1)')
-            sys.exit(1)
+
+    # P1-2（修正）：把「缺文件」也纳入否决，否则 --strict 只拦孤儿，
+    # 「adapter 指向不存在的 JS」这种会让用户「点击导入无反应」的问题仍能写进产物。
+    strict = '--strict' in sys.argv
+    blockers = []
+    if invalid_paths:
+        blockers.append(f'{len(invalid_paths)} 个 adapter 指向不存在的 JS 文件')
+    if orphans:
+        blockers.append(f'{len(orphans)} 个适配器文件未被任何学校引用')
+
+    if strict and blockers:
+        # ★落盘之前就退出：school_index.pb 保持原样，不被失败运行改写。
+        print('\n[strict] 校验未通过，未写入任何文件：')
+        for b in blockers:
+            print(f'  - {b}')
+        sys.exit(1)
+
+    if invalid_paths:
+        path_counter = Counter(invalid_paths)
+        print(f'\n[警告] 有 {len(invalid_paths)} 个 adapter 指向不存在的 JS 文件：')
+        for rel_path, count in path_counter.most_common(20):
+            print(f'  {rel_path} （{count} 个学校）')
     else:
+        print('\n校验通过：所有 adapter 均指向存在的 JS 文件')
+
+    if not orphans:
         print('\n校验通过：不存在未被引用的适配器文件')
+
+    # 全部校验通过后才落盘（P1-2）
+    with open(output_pb, 'wb') as f:
+        f.write(pb_bytes)
+    print(f'已写入: {output_pb}')
 
     # 5. 验证
     print('\n前10所学校:')
