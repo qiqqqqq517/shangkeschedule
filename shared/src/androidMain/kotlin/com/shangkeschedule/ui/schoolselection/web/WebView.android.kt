@@ -86,13 +86,57 @@ actual fun rememberWebViewController(): WebViewController {
     return remember { AndroidWebViewController() }
 }
 
-class NativeBridge(private val handler: WebBridgeHandler) {
+/**
+ * JS → 原生 桥接。
+ *
+ * P1-11：此前 `postMessage` 无任何来源校验，而
+ * `addJavascriptInterface` 对**所有 frame** 暴露本对象 ⇒ WebView 里加载的任意页面
+ * （用户误点的外链、页面内嵌的第三方 iframe）都能调起原生对话框，甚至写用户课表。
+ * 现按 [bridgeCallAllowed] 做**来源门禁**：主框架主机必须与本次导入会话入口主机**同站**，
+ * 否则整条消息丢弃（fail-closed）。
+ *
+ * P1-12：日志**只记元数据**（动作名 + 长度 + 来源主机），**不再打印整条消息** ——
+ * 原实现把含课表数据、提示原文、报错栈与 URL 的完整 JSON 写进 logcat，属隐私泄露。
+ */
+class NativeBridge(
+    private val handler: WebBridgeHandler,
+    private val sessionEntryUrl: String?,
+    private val currentMainFrameUrl: () -> String?
+) {
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
-        // 保留适配脚本与原生之间的通信日志，便于排查"点击导入无反应"类问题
-        Log.d("ShangKeBridge", "postMessage: $jsonMessage")
+        val currentUrl = currentMainFrameUrl()
+        if (!bridgeCallAllowed(sessionEntryUrl, currentUrl)) {
+            // fail-closed：来源不可判定（同站判定失败、URL 解析不出、尚未完成加载）一律拒绝。
+            // 只记主机与长度，绝不回显消息正文。
+            Log.w(
+                "ShangKeBridge",
+                "postMessage rejected: entryHost=${hostOfUrl(sessionEntryUrl)}, " +
+                    "currentHost=${hostOfUrl(currentUrl)}, len=${jsonMessage.length}"
+            )
+            return
+        }
+        // 保留适配脚本与原生之间的通信日志（便于排查「点击导入无反应」类问题），
+        // 但**只记元数据**。
+        Log.d(
+            "ShangKeBridge",
+            "postMessage: action=${bridgeActionOf(jsonMessage)}, len=${jsonMessage.length}"
+        )
         handler.onMessageReceived(jsonMessage)
     }
+}
+
+/**
+ * 从桥接消息里取 `action` 字段，**仅用于日志**。
+ *
+ * 不引入第二份 JSON 解析器：真正的解析在 `WebBridgeHandler` 里用 kotlinx.serialization，
+ * 若此处另起一份，出现「日志写 A、实际按 B 执行」的偏差比缺字段更难排查。
+ * 正则失配只会让该日志字段变成 `?`，**不影响放行/拒绝判定** ——
+ * 那部分完全由 [bridgeCallAllowed] 决定。
+ */
+private fun bridgeActionOf(jsonMessage: String): String {
+    val m = Regex("\\\"action\\\"\\s*:\\s*\\\"([^\\\"]{0,64})\\\"").find(jsonMessage)
+    return m?.groupValues?.get(1) ?: "?"
 }
 
 @SuppressLint("JavascriptInterface", "SetJavaScriptEnabled")
@@ -182,7 +226,13 @@ actual fun PlatformWebView(
                     delegate.enhanceSettings(isDesktopMode)
 
                     addJavascriptInterface(WebPostBridge(), "WebPostService")
-                    addJavascriptInterface(NativeBridge(bridgeHandler), "_shangkeNativeBridge")
+                    // P1-11：桥接必须做来源门禁 —— `addJavascriptInterface` 对所有 frame 暴露本对象。
+                    // 入口 URL 取 `PlatformWebView(url = ...)`（本次导入会话要访问的教务地址），
+                    // 当前主框架 URL 由 WebView 自身提供；两者不同站即整条消息丢弃（见 [bridgeCallAllowed]）。
+                    addJavascriptInterface(
+                        NativeBridge(bridgeHandler, url) { androidController?.webViewInstance?.url },
+                        "_shangkeNativeBridge"
+                    )
 
                     val baseChromeClient = object : WebChromeClient() {
                         override fun onProgressChanged(view: WebView?, newProgress: Int) {

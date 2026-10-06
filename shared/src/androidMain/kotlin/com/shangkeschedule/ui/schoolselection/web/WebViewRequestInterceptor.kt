@@ -81,12 +81,8 @@ class WebViewRequestInterceptor {
          * 常见的「两段公共后缀」。切分可注册域时必须识别它们，否则
          * `hbvtc.edu.cn` 与 `zjnu.edu.cn` 的末两段都是 `edu.cn`，会被误判为同站。
          */
-        private val MULTI_PART_SUFFIXES = setOf(
-            "edu.cn", "com.cn", "net.cn", "org.cn", "gov.cn", "ac.cn", "mil.cn",
-            "edu.hk", "com.hk", "org.hk", "gov.hk",
-            "edu.tw", "com.tw", "org.tw", "gov.tw",
-            "edu.mo", "com.mo", "org.mo"
-        )
+        // 公共后缀表已抽取到 WebHostRules.kt（MULTI_PART_SUFFIXES，同包顶层），
+        // 与桥接来源门禁共用一份实现，避免两处对「同站」的理解漂移（P1-11）。
 
         /** 判断声明的 charset 是否含 UTF-8（大小写不敏感，容忍 "utf8" / "utf-8" / "UTF_8"） */
         private fun containsUtf8(charset: String): Boolean {
@@ -317,25 +313,14 @@ class WebViewRequestInterceptor {
     }
 
     /** 从 URL 中取出主机名（小写、去掉 userinfo 与端口）。解析失败返回 null。 */
-    private fun hostOf(url: String): String? {
-        val start = url.indexOf("://")
-        if (start < 0) return null
-        val rest = url.substring(start + 3)
-        val end = rest.indexOfFirst { it == '/' || it == '?' || it == '#' }
-        val authority = if (end < 0) rest else rest.substring(0, end)
-        val host = authority.substringAfter('@').substringBefore(':').lowercase()
-        return host.ifBlank { null }
-    }
+    /** 从 URL 中取出主机名。实现见 [hostOfUrl]（与桥接来源门禁共用同一份实现）。 */
+    private fun hostOf(url: String): String? = hostOfUrl(url)
 
     /**
      * 是否为同一站点（比较可注册域 / 近似 eTLD+1）。
      * 例：cas.hbvtc.edu.cn 与 jwgl.hbvtc.edu.cn → 同站；hbvtc.edu.cn 与 zjnu.edu.cn → 不同站。
      */
-    private fun isSameSite(a: String, b: String): Boolean {
-        val ra = registrableDomain(a)
-        val rb = registrableDomain(b)
-        return ra.isNotEmpty() && ra == rb
-    }
+    private fun isSameSite(a: String, b: String): Boolean = isSameSiteHost(a, b)
 
     /**
      * 取可注册域（近似 eTLD+1）。
@@ -343,14 +328,7 @@ class WebViewRequestInterceptor {
      * 不能简单取末两段标签：`hbvtc.edu.cn` 与 `zjnu.edu.cn` 的末两段都是 `edu.cn`
      * （公共后缀），会被误判成同站，使跨站保护形同虚设。故对已知的两段公共后缀取末三段。
      */
-    private fun registrableDomain(host: String): String {
-        val h = host.lowercase().trim('.')
-        if (h.isEmpty()) return ""
-        val parts = h.split('.')
-        if (parts.size <= 2) return h
-        val last2 = parts.takeLast(2).joinToString(".")
-        return if (last2 in MULTI_PART_SUFFIXES) parts.takeLast(3).joinToString(".") else last2
-    }
+    private fun registrableDomain(host: String): String = registrableDomainOf(host)
 
     /**
      * 用 ktor 转发请求并构造 WebResourceResponse。
