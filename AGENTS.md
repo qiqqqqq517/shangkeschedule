@@ -42,8 +42,13 @@
 
 > 逐条可执行命令见 `docs/agents/release-runbook.md`；本节是必须遵守的硬规则。
 
-- **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中手动禁用（2026-09-29 经 `gh api` 核实；**2026-10-06 复查仍为 `disabled_manually`**），**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
-  - **其余启用中的 workflow（2026-10-06 收敛后）**：`pr-guard.yml`（PR 来源拦截 + DCO 告警，**合并自原 `check-pr-source.yml` 与 `dco.yml`**）、`dependency-submission.yml`（仅手动触发，刷新依赖图谱用）、Dependabot。均与构建发布无关。
+- ⚠️ **CI 构建流已于 2026-10-06 按用户明确要求重新启用**（原规则「严禁使用 CI 构建正式版」由此**部分放开**，用户已知悉风险并接受）：
+  - `android-build.yml` 现为 **active**，已配置 4 个仓库级 secret（`KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`），并**端到端实测通过**：运行 37503332665 `success`，产物三包逐个校验三项全过，**V2 证书 SHA-256 与下方生产证书逐字符一致** ⇒ CI 产物与本地正式版同签名、可覆盖安装升级。
+  - 触发方式仍为 `workflow_dispatch`（**仅手动**，不随 push 自动跑）；所在 `Release-Signing` environment 的保护规则是 `wait_timer=15` 分钟（非人工审批）。
+  - ⚠️ **仍不得把 CI 作为正式发布路径**：`android-release.yml` 保持 disabled；正式版发布仍按本轮以下流程走（本地构建 + 手动上传 + 官网同步 + 夸克网盘）。CI 构建的产物**仅用于验证构建可复现性**，不进入 Release。
+  - ⚠️ **安全边界**：仓库为 public 且有 3 个协作者（两人有 push 权限），**有 push 权限者可通过改 workflow 读取 secret**——这是 GitHub Actions 的固有边界。如需收紧，应把 secret 改为 environment 级（当前 `Release-Signing` 的 environment 级 secrets 数为 0）。
+  - 构建脚本依赖的资源仓库 `XingHeYuZhuan/shangke_warehouse` **已 404 不可访问**，但两条克隆步骤均带内置回退，仓库内置资源完整（`school_index.pb` 418,176 B + 179 个资源目录）⇒ 构建可正常继续。
+  - **其余启用中的 workflow（2026-10-06）**：`pr-guard.yml`（PR 来源拦截 + DCO 告警，**合并自原 `check-pr-source.yml` 与 `dco.yml`**）、`dependency-submission.yml`（仅手动触发，刷新依赖图谱用）、Dependabot。
   - ⚠️ **DCO 现为告警模式**：本仓库近 50 个提交的 DCO 签名率为 0/50（从未用过 `git commit -s`），而分支策略是「短生命周期分支 → 合并回 main」，故 `pr-guard.yml` 的 DCO 步骤只输出 `::warning::`、不阻断合并（改回硬门禁：把该步骤 `WARN_ONLY` 置 0）。
   - ⚠️ **GitHub 仓库级「Automatic dependency submission」需在网页端关闭**：GitHub 另有仓库托管的自动依赖提交（`dynamic/dependency-graph/auto-submission`，**不在本仓库文件里、也不读本仓库配置**），海外 runner 直连阿里云镜像会 502 并导致 KSP/Koin 插件解析失败（实测 2026-09-13 连失 5 次）。该开关无 REST/GraphQL 端点可用（实测全 404），只能到 Settings → Code security 手动关闭；本仓库内那条 `dependency-submission.yml` 已带 `-PuseMirror=false`，是**可用**的那条，不要删。
 - **前置：`CHANGELOG.md` 必须已有对应版本条目**。Release body 直接取自该条目（或与之相同的内容）；条目未就绪不得发版。
@@ -60,7 +65,7 @@
 - **arm64 正式包归档（每次发版必做）**：把当版 `shangke-vX.Y.Z-arm64-v8a-release.apk` 放入仓库外的 `D:\01课程表\正式版-arm64\`（仅此一种包，规则见该目录 `README.md`：一版一包、放入即按 README 第 4 条校验三项）；该目录不入库、不提交。
 - **夸克网盘同步（每次发版必做）**：把当版 `shangke-vX.Y.Z-arm64-v8a-release.apk` 上传到夸克网盘「上课-课程表」用户下载目录，并把该目录内**其余全部 .apk 旧包**移入其子目录「旧版本在此」（该目录只留最新一个包）。一条命令：`python scripts\quark_publish_apk.py`（`--dry-run` 只预览）。脚本按目录名现场解析 fid、同名包跳过上传（幂等），并设有**发版闸**：该版本在 GitHub 上没有已发布的 Release 时会拒绝上传，未发版构建须显式加 `--allow-unreleased`。前置：本机已安装并授权夸克网盘 Skill（`C:\Users\30458\.dsh\skills\quarkclouddrive\`）。逐条见 `docs/agents/release-runbook.md` §6。
 - **推送 origin 的已知故障**：可能报 `schannel: failed to receive handshake`。**不要**清空代理直连（报 `Connection was reset`）、**不要**切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`）；正确做法是等约 20 秒后用 `git ls-remote --heads origin main` 探活，恢复后原样重推。`gitee` 镜像每次同步推送。
-- 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）；CI 侧不再需要签名密钥。
+- 本地签名依赖 `androidApp/keystore.properties` + `androidApp/shangkeschedule-release.jks`（均已 git 忽略，不入库）。**CI 侧已于 2026-10-06 配置同名 4 个仓库级 secret**（见本节首条）；本地与 CI 使用**同一份**签名材料，故两者产物证书一致。
 - 发布完成后在 `工作日志.md` 追加 `BUILD` 记录（构建结果、三包体积、versionCode/ABI/签名校验结论、Release id 与 URL、tag 指向、官网同步提交、origin/gitee 推送状态、是否装机验证）。
 
 ## 分支使用规范（强制：每次开工前先对表）
