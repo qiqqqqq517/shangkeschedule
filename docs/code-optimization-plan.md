@@ -70,7 +70,7 @@
 
 ### 原则 2 · 「看起来对」必须由执行回答
 
-`progress_percent_format` 三语写成 `%1$d%`：占位符编号一致、key 齐全、三语对齐，**所有文本比对全部通过**，而 `String.format` 直接抛 `UnknownFormatConversionException` —— 渲染到「课程表管理」页的学期进度行就崩。
+`progress_percent_format` 三语被**按「Compose 会用 `String.format`」的推测**改成 `%1$d%%`（占位符编号一致、key 齐全、三语对齐，**所有文本比对全部通过**）；而 Compose Multiplatform 的资源插值实为**一次正则替换**（`Regex("""%(\d+)\$[ds]""")`，见 `components-resources` 的 `StringResourcesUtils.kt`），**不经 `String.format`** ⇒ `%%` 不会被还原，学期进度行真的渲染出「已过 45%%」。**推测的事实**（以为会抛异常）与**真实的事实**（多出一个 `%`）都只有执行能回答。（2026-10-07 订正）
 
 > **通用判据**：格式串是否合法、谓词是否可能为真、契约是否成立 —— **只有执行能回答，文本比对不能。**
 
@@ -226,7 +226,7 @@ Top-8 单文件行数：
 | **OPT-102** | 六道 L1 门禁**逐道做反向验证并留痕**：临时注入该门禁本应拦住的缺陷，确认它变红 | 原则 6 | `scripts/check_*.py` | — | 6 道各一条记录（注入什么、输出什么、退出码）。**不能变红的写成缺口**，不得默默跳过 |
 | **OPT-103** | 把三份「已写好但未立为门禁」的一次性审计脚本收编为 **L1 第 7/8/9 道**，并把 `run_l1.py` 从 `build_qa/` 迁到 `scripts/` | `P-60` / `E-11` | `round-41.md` §3.2、§「建议」（`audit_format_args.py` + `fa-selftest.py`）· `round-48.md` §3.6 与 §「建议」（`audit_intent_contract.py`）· `round-9`（`audit_doc_refs.py`） | ⚠️ **需用户授权修改 `docs/agents/neverstop-watchdog.md` §3**（属该文件 §7.3 硬停机）；脚本必须**连同其 `*-selftest.py` 反向探针一起**迁入 | 三道门禁进 `scripts/`、`run_l1.py` 进 `scripts/`、`neverstop-watchdog.md` §3 同步；每道都有反向验证且在档 |
 | **OPT-104** | **测试口径单源化**：现存四个互不一致的数字——**229**（对标清单 §7 XL-032 第 39 轮）/ **265**（`工作日志.md` v4.68.0–4.68.1）/ **273**（本地 `build/test-results/**` 解析，含未跟踪的 `CalendarOwnerMarkTest` 8 例）/ **276**（v4.68.4 终态） | `D-6` / IMA《06》§六.5 | `build_qa/watchdog/count_tests.py`（不入库） | — | 一个**入库**的计数脚本 + 文档只引用该处；四个旧数字各自标注「取自何时、为何是那个值」 |
-| **OPT-105** | 把 `PercentFormatStringTest` 由「只测三条 `progress_percent_format`」**泛化为枚举全部带占位符的 format 资源**，逐条真的交给 `String.format` | 原则 2 · `v4.68.4` | `shared/src/androidHostTest/kotlin/PercentFormatStringTest.kt`【实测存在】 | — | 新增 `@Test` 覆盖全量 format 资源；**去掉任一 `%%` 时必须失败**（反向自证） |
+| **OPT-105** | 把 `PercentFormatStringTest` 由「只测三条 `progress_percent_format`」**泛化为枚举全部带占位符的 format 资源**，逐条**按 Compose 的真实插值规则渲染**（正则 `%(\d+)\$[ds]`，**不是 `String.format`**，见 2026-10-07 订正） | 原则 2 · `v4.68.4` | `shared/src/androidHostTest/kotlin/PercentFormatStringTest.kt`【实测存在】 | — | 新增 `@Test` 覆盖全量 format 资源；**把任一 `%1$d%` 改回 `%1$d%%` 时必须渲染出两个 `%`**（反向自证） |
 | **OPT-106** | （可选）新增 `scripts/check_god_files.py` 行数棘轮：单文件行数**不得高于基线**，与 `theme_leak`/`a11y` 同构 | 原则 6 | §2.2 Top-8 | — | 带 `--update-baseline`（仅净下降时允许）+ 反向验证；进 L1 后与阶段 4 联动 |
 
 **阶段退出判据**：六道（或九道）门禁**每一道都有在档的反向验证记录**，且 `OPT-104` 的口径单源已落地。
