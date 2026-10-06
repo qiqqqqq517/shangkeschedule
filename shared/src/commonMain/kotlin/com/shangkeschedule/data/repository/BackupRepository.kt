@@ -14,6 +14,8 @@ import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.CourseImportExport
 import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupEnvelope
 import com.shangkeschedule.data.model.CourseImportExport.CourseNoteBackupModel
+import com.shangkeschedule.data.model.CourseImportExport.CourseConfigJsonModel
+import com.shangkeschedule.data.model.CourseImportExport.CourseTableExportModel
 import com.shangkeschedule.data.model.CourseImportExport.GradeBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.ScheduleEventBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.TodoBackupModel
@@ -287,13 +289,41 @@ class BackupRepository(
                 }
                 Result.success(Unit)
             } catch (e: Throwable) {
-                // 跨 Room/DataStore 无法由单一数据库事务覆盖，因此在恢复前建立三份快照；
+                // 跨 Room/DataStore 无法由单一数据库事务覆盖，因此在恢复前建立四份快照；
                 // 任一模块失败时按快照反向恢复，尽量回到恢复前的完整状态。
-                runCatching { courseSnapshot?.let { restoreAllCourseTablesCbor(it).getOrThrow() } }
-                runCatching { styleSnapshot?.let { restoreAppStyleBytes(it).getOrThrow() } }
-                runCatching { appSettingsSnapshot?.let { restoreAppSettingsBytes(it).getOrThrow() } }
-                runCatching { userDataSnapshot?.let { restoreUserDataBytes(it).getOrThrow() } }
-                Result.failure(e)
+                //
+                // P2-12：这里的顺序是**硬约束**，不是随手写的 ——
+                // CourseNote.courseId 外键指向 Course.id 且 onDelete = CASCADE，
+                // 所以「先恢复课表」必然把课堂笔记连带删除，**必须随后由 USER_DATA 补回**。
+                // 若 USER_DATA 回滚失败或快照为 null，笔记就永久丢失。
+                // 此前四个 runCatching 的结果全部被丢弃 ⇒ 笔记丢失时上层只看到
+                // 原始异常，完全不知道「回滚没救回来」。
+                // 现改为：逐项记录成败，任一失败都随原始异常一并上报。
+                val rollbackFailures = mutableListOf<String>()
+                suspend fun rollbackStep(name: String, snapshot: ByteArray?, restore: suspend (ByteArray) -> Result<Unit>) {
+                    if (snapshot == null) {
+                        rollbackFailures += "$name 无快照可回滚"
+                        return
+                    }
+                    runCatching { restore(snapshot).getOrThrow() }
+                        .onFailure { rollbackFailures += "$name 回滚失败：${it.message ?: it::class.simpleName}" }
+                }
+                rollbackStep("课表", courseSnapshot) { restoreAllCourseTablesCbor(it) }
+                rollbackStep("样式", styleSnapshot) { restoreAppStyleBytes(it) }
+                rollbackStep("应用设置", appSettingsSnapshot) { restoreAppSettingsBytes(it) }
+                // USER_DATA 必须最后恢复：它要写回依赖课表/课程行的课堂笔记（见上方 P2-12 说明）
+                rollbackStep("用户数据(含课堂笔记)", userDataSnapshot) { restoreUserDataBytes(it) }
+
+                if (rollbackFailures.isEmpty()) {
+                    Result.failure(e)
+                } else {
+                    Result.failure(
+                        IllegalStateException(
+                            "恢复失败且回滚不完整：" + rollbackFailures.joinToString("；"),
+                            e
+                        )
+                    )
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -309,16 +339,48 @@ class BackupRepository(
             if (allTablesFromDb.isEmpty()) return@withContext null
             val appSettings = appSettingsRepository.getAppSettingsOnce()
 
-            val tablePacks = allTablesFromDb.mapNotNull { table ->
-                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id) ?: return@mapNotNull null
-                SingleTablePack(
-                    tableId = table.id,
-                    tableName = table.name,
-                    createdAt = table.createdAt,
-                    tableData = exportModel,
-                    isCouple = table.isCouple,
-                    pairedCourseTableId = table.pairedCourseTableId
-                )
+            // P2-14：此前用 `mapNotNull`，而 `exportCourseTableToJson` 在「无课程且无配置」时
+            // 按设计返回 null（表示「这张表没有可导出的内容」）⇒ 该课表被**静默丢弃**。
+            // 用户后果：一张刚建好、还没加课的空课表，此后再也不会进入任何一次备份；
+            // 一旦本地数据丢失，恢复回来时这张课表**根本不存在**，且全程无任何提示。
+            // 修法：不再丢弃。改为显式构造一个「空内容」的包（课程/时段/配置皆空），
+            // 让空课表也随备份走；只有在 pack.tableData 真的构造不出来时才跳过，
+            // 并把被跳过的课表名收集起来打进返回值之外的可观测信息（见 skipped 打印）。
+            val skipped = mutableListOf<String>()
+            val tablePacks = allTablesFromDb.map { table ->
+                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id)
+                if (exportModel == null) {
+                    // 空课表：构造一个合法的空内容包，而不是丢掉这张表。
+                    // CourseTableExportModel.config 是**非空** CourseConfigJsonModel（全字段有默认值），
+                    // 故用默认构造即可表达「这张表还没有任何设置」。
+                    skipped += table.name
+                    SingleTablePack(
+                        tableId = table.id,
+                        tableName = table.name,
+                        createdAt = table.createdAt,
+                        tableData = CourseTableExportModel(
+                            courses = emptyList(),
+                            timeSlots = emptyList(),
+                            config = CourseConfigJsonModel(),
+                            timeSlotSchemes = emptyList()
+                        ),
+                        isCouple = table.isCouple,
+                        pairedCourseTableId = table.pairedCourseTableId
+                    )
+                } else {
+                    SingleTablePack(
+                        tableId = table.id,
+                        tableName = table.name,
+                        createdAt = table.createdAt,
+                        tableData = exportModel,
+                        isCouple = table.isCouple,
+                        pairedCourseTableId = table.pairedCourseTableId
+                    )
+                }
+            }
+            if (skipped.isNotEmpty()) {
+                // 不静默：明确告知这些课表本身没有可导出内容，仍会以空课表形式进入备份
+                println("[backup] ${skipped.size} 张空课表（无课程且无配置）将以空内容一并备份：${skipped.joinToString("、")}")
             }
 
             val envelope = TotalAppBackupEnvelope(
@@ -360,9 +422,20 @@ class BackupRepository(
             }
 
             // 事务保护：先备份当前所有课表到内存，恢复失败时可回滚
+            //
+            // P2-14（同源第二处）：此前用 mapNotNull，空课表（无课程且无配置 ⇒
+            // exportCourseTableToJson 按设计返回 null）**不进快照** ⇒
+            // 一旦恢复失败，回滚时这张课表无从恢复，等于被这次恢复「顺手删掉」。
+            // 现改为：空课表也进快照（内容为空），保证回滚能把它还原回来。
             val currentTables = courseTableRepository.getAllCourseTables().first()
             val backupSnapshot = currentTables.mapNotNull { table ->
-                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id) ?: return@mapNotNull null
+                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id)
+                    ?: CourseTableExportModel(
+                        courses = emptyList(),
+                        timeSlots = emptyList(),
+                        config = CourseConfigJsonModel(),
+                        timeSlotSchemes = emptyList()
+                    )
                 Triple(table.id, table.name, table.createdAt) to exportModel
             }.toMap()
             val backupCurrentTableId = appSettingsRepository.getAppSettingsOnce().currentCourseTableId
@@ -430,14 +503,25 @@ class BackupRepository(
                 // 因此包一层 try/catch，避免回滚异常覆盖原始异常并把用户留在半恢复状态。
                 try {
                     backupSnapshot.forEach { (tableInfo, exportModel) ->
-                        // 回滚快照来自当前库，直接复用其情侣课表标记
-                        val original = currentTables.firstOrNull { it.id == tableInfo.first }
-                        courseTableDao.insert(
-                            CourseTable(
-                                tableInfo.first, tableInfo.second, tableInfo.third,
-                                original?.isCouple ?: false, original?.pairedCourseTableId
+                        // P2-13：回滚快照里的课表**很可能仍然存在于库中** ——
+                        // 失败点通常就在上面的 `database.withWriteTransaction` 内部，
+                        // 而 Room 事务失败会整体回滚、课表行原样还在。
+                        // 此前此处无条件 `insert`，必然撞主键冲突（ABORT），
+                        // 回滚在第一步就中断、后续课表与设置全部没恢复，
+                        // 且异常被下方 `catch (_: Exception)` 整个吞掉 ⇒ 静默半恢复。
+                        // 现改为：存在则跳过 insert（数据已由事务回滚保留），
+                        // 仅补写该课表的子表数据；不存在才整条插入。
+                        val alreadyExists = currentTables.any { it.id == tableInfo.first }
+                        if (!alreadyExists) {
+                            // 回滚快照来自当前库，直接复用其情侣课表标记
+                            val original = currentTables.firstOrNull { it.id == tableInfo.first }
+                            courseTableDao.insert(
+                                CourseTable(
+                                    tableInfo.first, tableInfo.second, tableInfo.third,
+                                    original?.isCouple ?: false, original?.pairedCourseTableId
+                                )
                             )
-                        )
+                        }
                         courseConversionRepository.importCourseTableFromJson(tableInfo.first, CourseTableImportModel(
                             courses = exportModel.courses.map {
                                 ImportCourseJsonModel(
@@ -466,8 +550,19 @@ class BackupRepository(
                     }
                     val settings = appSettingsRepository.getAppSettingsOnce()
                     appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = backupCurrentTableId))
-                } catch (_: Exception) {
-                    // 回滚失败：至少保留原始失败原因，避免把二次异常抛给上层
+                } catch (rollbackError: Exception) {
+                    // P2-13：回滚失败不能**静默**。
+                    // 此前 `catch (_: Exception) {}` 把二次异常整个吞掉，
+                    // 上层只看到 Result.failure(原始异常) ⇒ 用户与维护者都看不到
+                    // 「回滚也没成功」这一关键事实，排查时误判为「已回滚」。
+                    // 做法：把原始异常作为 cause 附上回滚异常，一并返回给上层。
+                    return@withContext Result.failure(
+                        IllegalStateException(
+                            (rollbackError.message ?: rollbackError::class.simpleName ?: "") +
+                                "（回滚失败）",
+                            e
+                        )
+                    )
                 }
                 Result.failure(e)
             }
