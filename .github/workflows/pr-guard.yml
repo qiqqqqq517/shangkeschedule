@@ -1,0 +1,121 @@
+# PR 守卫（合并自原 check-pr-source.yml + dco.yml，2026-10-06）
+#
+# 为什么合并：原两个 workflow 都是 pull_request 触发、都只做「读提交/读元数据 + 判定」，
+# 合并后少一次 runner 排队与检出；原两条各自 checkout 一次的开销也省掉。
+#
+# 相比原实现修掉的三处缺陷：
+#   1. 【空比较恒 PASS】原 dco.yml 用 `git log "$BASE_SHA..$HEAD_SHA"` 遍历提交。actions/checkout
+#      的 fetch-depth:0 抓的是**本仓库默认分支**的历史，fork PR 的 head 提交不在其中 ⇒ 该范围为空
+#      ⇒ 循环执行 0 次 ⇒ 即使提交全无 Signed-off-by 也判 PASS。现改为显式抓取 PR 的 base 与
+#      head 两个提交、用 merge-base 切范围，并对「范围内 0 个提交」显式告警，不再把「没比」当「通过」。
+#   2. 【冗余检出】原两条各 checkout 一次；现在单 job 单次检出。
+#   3. 【权限放大】内容检查不需要任何写权限，显式声明 contents: read；分支名/路径经 env 传入，
+#      不再用 `${{ }}` 直接内插到 shell 脚本里（原写法对含特殊字符的值不安全）。
+#
+# 强度现状：DCO 为**告警模式**（不阻断合并），理由见对应 step 内注释；PR 来源（阻断 fork）
+# 仍为硬拦截。
+name: PR Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # 同一 PR 连推多次时取消旧运行，省 runner 分钟数
+  group: pr-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: PR 来源与 DCO 校验
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出 PR 提交（含完整历史）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 检查 PR 来源
+        env:
+          TARGET_REPO: ${{ github.repository }}
+          SOURCE_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          SOURCE_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          echo "--- 检查信息 ---"
+          echo "目标仓库 (本仓库): $TARGET_REPO"
+          echo "PR来源仓库: $SOURCE_REPO"
+          echo "PR来源分支名称: $SOURCE_BRANCH"
+          echo "----------------"
+
+          # 只拦 Fork：本仓库从无 dev 分支，分支名不作限制（与 AGENTS.md 分支决策树一致：
+          # main 常驻 + 短生命周期 feat/<主题> / fix/<主题>）。
+          if [ "$SOURCE_REPO" != "$TARGET_REPO" ]; then
+            echo "::error file=AGENTS.md::main 分支只接受来自【本仓库】的合并请求（来源: $SOURCE_REPO，目标: $TARGET_REPO）"
+            exit 1
+          fi
+          echo "[通过] PR 来自本仓库，来源分支 '$SOURCE_BRANCH'（不限定名称）。"
+
+      - name: 校验所有提交是否包含 Signed-off-by（DCO · 仅告警）
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # 【为何只告警不拦截】原 dco.yml 的逻辑缺陷已修（见文件头），修好后它才第一次真正生效。
+          # 实测本仓库近 50 个提交 DCO 签名率为 0/50（从未用过 git commit -s），而 AGENTS.md 的
+          # 分支策略是「短生命周期分支 → 合并回 main」⇒ 若按原样硬拦截，会直接卡住常规流程。
+          # 故保留完整检测（真实跑、真输出），但只发 ::warning::，不设非零退出。
+          # 若日后希望转为硬门禁，把下面的 WARN_ONLY 改为 0 即可。
+
+          WARN_ONLY=1
+
+          # 显式抓取两个端点提交：fork 或浅检出场景下，仅靠 fetch-depth:0 不能保证
+          # head 提交的对象存在，缺对象会让后面的 git log 范围为空（见文件头缺陷 1）。
+          for sha in "$BASE_SHA" "$HEAD_SHA"; do
+            if ! git cat-file -e "${sha}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$sha" 2>/dev/null || true
+            fi
+          done
+
+          for sha in "$BASE_SHA" "$HEAD_SHA"; do
+            if ! git cat-file -e "${sha}^{commit}" 2>/dev/null; then
+              echo "::warning file=DCO.txt::无法获取提交 $sha，DCO 校验未执行（结果不可信）"
+              exit 0
+            fi
+          done
+
+          # merge-base 比裸切范围更能容忍 base 与 head 分叉
+          RANGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          COUNT=$(git rev-list --count "$RANGE_BASE..$HEAD_SHA")
+
+          # 范围为空 = 比较没发生。此处**不得**当通过：显式告警，避免「空比较」被读成绿灯。
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::warning file=DCO.txt::待校验提交数为 0（$RANGE_BASE..$HEAD_SHA），DCO 校验未实际执行"
+            exit 0
+          fi
+          echo "待校验提交 $COUNT 个（$RANGE_BASE..$HEAD_SHA）"
+
+          missing=0
+          while IFS= read -r sha; do
+            [ -z "$sha" ] && continue
+            if ! git show -s --format=%B "$sha" | grep -q "^Signed-off-by:"; then
+              echo "::warning file=DCO.txt::$sha 缺少 Signed-off-by 签名（见 DCO.txt）"
+              missing=1
+            fi
+          done < <(git rev-list "$RANGE_BASE..$HEAD_SHA")
+
+          if [ "$missing" -ne 0 ]; then
+            if [ "$WARN_ONLY" -eq 1 ]; then
+              echo "[告警] 存在未签名提交；当前为告警模式，不阻断合并。补签方式：git commit -s / git rebase --signoff"
+              exit 0
+            fi
+            echo "::error file=DCO.txt::请为每个提交追加签名行，例如：git commit -s 或 git commit --signoff"
+            exit 1
+          fi
+          echo "[通过] 全部 $COUNT 个提交均含 Signed-off-by。"

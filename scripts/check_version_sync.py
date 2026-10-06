@@ -13,7 +13,7 @@
   4. `README.md` 顶部版本徽章 → **无任何脚本同步**，只能人工改
 
 历史状态：`.githooks/` 曾长期没有任何版本检查，`dco.yml` / `check-pr-source.yml`
-都不看版本号，`tools/` 整目录被 gitignore（AGENTS.md 明文红线：新 worktree 里根本
+都不看版本号（这两个文件已于 2026-10-06 合并进 `pr-guard.yml`），`tools/` 整目录被 gitignore（AGENTS.md 明文红线：新 worktree 里根本
 没有 `update_website.py`）。结果就是「App 已 bump、官网仍显示旧版」可以静默发生 ——
 用户从官网点下载，拿到的却是上一版。实测 README 徽章曾停在 3.56.6 而 App 已 4.64.24。
 

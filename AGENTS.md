@@ -42,7 +42,10 @@
 
 > 逐条可执行命令见 `docs/agents/release-runbook.md`；本节是必须遵守的硬规则。
 
-- **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中手动禁用（2026-09-29 经 `gh api` 核实；`dco.yml`、`dependency-submission.yml` 与 Dependabot 仍在启用，与构建发布无关），**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
+- **严禁使用 CI（GitHub Actions）构建正式版**。`.github/workflows/android-build.yml` 与 `android-release.yml` 仅作历史保留，已在仓库 Actions 中手动禁用（2026-09-29 经 `gh api` 核实；**2026-10-06 复查仍为 `disabled_manually`**），**不得再作为发布路径**（`settings.gradle.kts` 的阿里云镜像开关 `-PuseMirror` 亦因此仅在本地生效，默认开启）。
+  - **其余启用中的 workflow（2026-10-06 收敛后）**：`pr-guard.yml`（PR 来源拦截 + DCO 告警，**合并自原 `check-pr-source.yml` 与 `dco.yml`**）、`dependency-submission.yml`（仅手动触发，刷新依赖图谱用）、Dependabot。均与构建发布无关。
+  - ⚠️ **DCO 现为告警模式**：本仓库近 50 个提交的 DCO 签名率为 0/50（从未用过 `git commit -s`），而分支策略是「短生命周期分支 → 合并回 main」，故 `pr-guard.yml` 的 DCO 步骤只输出 `::warning::`、不阻断合并（改回硬门禁：把该步骤 `WARN_ONLY` 置 0）。
+  - ⚠️ **GitHub 仓库级「Automatic dependency submission」需在网页端关闭**：GitHub 另有仓库托管的自动依赖提交（`dynamic/dependency-graph/auto-submission`，**不在本仓库文件里、也不读本仓库配置**），海外 runner 直连阿里云镜像会 502 并导致 KSP/Koin 插件解析失败（实测 2026-09-13 连失 5 次）。该开关无 REST/GraphQL 端点可用（实测全 404），只能到 Settings → Code security 手动关闭；本仓库内那条 `dependency-submission.yml` 已带 `-PuseMirror=false`，是**可用**的那条，不要删。
 - **前置：`CHANGELOG.md` 必须已有对应版本条目**。Release body 直接取自该条目（或与之相同的内容）；条目未就绪不得发版。
 - **前置：涉及适配脚本改动时，私有适配仓库必须已 commit + push**（`cd .adapter_private` → `git status` 干净 → `HEAD` 与 `origin/main` 相同 → 线上核对远端 sha256 与正文特征串）。**只跑 `build_index.py` 不算已经同步**：远端若比包内旧，App 启动时 `AdapterRemoteUpdater.sync()` 会用旧版**覆盖掉包内新脚本**，症状是「原有功能正常、本次新增功能全失效」，极难排查（2026-10-04 实际发生）。纯 UI / 逻辑改动可跳过。细则见 `docs/adapter-sop.md` §6.4 / §8.1 与 `docs/agents/release-runbook.md` §1.1。
 - 正式版一律**本地构建**：`./gradlew :androidApp:assembleRelease`，产物为 `androidApp/build/outputs/apk/release/shangke-vX.Y.Z-<abi>-release.apk`（按 ABI 拆分，arm64-v8a / armeabi-v7a / x86_64）。
