@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-4.74.21-blueviolet)
+![Version](https://img.shields.io/badge/version-4.74.22-blueviolet)
 ![Release](https://img.shields.io/github/v/release/qiqqqqq517/shangkeschedule)
 ![Website](https://img.shields.io/badge/website-shangke.asia-c96442)
 
@@ -67,6 +67,9 @@
 
 | 版本 | 优化内容 |
 | --- | --- |
+| v4.74.21 | **提醒不再丢、通知不再赖着不走**：课程提醒逐条隔离异常（此前一条失败会让当天其余课程全无提醒）；过渡期上课提醒补自动失效时间（此前不可划掉且永不消失）；缺省周次由写死的 16 周改为与学期设置一致的 20 周（此前第 17~20 周凭空少课）；删课表「检查 + 删除」收进同一事务（此前并发删除可能把课表删空）；四个本地设置存储补损坏兜底（此前文件损坏会导致设置页崩溃）；新建 / 重命名课表改为按真实结果提示（此前失败也报成功）；`window.open` 代理窗口补齐安全设置且用完即销毁；桌面端「跟随系统」语言设置不再失效 |
+| v4.74.20 | 恢复设置不再「一半新一半旧」（补写的设置项合并为一次保存）；备份恢复顺序不再由备份文件决定，改为代码固定顺序，杜绝乱序静默丢光课堂笔记 |
+| v4.74.19 | 云端备份改两阶段提交（`meta.json` 最后上传作提交标记，恢复端不再见到半截备份）；恢复与自动同步互斥；样式版本闸门 fail-closed |
 | v4.66.0 | **课表之外**：成绩与绩点（4.0 / 5.0 制可切换）、学业情况、考证查分（含专升本 31 省分流）、空教室查询、课堂笔记；小组件扩到 8 类；找共同空闲、主题分享串、选中文本导入与 AI 识别导入（默认关闭 + 首次开启前明示数据外发） |
 | v4.64.23 | 通知与导入链修复：单双周 `1-16(单)` 四条导入路径统一、跨表导入 ID 冲突自动换新、空时间段拒绝导入避免清空作息、小组件快照版本戳自愈；小组件长列表裁切与规格显示一致性修复；通知不再记录教务页面原文 |
 | v3.53.5 | 修复教务导入「学校列表」页分段控件被撑满整屏、学校列表被挤出屏幕的显示异常 |

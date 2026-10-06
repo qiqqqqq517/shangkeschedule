@@ -101,10 +101,13 @@ function getTokenDiagnostic() {
     if (!token && window.token) { token = window.token; source = 'window.token'; }
     if (!token && window.userToken) { token = window.userToken; source = 'window.userToken'; }
 
-    const preview = token
-        ? (token.length > 24 ? token.slice(0, 12) + '...' + token.slice(-8) : token)
-        : 'null';
-    return 'token=' + preview + ' (长度=' + (token ? token.length : 0) + ', source=' + source + ')\nURL=' + window.location.href;
+    // P3-28（2026-10-07）：诊断串此前回显 token 的前 12 位与后 8 位**明文片段**，
+    // 并附带完整 window.location.href（可能含查询串里的凭据）。该串会进入错误文案、
+    // 进而被原生层记录/回传，等于把用户教务会话凭据写进日志。
+    // 现改为只报「是否存在、长度、来源」，不回显任何 token 内容与完整 URL。
+    const preview = token ? '<已获取:' + token.length + '字符>' : 'null';
+    const safePath = (window.location.pathname || '').split('?')[0];
+    return 'token=' + preview + ' (source=' + source + ')\nURL路径=' + safePath;
 }
 
 async function fetchSemesterList() {

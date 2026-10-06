@@ -29,17 +29,25 @@
 
 如果学校使用的是已支持的教务系统类型：
 
-1. 在 `schools.json` 中添加学校条目：
+1. 在 `timetable_schools.json` 中添加学校条目：
+
+   > P2-40（2026-10-07）更正：此处原写 `schools.json` 并给出 `shortName`/`adapterType`/`loginUrl`/`category`
+   > 四个字段 —— 该文件名**从未存在**，字段名也与实际不符。照原文操作必然失败。
+   > 实际数据文件为 `shared/assets/offline_repo/schools/timetable_schools.json`，字段如下：
+
 ```json
 {
-  "name": "学校全称",
-  "shortName": "简称",
-  "code": "SCHOOL_CODE",
-  "adapterType": "chaoxing",
-  "loginUrl": "https://jwxt.example.edu.cn/login",
-  "category": "BACHELOR_AND_ASSOCIATE"
+  "id": "pku",
+  "name": "北京大学",
+  "type": "urp",
+  "url": "https://elective.pku.edu.cn/"
 }
 ```
+
+   - `id`：学校唯一标识（小写、作目录名与索引键）
+   - `name`：学校全称
+   - `type`：教务系统类型（对应 `resources/<类型>/` 下的适配脚本，如 `urp`、`zhengfang_new`、`chaoxing`）
+   - `url`：教务系统入口地址
 
 2. 在 `school_index.pb` 中注册该学校（需更新 Protobuf 索引）
 

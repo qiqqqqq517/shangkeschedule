@@ -2,6 +2,7 @@ package com.shangkeschedule.data.repository
 
 import com.shangkeschedule.data.db.main.CourseNote
 import com.shangkeschedule.data.db.main.CourseNoteDao
+import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -63,7 +64,13 @@ class CourseNoteRepository(
             val target = notesDir / "${noteId}_${Clock.System.now().toEpochMilliseconds()}.jpg"
             fileSystem.write(target) { write(bytes) }
             target.toString()
-        }.getOrNull()
+        }.getOrElse { e ->
+            // N15（2026-10-07）：原实现是 `getOrNull()`，**静默吞掉**写盘失败（含磁盘满、目录不可写），
+            // 而调用方仍提示「已保存」⇒ 用户以为图片已存下，实际丢失且无从察觉。
+            // 返回语义保持 null 不变（调用方据此决定 UI 提示），但至少把真因写进日志。
+            AppLog.w(TAG, "笔记图片写盘失败（noteId=$noteId, ${bytes.size} B）", e)
+            null
+        }
     }
 
     /** 删除一条笔记，并回收它的图片文件。 */
@@ -123,6 +130,9 @@ class CourseNoteRepository(
     fun newNoteId(): String = Uuid.random().toString()
 
     private companion object {
+        /** N15：日志 TAG。 */
+        const val TAG = "CourseNoteRepository"
+
         /**
          * 孤儿图片判定静置期（10 分钟）。
          *

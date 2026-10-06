@@ -171,6 +171,12 @@ class GradeRepository(
                             scoreValue = incoming.scoreValue ?: scoreValueOf(incoming.scoreText)
                                 ?: existing.scoreValue,
                             category = incoming.category ?: existing.category,
+                            // N11（2026-10-07）：原实现**漏写 isRetake**，导致重修标记永远落不到已存在的那行上。
+                            // 而 GPA / 平均分统计按 `!it.isRetake` 过滤（见本文件 GPA 与平均分计算），
+                            // 于是「同名同学期的重修课」会被**永久排除在 GPA 之外**且毫无提示 —— 用户看到的是
+                            // 「这门课明明有成绩，却没算进绩点」。
+                            // 语义：任一来源标记为重修即视为重修（true 可覆盖 false，不可反向清除）。
+                            isRetake = incoming.isRetake || existing.isRetake,
                             updatedAt = now
                         )
                     )

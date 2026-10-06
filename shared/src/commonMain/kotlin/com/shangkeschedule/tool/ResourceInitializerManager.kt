@@ -94,14 +94,31 @@ class ResourceInitializerManager(
             try {
                 //FIX:openZip 返回的文件系统持有压缩包句柄，原实现从不关闭会导致句柄泄漏并可能阻塞 tempZipFile 删除
                 fileSystem.openZip(tempZipFile).use { zipFileSystem ->
-                    if (fileSystem.exists(targetRepoDir)) {
-                        fileSystem.deleteRecursively(targetRepoDir)
+                    // P2-8（2026-10-07）：原实现是「先 deleteRecursively 旧库 → 再原地解压」，
+                    // 两步之间进程被杀/断电会留下**残缺的离线库** ⇒ 全部适配脚本失效、App 实质不可用，
+                    // 且下次启动因版本标记未写而重试前，用户已经打不开任何学校。
+                    // 现改为「解压到临时目录 → 原子换名」：任一步失败都保留**完整可用的旧库**。
+                    val stagingDir = filesDir / STAGING_REPO_DIR_NAME
+                    if (fileSystem.exists(stagingDir)) {
+                        fileSystem.deleteRecursively(stagingDir)
                     }
-                    fileSystem.createDirectories(targetRepoDir)
+                    fileSystem.createDirectories(stagingDir)
+                    OfflineRepoArchive.extract(fileSystem, zipFileSystem, stagingDir)
 
-                    // v3.72.0：内置包改为「单入口 zip + 顺序流」容器（见 OfflineRepoArchive），
-                    // 压缩率提升约 22%，解包结果与旧逐文件 zip 完全一致。
-                    OfflineRepoArchive.extract(fileSystem, zipFileSystem, targetRepoDir)
+                    // 换名提交：先把旧库挪到 backup（不删），再把完整的新库换入，最后才删 backup。
+                    // 任一步中断，target 要么是「完整旧库」（换入前）要么是「完整新库」（换入后），
+                    // **绝不会是残缺态** —— 这正是本修复的目的。
+                    val backupDir = filesDir / BACKUP_REPO_DIR_NAME
+                    if (fileSystem.exists(backupDir)) {
+                        fileSystem.deleteRecursively(backupDir)
+                    }
+                    if (fileSystem.exists(targetRepoDir)) {
+                        fileSystem.atomicMove(targetRepoDir, backupDir)
+                    }
+                    fileSystem.atomicMove(stagingDir, targetRepoDir)
+                    if (fileSystem.exists(backupDir)) {
+                        fileSystem.deleteRecursively(backupDir)
+                    }
 
                     // 记录本次解压对应的版本，供下次启动对比
                     fileSystem.write(versionMarker) {
@@ -139,5 +156,11 @@ class ResourceInitializerManager(
     private companion object {
         /** 离线仓库解压用的临时 zip 名：写入点与清理点共用，避免两处字符串漂移。 */
         const val TEMP_OFFLINE_ZIP_NAME = "temp_offline_schools.zip"
+
+        /** P2-8：解压暂存目录 —— 解包全部成功后才原子换入正式目录，避免留下残缺库。 */
+        const val STAGING_REPO_DIR_NAME = "schools__staging"
+
+        /** P2-8：换入前的旧库备份目录 —— 换入成功即删除，失败时用于保留可用旧库。 */
+        const val BACKUP_REPO_DIR_NAME = "schools__backup"
     }
 }
