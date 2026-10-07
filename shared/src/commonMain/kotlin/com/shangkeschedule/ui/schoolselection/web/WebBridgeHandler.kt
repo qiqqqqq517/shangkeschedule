@@ -53,7 +53,12 @@ class WebBridgeHandler(
     private val evaluateJs: (script: String, callback: ((String?) -> Unit)?) -> Unit,
     private val onImportStateChanged: (ImportRunState) -> Unit = {},
     private val onAdapterScanDelivered: (action: String, base64Json: String) -> Unit = { _, _ -> },
-    private val onAdapterScanFailed: (action: String) -> Unit = {}
+    private val onAdapterScanFailed: (action: String) -> Unit = {},
+    /**
+     * 扫描**超时**（区别于「钩子抛错」）。超时意味着「不知道结果」，
+     * 与「读了但为空」是不同的用户动作，界面据此给不同提示。
+     */
+    private val onAdapterScanTimeout: (action: String) -> Unit = {}
 ) {
     private val json = CourseImportExport.json
     private var importTableId: String? = null
@@ -73,9 +78,37 @@ class WebBridgeHandler(
      */
     private val pendingScanActions = mutableSetOf<String>()
 
+    /**
+     * 适配扫描看门狗（成绩 / 空教室 / 学业）。与课表导入的 [importWatchdogJob] 是两套：
+     * 那个只在 [setImportTableId] 启动，覆盖不到扫描路径（见 [ADAPTER_SCAN_TIMEOUT_MS] 注释）。
+     */
+    private var adapterScanWatchdogJob: Job? = null
+
     /** 标记开始等待某个钩子的结果；投递成功或失败后自动清除。 */
     fun beginAdapterScan(action: String) {
         pendingScanActions.add(action)
+        armAdapterScanWatchdog()
+    }
+
+    /**
+     * 给适配扫描兜底一个超时。
+     *
+     * 超时按「结果未知」处理：调用 [onAdapterScanFailed] 让界面退出运行态并弹出可读的
+     * 提示，而不是让用户对着一圈永远转不出来的进度条。
+     */
+    private fun armAdapterScanWatchdog() {
+        cancelAdapterScanWatchdog()
+        adapterScanWatchdogJob = coroutineScope.launch {
+            delay(ADAPTER_SCAN_TIMEOUT_MS)
+            val pending = pendingScanActions.toList()
+            pendingScanActions.clear()
+            pending.forEach { onAdapterScanTimeout(it) }
+        }
+    }
+
+    private fun cancelAdapterScanWatchdog() {
+        adapterScanWatchdogJob?.cancel()
+        adapterScanWatchdogJob = null
     }
 
     /**
@@ -121,6 +154,21 @@ class WebBridgeHandler(
          * 逐批提示只会互相覆盖、还只显示最后一批的数字，这里等总门数收敛。
          */
         const val IMPORT_SUCCESS_DEBOUNCE_MS = 1_000L
+
+        /**
+         * 适配扫描（成绩 / 空教室 / 学业）无响应超时（v4.75.2）。
+         *
+         * 此前这三个钩子**没有任何超时兜底**：看门狗只在 `setImportTableId`（课表导入）
+         * 里启动，而扫描走的是 `beginAdapterScan`，两者互不相干。于是只要钩子抛错、
+         * 页面结构变了导致回传为空、或 WebView 根本没跑起来，界面就永久停在
+         * 「正在读取…���，按钮一直禁用，用户既等不到结果也等不到报错
+         * （实测反馈：导入学业情况长时间不成功）。
+         *
+         * 15 秒不是拍脑袋：钩子只读 DOM，同步返回（见 `NTU/ntu.js` 的
+         * `shangkeScanStudy`），正常在百毫秒级；15 秒足够覆盖教务页卡顿与
+         * 首次注入适配脚本的耗时，又不至于让用户干等。
+         */
+        const val ADAPTER_SCAN_TIMEOUT_MS = 15_000L
     }
 
     /**
@@ -256,6 +304,7 @@ class WebBridgeHandler(
                 AdapterScanActions.EMPTY_CLASSROOMS,
                 AdapterScanActions.STUDY -> parsePayload<AdapterScanPayload>(message.payload)?.let {
                     pendingScanActions.remove(message.action)
+                    if (pendingScanActions.isEmpty()) cancelAdapterScanWatchdog()
                     onAdapterScanDelivered(message.action, it.dataJsonString)
                 }
 
@@ -558,6 +607,7 @@ class WebBridgeHandler(
             if (handledByScan) {
                 val action = pendingScanActions.first()
                 pendingScanActions.clear()
+                cancelAdapterScanWatchdog()
                 onAdapterScanFailed(action)
             }
 

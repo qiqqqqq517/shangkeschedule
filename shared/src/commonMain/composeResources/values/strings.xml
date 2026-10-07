@@ -1388,6 +1388,10 @@
     <string name="study_import_success_with_courses">已导入 %1$d 个类别要求与 %2$d 门培养方案课程</string>
     <string name="study_import_no_adapter">本校暂未适配培养方案读取，可在学业情况页手动填写各类别学分要求</string>
     <string name="study_import_no_result">未读取到培养方案学分要求，请确认当前页面是本校培养方案 / 学分统计页</string>
+    <!-- v4.75.2：此前三个适配扫描钩子（成绩 / 空教室 / 学业）都没有超时兜底，
+         钩子不回��时界面会永久停在「正在读取…」。超时与「读到但为空」是两回事，
+         分开提示才能让用户知道该等页面加载还是该换页面。 -->
+    <string name="study_scan_timeout">读取超时：请确认已登录教务，且当前页面已加载出培养方案 / 学分统计内容后再试。</string>
     <!-- v4.75.0：培养方案课程清单（应修 / 已修 / 未修） -->
     <string name="study_curriculum_section">培养方案课程</string>
     <string name="study_curriculum_summary">共 %1$d 门 · 已修 %2$d 门 · 未修 %3$d 门</string>

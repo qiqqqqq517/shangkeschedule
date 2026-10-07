@@ -1387,6 +1387,8 @@
     <string name="study_import_success_with_courses">Imported %1$d category requirements and %2$d curriculum courses</string>
     <string name="study_import_no_adapter">Your school is not adapted for curriculum import yet. You can enter credit requirements manually on the Study progress page.</string>
     <string name="study_import_no_result">No curriculum credit requirements found. Make sure the current page is your school's curriculum or credit summary page.</string>
+    <!-- v4.75.2: separate the timeout hint from "read but empty" -->
+    <string name="study_scan_timeout">Read timed out. Make sure you are signed in and the page has finished loading its curriculum / credit summary content.</string>
     <!-- v4.75.0: curriculum course list (required / done / remaining) -->
     <string name="study_curriculum_section">Curriculum courses</string>
     <string name="study_curriculum_summary">%1$d planned · %2$d done · %3$d left</string>

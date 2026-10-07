@@ -129,6 +129,7 @@ import shangkeschedule.shared.generated.resources.study_import_reading
 import shangkeschedule.shared.generated.resources.study_import_recognize
 import shangkeschedule.shared.generated.resources.study_import_success
 import shangkeschedule.shared.generated.resources.study_import_success_with_courses
+import shangkeschedule.shared.generated.resources.study_scan_timeout
 import shangkeschedule.shared.generated.resources.grade_import_no_result
 import shangkeschedule.shared.generated.resources.grade_import_recognize
 import shangkeschedule.shared.generated.resources.grade_import_success
@@ -223,6 +224,7 @@ fun WebViewScreen(
     val statusReadingEmpty = stringResource(Res.string.empty_classroom_scanning)
     val toastStudyNoAdapter = stringResource(Res.string.study_import_no_adapter)
     val toastStudyNoResult = stringResource(Res.string.study_import_no_result)
+    val toastStudyTimeout = stringResource(Res.string.study_scan_timeout)
     val statusReadingStudy = stringResource(Res.string.study_import_reading)
 
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
@@ -417,6 +419,22 @@ fun WebViewScreen(
         }
     )
 
+    /**
+     * 扫描超时（v4.75.2）：与「读了但为空」分开提示。
+     *
+     * 超时几乎总是「教务页还没加载出内容 / 没登录 / 适配脚本没注入成功」，
+     * 提示用户去确认这些，而不是让人以为是「这页没有培养方案信息」。
+     */
+    val onAdapterScanTimeoutState by rememberUpdatedState(
+        newValue = { action: String ->
+            studyScanRunning = false
+            when (action) {
+                AdapterScanActions.STUDY -> ToastManager.show(toastStudyTimeout)
+                else -> Unit
+            }
+        }
+    )
+
     val bridgeHandler = remember(coroutineScope, courseConversionRepository, webViewController) {
         WebBridgeHandler(
             coroutineScope = coroutineScope,
@@ -459,7 +477,8 @@ fun WebViewScreen(
             onAdapterScanDelivered = { action, base64Json ->
                 onAdapterScanDeliveredState(action, base64Json)
             },
-            onAdapterScanFailed = { action -> onAdapterScanFailedState(action) }
+            onAdapterScanFailed = { action -> onAdapterScanFailedState(action) },
+            onAdapterScanTimeout = { action -> onAdapterScanTimeoutState(action) }
         )
     }
 
