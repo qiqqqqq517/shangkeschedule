@@ -513,6 +513,48 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+/**
+ * 数据库版本 15 迁移到 版本 16 的迁移代码（v4.75.0 成绩与学业）。
+ *
+ * 两处改动：
+ * 1. `grades` 表新增 `gradePoint` 列（本校绩点）。**此前该列不存在**，
+ *    教务系统按本校规则算出的绩点在抓取时被整列丢弃，App 只能用内置换算表重算 ——
+ *    这正是「算出来的绩点与学校对不上」的首要成因。列可空，老数据为 NULL，
+ *    读取时回落到按当前绩点制换算，行为与升级前一致。
+ * 2. 新增 `curriculum_courses` 培养方案课程表，让「还没修 / 还没出成绩的课程」有地方存，
+ *    学业情况页才能算出「应修 / 已修 / 未修」。
+ *
+ * 与 [MIGRATION_13_14] / [MIGRATION_14_15] 同样的硬要求：语句必须与实体逐列对齐
+ * （列名、可空性、`@ColumnInfo(defaultValue = …)` 对应的 DEFAULT、索引名都要一致），
+ * 否则 Room 迁移后的 TableInfo 校验会判定 schema 不一致，启动即闪退。
+ */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `grades` ADD COLUMN `gradePoint` REAL")
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `curriculum_courses` (
+                `id` TEXT NOT NULL,
+                `courseName` TEXT NOT NULL,
+                `category` TEXT,
+                `credit` REAL,
+                `suggestedTerm` TEXT,
+                `source` TEXT NOT NULL DEFAULT 'MANUAL',
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_curriculum_courses_category` ON `curriculum_courses` (`category`)"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_curriculum_courses_courseName` ON `curriculum_courses` (`courseName`)"
+        )
+    }
+}
+
 // 【集中管理所有迁移对象】
 //
 // 迁移链完整性（2026-10-03 巡检第 8 轮取证，勿删）：
@@ -542,4 +584,5 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_12_13,
     MIGRATION_13_14,
     MIGRATION_14_15,
+    MIGRATION_15_16,
 )

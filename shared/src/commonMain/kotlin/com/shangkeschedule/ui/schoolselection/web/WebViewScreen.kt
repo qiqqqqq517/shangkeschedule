@@ -56,11 +56,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.Destination
 import com.shangkeschedule.WebPagePurpose
+import com.shangkeschedule.data.db.main.CurriculumCourse
 import com.shangkeschedule.data.db.main.Grade
 import com.shangkeschedule.data.parser.EmptyClassroomRoom
 import com.shangkeschedule.data.parser.formatEmptyClassroomLine
 import com.shangkeschedule.data.parser.formatEmptyClassroomText
 import com.shangkeschedule.data.repository.CourseConversionRepository
+import com.shangkeschedule.data.repository.CurriculumRepository
 import com.shangkeschedule.data.repository.GradeRepository
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.model.CreditRequirement
@@ -126,6 +128,7 @@ import shangkeschedule.shared.generated.resources.study_import_no_result
 import shangkeschedule.shared.generated.resources.study_import_reading
 import shangkeschedule.shared.generated.resources.study_import_recognize
 import shangkeschedule.shared.generated.resources.study_import_success
+import shangkeschedule.shared.generated.resources.study_import_success_with_courses
 import shangkeschedule.shared.generated.resources.grade_import_no_result
 import shangkeschedule.shared.generated.resources.grade_import_recognize
 import shangkeschedule.shared.generated.resources.grade_import_success
@@ -274,6 +277,8 @@ fun WebViewScreen(
     val coroutineScope = rememberCoroutineScope()
     val courseConversionRepository: CourseConversionRepository = koinInject()
     val gradeRepository: GradeRepository = koinInject()
+    // 学业钩子还可能带回培养方案**课程清单**（v4.75.0）
+    val curriculumRepository: CurriculumRepository = koinInject()
     // 学业情况钩子回传的培养方案学分要求要写进应用设置（与学业情况页同源）
     val appSettingsRepository: AppSettingsRepository = koinInject()
     val uiEventChannel = remember { Channel<WebUiEvent>(Channel.UNLIMITED) }
@@ -293,6 +298,8 @@ fun WebViewScreen(
                     credit = item.credit,
                     scoreText = item.scoreText,
                     source = Grade.SOURCE_IMPORT,
+                    // 本校绩点：有就带上，汇总页优先用它，不再拿内置换算表硬算
+                    gradePoint = item.gradePoint,
                     category = item.category
                 )
             }
@@ -337,26 +344,56 @@ fun WebViewScreen(
                     coroutineScope.launch {
                         studyScanRunning = false
                         val payload = decodeScannedStudy(base64Json)
-                        if (payload == null || payload.requirements.isEmpty()) {
+                        // v4.75.0：学业钩子现在还可能带回**培养方案课程清单**，
+                        // 因此「拿到课程但没拿到学分要求」也该算成功，不能只判 requirements。
+                        if (payload == null ||
+                            (payload.requirements.isEmpty() && payload.courses.isEmpty())
+                        ) {
                             ToastManager.show(toastStudyNoResult)
                         } else {
                             appSettingsRepository.mutateCreditRequirements { current ->
                                 // 合并而不是覆盖：用户可能已经手工填过某些类别的要求，
                                 // 学校培养方案里同类别以学校为准，其余保留用户的设置。
                                 val incoming = payload.requirements
-                                    .filter { it.category.isNotBlank() && it.requiredCredits > 0.0 }
+                                    .filter { it.category.isNotBlank() }
                                 val incomingKeys = incoming.map { it.category.trim() }.toSet()
                                 val kept = current.filter { it.category.trim() !in incomingKeys }
                                 kept + incoming.map {
                                     CreditRequirement(
                                         category = it.category.trim(),
                                         requiredCredits = it.requiredCredits
-                                            .coerceIn(0.0, CreditRequirement.MAX_REQUIRED_CREDITS)
+                                            .coerceIn(0.0, CreditRequirement.MAX_REQUIRED_CREDITS),
+                                        requiredCourses = it.requiredCourses
+                                            ?.takeIf { count -> count > 0 }
+                                            ?.coerceAtMost(CreditRequirement.MAX_REQUIRED_COURSES)
                                     )
                                 }
                             }
+                            // 课程清单是可选能力：抓到了就导入（按课程名去重），没抓到不影响学分要求落库
+                            val courses = payload.courses.filter { it.courseName.isNotBlank() }
+                            if (courses.isNotEmpty()) {
+                                curriculumRepository.importCourses(
+                                    courses.map {
+                                        curriculumRepository.buildCourse(
+                                            courseName = it.courseName,
+                                            category = it.category,
+                                            credit = it.credit,
+                                            suggestedTerm = it.suggestedTerm,
+                                            source = CurriculumCourse.SOURCE_IMPORT
+                                        )
+                                    }
+                                )
+                            }
                             ToastManager.show(
-                                getString(Res.string.study_import_success, payload.requirements.size)
+                                if (courses.isEmpty()) {
+                                    getString(Res.string.study_import_success, payload.requirements.size)
+                                } else {
+                                    getString(
+                                        Res.string.study_import_success_with_courses,
+                                        payload.requirements.size,
+                                        courses.size
+                                    )
+                                }
                             )
                             onNavigate(Destination.StudyProgress)
                         }
@@ -1091,7 +1128,9 @@ private data class ScannedGrade(
     val credit: Double? = null,
     val scoreText: String = "",
     val semester: String? = null,
-    val category: String? = null
+    val category: String? = null,
+    /** 本校绩点（v4.75.0）：教务给出的既成事实，优先进汇总口径。 */
+    val gradePoint: Double? = null
 )
 
 private val scannedGradeJson = Json { ignoreUnknownKeys = true }

@@ -149,7 +149,8 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
     "credit": 3,
     "scoreText": "90",
     "semester": "2025-2026-2",
-    "category": "必修"
+    "category": "必修",
+    "gradePoint": 4.0
   }
 ]
 ```
@@ -161,6 +162,14 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
 | `scoreText` | string | 必填，空则该项被丢弃。数字成绩优先（便于算平均分 / 绩点），等级制课程填「优秀 / 良好 / 及格」 |
 | `semester` | string \| null | **本校真实学期**（如 `2025-2026-1`）。通用脚本拿不到学期，一律落到「未标注学期」；钩子能给就必须给 |
 | `category` | string \| null | 课程性质（必修 / 选修 / 通识教育选修…），学业情况页按它分类统计学分 |
+| `gradePoint` | number \| null | **本校绩点**（v4.75.0）。见下方硬约束 |
+
+> ⚠️ **`gradePoint` 必须回传，且必须是学校自己算出的那个数**（正方 V9 成绩接口的 `jd`，实测样例
+> `"4.00"`）。各校的绩点档位、是否含重修、等级制折算规则都不同，App 内置的 4.0 / 5.0 换算表
+> 不可能对上；此前不回传该字段，绩点在抓取时被整列丢弃，用户看到的「加权绩点」与学校对不上，
+> 且无从判断差在哪。**取值无法判定时填 `null`（App 会回落到按分数换算），不得填 `0`**
+> —— `0` 会被当作「挂科绩点」参与加权，反而污染汇总。超出 `0–5` 的值同样按 `null` 处理。
+> 回传后页面会标注「绩点口径：教务 N 门 + 本机换算 M 门」，让用户知道哪些数字能拿去对账。
 
 > ⚠️ **学期务必用显示值而非接口的学期编码**。正方教务 V9 的 `xqm` 是内部编码
 > （实测 `xqm=3` = 第 **1** 学期、`xqm=12` = 第 2 学期），直接回传编码会把「第 1 学期」
@@ -190,13 +199,15 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
 
 > 空教室是即时信息，**不落库**：结果只在弹窗里展示、支持一键复制。
 
-### `shangkeScanStudy` → `{ requirements: Requirement[] }`
+### `shangkeScanStudy` → `{ requirements: Requirement[], courses?: CourseItem[] }`
 
 ```json
 {
   "requirements": [
-    { "category": "通识教育课程平台/必修", "requiredCredits": 41 },
-    { "category": "通识教育课程平台/选修", "requiredCredits": 6 }
+    { "category": "通识教育课程平台/必修", "requiredCredits": 41, "requiredCourses": 12 }
+  ],
+  "courses": [
+    { "courseName": "高等数学A", "category": "学科基础课程平台/必修", "credit": 5, "suggestedTerm": "2025-2026-1" }
   ]
 }
 ```
@@ -205,6 +216,17 @@ Bridge.saveImportedCourses(JSON.stringify(parser.buildBridgeCourses(merged)));
 |---|---|---|
 | `category` | string | 类别 key，**必须与本机成绩的 `category` 对得上**，否则学分归不进该类 |
 | `requiredCredits` | number | 培养方案要求的学分，`> 0` 才生效 |
+| `requiredCourses` | number \| null | 该类别**应修门数**（v4.75.0）。正方学业情况页子行末尾的「共（N）门 通过（M）门」取 N；认不出填 `null`。**「通过（M）门」不得回传**——已修门数一律由本机成绩表现算 |
+| `courses` | array \| 可选 | **培养方案课程清单**（v4.75.0，可选）：学校页面能列出培养方案的课时回传，学业情况页据此算出「已修 / 未修」。抓不到就**留空**，页面会引导用户手填或粘贴导入 |
+
+`courses[]` 字段：
+
+| 字段 | 类型 | 约定 |
+|---|---|---|
+| `courseName` | string | 必填，空白项被丢弃 |
+| `category` | string \| null | 课程类别，须与成绩的 `category` 对得上 |
+| `credit` | number \| null | 该课程学分；未知填 `null` |
+| `suggestedTerm` | string \| null | 建议修读学期；未知填 `null` |
 
 四条硬约束：
 

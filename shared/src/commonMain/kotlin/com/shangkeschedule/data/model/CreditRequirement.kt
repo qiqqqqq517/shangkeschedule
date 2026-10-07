@@ -15,12 +15,17 @@ import kotlinx.serialization.json.Json
  *   （如「必修」「专业选修」）；空串代表「未分类」，即成绩里没填课程性质的记录。
  * @param requiredCredits 该类别要求的学分总数；0 表示尚未设置（页面按「未设置」展示，不计入总要求）。
  * @param displayName 用户可改写的显示名；空白 = 直接显示 [category]。
+ * @param requiredCourses 该类别**应修门数**（v4.75.0）；null = 未知 / 未设置。
+ *   来源有两处：用户在学业情况页手填，或适配脚本钩子从教务「学业情况」页读出
+ *   （正方 V9 的类别行末尾带「共（N）门 通过（M）门」，N 即应修门数）。
+ *   与 [requiredCredits] 一样**只描述要求**，已修门数永远由本机成绩表现算。
  */
 @Serializable
 data class CreditRequirement(
     val category: String = UNCATEGORIZED,
     val requiredCredits: Double = 0.0,
-    val displayName: String = ""
+    val displayName: String = "",
+    val requiredCourses: Int? = null
 ) {
     /** 去空白后的显示名；空白时回落到类别键。 */
     val effectiveDisplayName: String
@@ -32,6 +37,9 @@ data class CreditRequirement(
 
         /** 单条要求的学分上限，用于输入校验（部分专业单类要求可达 100+）。 */
         const val MAX_REQUIRED_CREDITS = 300.0
+
+        /** 单条要求的应修门数上限，用于输入校验（培养方案单类最多 200 门量级）。 */
+        const val MAX_REQUIRED_COURSES = 300
 
         private val json = Json {
             ignoreUnknownKeys = true

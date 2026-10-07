@@ -25,9 +25,9 @@ data class GradeGroup(
 /**
  * 成绩 / GPA 页 ViewModel（v4.66.0 新增）。
  *
- * 绩点与汇总一律**实时换算**（仓库层不落库），因此这里把「成绩列表」与
- * 「当前绩点制」两条流合起来算 [summary]，切换 4.0 / 5.0 制时列表本身不变、
- * 只有绩点与汇总跟着变。
+ * 换算绩点**不落库**（随绩点制实时算），本校绩点**落库**（教务给出的既成事实，见
+ * [Grade.gradePoint]），因此这里把「成绩列表」与「当前绩点制」两条流合起来算 [summary]，
+ * 切换 4.0 / 5.0 制时列表本身不变，只有**本校未提供绩点的那部分**换算值跟着变。
  */
 @KoinViewModel
 class GradeViewModel(
@@ -145,7 +145,10 @@ class GradeViewModel(
                 courseName = draft.courseName,
                 credit = draft.credit,
                 scoreText = draft.scoreText,
-                source = Grade.SOURCE_PASTE
+                source = Grade.SOURCE_PASTE,
+                // v4.75.0：粘贴解析出的课程性质一并带上。此前这里不传 category，
+                // 粘贴导入的成绩 100% 落「未分类」，学业情况页就只剩一行「未分类」。
+                category = draft.category
             )
         }
 
@@ -157,6 +160,14 @@ class GradeViewModel(
     /** 单条成绩的绩点（供列表右下角展示；无法换算时为 null）。 */
     fun pointOf(grade: Grade, scale: GpaScale): Double? =
         gradeRepository.pointOf(grade, scale)
+
+    /**
+     * 单条成绩**实际用于展示与汇总**的绩点及其口径（v4.75.0）。
+     *
+     * @return `first` = 绩点（本校优先，其次换算）；`second` = 是否取自本校教务。
+     */
+    fun effectivePointOf(grade: Grade, scale: GpaScale): Pair<Double?, Boolean> =
+        gradeRepository.effectivePointOf(grade, scale)
 
     /**
      * 是否为「挂科」：百分制分数 < 60，或等级词为不及格类（不及格 / 不合格 / 未通过 / 失败 / F）。

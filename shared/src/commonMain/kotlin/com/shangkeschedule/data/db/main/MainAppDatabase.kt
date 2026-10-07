@@ -19,9 +19,10 @@ import com.shangkeschedule.data.di.AppStorage
         TodoItem::class,
         ScheduleEvent::class,
         Grade::class,
+        CurriculumCourse::class,
         CourseNote::class
     ],
-    version = 15,
+    version = 16,
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5, spec = MainAppDatabase.RemoveAppSettingsSpec::class)
@@ -43,6 +44,7 @@ abstract class MainAppDatabase : RoomDatabase() {
     abstract fun todoDao(): TodoDao
     abstract fun scheduleEventDao(): ScheduleEventDao
     abstract fun gradeDao(): GradeDao
+    abstract fun curriculumCourseDao(): CurriculumCourseDao
     abstract fun courseNoteDao(): CourseNoteDao
 
     companion object {
