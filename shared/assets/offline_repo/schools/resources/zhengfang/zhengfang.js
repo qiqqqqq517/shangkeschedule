@@ -658,10 +658,30 @@
     }
 
     /**
+     * 成绩接口的绩点字段 → 数值（v4.75.0）。
+     *
+     * 空串 / `-` / 超出 0–5 的取值一律返回 null（**不猜、不填 0**）：
+     * 0 会被 App 当成「挂科绩点」参与加权，反而污染汇总；null 才会让 App 回落到按分数换算。
+     */
+    function gradePointOf(raw) {
+        var text = String(raw == null ? '' : raw).trim();
+        if (!text) return null;
+        var value = Number(text);
+        return (isFinite(value) && value >= 0 && value <= 5) ? value : null;
+    }
+
+    /**
      * 成绩识别钩子。
      *
      * 接口：POST /jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query
      * xnm/xqm 留空 = 全部学期（成绩页默认只查当前学期，那样会漏掉历史成绩）。
+     *
+     * ⚠️ 未取证声明（2026-10-07）：上面这个成绩接口路径**是按正方 V9 惯例写的，未对任何具体学校实测**。
+     * 反例：南通大学（`tdjw.ntu.edu.cn`，菜单 N305005）的成绩查询实测在
+     * `/jwglxt/cjcx/cjcx_cxDgXscj.html`，本路径在该校返回 404。
+     * 正方各校菜单模块号可能不同 ⇒ 本钩子对部分学校可能取不到数据，属于已知未验证项。
+     * 需要实测某校时，请参照 `build_qa/ntu-portal-probe.md` 的方法：
+     * 登录后从菜单 `onclick="clickMenu(...)"` 读出该校的真实模块号与地址，再按该地址取数。
      */
     window.shangkeScanGrades = function () {
         return zfPost('/jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query',
@@ -689,7 +709,10 @@
                     credit: isFinite(credit) ? credit : null,
                     scoreText: scoreText,
                     semester: (year && term) ? (year + '-' + term) : null,
-                    category: String(item.kcxzmc || item.kclbmc || '').trim() || null
+                    category: String(item.kcxzmc || item.kclbmc || '').trim() || null,
+                    // 本校绩点（v4.75.0）：实测字段 `jd`（"4.00"）。学校按本校规则算出的
+                    // 既成事实，App 的换算表不可能对上，必须整列带回
+                    gradePoint: gradePointOf(item.jd)
                 });
             }
             return grades;
@@ -836,7 +859,16 @@
                     finalLabel = anc[anc.length - 1].replace(/课程$/, '') + '/' + label.replace('课程', '');
                 }
             }
-            requirements.push({ category: finalLabel, requiredCredits: credits });
+            // 应修门数（v4.75.0）：子行末尾常带「共（N）门 通过（M）门」，N 即该类别应修门数。
+            // 认不出就回传 null（页面只显示已出分门数），**不要猜**。
+            // 「通过（M）门」刻意不回传：已修门数一律由本机成绩表现算，混两套口径必然打架。
+            var totalMatch = text.match(/共\s*[（(]?\s*(\d+)\s*[）)]?\s*门/);
+            var requiredCourses = totalMatch ? Number(totalMatch[1]) : NaN;
+            requirements.push({
+                category: finalLabel,
+                requiredCredits: credits,
+                requiredCourses: (isFinite(requiredCourses) && requiredCourses > 0) ? requiredCourses : null
+            });
         }
         return { requirements: requirements };
     };

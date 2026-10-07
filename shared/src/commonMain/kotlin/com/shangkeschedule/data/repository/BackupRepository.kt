@@ -4,6 +4,7 @@ import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.CourseNote
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
+import com.shangkeschedule.data.db.main.CurriculumCourse
 import com.shangkeschedule.data.db.main.Grade
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.ScheduleEvent
@@ -16,6 +17,7 @@ import com.shangkeschedule.data.model.CourseImportExport.AppSettingsBackupEnvelo
 import com.shangkeschedule.data.model.CourseImportExport.CourseNoteBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseConfigJsonModel
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableExportModel
+import com.shangkeschedule.data.model.CourseImportExport.CurriculumCourseBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.GradeBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.ScheduleEventBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.TodoBackupModel
@@ -1001,6 +1003,7 @@ class BackupRepository(
                 GradeBackupModel(
                     id = it.id, semester = it.semester, courseName = it.courseName,
                     credit = it.credit, scoreText = it.scoreText, scoreValue = it.scoreValue,
+                    gradePoint = it.gradePoint,
                     category = it.category, isRetake = it.isRetake, note = it.note,
                     source = it.source, createdAt = it.createdAt, updatedAt = it.updatedAt
                 )
@@ -1012,13 +1015,22 @@ class BackupRepository(
                     createdAt = it.createdAt, updatedAt = it.updatedAt
                 )
             }
+            // v4（2026-10-07）：培养方案课程清单。此前不在备份里，换机后「应修 / 已修 / 未修」全丢
+            val curriculumCourses = database.curriculumCourseDao().getAllOnce().map {
+                CurriculumCourseBackupModel(
+                    id = it.id, courseName = it.courseName, category = it.category,
+                    credit = it.credit, suggestedTerm = it.suggestedTerm, source = it.source,
+                    createdAt = it.createdAt, updatedAt = it.updatedAt
+                )
+            }
             val envelope = UserDataBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
                 appVersionCode = CourseImportExport.USER_DATA_SCHEMA_VERSION,
                 todos = todos,
                 events = events,
                 grades = grades,
-                notes = notes
+                notes = notes,
+                curriculumCourses = curriculumCourses
             )
             CourseImportExport.cbor.encodeToByteArray(UserDataBackupEnvelope.serializer(), envelope)
         } catch (e: Exception) {
@@ -1110,8 +1122,26 @@ class BackupRepository(
                                 Grade(
                                     id = it.id, semester = it.semester, courseName = it.courseName,
                                     credit = it.credit, scoreText = it.scoreText, scoreValue = it.scoreValue,
+                                    gradePoint = it.gradePoint,
                                     category = it.category, isRetake = it.isRetake, note = it.note,
                                     source = it.source, createdAt = it.createdAt, updatedAt = it.updatedAt
+                                )
+                            }
+                        )
+                    }
+                }
+                // 培养方案课程：同样仅在备份带了该字段（v4+）时才替换（老备份为 null ⇒ 保持本机清单不变）
+                val restoredCurriculum = envelope.curriculumCourses
+                if (restoredCurriculum != null) {
+                    database.curriculumCourseDao().deleteAll()
+                    if (restoredCurriculum.isNotEmpty()) {
+                        database.curriculumCourseDao().insertAll(
+                            restoredCurriculum.map {
+                                CurriculumCourse(
+                                    id = it.id, courseName = it.courseName, category = it.category,
+                                    credit = it.credit, suggestedTerm = it.suggestedTerm,
+                                    source = it.source,
+                                    createdAt = it.createdAt, updatedAt = it.updatedAt
                                 )
                             }
                         )

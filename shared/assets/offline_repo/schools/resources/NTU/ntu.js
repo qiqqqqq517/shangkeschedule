@@ -300,19 +300,32 @@ function readSemesterParams() {
 }
 
 /**
+ * 成绩接口的绩点字段 → 数值（v4.75.0）。
+ *
+ * 空串 / `-` / 超出 0–5 的取值一律返回 null（**不猜、不填 0**）：
+ * 0 会被 App 当成「挂科绩点」参与加权，反而污染汇总；null 才会让 App 回落到按分数换算。
+ */
+function gradePointOf(raw) {
+    const text = String(raw ?? "").trim();
+    if (!text) return null;
+    const value = Number(text);
+    return Number.isFinite(value) && value >= 0 && value <= 5 ? value : null;
+}
+
+/**
  * 成绩钩子：调本校成绩查询接口，回传**带真实学期与课程性质**的成绩列表。
  *
- * 关键点：请求参数 xnm/xqm 是内部编码（xqm=3 表示第 1 学期），而返回里的
- * xnmmc/xqmmc 才是显示值。这里一律用 xnmmc + xqmmc 拼学期，避免把「第 1 学期」
- * 写成「第 3 学期」—— 这类错误用户很难发现。
+ * 关键点：
+ * 1. 请求参数 xnm/xqm 是内部编码（xnm=2025、xqm=3 表示 2025-2026 学年第 1 学期），
+ *    而返回里的 xnmmc/xqmmc 才是显示值。这里一律用 xnmmc + xqmmc 拼学期，
+ *    避免把「第 1 学期」写成「第 3 学期」—— 这类错误用户很难发现。
+ * 2. 分页走 `pageNo` / `pageSize`（实测有效），不要用 `queryModel.*`。
  */
 async function shangkeScanGrades() {
     // xnm/xqm 留空 = 全部学期；成绩页默认只查当前学期，那样会漏掉历史成绩
     const data = await postForm(
-        "/jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query",
-        "xnm=&xqm=&sfzgcj=&kcbj=&pkey=&_search=false&nd=" + Date.now() +
-        "&queryModel.showCount=500&queryModel.currentPage=1" +
-        "&queryModel.sortName=&queryModel.sortOrder=asc&time=0"
+        "/jwglxt/cjcx/cjcx_cxDgXscj.html?doType=query&gnmkdm=N305005",
+        "xnm=&xqm=&kcbjdm=&ksxzdm=&zymc=&kcmc=&pageNo=1&pageSize=500&showCount=500"
     );
     const items = Array.isArray(data?.items) ? data.items : [];
     const grades = [];
@@ -332,7 +345,11 @@ async function shangkeScanGrades() {
             credit: Number.isFinite(credit) ? credit : null,
             scoreText,
             semester: semester || null,
-            category: pickText(item.kcxzmc, item.kclbmc) || null
+            category: pickText(item.kcxzmc, item.kclbmc) || null,
+            // 本校绩点（v4.75.0）：实测字段 `jd`，样例 "4.00"（四级制）。
+            // 这是学校按本校规则算出的既成事实，App 的换算表不可能对上，必须整列带回；
+            // 此前不回传，绩点在抓取时被丢弃 —— 「算出来的绩点与学校对不上」由此而来。
+            gradePoint: gradePointOf(item.jd)
         });
     }
     console.log("NTU grade hook:", grades.length, "of", items.length);
@@ -430,9 +447,17 @@ async function shangkeScanStudy() {
         }
         const categoryMatch = text.match(/^(必修课程|选修课程|任选课程|限选课程)要求学分/);
         if (categoryMatch && currentPlatform) {
+            // 应修门数（v4.75.0）：子行末尾常带「共（N）门 通过（M）门」，N 即该类别应修门数。
+            // 认不出就回传 null（页面只显示已出分门数），**不要猜**。
+            // 「通过（M）门」刻意不回传：已修门数一律由本机成绩表现算，混两套口径必然打架。
+            const totalMatch = text.match(/共\s*[（(]?\s*(\d+)\s*[）)]?\s*门/);
+            const requiredCourses = totalMatch ? Number(totalMatch[1]) : null;
             requirements.push({
                 category: currentPlatform + "/" + categoryMatch[1].replace("课程", ""),
-                requiredCredits: credits
+                requiredCredits: credits,
+                requiredCourses: Number.isFinite(requiredCourses) && requiredCourses > 0
+                    ? requiredCourses
+                    : null
             });
         }
     }

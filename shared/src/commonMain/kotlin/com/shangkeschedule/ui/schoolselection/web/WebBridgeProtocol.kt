@@ -92,7 +92,11 @@ data class AdapterScanPayload(
  * - [semester]：本校成绩页的学期（如「2024-2025-1」）。通用脚本一律落到「未标注学期」，
  *   适配脚本能把真实学期带回来，用户不必逐条改；
  * - [category]：课程性质（必修 / 选修 / 通识…），学业情况页按它分类统计学分，
- *   通用脚本只能读表里恰好有的「性质」列。
+ *   通用脚本只能读表里恰好有的「性质」列；
+ * - [gradePoint]（v4.75.0）：**本校绩点**。这是各校按自己规则算出的既成事实
+ *   （正方 V9 成绩接口的 `jd` 字段，如 "4.00"），本机换算表不可能对上；
+ *   此前钩子不回传该字段，学校算出的绩点在抓取时被整列丢弃 —— 这正是
+ *   「App 算出的绩点与学校对不上」的首要成因。
  */
 @Serializable
 data class ScannedGradePayload(
@@ -100,26 +104,53 @@ data class ScannedGradePayload(
     val credit: Double? = null,
     val scoreText: String = "",
     val semester: String? = null,
-    val category: String? = null
+    val category: String? = null,
+    val gradePoint: Double? = null
 )
 
 /**
- * 适配脚本钩子「识别学业情况」回传的培养方案学分要求。
+ * 适配脚本钩子「识别学业情况」回传的培养方案信息（v4.75.0 起含课程清单）。
  *
- * 只有「要求」是学校侧的事实（培养方案规定的各类别应修学分），
- * 「已获学分」永远由本机成绩表现算（见 `GradeRepository.computeStudyProgress`），
- * 因此钩子**不回传已修学分**——两份数据算学分必然打架。
+ * 只有「要求」是学校侧的事实（培养方案规定的各类别应修学分 / 应修门数），
+ * 「已获学分」「已修门数」永远由本机成绩表现算（见 `GradeRepository.computeStudyProgress`），
+ * 因此钩子**不回传已修数据**——两份数据算学分必然打架。
+ *
+ * [courses] 是**可选**扩展：学校能把培养方案的课程清单抓出来时回传，
+ * 于是「还没修 / 还没出成绩的课程」也能进本机统计。抓不到就留空
+ * （页面会引导用户手填或粘贴导入），**不要为了凑数硬编码选择器**。
  */
 @Serializable
 data class ScannedStudyPayload(
-    val requirements: List<ScannedStudyRequirementPayload> = emptyList()
+    val requirements: List<ScannedStudyRequirementPayload> = emptyList(),
+    val courses: List<ScannedCurriculumCoursePayload> = emptyList()
 )
 
-/** 单条培养方案学分要求。 */
+/** 单条培养方案学分 / 门数要求（v4.75.0 起含应修门数）。 */
 @Serializable
 data class ScannedStudyRequirementPayload(
     val category: String = "",
-    val requiredCredits: Double = 0.0
+    val requiredCredits: Double = 0.0,
+    /**
+     * 该类别**应修门数**；null / <= 0 = 本校页面没给。
+     * 正方 V9 学业情况页的类别行末尾带「共（N）门 通过（M）门」，N 即应修门数。
+     */
+    val requiredCourses: Int? = null
+)
+
+/**
+ * 适配脚本钩子回传的一条培养方案课程（v4.75.0）。
+ *
+ * @param courseName 课程名；空白项会被丢弃。
+ * @param category 课程类别，须与本机成绩的 `category` 对得上。
+ * @param credit 该课程学分；null = 未知。
+ * @param suggestedTerm 建议修读学期；null = 未知。
+ */
+@Serializable
+data class ScannedCurriculumCoursePayload(
+    val courseName: String = "",
+    val category: String? = null,
+    val credit: Double? = null,
+    val suggestedTerm: String? = null
 )
 
 /**
@@ -696,8 +727,14 @@ val JS_SCAN_GRADES = """
 
         var NAME_RE = /课程名称|课程名|科目名称|教学班名称|科目|课程/;
         var CREDIT_RE = /学分/;
-        var SCORE_RE = /成绩|分数|总评|绩点|得分/;
-        var CATEGORY_RE = /性质|类别|修读方式|课程类型/;
+        // v4.75.0：SCORE_RE **刻意不含「绩点」**。此前它含「绩点」，而表头识别取的是
+        // 「第一个命中列」，于是正方等把「绩点」列排在「成绩」列之前的成绩表，
+        // 会把 3.7 这样的绩点当成成绩导入（scoreOf 接受 0–100 的任意数字），
+        // 再被按百分制换算一次，绩点与平均分全错且极难排查。
+        var SCORE_RE = /成绩|分数|总评|得分/;
+        // 单独的绩点列：命中即作为「本校绩点」回传，而不是拿去换算。
+        var GPA_RE = /绩点|平均绩点|课程绩点|GPA/;
+        var CATEGORY_RE = /性质|类别|修读方式|课程类型|课程属性|课程归属|修读性质|课程分组|课程种类|课程模块/;
 
         function cellsOf(row) {
             var nodes = row.querySelectorAll('td, th, [role="gridcell"], [role="cell"]');
@@ -707,6 +744,14 @@ val JS_SCAN_GRADES = """
         }
         function firstIndex(list, re) {
             for (var i = 0; i < list.length; i++) if (re.test(list[i])) return i;
+            return -1;
+        }
+        // 命中 re 但**不**命中 excludeRe 的第一个下标：用于把「绩点」列与「成绩」列分开。
+        // 混写表头（如「成绩绩点」）会被两者同时命中，此时让 SCORE 优先，避免同一列当两个用途。
+        function firstIndexExcluding(list, re, excludeRe) {
+            for (var i = 0; i < list.length; i++) {
+                if (re.test(list[i]) && !(excludeRe && excludeRe.test(list[i]))) return i;
+            }
             return -1;
         }
 
@@ -719,14 +764,29 @@ val JS_SCAN_GRADES = """
 
         var results = [];
         var seen = {};
-        function push(name, credit, score, category) {
+        // 绩点格 → 数值；非 0–5 的数字（含空串、'-'、'--'）一律当作「本校没给」。
+        // 不猜、不填 0：0 会被当成「挂科绩点」污染汇总。
+        function gradePointOf(text) {
+            if (text === null || text === undefined) return null;
+            var m = String(text).trim().match(/^(\d{1,2}(?:\.\d+)?)$/);
+            if (!m) return null;
+            var v = parseFloat(m[1]);
+            return (v >= 0 && v <= 5) ? v : null;
+        }
+        function push(name, credit, score, category, gradePoint) {
             if (!name || !score) return;
             if (name.length > 60) return;
             if (scoreOf(score) === null) return;
             var key = name + '|' + score;
             if (seen[key]) return;
             seen[key] = true;
-            results.push({ courseName: name, credit: credit, scoreText: score, category: category });
+            results.push({
+                courseName: name,
+                credit: credit,
+                scoreText: score,
+                category: category,
+                gradePoint: gradePointOf(gradePoint)
+            });
         }
 
         // 1. 表头映射（最可靠）
@@ -736,10 +796,16 @@ val JS_SCAN_GRADES = """
             var h = rows[r];
             var nameIdx = firstIndex(h, NAME_RE);
             var creditIdx = firstIndex(h, CREDIT_RE);
-            var scoreIdx = firstIndex(h, SCORE_RE);
+            var scoreIdx = firstIndexExcluding(h, SCORE_RE, GPA_RE);
             if (nameIdx >= 0 && (creditIdx >= 0 || scoreIdx >= 0)) {
                 headerIndex = r;
-                header = { name: nameIdx, credit: creditIdx, score: scoreIdx, category: firstIndex(h, CATEGORY_RE) };
+                header = {
+                    name: nameIdx,
+                    credit: creditIdx,
+                    score: scoreIdx,
+                    category: firstIndex(h, CATEGORY_RE),
+                    gpa: firstIndexExcluding(h, GPA_RE, SCORE_RE)
+                };
                 break;
             }
         }
@@ -753,21 +819,31 @@ val JS_SCAN_GRADES = """
                 if (scoreOf(score) === null) continue;
                 var credit = header.credit >= 0 ? creditOf(row[header.credit]) : null;
                 var category = header.category >= 0 ? row[header.category] : null;
-                push(name, credit, score, category && category.length <= 20 ? category : null);
+                var gpa = header.gpa >= 0 ? row[header.gpa] : null;
+                push(name, credit, score, category && category.length <= 20 ? category : null, gpa);
             }
         }
 
         // 2. 逐行启发式兜底（表头识别失败，或表头识别到但没抓到数据行）
-        if (results.length === 0) {
+        //    分两趟：先只认「整数或 ≥50」的分数（等级词不受限），避开行末的绩点列（3.7 / 4.0）；
+        //    一趟都没命中才放宽到任意 1–100 的数，以免把真实的 48.5 分丢掉。
+        function isStrictScore(text) {
+            if (!text || scoreOf(text) === null) return false;
+            if (isLevel(text)) return true;
+            var v = parseFloat(text);
+            if (!isFinite(v)) return false;
+            return text.indexOf('.') < 0 || v >= 50;
+        }
+        function scanRowsHeuristically(strict) {
             for (var r3 = 0; r3 < rows.length; r3++) {
                 var cells3 = rows[r3];
                 if (cells3.length < 2) continue;
                 var scoreIdx3 = -1;
                 for (var c = cells3.length - 1; c >= 0; c--) {
-                    if (scoreOf(cells3[c]) !== null && !NAME_RE.test(cells3[c])) {
-                        scoreIdx3 = c;
-                        break;
-                    }
+                    if (scoreOf(cells3[c]) === null || NAME_RE.test(cells3[c])) continue;
+                    if (strict && !isStrictScore(cells3[c])) continue;
+                    scoreIdx3 = c;
+                    break;
                 }
                 if (scoreIdx3 <= 0) continue;
                 var nameIdx3 = -1;
@@ -785,9 +861,12 @@ val JS_SCAN_GRADES = """
                     var cv = creditOf(cells3[c3]);
                     if (cv !== null) { credit3 = cv; break; }
                 }
-                push(cells3[nameIdx3], credit3, cells3[scoreIdx3], null);
+                // 启发式路径无法可靠区分「哪一列是绩点」，故不猜绩点（宁可留空）
+                push(cells3[nameIdx3], credit3, cells3[scoreIdx3], null, null);
             }
         }
+        if (results.length === 0) scanRowsHeuristically(true);
+        if (results.length === 0) scanRowsHeuristically(false);
 
         if (!results.length) return '';
         return toBase64(JSON.stringify(results));

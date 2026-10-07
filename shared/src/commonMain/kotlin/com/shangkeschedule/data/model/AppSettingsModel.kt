@@ -515,11 +515,23 @@ enum class RefreshRateMode(val value: String, val labelRes: StringResource) {
  * 绩点始终由原始分数实时换算（成绩表刻意不落库绩点列）。
  */
 enum class GpaScale(val value: String, val labelRes: StringResource) {
-    /** 4.0 制（默认，国内最常见）。 */
+    /** 4.0 制（阶梯档，国内最常见）。 */
     SCALE_4("4.0", Res.string.gpa_scale_4),
 
-    /** 5.0 制。 */
-    SCALE_5("5.0", Res.string.gpa_scale_5);
+    /** 5.0 制（阶梯档）。 */
+    SCALE_5("5.0", Res.string.gpa_scale_5),
+
+    /**
+     * 5.0 制**线性换算**：`绩点 = (分数 − 80) / 10 + 3.0`，60 分及以上适用，不及格 0，上限 5.0。
+     *
+     * 取证：2026-10-07 用南通大学（`tdjw.ntu.edu.cn` 正方 V9）学生实测的 10 门课逐门对拍，
+     * 10/10 精确吻合、零误差（详见 `build_qa/ntu-gpa-rule.md`）。
+     *
+     * 为什么需要它：阶梯档（如 `90→4.0 / 85→3.7 / 80→2.7`）与线性档的**曲线形状不同**，
+     * 同一门课会一高一低地错（实测 99 分：线性 4.9 vs 阶梯 4.0；75 分：线性 2.5 vs 阶梯 2.7），
+     * 加权后整体可差 0.4 以上 —— 这正是「算出来的绩点和学校对不上」的主因。
+     */
+    LINEAR_5("L5.0", Res.string.gpa_scale_linear5);
 
     companion object {
         fun fromString(value: String?): GpaScale =

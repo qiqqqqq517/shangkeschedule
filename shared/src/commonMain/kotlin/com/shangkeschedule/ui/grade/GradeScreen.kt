@@ -73,8 +73,6 @@ import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.content_copy_24px
 import shangkeschedule.shared.generated.resources.delete_24px
-import shangkeschedule.shared.generated.resources.gpa_scale_4
-import shangkeschedule.shared.generated.resources.gpa_scale_5
 import shangkeschedule.shared.generated.resources.grade_action_add
 import shangkeschedule.shared.generated.resources.grade_action_clear
 import shangkeschedule.shared.generated.resources.grade_action_import
@@ -115,6 +113,10 @@ import shangkeschedule.shared.generated.resources.grade_save
 import shangkeschedule.shared.generated.resources.grade_saved
 import shangkeschedule.shared.generated.resources.grade_scale_label
 import shangkeschedule.shared.generated.resources.grade_credit_value_fmt
+import shangkeschedule.shared.generated.resources.grade_point_badge_school
+import shangkeschedule.shared.generated.resources.grade_point_source_converted
+import shangkeschedule.shared.generated.resources.grade_point_source_mixed
+import shangkeschedule.shared.generated.resources.grade_point_source_school
 import shangkeschedule.shared.generated.resources.grade_point_value_fmt
 import shangkeschedule.shared.generated.resources.grade_scale_note
 import shangkeschedule.shared.generated.resources.grade_score_invalid
@@ -245,17 +247,12 @@ fun GradeScreen(
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                     AppSegmentedControl(
-                        options = listOf(
-                            stringResource(Res.string.gpa_scale_4),
-                            stringResource(Res.string.gpa_scale_5)
-                        ),
-                        selectedIndex = if (scale == GpaScale.SCALE_5) 1 else 0,
+                        options = GpaScale.entries.map { stringResource(it.labelRes) },
+                        selectedIndex = GpaScale.entries.indexOf(scale),
                         onSelect = { index ->
                             haptics.tick()
                             coroutineScope.launch {
-                                viewModel.setGpaScale(
-                                    if (index == 1) GpaScale.SCALE_5 else GpaScale.SCALE_4
-                                )
+                                viewModel.setGpaScale(GpaScale.entries[index])
                             }
                         }
                     )
@@ -263,8 +260,41 @@ fun GradeScreen(
                         text = stringResource(Res.string.grade_scale_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     )
+                    // 绩点口径说明（v4.75.0）：混口径的数字拿去和学校对账一定对不上，
+                    // 因此这里明说这个加权绩点里有多少门取自教务、多少门是本机换算。
+                    val pointSourceText = when {
+                        summary.schoolPointCount > 0 && summary.convertedPointCount > 0 ->
+                            stringResource(
+                                Res.string.grade_point_source_mixed,
+                                summary.schoolPointCount,
+                                summary.convertedPointCount
+                            )
+
+                        summary.schoolPointCount > 0 ->
+                            stringResource(
+                                Res.string.grade_point_source_school,
+                                summary.schoolPointCount
+                            )
+
+                        summary.convertedPointCount > 0 ->
+                            stringResource(
+                                Res.string.grade_point_source_converted,
+                                summary.convertedPointCount
+                            )
+
+                        else -> null
+                    }
+                    pointSourceText?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (summary.gpaConvertedOnly) tokens.textSecondary else tokens.primary,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
@@ -329,9 +359,12 @@ fun GradeScreen(
                     )
                 }
                 items(group.grades, key = { it.id }) { grade ->
+                    // 本校绩点优先：学校算出的数字不能拿本机换算表覆盖，否则又对不上了
+                    val effective = viewModel.effectivePointOf(grade, scale)
                     GradeRow(
                         grade = grade,
-                        pointText = viewModel.pointOf(grade, scale)?.let { formatNumber(it) },
+                        pointText = effective.first?.let { formatNumber(it) },
+                        pointFromSchool = effective.second,
                         failed = viewModel.isFailed(grade),
                         onClick = { editingGrade = grade }
                     )
@@ -481,11 +514,16 @@ private fun SummaryStat(
 /**
  * 成绩行：课程名 + 成绩（右侧突出）+ 学分 / 性质 / 绩点 + 重修与不及格标记。
  * 点击进入编辑对话框（删除入口也在里面），因此列表本身不需要滑动菜单。
+ *
+ * @param pointText 已格式化的绩点文本。
+ * @param pointFromSchool true = 该绩点取自教务（[Grade.gradePoint]），行内加「教务」角标，
+ *   让用户一眼看出哪些数字能拿去和学校对账、哪些是本机换算（v4.75.0）。
  */
 @Composable
 private fun GradeRow(
     grade: Grade,
     pointText: String?,
+    pointFromSchool: Boolean,
     failed: Boolean,
     onClick: () -> Unit
 ) {
@@ -570,6 +608,12 @@ private fun GradeRow(
                     color = tokens.textSecondary,
                     modifier = Modifier.padding(top = 2.dp)
                 )
+                if (pointFromSchool && pointText != null) {
+                    GradeBadge(
+                        text = stringResource(Res.string.grade_point_badge_school),
+                        color = tokens.primary
+                    )
+                }
             }
         }
     }
@@ -914,6 +958,13 @@ private fun DraftRow(
         AppTextField(
             value = draft.scoreText,
             onValueChange = { onChange(draft.copy(scoreText = it)) },
+            modifier = Modifier.width(72.dp)
+        )
+        // 课程性质（v4.75.0）：粘贴解析会顺手认出来，认错可在此就地改。
+        // 这一格是「学业情况按类别统计」的数据来源，留空就落进「未分类」。
+        AppTextField(
+            value = draft.category.orEmpty(),
+            onValueChange = { onChange(draft.copy(category = it.trim().takeIf { c -> c.isNotEmpty() })) },
             modifier = Modifier.width(72.dp)
         )
         IconButton(onClick = onRemove) {
