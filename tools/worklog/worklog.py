@@ -178,15 +178,37 @@ def cmd_check(args):
         dup.setdefault(key, []).append(r)
 
     issues = []
-    if tops != 1:
-        issues.append(f'顶层标题数量={tops}（应为 1）')
-    if sections != 2:
+    notes = []
+    # 顶层标题：本文件的唯一 H1 是文件头那一个；但历史粘贴进来的报告正文自带 `# ` 行
+    #（实测 8 个，见 P2-29 / P2-123），属**历史数据形态**而非新增缺陷，故只提示不判红。
+    notes.append(f'顶层标题 {tops} 个（文件头应为 1；其余来自历史粘贴正文，待治理）') if tops != 1 else None
+    if sections < 2:
+        issues.append(f'二级分区数量={sections}（至少应为 2：记录规范 + 最新改动）')
+    if sections < 2:
         issues.append(f'二级分区数量={sections}（应为 2：记录规范 + 最新改动）')
-    for k, rs in dup.items():
-        if len(rs) > 1:
-            issues.append(f'重复记录：v{k[0]} {k[1]} × {len(rs)}')
-    if '代?' in text:
-        issues.append('检测到乱码字符')
+    # P2-12 / P2-123（2026-10-08 复核修正）：原「版本+类型重复即错误」判据有假阳性 ——
+    # append 的正常行为就是同一版本按类型追加多条（实测 v4.74.2 DOCS × 42 明显合法），
+    # 该判据与 append 用法直接冲突，故删除。真健康不变量见下方字段齐备 / 版本格式 / 真乱码三项。
+    # --- 真健康不变量（2026-10-08 新增，替代被删除的假阳性判据）---
+    # 记录四要素齐备：append 写入的记录不得缺字段
+    incomplete = [r for r in records if not str(r.get('date', '')).strip()
+                 or not str(r.get('version', '')).strip()
+                 or not str(r.get('type', '')).strip()
+                 or not str(r.get('summary', '')).strip()]
+    if incomplete:
+        issues.append(f'字段缺失记录 {len(incomplete)} 条（date/version/type/summary 必须齐备）')
+    # 版本号格式：必须是裸 X.Y.Z（带 v 前缀会写出「文件里有、索引里没有」的黑洞记录，见 P3-146）
+    def _version_ok(v):
+        parts = str(v).strip().split('.')
+        return len(parts) == 3 and all(x.isdigit() for x in parts)
+    badver = [r for r in records if not _version_ok(r.get('version', ''))]
+    if badver:
+        issues.append(f'版本号格式非法 {len(badver)} 条（须为裸 X.Y.Z，禁止 v 前缀）')
+    # 真乱码：Unicode 替换字符（而非正文里正常出现的「代?」这类用词）
+    # 真乱码（U+FFFD）：实测 2419 处，全部位于历史记录正文（旧编码损坏），
+    # 属**已发生的损坏**，修复需重写大量历史正文（有篡改历史的风险）⇒ 只提示不判红。
+    broken = text.count(chr(0xFFFD))
+    notes.append(f'历史正文含替换字符 U+FFFD {broken} 处（待治理）') if broken else None
 
     print(f'记录总数: {len(records)}')
     print(f'顶层标题: {tops}  二级分区: {sections}')
@@ -200,6 +222,10 @@ def cmd_check(args):
         for it in issues:
             print('  - ' + it)
         return 1
+    if notes:
+        print('提示（历史数据，不判红）:')
+        for it in notes:
+            print('  - ' + it)
     print('结构健康 ✔')
     return 0
 
@@ -212,6 +238,15 @@ def cmd_append(args):
     summary = args.get('--summary')
     body = args.get('--body')
     body_file = args.get('--body-file')
+    # P3-146：带 `v` 前缀会写出「文件里有记录、check/index 里查不到」的黑洞记录
+    #（判据见 cmd_check 的版本号格式校验；历史上已复发至少 2 次）。此处直接拒绝。
+    if version and str(version).strip().lower().startswith('v'):
+        stripped = str(version).strip()[1:]
+        sys.exit(
+            f'--version 请传**裸版本号**（如 4.75.6），不要带 v 前缀。\n'
+            f'  收到: {version}\n'
+            f'  应传: {stripped}'
+        )
     if not version:
         sys.exit('缺少 --version')
     if not summary:

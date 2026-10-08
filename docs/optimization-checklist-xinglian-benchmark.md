@@ -231,7 +231,7 @@ v4.66.4 交付的 XL-010（日历增量写回）**在真机上 100% 失败**，�
 
 #### 方法论沉淀
 
-本轮为真机驱动写了可复用的工具（`uinav.py`：`uiautomator dump` → 按文本定位节点 → 模拟点击），
+本轮为真机驱动写了可复用的工具（`uinav.py`：`uiautomator dump` → 按文本定位节点 → 模拟点击）。⚠️ 更正（2026-10-08 复核）：该脚本**从未入库**，仓库内不存在 `uinav.py`；此处保留描述但不得再当作可复用资产引用，
 并踩掉了三个坑，都与「UI 自动化」本身有关：
 
 1. `uiautomator dump` 要的是**设备端路径**，传 Windows 路径静默失败；
@@ -882,7 +882,7 @@ Android 12+ / 14+ 用户可在系统设置里随时撤销「闹钟和提醒」�
 3. 写入后**回读校验计数**（星链字段：`writtenCount` vs `verifiedCount`）
 4. 失败给可操作提示（星链字段：`usedFallback` / `userHint`）
 
-**改动范围** — `CalendarAccountManager.android.kt`（`expect/actual` 签名扩展 `shared/.../tool/CalendarAccountManager.kt`）、`CourseConversionViewModel.kt` 调用侧
+**改动范围** — `CalendarAccountManager.android.kt`（`expect/actual` 签名扩展 `shared/.../tool/CalendarAccountManager.kt`）、`CourseTableConversionViewModel.kt` 调用侧（原文误写为 `CourseConversionViewModel.kt`，该文件名不存在）
 
 **依赖** 无
 
