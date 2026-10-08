@@ -1084,11 +1084,26 @@ val JS_NAVIGATE_TO_EMPTY_CLASSROOM = """
  * 这里在打分前先把隐藏的祖先逐层改成 `display:block`（实测只需展开 1 层，
  * 目标即从 0×0 变为 158×23）。
  *
- * 返回 `found` / `notfound`；`notfound` 由 Native 侧提示用户自行进入该页后点「读取本页」。
+ * ## 为什么必须先判断「是不是已经在目标页」
+ *
+ * 实测（2026-10-08，用户真实登录会话）：已经停在学业情况页时，本脚本**仍会选中
+ * 「学生学业情况查询」菜单并点击**——即把用户从正确页面又点走，重新触发一轮加载。
+ * 症状是「读着读着页面自己动了 / 一直转」，比不点更糟。
+ * 所以开头先看页面上有没有培养方案数据，有就直接返回 `here`，不做任何点击。
+ *
+ * 返回 `here` / `found` / `notfound`：
+ * - `here` —— 已在目标页，调用方直接调钩子，不要再点任何东西；
+ * - `found` —— 已点菜单入口，等页面加载完再读；
+ * - `notfound` —— 找不到入口，由 Native 侧提示用户自行进入该页。
  */
 val JS_NAVIGATE_TO_STUDY = """
 (function() {
     try {
+        // 已在学业情况页：页面上有培养方案要求学分。不要再点菜单把自己点走。
+        if (document.body && document.body.innerHTML.indexOf('要求学分') >= 0) {
+            return 'here';
+        }
+
         if (typeof window.shangkeNavigateToStudy === 'function') {
             try {
                 window.shangkeNavigateToStudy();

@@ -654,6 +654,8 @@ fun WebViewScreen(
                 studyScanRunning = true
                 webViewController.evaluateJavascript(JS_NAVIGATE_TO_STUDY) { navResult ->
                     when (navResult?.trim('"')) {
+                        // 已在学业情况页：直接读，不要再走一轮「点菜单 → 等加载」
+                        "here" -> runStudyHook(adapterCode)
                         "found" -> pendingStudyRescan = true
                         else -> {
                             studyScanRunning = false

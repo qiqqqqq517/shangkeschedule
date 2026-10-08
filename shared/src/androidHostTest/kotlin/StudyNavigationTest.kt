@@ -62,6 +62,29 @@ class StudyNavigationTest {
     }
 
     @Test
+    fun `已在目标页时直接读，不再点菜单（实测曾把自己点走）`() {
+        val block = protocolSrc.substringAfter("val JS_NAVIGATE_TO_STUDY")
+            .substringBefore("trimIndent()")
+        assertTrue(
+            block.contains("return 'here'"),
+            "缺少 'here' 分支：实测已停在学业情况页时，本脚本仍会选中「学生学业情况查询」并点击，" +
+                "把用户从正确页面又点走、重新触发一轮加载（比不点更糟）",
+        )
+        // 判据必须在最前面，早于任何点击动作
+        val hereIdx = block.indexOf("return 'here'")
+        val clickIdx = block.indexOf("trigger.click()")
+        assertTrue(
+            hereIdx >= 0 && clickIdx > hereIdx,
+            "'here' 判断必须早于 trigger.click()，否则已��目标页仍会被点走",
+        )
+        // UI 侧必须消费 here
+        assertTrue(
+            screenSrc.contains("\"here\" -> runStudyHook"),
+            "UI 未处理 here 分支：已在目标页时不应再等一轮页面加载",
+        )
+    }
+
+    @Test
     fun `定位脚本会展开隐藏的下拉祖先（正方菜单默认折叠）`() {
         val block = protocolSrc.substringAfter("val JS_NAVIGATE_TO_STUDY")
             .substringBefore("trimIndent()")
