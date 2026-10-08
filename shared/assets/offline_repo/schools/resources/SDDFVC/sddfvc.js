@@ -180,7 +180,11 @@ async function runImportFlow() {
         const urlParams = new URLSearchParams(window.location.search);
         const apiToken = urlParams.get('api_token');
         if (!apiToken) {
-            console.error("当前 URL 中未找到 api_token 参数:", window.location.href);
+            // R41-10：**不得把完整 URL 打进日志**。
+            // 本页的 api_token 正是从查询串取的，而 console 输出会被转写到 Android logcat 的
+            // ShangKeConsole tag ⇒ 完整 href 会把用户的教务会话凭据落到设备日志，
+            // 绕过 App 侧「Log.* 只记元数据」的脱敏纪律。只记路径（剥离 query）。
+            console.error("当前 URL 中未找到 api_token 参数，path=", window.location.pathname);
             window.shangkeBridge.showToast("未检测到登录 Token，请确保在课表页面运行");
             return;
         }
