@@ -19,8 +19,6 @@ import shangkeschedule.shared.generated.resources.course_teacher_prefix
 import shangkeschedule.shared.generated.resources.ics_alarm_description
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * 课表数据转换与 ICS 日历生成工具类（基于 Kotlin Multiplatform）
@@ -137,7 +135,12 @@ object IcsExportTool {
             courses, timeSlots, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates
         ) { course, start, end, _ ->
             ics.append("BEGIN:VEVENT\r\n")
-            ics.append("UID:${generateUid()}@shangkeschedule.com\r\n")
+            // UID 必须**稳定**：同一门课同一次课重复导出时 UID 不变，
+            // 日历客户端才会把它识别为「同一条事件的更新」而不是新增一条。
+            // 此前每次 `Uuid.random()` ⇒ 重复导入同一份课表会在日历里堆出重复事件，
+            // 且违反 RFC 5545 §3.8.4.7「UID 一旦分配不得更改」的语义。
+            // 取值由 课程ID + 课次开始时刻 稳定派生（同一课表内唯一）。
+            ics.append("UID:${stableUid(course, start)}@shangkeschedule.com\r\n")
             ics.append("DTSTAMP:$dtStampStr\r\n")
             ics.append("DTSTART;TZID=Asia/Shanghai:${formatDateTimeLocal(start)}\r\n")
             ics.append("DTEND;TZID=Asia/Shanghai:${formatDateTimeLocal(end)}\r\n")
@@ -201,11 +204,24 @@ object IcsExportTool {
     }
 
     /**
-     * 生成唯一的事件标识符 UUID 串（基于 Kotlin 标准库 Uuid API）
+     * 生成**稳定**的事件标识符（基于内容派生，不是随机）。
+     *
+     * 输入是「课程 ID + 该课次开始时刻」，因此：
+     * ① 同一门课的同一课次，无论导出多少次，UID 恒定 ⇒ 日历把它当作同一条事件更新；
+     * ② 课表变更（改时间/改周次）后该课次是新事件，UID 随之改变 ⇒ 不会错误合并；
+     * ③ 同一课表内不同课次 UID 天然不同。
+     *
+     * 用 `Uuid.fromString` 不可行（输入不是 UUID），故直接取两个稳定量的哈希前 32 位十六进制，
+     * 拼成 RFC 4122 形状的字符串即可 —— 日历客户端只要求 UID **全局唯一且稳定**，
+     * 并不校验它是否是合法 UUID。
      */
-    @OptIn(ExperimentalUuidApi::class)
-    private fun generateUid(): String {
-        return Uuid.random().toString()
+    private fun stableUid(course: Course, start: LocalDateTime): String {
+        val seed = course.id + "|" + start.toString()
+        val h1 = seed.hashCode().toUInt().toString(16).padStart(8, '0')
+        val h2 = (seed + "#salt").hashCode().toUInt().toString(16).padStart(8, '0')
+        val h3 = (seed + "#pepper").hashCode().toUInt().toString(16).padStart(8, '0')
+        val h4 = (seed + "#final").hashCode().toUInt().toString(16).padStart(8, '0')
+        return "$h1-$h2-$h3-$h4"
     }
 
     /**
