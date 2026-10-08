@@ -253,13 +253,16 @@ class StyleSettingsRepository(
      * 将还原的字节数组与本地壁纸路径合并后写入 DataStore。
      */
     suspend fun restoreRawStyleBytes(bytes: ByteArray): Result<Unit> = runCatching {
-        val currentLocalProto = dataStore.data.first()
-        val localWallpaperPath = currentLocalProto.background_image_path
-
         val backupProto = ScheduleGridStyleProto.ADAPTER.decode(bytes)
-        val finalProto = backupProto.copy(background_image_path = localWallpaperPath)
-
-        dataStore.updateData { finalProto }
+        // N3：**读-改-写必须在同一个 updateData 块内**。
+        // 旧实现先在块外 `dataStore.data.first()` 取当前值、再在块内整体写入 finalProto ⇒
+        // 两次调用之间若有别的样式写入（设置页改配色/壁纸、自动同步），那次写入会被
+        // 本次恢复的旧快照**静默覆盖**（DataStore 的 updateData 是原子的，但块外的读不是）。
+        // 现改为在 updateData 的 lambda 里读 current，只覆盖「备份带来的字段」、
+        // 保留本机壁纸路径 —— 与 StyleSettingsRepository.updateStyle 的口径一致。
+        dataStore.updateData { current ->
+            backupProto.copy(background_image_path = current.background_image_path)
+        }
     }
 
     /**

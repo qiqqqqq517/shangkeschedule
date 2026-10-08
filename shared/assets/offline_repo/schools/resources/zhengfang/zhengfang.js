@@ -595,8 +595,21 @@
             return;
         }
 
-        Bridge.saveImportedCourses(JSON.stringify(courses));
-        Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
+        // 落库必须**等待并判返回值**：Bridge.saveImportedCourses 返回 Promise，resolve(true) 才代表真的写进去了。
+        // 旧实现既不 await 也不判返回值，紧随其后无条件提示「正在导入」⇒
+        // 未选择课表 / 外键失败 / 落库异常时用户仍看到「成功解析 N 门课程」，
+        // 而课表里一门都没进来（本脚本覆盖约 966 所学校，是单点影响面最大的一条）。
+        Promise.resolve(Bridge.saveImportedCourses(JSON.stringify(courses)))
+            .then(function (ok) {
+                if (ok === true || ok === 'true') {
+                    Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
+                } else {
+                    Bridge.showToast('课表保存未成功，请确认已选择课表后重试（识别到 ' + courses.length + ' 门）');
+                }
+            })
+            .catch(function (err) {
+                Bridge.showToast('课表保存失败：' + ((err && err.message) || err || '未知错误'));
+            });
     }
 
     // 导入入口：优先解析页面课表，失败再走接口
