@@ -47,7 +47,16 @@ BUILD_GRADLE = ROOT / "androidApp" / "build.gradle.kts"
 CHANGELOG_MD = ROOT / "CHANGELOG.md"
 
 # CHANGELOG 分节 → changelog.html 的 tag 类别；「构建」等开发向分节不进用户可见文案。
-SECTION_TAGS = {"功能": "tag-feat", "修复": "tag-fix", "外观": "tag-ui", "重构": "tag-refactor"}
+SECTION_TAGS = {
+    "功能": "tag-feat",
+    "修复": "tag-fix",
+    "外观": "tag-ui",
+    "重构": "tag-refactor",
+    # 2026-10-08 补：CHANGELOG 里长期存在这两类用户可见章节，此前无映射 ⇒ 整节被静默丢弃
+    "改动方式": "tag-refactor",
+    # 「适配脚本」是适配层修复（已同步线上），对用户等同修复，归 tag-fix
+    "适配脚本": "tag-fix",
+}
 SKIP_SECTIONS = {"构建"}
 
 
@@ -67,7 +76,10 @@ def parse_changelog(path):
     header_re = re.compile(
         r"^### v(\d+)\.(\d+)\.(\d+)（(\d{4}-\d{2}-\d{2})）·\s*(.+)$"
     )
-    section_re = re.compile(r"^\*\*(.+?)\*\*$")
+    # 章节标题两种写法都要认：旧条目用 **修复**，2026-10 之后的条目用 markdown 标题 #### 修复。
+    # 原实现只认前者 ⇒ 新条目的要点全部解析不出来，官网时间线生成出一堆「只有版本号、正文空白」
+    # 的空壳条目（2026-10-08 发版时实测：v4.75.1~v4.75.5 的 tl-body 全为空）。
+    section_re = re.compile(r"^(?:\*\*(.+?)\*\*|#{3,6}\s+(.+?))$")
     bullet_re = re.compile(r"^-\s+(.+)$")
     entries = []
     cur = None
@@ -86,7 +98,9 @@ def parse_changelog(path):
             continue
         s = section_re.match(line)
         if s:
-            cur["sections"].append({"label": s.group(1), "items": []})
+            # 组1 = **粗体** 写法，组2 = #### 标题写法；取非空的那个
+            label = s.group(1) or s.group(2)
+            cur["sections"].append({"label": label, "items": []})
             continue
         b = bullet_re.match(line)
         if b and cur["sections"]:
@@ -111,11 +125,21 @@ def lead_bold(text):
     return None, text
 
 
-def render_items(items):
-    """把一组 CHANGELOG 要点转成 <li>：**x**→<b>x</b>、`x`→<code>x</code>。"""
+def render_items(items, hoist_first_lead=False):
+    """把一组 CHANGELOG 要点转成 <li>：**x**→<b>x</b>、`x`→<code>x</code>。
+
+    2026-10-08 修正（内容丢失）：原实现写成 `_lead, body = lead_bold(it)`，
+    **把每一条的主语粗体都丢掉了** —— 而 [gen_tl_item] 只把**第一条**的主语提升为 h3，
+    于是第 2 条起的要点全部变成半截话。实测生成的 v4.75.6 时间线：
+      源文「**云端备份可能永久删除你唯一的一份备份**：上传新备份时若某个模块移动失败…」
+      页面「上传新备份时若某个模块移动失败…」（主语消失，读者不知道在说哪个功能）
+    现改为：只有确实被提升为 h3 的第一条才剥掉主语，其余各条**原样保留**主语粗体。
+    """
     lis = []
-    for it in items:
-        _lead, body = lead_bold(it)
+    for idx, it in enumerate(items):
+        lead, body = lead_bold(it)
+        if lead is not None and not (hoist_first_lead and idx == 0):
+            body = f"<b>{lead}</b>：" + body
         body = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", body)
         body = re.sub(r"`([^`]+)`", r"<code>\1</code>", body)
         lis.append(f"            <li>{body}</li>")
@@ -138,7 +162,8 @@ def gen_tl_item(entry):
         if lead and lead != label:
             title = lead
         heading = f'          <h3><span class="tl-tag {cls}">{label}</span>{title}</h3>'
-        body = "\n".join(render_items(items))
+        # 只有当第一条的主语确实被提升为 h3（title 非空）时，才允许它剥掉主语
+        body = "\n".join(render_items(items, hoist_first_lead=bool(title)))
         parts.append(f"{heading}\n          <ul>\n{body}\n          </ul>")
         if title:
             # 已把首条的加粗标题提为 h3 标题，正文里再保留会冗余——这里不额外处理，
