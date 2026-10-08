@@ -121,9 +121,13 @@ internal class AlarmScheduler(private val context: Context) {
      * 漏掉的槽位会带着上一次的 Intent 继续触发。
      */
     fun cancelAll() {
-        val am = alarmManager ?: return
-        // 每轮起点：重置「本轮已提示过精确闹钟权限缺失」，下一轮仍会正常提示一次。
+        // R41-12：**节流状态复位必须早于 alarmManager 的空判**。
+        // 旧实现首行 `val am = alarmManager ?: return`，导致 alarmManager 不可用时
+        // 直接跳过下面的复位 —— 而「本轮已提示」是个跨轮存活的字段，
+        // 权限恢复后残留的 true 会让该轮的精确闹钟降级提示被静默吞掉，
+        // 只能靠下一轮排程才清理，用户在这中间看到的是「降级了但没有任何说明」。
         exactAlarmNoticeSentThisRound = false
+        val am = alarmManager ?: return
         codeBook.reset()
         for (offset in 0 until ALARM_SLOT_LIMIT) {
             cancelByCode(am, applicationCancelIntent(), ALARM_CODE_BASE + offset)

@@ -182,6 +182,16 @@ class SyncManager(
                         "前台内联排程完成：课程提醒 ${summary.reminderCount} 条、" +
                             "自动模式 ${summary.autoModeCount} 条、早八 ${summary.morningAlarmResult}"
                     )
+                    // R41-09：内联路径的策略级失败同样必须有自愈出口；
+                    // catch 分支已经会转交 Worker，但「没抛异常、只是某个策略失败」这条路
+                    // 此前直接走掉 ⇒ 缺的那部分闹钟永远补不回来。
+                    if (summary.failedStrategies > 0) {
+                        Log.w(
+                            TAG,
+                            "前台内联排程有 ${summary.failedStrategies} 个策略失败，转交 Worker 补齐"
+                        )
+                        enqueueNotificationSyncWork()
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

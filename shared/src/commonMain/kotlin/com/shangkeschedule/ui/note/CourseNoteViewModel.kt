@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.note
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.CourseNote
+import com.shangkeschedule.data.db.main.MAX_SECTIONS_LENGTH
 import com.shangkeschedule.data.repository.CourseNoteRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,7 +76,12 @@ class CourseNoteViewModel(
                         id = id,
                         courseId = courseId,
                         date = date,
-                        sections = sections?.trim()?.takeIf { it.isNotEmpty() },
+                        // R68-01：补上长度上限。sections（节次描述，如「第 3-4 节」）
+                        // 此前是三个文本字段里**唯一既无长度上限、又无渲染行数上限**的一个：
+                        // UI 输入框无条件接受 / VM 只 trim 不 take / 列表项无 maxLines。
+                        // 误粘贴一整段文章即可撑高单条列表项，而同列表项的 content 有 maxLines=4。
+                        // 取值先 trim 后 take：trim 只减少长度，顺序与 title 一致。
+                        sections = sections?.trim()?.take(MAX_SECTIONS_LENGTH)?.takeIf { it.isNotEmpty() },
                         title = title.trim().take(MAX_TITLE_LENGTH),
                         content = content.take(MAX_CONTENT_LENGTH),
                         imagePaths = paths.takeIf { it.isNotEmpty() }?.joinToString("\n"),
@@ -111,5 +117,11 @@ class CourseNoteViewModel(
 
         /** 正文上限：与备注 300 字的上限不同，笔记允许写长（约 2000 字）。 */
         const val MAX_CONTENT_LENGTH = 2000
+
+        /**
+         * 节次描述上限（R68-01）。常量本体在 [CourseNote]（data 层），
+         * 因备份恢复侧（data 层）也要用同一口径；此处保留同名常量供 UI 侧引用。
+         */
+        const val MAX_SECTIONS_LENGTH = com.shangkeschedule.data.db.main.MAX_SECTIONS_LENGTH
     }
 }

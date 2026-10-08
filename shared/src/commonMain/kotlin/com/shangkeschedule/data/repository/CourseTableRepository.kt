@@ -306,6 +306,9 @@ class CourseTableRepository(
         var deletedIds: Set<String> = emptySet()
         var deletedCouple = false
         var tablesToDelete: List<CourseTable> = emptyList()
+        // R41-07：守卫「拒绝删除」此前只是 `return@withWriteTransaction`，与「删除成功」走同一条
+        // 出口 ⇒ 末尾无条件 return true 会把「拒绝」报成「已删除」。用显式标记区分两种出口。
+        var deletionApproved = false
 
         database.withWriteTransaction {
             val allTables = courseTableDao.getAllCourseTables().first()
@@ -336,7 +339,12 @@ class CourseTableRepository(
             tablesToDelete = allToDelete
             deletedIds = ids
             deletedCouple = allToDelete.any { it.isCouple }
+            deletionApproved = true
         }
+        // R41-07：守卫拒绝（只剩「本人表 + 其情侣表」而删的是本人表 / 表不存在 / 只剩一张）时
+        // 什么都不删，**必须如实返回 false**，否则 UI 弹「已删除」而表原封不动还在，
+        // 专门为此设计的「不能删除最后一个课表」提示永远收不到。
+        if (!deletionApproved) return false
         val resolvedFallbackId = fallbackId
         if (resolvedFallbackId != null) {
             val currentSettings = appSettingsRepository.getAppSettingsOnce()

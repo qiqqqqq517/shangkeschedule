@@ -77,6 +77,8 @@ import com.shangkeschedule.ui.components.TelegramMenu
 import com.shangkeschedule.ui.components.TelegramMenuItem
 import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.tool.copyToClipboard
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -129,6 +131,8 @@ import shangkeschedule.shared.generated.resources.study_import_reading
 import shangkeschedule.shared.generated.resources.study_import_recognize
 import shangkeschedule.shared.generated.resources.study_import_success
 import shangkeschedule.shared.generated.resources.study_import_success_with_courses
+import shangkeschedule.shared.generated.resources.scan_timeout
+import shangkeschedule.shared.generated.resources.study_nav_timeout
 import shangkeschedule.shared.generated.resources.study_scan_timeout
 import shangkeschedule.shared.generated.resources.study_page_not_found
 import shangkeschedule.shared.generated.resources.grade_import_no_result
@@ -226,6 +230,10 @@ fun WebViewScreen(
     val toastStudyNoAdapter = stringResource(Res.string.study_import_no_adapter)
     val toastStudyNoResult = stringResource(Res.string.study_import_no_result)
     val toastStudyTimeout = stringResource(Res.string.study_scan_timeout)
+    // R53-01：导航阶段无响应（页面加载事件不到达）的提示。
+    val toastStudyNavTimeout = stringResource(Res.string.study_nav_timeout)
+    // R40-03：成绩 / 空教室扫描超时此前无任何提示（连同运行态一并卡死）。
+    val toastScanTimeout = stringResource(Res.string.scan_timeout)
     val toastStudyPageNotFound = stringResource(Res.string.study_page_not_found)
     val statusReadingStudy = stringResource(Res.string.study_import_reading)
 
@@ -259,6 +267,12 @@ fun WebViewScreen(
      * 的直接原因。`onPageLoaded` 消费掉它并调钩子。
      */
     var pendingStudyRescan by remember { mutableStateOf(false) }
+    /**
+     * 「点菜单 → 等页面加载」的兜底计时器（R53-01）。
+     *
+     * 页面加载事件不到达时它是唯一的自救出口；正常加载完成会在 [onPageLoaded] 里取消。
+     */
+    var studyNavTimeoutJob by remember { mutableStateOf<Job?>(null) }
     // 回落用的脚本引用：钩子结果为空 / 钩子抛错时要能立刻走通用脚本，而通用脚本
     // 又需要用到挂在下面的状态与仓库实例。用 ref 而不是把逻辑内联进回调，
     // 是为了让「钩子失败」与「没有钩子」两条路径共用同一段回落代码。
@@ -423,8 +437,17 @@ fun WebViewScreen(
                     studyScanRunning = false
                     ToastManager.show(toastStudyNoResult)
                 }
-                else -> Unit
+                // R52-02：**无论哪个 action 都先复位学业态**。旧实现把
+                // `studyScanRunning = false` 只写在 STUDY 分支里，else -> Unit，
+                // 与 onAdapterScanTimeout 的三动作逐一复位不对称。
+                // 未知 / 将来新增的 action 走到这里时学业态不会被复位，界面永久卡住。
+                else -> {
+                    studyScanRunning = false
+                }
             }
+            // R52-02 兜底：只要回调走到这里，学业态就不该再是运行中
+            // （三个已知分支各自已复位，这里防止将来新增分支漏写）。
+            studyScanRunning = false
         }
     )
 
@@ -433,12 +456,29 @@ fun WebViewScreen(
      *
      * 超时几乎总是「教务页还没加载出内容 / 没登录 / 适配脚本没注入成功」，
      * 提示用户去确认这些，而不是让人以为是「这页没有培养方案信息」。
+     *
+     * R40-03：**三个动作的运行态都必须复位**。旧实现把 `studyScanRunning = false` 写在
+     * `when` 之外（对成绩 / 空教室模式是空操作）且 `else -> Unit`，于是成绩或空教室扫描
+     * 超时后 `gradeScanRunning` / `emptyScanRunning` 永不复位 —— 按钮永久禁用 +
+     *「正在读取…」常驻，用户既无结果也**无法在本页重试**，只能退出重进。
+     * 全仓仅两处置 false（delivered 与通用回落），二者都要求 JS 回传，与「超时」互斥。
+     * 提示文案：学业沿用既有的超时文案；成绩 / 空教室用通用「读取超时」文案。
      */
     val onAdapterScanTimeoutState by rememberUpdatedState(
         newValue = { action: String ->
-            studyScanRunning = false
             when (action) {
-                AdapterScanActions.STUDY -> ToastManager.show(toastStudyTimeout)
+                AdapterScanActions.GRADES -> {
+                    gradeScanRunning = false
+                    ToastManager.show(toastScanTimeout)
+                }
+                AdapterScanActions.EMPTY_CLASSROOMS -> {
+                    emptyScanRunning = false
+                    ToastManager.show(toastScanTimeout)
+                }
+                AdapterScanActions.STUDY -> {
+                    studyScanRunning = false
+                    ToastManager.show(toastStudyTimeout)
+                }
                 else -> Unit
             }
         }
@@ -656,7 +696,22 @@ fun WebViewScreen(
                     when (navResult?.trim('"')) {
                         // 已在学业情况页：直接读，不要再走一轮「点菜单 → 等加载」
                         "here" -> runStudyHook(adapterCode)
-                        "found" -> pendingStudyRescan = true
+                        "found" -> {
+                            pendingStudyRescan = true
+                            // R53-01：「点菜单 → 等页面加载」这条路径此前**没有任何超时兜底**。
+                            // 页面加载事件不到达（点击落空、跳转被拦、加载事件丢失、
+                            // 用户手动切走）时 pendingStudyRescan 永远为 true、studyScanRunning
+                            // 永远为 true ⇒ 按钮永久禁用 + 常驻「正在读取…」，用户无法在本页重试。
+                            studyNavTimeoutJob?.cancel()
+                            studyNavTimeoutJob = coroutineScope.launch {
+                                delay(STUDY_NAV_TIMEOUT_MS)
+                                if (pendingStudyRescan) {
+                                    pendingStudyRescan = false
+                                    studyScanRunning = false
+                                    ToastManager.show(toastStudyNavTimeout)
+                                }
+                            }
+                        }
                         else -> {
                             studyScanRunning = false
                             ToastManager.show(toastStudyPageNotFound)
@@ -675,6 +730,9 @@ fun WebViewScreen(
      */
     val onPageLoaded: () -> Unit = {
         if (pendingStudyRescan) {
+            // R53-01：页面真的加载完了，取消兜底计时器，避免它随后误报超时。
+            studyNavTimeoutJob?.cancel()
+            studyNavTimeoutJob = null
             pendingStudyRescan = false
             val adapterCode = adapterJsCode
             if (adapterCode == null || !studyScanRunning) {
@@ -1312,3 +1370,11 @@ private fun EmptyClassroomResultDialog(
         }
     )
 }
+/**
+ * 「点菜单 → 等学业页加载」的兜底超时（R53-01）。
+ *
+ * 与扫描看门狗同量级：太短会在教务系统慢响应时误报，太长则用户干等。
+ * 20 秒足以覆盖一次典型的页面跳转；超时后复位运行态，用户可立即重试
+ * （此时通常已在目标页，走 here 分支直接读）。
+ */
+private const val STUDY_NAV_TIMEOUT_MS = 20_000L

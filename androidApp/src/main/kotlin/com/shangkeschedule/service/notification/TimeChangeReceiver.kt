@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.service.notification.schedule.NotificationSyncWorker
 import com.shangkeschedule.service.notification.schedule.NotificationScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +78,15 @@ class TimeChangeReceiver : BroadcastReceiver(), KoinComponent {
                     "时间/时区/语言变更重排完成：课程 ${summary.reminderCount} 条" +
                         "，自动模式 ${summary.autoModeCount} 条，${summary.morningAlarmResult}"
                 )
+                // R41-09：`reschedule()` 的 failedStrategies 此前被直接丢弃。
+                // 该值 > 0 表示本轮 `cancelAll()` 之后有策略抛异常 ⇒ 缺的那部分**没有闹钟**，
+                // 而用户侧表现是「当日提醒真空」且不可自愈（没有任何自愈入口）。
+                // 修法：失败即请求一次周期 Worker 重排（唯一任务名 + 退避策略由 WorkManager 负责），
+                // 与 NotificationSyncWorker 的 retry 语义对齐。
+                if (summary.failedStrategies > 0) {
+                    Log.w(TAG, "有 ${summary.failedStrategies} 个策略排程失败，请求周期 Worker 补齐")
+                    NotificationSyncWorker.enqueue(context = appContext)
+                }
             } catch (e: Exception) {
                 // 静默处理：部分系统在锁屏广播值下发期间会抛异常，重排失败无害，
                 // 下次广播 / 重开 App / WorkManager 退避重试都会补上。

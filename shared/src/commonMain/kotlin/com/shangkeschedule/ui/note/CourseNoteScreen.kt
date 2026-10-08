@@ -324,7 +324,11 @@ fun CourseNoteScreen(
 
                 AppTextField(
                     value = editorSections,
-                    onValueChange = { editorSections = it },
+                    // R68-01：与同编辑器的 title / content 一致地拒收超限新值。
+                    // 此前是无条件接受 —— 三个输入框里只有这一个没有上限。
+                    onValueChange = {
+                        if (it.length <= CourseNoteViewModel.MAX_SECTIONS_LENGTH) editorSections = it
+                    },
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     label = labelSections,
                     singleLine = true
@@ -472,7 +476,11 @@ private fun NoteCard(
                         note.sections?.takeIf { it.isNotBlank() }
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary
+                    color = colors.textSecondary,
+                    // R68-01：补 maxLines。Compose 的 Text 无 maxLines 时长文本会自动换行
+                    // 并撑高父容器，而父容器是无固定高度的列表项 ⇒ 单条笔记异常长时
+                    // 该项高度被撑到远超其它项（同项的 content 有 maxLines = 4）。
+                    maxLines = 2
                 )
                 if (note.title.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))

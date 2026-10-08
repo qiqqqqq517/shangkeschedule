@@ -603,16 +603,30 @@ class WebBridgeHandler(
             )
 
             // 钩子失败：先告诉调用方去回落通用脚本，再决定要不要给用户提示。
-            val handledByScan = pendingScanActions.isNotEmpty()
+            //
+            // R40-10：归属判据由「有扫描在跑」改为「**该错误发生在钩子调用窗口内**」。
+            // 原判据把教务页面自身的任意 JS 异常（第三方脚本 / 页面 bug）在扫描在途时
+            // 一律算作钩子失败 ⇒ 学业扫描被强制中止并弹误导性提示（「没读到培养方案学分要求」），
+            // 而此时钩子可能本来正常。标记由注入脚本在调用前后置 / 清（见 WebBridgeProtocol
+            // 的 buildAdapterHookInvokeScript）；未带标记的错误照常上报与留痕，但**不**中止扫描，
+            // 交由 15 秒看门狗兜底 —— 宁可多等几秒，也不要用别人的错误否掉自己的扫描。
+            val hookScoped = payload.hookRunning
+            val handledByScan = hookScoped && pendingScanActions.isNotEmpty()
             if (handledByScan) {
-                val action = pendingScanActions.first()
+                // R52-01：**逐个**通知，不只通知第一个。
+                // 旧实现 `pendingScanActions.first()` + clear() 只回调一个 action，
+                // 其余待定扫描既不投递也不复位 ⇒ 界面永久卡在运行态，用户既无结果也无法重试。
+                // 与看门狗超时路径（:103-106 逐个 forEach）的口径保持一致。
+                val pending = pendingScanActions.toList()
                 pendingScanActions.clear()
                 cancelAdapterScanWatchdog()
-                onAdapterScanFailed(action)
+                pending.forEach { onAdapterScanFailed(it) }
             }
 
+            // 导入会话中的失败：一次会话只报第一条，避免与脚本自己的 catch 提示互相覆盖。
+            // 注意此分支**不在** else 里 —— `handledByScan` 为 true 时说明已按扫描失败处理，
+            // 但导入态仍可能同时在跑（两个流程共用一个页面），所以判据是独立的。
             if (!handledByScan && importState is ImportRunState.Running) {
-                // 一次会话只报第一条失败，避免与脚本自己的 catch 提示互相覆盖
                 notifyImportFailure(text)
                 updateImportState(ImportRunState.Failed(text))
             }

@@ -90,6 +90,9 @@ function getTimeSlots() {
 // ---------- 网络请求 ----------
 async function fetchCourseData(xnxqdm) {
     let page = 1;
+    // 单页条数与页数上限：10 页 × 100 条 = 1000 条。
+    // R41-08：达上限时必须显式报错，不得静默截断。
+    const MAX_PAGE = 10;
     const rowsPerPage = 100;
     let allRows = [];
     let total = 0;
@@ -116,7 +119,16 @@ async function fetchCourseData(xnxqdm) {
         allRows = allRows.concat(ret.rows);
         if (allRows.length >= total) break;
         page++;
-        if (page > 10) break;
+        if (page > MAX_PAGE) {
+            // R41-08：此前是静默 break —— 超出部分被丢弃，调用方仍按「全部拿到」走，
+            // 最终弹「导入完成」并落库，用户完全不知道有课程没进来。
+            // 改为**明确抛错**：导入中止并提示，用户可缩小范围或联系学校确认。
+            // 宁可让用户知道少了一部分，也不要给一份看起来完整的错数据。
+            throw new Error(
+                `教务共 ${total} 条课程，已达单次抓取上限（${MAX_PAGE * rowsPerPage} 条）。` +
+                `请分学期抓取，或联系学校确认导出方式。`
+            );
+        }
     }
     return allRows;
 }

@@ -3,6 +3,9 @@ package com.shangkeschedule.service.notification.schedule
 import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
@@ -68,5 +71,24 @@ class NotificationSyncWorker(
 
         /** 唯一任务名：同一次设置/课表变更链上的重复触发会被 REPLACE 合并。 */
         const val UNIQUE_WORK_NAME = "NotificationSyncWorker_Sync_Update"
+
+        /**
+         * 请求一次重排（自愈入口）。
+         *
+         * R41-09：`reschedule()` 返回的 [NotificationScheduler.RescheduleSummary.failedStrategies]
+         * 此前只在 Worker 自身内部被消费；TimeChangeReceiver / AlarmPermissionReceiver /
+         * SyncManager 三处调用方直接丢弃该值 ⇒ 策略级失败只留日志，用户侧「当日提醒真空」
+         * 且**不可自愈**（没有重试入口）。
+         * 修法：把这三处的失败统一收敛到本方法 —— 唯一任务名保证同一时刻只有一个在跑，
+         * 退避与重试由 WorkManager 负责，不额外引入调度逻辑。
+         */
+        fun enqueue(context: Context) {
+            val request = OneTimeWorkRequestBuilder<NotificationSyncWorker>().build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                UNIQUE_WORK_NAME,
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+        }
     }
 }

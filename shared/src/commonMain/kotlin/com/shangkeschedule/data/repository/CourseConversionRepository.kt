@@ -457,14 +457,27 @@ class CourseConversionRepository(
                 number = jsonModel.number,
                 startTime = jsonModel.startTime,
                 endTime = jsonModel.endTime,
-                courseTableId = tableId
+                courseTableId = tableId,
+                // R41-01：此前未透传 schemeId，全部落进默认方案 default。
+                schemeId = jsonModel.schemeId
             )
         }
 
         // 真事务：时段清空与写入原子化。
-        // 空列表已在入口被 require 拦下，这里的 isNotEmpty 是双保险（防御后续新增调用点）。
+        // 空列表已在入口被 require 拦下，这里的 isNotEmpty 是双保险（防御后续调用点）。
         database.withWriteTransaction {
-            timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+            // R41-01：此前按 courseTableId **整表删除**，会把用户配置的其它作息方案
+            // （夏令时 / 冬令时等）一并抹掉且不可恢复 —— 表现为「导入作息后课表渲染为空」。
+            // 改为只替换本次数据实际涉及的方案，语义与同文件 importCourseTableFromJson 的
+            // :398-412 一致；该处 affectedSchemeIds 为空时（仅在数据源无任何方案时）才整表清。
+            val affectedSchemeIds = timeSlotEntities.map { it.schemeId }.toSet()
+            if (affectedSchemeIds.isEmpty()) {
+                timeSlotDao.deleteAllTimeSlotsByCourseTableId(tableId)
+            } else {
+                affectedSchemeIds.forEach { schemeId ->
+                    timeSlotDao.deleteTimeSlotsByScheme(tableId, schemeId)
+                }
+            }
             timeSlotDao.insertAll(timeSlotEntities)
         }
     }

@@ -231,8 +231,16 @@ const val USER_DATA_SCHEMA_VERSION = 4
         val glassRefractionDepthEffect: Boolean? = null,
         /** 全局动画风格名（GLASS/GENTLE/SNAPPY）；v3.26.0 新增 */
         val animationStyle: String = "GLASS",
-        /** 已关闭的动画分组名集合；v3.26.0 新增 */
-        val disabledAnimationGroups: Set<String> = emptySet(),
+        /**
+         * 已关闭的动画分组名集合；v3.26.0 新增。
+         *
+         * R45-01：改为**可空**。本字段与 animationStyle 同为 v3.26.0 新增，
+         * 但同批新增字段（v2 起的 21 个）一律声明为可空 —— 依本模型 KDoc「可空字段的约定」：
+         * 旧备份缺该字段 ⇒ 解码为 null ⇒ 恢复时保留设备现值。
+         * 保持非空默认 emptySet() 会让**旧备份缺字段时兜底写入空集**，
+         * 于是恢复一次就把用户已关闭的动画分组全部重置为「开启」（用户视觉上突然全屏动画）。
+         */
+        val disabledAnimationGroups: Set<String>? = null,
 
         // ---- v2 新增：此前未纳入备份、换机恢复即丢的字段 ----
         // 全部可空：旧备份缺字段 ⇒ CBOR 解码为 null ⇒ 恢复时保留设备现值，

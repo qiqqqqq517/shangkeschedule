@@ -345,6 +345,24 @@
         return code || null;
     }
 
+    /**
+     * 成绩接口的绩点字段 → 数值（v4.75.0）。
+     *
+     * R41-06：本文件头部注释声明钩子「回传成绩与绩点」，但实现只 push 了 5 个字段、
+     * 全文件 grep gradePoint 零命中 ⇒ 湖医药用户的绩点在抓取时被静默丢弃，
+     * 回落本机换算表，于是「算出来的绩点与学校对不上」，且界面上看不出这科学校其实给了绩点。
+     *
+     * 取值规则与 NTU/zhengfang 一致：空串 / 非数字 / 超出 0–5 一律返回 null
+     *（**不猜、不填 0**）—— 0 会被 App 当成「挂科绩点」参与加权，反而污染汇总。
+     * 字段名按乘方各校差异用候选表兜住。
+     */
+    function gradePointOf(row) {
+        var text = String(pickField(row, ['jd', 'jdcf', 'jdf', 'gradePoint', 'point'])).trim();
+        if (!text) return null;
+        var value = Number(text);
+        return (isFinite(value) && value >= 0 && value <= 5) ? value : null;
+    }
+
     // 分页拉全量成绩：easyui datagrid {total, rows:[...]}；接口不存在/无数据时交回已拿到的
     function fetchGradeRows(page, acc) {
         var params = {
@@ -398,7 +416,10 @@
                     credit: isFinite(credit) ? credit : null,
                     scoreText: scoreText,
                     semester: semesterText(row),
-                    category: String(pickField(row, ['kclbmc', 'kcxzmc', 'jhlxmc', 'category'])).trim() || null
+                    category: String(pickField(row, ['kclbmc', 'kcxzmc', 'jhlxmc', 'category'])).trim() || null,
+                    // R41-06：本校绩点。这是学校按本校规则算出的既成事实，
+                    // App 的换算表不可能对上，必须整列带回；取不到就传 null 回落换算，不填 0。
+                    gradePoint: gradePointOf(row)
                 });
             }
             return out;

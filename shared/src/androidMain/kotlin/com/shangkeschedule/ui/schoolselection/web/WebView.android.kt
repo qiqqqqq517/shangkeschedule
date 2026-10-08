@@ -35,6 +35,13 @@ actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
 class AndroidWebViewController : WebViewController {
     var webViewInstance: WebView? = null
 
+    /**
+     * 当前注册到页面的桥接实例（R40-07）。
+     *
+     * 入口地址变化时用它同步门禁基准，见 [NativeBridge.updateEntryUrl]。
+     */
+    var nativeBridge: NativeBridge? = null
+
     override val currentUrl: String
         get() = webViewInstance?.url ?: ""
 
@@ -100,9 +107,30 @@ actual fun rememberWebViewController(): WebViewController {
  */
 class NativeBridge(
     private val handler: WebBridgeHandler,
-    private val sessionEntryUrl: String?,
+    entryUrl: String?,
     private val currentMainFrameUrl: () -> String?
 ) {
+    /**
+     * 本次导入会话的入口地址（可注册域比对的基准）。
+     *
+     * R40-07：此前是不可变构造属性，在 WebView factory 里只赋值一次。
+     * 而 AndroidView 没有 key、factory 仅首次组合执行 ⇒ 用户在地址栏改了入口
+     *（v4.72.0 起开放）之后，门禁仍在拿**旧入口**与当前页比 ⇒ 改到不同可注册域的真实
+     * 教务入口（WebVPN 与教务常分属不同域）时，脚本注入成功也真的跑了，但它的一切回传
+     *（含 reportAdapterError）都被整条丢弃 ⇒ JS 侧静默 → 30 秒后看门狗弹「导入超时」，
+     * 且失败条给出的重试必然再次超时（入口主机仍是冻结的旧主机）。
+     *
+     * 修法：改为可变属性，由 updateEntryUrl 在入口变化时同步。
+     * 同站判定与 fail-closed 语义完全不变 —— 变的只是「基准随实际入口走」。
+     */
+    @Volatile
+    var sessionEntryUrl: String? = entryUrl
+        private set
+
+    /** 入口地址变化时同步基准（见 sessionEntryUrl）。 */
+    fun updateEntryUrl(newEntryUrl: String?) {
+        sessionEntryUrl = newEntryUrl
+    }
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
         val currentUrl = currentMainFrameUrl()
@@ -231,10 +259,12 @@ actual fun PlatformWebView(
                     // P1-11：桥接必须做来源门禁 —— `addJavascriptInterface` 对所有 frame 暴露本对象。
                     // 入口 URL 取 `PlatformWebView(url = ...)`（本次导入会话要访问的教务地址），
                     // 当前主框架 URL 由 WebView 自身提供；两者不同站即整条消息丢弃（见 [bridgeCallAllowed]）。
-                    addJavascriptInterface(
-                        NativeBridge(bridgeHandler, url) { androidController?.webViewInstance?.url },
-                        "_shangkeNativeBridge"
-                    )
+                    // R40-07：留引用，update{} 在入口地址变化时同步门禁基准。
+                    val bridge = NativeBridge(bridgeHandler, url) {
+                        androidController?.webViewInstance?.url
+                    }
+                    androidController?.nativeBridge = bridge
+                    addJavascriptInterface(bridge, "_shangkeNativeBridge")
 
                     val baseChromeClient = object : WebChromeClient() {
                         override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -281,6 +311,10 @@ actual fun PlatformWebView(
             },
             update = { webView ->
                 androidController?.webViewInstance = webView
+                // R40-07：入口地址变了就同步门禁基准。
+                // 不做这一步的话，用户改地址后所有回传都会被按旧入口主机拒收，
+                // 表现为「导入必然超时」且重试无用（真因只在 logcat）。
+                androidController?.nativeBridge?.updateEntryUrl(url)
             }
         )
     }

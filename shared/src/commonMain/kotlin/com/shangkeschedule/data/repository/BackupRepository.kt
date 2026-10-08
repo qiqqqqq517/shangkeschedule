@@ -2,6 +2,7 @@ package com.shangkeschedule.data.repository
 
 import androidx.room3.withWriteTransaction
 import com.shangkeschedule.data.db.main.CourseNote
+import com.shangkeschedule.data.db.main.MAX_SECTIONS_LENGTH
 import com.shangkeschedule.data.db.main.CourseTable
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.db.main.CurriculumCourse
@@ -35,6 +36,7 @@ import com.shangkeschedule.data.model.CourseImportExport.TotalAppBackupEnvelope
 import com.shangkeschedule.data.model.StartScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -388,9 +390,24 @@ class BackupRepository(
      * 避免「恢复进行中」与「自动同步上传」并发，把半恢复状态覆盖到云端唯一备份。
      */
     suspend fun restoreFullSoftwareBackup(backupPackage: AppBackupPackage): Result<Unit> =
-        webDavBackupMutex.withLock {
+        withRestoreLock {
             restoreFullSoftwareBackupLocked(backupPackage)
         }
+
+    /**
+     * 在 webDavBackupMutex 保护下执行一段「恢复流程」。
+     *
+     * R40-05：锁此前只覆盖到 restoreFullSoftwareBackupLocked，而**全部网络 I/O**
+     * （下载 meta.json、逐模块 GET，在 BackupViewModel 里）**全在锁外**；
+     * 上传侧 uploadFullBackupToWebDav 则整条链路串行 —— 两侧不对称。
+     * 受害路径：恢复端下到 meta.json（版本 N）→ 自动同步触发上传，把云端改写为 N+1
+     * → 恢复继续按已下到的旧元数据回填本机 ⇒ 本机与云端静默分叉；
+     * 或恢复写库途中被上传读走中间态。
+     *
+     * 本函数把「下载 + 落库」整段纳入同一把锁，两侧口径对称。
+     */
+    suspend fun <T> withRestoreLock(block: suspend () -> T): T =
+        webDavBackupMutex.withLock { block() }
 
     private suspend fun restoreFullSoftwareBackupLocked(
         backupPackage: AppBackupPackage
@@ -536,7 +553,7 @@ class BackupRepository(
             }
             if (skipped.isNotEmpty()) {
                 // 不静默：明确告知这些课表本身没有可导出内容，仍会以空课表形式进入备份
-                println("[backup] ${skipped.size} 张空课表（无课程且无配置）将以空内容一并备份：${skipped.joinToString("、")}")
+                AppLog.w(TAG, "${skipped.size} 张空课表（无课程且无配置）将以空内容一并备份：${skipped.joinToString("、")}")
             }
 
             val envelope = TotalAppBackupEnvelope(
@@ -667,7 +684,15 @@ class BackupRepository(
                         // 且异常被下方 `catch (_: Exception)` 整个吞掉 ⇒ 静默半恢复。
                         // 现改为：存在则跳过 insert（数据已由事务回滚保留），
                         // 仅补写该课表的子表数据；不存在才整条插入。
-                        val alreadyExists = currentTables.any { it.id == tableInfo.first }
+                        // R40-04：判据此前取自**删除前的内存快照** currentTables，
+                        // 对循环中任意 tableInfo 恒为 true ⇒ INSERT 分支不可达。
+                        // 事务内失败时跳过 INSERT 恰好正确（Room 已整体回滚），
+                        // 但失败发生在事务**提交之后**（:653-654 的 DataStore 写入可因磁盘满 /
+                        // IO 错误抛异常）时，库里已没有该课表行 ⇒ 跳过 INSERT 导致后续
+                        // importCourseTableFromJson 插入的 Course 外键指向不存在的行 ⇒ 外键失败，
+                        // 最终是「课表已换、设置未换」的半恢复。
+                        // 修法：回滚时**查库**（删除前快照只用于取元信息），不再用快照判存在。
+                        val alreadyExists = courseTableDao.getCourseTableById(tableInfo.first) != null
                         if (!alreadyExists) {
                             // 回滚快照来自当前库，直接复用其情侣课表标记
                             val original = currentTables.firstOrNull { it.id == tableInfo.first }
@@ -922,9 +947,12 @@ class BackupRepository(
                 glassRefractionDispersion = bm.glassRefractionDispersion ?: currentSettings.glassRefractionDispersion,
                 glassRefractionDepthEffect = bm.glassRefractionDepthEffect ?: currentSettings.glassRefractionDepthEffect,
                 animationStyle = runCatching { com.shangkeschedule.ui.theme.AnimationStyle.valueOf(bm.animationStyle) }.getOrNull() ?: currentSettings.animationStyle,
+                // R45-01：`?.` 兜底 —— 旧备份缺该字段时保留设备现值，
+                // 而不是被兜底写入空集（= 所有动画分组全部视为开启）。
                 disabledAnimationGroups = bm.disabledAnimationGroups
-                    .mapNotNull { runCatching { com.shangkeschedule.ui.theme.AnimationGroup.valueOf(it) }.getOrNull() }
-                    .toSet(),
+                    ?.mapNotNull { runCatching { com.shangkeschedule.ui.theme.AnimationGroup.valueOf(it) }.getOrNull() }
+                    ?.toSet()
+                    ?: currentSettings.disabledAnimationGroups,
                 // v2 可空字段：旧备份解码为 null ⇒ 保留设备现值（避免被 ""/false 默认值静默清空）
                 dynamicIslandEnabled = bm.dynamicIslandEnabled ?: currentSettings.dynamicIslandEnabled,
                 reduceMotionEnabled = bm.reduceMotionEnabled ?: currentSettings.reduceMotionEnabled,
@@ -1097,19 +1125,41 @@ class BackupRepository(
                 val restoredNotes = envelope.notes
                 if (restoredNotes != null) {
                     val existingCourseIds = database.courseDao().getAllCourseIdsOnce().toHashSet()
-                    database.courseNoteDao().deleteAll()
+                    // R40-06：**先过滤再删**。旧顺序是 deleteAll() → filter ⇒ 备份里的笔记
+                    // 若全部指向不存在的课程（CASCADE 外键孤儿），过滤后为空、insertAll 不执行，
+                    // 而本机笔记已被整表清空且无法回填，函数却返回 Result.success。
+                    // 用户表现：恢复一次「成功」，课堂笔记全部消失且没有任何提示。
                     val insertableNotes = restoredNotes
                         .filter { it.courseId in existingCourseIds }
                         .map {
                             CourseNote(
                                 id = it.id, courseId = it.courseId, date = it.date,
-                                sections = it.sections, title = it.title, content = it.content,
+                                // R68-01：恢复侧对 sections 做长度钳制。
+                                // 备份文件可被构造或损坏，若在此处原样灌入超长值，
+                                // 就绕过了 UI 输入框与 VM 的两层上限（报告已指出「只改输入框不够」）。
+                                // 与写入侧同一常量，口径一致。
+                                sections = it.sections
+                                    ?.take(MAX_SECTIONS_LENGTH)
+                                    ?.trim()
+                                    ?.takeIf { s -> s.isNotEmpty() },
+                                title = it.title, content = it.content,
                                 imagePaths = it.imagePaths,
                                 createdAt = it.createdAt, updatedAt = it.updatedAt
                             )
                         }
-                    if (insertableNotes.isNotEmpty()) {
-                        database.courseNoteDao().insertAll(insertableNotes)
+                    // 备份**确实带了笔记**却一条都插不进去 ⇒ 本机笔记原样保留（不做替换）。
+                    // 备份本身就没有笔记（restoredNotes 为空）⇒ 按「以备份为准」语义清空，保持原行为。
+                    val replaceLocal = insertableNotes.isNotEmpty() || restoredNotes.isEmpty()
+                    if (replaceLocal) {
+                        // R40-06：删除与插入必须原子。本函数整体不是 Room @Transaction（异常由
+                        // 外层 try/catch 收成 Result），裸奔的 deleteAll + insertAll 一旦插入
+                        // 失败，本机笔记就真的没了 —— 且与「课表已恢复、设置未恢复」同样不可自愈。
+                        database.withWriteTransaction {
+                            database.courseNoteDao().deleteAll()
+                            if (insertableNotes.isNotEmpty()) {
+                                database.courseNoteDao().insertAll(insertableNotes)
+                            }
+                        }
                     }
                 }
                 // 成绩：仅在备份确实带了该字段时才替换（v1 老备份为 null ⇒ 保持本机成绩不变）
@@ -1149,6 +1199,12 @@ class BackupRepository(
                 }
             }
             Result.success(Unit)
+        } catch (e: CancellationException) {
+            // R40-11：CancellationException 是**协程取消**信号，不是业务失败。
+            // 被 `catch (e: Exception)` 吞掉并包成 Result.failure 后，结构化并发被破坏 ——
+            // 已取消的恢复协程不会中止后续挂起调用，可能在用户已离开后继续写库。
+            // 必须原样重抛。
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
