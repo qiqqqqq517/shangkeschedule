@@ -219,9 +219,18 @@ val packSchoolsZip = tasks.register("packSchoolsZip") {
     val archive = offlineRepoArchive
 
     doLast {
-        // 与旧实现保持完全一致的排除规则：文档 / 模板不进正式包
+        // 排除规则：文档 / 模板 / **构建期源数据**不进正式包。
+        //
+        // P2-2（2026-10-08 修复）：`timetable_schools.json`（284.5 KB）是**构建期数据集** ——
+        // 它是 `tools/build_schools.py` 生成 `school_index.pb` 的输入，App 运行时从不读它
+        // （全仓 `shared/src` 对该文件名零命中；运行时只读 `index/school_index.pb`，
+        // 入口见 `SchoolRepository` / `AdapterRemoteUpdater.INDEX_RELATIVE_PATH`）。
+        // 此前它随 `offline_schools.zip` 打进每个正式包并被解压到 filesDir，白占约 285 KB
+        // （解压后计入用户存储），且随 OTA 一并下发。
         fun isExcluded(relativePath: String): Boolean =
-            relativePath.endsWith(".md") || relativePath.endsWith("schools_template.json")
+            relativePath.endsWith(".md") ||
+                relativePath.endsWith("schools_template.json") ||
+                relativePath.endsWith("timetable_schools.json")
 
         fun writeLeInt(out: OutputStream, value: Int) {
             out.write(value and 0xFF)
