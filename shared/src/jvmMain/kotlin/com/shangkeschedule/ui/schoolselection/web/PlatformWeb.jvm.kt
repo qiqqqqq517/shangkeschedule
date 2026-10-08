@@ -65,12 +65,14 @@ actual fun PlatformWebView(
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
     onNavigateToSchedule: () -> Unit,
-    onWebViewLoadError: (String) -> Unit
+    onWebViewLoadError: (String) -> Unit,
+    onPageLoaded: () -> Unit
 ) {
     // 让页面立即进入「加载完成」状态，避免上层永久卡住进度条
     LaunchedEffect(Unit) {
         onProgressChange(1f)
         onTitleChange("")
+        onPageLoaded()
     }
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

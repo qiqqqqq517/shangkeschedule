@@ -1389,6 +1389,8 @@
     <string name="study_import_no_result">No curriculum credit requirements found. Make sure the current page is your school's curriculum or credit summary page.</string>
     <!-- v4.75.2: separate the timeout hint from "read but empty" -->
     <string name="study_scan_timeout">Read timed out. Make sure you are signed in and the page has finished loading its curriculum / credit summary content.</string>
+    <!-- v4.75.3: the app opens the portal home page, but the data lives on a sub page -->
+    <string name="study_page_not_found">Could not find the \"Study status\" entry in the portal menu. Open your school\'s curriculum / study status page from the address bar, then tap \"Read this page\".</string>
     <!-- v4.75.0: curriculum course list (required / done / remaining) -->
     <string name="study_curriculum_section">Curriculum courses</string>
     <string name="study_curriculum_summary">%1$d planned · %2$d done · %3$d left</string>

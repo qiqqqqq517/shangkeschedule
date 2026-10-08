@@ -151,13 +151,15 @@ actual fun PlatformWebView(
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
     onNavigateToSchedule: () -> Unit,
-    onWebViewLoadError: (String) -> Unit
+    onWebViewLoadError: (String) -> Unit,
+    onPageLoaded: () -> Unit
 ) {
     val androidController = controller as? AndroidWebViewController
 
     val currentOnProgressChange by rememberUpdatedState(onProgressChange)
     val currentOnTitleChange by rememberUpdatedState(onTitleChange)
     val currentOnWebViewLoadError by rememberUpdatedState(onWebViewLoadError)
+    val currentOnPageLoaded by rememberUpdatedState(onPageLoaded)
 
     val currentIsDesktopMode by rememberUpdatedState(isDesktopMode)
 
@@ -253,6 +255,7 @@ actual fun PlatformWebView(
 
                         override fun onPageFinished(view: WebView?, url: String?) {
                             currentOnProgressChange(1.0f)
+                            currentOnPageLoaded()
                             view?.evaluateJavascript("document.title") { value ->
                                 val unquoted = value?.trim('"')?.replace("\\\"", "\"")?.trim() ?: ""
                                 if (unquoted.isNotBlank() && unquoted != "null") {

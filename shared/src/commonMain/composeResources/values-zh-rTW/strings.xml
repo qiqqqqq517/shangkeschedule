@@ -1390,6 +1390,8 @@
     <string name="study_import_no_result">未讀取到培養方案學分要求，請確認目前頁面是本校培養方案／學分統計頁</string>
     <!-- v4.75.2：把「讀取超時」與「讀到但為空」分成兩種提示 -->
     <string name="study_scan_timeout">讀取超時：請確認已登入教務，且目前頁面已載入出培養方案／學分統計內容後再試。</string>
+    <!-- v4.75.3：App 開啟的是教務首頁，培養方案資料在「學業情況」子頁面 -->
+    <string name="study_page_not_found">無法在教務選單裡找到「學業情況」入口。請在網址列進入該校的培養方案／學業情況查詢頁後，再點「讀取本頁」。</string>
     <!-- v4.75.0：培養方案課程清單（應修／已修／未修） -->
     <string name="study_curriculum_section">培養方案課程</string>
     <string name="study_curriculum_summary">共 %1$d 門 · 已修 %2$d 門 · 未修 %3$d 門</string>

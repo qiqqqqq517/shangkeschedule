@@ -1392,6 +1392,9 @@
          钩子不回��时界面会永久停在「正在读取…」。超时与「读到但为空」是两回事，
          分开提示才能让用户知道该等页面加载还是该换页面。 -->
     <string name="study_scan_timeout">读取超时：请确认已登录教务，且当前页面已加载出培养方案 / 学分统计内容后再试。</string>
+    <!-- v4.75.3：App 打开的是教务首页，而培养方案数据在「学业情况」子页面里。
+         找不到该入口时不猜、不静默失败，如实告诉用户去哪儿点。 -->
+    <string name="study_page_not_found">未能在教务菜单里找到「学业情况」入口。请在地址栏进入该学校的培养方案 / 学业情况查询页后，再点「读取本页」。</string>
     <!-- v4.75.0：培养方案课程清单（应修 / 已修 / 未修） -->
     <string name="study_curriculum_section">培养方案课程</string>
     <string name="study_curriculum_summary">共 %1$d 门 · 已修 %2$d 门 · 未修 %3$d 门</string>

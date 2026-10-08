@@ -57,5 +57,13 @@ expect fun PlatformWebView(
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
     onNavigateToSchedule: () -> Unit,
-    onWebViewLoadError: (String) -> Unit
+    onWebViewLoadError: (String) -> Unit,
+    /**
+     * 页面**加载完成**回调（v4.75.3）。
+     *
+     * 用于「先跳到目标页、等它加载完再做下一步」这类编排：学业情况读取需要先把
+     * WebView 导航到培养方案页，等 DOM 有了再调钩子，否则会在旧页面上读到 0 条。
+     * 与 [onProgressChange] 的区别：进度到 1.0 时文档未必可读，这里是 `onPageFinished` 之后。
+     */
+    onPageLoaded: () -> Unit
 )

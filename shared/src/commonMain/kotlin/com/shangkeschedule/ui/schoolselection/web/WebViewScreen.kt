@@ -130,6 +130,7 @@ import shangkeschedule.shared.generated.resources.study_import_recognize
 import shangkeschedule.shared.generated.resources.study_import_success
 import shangkeschedule.shared.generated.resources.study_import_success_with_courses
 import shangkeschedule.shared.generated.resources.study_scan_timeout
+import shangkeschedule.shared.generated.resources.study_page_not_found
 import shangkeschedule.shared.generated.resources.grade_import_no_result
 import shangkeschedule.shared.generated.resources.grade_import_recognize
 import shangkeschedule.shared.generated.resources.grade_import_success
@@ -225,6 +226,7 @@ fun WebViewScreen(
     val toastStudyNoAdapter = stringResource(Res.string.study_import_no_adapter)
     val toastStudyNoResult = stringResource(Res.string.study_import_no_result)
     val toastStudyTimeout = stringResource(Res.string.study_scan_timeout)
+    val toastStudyPageNotFound = stringResource(Res.string.study_page_not_found)
     val statusReadingStudy = stringResource(Res.string.study_import_reading)
 
     var currentUrl by remember { mutableStateOf(initialUrl ?: "about:blank") }
@@ -250,6 +252,13 @@ fun WebViewScreen(
     var adapterJsCode by remember { mutableStateOf<String?>(null) }
     // 学业识别（培养方案学分要求）运行状态
     var studyScanRunning by remember { mutableStateOf(false) }
+    /**
+     * 已点了「学业情况」入口、等页面加载完再读（v4.75.3）。
+     *
+     * 点击菜单后页面还在跳转，此刻读 DOM 必定读到 0 条 —— 这正是此前「导入不进去」
+     * 的直接原因。`onPageLoaded` 消费掉它并调钩子。
+     */
+    var pendingStudyRescan by remember { mutableStateOf(false) }
     // 回落用的脚本引用：钩子结果为空 / 钩子抛错时要能立刻走通用脚本，而通用脚本
     // 又需要用到挂在下面的状态与仓库实例。用 ref 而不是把逻辑内联进回调，
     // 是为了让「钩子失败」与「没有钩子」两条路径共用同一段回落代码。
@@ -605,31 +614,71 @@ fun WebViewScreen(
      *
      * 钩子只回传**要求**，已修学分由本机成绩表现算（见 GradeRepository.computeStudyProgress）。
      */
-    val startStudyScan: () -> Unit = {
-        if (!studyScanRunning) {
-            studyScanRunning = true
-            val adapterCode = adapterJsCode
-            if (adapterCode == null) {
+    /** 真正调用适配脚本钩子读培养方案（已确认当前页有数据时）。 */
+    fun runStudyHook(adapterCode: String) {
+        webViewController.evaluateJavascript(
+            buildAdapterHookProbeScript(adapterCode, AdapterHooks.SCAN_STUDY)
+        ) { probe ->
+            if (probe?.trim('"') == "present") {
+                bridgeHandler.beginAdapterScan(AdapterScanActions.STUDY)
+                webViewController.executeScript(
+                    buildAdapterHookInvokeScript(
+                        adapterCode,
+                        AdapterHooks.SCAN_STUDY,
+                        AdapterScanActions.STUDY
+                    )
+                )
+            } else {
                 studyScanRunning = false
                 ToastManager.show(toastStudyNoAdapter)
+            }
+        }
+    }
+
+    /**
+     * v4.75.3：**先走到学业情况页，再读**。
+     *
+     * App 打开的是学校配置的首页（`import_url`），而钩子要在学业情况页里
+     * 找培养方案数据（实测：首页 `p.title1` 命中 0、学业页命中 14）。
+     * 此前没有这一步 ⇒ 用户在首页点「读取」必然读到 0 条，表现为「导入不进去」。
+     *
+     * `found` → 点击入口后等 `onPageLoaded` 再读（`pendingStudyRescan` 承接）；
+     * `notfound` → 页面不是学业页且找不到入口，如实提示让用户自己去地址栏进。
+     */
+    val startStudyScan: () -> Unit = {
+        if (!studyScanRunning) {
+            val adapterCode = adapterJsCode
+            if (adapterCode == null) {
+                ToastManager.show(toastStudyNoAdapter)
             } else {
-                webViewController.evaluateJavascript(
-                    buildAdapterHookProbeScript(adapterCode, AdapterHooks.SCAN_STUDY)
-                ) { probe ->
-                    if (probe?.trim('"') == "present") {
-                        bridgeHandler.beginAdapterScan(AdapterScanActions.STUDY)
-                        webViewController.executeScript(
-                            buildAdapterHookInvokeScript(
-                                adapterCode,
-                                AdapterHooks.SCAN_STUDY,
-                                AdapterScanActions.STUDY
-                            )
-                        )
-                    } else {
-                        studyScanRunning = false
-                        ToastManager.show(toastStudyNoAdapter)
+                studyScanRunning = true
+                webViewController.evaluateJavascript(JS_NAVIGATE_TO_STUDY) { navResult ->
+                    when (navResult?.trim('"')) {
+                        "found" -> pendingStudyRescan = true
+                        else -> {
+                            studyScanRunning = false
+                            ToastManager.show(toastStudyPageNotFound)
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * 页面加载完成后，若有「等学业页加载好再读」的待办，就在这里调钩子。
+     *
+     * 与 [startStudyScan] 分开：前者负责发起跳转，这里负责在正确的时机消费。
+     * `onPageFinished` 早于本文档提及的「进度 1.0」但晚于 DOM 可读，所以放在这里。
+     */
+    val onPageLoaded: () -> Unit = {
+        if (pendingStudyRescan) {
+            pendingStudyRescan = false
+            val adapterCode = adapterJsCode
+            if (adapterCode == null || !studyScanRunning) {
+                studyScanRunning = false
+            } else {
+                runStudyHook(adapterCode)
             }
         }
     }
@@ -991,6 +1040,7 @@ fun WebViewScreen(
                 onProgressChange = { loadingProgress = it },
                 onTitleChange = { pageTitle = it },
                 onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) },
+                onPageLoaded = onPageLoaded,
                 onWebViewLoadError = { description ->
                     loadErrorMessage = if (description.isBlank()) {
                         loadErrorGeneric

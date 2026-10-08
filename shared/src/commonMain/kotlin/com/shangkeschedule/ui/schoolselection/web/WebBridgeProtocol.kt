@@ -1063,6 +1063,110 @@ val JS_NAVIGATE_TO_EMPTY_CLASSROOM = """
 """.trimIndent()
 
 /**
+ * 「定位学业情况查询页」注入脚本（v4.75.3）。
+ *
+ * ## 为什么必须有这个脚本
+ *
+ * App 打开教务页用的是学校配置里的 `import_url`（**首页 / 注册地址**），不是学业情况页。
+ * 实测南通大学：首页 `index_initMenu.html` 里 `p.title1` 命中 **0 个**、「要求学分」**0 处**；
+ * 而学业情况页 `xsxyqk_cxXsxyqkIndex.html` 命中 **14 个**、可解析出 **7 条**要求。
+ * ⇒ 用户停在首页点「读取」，钩子必然读到 0 条 —— 症状是「导入不进去」，而��是脚本坏了。
+ *
+ * 课表与空教室都有各自的定位脚本（[JS_NAVIGATE_TO_TIMETABLE] / [JS_NAVIGATE_TO_EMPTY_CLASSROOM]），
+ * **学业情况此前没有**，于是成了唯一「必须用户自己先点对菜单」的入口。
+ *
+ * ## 与空教室版本的差异（关键）
+ *
+ * 正方 V9 的菜单是 **Bootstrap 折叠下拉**：菜单项 `li` 本身 `display:list-item`、
+ * `visibility:visible`，但**祖先 `ul.dropdown-menu` 是 `display:none`**，导致
+ * `getBoundingClientRect()` 返回 0×0。直接沿用空教室那版的 `isVisible()` 会
+ * **一个候选都选不出来**（实测命中 0）。
+ * 这里在打分前先把隐藏的祖先逐层改成 `display:block`（实测只需展开 1 层，
+ * 目标即从 0×0 变为 158×23）。
+ *
+ * 返回 `found` / `notfound`；`notfound` 由 Native 侧提示用户自行进入该页后点「读取本页」。
+ */
+val JS_NAVIGATE_TO_STUDY = """
+(function() {
+    try {
+        if (typeof window.shangkeNavigateToStudy === 'function') {
+            try {
+                window.shangkeNavigateToStudy();
+                return 'found';
+            } catch (e) {
+            }
+        }
+
+        // 越精确越优先（长度加权打分，见下方 score 计算）
+        var keywords = [
+            '学生学业情况查询', '学业情况查询', '培养方案查询', '学分要求查询',
+            '学业情况', '培养方案', '学分统计', '学业查询', '学分查询', '毕业审核'
+        ];
+
+        function isVisible(el) {
+            if (!el || typeof el.getBoundingClientRect !== 'function') return false;
+            var rect = el.getBoundingClientRect();
+            return rect.width >= 2 && rect.height >= 2;
+        }
+
+        // 正方菜单常藏在 display:none 的下拉里，先展开隐藏祖先，否则全部被判不可见
+        function revealHiddenAncestors(el) {
+            var p = el.parentElement;
+            while (p && p !== document.body) {
+                var cs = null;
+                try { cs = window.getComputedStyle(p); } catch (e) { cs = null; }
+                if (cs && cs.display === 'none') {
+                    try { p.style.display = 'block'; } catch (e) { }
+                }
+                p = p.parentElement;
+            }
+        }
+
+        var candidates = document.querySelectorAll('a, button, [onclick], li, td, span');
+        var best = null;
+        var bestScore = -1;
+
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            revealHiddenAncestors(el);
+            var text = (el.textContent || '').replace(/\s+/g, '').trim();
+            if (!text || text.length > 24) continue;
+            // 必须自己能被点开：内层 <a onclick="clickMenu(...)"> 才带跳转，
+            // 外层 <li> 的 onclick 常常是空的（实测正是如此）
+            var clickable = (el.tagName === 'A' || el.tagName === 'BUTTON' ||
+                             (el.getAttribute && el.getAttribute('onclick')));
+            if (!clickable) continue;
+            if (!isVisible(el)) continue;
+            var hay = text.toLowerCase();
+            for (var k = 0; k < keywords.length; k++) {
+                var needle = keywords[k].toLowerCase();
+                if (hay.indexOf(needle) === -1) continue;
+                var score = needle.length * 100 - text.length;
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = el;
+                }
+            }
+        }
+
+        if (!best) return 'notfound';
+
+        var trigger = best;
+        if (typeof best.closest === 'function') {
+            trigger = best.closest('a, button, [onclick]') || best;
+        }
+        if (trigger.tagName === 'A' && trigger.href) {
+            trigger.target = '_self';
+        }
+        trigger.click();
+        return 'found';
+    } catch (e) {
+        return 'notfound';
+    }
+})();
+""".trimIndent()
+
+/**
  * 「读取本页空教室」注入脚本（通用空教室结果表解析，不依赖适配脚本）。
  *
  * 与 [JS_SCAN_GRADES] 同构：先按表头映射列（教室 / 座位数 / 空闲节次 / 教学楼 / 校区），
