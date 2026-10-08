@@ -1,6 +1,22 @@
 // 上课适配 Wakeup 课表分享口令
 // 目前采用v6.1.70 官渠apk中 提取到的apk签名md5与signA算法
 // signA二次发送至antispam 取signB
+//
+// ============================ 第三方材料显式声明 ============================
+// @third-party-material-declared
+//
+// 本文件**有意内嵌**「唤醒课表」（com.suda.yzune.wakeupschedule v6.1.70）官方渠道 APK
+// 中提取的签名材料，用于复现其 antispam 签名流程以换取 signB：
+//   signatureMd5 / signAKey / keySalt / magic / publicToken / channel
+//
+// 为什么不能删：这些字段是该服务端校验的**既成事实**，删掉或改写会让 signA/signB 对不上，
+// 「分享口令导入课表」功能整体失效。它们的作用面仅限 wakeup.fun 的既有公开接口调用。
+//
+// 约束（由 scripts/check_adapters.py 的 P3-27 规则机器把关）：
+//   ① 只有本文件在 THIRD_PARTY_CRED_WHITELIST 白名单里；
+//   ② 白名单**必须与上面的 @third-party-material-declared 标记同时存在**才放行；
+//   ③ 任何**其它**适配脚本出现疑似凭据字面量都会让门禁硬红 —— 不要再往别处塞密钥。
+// ==========================================================================
 
 const WAKEUP_V6170 = Object.freeze({
     host: "https://api.wakeup.fun",

@@ -115,6 +115,35 @@ DANGEROUS = {
     "innerHTML=": re.compile(r"\.innerHTML\s*="),
 }
 
+# --- 内嵌第三方凭据 / 密钥字面量（P3-27，第 41 轮补）-NaN
+#
+# 背景：`GLOBAL_TOOLS/wake_up.js` 内嵌了「唤醒课表」官方 APK 的签名 md5 / signAKey /
+# keySalt / publicToken 等字段（换取 signB 必需，删掉会破坏分享口令功能），
+# 这些材料随 APK 与 OTA 清单分发。原状是**门禁对此类字面量零规则** ——
+# 同一原型再往别的适配脚本里塞凭据/密钥，没有任何一道检查会响。
+#
+# 规则：适配脚本正文（去注释后）出现「疑似凭据键名 = 长度 >= 6 的字面量」即计入；
+#   · 文件已在 THIRD_PARTY_CRED_WHITELIST 中**且正文含显式声明标记** ⇒ INFO（已知第三方材料）；
+#   · 否则 ⇒ ERROR（未申报的内嵌凭据）。
+#
+# 正则细节：键名前用负向后顾排除「键名出现在字符串内部」的假阳性 ——
+# 实测 `HUAT/HUAT.js` 的字符串拼接会被朴素版本误判成凭据赋值。
+THIRD_PARTY_CRED_PATTERN = re.compile(
+    r"""(?<!["'\w])
+    (publicToken|signatureMd5|signAKey|keySalt|magic|secret|apiKey|api_key|apikey|
+     password|passwd|pwd|token|signKey|appSecret|accessKey|privateKey|clientSecret)
+    \s*[:=]\s*["']([^"']{6,})["']""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
+# 已知第三方材料的白名单：文件 -> 允许内嵌凭据的理由（同时必须写进脚本正文的声明区）。
+THIRD_PARTY_CRED_WHITELIST = {
+    "GLOBAL_TOOLS/wake_up.js": "唤醒课表官方 APK 的签名材料（换取 signB 必需）",
+}
+
+# 正文必须含此标记才算「显式声明」，否则白名单也不放行。
+THIRD_PARTY_CRED_DECLARATION = "@third-party-material-declared"
+
 
 def read_lf(path: Path) -> str:
     """按 UTF-8 读取并把行尾统一成 LF。
@@ -371,6 +400,8 @@ def main() -> int:
     missing_bridge: list[str] = []
     syntax_hits: list[str] = []
     node_unavailable: list[str] = []
+    cred_declared: list[str] = []   # 已申报的第三方材料（INFO）
+    cred_undeclared: list[str] = [] # 未申报的内嵌凭据（ERROR）
 
     for rel, path in public_scripts.items():
         text = read_lf(path)
@@ -400,6 +431,24 @@ def main() -> int:
 
         if "saveImportedCourses" not in text and not is_shared_lib(rel):
             missing_bridge.append(f"{rel} 未调用 saveImportedCourses")
+
+        # P3-27：内嵌第三方凭据 / 密钥字面量。用去注释文本，避免注释里举例的键名被算成命中。
+        cred_matches = THIRD_PARTY_CRED_PATTERN.findall(dangerous_text)
+        if cred_matches:
+            declared = (
+                rel in THIRD_PARTY_CRED_WHITELIST
+                and THIRD_PARTY_CRED_DECLARATION in text
+            )
+            names = sorted({m[0] for m in cred_matches})
+            if declared:
+                cred_declared.append(
+                    f"{rel} 内嵌 {len(cred_matches)} 处第三方材料（{', '.join(names[:4])}）"
+                    f"——已显式声明：{THIRD_PARTY_CRED_WHITELIST[rel]}")
+            else:
+                cred_undeclared.append(
+                    f"{rel} 内嵌疑似凭据字面量 {len(cred_matches)} 处（{', '.join(names[:4])}）"
+                    "：若是已知第三方材料，请加入 THIRD_PARTY_CRED_WHITELIST 并在正文写"
+                    f" {THIRD_PARTY_CRED_DECLARATION} 声明；否则不得硬编码凭据")
 
         if not args.skip_node:
             try:
@@ -448,6 +497,9 @@ def main() -> int:
     warns.extend(missing_bridge)
     warns.extend(native_dialog_hits)
     warns.extend(no_catch)
+    # P3-27：未申报的内嵌凭据 = 硬错误（防「往适配脚本里塞密钥」这类新增）；
+    #       已申报的第三方材料只在输出里列一行，不产生噪音。
+    errors.extend(cred_undeclared)
 
     dangerous_regressions: list[str] = []
     if dangerous_hits:
@@ -581,6 +633,7 @@ def main() -> int:
     print(f"裸原生对话框（未有 bridge 分支保护）: {len(native_dialog_hits)} 处")
     print(f"危险 API: {len(dangerous_hits)} 处")
     print(f"孤儿适配脚本: {len(orphans)} 个")
+    print(f"内嵌第三方材料（已声明）: {len(cred_declared)} 个文件（INFO）")
     print(f"ERROR: {len(errors)}   WARN: {len(warns)}")
 
     if errors:
@@ -589,6 +642,10 @@ def main() -> int:
     if warns:
         print("\n[WARN]")
         dump("警告", warns, args.max_list)
+
+    if cred_declared:
+        print("\n[INFO] 已知第三方材料（白名单 + 正文显式声明）")
+        dump("已声明", cred_declared, args.max_list)
 
     report = {
         "public_count": len(public_scripts),
