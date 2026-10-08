@@ -264,16 +264,28 @@ private fun InternalGradientSlider(
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
+    // 滑块几何（v4.75.5 与 StyleSliderItem 同步修复「thumb 溢出轨道」）：
+    //
+    // 轨道有 12dp 水平内缩、4dp 垂直内缩 ⇒ 轨道高 = 32 - 8 = 24dp；
+    // thumb 外圈半径 12dp ⇒ 直径 24dp，**与轨道等高**（纵向本就齐平）。
+    //
+    // 缺陷在横向：thumb 圆心原被 clamp 到 [12dp, width-12dp]，即**恰好停在轨道两端点**上，
+    // 于是 fraction=1 时 thumb 外圈有整整 12dp 落在轨道之外（与 StyleSliderItem 同源问题：
+    // 圆心应内缩半个 thumb，而非停在边缘）。改为让圆心在内缩后的区间移动：
+    //   圆心 ∈ [12+12, width-12-12] ⇒ thumb 外缘 ∈ [12, width-12] = 轨道横向跨度，两端恰好贴合。
     val thumbRadiusOuter = with(density) { 12.dp.toPx() }
     val thumbRadiusInner = with(density) { 10.dp.toPx() }
     val strokeWidthPx = with(density) { 2.dp.toPx() }
-    val horizontalPaddingPx = with(density) { 12.dp.toPx() }
+    val trackInsetH = with(density) { 12.dp.toPx() }
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth().height(32.dp)
     ) {
         val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()
+        // thumb 圆心行程：轨道两端各内缩一个 thumb 外半径，保证整枚 thumb 始终落在轨道内。
+        val thumbMinX = trackInsetH + thumbRadiusOuter
+        val thumbMaxX = maxOf(thumbMinX, widthPx - trackInsetH - thumbRadiusOuter)
 
         Box(
             modifier = Modifier
@@ -300,7 +312,7 @@ private fun InternalGradientSlider(
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
-            val thumbX = (fraction * widthPx).coerceIn(horizontalPaddingPx, widthPx - horizontalPaddingPx)
+            val thumbX = thumbMinX + fraction * (thumbMaxX - thumbMinX)
             val centerY = heightPx / 2
             drawCircle(Color.Black.copy(alpha = 0.2f), radius = thumbRadiusOuter, center = Offset(thumbX, centerY))
             drawCircle(Color.White, radius = thumbRadiusInner, center = Offset(thumbX, centerY))

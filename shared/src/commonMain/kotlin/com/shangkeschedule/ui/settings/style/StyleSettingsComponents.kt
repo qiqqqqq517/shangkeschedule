@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -494,6 +496,25 @@ fun StyleSliderItem(
             }
         }
         val tokens = appColors()
+        // 滑块几何（v4.75.5 修复 thumb 溢出轨道）：
+        //
+        // Material3 1.9 的 Slider 采用 M3 Expressive 布局，源码（Slider.kt）实测：
+        //   1. 轨道 placeable 被 thumb 宽度压缩测量：measure(constraints.offset(horizontal = -thumbPlaceable.width))；
+        //   2. 轨道被摆放于 trackOffsetX = thumbPlaceable.width / 2，即**两端各让出半个 thumb**；
+        //   3. thumb 行程为 thumbOffsetX = trackPlaceable.width * fraction，即 thumb **压在轨道两端之上**；
+        //   4. 绘制轨道时的 startGap/endGap 仅在 `thumbTrackGapSize > 0.dp` 时才计算（line 1913 的守卫）。
+        //
+        // 旧实现传了 thumbTrackGapSize = 0.dp ⇒ endGap 恒为 0，可见轨道只铺满被压缩后的
+        // track placeable（左右各缺 thumbWidth/2），而 thumb 右端能走到 trackPlaceable.width + thumbWidth，
+        // 于是 thumb 在最右端**探出可见轨道约 thumbWidth/2（8dp）**——这正是用户截图里「滑块滑到最右端
+        // 会超过滑轨」的成因，与手机品牌 / 分辨率无关，是确定性的布局计算缺陷。
+        //
+        // 修法（不新增权限、不依赖 M3 内部行为）：
+        //   - thumb 尺寸改为与轨道等高（TrackHeight），满足「滑块与轨道等高」；
+        //   - 可见轨道向左右各外扩半个 thumb（offset(-thumbSize/2) + width(maxWidth + thumbSize)），
+        //     使 thumb 行程两端恰好与可见轨道端点齐平，**不再溢出**。
+        val trackHeight = 22.dp
+        val thumbSize = trackHeight
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -503,7 +524,7 @@ fun StyleSliderItem(
             modifier = Modifier.height(32.dp),
             thumb = {
                 Surface(
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(thumbSize),
                     shape = CircleShape,
                     color = tokens.cardBg,
                     shadowElevation = 1.dp,
@@ -511,13 +532,23 @@ fun StyleSliderItem(
                 ) {}
             },
             track = { sliderState ->
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(22.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.CenterStart
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth().height(trackHeight)
                 ) {
+                    // 可见轨道底色：向两端各外扩半个 thumb，使 thumb 到达端点时**整枚落在轨道内**。
+                    // Compose 默认不裁剪，故该外扩会绘制到 track placeable 之外，
+                    // 正好补上 M3 压缩测量（-thumbWidth）与 trackOffsetX = thumbWidth/2 留下的缺口。
+                    Box(
+                        modifier = Modifier
+                            .offset(x = -thumbSize / 2)
+                            .width(maxWidth + thumbSize)
+                            .height(trackHeight)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                    )
                     SliderDefaults.Track(
                         sliderState = sliderState,
-                        modifier = Modifier.fillMaxWidth().height(22.dp),
+                        modifier = Modifier.fillMaxWidth().height(trackHeight),
                         colors = SliderDefaults.colors(
                             activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                             inactiveTrackColor = Color.Transparent
