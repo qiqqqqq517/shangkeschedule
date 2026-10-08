@@ -18,10 +18,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import okio.BufferedSink
@@ -274,18 +277,44 @@ class StyleSettingsRepository(
     }
 
     /**
-     * 响应式样式数据流。
-     * 每次发射时同步更新内存缓存，供 ViewModel 作为初始值避免闪烁。
+     * 响应式样式数据流（**共享热流 + 去重**）。
      *
      * 与主题设置合并：持久化配色为空时回落**当前主题预设**色板（见 [currentPaletteFallback]），
      * 用户切换主题后立即反映，不会停留在上一次的回落色板。
+     *
+     * N4（2026-10-08 修复）：此前是**裸 combine 冷流**，两处代价：
+     *  ① 全仓 17 处订阅各自重放上游 —— 每次 subscribe 都对 DataStore 与全量设置各取一次快照，
+     *     并各跑一次 `toCompose`（其中含逐色板映射，不是零成本）；
+     *  ② 缺 `distinctUntilChanged` —— `getAppSettings()` 发的是**整个设置模型**，
+     *     于是任何**无关设置**（开关某通知、改个未读状态）都会让 styleFlow 重新发射，
+     *     下游 17 个订阅者全部触发一次重组，而样式其实一点没变。
+     *
+     * 现按 [AppSettingsRepository.sharedAppSettings] 的既有惯例收敛为共享热流：
+     * `distinctUntilChanged` 吃掉样式未变的重复发射；`shareIn(WhileSubscribed(5000))`
+     * 把上游收敛为一条，订阅归零 5s 后自动停止（与全仓其余共享流口径一致）。
+     * `replay = 1` 保证新订阅者立刻拿到当前样式，行为对调用方不变。
      */
-    val styleFlow: Flow<ScheduleGridStyle> = combine(
+    private val sharedStyleFlow: Flow<ScheduleGridStyle> = combine(
         dataStore.data,
         appSettingsRepository.getAppSettings()
     ) { proto, settings ->
         proto.toCompose(settings.themePreset.gridStyle.courseColorMaps)
-    }.onEach { style -> styleCache.value = style }
+    }.distinctUntilChanged()
+        .onEach { style -> styleCache.value = style }
+        .shareIn(
+            scope = preloadScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            replay = 1
+        )
+
+    /**
+     * 响应式样式数据流（对外入口，见 [sharedStyleFlow] 的说明与 N4 修复记录）。
+     *
+     * 注意：`styleCache` 的更新挂在共享流上 ⇒ 仅在**有订阅者**时随上游刷新；
+     * 无订阅者期间由 [init] 的预热与各写入路径（`updateStyle` 等）各自维护，
+     * 与改造前的可观察行为一致（改造前 `onEach` 也只在被收集时执行）。
+     */
+    val styleFlow: Flow<ScheduleGridStyle> get() = sharedStyleFlow
 
     /**
      * 获取内存缓存的样式（可能为 null，用于 ViewModel 初始值）。

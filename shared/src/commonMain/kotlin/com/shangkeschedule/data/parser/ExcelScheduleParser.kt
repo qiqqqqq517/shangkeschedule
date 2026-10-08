@@ -31,11 +31,27 @@ object ExcelScheduleParser {
     private val RE_SI = Regex("""<si(?:\s[^>]*)?>(.*?)</si>""", setOf(RegexOption.DOT_MATCHES_ALL))
     private val RE_T = Regex("""<t(?:\s[^>]*)?>(.*?)</t>""", setOf(RegexOption.DOT_MATCHES_ALL))
     private val RE_SHEET_DATA = Regex("""<sheetData(?:\s[^>]*)?>(.*?)</sheetData>""", setOf(RegexOption.DOT_MATCHES_ALL))
+    /** 合并区域声明：`<mergeCell ref="A2:A4"/>`（N14）。 */
+    /**
+     * 合并区域声明：`<mergeCell ref="A2:A4"/>`（N14）。
+     *
+     * ⚠️ 必须写 `ref="` 而不是 `\br="`：属性名是 `ref`，`r` 后面紧跟 `e`（都是词字符），
+     * 二者之间**没有词边界** ⇒ `\br="` 永远匹配不到。首版即栽在这里（本仓测试夹具实测）。
+     */
+    private val RE_MERGE_CELL = Regex("""<mergeCell\b[^>]*ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"""")
     private val RE_ROW = Regex("""<row(?:\s[^>]*)?>(.*?)</row>""", setOf(RegexOption.DOT_MATCHES_ALL))
     private val RE_ROW_INDEX = Regex("""\br="(\d+)"""")
     private val RE_CELL = Regex("""<c\b([^>]*?)(/>|>(.*?)</c>)""", setOf(RegexOption.DOT_MATCHES_ALL))
     private val RE_CELL_REF = Regex("""\br="([A-Z]+)(\d+)"""")
-    private val RE_CELL_TYPE = Regex("""\bt="([a-z]+)"""")
+    /**
+     * 单元格类型属性。
+     *
+     * ⚠️ 字符类**必须含大写**：OOXML 的内联字符串类型是 `t="inlineStr"`（驼峰，含大写 S）。
+     * 原实现写作 `[a-z]+`，匹配不上 `inlineStr` ⇒ 解析器里那条 `"inlineStr" -> ...` 分支
+     * 是**死代码**：类型读成 null 后落到 `else` 去找 `<v>`，而内联字符串用的是 `<is><t>`，
+     * 于是整格读成空串。由本仓 ExcelMergedCellTest 的夹具实测发现（2026-10-08）。
+     */
+    private val RE_CELL_TYPE = Regex("""\bt="([A-Za-z]+)"""")
     private val RE_V = Regex("""<v(?:\s[^>]*)?>(.*?)</v>""", setOf(RegexOption.DOT_MATCHES_ALL))
     private val RE_TRAILING_ZERO = Regex("""^\d+\.0+$""")
     private val RE_HEX_ENTITY = Regex("""&#x([0-9a-fA-F]+);""")
@@ -200,6 +216,35 @@ object ExcelScheduleParser {
                 val rowList = mutableListOf<String>()
                 for (c in 0 until width) rowList.add(cells[c] ?: "")
                 grid[rowIndex - 1] = rowList
+            }
+        }
+
+        // N14（2026-10-08 修复）：回填**合并单元格**。
+        // xlsx 里合并区域（`<mergeCells>`）只有**左上格**带值，其余格在 XML 中根本不出现 ⇒
+        // 课表里常见的「课程名纵向合并覆盖多行（同一门课多个课次）」会变成
+        // 第一行有课名、其余行课名为空，解析器据此丢课或把课次错配到别的课程上。
+        // 这里按四类课表解析器的通用约定「合并区域各格取左上格值」回填，且**只填空格**，
+        // 不覆盖任何本来就有值的单元格（避免破坏稀疏数据或已正确解析的格子）。
+        val mergeMatches = RE_MERGE_CELL.findAll(xml).toList()
+        if (mergeMatches.isNotEmpty()) {
+            for (m in mergeMatches) {
+                val c1 = columnLettersToIndex(m.groupValues[1])
+                val r1 = m.groupValues[2].toIntOrNull() ?: continue
+                val c2 = columnLettersToIndex(m.groupValues[3])
+                val r2 = m.groupValues[4].toIntOrNull() ?: continue
+                if (c1 < 0 || c2 < 0 || c1 > c2 || r1 > r2) continue
+                if (r2 > MAX_SHEET_ROWS || c2 >= MAX_SHEET_COLS) continue
+                val anchor = grid.getOrNull(r1 - 1)?.getOrNull(c1)
+                if (anchor.isNullOrEmpty()) continue
+                for (r in r1..r2) {
+                    ensureRowCapacity(grid, r)
+                    val rowList = grid[r - 1]
+                    while (rowList.size <= c2) rowList.add("")
+                    for (c in c1..c2) {
+                        // 只填空格：合并区域内若某格已有值（异常文件），保留原值
+                        if (rowList[c].isEmpty()) rowList[c] = anchor
+                    }
+                }
             }
         }
 
