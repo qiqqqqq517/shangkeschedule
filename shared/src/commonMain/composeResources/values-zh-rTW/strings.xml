@@ -295,6 +295,8 @@
     <string name="desc_skipped_dates">放假、停課的日子不排提醒，也不計入課程進度</string>
     <string name="item_manage_skipped_dates">管理跳過日期</string>
     <string name="item_update_holiday_info">更新節假日資訊</string>
+    <string name="holiday_updated">已匯入 %1$d 個節假日</string>
+    <string name="holiday_update_failed">節假日匯入失敗，請檢查網路</string>
     <string name="update_holiday_info_hint">聯網更新可能不穩定（一般只有年底才公布下一年的節假日資訊）</string>
     <string name="item_clear_skipped_dates">清空跳過日期</string>
     <string name="skipped_dates_none">無</string>
@@ -1193,6 +1195,7 @@
     <string name="grade_summary_average">平均分</string>
     <string name="grade_summary_credits">已修學分</string>
     <string name="grade_summary_count">已出分門數</string>
+    <string name="grade_summary_failed_fmt">不及格 %1$d 門</string>
     <string name="grade_scale_label">績點制式</string>
     <string name="grade_scale_note">績點優先取教務系統給出的本校績點，教務未提供時才按所選制式由原始分數換算；重修紀錄不計入績點。多數學校用階梯檔；少數學校用線性檔（每 10 分勻漲 1.0），選錯會整體算偏</string>
     <string name="grade_point_source_school">績點口徑：全部取自教務系統（%1$d 門）</string>
@@ -1390,6 +1393,8 @@
     <string name="study_import_no_result">未讀取到培養方案學分要求，請確認目前頁面是本校培養方案／學分統計頁</string>
     <!-- v4.75.2：把「讀取超時」與「讀到但為空」分成兩種提示 -->
     <string name="study_scan_timeout">讀取超時：請確認已登入教務，且目前頁面已載入出培養方案／學分統計內容後再試。</string>
+    <string name="study_nav_timeout">跳轉後頁面未載入完成：請確認教務頁面能正常開啟後重試。</string>
+    <string name="scan_timeout">讀取逾時：請確認已登入教務，且目前頁面已載出對應內容後再試。</string>
     <!-- v4.75.3：App 開啟的是教務首頁，培養方案資料在「學業情況」子頁面 -->
     <string name="study_page_not_found">無法在教務選單裡找到「學業情況」入口。請在網址列進入該校的培養方案／學業情況查詢頁後，再點「讀取本頁」。</string>
     <!-- v4.75.0：培養方案課程清單（應修／已修／未修） -->

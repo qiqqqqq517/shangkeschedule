@@ -69,10 +69,16 @@ class ReminderAlarmReceiver : BroadcastReceiver(), KoinComponent {
     private fun handleDismiss(ctx: Context, intent: Intent) {
         val targetId = intent.getIntExtra(EXTRA_TARGET_NOTIFICATION_ID, INVALID_ID)
         if (targetId == INVALID_ID) return
+        // R41-11：两步各自的异常处理此前**合并**在一个 runCatching 里 ——
+        // `cancel` 抛异常就会跳过 `registry.remove`，登记簿残留旧通知 ID（下次
+        // pruneExcept 前该 ID 一直被视为「已投递」）。与 handleReminder 的分步 catch 不对称。
+        // 拆开：取消系统通知与清理登记簿各自独立，任一步失败都不影响另一步。
         runCatching {
             ctx.getSystemService<android.app.NotificationManager>()?.cancel(targetId)
+        }.onFailure { Log.w(TAG, "取消通知失败 id=$targetId", it) }
+        runCatching {
             PostedNotificationRegistry(ctx).remove(targetId)
-        }.onFailure { Log.w(TAG, "关闭通知失败 id=$targetId", it) }
+        }.onFailure { Log.w(TAG, "清理通知登记簿失败 id=$targetId", it) }
     }
 
     /**

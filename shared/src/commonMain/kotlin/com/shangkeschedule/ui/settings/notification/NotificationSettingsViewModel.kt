@@ -257,9 +257,11 @@ class NotificationSettingsViewModel(
     /**
      * 从网络同步并更新节假日跳过日期
      *
-     * @param onResult 导入结果回调
+     * @param onResult 导入结果回调，value 为本次合并的假期日期条数
      */
-    fun updateHolidays(onResult: (Result<Unit>) -> Unit = {}) {
+    // R59-01：改用 Result<Int> 携带实际导入条数；旧实现内部吞异常且不重抛，外层 runCatching 恒得 Success，
+    // UI 无法区分「导入成功」与「远端不可达、什么都没导入」。
+    fun updateHolidays(onResult: (Result<Int>) -> Unit = {}) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val result = runCatching {

@@ -159,12 +159,18 @@ data class ScannedCurriculumCoursePayload(
  * [kind] 取值：`adapter`（适配脚本自行抛出/Promise 拒绝）、`error`（window 未捕获异常）、
  * `unhandledrejection`（未处理的 Promise 拒绝）、`noEntry`（自动启动探测未找到入口）。
  * `noEntry` 的 [message] 只作为去重键，真正的用户文案由 Native 侧按语言给出。
+ *
+ * [hookRunning] 表示该错误**发生在能力钩子的调用窗口内**（R40-10）。全局 `error` /
+ * `unhandledrejection` 监听器作用于整个 window，页面自身的异常也会走本上报；
+ * Native 侧据此区分「钩子失败（应中止扫描并回落）」与「页面噪声（只留痕，不中止）」。
+ * 缺省 false：老版本注入的脚本没有该字段时按最保守方式处理，不误伤正在跑的扫描。
  */
 @Serializable
 data class ReportErrorPayload(
     val kind: String = "",
     val message: String = "",
-    val stack: String = ""
+    val stack: String = "",
+    val hookRunning: Boolean = false
 )
 
 // =========================================================================
@@ -249,7 +255,8 @@ val JS_BRIDGE_INIT = """
     var reportedErrorCount = 0;
     window.__shangkeScriptErrorReported = false;
 
-    function reportScriptError(kind, message, stack) {
+    // hookRunning：R40-10 标记该错误是否发生在钩子调用窗口内（见两个全局监听器）。
+    function reportScriptError(kind, message, stack, hookRunning) {
         try {
             var text = String(message == null ? '' : message);
             var key = kind + '|' + text;
@@ -262,7 +269,8 @@ val JS_BRIDGE_INIT = """
             postMessageToNative('reportAdapterError', {
                 kind: kind,
                 message: text,
-                stack: String(stack == null ? '' : stack)
+                stack: String(stack == null ? '' : stack),
+                hookRunning: hookRunning === true
             });
         } catch (ignored) {
             // 上报失败时不再抛出，避免递归触发 error 事件
@@ -279,11 +287,23 @@ val JS_BRIDGE_INIT = """
         reportScriptError('noEntry', message, '');
     };
 
+    // R40-10：**钩子执行窗口标记**。
+    // 这两个监听器作用于整个 window（随 JS_BRIDGE_INIT 注入每一个页面），而 Native 侧
+    // 曾把「当前有扫描在跑」直接等同于「这条错误属于该扫描」⇒ 教务页面自身的任意 JS 异常
+    // （第三方脚本、页面 bug）在学业扫描在途时会被判成钩子失败。而学业没有通用回落，
+    // 只能弹「没读到」，用户被误导且钩子可能本来正常。
+    // 修法：钩子调用脚本在调用前后置/清 __shangkeHookRunning；只有窗口内的错误才带
+    // hookRunning 标记，Native 侧据此判断归属，窗口外的错误照常上报但**不**中止扫描。
     window.addEventListener('error', function(event) {
         // 过滤资源加载失败（img / script 404 之类），它们没有可读的错误信息
         if (!event || !event.message) return;
         var location = event.filename ? (event.filename + ':' + event.lineno) : '';
-        reportScriptError('error', event.message, (event.error && event.error.stack) || location);
+        reportScriptError(
+            'error',
+            event.message,
+            (event.error && event.error.stack) || location,
+            window.__shangkeHookRunning === true
+        );
     });
 
     window.addEventListener('unhandledrejection', function(event) {
@@ -291,7 +311,8 @@ val JS_BRIDGE_INIT = """
         reportScriptError(
             'unhandledrejection',
             (reason && reason.message) || reason || 'Unhandled promise rejection',
-            (reason && reason.stack) || ''
+            (reason && reason.stack) || '',
+            window.__shangkeHookRunning === true
         );
     });
 
@@ -382,6 +403,26 @@ val JS_BRIDGE_INIT = """
      * 错误类信息一律原样放行：脚本的报错（「未能获取课表数据…」「未找到课表表格」）
      * 比 Native 的通用文案更有信息量，静默掉反而让用户无从排查。
      */
+    /**
+     * 本次注入是否只为「调用能力钩子」（成绩 / 空教室 / 学业）。
+     *
+     * R41-03：能力钩子的注入会带上**整份适配脚本**（钩子是脚本里声明的，不注入就没有），
+     * 而全仓有 **121 处**顶层 `runImportFlow()` / `run()` 自启动（实测示例：
+     * `chaoxing_jiaowu/chaoxing.js:727`、`GLMU/glmu.js:244`、`CMC/cmc_01.js:333`、
+     * `CJLU/cjlu.js:343`；`GLMU/glmu.js:157` 第一步就 `await promptUserToStart()`）。
+     * 用户点「识别本页成绩」会弹出「XX 教务系统课表导入 / 请确认登录」对话框；点确定后
+     * `saveImportedCourses(...)` 因 `importTableId` 为 null 弹「未选择课表」，最后
+     * `notifyTaskCompletion` 让 Native 按 `Idle` 分派而**把用户导航离开成绩页**。
+     *
+     * 该缺陷此前只在 3 个脚本里各自打补丁（`NTU/ntu.js:503-512` 注释自陈），属
+     * **协议层缺陷被脚本层局部掩盖**。这里改为协议层单点守卫：钩子上下文中，
+     * 凡「需要用户确认」的桥接调用一律以「用户取消」语义 resolve，脚本导入流程随即
+     * 安静退出；真正走课表导入时该标志为 false，行为完全不变。
+     */
+    function isHookOnlyContext() {
+        return window.__shangkeHookOnly === true;
+    }
+
     function shouldSuppressAdapterToast(message) {
         if (!window.__shangkeImportActive) return false;
         var text = String(message == null ? '' : message);
@@ -433,14 +474,20 @@ val JS_BRIDGE_INIT = """
                 shangkeBridge.showToast(message);
             },
             showAlert: function(titleText, contentText, confirmText) {
+                // R41-03：钩子上下文里一律视为「用户不参与」⇒ 脚本按取消分支安静退出。
+                if (isHookOnlyContext()) return Promise.resolve(false);
                 window.__shangkeImportTriggered = true;
                 return shangkeBridgePromise.showAlert(titleText, contentText, confirmText);
             },
             showPrompt: function(titleText, tipText, defaultText, validatorJsFunction) {
+                // R41-03：钩子上下文里一律视为「用户不参与」，返回 null 表示无输入。
+                if (isHookOnlyContext()) return Promise.resolve(null);
                 window.__shangkeImportTriggered = true;
                 return shangkeBridgePromise.showPrompt(titleText, tipText, defaultText, validatorJsFunction);
             },
             showSingleSelection: function(titleText, items, defaultSelectedIndex) {
+                // R41-03：同上，钩子上下文中直接回落到默认项。
+                if (isHookOnlyContext()) return Promise.resolve(defaultSelectedIndex);
                 window.__shangkeImportTriggered = true;
                 return shangkeBridgePromise.showSingleSelection(titleText, items, defaultSelectedIndex);
             },
@@ -662,6 +709,10 @@ fun buildImportScript(tableId: String, adapterJsCode: String): String {
     window.currentTableId = $safeTableId;
     window.__shangkeImportTriggered = false;
     // 导入会话开始：期间的「成功」「进行中」类适配脚本提示由 shouldSuppressAdapterToast 静默
+    // R41-03：进入真正的课表导入会话前，显式撤销钩子上下文标志（防御性）。
+    // 探针/调用脚本已在注入结束后清标志，此处再清一次是为了覆盖「注入脚本抛异常、
+    // 末尾的清标志语句没跑到」的情形 —— 残留 true 会让后续导入静默失去确认弹窗。
+    window.__shangkeHookOnly = false;
     window.__shangkeImportActive = true;
     window.__shangkeWindowKeysBefore = Object.keys(window);
     $adapterJsCode
@@ -913,7 +964,11 @@ object AdapterScanActions {
 fun buildAdapterHookProbeScript(adapterJsCode: String, hookName: String): String {
     val safeHook = bridgeJson.encodeToString(hookName)
     return """
+    // R41-03：**先**置钩子上下文标志，再注入整份适配脚本 —— 顺序不能反，
+    // 否则脚本顶层的自启动（121 处）在标志生效前就已跑起来。
+    window.__shangkeHookOnly = true;
     $adapterJsCode
+    window.__shangkeHookOnly = false;
     ;(function () {
         try {
             return typeof window[$safeHook] === 'function' ? 'present' : 'missing';
@@ -948,7 +1003,11 @@ fun buildAdapterHookInvokeScript(
     val safeHook = bridgeJson.encodeToString(hookName)
     val safeAction = bridgeJson.encodeToString(action)
     return """
+    // R41-03：同探针，注入期间置钩子上下文标志，注入结束立即撤销，
+    // 使后续真正的课表导入流程不受影响。
+    window.__shangkeHookOnly = true;
     $adapterJsCode
+    window.__shangkeHookOnly = false;
     ;(function () {
         function post(action, payload) {
             try {
@@ -978,13 +1037,19 @@ fun buildAdapterHookInvokeScript(
             }
             return out;
         }
+        // R40-10：钩子执行窗口。同步抛错与 Promise 拒绝**都在窗口内**清除标记，
+        // 保证钩子自身失败时能归因到扫描；而教务页面自身在此之后的异常不会。
+        window.__shangkeHookRunning = true;
         try {
             Promise.resolve(window[$safeHook]())
                 .then(function (result) { post($safeAction, { dataJsonString: toBase64(JSON.stringify(result === undefined ? null : result)) }); })
-                .catch(function (error) { post('reportAdapterError', { kind: 'adapter', message: String(error && error.message ? error.message : error), stack: '' }); });
+                .catch(function (error) { post('reportAdapterError', { kind: 'adapter', message: String(error && error.message ? error.message : error), stack: '', hookRunning: true }); })
+                .then(clearHookWindow, clearHookWindow);
         } catch (e) {
-            post('reportAdapterError', { kind: 'adapter', message: String(e && e.message ? e.message : e), stack: '' });
+            clearHookWindow();
+            post('reportAdapterError', { kind: 'adapter', message: String(e && e.message ? e.message : e), stack: '', hookRunning: true });
         }
+        function clearHookWindow() { window.__shangkeHookRunning = false; }
     })();
     """.trimIndent()
 }

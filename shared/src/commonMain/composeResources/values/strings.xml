@@ -295,6 +295,8 @@
     <string name="desc_skipped_dates">放假、停课的日子不排提醒，也不计入课程进度</string>
     <string name="item_manage_skipped_dates">管理跳过日期</string>
     <string name="item_update_holiday_info">更新节假日信息</string>
+    <string name="holiday_updated">已导入 %1$d 个节假日</string>
+    <string name="holiday_update_failed">节假日导入失败，请检查网络</string>
     <string name="update_holiday_info_hint">联网更新可能不稳定（一般只有年末才公布下一年的节假日信息）</string>
     <string name="item_clear_skipped_dates">清空跳过日期</string>
     <string name="skipped_dates_none">无</string>
@@ -1193,6 +1195,7 @@
     <string name="grade_summary_average">平均分</string>
     <string name="grade_summary_credits">已修学分</string>
     <string name="grade_summary_count">已出分门数</string>
+    <string name="grade_summary_failed_fmt">不及格 %1$d 门</string>
     <string name="grade_scale_label">绩点制式</string>
     <string name="grade_scale_note">绩点优先取教务系统给出的本校绩点，教务未提供时才按所选制式由原始分数换算；重修记录不计入绩点。多数学校用阶梯档；少数学校用线性档（每 10 分匀涨 1.0），选错会整体算偏</string>
     <string name="grade_point_source_school">绩点口径：全部取自教务系统（%1$d 门）</string>
@@ -1392,6 +1395,8 @@
          钩子不回��时界面会永久停在「正在读取…」。超时与「读到但为空」是两回事，
          分开提示才能让用户知道该等页面加载还是该换页面。 -->
     <string name="study_scan_timeout">读取超时：请确认已登录教务，且当前页面已加载出培养方案 / 学分统计内容后再试。</string>
+    <string name="study_nav_timeout">跳转后页面未加载完成：请确认教务页面能正常打开后重试。</string>
+    <string name="scan_timeout">读取超时：请确认已登录教务，且当前页面已加载出对应内容后再试。</string>
     <!-- v4.75.3：App 打开的是教务首页，而培养方案数据在「学业情况」子页面里。
          找不到该入口时不猜、不静默失败，如实告诉用户去哪儿点。 -->
     <string name="study_page_not_found">未能在教务菜单里找到「学业情况」入口。请在地址栏进入该学校的培养方案 / 学业情况查询页后，再点「读取本页」。</string>

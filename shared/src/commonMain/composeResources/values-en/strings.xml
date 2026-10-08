@@ -295,6 +295,8 @@
     <string name="desc_skipped_dates">No reminders on holidays or cancelled classes, and they do not count towards course progress</string>
     <string name="item_manage_skipped_dates">Manage skipped dates</string>
     <string name="item_update_holiday_info">Update holiday information</string>
+    <string name="holiday_updated">Imported %1$d holiday dates</string>
+    <string name="holiday_update_failed">Holiday import failed. Please check your network.</string>
     <string name="update_holiday_info_hint">Online update may be unstable (holiday info is usually published at year-end)</string>
     <string name="item_clear_skipped_dates">Clear skipped dates</string>
     <string name="skipped_dates_none">None</string>
@@ -1192,6 +1194,7 @@
     <string name="grade_summary_average">Average score</string>
     <string name="grade_summary_credits">Credits earned</string>
     <string name="grade_summary_count">Graded</string>
+    <string name="grade_summary_failed_fmt">%1$d failed</string>
     <string name="grade_scale_label">GPA scale</string>
     <string name="grade_scale_note">GPA uses the school portal value when available and only falls back to converting raw scores with the selected scale; retakes are excluded. Most schools use tiered scales; a few use a linear scale (+1.0 per 10 points) — picking the wrong one skews every course</string>
     <string name="grade_point_source_school">GPA source: all from the school portal (%1$d courses)</string>
@@ -1389,6 +1392,8 @@
     <string name="study_import_no_result">No curriculum credit requirements found. Make sure the current page is your school's curriculum or credit summary page.</string>
     <!-- v4.75.2: separate the timeout hint from "read but empty" -->
     <string name="study_scan_timeout">Read timed out. Make sure you are signed in and the page has finished loading its curriculum / credit summary content.</string>
+    <string name="study_nav_timeout">The page did not finish loading after navigation. Please check that the portal page opens correctly and try again.</string>
+    <string name="scan_timeout">Read timed out. Please make sure you are signed in and the page has loaded the relevant content.</string>
     <!-- v4.75.3: the app opens the portal home page, but the data lives on a sub page -->
     <string name="study_page_not_found">Could not find the \"Study status\" entry in the portal menu. Open your school\'s curriculum / study status page from the address bar, then tap \"Read this page\".</string>
     <!-- v4.75.0: curriculum course list (required / done / remaining) -->

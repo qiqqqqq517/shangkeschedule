@@ -227,27 +227,40 @@ class WebDavClient(
     }
 
     /**
-     * 移动远端文件 (MOVE)，源不存在时删除目标。
+     * 移动远端文件 (MOVE)。**目标已存在且 MOVE 失败时，旧目标保持不动**。
      *
      * WebDAV `MOVE` 的标准语义之一就是「覆盖已有目标」。部分服务端实现不覆盖，
-     * 故移动**之前**先删一次目标，保证行为一致。
+     * 故先尝试 MOVE；仅当 MOVE **失败且目标原本不存在** 时才需要清理（MOVE 失败时服务端
+     * 可能已部分写入），此时 DELETE 的是本次自己产生的残留，不是任何既有备份。
+     *
+     * R40-01：旧实现是「MOVE 前无条件 DELETE 目标」。云端存有上一份完整备份时，新一轮备份
+     * 的第一个模块 MOVE 之前就把旧模块删掉了；MOVE 随后因断网 / 跨目录不支持 / 401 / 507
+     * 失败 ⇒ 云端变成「新 meta 宣称模块齐全 + 部分旧模块已被删除」，用户看到「上传失败」
+     * 会合理推断云端仍完好，直到换机恢复才发现该模块 404 ⇒ 课表永久丢失。
+     * ⇒ 正确顺序是「先 MOVE 成功再谈覆盖」，而不是「先删再移」。
      */
     suspend fun moveFile(fromRemote: String, toRemote: String): Boolean {
         val fullFrom = buildFullUrl(fromRemote)
         val fullTo = buildFullUrl(toRemote)
         return try {
-            // 先删目标：绕开「服务端 MOVE 不覆盖」的差异
-            runCatching {
-                val del = client.delete(fullTo)
-                del.status.isSuccess() || del.status.value == 404
-            }
             // Ktor 的 HttpMethod 没有 Move 常量，按 WebDAV RFC 4918 用原始方法名。
             val moveMethod = io.ktor.http.HttpMethod("MOVE")
             val response = client.request(fullFrom) {
                 method = moveMethod
                 header(io.ktor.http.HttpHeaders.Destination, fullTo)
             }
-            response.status.isSuccess()
+            if (response.status.isSuccess()) return true
+
+            // R40-01：MOVE 失败时**不得**删除目标 —— 目标可能是云端仅存的上一份备份。
+            // 只有「目标此前并不存在」（404）才允许清理 MOVE 可能写入的残留。
+            val targetExisted = runCatching {
+                val head = client.head(fullTo)
+                head.status.isSuccess()
+            }.getOrDefault(false)
+            if (!targetExisted) {
+                runCatching { client.delete(fullTo) }
+            }
+            false
         } catch (e: Exception) {
             AppLog.w(
                 TAG,

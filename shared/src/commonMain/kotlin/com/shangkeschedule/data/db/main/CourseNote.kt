@@ -30,10 +30,21 @@ data class CourseNote(
     val id: String, // 笔记唯一标识（本地生成）
     val courseId: String, // 所属课程，级联删除的锚点
     val date: String, // 课次日期，格式 "yyyy-MM-dd"
-    val sections: String? = null, // 节次描述，如 "3-4节"（自定义时间课程可为空）
+    val sections: String? = null, // 节次描述，如 "3-4节"（自定义时间课程可为空），限 50 字（R68-01）
     val title: String = "", // 标题，限 60 字
     val content: String = "", // 正文，限 2000 字
     val imagePaths: String? = null, // 图片的本地绝对路径，多张以 '\n' 分隔
     val createdAt: Long,
     val updatedAt: Long
 )
+/**
+ * 课堂笔记三个文本字段的长度上限（R68-01）。
+ *
+ * 常量放在实体而非 ViewModel：写入侧（VM）与备份恢复侧（BackupRepository）都要用，
+ * 而后者在 data 层 —— 放 UI 层会让 data 反向依赖 ui。
+ */
+const val MAX_TITLE_LENGTH = 60
+const val MAX_CONTENT_LENGTH = 2000
+
+/** 节次描述上限：够写「第 3-4 节」这类标注，又不至于被误粘贴的长文本撑爆列表项。 */
+const val MAX_SECTIONS_LENGTH = 50

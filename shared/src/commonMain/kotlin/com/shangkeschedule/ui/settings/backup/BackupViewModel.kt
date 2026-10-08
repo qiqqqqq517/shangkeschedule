@@ -223,7 +223,12 @@ class BackupViewModel(
 
             // P1-15 静默降级显性化：云端个别模块下载失败被跳过的 key，完成后提示用户
             val skippedModuleKeys = mutableListOf<String>()
-            val result = withContext(Dispatchers.IO) {
+            // R40-05：整段「下载 + 落库」纳入与云端上传同一把锁。
+            // 旧实现只锁了落库（restoreFullSoftwareBackup 内部），全部网络 I/O 在锁外
+            // ⇒ 恢复期间触发的自动上传会把云端改写为更新版本，而恢复仍按旧元数据回填
+            // ⇒ 本机与云端静默分叉，且用户全程无感。
+            val result = backupRepository.withRestoreLock {
+                withContext(Dispatchers.IO) {
                 // P2-16：下载落地的 meta_restore.json / *_restore.cbor 是**未加密的用户数据
                 // 明文副本**，原先从不删除 —— 与同文件 importFromLocalZip 已确立的 zip 清理
                 // 纪律不一致。临时路径声明在 try 之外，finally 才能看到。
@@ -287,6 +292,7 @@ class BackupViewModel(
                         }
                     }
                 }
+            }
             }
 
             client.close()

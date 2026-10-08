@@ -24,6 +24,15 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 /**
+ * 通知超时的兜底下限（R41-05）。
+ *
+ * 提前量 0（正点提醒）时距上课时刻的毫秒数 ≤ 0，若照旧「不设超时」，
+ * ongoing 通知将没有任何回收路径，只能等下一次重排 / 开机 / 零点。
+ * 给一分钟足够让过期提醒消失，又不至于长到被误认为没生效。
+ */
+private const val MIN_TIMEOUT_AFTER_MILLIS = 60_000L
+
+/**
  * 课程提醒通知构建器。
  *
  * 相对旧 `CourseAlarmReceiver.showNotification` 的四处修正：
@@ -158,6 +167,15 @@ class CourseReminderNotifier(private val context: Context) {
         compatWearableSync: Boolean
     ) {
         val timeoutMillis = timeoutUntilClassStartMillis(course)
+        // R41-05：提前量 = 0（正点提醒）时 `timeoutMillis <= 0`（触发时刻即上课时刻），
+        // 旧代码于是**不调 setTimeoutAfter**。而默认非兼容模式是 setOngoing(true) +
+        // setAutoCancel(false) ⇒ 通知划不掉；回收只发生在 registry.pruneExcept()，而已过期
+        // occurrence 在 ReminderPlan 里被 `if (triggerAt <= now) continue` 剔除 ⇒ 要等下一次
+        // 重排 / 开机 / 零点才回收。正点提醒因此从「响一声即走」退化成「状态栏长期挂着已过时的
+        // 上课提醒」，恰好退回本文件 KDoc 里被明确修正掉的旧形态。
+        //
+        // 修法：≤ 0 时给一个**最小超时**（正点提醒立刻就会过去 ⇒ 一分钟足够回收，
+        // 期间用户仍可手动划掉或点关闭），保证 non-going 与 going 两条路径都不会永久滞留。
         if (compatWearableSync) {
             builder.setOngoing(false)
             builder.setAutoCancel(true)
@@ -165,8 +183,12 @@ class CourseReminderNotifier(private val context: Context) {
             builder.setOngoing(true)
             builder.setAutoCancel(false)
         }
-        if (timeoutMillis != null && timeoutMillis > 0) {
-            builder.setTimeoutAfter(timeoutMillis)
+        when {
+            timeoutMillis != null && timeoutMillis > 0 -> builder.setTimeoutAfter(timeoutMillis)
+            // 上课时刻已到（或提前量为 0）⇒ 仍要设超时，否则 ongoing 通知无回收路径。
+            timeoutMillis != null -> builder.setTimeoutAfter(MIN_TIMEOUT_AFTER_MILLIS)
+            // 数据不可解析：退化为最小超时，避免 ongoing 通知永久滞留。
+            else -> builder.setTimeoutAfter(MIN_TIMEOUT_AFTER_MILLIS)
         }
     }
 

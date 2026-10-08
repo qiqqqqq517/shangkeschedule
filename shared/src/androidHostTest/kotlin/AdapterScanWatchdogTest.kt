@@ -31,6 +31,31 @@ class AdapterScanWatchdogTest {
         return dir
     }
 
+    /**
+     * 取 `needle` 之后**括号配平**的那一段（含起始行）。
+     *
+     * 纪律：结构断言禁止用固定字符窗口（`take(N)`）—— 被测代码补注释即改变窗口内的
+     * 内容，会让「实现正确」被误判为失败（本项目已多次踩到）。配平扫描对注释长度免疫。
+     */
+    private fun balancedBlockAfter(src: String, needle: String): String {
+        val start = src.indexOf(needle)
+        if (start < 0) return ""
+        var depth = 0
+        var i = start
+        var seen = false
+        while (i < src.length) {
+            when (src[i]) {
+                '{' -> { depth++; seen = true }
+                '}' -> {
+                    depth--
+                    if (seen && depth == 0) return src.substring(start, i + 1)
+                }
+            }
+            i++
+        }
+        return src.substring(start)
+    }
+
     private fun read(relPath: String): String {
         val f = File(repoRoot(), relPath)
         assertTrue(f.exists(), "找不到 ${f.path}")
@@ -70,11 +95,14 @@ class AdapterScanWatchdogTest {
             "回传成功未取消看门狗 ⇒ 正常完成后仍会在超时点误报一次失败：\n$delivered",
         )
 
-        val failed = handlerSrc.substringAfter("val handledByScan = pendingScanActions.isNotEmpty()")
-            .take(500)
+        // R40-10 / R52-01 更新：判据锚点改到稳定的 `val handledByScan` 赋值本身，
+        // 且**不再用固定字符窗口取块** —— 原实现 `take(500)` 在本轮为解释 R40-10 归属判据
+        // 补上大段注释后直接把 `cancelAdapterScanWatchdog` 截在窗口之外，
+        // 造成「实现正确、测试假红」。改为按大括号配平取整个 if 块。
+        val failedBlock = balancedBlockAfter(handlerSrc, "if (handledByScan) {")
         assertTrue(
-            failed.contains("cancelAdapterScanWatchdog"),
-            "钩子报错未取消看门狗 ⇒ 会二次回调失败路径：\n$failed",
+            failedBlock.contains("cancelAdapterScanWatchdog"),
+            "钩子报错未取消看门狗 ⇒ 会二次回调失败路径：\n$failedBlock",
         )
     }
 

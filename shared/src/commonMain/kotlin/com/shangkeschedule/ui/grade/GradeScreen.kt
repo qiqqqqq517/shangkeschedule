@@ -131,6 +131,7 @@ import shangkeschedule.shared.generated.resources.grade_source_manual
 import shangkeschedule.shared.generated.resources.grade_source_paste
 import shangkeschedule.shared.generated.resources.grade_summary_average
 import shangkeschedule.shared.generated.resources.grade_summary_count
+import shangkeschedule.shared.generated.resources.grade_summary_failed_fmt
 import shangkeschedule.shared.generated.resources.grade_summary_credits
 import shangkeschedule.shared.generated.resources.grade_summary_gpa
 import shangkeschedule.shared.generated.resources.grade_value_none
@@ -235,6 +236,22 @@ fun GradeScreen(
                             label = stringResource(Res.string.grade_summary_count),
                             value = summary.courseCount.toString(),
                             modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // R40-12：`GradeSummary.failedCount` 此前被完整计算却**全仓无消费方**
+                    //（汇总卡只有 gpa / 平均分 / 已修学分 / 门数四项）。后果：成绩页有不及格课时
+                    // 只有行内徽章，需逐行滚动才能发现；而学业页同类数据有类别级「挂科 N 门」提示。
+                    // 这里补一条仅在存在不及格时才出现的提示行，不挤占四列汇总卡的布局。
+                    if (summary.failedCount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                Res.string.grade_summary_failed_fmt,
+                                summary.failedCount
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.danger,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                     Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))

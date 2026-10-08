@@ -138,16 +138,18 @@ object ExamCountdownNativeRenderer {
     /**
      * 倒计时文案：今天 / 明天 / N 天后；日期无法解析时返回 `null`（调用方隐藏胶囊）。
      *
-     * 已过期的考试理论上不会进快照（上游按 `date >= today` 过滤），
-     * 但渲染器不依赖该契约：负天数一律落到「今天」，避免出现「-2 天后」。
+     * R57-01：此前把 `days <= 0` 一律映射为「今天」，于是**已过期**的考试被显示成「今天」，
+     * 与真正的当天考试无法区分 —— 用户看到「今天」会误以为那场考试还没考。
+     * 现在分开：0 → 今天；负数 → 已结束（不显示负天数，也不谎报成今天）。
      */
     private fun countdownText(context: Context, date: String): String? {
         val examDate = runCatching { LocalDate.parse(date) }.getOrNull() ?: return null
         val days = ChronoUnit.DAYS.between(LocalDate.now(), examDate).toInt()
         return when {
-            days <= 0 -> context.getString(R.string.widget_exam_today)
+            days > 1 -> context.getString(R.string.widget_exam_days, days)
             days == 1 -> context.getString(R.string.widget_exam_tomorrow)
-            else -> context.getString(R.string.widget_exam_days, days)
+            days == 0 -> context.getString(R.string.widget_exam_today)
+            else -> context.getString(R.string.widget_exam_past)
         }
     }
 

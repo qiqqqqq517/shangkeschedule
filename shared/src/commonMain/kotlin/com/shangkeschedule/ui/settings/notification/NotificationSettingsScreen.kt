@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings.notification
 
 import com.shangkeschedule.ui.components.AppTopAppBar
+import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.arrow_back_24px
+import shangkeschedule.shared.generated.resources.holiday_update_failed
+import shangkeschedule.shared.generated.resources.holiday_updated
 import shangkeschedule.shared.generated.resources.title_course_notification_settings
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +35,11 @@ fun NotificationSettingsScreen(
     viewModel: NotificationSettingsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // R59-01：节假日导入必须有可见反馈（成功条数 / 失败提示）。
+    // 文案在此预取，回调内（Compose 上下文之外）使用。
+    val holidayUpdatedTemplate = stringResource(Res.string.holiday_updated)
+    val holidayUpdateFailed = stringResource(Res.string.holiday_update_failed)
 
     Scaffold(
         topBar = {
@@ -70,7 +78,15 @@ fun NotificationSettingsScreen(
             item {
                 AdvancedSettingsCard(
                     uiState = uiState,
-                    onUpdateHolidays = { viewModel.updateHolidays() },
+                    onUpdateHolidays = {
+                        // R59-01：旧实现不传 onResult，成功与失败都无任何提示，
+                        // 用户点完只见转一圈、既不知失败也不知「成功」其实什么都没导入。
+                        viewModel.updateHolidays { result ->
+                            ToastManager.show(
+                                result.getOrNull()?.let { holidayUpdatedTemplate.format(it) } ?: holidayUpdateFailed
+                            )
+                        }
+                    },
                     onClearSkippedDates = { viewModel.showDialog(NotificationDialogType.ClearConfirmation) },
                     onManageSkippedDates = { viewModel.showDialog(NotificationDialogType.ManageSkippedDates) }
                 )

@@ -10,6 +10,10 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -35,6 +39,14 @@ data class HolidayInfo(
  * API 导入对象，基于 Ktor 3.0 实现。
  */
 object ApiDateImporter {
+    /**
+     * 接口前缀，**不是完整 URL** —— 请求时必须在其后补年份段。
+     *
+     * R59-01：`defaultRequest { url(BASE_URL) }` + `client.get("")`
+     * 拼出的是裸路径 `.../api/holiday/year`（Ktor 实跑：无年份段），
+     * 该路径线上实测不可达（http=000），而 `.../api/holiday/year/2026`
+     * 返回 200 + 真 JSON ⇒ 联网导入功能整体失效。
+     */
     private const val BASE_URL = "https://timor.tech/api/holiday/year"
 
     private val client = HttpClientFactory.create(
@@ -62,10 +74,17 @@ object ApiDateImporter {
      * 合并本身在 `dataStore.edit` 内原子完成（见 `AppSettingsRepository.addSkippedDates`）：
      * 旧实现是「读快照 → copy → 整模型写回」，既会连带重写 30+ 个无关键，
      * 也会把期间用户手动添加的日期用这份旧快照回滚掉。
+     *
+     * @return 本次从远端取到并合并的假期日期条数（供 UI 展示成功反馈）。
+     * @throws 远端不可达 / 反序列化失败时**原样抛出**，不再吞掉 ——
+     *         旧实现在此 catch 后只写日志，使调用方 `runCatching` 恒得 Success、
+     *         UI 上表现为「转一圈什么都没发生」，用户既不知失败也不知成功其实没导入（R59-01）。
      */
-    suspend fun importAndSaveSkippedDates(appSettingsRepository: AppSettingsRepository) {
+    suspend fun importAndSaveSkippedDates(appSettingsRepository: AppSettingsRepository): Int {
         try {
-            val response: ApiResponse = client.get("").body()
+            // R59-01：必须补年份段，否则拼出的是无年份的裸路径、线上不可达。
+            val year = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+            val response: ApiResponse = client.get("/$year").body()
 
             val holidayDates = response.holidays.values
                 .filter { it.isHoliday }
@@ -76,8 +95,13 @@ object ApiDateImporter {
 
             val mergedCount = appSettingsRepository.getAppSettings().first().skippedDates.size
             AppLog.w(TAG, "成功导入并合并了 ${holidayDates.size} 个假期日期（现共 $mergedCount 个跳过日期）。")
+            return holidayDates.size
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLog.e(TAG, "假期数据导入失败: ${e.message}", e)
+            // R59-01：记录日志后必须重抛，否则外层 runCatching 恒为 Success，用户无任何反馈。
+            throw e
         }
     }
 

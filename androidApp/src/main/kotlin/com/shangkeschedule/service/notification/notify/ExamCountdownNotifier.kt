@@ -59,11 +59,37 @@ class ExamCountdownNotifier(private val context: Context) {
             return
         }
 
+        // R58-01：**日期解析不了的数据在筛选阶段就排除**，不可能成为 nearest。
+        // 旧实现把「解析失败」与「超出提醒窗口」两种语义完全不同的情形合并到同一个
+        // cancel()（旧 :83 `if (days == null || days > WINDOW) { cancel(); return }`）。
+        // `ScheduleEvent.date` 是裸 String（KDoc 声明 yyyy-MM-dd 但无强制手段），
+        // 备份恢复是唯一无校验写入口 ⇒ 脏数据能进库；它只要字典序排在最前就成为
+        // nearest ⇒ days 解析失败 ⇒ cancel() ⇒ **该用户的考试倒计时通知完全消失**，
+        // 且此后每次重排都复现。这与本文件自己声明的容错哲学（「读库失败时保留既有
+        // 提醒」）直接冲突：同一文件里「整库读不到 ⇒ 保留」而「单条脏 ⇒ 全撤」。
+        // 修法：脏数据在筛选阶段剔除；`days` 此后不可能为 null，无需再判。
+        val todayJava = runCatching { java.time.LocalDate.parse(today.toString()) }.getOrNull()
+        if (todayJava == null) {
+            Log.w(TAG, "今天日期无法解析，本次保留既有提醒")
+            return
+        }
+        // 计数只用于留痕：Sequence 惰性求值 + firstOrNull 提前终止 ⇒ 是「至少这么多条」。
+        var skippedDirty = 0
         val nearest = events
             .asSequence()
             .filter { ScheduleCategory.fromKey(it.category) == ScheduleCategory.EXAM }
             .filter { !it.done }
             .filter { it.date >= today.toString() }
+            // 显式 block：短路求值下「|| 右侧必然为 true」虽成立但依赖副作用，
+            // 一旦有人改成 && 或调整顺序就会静默失效，故写成可读的 if/else。
+            .filter {
+                if (runCatching { java.time.LocalDate.parse(it.date) }.isSuccess) {
+                    true
+                } else {
+                    skippedDirty++
+                    false
+                }
+            }
             .sortedWith(compareBy({ it.date }, { it.startTime ?: "" }))
             .firstOrNull()
 
@@ -74,13 +100,11 @@ class ExamCountdownNotifier(private val context: Context) {
 
         // 用 java.time 只做「相差几天」这一步：`ScheduleEvent.date` 是 "yyyy-MM-dd" 字符串，
         // 与 kotlinx.datetime 的 LocalDate 混用时显式转换最不容易出错。
-        val days = runCatching {
-            ChronoUnit.DAYS.between(
-                java.time.LocalDate.parse(today.toString()),
-                java.time.LocalDate.parse(nearest.date)
-            )
-        }.getOrNull()
-        if (days == null || days > REMIND_WINDOW_DAYS) {
+        val days = ChronoUnit.DAYS.between(todayJava, java.time.LocalDate.parse(nearest.date))
+        if (skippedDirty > 0) {
+            Log.w(TAG, "跳过至少 $skippedDirty 条日期格式损坏的考试记录（date 需为 yyyy-MM-dd）")
+        }
+        if (days > REMIND_WINDOW_DAYS) {
             cancel()
             return
         }

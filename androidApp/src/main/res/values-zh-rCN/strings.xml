@@ -47,6 +47,7 @@
     <string name="widget_name_exam_countdown">日程 · 考试</string>
     <string name="widget_exam_label">距离考试</string>
     <string name="widget_exam_today">今天</string>
+    <string name="widget_exam_past">已结束</string>
     <string name="widget_exam_tomorrow">明天</string>
     <string name="widget_exam_days">%1$d 天后</string>
     <string name="widget_exam_none">暂无考试安排</string>

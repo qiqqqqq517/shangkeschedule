@@ -180,10 +180,24 @@ object IcsExportTool {
     }
 
     /**
-     * 格式化 UTC 时间戳为 ICS 标准格式
+     * 格式化 UTC 时间戳为 ICS 标准格式（RFC 5545 §3.3.5：UTC DATE-TIME 末尾**恰好一个** Z）。
+     *
+     * R43-01：旧实现是 `toString().replace(...).substringBefore(".") + "Z"`。
+     * `kotlin.time.Instant.toString()` 在**纳秒恰为 0** 时本身就以 `Z` 结尾
+     * （如 `2026-10-08T01:29:00Z`），此时串里没有小数点，`substringBefore(".")` 找不到
+     * 分隔符便返回整串（连 `Z` 一起留下），再拼一个 `"Z"` ⇒ `20261008T012900ZZ`。
+     * 有纳秒分量时才有小数点、恰好把 `Z` 切掉，所以「看起来一直是对的」——
+     * 而导出结果随导出时刻而变（整秒时坏），部分日历导入器会拒收或跳过该事件。
+     *
+     * 修法：不依赖小数点是否存在，而是**先剥掉可能已有的 `Z`** 再统一追加。
      */
     private fun formatDateTimeUtc(instant: Instant): String {
-        return instant.toString().replace("-", "").replace(":", "").substringBefore(".") + "Z"
+        val compact = instant.toString()
+            .replace("-", "")
+            .replace(":", "")
+            .substringBefore(".")
+            .removeSuffix("Z")
+        return "${compact}Z"
     }
 
     /**

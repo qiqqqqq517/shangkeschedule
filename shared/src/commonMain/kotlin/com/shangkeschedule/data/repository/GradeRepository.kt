@@ -25,7 +25,8 @@ import kotlin.uuid.Uuid
  *   本校没给时才按当前绩点制由分数换算（v4.75.0）。
  * @param averageScore 未加权平均分（仅统计百分制成绩）；无可统计课程时为 null。
  * @param totalCredits 已通过课程的学分合计（不含不及格与重修记录）。
- * @param courseCount 成绩记录门数（不含重修记录）。
+ * @param courseCount **已出分**门数（不含重修记录，也不含只记课程不记分数的空成绩行）。
+ *   R40-13：此前直接取记录数，空成绩行也被计入，与同屏平均分的样本口径不一致。
  * @param failedCount 不及格门数。
  * @param schoolPointCount 参与加权绩点、且绩点**取自本校**的课程门数（v4.75.0）。
  * @param convertedPointCount 参与加权绩点、绩点由**本机换算**的课程门数（v4.75.0）。
@@ -138,14 +139,27 @@ class GradeRepository(
         return grade
     }
 
-    /** 更新一条成绩（重新解析分数值，保持来源不变）。 */
+    /**
+     * 更新一条成绩（重新解析分数值，保持来源不变）。
+     *
+     * R40-02 / R41-04：**分数被改动时必须作废教务口径的本校绩点**。
+     * 旧实现直接取 `grade.gradePoint`（= 旧值）无失效判断，于是「92 分/绩点 3.9」被改成
+     * 「59 分」后仍是 `gradePoint=3.9` ⇒ `computeSummary` 把不及格课计入已修学分、failedCount 不增，
+     * 界面同时出现「不及格」与「绩点 3.9 · 教务」两个互斥徽章。
+     *
+     * 判据用**实际生效的分数**（解析后比较，不是比较原始文本）：改分数段（92→59）判改动；
+     * 「92」→「92.0」只是书写差异，解析后同为 92.0，不作废 —— 否则用户在编辑框里补个「.0」
+     * 就会把教务口径的绩点悄悄丢掉。分数未变则保留 gradePoint。
+     */
     suspend fun updateGrade(grade: Grade) {
+        val newScoreValue = scoreValueOf(grade.scoreText)
+        val scoreChanged = newScoreValue != grade.scoreValue
         val updated = grade.copy(
             semester = grade.semester.trim(),
             courseName = grade.courseName.trim().take(100),
             scoreText = grade.scoreText?.trim()?.ifBlank { null },
-            scoreValue = scoreValueOf(grade.scoreText),
-            gradePoint = grade.gradePoint?.takeIf { it >= 0.0 },
+            scoreValue = newScoreValue,
+            gradePoint = if (scoreChanged) null else grade.gradePoint?.takeIf { it >= 0.0 },
             category = grade.category?.trim()?.ifBlank { null },
             note = grade.note?.trim()?.ifBlank { null },
             updatedAt = Clock.System.now().toEpochMilliseconds()
@@ -283,6 +297,8 @@ class GradeRepository(
         var scoreCount = 0
         var totalCredits = 0.0
         var failedCount = 0
+        // R40-13：真正有成绩（分数可解析或成绩文本非空）的门数。
+        var gradedCourseCount = 0
         var schoolPointCount = 0
         var convertedPointCount = 0
 
@@ -298,8 +314,14 @@ class GradeRepository(
                     if (schoolPoint != null) schoolPointCount++ else convertedPointCount++
                 }
                 if (point > 0.0) totalCredits += credit
-            } else if (isPassed(grade.scoreText)) {
-                // 通过 / 不通过：不计绩点，但通过后计入已修学分
+            } else if (isCreditEarned(grade.scoreText, grade.scoreValue)) {
+                // 不计绩点但**已及格**：仍应计入已修学分。
+                // R40-08：旧判据是 isPassed（只认「通过 / 合格 / 达标」）。线性 5.0 制下
+                // 「中等 / 及格」被 levelRepresentativeScore 归为 null（无实测依据、刻意不猜），
+                // 于是走进这条 else 分支却又不命中 isPassed ⇒ **既不计绩点、也不计学分**，
+                // 用户仅仅切换绩点制式分段控件，同一份数据的「已修学分」就少掉若干门
+                //（4.0 制下中等→2.7 / 及格→1.5，学分正常计入）。
+                // ⇒ 「是否折算绩点」与「是否获得学分」在该制式下不再等价，必须解耦。
                 totalCredits += credit
             }
             val percent = grade.scoreValue
@@ -307,13 +329,19 @@ class GradeRepository(
                 scoreSum += percent
                 scoreCount++
             }
+            // R40-13：「已出分门数」此前直接取 counted.size（只过滤 !isRetake），
+            // 于是**留空成绩**的课程行也被计入 —— 而空成绩是允许的
+            //（UI 校验只拦 isNotBlank && !isValid 的组合，仓库层 KDoc 明写「null 表示只记课程不记分数」）。
+            // 后果：同屏「已出分门数 12」与「平均分 87.3（实为 11 门）」口径不一致。
+            // 判据与上面的平均分样本同源：有解析分数或非空成绩文本才算「已出分」。
+            if (percent != null || !grade.scoreText.isNullOrBlank()) gradedCourseCount++
         }
 
         return GradeSummary(
             gpa = if (weightedCredits > 0.0) weightedPoints / weightedCredits else null,
             averageScore = if (scoreCount > 0) scoreSum / scoreCount else null,
             totalCredits = totalCredits,
-            courseCount = counted.size,
+            courseCount = gradedCourseCount,
             failedCount = failedCount,
             schoolPointCount = schoolPointCount,
             convertedPointCount = convertedPointCount
@@ -364,12 +392,19 @@ class GradeRepository(
         val gradesByCategory = counted.groupBy { it.category?.trim().orEmpty() }
         val requirementByCategory = requirements.associateBy { it.category.trim() }
         val curriculumByCategory = curriculumCourses.groupBy { it.category?.trim().orEmpty() }
-        // 「已出成绩」的课程名集合：清单里的课只要出过分（不论及格与否）就算已修，
+        // 「已出成绩」的课程名集合，**按类别分开**维护（R40-09）。
         // 不及格的课由 failedCount 单独提示，不再重复算作「未修」。
-        val gradedCourseNames = counted
-            .map { it.courseName.trim() }
-            .filter { it.isNotEmpty() }
-            .toSet()
+        // R40-09：旧实现只有一个**全局**集合，而本类的 earnedCredits 只累加本类成绩 ⇒
+        // 通用抓取从「性质」列取原始短名（「必修」）、适配钩子学业扫描产出学校原文长名
+        //（「通识教育课程平台/必修」，见 NTU/ntu.js:456、zhengfang/zhengfang.js:859），
+        // 两侧都无归一化 ⇒ 同一门课可落在两个类别上：pendingCourses 因全局命中而减 1
+        //（显示「已修」），earnedCredits 却仍是 0 ⇒ 同一页面「已修 1 门」与「已获 0 学分」并存。
+        val gradedNamesByCategory = counted
+            .filter { it.courseName.trim().isNotEmpty() }
+            .groupBy({ it.category?.trim().orEmpty() }, { it.courseName.trim() })
+        // 跨类别兜底：类别名不一致时（同上，仍是「必修」vs「通识教育课程平台/必修」），
+        // 若全局只有**一个**类别含该课程名，仍按已修处理，避免误报「未修」。
+        val gradeCountByCategory = counted.groupBy { it.category?.trim().orEmpty() }
 
         val categories = (
             requirementByCategory.keys + gradesByCategory.keys + curriculumByCategory.keys
@@ -383,12 +418,10 @@ class GradeRepository(
                 val hasScore = percent != null || !grade.scoreText.isNullOrBlank()
                 // 等级制（优秀 / 良好 / 中等 / 及格）没有百分制分数，但同样是及格：
                 // 能按等级词折算出 > 0 的绩点即算通过，避免把及格课报成挂科。
-                val passed = if (percent != null) {
-                    percent >= 60.0
-                } else {
-                    isPassed(grade.scoreText) ||
-                        (pointFromLevel(grade.scoreText, GpaScale.SCALE_4) ?: 0.0) > 0.0
-                }
+                // R40-08：复用与 computeSummary 同一套「已及格」判据，
+                // 避免「总览学分」与「分类学分」两处口径再次分叉（旧实现固定用 SCALE_4 试折算，
+                // 且只认「通过 / 合格 / 达标」，5.0 制下「中等 / 及格」会被判成挂科）。
+                val passed = isCreditEarned(grade.scoreText, percent)
                 when {
                     // 及格：只累加学分，不作为「差了多少」的负担
                     passed -> earned += grade.credit ?: 0.0
@@ -397,8 +430,18 @@ class GradeRepository(
                 }
             }
             val planItems = curriculumByCategory[key].orEmpty()
+            val gradedHere = gradedNamesByCategory[key].orEmpty().toSet()
             val pendingList = planItems
-                .filter { it.courseName.trim().isNotEmpty() && it.courseName.trim() !in gradedCourseNames }
+                .filter { plan ->
+                    val courseName = plan.courseName.trim()
+                    if (courseName.isEmpty()) return@filter false
+                    if (courseName in gradedHere) return@filter false
+                    // R40-09 跨类别兜底：同名课程只出现在别的类别时仍算已修，
+                    // 避免「已修门数」与「已获学分」因类别名不一致而各说各话。
+                    val elsewhere = gradeCountByCategory.filterKeys { it != key }
+                        .values.count { group -> group.any { g -> g.courseName.trim() == courseName } }
+                    elsewhere == 0
+                }
                 .map {
                     PendingCurriculumCourse(
                         courseName = it.courseName.trim(),
@@ -473,10 +516,41 @@ class GradeRepository(
         return if (value in 0.0..100.0) value else null
     }
 
-    /** 是否为「通过」类（不计绩点但算学分）的成绩文本。 */
+    /**
+     * 是否为「通过」类（不计绩点但算学分）的成绩文本。
+     *
+     * @deprecated 保留给既有语义引用；学分判据请用 [isCreditEarned]。
+     */
     private fun isPassed(scoreText: String?): Boolean {
         val text = scoreText?.trim() ?: return false
         return text.startsWith("通过") || text.startsWith("合格") || text.startsWith("达标")
+    }
+
+    /**
+     * 该成绩文本是否代表**已及格**（无论能否折算绩点）。
+     *
+     * R40-08：判据必须独立于绩点折算。原先学分是否计入取决于 `point != null`，
+     * 于是「不能折算绩点」被当成了「没拿到学分」的代理量 —— 在线性 5.0 制下这是错的：
+     * 「中等 / 及格」刻意不折算（无实测依据），但它们**显然已及格**，学分必须计入。
+     *
+     * 覆盖：百分制 ≥ 及格线按 [LINEAR_5_PASS] 的同一阈值判断（60），
+     * 其余按「不及格类」前缀否定，其余等级词（优秀/良好/中等/及格/合格/通过/达标/P）视为及格。
+     * 判定不出（空文本、纯文字）时返回 false —— 与「不计入」的保守方向一致。
+     */
+    private fun isCreditEarned(scoreText: String?, scoreValue: Double?): Boolean {
+        if (scoreValue != null) return scoreValue >= LINEAR_5_PASS
+        val text = scoreText?.trim()?.uppercase().orEmpty()
+        if (text.isEmpty()) return false
+        if (text.startsWith("不及格") || text.startsWith("不合格") ||
+            text.startsWith("未通过") || text.startsWith("失败") ||
+            text.startsWith("不通过") || text == "F" || text.startsWith("F ")
+        ) {
+            return false
+        }
+        return text.startsWith("优秀") || text.startsWith("良好") || text.startsWith("中等") ||
+            text.startsWith("及格") || text.startsWith("合格") || text.startsWith("通过") ||
+            text.startsWith("达标") || text.startsWith("A") || text.startsWith("B") ||
+            text.startsWith("C") || text.startsWith("D") || text.startsWith("P")
     }
 
     /**
