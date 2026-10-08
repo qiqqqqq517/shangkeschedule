@@ -140,9 +140,31 @@ class WebViewRequestInterceptor {
                 path.endsWith(".map") || path.endsWith(".eot") || path.endsWith(".otf")
         }
 
+        /**
+         * 单条 POST 体的缓冲上限（正常表单提交远小于此）。
+         *
+         * R1-016：超限时**必须留下可诊断的痕迹**，不能静默。
+         */
+        private const val POST_BODY_MAX_CHARS = 1_000_000
+
+        /** 因超限被拒的 requestId → 实际字符数（供 :264 回退原生栈时如实归因）。 */
+        private val oversizedPostIds = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
         fun registerPostData(id: String, body: String, contentType: String) {
-            // 容量防护：单条 body 限制在 1MB 内（正常表单提交远小于此）。
-            if (body.length > 1_000_000) return
+            // R1-016：超限此前是「`return` 一句话走人」—— 调用方拿不到 body，
+            // `:264` 于是把这当成「注册表里没有这个请求」而**静默回退原生栈**：
+            // WebView 自己去发这条 POST，会话 Cookie 对不上（http→https 归一失效），
+            // 教务系统返回「请先登录系统」，用户侧表现为「提交没反应」且**无任何提示**。
+            // 现改为：留日志 + 记下该 requestId 与体积，供回退点如实归因。
+            if (body.length > POST_BODY_MAX_CHARS) {
+                oversizedPostIds[id] = body.length
+                Log.e(
+                    "WebViewInterceptor",
+                    "POST body 超限被拒：len=${body.length} > $POST_BODY_MAX_CHARS（已回退原生栈，" +
+                        "该请求可能因会话 Cookie 不匹配而失败）"
+                )
+                return
+            }
             synchronized(postBodyRegistry) {
                 val now = System.currentTimeMillis()
                 // 先回收滞留条目：注册后未被消费的条目会一直占名额，
@@ -262,6 +284,15 @@ class WebViewRequestInterceptor {
 
         // 4. 如果不是 GET 且没有获取到 Body 数据，放回原生处理
         if (request.method.uppercase() != "GET" && registeredData == null) {
+            // R1-016：如实归因 —— 区分「本条因体积超限被拒」与「注册表里本来就没有」。
+            val rejectedLen = requestId?.let { oversizedPostIds.remove(it) }
+            if (rejectedLen != null) {
+                Log.e(
+                    "WebViewInterceptor",
+                    "POST 因体积超限（len=$rejectedLen 字符）回退原生栈：会话 Cookie 不匹配时" +
+                        "教务系统会回「请先登录系统」，表现为操作无反应。"
+                )
+            }
             return null
         }
 
