@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings.style
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,9 +47,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -496,23 +499,22 @@ fun StyleSliderItem(
             }
         }
         val tokens = appColors()
-        // 滑块几何（v4.75.5 修复 thumb 溢出轨道）：
+        // 滑块几何（v4.75.5 修复 thumb 溢出轨道 → v4.75.6 改为自绘轨道、刻度封顶）：
         //
         // Material3 1.9 的 Slider 采用 M3 Expressive 布局，源码（Slider.kt）实测：
         //   1. 轨道 placeable 被 thumb 宽度压缩测量：measure(constraints.offset(horizontal = -thumbPlaceable.width))；
         //   2. 轨道被摆放于 trackOffsetX = thumbPlaceable.width / 2，即**两端各让出半个 thumb**；
         //   3. thumb 行程为 thumbOffsetX = trackPlaceable.width * fraction，即 thumb **压在轨道两端之上**；
-        //   4. 绘制轨道时的 startGap/endGap 仅在 `thumbTrackGapSize > 0.dp` 时才计算（line 1913 的守卫）。
+        //   4. M3 自带的 tick 数量 = steps+1，range/step 较大时（如 40~120 步长 1）会画出上百个点，
+        //      且其轨道绘制只覆盖被压缩后的 placeable，导致两端露出空白。
         //
-        // 旧实现传了 thumbTrackGapSize = 0.dp ⇒ endGap 恒为 0，可见轨道只铺满被压缩后的
-        // track placeable（左右各缺 thumbWidth/2），而 thumb 右端能走到 trackPlaceable.width + thumbWidth，
-        // 于是 thumb 在最右端**探出可见轨道约 thumbWidth/2（8dp）**——这正是用户截图里「滑块滑到最右端
-        // 会超过滑轨」的成因，与手机品牌 / 分辨率无关，是确定性的布局计算缺陷。
+        // 因此 v4.75.6 弃用 M3 的 track 绘制（SliderDefaults.Track），改为**自绘整条轨道**：
+        //   - thumb 与轨道等高（thumbSize = trackHeight）；
+        //   - 可见轨道左右各外扩半个 thumb，覆盖 thumb 完整行程，两端恰好齐平、不溢出；
+        //   - 刻度点自绘、均匀铺满整条轨道（无两端空白），且总数封顶 13，避免可选值多时过密。
         //
-        // 修法（不新增权限、不依赖 M3 内部行为）：
-        //   - thumb 尺寸改为与轨道等高（TrackHeight），满足「滑块与轨道等高」；
-        //   - 可见轨道向左右各外扩半个 thumb（offset(-thumbSize/2) + width(maxWidth + thumbSize)），
-        //     使 thumb 行程两端恰好与可见轨道端点齐平，**不再溢出**。
+        // 几何要点：轨道本地 x=0 对应 thumb 中心的**最左**位置（滑块左缘贴齐轨道左端），
+        // thumb 圆心 = left + 半径 + fraction * (totalLen - 2*半径)，与 M3 的位移公式一致。
         val trackHeight = 22.dp
         val thumbSize = trackHeight
         Slider(
@@ -531,31 +533,71 @@ fun StyleSliderItem(
                     border = BorderStroke(0.5.dp, tokens.divider)
                 ) {}
             },
-            track = { sliderState ->
+            track = { _ ->
+                // 轨道几何（v4.75.6）：thumb 与轨道等高；可见轨道覆盖 thumb 的完整行程
+                // （M3 把轨道压缩了 thumbWidth 并右移半个 thumb，故向两端各外扩半个 thumb），
+                // 保证 thumb 到达两端时整枚落在轨道内、不会溢出。
+                val density = LocalDensity.current
+                val thumbPx = with(density) { thumbSize.toPx() }
+                val tickRadiusPx = with(density) { 1.5.dp.toPx() }
+                val cornerPx = with(density) { trackHeight.toPx() / 2f }
+                // Canvas 的绘制 lambda 不是 @Composable，颜色必须在外面取好再捕获。
+                val trackBase = MaterialTheme.colorScheme.primary
+                val inactiveColor = trackBase.copy(alpha = 0.18f)
+                val activeColor = trackBase.copy(alpha = 0.55f)
+                val tickActive = trackBase.copy(alpha = 0.85f)
+                val tickInactive = trackBase.copy(alpha = 0.38f)
+
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth().height(trackHeight)
                 ) {
-                    // 可见轨道底色：向两端各外扩半个 thumb，使 thumb 到达端点时**整枚落在轨道内**。
-                    // Compose 默认不裁剪，故该外扩会绘制到 track placeable 之外，
-                    // 正好补上 M3 压缩测量（-thumbWidth）与 trackOffsetX = thumbWidth/2 留下的缺口。
-                    Box(
-                        modifier = Modifier
-                            .offset(x = -thumbSize / 2)
-                            .width(maxWidth + thumbSize)
-                            .height(trackHeight)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                    )
-                    SliderDefaults.Track(
-                        sliderState = sliderState,
-                        modifier = Modifier.fillMaxWidth().height(trackHeight),
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            inactiveTrackColor = Color.Transparent
-                        ),
-                        thumbTrackGapSize = 0.dp,
-                        trackInsideCornerSize = 0.dp
-                    )
+                    // thumb 圆心在 M3 轨道坐标系里的位置：fraction*(trackWidth)，
+                    // 轨道本地 x=0 对应 thumb 中心的最左位置（滑块左缘贴齐轨道左端）。
+                    val fraction = if (range.endInclusive > range.start) {
+                        ((value - range.start) / (range.endInclusive - range.start))
+                            .coerceIn(0f, 1f)
+                    } else 0f
+
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val trackWidth = size.width
+                        val trackHeightPx = size.height
+                        // 可见轨道左右各外扩半个 thumb，恰好容纳位于两端的整枚 thumb。
+                        val left = -thumbPx / 2f
+                        val right = trackWidth + thumbPx / 2f
+                        val totalLen = right - left
+                        val corner = CornerRadius(cornerPx)
+
+                        // 底色整条轨道
+                        drawRoundRect(
+                            color = inactiveColor,
+                            topLeft = Offset(left, 0f),
+                            size = Size(totalLen, trackHeightPx),
+                            cornerRadius = corner
+                        )
+
+                        // thumb 圆心位置：从 left+半径 到 right-半径
+                        val thumbCenter = left + trackHeightPx / 2f +
+                            fraction * (totalLen - trackHeightPx)
+
+                        // 已选段：left → thumb 圆心
+                        drawRoundRect(
+                            color = activeColor,
+                            topLeft = Offset(left, 0f),
+                            size = Size(thumbCenter - left, trackHeightPx),
+                            cornerRadius = corner
+                        )
+
+                        // 刻度点：均匀铺满整条可见轨道（消除两端空白），并封顶总数防过密。
+                        val tickCount = minOf((steps + 1).coerceAtLeast(2), 13)
+                        repeat(tickCount) { i ->
+                            val x = left + (totalLen * i / (tickCount - 1f))
+                            drawCircle(
+                                color = if (x <= thumbCenter) tickActive else tickInactive,
+                                radius = tickRadiusPx,
+                                center = Offset(x, trackHeightPx / 2f)
+                            )
+                        }
+                    }
                 }
             }
         )
