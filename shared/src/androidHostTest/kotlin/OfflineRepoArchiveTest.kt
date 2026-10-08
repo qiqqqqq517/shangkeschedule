@@ -72,8 +72,18 @@ class OfflineRepoArchiveTest {
         }
     }
 
+    /**
+     * 打包排除规则 —— **必须与 `shared/build.gradle.kts` 的 `packSchoolsZip.isExcluded` 保持一致**。
+     *
+     * P2-2：构建侧新增了 `timetable_schools.json`（构建期数据集，运行时从不读它，
+     * 入口见 SchoolRepository / AdapterRemoteUpdater.INDEX_RELATIVE_PATH），
+     * 若此处不同步，本测试会以「解包文件集合与打包源不一致」失败 —— 那不是被测代码坏了，
+     * 而是**测试侧的判据副本漂移**。两处必须同改。
+     */
     private fun isExcludedFromPackaging(relativePath: String): Boolean =
-        relativePath.endsWith(".md") || relativePath.endsWith("schools_template.json")
+        relativePath.endsWith(".md") ||
+            relativePath.endsWith("schools_template.json") ||
+            relativePath.endsWith("timetable_schools.json")
 
     private fun offlineArchive(): File =
         File(repoRoot(), "shared/src/commonMain/composeResources/files/offline_schools.zip")

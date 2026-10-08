@@ -30,25 +30,53 @@ class PostedNotificationRegistry(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** 登记一条已投递的通知。 */
+    /**
+     * 登记一条已投递的通知。
+     *
+     * P2-28：登记与回收必须保证 **occKey → notificationId 一对一**。
+     *
+     * 实测（kotlinc 实跑）确认的机制：`Map + (key to id)` 在 Kotlin 里**是覆盖**（同键 put），
+     * 因此单次 [register] 不会产生重键。真正产生重键的是**底层的 `SharedPreferences` `StringSet`**：
+     * 它无序，一旦因历史数据/并发写入留下两条同 key 记录，[load] 的 `toMap()`
+     *「后者胜出」的「后」就取决于 **Set 的迭代顺序（不可控）** —— 实测两条同样记录在两种
+     * 迭代顺序下分别解析出 id=2 与 id=1 ⇒ 被丢弃的那个 notificationId **永远不在**
+     * `pruneExcept` / `clear` / `remove` 的视野里，那条通知**取消不掉**（用户划不掉）。
+     *
+     * 因此本方法的职责是「写入前先按 key 清理旧条目」，保证持久化集合里恒无重键；
+     * [load] 侧另加重键检出与告警，作为历史脏数据的一次性自愈。
+     */
     fun register(occurrenceKey: String, notificationId: Int) {
         runCatching {
-            persist(load() + (occurrenceKey to notificationId))
+            // 显式「先移旧、再放新」：即使 load() 曾因历史脏数据返回过别的 id，
+            // 这里也只保留本次这一条，落地集合里不会累积同 key 记录。
+            val next = load().toMutableMap().apply { put(occurrenceKey, notificationId) }
+            persist(next)
         }.onFailure { Log.w(TAG, "登记通知失败", it) }
     }
 
-    /** 当前登记的全部「occKey → 通知 ID」。 */
+    /**
+     * 当前登记的全部「occKey → 通知 ID」。
+     *
+     * P2-28：检出重键并**显式告警**。底层是 `SharedPreferences` 的 `StringSet`（无序），
+     * 一旦存在同 key 的两条记录，`toMap()` 谁胜出取决于迭代顺序（实测两种顺序分别得
+     * id=2 与 id=1），被丢弃的那个 ID 就再也回收不到。这里把重键暴露到日志，
+     * 不再静默丢弃；[register] 侧保证新写入不再产生重键。
+     */
     fun load(): Map<String, Int> = runCatching {
-        prefs.getStringSet(KEY_ENTRIES, null)
-            ?.mapNotNull { entry ->
-                // 前缀式存储，split 限 1 次 → occKey 内部含任何字符都不会切错
-                val parts = entry.split(ENTRY_SEPARATOR, limit = 2)
-                if (parts.size != 2) return@mapNotNull null
-                val id = parts[0].toIntOrNull() ?: return@mapNotNull null
-                parts[1] to id
-            }
-            ?.toMap()
-            ?: emptyMap()
+        val raw = prefs.getStringSet(KEY_ENTRIES, null) ?: return@runCatching emptyMap()
+        val parsed = raw.mapNotNull { entry ->
+            // 前缀式存储，split 限 1 次 → occKey 内部含任何字符都不会切错
+            val parts = entry.split(ENTRY_SEPARATOR, limit = 2)
+            if (parts.size != 2) return@mapNotNull null
+            val id = parts[0].toIntOrNull() ?: return@mapNotNull null
+            parts[1] to id
+        }
+        val dupKeys = parsed.groupingBy { it.first }.eachCount().filterValues { it > 1 }.keys
+        if (dupKeys.isNotEmpty()) {
+            // 只记数量与键的个数，不打印 occKey 原文（含课程 ID）
+            Log.w(TAG, "登记簿存在重键 ${dupKeys.size} 个：收敛时只能保留其中一条，另一条通知将无法被取消")
+        }
+        parsed.toMap()
     }.getOrDefault(emptyMap())
 
     /**
@@ -102,7 +130,9 @@ class PostedNotificationRegistry(context: Context) {
             prefs.edit {
                 putStringSet(
                     KEY_ENTRIES,
-                    entries.map { "${it.value}$ENTRY_SEPARATOR${it.key}" }.toSet()
+                    // 排序后再写入：底层 StringSet 无序，排序让持久化内容**确定性**，
+                    // 便于排查「同一 occKey 为何解析出不同 id」这类重键问题（P2-28）。
+                    entries.map { "${it.value}$ENTRY_SEPARATOR${it.key}" }.sorted().toSet()
                 )
             }
         }.onFailure { Log.w(TAG, "持久化通知登记簿失败", it) }

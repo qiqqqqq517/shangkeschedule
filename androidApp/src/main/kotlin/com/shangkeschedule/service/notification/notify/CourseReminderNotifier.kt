@@ -132,6 +132,11 @@ class CourseReminderNotifier(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setShowWhen(true)
+            // P2-27：同一通知 ID 重复投递时**只响一次**。
+            // 通知 ID 由 occurrence 稳定身份派生（见 NotificationIds），同一节课的提醒
+            // 在多条触发路径（闹钟到点、前台补排、重排后重投）下会命中同一个 ID ——
+            // 不加此标志则每次投递都会再响一次铃声并震动，用户在同一次课前被反复打扰。
+            .setOnlyAlertOnce(true)
             .addAction(0, closeActionText, dismissPi)
             .setContentIntent(contentPi)
 
