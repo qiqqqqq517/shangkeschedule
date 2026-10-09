@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v47513">v4.75.13 · 修复「点击执行导入后一直没有反应」</a></li>
         <li><a href="#v47512">v4.75.12 · 正方教务导入恢复可用（修复「适配脚本未在限定时间内启动」）</a></li>
         <li><a href="#v47511">v4.75.11 · 滑块与深蓝轨无缝衔接，滑到两端不探出也不留白</a></li>
         <li><a href="#v4756">v4.75.6 · 滑轨两端不再露白、刻度点不再挤成一片</a></li>
@@ -198,6 +199,16 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v47513">
+        <div><span class="tl-ver">v4.75.13</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b>点「执行导入」后一直停在「正在执行导入脚本...」，既不出结果也没有任何提示</b>。原因是导入的「无响应兜底」写错了语义：它本应是<b>空闲超时</b>（多久没消息就报错），却被实现成「<b>收到任意一条消息就永久取消</b>」。而绝大多数学校适配脚本在页面加载时就会先发一条与导入无关的提示（正方教务实测为「检测到正方教务系统，点击导入按钮抓取课表」），这一条就把兜底<b>永久废掉</b>了。此后如果页面里的课表表格解析不出课程、程序转而去调教务接口，而接口又卡住不返回（登录过期、校外 WebVPN 挂起、接口本身慢），就<b>再也没有任何消息、也没有任何超时</b>，界面只能永远转下去。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v47512">
         <div><span class="tl-ver">v4.75.12</span><span class="tl-date">2026-10-09</span></div>
