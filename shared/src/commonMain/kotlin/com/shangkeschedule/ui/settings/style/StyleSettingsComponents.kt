@@ -46,11 +46,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -499,24 +501,17 @@ fun StyleSliderItem(
             }
         }
         val tokens = appColors()
-        // 滑块几何（v4.75.5 修复 thumb 溢出轨道 → v4.75.6 改为自绘轨道、刻度封顶）：
+        // 滑块几何（v4.75.5 修复 thumb 溢出 → v4.75.6 自绘轨道 → v4.75.7 取消计数点 → v4.75.8 修正坐标系）：
         //
-        // Material3 1.9 的 Slider 采用 M3 Expressive 布局，源码（Slider.kt）实测：
-        //   1. 轨道 placeable 被 thumb 宽度压缩测量：measure(constraints.offset(horizontal = -thumbPlaceable.width))；
-        //   2. 轨道被摆放于 trackOffsetX = thumbPlaceable.width / 2，即**两端各让出半个 thumb**；
-        //   3. thumb 行程为 thumbOffsetX = trackPlaceable.width * fraction，即 thumb **压在轨道两端之上**；
-        //   4. M3 自带的 tick 数量 = steps+1，range/step 较大时（如 40~120 步长 1）会画出上百个点，
-        //      且其轨道绘制只覆盖被压缩后的 placeable，导致两端露出空白。
+        // Material3 1.9 的 Slider 采用 M3 Expressive 布局。本组件弃用 M3 的轨道绘制，
+        // 改为 Canvas 自绘「底色整条 + 已选段 + thumb」，并满足两条硬要求：
+        //   - thumb 与轨道等高（thumb 半径 = 轨道高 / 2）；
+        //   - thumb 滑到两端时**恰好贴齐**轨道端点；已选段与 thumb **无缝相接**。
         //
-        // 因此 v4.75.6 弃用 M3 的 track 绘制（SliderDefaults.Track），改为**自绘整条轨道**：
-        //   - thumb 与轨道等高（thumbSize = trackHeight）；
-        //   - 可见轨道左右各外扩半个 thumb，覆盖 thumb 完整行程，两端恰好齐平、不溢出；
-        //   - 刻度点自绘、均匀铺满整条轨道（无两端空白），且总数封顶 13，避免可选值多时过密。
-        //
-        // 几何要点：轨道本地 x=0 对应 thumb 中心的**最左**位置（滑块左缘贴齐轨道左端），
-        // thumb 圆心 = left + 半径 + fraction * (totalLen - 2*半径)，与 M3 的位移公式一致。
+        // 几何全部来自纯函数 computeSliderTrackGeometry（见 SliderTrackGeometry.kt），
+        // 并把 M3 的 thumb 设为透明占位、自己绘制 thumb ⇒ 三者坐标同源，构造上不可能错位。
+        val thumbSize = 22.dp
         val trackHeight = 22.dp
-        val thumbSize = trackHeight
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -524,79 +519,69 @@ fun StyleSliderItem(
             valueRange = range,
             steps = if (steps > 0) steps else 0,
             modifier = Modifier.height(32.dp),
+            // M3 的 thumb 设为**透明占位**：真正的 thumb 由下方 track 的 Canvas 自行绘制。
+            // 这样轨道 / 已选段 / thumb 三者出自同一个纯函数（computeSliderTrackGeometry），
+            // 构造上不可能错位，也不再依赖 M3 内部的 thumb 摆放公式。
             thumb = {
                 Surface(
-                    modifier = Modifier.size(thumbSize),
+                    modifier = Modifier.size(thumbSize).alpha(0f),
                     shape = CircleShape,
-                    color = tokens.cardBg,
-                    shadowElevation = 1.dp,
-                    border = BorderStroke(0.5.dp, tokens.divider)
+                    color = Color.Transparent
                 ) {}
             },
             track = { _ ->
-                // 轨道几何（v4.75.6）：thumb 与轨道等高；可见轨道覆盖 thumb 的完整行程
-                // （M3 把轨道压缩了 thumbWidth 并右移半个 thumb，故向两端各外扩半个 thumb），
-                // 保证 thumb 到达两端时整枚落在轨道内、不会溢出。
                 val density = LocalDensity.current
-                val thumbPx = with(density) { thumbSize.toPx() }
-                val tickRadiusPx = with(density) { 1.5.dp.toPx() }
-                val cornerPx = with(density) { trackHeight.toPx() / 2f }
                 // Canvas 的绘制 lambda 不是 @Composable，颜色必须在外面取好再捕获。
                 val trackBase = MaterialTheme.colorScheme.primary
                 val inactiveColor = trackBase.copy(alpha = 0.18f)
                 val activeColor = trackBase.copy(alpha = 0.55f)
-                val tickActive = trackBase.copy(alpha = 0.85f)
-                val tickInactive = trackBase.copy(alpha = 0.38f)
+                val thumbFill = tokens.cardBg
+                val thumbBorder = tokens.divider
 
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth().height(trackHeight)
                 ) {
-                    // thumb 圆心在 M3 轨道坐标系里的位置：fraction*(trackWidth)，
-                    // 轨道本地 x=0 对应 thumb 中心的最左位置（滑块左缘贴齐轨道左端）。
                     val fraction = if (range.endInclusive > range.start) {
                         ((value - range.start) / (range.endInclusive - range.start))
                             .coerceIn(0f, 1f)
                     } else 0f
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val trackWidth = size.width
-                        val trackHeightPx = size.height
-                        // 可见轨道左右各外扩半个 thumb，恰好容纳位于两端的整枚 thumb。
-                        val left = -thumbPx / 2f
-                        val right = trackWidth + thumbPx / 2f
-                        val totalLen = right - left
-                        val corner = CornerRadius(cornerPx)
+                        val g = computeSliderTrackGeometry(
+                            canvasWidthPx = size.width,
+                            trackHeightPx = size.height,
+                            fraction = fraction
+                        )
+                        val corner = CornerRadius(g.thumbRadius)
 
-                        // 底色整条轨道
+                        // 1) 底色整条轨道
                         drawRoundRect(
                             color = inactiveColor,
-                            topLeft = Offset(left, 0f),
-                            size = Size(totalLen, trackHeightPx),
+                            topLeft = Offset(g.trackLeft, 0f),
+                            size = Size(g.trackRight - g.trackLeft, size.height),
                             cornerRadius = corner
                         )
 
-                        // thumb 圆心位置：从 left+半径 到 right-半径
-                        val thumbCenter = left + trackHeightPx / 2f +
-                            fraction * (totalLen - trackHeightPx)
-
-                        // 已选段：left → thumb 圆心
+                        // 2) 已选段（深蓝）：左端 → thumb 圆心再延伸一个半径，与 thumb 右半圆重合
                         drawRoundRect(
                             color = activeColor,
-                            topLeft = Offset(left, 0f),
-                            size = Size(thumbCenter - left, trackHeightPx),
+                            topLeft = Offset(g.trackLeft, 0f),
+                            size = Size(g.fillEnd - g.trackLeft, size.height),
                             cornerRadius = corner
                         )
 
-                        // 刻度点：均匀铺满整条可见轨道（消除两端空白），并封顶总数防过密。
-                        val tickCount = minOf((steps + 1).coerceAtLeast(2), 13)
-                        repeat(tickCount) { i ->
-                            val x = left + (totalLen * i / (tickCount - 1f))
-                            drawCircle(
-                                color = if (x <= thumbCenter) tickActive else tickInactive,
-                                radius = tickRadiusPx,
-                                center = Offset(x, trackHeightPx / 2f)
-                            )
-                        }
+                        // 3) thumb（白）：与轨道等高，两端恰好贴齐轨道端点
+                        drawCircle(
+                            color = thumbFill,
+                            radius = g.thumbRadius,
+                            center = Offset(g.thumbCenter, size.height / 2f)
+                        )
+                        drawCircle(
+                            color = thumbBorder,
+                            radius = g.thumbRadius,
+                            center = Offset(g.thumbCenter, size.height / 2f),
+                            style = Stroke(width = with(density) { 0.5.dp.toPx() })
+                        )
                     }
                 }
             }
