@@ -127,21 +127,59 @@ class NativeBridge(
     var sessionEntryUrl: String? = entryUrl
         private set
 
+    /**
+     * 入口 URL 取不到主机时的会话基线（v4.75.7）。
+     *
+     * 索引里有一批适配器（含「正方教务系统（通用）」）的 `import_url` 为空 ——
+     * 用户要自己输地址。此时入口主机恒为 null，门禁会把该校**所有回传**都拒掉，
+     * 症状正是 30 秒后弹「适配脚本未在限定时间内启动」。
+     *
+     * 修法：首次**成功加载的主框架**主机即视为本会话基线并钉住。
+     * 只在「入口本来就没有可用主机」时启用；入口有主机时一律按入口+其声明的落地域判定，
+     * 不因为页面自己跳了一下就放宽 —— 那会让门禁形同虚设。
+     */
+    @Volatile
+    var pinnedSessionHost: String? = null
+        private set
+
     /** 入口地址变化时同步基准（见 sessionEntryUrl）。 */
     fun updateEntryUrl(newEntryUrl: String?) {
         sessionEntryUrl = newEntryUrl
+        // 入口换了，之前钉住的基线不再代表本会话，重新钉。
+        pinnedSessionHost = null
     }
+
+    /**
+     * 记录一次「主框架已加载」事件，必要时钉住会话基线。
+     *
+     * 只在入口**没有**可用主机时生效：有主机的入口走 `bridgeCallAllowed` 的
+     * 「入口 + 声明落地域」判定，钉基线是多余且会放宽安全边界的。
+     */
+    fun onMainFrameLoaded(loadedUrl: String?) {
+        if (pinnedSessionHost != null) return
+        val entryHost = hostOfUrl(sessionEntryUrl) ?: null
+        if (entryHost != null) return
+        pinnedSessionHost = hostOfUrl(loadedUrl)
+    }
+
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
         val currentUrl = currentMainFrameUrl()
-        if (!bridgeCallAllowed(sessionEntryUrl, currentUrl)) {
+        if (!bridgeCallAllowed(sessionEntryUrl, currentUrl, pinnedSessionHost)) {
             // fail-closed：来源不可判定（同站判定失败、URL 解析不出、尚未完成加载）一律拒绝。
             // 只记主机与长度，绝不回显消息正文。
             Log.w(
                 "ShangKeBridge",
                 "postMessage rejected: entryHost=${hostOfUrl(sessionEntryUrl)}, " +
-                    "currentHost=${hostOfUrl(currentUrl)}, len=${jsonMessage.length}"
+                    "currentHost=${hostOfUrl(currentUrl)}, pinned=${pinnedSessionHost}, " +
+                    "len=${jsonMessage.length}"
             )
+            // v4.75.7：**必须让用户看见**，不能只落 logcat。
+            // 此前这里只写日志 ⇒ JS 侧静默 ⇒ 30 秒后看门狗把原因误报成
+            // 「适配脚本未在限定时间内启动」，把「本机拦了回传」归因成「你没登录 / 没打开课表页」，
+            // 排查方向被彻底带偏（实测：全部正方学校只要入口与落地跨域就必然命中）。
+            // 交给 handler 统一归因：它会立刻以 [wb_import_blocked] 结束本次导入并留痕。
+            handler.noteBridgeRejected()
             return
         }
         // 保留适配脚本与原生之间的通信日志（便于排查「点击导入无反应」类问题），
@@ -260,9 +298,9 @@ actual fun PlatformWebView(
                     // 入口 URL 取 `PlatformWebView(url = ...)`（本次导入会话要访问的教务地址），
                     // 当前主框架 URL 由 WebView 自身提供；两者不同站即整条消息丢弃（见 [bridgeCallAllowed]）。
                     // R40-07：留引用，update{} 在入口地址变化时同步门禁基准。
-                    val bridge = NativeBridge(bridgeHandler, url) {
+                    val bridge = NativeBridge(bridgeHandler, url, {
                         androidController?.webViewInstance?.url
-                    }
+                    })
                     androidController?.nativeBridge = bridge
                     addJavascriptInterface(bridge, "_shangkeNativeBridge")
 
@@ -285,6 +323,9 @@ actual fun PlatformWebView(
 
                         override fun onPageFinished(view: WebView?, url: String?) {
                             currentOnProgressChange(1.0f)
+                            // v4.75.7：入口无主机时（通用入口）用首个成功加载的主框架钉住会话基线，
+                            // 否则门禁会因「基线恒为空」拒掉该校全部回传。
+                            androidController?.nativeBridge?.onMainFrameLoaded(url)
                             currentOnPageLoaded()
                             view?.evaluateJavascript("document.title") { value ->
                                 val unquoted = value?.trim('"')?.replace("\\\"", "\"")?.trim() ?: ""

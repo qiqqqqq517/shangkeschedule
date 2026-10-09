@@ -912,6 +912,7 @@
     <string name="wb_table_cancelled_or_unset">課表選擇已取消或未設定。</string>
     <string name="wb_import_success_fmt">課程匯入成功！共匯入 %1$d 門課。</string>
     <string name="wb_import_timeout">匯入無回應：適配指令碼未在限定時間內啟動，請確認已登入教務並開啟課表頁面後重試。</string>
+    <string name="wb_import_blocked">匯入未完成：教務頁面已載入，但本機沒有收到指令碼回傳（可能是入口網址與登入後跳轉的網址不同網域）。請改用「⋯ → 使用目前網址」把網址列改成登入後的教務網址再重試；若仍失敗，請回報該校名。</string>
     <string name="wb_adapter_error_fmt">適配指令碼執行出錯：%1$s</string>
     <string name="wb_adapter_no_entry">找不到匯入入口：請確認已開啟課表頁面後重試，或改用文字匯入。</string>
     <string name="wb_native_dialog_title">提示</string>
