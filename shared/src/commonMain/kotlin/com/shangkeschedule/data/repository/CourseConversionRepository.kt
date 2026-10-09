@@ -304,11 +304,27 @@ class CourseConversionRepository(
         require(coursesJsonModel.isNotEmpty()) { "解析结果为空，已保留原有课表" }
         coursesJsonModel.forEach { validateCustomCourseTimeOrThrow(it) }
 
+        // v4.75.14：**丢弃周次为空的课程**（落库侧兜底，不依赖各适配脚本自觉）。
+        //
+        // 课表 UI 的显示判据是 `weeks.any { it.weekNumber == currentWeek }`，周次为空的
+        // 课程**任何一周都不显示**。若放任它落库，用户会看到「导入成功 N 门课」却在
+        // 课表上找不到那几门 —— 这正是「导入不成功」最难排查的一类：数据确实进库了，
+        // 只是永远不可见（且会占用门数统计，让「共导入 N 门」与实际可见数对不上）。
+        //
+        // 适配脚本侧已同步修正（`zhengfang.js` / `hbeu.js` 的 `if (weeks.length === 0) weeks = [];`
+        // 是空操作，已改为丢弃并计数提示）。这里再加一层：脚本是 OTA 分发的、存量版本
+        // 仍可能是旧写法，落库侧必须自己守得住。
+        val importableCourses = coursesJsonModel.filter { it.weeks.isNotEmpty() }
+        // 全部为空时按「解析结果为空」处理，避免把课表清空。
+        require(importableCourses.isNotEmpty()) {
+            "解析出的课程均缺少周次信息，已保留原有课表"
+        }
+
         val currentStyle = styleSettingsRepository.styleFlow.first()
         val colorSize = currentStyle.courseColorMaps.size
 
         val (courseEntities, courseWeekEntities) = buildCourseEntities(
-            coursesJsonModel = coursesJsonModel,
+            coursesJsonModel = importableCourses,
             tableId = tableId,
             colorSize = colorSize,
             isCrush = false,

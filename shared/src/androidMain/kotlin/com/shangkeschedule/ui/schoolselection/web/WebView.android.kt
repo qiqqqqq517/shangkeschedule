@@ -35,13 +35,6 @@ actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
 class AndroidWebViewController : WebViewController {
     var webViewInstance: WebView? = null
 
-    /**
-     * 当前注册到页面的桥接实例（R40-07）。
-     *
-     * 入口地址变化时用它同步门禁基准，见 [NativeBridge.updateEntryUrl]。
-     */
-    var nativeBridge: NativeBridge? = null
-
     override val currentUrl: String
         get() = webViewInstance?.url ?: ""
 
@@ -96,94 +89,33 @@ actual fun rememberWebViewController(): WebViewController {
 /**
  * JS → 原生 桥接。
  *
- * P1-11：此前 `postMessage` 无任何来源校验，而
- * `addJavascriptInterface` 对**所有 frame** 暴露本对象 ⇒ WebView 里加载的任意页面
- * （用户误点的外链、页面内嵌的第三方 iframe）都能调起原生对话框，甚至写用户课表。
- * 现按 [bridgeCallAllowed] 做**来源门禁**：主框架主机必须与本次导入会话入口主机**同站**，
- * 否则整条消息丢弃（fail-closed）。
+ * **v4.75.14：已按用户要求撤掉「桥接来源门禁」（精准回退到 v4.74.1 的导入行为）。**
  *
- * P1-12：日志**只记元数据**（动作名 + 长度 + 来源主机），**不再打印整条消息** ——
- * 原实现把含课表数据、提示原文、报错栈与 URL 的完整 JSON 写进 logcat，属隐私泄露。
+ * 门禁于 v4.74.15 引入（`bridgeCallAllowed`，fail-closed：主框架主机必须与入口同站），
+ * 目的是挡住「导入页里误开的外链 / 内嵌第三方页面」调用原生能力。但它在本项目的数据形态下
+ * 把**本校自己的正常回传**也一起拦掉了：索引里大量学校登记的是**统一认证 / 门户**入口，
+ * 登录后服务端会跳到**另一个可注册域**的教务系统，而门禁只比对「索引登记的那个入口主机」
+ * ⇒ 脚本明明成功解析出课程，回传却被整条丢弃，用户只看到「导入无响应」。
+ * 实测正方教务覆盖的 966 所学校里有一批属于这种形态。
+ *
+ * 回退取舍（用户明确选择「精准回退：只撤掉来源门禁」）：
+ *  - 恢复 v4.74.1 的**直转**行为 —— 收到的消息一律交给 [WebBridgeHandler]；
+ *  - **保留 P1-12 的日志脱敏**（只记 action + 长度，绝不打印消息正文），
+ *    这是与门禁无关的隐私修复，没有理由跟着回退；
+ *  - 拦截器侧的 CORS 同站白名单（`WebViewRequestInterceptor`）**照旧生效**，未受影响。
+ *
+ * 残余风险（诚实标注）：`addJavascriptInterface` 对**所有 frame** 暴露本对象，
+ * 因此导入页内嵌的跨源 iframe 理论上可调用原生能力（写课表 / 弹窗）。
+ * 彻底关闭需迁移到 `WebViewCompat.addWebMessageListener`（其 allowedOriginRules
+ * 由框架按**调用方 origin** 强制校验），会改动全部 OTA 分发脚本，属待裁决项。
  */
-class NativeBridge(
-    private val handler: WebBridgeHandler,
-    entryUrl: String?,
-    private val currentMainFrameUrl: () -> String?
-) {
-    /**
-     * 本次导入会话的入口地址（可注册域比对的基准）。
-     *
-     * R40-07：此前是不可变构造属性，在 WebView factory 里只赋值一次。
-     * 而 AndroidView 没有 key、factory 仅首次组合执行 ⇒ 用户在地址栏改了入口
-     *（v4.72.0 起开放）之后，门禁仍在拿**旧入口**与当前页比 ⇒ 改到不同可注册域的真实
-     * 教务入口（WebVPN 与教务常分属不同域）时，脚本注入成功也真的跑了，但它的一切回传
-     *（含 reportAdapterError）都被整条丢弃 ⇒ JS 侧静默 → 30 秒后看门狗弹「导入超时」，
-     * 且失败条给出的重试必然再次超时（入口主机仍是冻结的旧主机）。
-     *
-     * 修法：改为可变属性，由 updateEntryUrl 在入口变化时同步。
-     * 同站判定与 fail-closed 语义完全不变 —— 变的只是「基准随实际入口走」。
-     */
-    @Volatile
-    var sessionEntryUrl: String? = entryUrl
-        private set
-
-    /**
-     * 入口 URL 取不到主机时的会话基线（v4.75.7）。
-     *
-     * 索引里有一批适配器（含「正方教务系统（通用）」）的 `import_url` 为空 ——
-     * 用户要自己输地址。此时入口主机恒为 null，门禁会把该校**所有回传**都拒掉，
-     * 症状正是 30 秒后弹「适配脚本未在限定时间内启动」。
-     *
-     * 修法：首次**成功加载的主框架**主机即视为本会话基线并钉住。
-     * 只在「入口本来就没有可用主机」时启用；入口有主机时一律按入口+其声明的落地域判定，
-     * 不因为页面自己跳了一下就放宽 —— 那会让门禁形同虚设。
-     */
-    @Volatile
-    var pinnedSessionHost: String? = null
-        private set
-
-    /** 入口地址变化时同步基准（见 sessionEntryUrl）。 */
-    fun updateEntryUrl(newEntryUrl: String?) {
-        sessionEntryUrl = newEntryUrl
-        // 入口换了，之前钉住的基线不再代表本会话，重新钉。
-        pinnedSessionHost = null
-    }
-
-    /**
-     * 记录一次「主框架已加载」事件，必要时钉住会话基线。
-     *
-     * 只在入口**没有**可用主机时生效：有主机的入口走 `bridgeCallAllowed` 的
-     * 「入口 + 声明落地域」判定，钉基线是多余且会放宽安全边界的。
-     */
-    fun onMainFrameLoaded(loadedUrl: String?) {
-        if (pinnedSessionHost != null) return
-        val entryHost = hostOfUrl(sessionEntryUrl) ?: null
-        if (entryHost != null) return
-        pinnedSessionHost = hostOfUrl(loadedUrl)
-    }
+class NativeBridge(private val handler: WebBridgeHandler) {
 
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
-        val currentUrl = currentMainFrameUrl()
-        if (!bridgeCallAllowed(sessionEntryUrl, currentUrl, pinnedSessionHost)) {
-            // fail-closed：来源不可判定（同站判定失败、URL 解析不出、尚未完成加载）一律拒绝。
-            // 只记主机与长度，绝不回显消息正文。
-            Log.w(
-                "ShangKeBridge",
-                "postMessage rejected: entryHost=${hostOfUrl(sessionEntryUrl)}, " +
-                    "currentHost=${hostOfUrl(currentUrl)}, pinned=${pinnedSessionHost}, " +
-                    "len=${jsonMessage.length}"
-            )
-            // v4.75.7：**必须让用户看见**，不能只落 logcat。
-            // 此前这里只写日志 ⇒ JS 侧静默 ⇒ 30 秒后看门狗把原因误报成
-            // 「适配脚本未在限定时间内启动」，把「本机拦了回传」归因成「你没登录 / 没打开课表页」，
-            // 排查方向被彻底带偏（实测：全部正方学校只要入口与落地跨域就必然命中）。
-            // 交给 handler 统一归因：它会立刻以 [wb_import_blocked] 结束本次导入并留痕。
-            handler.noteBridgeRejected()
-            return
-        }
-        // 保留适配脚本与原生之间的通信日志（便于排查「点击导入无反应」类问题），
-        // 但**只记元数据**。
+        // P1-12：保留通信日志（便于排查「点击导入无反应」类问题），但**只记元数据**，
+        // 绝不打印整条消息 —— 原实现把含课表数据、提示原文、报错栈与 URL 的完整 JSON
+        // 写进 logcat，属隐私泄露。
         Log.d(
             "ShangKeBridge",
             "postMessage: action=${bridgeActionOf(jsonMessage)}, len=${jsonMessage.length}"
@@ -197,8 +129,7 @@ class NativeBridge(
  *
  * 不引入第二份 JSON 解析器：真正的解析在 `WebBridgeHandler` 里用 kotlinx.serialization，
  * 若此处另起一份，出现「日志写 A、实际按 B 执行」的偏差比缺字段更难排查。
- * 正则失配只会让该日志字段变成 `?`，**不影响放行/拒绝判定** ——
- * 那部分完全由 [bridgeCallAllowed] 决定。
+ * 正则失配只会让该日志字段变成 `?`，不影响消息处理。
  */
 private fun bridgeActionOf(jsonMessage: String): String {
     val m = Regex("\\\"action\\\"\\s*:\\s*\\\"([^\\\"]{0,64})\\\"").find(jsonMessage)
@@ -294,15 +225,11 @@ actual fun PlatformWebView(
                     delegate.enhanceSettings(isDesktopMode)
 
                     addJavascriptInterface(WebPostBridge(), "WebPostService")
-                    // P1-11：桥接必须做来源门禁 —— `addJavascriptInterface` 对所有 frame 暴露本对象。
-                    // 入口 URL 取 `PlatformWebView(url = ...)`（本次导入会话要访问的教务地址），
-                    // 当前主框架 URL 由 WebView 自身提供；两者不同站即整条消息丢弃（见 [bridgeCallAllowed]）。
-                    // R40-07：留引用，update{} 在入口地址变化时同步门禁基准。
-                    val bridge = NativeBridge(bridgeHandler, url, {
-                        androidController?.webViewInstance?.url
-                    })
-                    androidController?.nativeBridge = bridge
-                    addJavascriptInterface(bridge, "_shangkeNativeBridge")
+                    // v4.75.14：桥接**不再做来源门禁**（按用户要求精准回退到 v4.74.1 行为）。
+                    // 原因见 [NativeBridge] 的 KDoc：门禁会把「统一认证入口 → 另一可注册域教务」
+                    // 这类本校正常流程的回传整条拦掉，症状是「导入无响应」。
+                    // 拦截器侧的 CORS 同站白名单不受影响，仍照旧生效。
+                    addJavascriptInterface(NativeBridge(bridgeHandler), "_shangkeNativeBridge")
 
                     val baseChromeClient = object : WebChromeClient() {
                         override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -323,9 +250,6 @@ actual fun PlatformWebView(
 
                         override fun onPageFinished(view: WebView?, url: String?) {
                             currentOnProgressChange(1.0f)
-                            // v4.75.7：入口无主机时（通用入口）用首个成功加载的主框架钉住会话基线，
-                            // 否则门禁会因「基线恒为空」拒掉该校全部回传。
-                            androidController?.nativeBridge?.onMainFrameLoaded(url)
                             currentOnPageLoaded()
                             view?.evaluateJavascript("document.title") { value ->
                                 val unquoted = value?.trim('"')?.replace("\\\"", "\"")?.trim() ?: ""
@@ -352,10 +276,6 @@ actual fun PlatformWebView(
             },
             update = { webView ->
                 androidController?.webViewInstance = webView
-                // R40-07：入口地址变了就同步门禁基准。
-                // 不做这一步的话，用户改地址后所有回传都会被按旧入口主机拒收，
-                // 表现为「导入必然超时」且重试无用（真因只在 logcat）。
-                androidController?.nativeBridge?.updateEntryUrl(url)
             }
         )
     }

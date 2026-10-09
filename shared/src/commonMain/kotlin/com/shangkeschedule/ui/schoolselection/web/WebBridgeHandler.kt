@@ -7,7 +7,6 @@ import shangkeschedule.shared.generated.resources.wb_default_confirm
 import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
 import shangkeschedule.shared.generated.resources.wb_config_import_no_table
 import shangkeschedule.shared.generated.resources.wb_import_failed_fmt
-import shangkeschedule.shared.generated.resources.wb_import_blocked
 import shangkeschedule.shared.generated.resources.wb_import_no_table
 import shangkeschedule.shared.generated.resources.wb_import_success_fmt
 import shangkeschedule.shared.generated.resources.wb_import_timeout
@@ -135,14 +134,6 @@ class WebBridgeHandler(
     private var importFailureNotified = false
 
     /**
-     * 本次导入会话里是否发生过「桥接回传被来源门禁拒绝」（v4.75.7）。
-     *
-     * 用于把 30 秒超时的归因从「脚本未在限定时间内启动」纠正为
-     * 「页面已加载但回传被拦」，避免把本机拦截误报成用户没登录/没打开课表页。
-     */
-    private var bridgeRejected = false
-
-    /**
      * 成功提示的防抖任务。非 null 表示「这批落库的结果还没报给用户」——
      * 收尾（`notifyTaskCompletion`）时据此决定要不要补一条最终总账。
      */
@@ -209,7 +200,6 @@ class WebBridgeHandler(
         importedCoursesTotal = 0
         importSaveSucceeded = false
         importFailureNotified = false
-        bridgeRejected = false
     }
 
     private fun updateImportState(state: ImportRunState) {
@@ -225,18 +215,10 @@ class WebBridgeHandler(
             // 此时刻意保留 importTableId：脚本可能只是启动很慢，晚到的
             // saveImportedCourses 仍应能正常落库，不能被判成「未选择课表」。
             //
-            // v4.75.7：区分两种「零消息」——
-            //  ① 脚本真的没跑起来（未登录 / 没到课表页 / 脚本注入失败）⇒ 原文案正确；
-            //  ② 脚本跑了，但回传被**来源门禁**整条丢弃（见 [noteBridgeRejected]）⇒
-            //     再报「脚本未在限定时间内启动」就是把本机拦截误归因成用户操作问题。
             // v4.75.13：若这 30 秒内已经拿到结果（成功 / 失败都已置位），就不要再覆盖它。
             // 空闲超时的语义是「**还在运行**且长时间没有消息」，已出结果就不属于这个情形。
             if (importState !is ImportRunState.Running) return@launch
-            val timeoutMessage = if (bridgeRejected) {
-                getString(Res.string.wb_import_blocked)
-            } else {
-                getString(Res.string.wb_import_timeout)
-            }
+            val timeoutMessage = getString(Res.string.wb_import_timeout)
             notifyImportFailure(timeoutMessage)
             updateImportState(ImportRunState.Failed(timeoutMessage))
         }
@@ -267,30 +249,6 @@ class WebBridgeHandler(
         if (importTableId == null) return
         if (importState !is ImportRunState.Running) return
         armImportWatchdog()
-    }
-
-    /**
-     * 桥接回传被**来源门禁**拒绝时调用（v4.75.7）。
-     *
-     * 与「脚本没跑起来」是两种完全不同的故障，必须给不同的文案与处置建议：
-     * 门禁拒绝说明页面已加载、脚本也已在跑，只是本机把回传拦掉了。此前只写 logcat，
-     * 用户只能等到 30 秒后的超时提示，并被误导去反复确认登录状态。
-     *
-     * 只记标志、不在这里发提示：门禁会对**每一条**回传都触发一次，
-     * 逐条弹提示会刷屏（且 ToastManager 是 CONFLATED，本来也留不住）。
-     * 由看门狗在超时点用 [wb_import_blocked] 给出一次准确结论。
-     */
-    fun noteBridgeRejected() {
-        if (bridgeRejected) return
-        bridgeRejected = true
-        AppLog.w(TAG, "桥接回传被来源门禁拒绝：导入会话将以「回传被拦」而非「脚本未启动」归因")
-        // 立刻结束运行态：用户已经拿到可执行结论，不必再干等剩余时间。
-        cancelImportWatchdog()
-        coroutineScope.launch(Dispatchers.Main) {
-            val message = getString(Res.string.wb_import_blocked)
-            notifyImportFailure(message)
-            updateImportState(ImportRunState.Failed(message))
-        }
     }
 
     private fun cancelImportWatchdog() {

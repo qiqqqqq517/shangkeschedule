@@ -45,18 +45,19 @@ class WebCompatDelegate(private val webView: WebView) {
             allowContentAccess = false
             // 注意：mixedContentMode 保持 ALWAYS_ALLOW —— 大量教务站点为 http，
             // 且 https 门户页会嵌入 http 子资源；收紧会直接打断这些学校的正常访问。
-            // 该风险由「拦截器 CORS 同站白名单」与「桥接来源门禁」两项对冲（见审计清单 E8）。
+            // 该风险**只由「拦截器 CORS 同站白名单」一项对冲**（见审计清单 E8）。
             //
-            // P1-11 更正（此处原文写「桥接来源校验」，而**全仓没有任何实现**，属虚假安全声明：
-            // 搜「桥接来源校验」只命中这一行注释本身）：
-            //  - 拦截器侧白名单是真的：[isSameSiteHost]（本文件下方 @WebViewClient 部分配合使用）；
-            //  - 桥接侧门禁是本轮才补上的 —— WebHostRules.kt 的 [bridgeCallAllowed]
-            //    + WebView.android.kt 的 NativeBridge；
+            // v4.75.14 更正（按用户要求「精准回退到 v4.74.1 的导入行为」）：
+            //  - 拦截器侧白名单是真的：[isSameSiteHost]（本文件下方 @WebViewClient 部分配合使用），
+            //    未受本次回退影响，仍照旧生效；
+            //  - **桥接侧来源门禁已整体移除**。它于 v4.74.15 补上，但会把
+            //    「统一认证入口 → 登录后跳到另一可注册域教务」这类**本校正常流程**的回传
+            //    整条拦掉，症状是「导入无响应」，实测正方教务覆盖的学校里有成批命中；
             //  - **残余缺口（未关闭，勿当作已修）**：addJavascriptInterface 对**所有 frame**
-            //    暴露桥接，而门禁只读**主框架**主机，故教务页内嵌的**跨源 iframe** 仍可调用桥接。
+            //    暴露桥接，因此导入页内嵌的**跨源 iframe** 可调用原生能力（写课表 / 弹窗）。
             //    彻底关闭需迁移到 WebViewCompat.addWebMessageListener（其 allowedOriginRules
-            //    由框架按**调用方 origin** 强制执行），会改动 197 个 OTA 分发的适配脚本，
-            //    需与应用侧协商兼容窗口，已单列待裁决。
+            //    由框架按**调用方 origin** 强制执行），会改动全部 OTA 分发脚本，
+            //    需与应用侧协商兼容窗口，属待裁决项。
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             useWideViewPort = true
             loadWithOverviewMode = true

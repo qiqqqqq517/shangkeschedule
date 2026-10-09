@@ -258,6 +258,8 @@
         var startRow = headerRow >= 0 ? headerRow + 1 : 0;
         var scanned = 0;
         var withText = 0;
+        // 因「周次解析不出来」被丢弃的课程数（v4.75.14）：计数并如实告知，不静默丢。
+        var skippedNoWeeks = 0;
 
         for (var r2 = startRow; r2 < grid.length; r2++) {
             var row2 = grid[r2] || [];
@@ -292,7 +294,17 @@
                 if (sections.start < 1 || sections.end < sections.start) continue;
 
                 var weeks = parseWeeks(full);
-                if (weeks.length === 0) weeks = [];
+                // 周次解析不出来 ⇒ **丢弃这门课**，不要落库（v4.75.14）。
+                //
+                // 旧写法 `if (weeks.length === 0) weeks = [];` 是**空操作**（空数组赋空数组），
+                // 课程照样落库；而课表 UI 用 `weeks.any { it.weekNumber == currentWeek }`
+                // 判定显示，空周次恒 false ⇒ 该课程**任何一周都不显示**，
+                // 用户看到「导入成功」却在课表上找不到课，表现为「导入不成功」。
+                // 与接口路径口径一致：宁可少收一条脏数据，也不收一条永远不显示的课程。
+                if (weeks.length === 0) {
+                    skippedNoWeeks++;
+                    continue;
+                }
 
                 courses.push({
                     name: name,
@@ -308,7 +320,12 @@
         }
 
         lastPageDiag = '表头列' + Object.keys(dayColumns).length +
-            '/扫描格' + scanned + '/有文本' + withText + '/有效' + courses.length;
+            '/扫描格' + scanned + '/有文本' + withText + '/有效' + courses.length +
+            (skippedNoWeeks > 0 ? '/无周次丢弃' + skippedNoWeeks : '');
+        // 有课程因周次缺失被丢弃时如实告知（不静默）。
+        if (skippedNoWeeks > 0) {
+            Bridge.showToast('有 ' + skippedNoWeeks + ' 门课程因页面未显示周次而跳过，请在课表页确认周次信息是否完整');
+        }
         return courses;
     }
 

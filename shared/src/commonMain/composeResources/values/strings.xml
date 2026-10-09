@@ -912,10 +912,6 @@
     <string name="wb_table_cancelled_or_unset">课表选择已取消或未设置。</string>
     <string name="wb_import_success_fmt">课程导入成功！共导入 %1$d 门课。</string>
     <string name="wb_import_timeout">导入无响应：适配脚本未在限定时间内启动，请确认已登录教务并打开课表页面后重试。</string>
-    <!-- v4.75.7：与上面那条区分开 —— 这条只在「脚本确实已在页面上跑起来、但一条回传都没收到」时用。
-         原实现把两种情况都报成「脚本未在限定时间内启动」，把「本机拦截了回传」误归因成「你没登录/没打开课表页」，
-         排查方向被带偏。详见 WebHostRules.kt 的 bridgeCallAllowed 与 WebView.android.kt 的 NativeBridge。 -->
-    <string name="wb_import_blocked">导入未完成：教务页面已加载，但本机没有收到脚本回传（可能是入口地址与登录后跳转的地址不同域）。请改用「⋯ → 使用当前地址」把地址栏改成登录后的教务地址再重试；若仍失败，请反馈该学校名。</string>
     <string name="wb_adapter_error_fmt">适配脚本执行出错：%1$s</string>
     <string name="wb_adapter_no_entry">未找到导入入口：请确认已打开课表页面后重试，或改用文本导入。</string>
     <string name="wb_native_dialog_title">提示</string>
