@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.75.14</b></span>
-        <span>versionCode <b class="mono" data-version-code>518</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.76.12</b></span>
+        <span>versionCode <b class="mono" data-version-code>528</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,9 +84,13 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
-        <li><a href="#v47514">v4.75.14 · 教务导入回退到 4.74 版行为（撤掉桥接来源门禁）</a></li>
-        <li><a href="#v47513">v4.75.13 · 修复「点击执行导入后一直没有反应」</a></li>
-        <li><a href="#v47512">v4.75.12 · 正方教务导入恢复可用（修复「适配脚本未在限定时间内启动」）</a></li>
+        <li><a href="#v47612">v4.76.12 · 手指按在滑块上也能上下滚动页面</a></li>
+        <li><a href="#v47610">v4.76.10 · 上下滑动不再误触发全屏预览</a></li>
+        <li><a href="#v4769">v4.76.9 · 改为左右拖动时才进入全屏预览</a></li>
+        <li><a href="#v4768">v4.76.8 · 滑块不再带着整页上下滑动</a></li>
+        <li><a href="#v4767">v4.76.7 · 滑块按下后不再闪一下、滑块本身也能正常拖动</a></li>
+        <li><a href="#v4766">v4.76.6 · 拖动滑块后能正常退出全屏预览</a></li>
+        <li><a href="#v4760">v4.76.0 · 调滑块时全屏预览课表，只留当前这一个滑块</a></li>
         <li><a href="#v47511">v4.75.11 · 滑块与深蓝轨无缝衔接，滑到两端不探出也不留白</a></li>
         <li><a href="#v4756">v4.75.6 · 滑轨两端不再露白、刻度点不再挤成一片</a></li>
         <li><a href="#v4755">v4.75.5 · 滑块不再滑出滑轨</a></li>
@@ -201,34 +205,64 @@
 
     <div class="timeline doc-body" style="max-width:none">
 
-      <div class="tl-item reveal" id="v47514">
-        <div><span class="tl-ver">v4.75.14</span><span class="tl-date">2026-10-09</span></div>
+      <div class="tl-item reveal" id="v47612">
+        <div><span class="tl-ver">v4.76.12</span><span class="tl-date">2026-10-09</span></div>
         <div class="tl-body">
-          <h3><span class="tl-tag tag-fix">修复</span>教务导入恢复到 4.74 版（v4.74.1）的行为</h3>
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47610">
+        <div><span class="tl-ver">v4.76.10</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4769">
+        <div><span class="tl-ver">v4.76.9</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4768">
+        <div><span class="tl-ver">v4.76.8</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4767">
+        <div><span class="tl-ver">v4.76.7</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
           <ul>
-            <li>撤掉 v4.74.15 引入的「桥接来源门禁」。</li>
-            <li><b>周次信息缺失的课程不再入库</b>（正方 / 湖北工程学院适配脚本）。此前这类课程的周次为空数组，</li>
+            <li>毛玻璃底衬此前写成「聚焦时用卡片组件、否则用普通容器」的二选一，按下瞬间在两种组件之间切换，<b>整条滑块被销毁重建</b>，手势随之取消；</li>
+            <li>页面滚动此前会在预览态被关闭，这个开关同样在按下瞬间翻转，重建了滚动容器的手势节点。</li>
           </ul>
         </div>
       </div>
 
-      <div class="tl-item reveal" id="v47513">
-        <div><span class="tl-ver">v4.75.13</span><span class="tl-date">2026-10-09</span></div>
+      <div class="tl-item reveal" id="v4766">
+        <div><span class="tl-ver">v4.76.6</span><span class="tl-date">2026-10-09</span></div>
         <div class="tl-body">
           <h3><span class="tl-tag tag-fix">修复</span></h3>
           <ul>
-            <li><b>点「执行导入」后一直停在「正在执行导入脚本...」，既不出结果也没有任何提示</b>。原因是导入的「无响应兜底」写错了语义：它本应是<b>空闲超时</b>（多久没消息就报错），却被实现成「<b>收到任意一条消息就永久取消</b>」。而绝大多数学校适配脚本在页面加载时就会先发一条与导入无关的提示（正方教务实测为「检测到正方教务系统，点击导入按钮抓取课表」），这一条就把兜底<b>永久废掉</b>了。此后如果页面里的课表表格解析不出课程、程序转而去调教务接口，而接口又卡住不返回（登录过期、校外 WebVPN 挂起、接口本身慢），就<b>再也没有任何消息、也没有任何超时</b>，界面只能永远转下去。</li>
+            <li><b>拖动滑块松手后不再卡在全屏预览</b>。此前只有"按住不动再松开"能正常退出，一旦真正拖动就退不出、也无法再次调节。原因是退出所依赖的滑块结束回调<b>只在点击路径下触发，拖动路径下不触发</b>；现在改为由手势监听负责退出——它在点击与拖动两条路径下都能可靠捕获；结束回调仅保留为冗余，两路都只会复位状态，互不影响。</li>
           </ul>
         </div>
       </div>
 
-      <div class="tl-item reveal" id="v47512">
-        <div><span class="tl-ver">v4.75.12</span><span class="tl-date">2026-10-09</span></div>
+      <div class="tl-item reveal" id="v4760">
+        <div><span class="tl-ver">v4.76.0</span><span class="tl-date">2026-10-09</span></div>
         <div class="tl-body">
-          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <h3><span class="tl-tag tag-feat">功能</span></h3>
           <ul>
-            <li><b>部分学校（含正方教务在内的大批学校）导入课表时提示「导入无响应：适配脚本未在限定时间内启动」，其实脚本已经跑起来了</b>。原因是上一版为导入页加了「只允许本校页面调用」的来源校验：它只比对<b>索引里登记的那个入口地址</b>，而这些学校登记的入口是<b>统一认证 / 门户</b>地址，登录后会被服务端跳到<b>另一个域名</b>的教务系统 —— 于是 App 把自己学校的正常回传整条丢掉了，脚本明明成功解析出课程，却一条都送不进来，30 秒后弹出上面那句提示，让人误以为是「没登录 / 没打开课表页」。</li>
-            <li><b>导入被拦时不再只有一句含糊的超时提示</b>。此前被拦只在系统日志里留一行，用户侧毫无线索。现在会明确告知「教务页面已加载，但本机没有收到脚本回传」，并给出可执行处置：用「⋯ → 使用当前地址」把地址栏改成你登录后实际所在的教务地址再重试；若仍失败，请反馈学校名。</li>
+            <li><b>拖动滑块时，课表预览直接铺满整屏</b>。在「自定义课表页」按住任意一个滑块（节次高度 / 时间列宽 / 日期头高 / 文字缩放比例 / 圆角半径 / 内部填充 / 外部间距 / 不透明度），页面会立刻切换成<b>整屏的真实课表</b>，样式改动所见即所得，不用再盯着顶部那条窄预览去猜效果。</li>
+            <li><b>同一时刻只保留当前这一个滑块</b>，其余滑块与设置项全部淡出，屏幕只剩下「全屏课表 + 你正在调的那一个滑块」，注意力不被干扰。</li>
+            <li><b>松手即恢复</b>：抬起手指后自动回到原样——顶部小窗预览回来、全部设置项回来。</li>
+            <li>淡入淡出动效沿用项目既有的动效令牌（与预览卡缩放同一套时长 / 缓动），不额外引入魔法数字。</li>
           </ul>
         </div>
       </div>
@@ -1695,7 +1729,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.75.14</span>
+        下载 <span class="mono" data-version>v4.76.12</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>

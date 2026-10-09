@@ -30,9 +30,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.IntSize
 import com.shangkeschedule.ui.theme.LocalAppMotion
@@ -41,7 +43,9 @@ import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -64,6 +68,7 @@ import com.shangkeschedule.ui.settings.SettingCard
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.settings.style.ScheduleGridContent
+import com.shangkeschedule.ui.settings.style.LocalSettingsScrollState
 import com.shangkeschedule.ui.settings.style.SettingsListContent
 import com.shangkeschedule.ui.settings.style.StyleSettingsViewModel
 import org.jetbrains.compose.resources.stringResource
@@ -285,6 +290,22 @@ fun ScheduleStyleSettingsScreen(
     val styleState by styleViewModel.styleState.collectAsStateWithLifecycle()
     val demoUiState by styleViewModel.demoUiState.collectAsStateWithLifecycle()
 
+    // v4.75.12：手指按下任一滑块即进入「专注预览」态——全屏显示真实课表网格、
+    // 只保留当前那一个滑块；松手（含手势被取消）即恢复原状。
+    var activeSliderId by remember { mutableStateOf<String?>(null) }
+    val isPreviewing = activeSliderId != null
+
+    // v4.75.12：切换动效收口到全局令牌（与预览卡 resize 同一套值），避免额外魔法数字。
+    val motion = LocalAppMotion.current
+    val previewFadeSpec = remember(motion) {
+        tween<Float>(durationMillis = motion.tokens.resizeDurationMs, easing = motion.tokens.resizeEasing)
+    }
+    val previewAlpha by animateFloatAsState(
+        targetValue = if (isPreviewing) 1f else 0f,
+        animationSpec = previewFadeSpec,
+        label = "focusPreviewAlpha"
+    )
+
     var loadedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var showCropper by remember { mutableStateOf(false) }
 
@@ -333,37 +354,92 @@ fun ScheduleStyleSettingsScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            // 1. 个性化配置预览固定在页面顶部
-            AppearanceStylePreview(styleState, demoUiState)
-
-            HorizontalDivider(color = appColors().divider, thickness = 0.5.dp)
-
-            // 2. 下方为课表页个性化微调（壁纸 / 网格尺寸 / 课程块外观）。
-            //    课程配色（颜色池 / 课程块与页面文字颜色）已整块迁至「个性化显示 → 个性化配色」页。
-            Column(
+            // v4.75.12 底层：全屏真实课表预览（专注预览态淡入）。
+            // ★ 常驻挂载、只用 alpha 控制显隐：若写成 `if (previewAlpha > 0f)`，
+            // 淡入淡出跨越 0 时节点会被增删——在手势进行中插入整棵 ScheduleGrid 组件树
+            // 可能干扰拖动。预览内部不可交互（ScheduleGridContent 已吞掉触摸），
+            // 置于内容之下，上层滑块照常直接拖动。
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+                    .alpha(previewAlpha)
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
-                ) {
-                    AppearanceSectionHeader(stringResource(Res.string.item_personalization))
-                }
+                AppearanceFullScreenPreview(styleState, demoUiState)
+            }
 
-                SettingsListContent(
-                    currentStyle = styleState,
-                    viewModel = styleViewModel,
-                    onWallpaperClick = { fileManager.pickImage() },
-                    modifier = Modifier.fillMaxWidth(),
-                    scrollable = false
+            Column(modifier = Modifier.fillMaxSize()) {
+                // 专注预览态下把这一整列（预览卡 + 分隔线 + 设置列表）整体淡出，只留下
+                // SettingsListContent 里那个「当前滑块」以 alpha=1 显示——所有非当前元素
+                // （含这里的小窗预览卡与分隔线、AppearanceSectionHeader 标题）统一走同一条
+                // 淡出路径，避免逐个加 dimmed 时漏掉某一条在全屏预览上留下可见残影（曾表现为
+                // 全屏中间横着一条「裂缝」）。alpha 不改变占位尺寸，故滑块位置与手势不受影响。
+                val contentDim = Modifier.alpha(if (isPreviewing) 0f else 1f)
+
+                // 1. 个性化配置预览固定在页面顶部
+                AppearanceStylePreview(
+                    styleState,
+                    demoUiState,
+                    modifier = contentDim
                 )
+
+                HorizontalDivider(
+                    modifier = contentDim,
+                    color = appColors().divider,
+                    thickness = 0.5.dp
+                )
+
+                // 2. 下方为课表页个性化微调（壁纸 / 网格尺寸 / 课程块外观）。
+                //    课程配色（颜色池 / 课程块与页面文字颜色）已整块迁至「个性化显示 → 个性化配色」页。
+                //
+                // v4.76.12：滚动状态提到变量并 provide 给下面的滑块。
+                // 原因：M3 Slider 的 sliderTapModifier 用 detectTapGestures，会在按下时 consume
+                // 掉 down，本容器因此收不到、无法启动滚动 ⇒「手指按在滑块上时页面滑不动」。
+                // 既然容器收不到事件，改由滑块在 Initial pass 抢先判定竖直意图并代滚
+                //（见 StyleSliderItem 的 scrollState 参数）。这里把 scrollState 提供给它。
+                val settingsScrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        // ★ 保留恒定 verticalScroll，不随预览态开关其 enabled。
+                        // 历史教训：v4.76.7 移除 enabled = !isPreviewing —— 按下瞬间该参数翻转
+                        // 会让滚动容器的手势节点重建，**当场中断正在进行的滑块拖动**
+                        //（表现为「全屏闪一下就没了 + 滑块拖不动」）。
+                        // ★ 同族教训：本功能已连续 5 次栽在「按下瞬间改变某个 modifier/参数」上
+                        //（pointerInput key、Slider enabled、父级吞指针、verticalScroll enabled、
+                        //  预览层条件渲染）。拖动期间**不得**改变任何祖先或自身的可交互参数。
+                        .verticalScroll(settingsScrollState)
+                ) {
+                    CompositionLocalProvider(
+                        LocalSettingsScrollState provides settingsScrollState
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(contentDim)
+                                .padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
+                        ) {
+                            AppearanceSectionHeader(stringResource(Res.string.item_personalization))
+                        }
+
+                    SettingsListContent(
+                        currentStyle = styleState,
+                        viewModel = styleViewModel,
+                        onWallpaperClick = { fileManager.pickImage() },
+                        modifier = Modifier.fillMaxWidth(),
+                        scrollable = false,
+                        activeSliderId = activeSliderId,
+                        onSliderDragState = { id, pressed ->
+                            activeSliderId = if (pressed) id else null
+                        }
+                    )
+                    }
+                }
             }
         }
     }
@@ -374,7 +450,9 @@ private fun AppearanceStylePreview(
     currentStyle: ScheduleGridStyleComposed,
     demoUiState: WeeklyScheduleUiState,
     // v3.24.1：高度占比参数化——自定义课表页 0.30，主题页 0.20（用户要求约 1/5 屏）
-    heightFraction: Float = 0.30f
+    heightFraction: Float = 0.30f,
+    // v4.75.12：供专注预览态淡出小窗（只改 alpha、不改高度，避免滑块跳位）
+    modifier: Modifier = Modifier
 ) {
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
@@ -387,7 +465,7 @@ private fun AppearanceStylePreview(
     }
 
     AppCard(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
+        modifier = modifier.fillMaxWidth().padding(horizontal = appSpacing().pageHorizontal, vertical = appSpacing().pageTop)
     ) {
         Box(
             modifier = Modifier
@@ -401,6 +479,29 @@ private fun AppearanceStylePreview(
                 ScheduleGridContent(currentStyle, demoUiState)
             }
         }
+    }
+}
+
+/**
+ * v4.75.12 专注预览：铺满内容区的**真实课表网格**。
+ *
+ * 与顶部小窗预览共用同一个 [ScheduleGridContent]（内部即真实 `ScheduleGrid`，
+ * 交互回调置空），因此「全屏所见」与「实际课表页」逐像素一致，样式改动即时可见。
+ *
+ * 触摸：ScheduleGridContent 内部有一层吞掉长按/点按的透明层，故本预览**不抢手势**，
+ * 手指仍落在上层滑块上正常拖动。
+ */
+@Composable
+private fun AppearanceFullScreenPreview(
+    currentStyle: ScheduleGridStyleComposed,
+    demoUiState: WeeklyScheduleUiState
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        ScheduleGridContent(currentStyle, demoUiState)
     }
 }
 
