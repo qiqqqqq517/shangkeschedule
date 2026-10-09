@@ -221,7 +221,7 @@ class WebBridgeHandler(
         cancelImportWatchdog()
         importWatchdogJob = coroutineScope.launch {
             delay(IMPORT_IDLE_TIMEOUT_MS)
-            // 走到这里说明整段时间内没有任何桥接消息。
+            // 走到这里说明**最近 IMPORT_IDLE_TIMEOUT_MS 内没有任何桥接消息**（空闲超时）。
             // 此时刻意保留 importTableId：脚本可能只是启动很慢，晚到的
             // saveImportedCourses 仍应能正常落库，不能被判成「未选择课表」。
             //
@@ -229,6 +229,9 @@ class WebBridgeHandler(
             //  ① 脚本真的没跑起来（未登录 / 没到课表页 / 脚本注入失败）⇒ 原文案正确；
             //  ② 脚本跑了，但回传被**来源门禁**整条丢弃（见 [noteBridgeRejected]）⇒
             //     再报「脚本未在限定时间内启动」就是把本机拦截误归因成用户操作问题。
+            // v4.75.13：若这 30 秒内已经拿到结果（成功 / 失败都已置位），就不要再覆盖它。
+            // 空闲超时的语义是「**还在运行**且长时间没有消息」，已出结果就不属于这个情形。
+            if (importState !is ImportRunState.Running) return@launch
             val timeoutMessage = if (bridgeRejected) {
                 getString(Res.string.wb_import_blocked)
             } else {
@@ -237,6 +240,33 @@ class WebBridgeHandler(
             notifyImportFailure(timeoutMessage)
             updateImportState(ImportRunState.Failed(timeoutMessage))
         }
+    }
+
+    /**
+     * 收到一条桥接消息后**重置**导入空闲超时（v4.75.13）。
+     *
+     * ★ 这是「点击执行导入后一直没有反应」的修复点。
+     *
+     * 旧实现是 `cancelImportWatchdog()`：收到**任意**一条消息就把看门狗**永久取消**，
+     * 注释理由是「脚本已证明存活，后续耗时不再视为卡死」。但这条推理对**教务适配脚本**
+     * 不成立 —— 绝大多数脚本在注入顶层就会先发一条与导入无关的提示
+     * （实测正方：`检测到正方教务系统，点击导入按钮抓取课表`；见
+     * `build_qa/regress/run_watchdog_ab.js` 的时序取证）。
+     * 于是：
+     *   1. 脚本注入 → 立刻发「检测到正方教务系统…」→ 看门狗被永久取消；
+     *   2. 用户点「执行导入」→ 页面表格解析不出课程 → 回落到接口抓取；
+     *   3. 教务接口假死 / 不返回（会话过期、WebVPN 挂起、接口慢）⇒ **再无任何消息**；
+     *   4. 看门狗已不在 ⇒ 既无结果也无超时 ⇒ 界面**永远**停在「正在执行导入脚本...」。
+     *
+     * 修法：语义从「收到消息即永久取消」改为「收到消息即**重新计时**」。这样
+     *   · 脚本持续有回传时，超时被不断推后，正常导入完全不受影响；
+     *   · 脚本停住不动超过 30 秒时，仍能得到一条可读的失败提示与「重新导入」入口。
+     * 这也与常量名 [IMPORT_IDLE_TIMEOUT_MS]（**idle** timeout）的本意一致。
+     */
+    private fun resetImportWatchdog() {
+        if (importTableId == null) return
+        if (importState !is ImportRunState.Running) return
+        armImportWatchdog()
     }
 
     /**
@@ -307,8 +337,11 @@ class WebBridgeHandler(
             val message = bridgeJson.decodeFromString<JsBridgeMessage>(jsonString)
             val callbackId = message.callbackId
 
-            // 只要收到任何一条消息，就说明脚本已成功启动，不再需要看门狗。
-            cancelImportWatchdog()
+            // v4.75.13：收到消息**重新计时**，而不是永久取消看门狗。
+            // 旧实现（cancelImportWatchdog）会被脚本注入期那条与导入无关的提示
+            //（如正方「检测到正方教务系统…」）废掉看门狗 ⇒ 之后脚本若卡在接口假死上，
+            // 界面永远停在「正在执行导入脚本...」，既无结果也无提示。
+            resetImportWatchdog()
 
             when (message.action) {
                 "showToast" -> parsePayload<ShowToastPayload>(message.payload)?.let {
