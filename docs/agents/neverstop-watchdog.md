@@ -72,8 +72,11 @@ node build_qa/watchdog/ima_upload_round.cjs <round-N.md 绝对路径>
 | **有内容**：修复了缺陷 / 发现新问题 / 挂起清单有增删或状态变化 / L4 深检到期执行 | **上传** |
 | **全绿且无事**：无修复、无新发现、挂起无变化、L4 未到期 | **不上传**，仅仓库内留 `round-N.md` |
 
-- **目标位置**：IMA 知识库「**上课**」→ 文件夹「**07-问题复盘**」；
+- **目标位置（2026-10-10 起改为共享库）**：IMA **共享知识库**「**上课-共享**」→ 文件夹「**07-问题复盘**」；
   `knowledge_base_id` / `folder_id` 由脚本**按名称现场解析**，不写死内部 ID。
+  上游规则见 `AGENTS.md`「项目记忆与协作规范」与 `docs/agents/ima-shared-kb.md`。
+  ⚠️ 旧口径写的是个人库「上课」，自 2026-10-10 起**个人库只做备份、不再作为写入目标**；
+  本仓现役脚本 `scripts/ima_kb.cjs` 默认即写共享库。
 - **安全门**：`preflight → check_repeated_names → create_media → cos-upload → add_knowledge`，
   任一步失败**立即停止**并把 `msg` 写入本轮报告的"挂起"节，不得静默跳过。
 - ⚠️ **上传后必须回查**：`add_knowledge` 返回 `code=0` **不等于**落到了目标文件夹
