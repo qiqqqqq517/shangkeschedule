@@ -106,7 +106,9 @@ import com.shangkeschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.shangkeschedule.ui.schedule.components.ScheduleGridViewState
 import com.shangkeschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.shangkeschedule.ui.schedule.components.rememberScheduleGridState
+import com.shangkeschedule.ui.schedule.components.rememberWallpaperLuminance
 import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
+import com.shangkeschedule.ui.schedule.components.textColorForWallpaper
 import com.shangkeschedule.ui.theme.AppAlpha
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
@@ -335,7 +337,13 @@ fun WeeklyScheduleScreen(
 
     val gridScrollState = rememberScrollState()
 
-    val customTextColor = composedStyle.pageTextColor ?: MaterialTheme.colorScheme.onSurface
+    // 页面文字色：用户显式设过就用用户的；否则在「设了壁纸」时按壁纸明暗自动取黑/白
+    // （v4.77.0）——浅色模式配深色图、深色模式配浅色图都会让顶栏标题/图标、侧边时间读不出来。
+    // 这里与 ScheduleGrid 共用同一个亮度采样与判定，避免两处口径分叉（顶栏亮、网格暗之类）。
+    val themePageTextColor = MaterialTheme.colorScheme.onSurface
+    val wallpaperLuminance by rememberWallpaperLuminance(composedStyle.backgroundImagePath)
+    val customTextColor = composedStyle.pageTextColor
+        ?: textColorForWallpaper(wallpaperLuminance, themePageTextColor)
     val customSubTextColor = customTextColor.copy(alpha = 0.7f)
 
     val displayTitle = when {
@@ -404,8 +412,15 @@ fun WeeklyScheduleScreen(
                             // 周切换入口：Telegram 胶囊形态（浅灰胶囊底，含标题 + 下拉箭头）
                             val hasBackgroundImage = composedStyle.backgroundImagePath.isNotEmpty()
                             val weekChipBg = if (hasBackgroundImage) {
-                                // 功能色（豁免声明）：壁纸上的半透明黑遮罩，保证周次胶囊文字可读，不随主题
-                                Color.Black.copy(alpha = 0.25f)
+                                // 壁纸上的半透明遮罩，保证周次胶囊文字可读。
+                                // v4.77.0：底色改为**跟随文字色反向**——文字为白（深色壁纸）时用半透明黑底，
+                                // 文字为黑（浅色壁纸）时用半透明白底。此前固定黑底，遇上浅色壁纸
+                                // 自动切成黑字后就成了「黑底黑字」，反而读不出来。
+                                if (customTextColor == Color.White) {
+                                    Color.Black.copy(alpha = 0.25f)
+                                } else {
+                                    Color.White.copy(alpha = 0.45f)
+                                }
                             } else {
                                 appColors().inputBg
                             }
@@ -628,7 +643,8 @@ fun WeeklyScheduleScreen(
                                     )
                                 }
                             },
-                            onNavigate = onNavigate
+                            onNavigate = onNavigate,
+                            pageTextColor = customTextColor
                         )
                     } else {
                         val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
@@ -1147,7 +1163,10 @@ private fun ScheduleListView(
     bottomInset: Dp = 0.dp,
     onClickedBlock: (MergedCourseBlock) -> Unit,
     onLongClickedBlock: (MergedCourseBlock) -> Unit,
-    onNavigate: (Destination) -> Unit
+    onNavigate: (Destination) -> Unit,
+    // v4.77.0：列表视图的日期表头也需跟随壁纸明暗（与周视图同一套文字色），
+    // 否则切到列表后星期名仍是固定主色，在壁纸上读不出来。
+    pageTextColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     val weekDays = stringArrayResource(Res.array.week_days_full_names)
     val dayCount = if (showWeekends) 7 else 5
@@ -1204,13 +1223,13 @@ private fun ScheduleListView(
                         text = weekDays.getOrNull((day - 1).coerceAtLeast(0)).orEmpty(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = appColors().primary
+                        color = pageTextColor
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "${dayDate.month.number.toString().padStart(2, '0')}-${dayDate.day.toString().padStart(2, '0')}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = appColors().textSecondary
+                        color = pageTextColor.copy(alpha = 0.7f)
                     )
                 }
             }

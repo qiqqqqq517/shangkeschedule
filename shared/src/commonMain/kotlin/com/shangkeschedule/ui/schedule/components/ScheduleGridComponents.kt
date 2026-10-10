@@ -274,8 +274,10 @@ fun DayHeader(
                                 text = day,
                                 fontSize = AppTypeGrid.dayHeader,
                                 fontWeight = FontWeight.Bold,
-                                // 今天列：星期名用主色突出（iOS 日历表头语言）
-                                color = if (isToday) appColors().primary else textColor,
+                                // 壁纸模式下所有表头文字统一跟随 textColor（黑/白自动切换）——
+                                // 「今天」列原先用固定主色，会在同一天同一行里与其它列不一致；
+                                // 今天的标识仍由该列的淡底 + 加粗承担。
+                                color = textColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(
@@ -366,7 +368,10 @@ fun TimeColumn(
                 label = "currentSlotBackground"
             )
             val slotTextColor by animateColorAsState(
-                targetValue = if (isCurrentHourActive) MaterialTheme.colorScheme.primary else textColor,
+                // 当前节次原先用固定主色，壁纸模式下会与自动切换的黑/白文字色不一致
+                // （同列里其余时间已跟随壁纸，当前节次却仍是主题色）⇒ 改为跟随传入的 textColor，
+                // 高亮语义改由淡底 + 字重承担，颜色不再承担「区分当前节次」的职责。
+                targetValue = textColor,
                 animationSpec = tween(motion.tokens.colorDurationMs, easing = motion.tokens.expandEasing),
                 label = "currentSlotTextColor"
             )

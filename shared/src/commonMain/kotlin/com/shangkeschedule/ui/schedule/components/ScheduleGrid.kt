@@ -89,7 +89,13 @@ fun ScheduleGrid(
             actions.onHoldStateChanged(false)
         }
 
-        val pageTextColor = style.pageTextColor ?: MaterialTheme.colorScheme.onSurface
+        // 页面文字色：用户显式设过就用用户的；否则在「设了壁纸」时按壁纸明暗自动取黑/白
+        // （v4.76.24）——浅色模式配深色图、深色模式配浅色图都会让侧边时间读不出来，
+        // 这里按图片平均亮度自动翻转，亮度未知（未采样完/采样失败）则维持主题色不变。
+        val themePageTextColor = MaterialTheme.colorScheme.onSurface
+        val wallpaperLuminance by rememberWallpaperLuminance(style.backgroundImagePath)
+        val pageTextColor = style.pageTextColor
+            ?: textColorForWallpaper(wallpaperLuminance, themePageTextColor)
         val pageSubTextColor = pageTextColor.copy(alpha = 0.7f)
         val weekDays = stringArrayResource(Res.array.week_days_short_names).toList()
         val reorderedWeekDays = rearrangeDays(weekDays, viewState.firstDayOfWeek)
@@ -100,7 +106,14 @@ fun ScheduleGrid(
         val maxGridSections = if (is24HourMode) 24 else viewState.timeSlots.size
 
         val totalGridHeight = style.sectionHeight * maxGridSections
-        val gridLineColor = appColors().divider.copy(alpha = 0.2f)
+        // 网格线：壁纸模式下改为**跟随文字色**——原实现固定用主题 divider，深色壁纸上
+        // 浅灰线会糊进背景、浅色壁纸上深灰线又过重；跟随文字色可保证与自动切换的黑/白同向，
+        // 在任意照片上都保持"若隐若现"的分隔感。无壁纸时维持原主题色不变。
+        val gridLineColor = if (style.backgroundImagePath.isNotEmpty()) {
+            pageTextColor.copy(alpha = 0.18f)
+        } else {
+            appColors().divider.copy(alpha = 0.2f)
+        }
         val strokeWidthPx = 1f
 
         val singleSchedulables = remember(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends) {
