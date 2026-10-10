@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.76.12</b></span>
-        <span>versionCode <b class="mono" data-version-code>528</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.77.4</b></span>
+        <span>versionCode <b class="mono" data-version-code>544</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,22 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4774">v4.77.4 · 导入成绩时也顺带导入学业情况（双向联动）</a></li>
+        <li><a href="#v4773">v4.77.3 · 导入学业情况时顺带导入成绩，不再需要跑两遍</a></li>
+        <li><a href="#v4772">v4.77.2 · 学业情况页的导入操作收进右上角菜单</a></li>
+        <li><a href="#v4771">v4.77.1 · 壁纸自适应扩展到整页（顶栏、胶囊、表头、网格线）</a></li>
+        <li><a href="#v4770">v4.77.0 · 侧边时间会看背景图脸色，自动换黑/白</a></li>
+        <li><a href="#v47623">v4.76.23 · 成绩页空状态提示改为指明入口位置</a></li>
+        <li><a href="#v47622">v4.76.22 · 成绩页的导入操作收进右上角菜单</a></li>
+        <li><a href="#v47621">v4.76.21 · 学业情况页新增「查看成绩与绩点」入口</a></li>
+        <li><a href="#v47620">v4.76.20 · 补考通过的课程正确判定为及格</a></li>
+        <li><a href="#v47619">v4.76.19 · 成绩页的「培养方案完成度」入口改为常驻显示</a></li>
+        <li><a href="#v47618">v4.76.18 · 导入后返回不再跳回教务页；成绩页与学业情况页互通</a></li>
+        <li><a href="#v47617">v4.76.17 · 补考通过的课程不再被判定为不及格</a></li>
+        <li><a href="#v47616">v4.76.16 · 学业情况：各类别已获学分不再显示为 0</a></li>
+        <li><a href="#v47615">v4.76.15 · 南通大学学业情况：修好学分要求并补上培养方案课程清单</a></li>
+        <li><a href="#v47614">v4.76.14 · 教务导入：撤掉会误伤正常校园流程的来源限制</a></li>
+        <li><a href="#v47613">v4.76.13 · 修复南通大学课表导入必然超时</a></li>
         <li><a href="#v47612">v4.76.12 · 手指按在滑块上也能上下滚动页面</a></li>
         <li><a href="#v47610">v4.76.10 · 上下滑动不再误触发全屏预览</a></li>
         <li><a href="#v4769">v4.76.9 · 改为左右拖动时才进入全屏预览</a></li>
@@ -91,6 +107,9 @@
         <li><a href="#v4767">v4.76.7 · 滑块按下后不再闪一下、滑块本身也能正常拖动</a></li>
         <li><a href="#v4766">v4.76.6 · 拖动滑块后能正常退出全屏预览</a></li>
         <li><a href="#v4760">v4.76.0 · 调滑块时全屏预览课表，只留当前这一个滑块</a></li>
+        <li><a href="#v47514">v4.75.14 · 教务导入回退到 4.74 版行为（撤掉桥接来源门禁）</a></li>
+        <li><a href="#v47513">v4.75.13 · 修复「点击执行导入后一直没有反应」</a></li>
+        <li><a href="#v47512">v4.75.12 · 正方教务导入恢复可用（修复「适配脚本未在限定时间内启动」）</a></li>
         <li><a href="#v47511">v4.75.11 · 滑块与深蓝轨无缝衔接，滑到两端不探出也不留白</a></li>
         <li><a href="#v4756">v4.75.6 · 滑轨两端不再露白、刻度点不再挤成一片</a></li>
         <li><a href="#v4755">v4.75.5 · 滑块不再滑出滑轨</a></li>
@@ -205,6 +224,136 @@
 
     <div class="timeline doc-body" style="max-width:none">
 
+      <div class="tl-item reveal" id="v4774">
+        <div><span class="tl-ver">v4.77.4</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4773">
+        <div><span class="tl-ver">v4.77.3</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4772">
+        <div><span class="tl-ver">v4.77.2</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4771">
+        <div><span class="tl-ver">v4.77.1</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li>上一版只让<b>侧边时间</b>跟随背景图明暗，其余浅色元素仍固定跟主题，于是壁纸上出现「一半跟上了、一半没跟上」：</li>
+            <li>现在整页统一：<b>深色图配白字、浅色图配黑字</b>，覆盖顶栏标题与图标、周次胶囊、年份与周次、日期表头（含今天列）、侧边时间（含当前节次）、网格线、列表视图表头。</li>
+            <li>周次胶囊底色改为<b>跟随文字色反向</b>：白字配半透明黑底、黑字配半透明白底，保证任何壁纸上都有对比。</li>
+            <li>「今天」与「当前节次」的高亮改由<b>淡底 + 字重</b>承担，颜色不再承担区分职责（否则会与自适应文字色冲突）。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4770">
+        <div><span class="tl-ver">v4.77.0</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47623">
+        <div><span class="tl-ver">v4.76.23</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47622">
+        <div><span class="tl-ver">v4.76.22</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47621">
+        <div><span class="tl-ver">v4.76.21</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47620">
+        <div><span class="tl-ver">v4.76.20</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47619">
+        <div><span class="tl-ver">v4.76.19</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47618">
+        <div><span class="tl-ver">v4.76.18</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b>成绩 / 学业导入成功后，按返回键不再又跳回教务页面。</b> 此前只有课表导入在成功后会把教务页从返回栈里摘掉，成绩识别与学业导入<b>漏了这一步</b>——页面虽然已经跳到成绩/学业页，但教务页仍留在栈上，返回时又回到那个"已经导完"的网页（WebView 还连带保活整页网页与 JS 上下文）。现已统一，三种导入（课表 / 成绩 / 学业）成功后都会正常摘页；成绩识别在钩子不可用时走的"通用回落"路径也一并补上。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47617">
+        <div><span class="tl-ver">v4.76.17</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47616">
+        <div><span class="tl-ver">v4.76.16</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47615">
+        <div><span class="tl-ver">v4.76.15</span><span class="tl-date">2026-10-10</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li>培养方案共多少门、已修多少门、<b>未修多少门</b>（并列出未修课程名）</li>
+            <li>每门课<b>建议在哪一学年 / 学期修读</b></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47614">
+        <div><span class="tl-ver">v4.76.14</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b>南通大学等大批学校导入课表时提示「导入无响应：适配脚本未在限定时间内启动」，现已修复。</b></li>
+            <li><b>点「执行导入」后一直停在「正在执行导入脚本…」，既不出结果也没有任何提示。</b></li>
+            <li><b>周次信息缺失的课程不再入库。</b> 此前这类课程会被写进课表，但因拿不到周次而<b>任何一周都不显示</b>（提示「导入成功 N 门课」，课表上却找不到）。现在改为跳过并如实告知跳过了几门；落库侧也加了同样保护。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47613">
+        <div><span class="tl-ver">v4.76.13</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
+
       <div class="tl-item reveal" id="v47612">
         <div><span class="tl-ver">v4.76.12</span><span class="tl-date">2026-10-09</span></div>
         <div class="tl-body">
@@ -263,6 +412,38 @@
             <li><b>同一时刻只保留当前这一个滑块</b>，其余滑块与设置项全部淡出，屏幕只剩下「全屏课表 + 你正在调的那一个滑块」，注意力不被干扰。</li>
             <li><b>松手即恢复</b>：抬起手指后自动回到原样——顶部小窗预览回来、全部设置项回来。</li>
             <li>淡入淡出动效沿用项目既有的动效令牌（与预览卡缩放同一套时长 / 缓动），不额外引入魔法数字。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47514">
+        <div><span class="tl-ver">v4.75.14</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>教务导入恢复到 4.74 版（v4.74.1）的行为</h3>
+          <ul>
+            <li>撤掉 v4.74.15 引入的「桥接来源门禁」。</li>
+            <li><b>周次信息缺失的课程不再入库</b>（正方 / 湖北工程学院适配脚本）。此前这类课程的周次为空数组，</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47513">
+        <div><span class="tl-ver">v4.75.13</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b>点「执行导入」后一直停在「正在执行导入脚本...」，既不出结果也没有任何提示</b>。原因是导入的「无响应兜底」写错了语义：它本应是<b>空闲超时</b>（多久没消息就报错），却被实现成「<b>收到任意一条消息就永久取消</b>」。而绝大多数学校适配脚本在页面加载时就会先发一条与导入无关的提示（正方教务实测为「检测到正方教务系统，点击导入按钮抓取课表」），这一条就把兜底<b>永久废掉</b>了。此后如果页面里的课表表格解析不出课程、程序转而去调教务接口，而接口又卡住不返回（登录过期、校外 WebVPN 挂起、接口本身慢），就<b>再也没有任何消息、也没有任何超时</b>，界面只能永远转下去。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v47512">
+        <div><span class="tl-ver">v4.75.12</span><span class="tl-date">2026-10-09</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b>部分学校（含正方教务在内的大批学校）导入课表时提示「导入无响应：适配脚本未在限定时间内启动」，其实脚本已经跑起来了</b>。原因是上一版为导入页加了「只允许本校页面调用」的来源校验：它只比对<b>索引里登记的那个入口地址</b>，而这些学校登记的入口是<b>统一认证 / 门户</b>地址，登录后会被服务端跳到<b>另一个域名</b>的教务系统 —— 于是 App 把自己学校的正常回传整条丢掉了，脚本明明成功解析出课程，却一条都送不进来，30 秒后弹出上面那句提示，让人误以为是「没登录 / 没打开课表页」。</li>
+            <li><b>导入被拦时不再只有一句含糊的超时提示</b>。此前被拦只在系统日志里留一行，用户侧毫无线索。现在会明确告知「教务页面已加载，但本机没有收到脚本回传」，并给出可执行处置：用「⋯ → 使用当前地址」把地址栏改成你登录后实际所在的教务地址再重试；若仍失败，请反馈学校名。</li>
           </ul>
         </div>
       </div>
@@ -1729,7 +1910,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.76.12</span>
+        下载 <span class="mono" data-version>v4.77.4</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>

@@ -1204,7 +1204,7 @@
     <string name="gpa_scale_4">4.0 scale</string>
     <string name="gpa_scale_5">5.0 scale</string>
     <string name="gpa_scale_linear5">Linear 5.0</string>
-    <string name="grade_empty_desc">Add grades manually, paste text from your academic system to parse, or detect grades directly on its page</string>
+    <string name="grade_empty_desc">Tap "Add grade" at the bottom right to enter one, or the "⋮" menu at the top right to import from your academic system or paste grade text</string>
     <string name="grade_action_add">Add grade</string>
     <string name="grade_action_paste">Paste import</string>
     <string name="grade_action_import">Import from system</string>
@@ -1254,6 +1254,11 @@
     <string name="grade_paste_imported">Imported %1$d courses</string>
     <string name="grade_import_recognize">Detect grades on this page</string>
     <string name="grade_import_tip">Open the grade query page in the academic system, then tap "Detect grades on this page"</string>
+    <!-- v4.76.18: link from the Grades page to Study Progress (previously only the reverse link existed) -->
+    <string name="grade_link_study_title">Degree progress</string>
+    <string name="grade_link_study_subtitle">%1$s / %2$s credits earned · see what is still missing</string>
+    <!-- v4.76.19: the entry is now always shown; guide text replaces the row when no data yet -->
+    <string name="grade_link_study_subtitle_empty">No degree requirements yet · tap to import or fill in</string>
     <string name="grade_import_no_result">No grade table found on this page. Try paste import instead.</string>
     <string name="grade_import_success">Imported %1$d course grades</string>
     <string name="grade_today_card_title">Grades / GPA</string>
@@ -1339,6 +1344,8 @@
     <string name="study_need_requirement_hint">No credit requirement yet. Tap a category below and set the required credits to see progress.</string>
     <string name="study_no_grade_hint">No grades yet. Add them on the Grades page, or import from the school portal.</string>
     <string name="study_open_grades">Add grades</string>
+    <!-- v4.76.21: wording used once grades exist (the entry is now always shown) -->
+    <string name="study_view_grades">View grades &amp; GPA</string>
     <string name="study_category_section">By course category</string>
     <string name="study_category_ratio">%1$s / %2$s credits</string>
     <string name="study_category_no_requirement">No requirement set</string>
@@ -1388,6 +1395,9 @@
     <string name="study_import_reading">Reading curriculum…</string>
     <string name="study_import_success">Imported credit requirements for %1$d categories</string>
     <string name="study_import_success_with_courses">Imported %1$d category requirements and %2$d curriculum courses</string>
+    <!-- v4.77.3: toast shown on the study page after grades are imported alongside -->
+    <string name="study_import_success_with_grades">Also imported %1$d course grades</string>
+    <string name="study_import_grade_none">No grades found; you can import them separately on the Grades page</string>
     <string name="study_import_no_adapter">Your school is not adapted for curriculum import yet. You can enter credit requirements manually on the Study progress page.</string>
     <string name="study_import_no_result">No curriculum credit requirements found. Make sure the current page is your school's curriculum or credit summary page.</string>
     <!-- v4.75.2: separate the timeout hint from "read but empty" -->
@@ -1400,7 +1410,7 @@
     <string name="study_curriculum_section">Curriculum courses</string>
     <string name="study_curriculum_summary">%1$d planned · %2$d done · %3$d left</string>
     <string name="study_curriculum_summary_school">%1$d required by the portal · %2$d done · %3$d left</string>
-    <string name="study_curriculum_empty">No curriculum course list yet. Import one to see what is required, done and still missing.</string>
+    <string name="study_curriculum_empty">No curriculum course list yet. Tap "⋮" at the top right to import from your academic system or paste one — that is what enables the required / done / missing counts.</string>
     <string name="study_pending_section">Courses left</string>
     <string name="study_pending_more">Showing the first %1$d only; see the full list below</string>
     <string name="study_curriculum_add">Add curriculum course</string>

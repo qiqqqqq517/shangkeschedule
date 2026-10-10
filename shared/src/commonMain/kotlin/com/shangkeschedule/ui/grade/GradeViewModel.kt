@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.db.main.Grade
 import com.shangkeschedule.data.model.GpaScale
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.CurriculumRepository
 import com.shangkeschedule.data.repository.GradeRepository
 import com.shangkeschedule.data.repository.GradeSummary
+import com.shangkeschedule.data.model.StudyProgress
 import com.shangkeschedule.data.repository.ParsedGrade
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,8 +34,29 @@ data class GradeGroup(
 @KoinViewModel
 class GradeViewModel(
     private val gradeRepository: GradeRepository,
-    private val appSettingsRepository: AppSettingsRepository
+    private val appSettingsRepository: AppSettingsRepository,
+    private val curriculumRepository: CurriculumRepository
 ) : ViewModel() {
+
+    /**
+     * 培养方案完成度（v4.76.18，成绩页与学业页联动）。
+     *
+     * 成绩页此前与学业情况页**完全割裂**：只有学业页 → 成绩页的单向入口，反方向没有任何入口，
+     * 且成绩页看不到「这门课离培养方案要求还差多少」。这里用与 `StudyProgressViewModel.progress`
+     * **完全相同**的三个数据源与同一个 `computeStudyProgress` 组装，保证两页数字必然一致
+     * （口径分叉是本模块的历史坑，见 `alignGradesToCategories`）。
+     */
+    val studyProgress: StateFlow<StudyProgress> = combine(
+        gradeRepository.getAllGrades(),
+        appSettingsRepository.getAppSettings(),
+        curriculumRepository.getAll()
+    ) { grades, settings, courses ->
+        gradeRepository.computeStudyProgress(grades, settings.creditRequirements, courses)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = StudyProgress()
+    )
 
     /** 全部成绩（数据库按学期倒序返回）。 */
     val grades: StateFlow<List<Grade>> = gradeRepository.getAllGrades()

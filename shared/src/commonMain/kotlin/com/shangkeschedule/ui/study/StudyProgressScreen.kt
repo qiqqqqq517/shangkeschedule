@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.study
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -58,6 +61,7 @@ import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -96,6 +100,8 @@ import shangkeschedule.shared.generated.resources.study_category_plan_unknown
 import shangkeschedule.shared.generated.resources.study_category_ratio
 import shangkeschedule.shared.generated.resources.study_category_section
 import shangkeschedule.shared.generated.resources.study_category_suggestions
+import shangkeschedule.shared.generated.resources.item_more_options
+import shangkeschedule.shared.generated.resources.more_vert_24px
 import shangkeschedule.shared.generated.resources.study_curriculum_add
 import shangkeschedule.shared.generated.resources.study_curriculum_add_hint
 import shangkeschedule.shared.generated.resources.study_curriculum_clear
@@ -131,6 +137,7 @@ import shangkeschedule.shared.generated.resources.study_metric_planned
 import shangkeschedule.shared.generated.resources.study_need_requirement_hint
 import shangkeschedule.shared.generated.resources.study_no_grade_hint
 import shangkeschedule.shared.generated.resources.study_open_grades
+import shangkeschedule.shared.generated.resources.study_view_grades
 import shangkeschedule.shared.generated.resources.study_overview_percent
 import shangkeschedule.shared.generated.resources.study_overview_title
 import shangkeschedule.shared.generated.resources.study_overview_value
@@ -181,6 +188,9 @@ fun StudyProgressScreen(
     var editingCourse by remember { mutableStateOf<CurriculumCourse?>(null) }
     var showPasteDialog by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    // v4.77.1：从教务导入 / 添加课程 / 粘贴导入 / 清空清单 收进顶栏右上角菜单
+    //（原先四项各占一整行，把「按课程类别」「未修课程」等正文挤到屏下）
+    var menuExpanded by remember { mutableStateOf(false) }
     val savedText = stringResource(Res.string.grade_saved)
     val removedText = stringResource(Res.string.study_requirement_removed)
     val clearedText = stringResource(Res.string.study_curriculum_cleared)
@@ -195,6 +205,89 @@ fun StudyProgressScreen(
                             imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
+                    }
+                },
+                // v4.77.1：四个「录入 / 导入」入口收进右上角菜单，写法与成绩页一致
+                //（成绩页见 GradeScreen.kt，同款 more_vert + DropdownMenu）。
+                actions = {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.more_vert_24px),
+                                contentDescription = stringResource(Res.string.item_more_options),
+                                tint = tokens.textSecondary,
+                                modifier = Modifier.size(appIconSize().large)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.study_import_entry)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.school_24px),
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onNavigate(
+                                        Destination.SchoolSelectionListScreen(purpose = WebPagePurpose.STUDY)
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.study_curriculum_add)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.add_24px),
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    addingCourse = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.study_curriculum_paste)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.edit_24px),
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    showPasteDialog = true
+                                }
+                            )
+                            // 「清空」保持原有条件：只有真的导入/添加过清单后才出现，
+                            // 避免空数据用户点到一个无事发生的危险项（用户明确要求）。
+                            if (curriculum.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(Res.string.study_curriculum_clear),
+                                            color = tokens.danger
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.delete_24px),
+                                            contentDescription = null,
+                                            tint = tokens.danger
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showClearConfirm = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -266,22 +359,10 @@ fun StudyProgressScreen(
                     onClick = { adding = true }
                 )
             }
-            // v4.73.0：从教务一键读培养方案学分要求（走适配脚本钩子 shangkeScanStudy）。
-            // 排在手填入口之后：手填是永远可用的兜底，教务导入只在适配过的学校可用。
-            item(key = "study-curriculum-import") {
-                SettingItem(
-                    title = stringResource(Res.string.study_import_entry),
-                    subtitle = stringResource(Res.string.study_import_entry_desc),
-                    leadingIcon = vectorResource(Res.drawable.school_24px),
-                    onClick = {
-                        onNavigate(
-                            Destination.SchoolSelectionListScreen(purpose = WebPagePurpose.STUDY)
-                        )
-                    }
-                )
-            }
+            // v4.77.1：从教务导入 / 添加课程 / 粘贴导入 / 清空清单 已移入顶栏右上角菜单，
+            // 此处不再各占一行；页面正文留给「按课程类别」与「未修课程」这些要看的数据。
 
-            // 培养方案课程清单（v4.75.0）：手填 / 粘贴 / 清空三个入口，全部本机完成、不联网
+            // 培养方案课程清单（v4.75.0）：清单概览 + 逐条管理（点条目即编辑）
             item(key = "study-curriculum-title") {
                 Text(
                     text = stringResource(Res.string.study_curriculum_section),
@@ -310,31 +391,6 @@ fun StudyProgressScreen(
                             modifier = Modifier.padding(vertical = 10.dp)
                         )
                     }
-                }
-            }
-            item(key = "study-curriculum-add") {
-                SettingItem(
-                    title = stringResource(Res.string.study_curriculum_add),
-                    subtitle = stringResource(Res.string.study_curriculum_add_hint),
-                    leadingIcon = vectorResource(Res.drawable.add_24px),
-                    onClick = { addingCourse = true }
-                )
-            }
-            item(key = "study-curriculum-paste") {
-                SettingItem(
-                    title = stringResource(Res.string.study_curriculum_paste),
-                    subtitle = stringResource(Res.string.study_curriculum_paste_hint),
-                    leadingIcon = vectorResource(Res.drawable.edit_24px),
-                    onClick = { showPasteDialog = true }
-                )
-            }
-            if (curriculum.isNotEmpty()) {
-                item(key = "study-curriculum-clear") {
-                    SettingItem(
-                        title = stringResource(Res.string.study_curriculum_clear),
-                        leadingIcon = vectorResource(Res.drawable.delete_24px),
-                        onClick = { showClearConfirm = true }
-                    )
                 }
             }
             // 清单逐条管理（点条目即编辑）：条目多时这里是唯一的删改入口
@@ -580,14 +636,21 @@ private fun StudyOverviewCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = tokens.textSecondary
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = stringResource(Res.string.study_open_grades),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = tokens.primary,
-                    modifier = Modifier.clickable(onClick = onOpenGrades)
-                )
             }
+            // ★ v4.76.21：去成绩页的入口**常驻**（原实现把它关在上面的 `if (!hasAnyGrade)` 里，
+            // 只有零成绩时才显示 ⇒ 一旦有了成绩，学业页就再也没有通往成绩页的路径，
+            // 与成绩页那侧「没数据才显示入口」是同一类错误的镜像）。
+            // 有成绩时用「查看成绩明细」这类措辞，避免把已有成绩的用户当成还没录入。
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(
+                    if (progress.hasAnyGrade) Res.string.study_view_grades
+                    else Res.string.study_open_grades
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.primary,
+                modifier = Modifier.clickable(onClick = onOpenGrades)
+            )
         }
     }
 }

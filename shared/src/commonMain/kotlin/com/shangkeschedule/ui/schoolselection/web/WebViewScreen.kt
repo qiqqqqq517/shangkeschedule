@@ -130,7 +130,9 @@ import shangkeschedule.shared.generated.resources.study_import_no_result
 import shangkeschedule.shared.generated.resources.study_import_reading
 import shangkeschedule.shared.generated.resources.study_import_recognize
 import shangkeschedule.shared.generated.resources.study_import_success
+import shangkeschedule.shared.generated.resources.study_import_grade_none
 import shangkeschedule.shared.generated.resources.study_import_success_with_courses
+import shangkeschedule.shared.generated.resources.study_import_success_with_grades
 import shangkeschedule.shared.generated.resources.scan_timeout
 import shangkeschedule.shared.generated.resources.study_nav_timeout
 import shangkeschedule.shared.generated.resources.study_scan_timeout
@@ -230,6 +232,8 @@ fun WebViewScreen(
     val toastStudyNoAdapter = stringResource(Res.string.study_import_no_adapter)
     val toastStudyNoResult = stringResource(Res.string.study_import_no_result)
     val toastStudyTimeout = stringResource(Res.string.study_scan_timeout)
+    // v4.77.3：学业导入顺带导成绩 —— 成绩为空时的提示（此时不能走通用回落，见 GRADES 分支）
+    val toastStudyGradeNone = stringResource(Res.string.study_import_grade_none)
     // R53-01：导航阶段无响应（页面加载事件不到达）的提示。
     val toastStudyNavTimeout = stringResource(Res.string.study_nav_timeout)
     // R40-03：成绩 / 空教室扫描超时此前无任何提示（连同运行态一并卡死）。
@@ -261,6 +265,22 @@ fun WebViewScreen(
     // 学业识别（培养方案学分要求）运行状态
     var studyScanRunning by remember { mutableStateOf(false) }
     /**
+     * v4.77.3：学业导入时**顺带把成绩也导了**。
+     *
+     * 原因（用户反馈）：学业页的「已获学分 / 已修门数」都来自本机成绩表，
+     * 而学业钩子只带回「要求 + 课程清单」⇒ 单独导学业时所有数字都是 0，
+     * 必须再单独导一次成绩才正常。而成绩钩子走的是**接口**（不依赖当前页面），
+     * 在学业页同样能调 ⇒ 没有理由让用户跑两遍、登录两次。
+     *
+     * 置 true 表示"这次成绩扫描是学业导入带出来的"：成功后**留在学业页**、
+     * 不跳成绩页、不重复摘栈，只把成绩条数并进学业提示。
+     */
+    var gradeScanForStudy by remember { mutableStateOf(false) }
+    /** v4.77.4：二级成绩扫描结束后要执行的收尾（跳转 + 摘栈），由学业分支传入。 */
+    var gradeScanDoneForStudy by remember { mutableStateOf<(() -> Unit)?>(null) }
+    /** v4.77.4：二级学业扫描结束后要执行的收尾（跳成绩页 + 摘栈），由成绩分支传入。 */
+    var studyScanDoneForGrade by remember { mutableStateOf<(() -> Unit)?>(null) }
+    /**
      * 已点了「学业情况」入口、等页面加载完再读（v4.75.3）。
      *
      * 点击菜单后页面还在跳转，此刻读 DOM 必定读到 0 条 —— 这正是此前「导入不进去」
@@ -273,10 +293,27 @@ fun WebViewScreen(
      * 页面加载事件不到达时它是唯一的自救出口；正常加载完成会在 [onPageLoaded] 里取消。
      */
     var studyNavTimeoutJob by remember { mutableStateOf<Job?>(null) }
+    /**
+     * v4.77.4：反向联动 —— 成绩导完后**自动接着导学业**。
+     *
+     * 与 v4.77.3（学业→成绩）配对，让两个方向都只需跑一次：
+     * 学业钩子读 DOM、必须在学业页，所以先复用 [JS_NAVIGATE_TO_STUDY] 跳过去，
+     * 等 [onPageLoaded] 再读（`pendingStudyRescan` 承接，带超时兜底）。
+     *
+     * 置 true 表示"这次学业扫描是成绩导入带出来的"：成功后**留在原地不动**
+     * （不重复摘栈、不弹两遍成功提示），失败也只安静跳过 —— 用户本来只是来导成绩的，
+     * 顺带失败不该打扰他。
+     */
+    var studyScanForGrade by remember { mutableStateOf(false) }
     // 回落用的脚本引用：钩子结果为空 / 钩子抛错时要能立刻走通用脚本，而通用脚本
     // 又需要用到挂在下面的状态与仓库实例。用 ref 而不是把逻辑内联进回调，
     // 是为了让「钩子失败」与「没有钩子」两条路径共用同一段回落代码。
     val runGenericGradeScanRef = remember { mutableStateOf<((String?) -> Unit)?>(null) }
+    // v4.77.3：学业导入顺带导成绩的入口。**带 onDone 续体**（v4.77.4）：
+    // 二级扫描必须在本页还活着时发起，扫完（或超时）再执行收尾（跳转 + 摘栈）。
+    val startGradeScanForStudyRef = remember { mutableStateOf<((() -> Unit) -> Unit)?>(null) }
+    // v4.77.4：成绩导入顺带导学业的入口（同样带续体，语义与上面一致）
+    val startStudyScanForGradeRef = remember { mutableStateOf<((() -> Unit) -> Unit)?>(null) }
     val runGenericEmptyClassroomScanRef = remember { mutableStateOf<(() -> Unit)?>(null) }
     val commitEmptyClassroomsRef = remember { mutableStateOf<suspend (List<EmptyClassroomRoom>) -> Unit>({}) }
     LaunchedEffect(assetJsPath) {
@@ -341,15 +378,46 @@ fun WebViewScreen(
                 AdapterScanActions.GRADES -> {
                     coroutineScope.launch {
                         gradeScanRunning = false
+                        val forStudy = gradeScanForStudy
+                        gradeScanForStudy = false
                         val scanned = decodeScannedGrades(base64Json)
                         if (scanned.isEmpty()) {
                             // 钩子返回空（页面没打开成绩页 / 学校接口变了）→ 回落通用脚本，
                             // 而不是直接报「没识别到」：通用表头解析往往仍能救回来。
-                            runGenericGradeScanRef.value?.invoke("钩子返回空")
+                            // 注意：学业带出来的扫描回落**没有意义**（通用脚本读的是本页表头，
+                            // 而当前是学业页），所以这种情况只提示、不回落。
+                            if (forStudy) {
+                                ToastManager.show(toastStudyGradeNone)
+                            } else {
+                                runGenericGradeScanRef.value?.invoke("钩子返回空")
+                            }
                         } else {
                             commitScannedGrades(scanned, getString(Res.string.grade_semester_unknown))
-                            ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
-                            onNavigate(Destination.Grade)
+                            if (forStudy) {
+                                // v4.77.3：学业导入顺带导的成绩 —— 留在学业页，
+                                // 只把条数并进提示；跳转与摘栈由 onDone 续体执行（v4.77.4）。
+                                ToastManager.show(
+                                    getString(Res.string.study_import_success_with_grades, scanned.size)
+                                )
+                                gradeScanDoneForStudy?.invoke()
+                                gradeScanDoneForStudy = null
+                            } else {
+                                ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
+                                // ★ v4.77.4：**先发起二级扫描，再收尾**。
+                                // 反过来（v4.77.3 的写法）会在 WebView 已被摘掉之后才去发扫描，
+                                // 指令根本到不了页面 ⇒ 症状是「成绩导完了，学业仍是空的」。
+                                // 这里把跳转 + 摘栈包成续体，交给二级扫描跑完再执行。
+                                startStudyScanForGradeRef.value?.invoke {
+                                    onNavigate(Destination.Grade)
+                                    // ★ v4.76.18：摘掉本页（连同下面的学校列表 / 适配器选择）。
+                                    // 此前只有课表导入调了它，成绩 / 学业成功后没调 ⇒ 用户从成绩页
+                                    // 返回会又回到「已经导完」的教务页（WebView 还连带保活整页与 JS 上下文）。
+                                    onImportSucceeded()
+                                } ?: run {
+                                    onNavigate(Destination.Grade)
+                                    onImportSucceeded()
+                                }
+                            }
                         }
                     }
                 }
@@ -369,12 +437,23 @@ fun WebViewScreen(
                     coroutineScope.launch {
                         studyScanRunning = false
                         val payload = decodeScannedStudy(base64Json)
+                        // v4.77.4：这轮学业扫描是不是成绩导入顺带带出来的？
+                        val forGrade = studyScanForGrade
+                        studyScanForGrade = false
                         // v4.75.0：学业钩子现在还可能带回**培养方案课程清单**，
                         // 因此「拿到课程但没拿到学分要求」也该算成功，不能只判 requirements。
                         if (payload == null ||
                             (payload.requirements.isEmpty() && payload.courses.isEmpty())
                         ) {
-                            ToastManager.show(toastStudyNoResult)
+                            // 顺带失败不打扰：用户本来是来导成绩的，只在他主动点「读培养方案」时提示。
+                            if (!forGrade) {
+                                ToastManager.show(toastStudyNoResult)
+                            } else {
+                                // v4.77.4：顺带模式失败也要执行收尾，否则成绩页的跳转/摘栈
+                                // 永远不会发生，用户卡在教务页。
+                                studyScanDoneForGrade?.invoke()
+                                studyScanDoneForGrade = null
+                            }
                         } else {
                             appSettingsRepository.mutateCreditRequirements { current ->
                                 // 合并而不是覆盖：用户可能已经手工填过某些类别的要求，
@@ -409,18 +488,43 @@ fun WebViewScreen(
                                     }
                                 )
                             }
-                            ToastManager.show(
-                                if (courses.isEmpty()) {
-                                    getString(Res.string.study_import_success, payload.requirements.size)
-                                } else {
-                                    getString(
-                                        Res.string.study_import_success_with_courses,
-                                        payload.requirements.size,
-                                        courses.size
-                                    )
+                            // v4.77.4：顺带模式（成绩导入带出来的）不弹两遍成功提示 ——
+                            // 用户刚看到「已导入 N 门成绩」，再弹一条培养方案的会显得啰嗦。
+                            if (!forGrade) {
+                                ToastManager.show(
+                                    if (courses.isEmpty()) {
+                                        getString(Res.string.study_import_success, payload.requirements.size)
+                                    } else {
+                                        getString(
+                                            Res.string.study_import_success_with_courses,
+                                            payload.requirements.size,
+                                            courses.size
+                                        )
+                                    }
+                                )
+                            }
+                            // ★ v4.77.4 修正顺序：**必须先发起二级扫描，再跳转 / 摘栈**。
+                            // v4.77.3 把 `startGradeScanForStudy` 写在 onNavigate + onImportSucceeded
+                            // **之后**，而导航栈只渲染最后一个目的地 ⇒ WebView 连同 JS 上下文已被
+                            // 销毁，那条顺带扫描根本发不出去（症状：学业导完，成绩仍为空）。
+                            // 现在交给 ref：它先跑二级扫描，扫完（或超时）再执行 onDone 里的收尾。
+                            if (forGrade) {
+                                // 顺带模式：成绩页的收尾（跳转/摘栈）由本续体执行 —— 必须等
+                                // 学业扫描真的结束才做，否则 WebView 先没了、扫描就白发了。
+                                studyScanDoneForGrade?.invoke()
+                                studyScanDoneForGrade = null
+                            } else {
+                                startGradeScanForStudyRef.value?.invoke {
+                                    onNavigate(Destination.StudyProgress)
+                                    // ★ v4.76.18：同样把本页摘出返回栈，否则从学业情况页返回会回到教务页。
+                                    onImportSucceeded()
+                                } ?: run {
+                                    // 二级扫描入口尚未挂上（理论上不会发生）：退化为只收尾，
+                                    // 不让用户因为联动失败而卡在教务页。
+                                    onNavigate(Destination.StudyProgress)
+                                    onImportSucceeded()
                                 }
-                            )
-                            onNavigate(Destination.StudyProgress)
+                            }
                         }
                     }
                 }
@@ -435,7 +539,15 @@ fun WebViewScreen(
                 // 学业没有通用回落：钩子失败只能如实告知
                 AdapterScanActions.STUDY -> {
                     studyScanRunning = false
-                    ToastManager.show(toastStudyNoResult)
+                    // v4.77.4：顺带模式（成绩导入带出来的）失败要静默并**仍执行收尾**，
+                    // 否则成绩页的跳转/摘栈永远不会发生，用户卡在教务页。
+                    if (studyScanForGrade) {
+                        studyScanForGrade = false
+                        studyScanDoneForGrade?.invoke()
+                        studyScanDoneForGrade = null
+                    } else {
+                        ToastManager.show(toastStudyNoResult)
+                    }
                 }
                 // R52-02：**无论哪个 action 都先复位学业态**。旧实现把
                 // `studyScanRunning = false` 只写在 STUDY 分支里，else -> Unit，
@@ -469,7 +581,15 @@ fun WebViewScreen(
             when (action) {
                 AdapterScanActions.GRADES -> {
                     gradeScanRunning = false
-                    ToastManager.show(toastScanTimeout)
+                    // v4.77.4：学业带出来的成绩扫描超时 —— 静默并执行收尾，
+                    // 否则用户被卡在教务页（跳转/摘栈都还没发生）。
+                    if (gradeScanForStudy) {
+                        gradeScanForStudy = false
+                        gradeScanDoneForStudy?.invoke()
+                        gradeScanDoneForStudy = null
+                    } else {
+                        ToastManager.show(toastScanTimeout)
+                    }
                 }
                 AdapterScanActions.EMPTY_CLASSROOMS -> {
                     emptyScanRunning = false
@@ -477,7 +597,14 @@ fun WebViewScreen(
                 }
                 AdapterScanActions.STUDY -> {
                     studyScanRunning = false
-                    ToastManager.show(toastStudyTimeout)
+                    // v4.77.4：成绩带出来的学业扫描超时 —— 同上，静默 + 收尾。
+                    if (studyScanForGrade) {
+                        studyScanForGrade = false
+                        studyScanDoneForGrade?.invoke()
+                        studyScanDoneForGrade = null
+                    } else {
+                        ToastManager.show(toastStudyTimeout)
+                    }
                 }
                 else -> Unit
             }
@@ -557,6 +684,8 @@ fun WebViewScreen(
                     commitScannedGrades(scanned, getString(Res.string.grade_semester_unknown))
                     ToastManager.show(getString(Res.string.grade_import_success, scanned.size))
                     onNavigate(Destination.Grade)
+                    // ★ v4.76.18：通用回落（钩子不可用时的表头解析）成功后同样摘掉本页。
+                    onImportSucceeded()
                 }
             }
         }
@@ -586,6 +715,20 @@ fun WebViewScreen(
                     }
                 }
             }
+        }
+    }
+
+    // v4.77.3 / v4.77.4：把「学业导入顺带导成绩」接到同一套成绩扫描上 —— 先置标记，
+    // 让 GRADES 分支知道成功后该做什么；onDone 是**二级扫描结束后**才执行的收尾
+    //（跳转 + 摘栈），这样二级扫描发起时本页仍然活着。
+    startGradeScanForStudyRef.value = { onDone ->
+        if (!gradeScanRunning) {
+            gradeScanForStudy = true
+            gradeScanDoneForStudy = onDone
+            startGradeScan()
+        } else {
+            // 成绩扫描已在跑（用户自己点的）：不打断，直接收尾，避免卡住。
+            onDone()
         }
     }
 
@@ -741,6 +884,16 @@ fun WebViewScreen(
                 runStudyHook(adapterCode)
             }
         }
+    }
+
+    // v4.77.4：成绩导完顺带导学业 —— 复用 startStudyScan 那套「跳到学业页再读」的机制
+    //（JS_NAVIGATE_TO_STUDY + pendingStudyRescan + 超时兜底）。置 studyScanForGrade 让
+    // STUDY 分支知道这轮是顺带的：不重复摘栈、不弹两遍提示，失败也安静跳过。
+    // 注意必须先于「成绩页收尾」发起 —— 本页一被摘掉，WebView 就没了，扫描发不出去。
+    startStudyScanForGradeRef.value = { onDone ->
+        studyScanForGrade = true
+        studyScanDoneForGrade = onDone
+        startStudyScan()
     }
 
     // 把回落逻辑挂到 ref 上：钩子路径（在 bridgeHandler 回调里）与无钩子路径共用同一份实现

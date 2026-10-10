@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +76,7 @@ import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.content_copy_24px
 import shangkeschedule.shared.generated.resources.delete_24px
+import com.shangkeschedule.ui.theme.appIconSize
 import shangkeschedule.shared.generated.resources.grade_action_add
 import shangkeschedule.shared.generated.resources.grade_action_clear
 import shangkeschedule.shared.generated.resources.grade_action_import
@@ -96,6 +100,12 @@ import shangkeschedule.shared.generated.resources.grade_edit_title
 import shangkeschedule.shared.generated.resources.grade_empty_desc
 import shangkeschedule.shared.generated.resources.grade_failed_badge
 import shangkeschedule.shared.generated.resources.grade_import_tip
+import shangkeschedule.shared.generated.resources.item_more_options
+import shangkeschedule.shared.generated.resources.more_vert_24px
+import shangkeschedule.shared.generated.resources.grade_link_study_subtitle
+import shangkeschedule.shared.generated.resources.grade_link_study_subtitle_empty
+import shangkeschedule.shared.generated.resources.grade_link_study_title
+import shangkeschedule.shared.generated.resources.study_curriculum_summary
 import shangkeschedule.shared.generated.resources.grade_name_required
 import shangkeschedule.shared.generated.resources.grade_note_label
 import shangkeschedule.shared.generated.resources.grade_page_title
@@ -158,6 +168,8 @@ fun GradeScreen(
     val groups by viewModel.groupedGrades.collectAsStateWithLifecycle()
     val summary by viewModel.summary.collectAsStateWithLifecycle()
     val scale by viewModel.gpaScale.collectAsStateWithLifecycle()
+    // v4.76.18：培养方案完成度，用于成绩页 → 学业情况页的联动条
+    val studyProgress by viewModel.studyProgress.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     val haptics = rememberAppHaptics()
     val tokens = appColors()
@@ -168,6 +180,8 @@ fun GradeScreen(
     var showPasteDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Grade?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    // v4.76.22：导入 / 粘贴 / 清空 收进顶栏右上角的「更多」菜单（原先是一张占满整宽的三行卡片）
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val noneText = stringResource(Res.string.grade_value_none)
     // 提示文案在 Compose 上下文里先取好（协程里不能调 stringResource）
@@ -185,6 +199,76 @@ fun GradeScreen(
                             imageVector = vectorResource(Res.drawable.arrow_back_24px),
                             contentDescription = stringResource(Res.string.a11y_back)
                         )
+                    }
+                },
+                // v4.76.22：导入 / 粘贴 / 清空 从页面中部的大卡片收进右上角菜单，
+                // 让首屏直接看到成绩汇总与列表（原先这三行占了整整一屏宽度）。
+                actions = {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.more_vert_24px),
+                                contentDescription = stringResource(Res.string.item_more_options),
+                                tint = tokens.textSecondary,
+                                modifier = Modifier.size(appIconSize().large)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.grade_action_import)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.school_24px),
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    haptics.tick()
+                                    onNavigate(
+                                        Destination.SchoolSelectionListScreen(WebPagePurpose.GRADE)
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.grade_action_paste)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = vectorResource(Res.drawable.content_copy_24px),
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    haptics.tick()
+                                    showPasteDialog = true
+                                }
+                            )
+                            if (groups.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(Res.string.grade_action_clear),
+                                            color = tokens.danger
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = vectorResource(Res.drawable.delete_24px),
+                                            contentDescription = null,
+                                            tint = tokens.danger
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showClearConfirm = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -315,40 +399,49 @@ fun GradeScreen(
                 }
             }
 
-            // 录入通道
-            item(key = "grade-actions") {
+            // ★ v4.76.19：培养方案完成度联动条（成绩页 ⇄ 学业情况页）——**常驻显示**。
+            //
+            // v4.76.18 初版把它设成「有要求或有清单才显示」，理由是「不给空数据用户添噪音」。
+            // 实际效果相反：**恰恰是还没设置过的新用户看不到这个入口**，也就永远发现不了
+            // 学业情况页；用户反馈「没看到从成绩页跳转到学业页的方式」即由此而来。
+            // 导航入口属于**结构性可达性**，不该由数据状态决定显隐 —— 改为无条件渲染，
+            // 无数据时副标题换成引导文案（而不是把整行藏掉）。
+            item(key = "grade-study-link") {
                 SectionCard {
                     SettingItem(
-                        title = stringResource(Res.string.grade_action_import),
-                        subtitle = stringResource(Res.string.grade_import_tip),
-                        leadingIcon = vectorResource(Res.drawable.school_24px),
-                        onClick = {
-                            haptics.tick()
-                            onNavigate(
-                                Destination.SchoolSelectionListScreen(WebPagePurpose.GRADE)
+                        title = stringResource(Res.string.grade_link_study_title),
+                        subtitle = if (studyProgress.hasAnyRequirement) {
+                            stringResource(
+                                Res.string.grade_link_study_subtitle,
+                                formatNumber(studyProgress.totalEarnedCredits),
+                                formatNumber(studyProgress.totalRequiredCredits)
                             )
-                        }
+                        } else {
+                            // 未设学分要求：引导去学业页设置，而不是隐藏入口
+                            stringResource(Res.string.grade_link_study_subtitle_empty)
+                        },
+                        onClick = { onNavigate(Destination.StudyProgress) }
                     )
-                    SectionDivider()
-                    SettingItem(
-                        title = stringResource(Res.string.grade_action_paste),
-                        leadingIcon = vectorResource(Res.drawable.content_copy_24px),
-                        onClick = {
-                            haptics.tick()
-                            showPasteDialog = true
-                        }
-                    )
-                    if (groups.isNotEmpty()) {
-                        SectionDivider()
-                        SettingItem(
-                            title = stringResource(Res.string.grade_action_clear),
-                            leadingIcon = vectorResource(Res.drawable.delete_24px),
-                            accent = AccentTone.DANGER,
-                            onClick = { showClearConfirm = true }
+                    // 有课程清单时补一行门数进度（共 / 已修 / 未修），与学业页同口径。
+                    if (studyProgress.hasAnyCurriculum) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(
+                                Res.string.study_curriculum_summary,
+                                studyProgress.totalPlannedCourses,
+                                studyProgress.totalPlannedCourses - studyProgress.totalPendingCourses,
+                                studyProgress.totalPendingCourses
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
+
+            // v4.76.22：录入通道（导入 / 粘贴 / 清空）已移到顶栏右上角的「更多」菜单，
+            // 此处不再渲染整宽卡片 —— 首屏留给成绩汇总与列表。
 
             if (groups.isEmpty()) {
                 item(key = "grade-empty") {

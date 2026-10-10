@@ -389,22 +389,18 @@ class GradeRepository(
         curriculumCourses: List<CurriculumCourse> = emptyList()
     ): StudyProgress {
         val counted = grades.filter { !it.isRetake }
-        val gradesByCategory = counted.groupBy { it.category?.trim().orEmpty() }
         val requirementByCategory = requirements.associateBy { it.category.trim() }
         val curriculumByCategory = curriculumCourses.groupBy { it.category?.trim().orEmpty() }
+
+        // v4.76.16：先归位到规范类别再分组（详见顶层函数 alignGradesToCategories 的注释）。
+        val gradesByCategory = alignGradesToCategories(counted, requirements, curriculumCourses)
         // 「已出成绩」的课程名集合，**按类别分开**维护（R40-09）。
         // 不及格的课由 failedCount 单独提示，不再重复算作「未修」。
-        // R40-09：旧实现只有一个**全局**集合，而本类的 earnedCredits 只累加本类成绩 ⇒
-        // 通用抓取从「性质」列取原始短名（「必修」）、适配钩子学业扫描产出学校原文长名
-        //（「通识教育课程平台/必修」，见 NTU/ntu.js:456、zhengfang/zhengfang.js:859），
-        // 两侧都无归一化 ⇒ 同一门课可落在两个类别上：pendingCourses 因全局命中而减 1
-        //（显示「已修」），earnedCredits 却仍是 0 ⇒ 同一页面「已修 1 门」与「已获 0 学分」并存。
-        val gradedNamesByCategory = counted
-            .filter { it.courseName.trim().isNotEmpty() }
-            .groupBy({ it.category?.trim().orEmpty() }, { it.courseName.trim() })
-        // 跨类别兜底：类别名不一致时（同上，仍是「必修」vs「通识教育课程平台/必修」），
-        // 若全局只有**一个**类别含该课程名，仍按已修处理，避免误报「未修」。
-        val gradeCountByCategory = counted.groupBy { it.category?.trim().orEmpty() }
+        val gradedNamesByCategory = gradesByCategory.mapValues { (_, list) ->
+            list.map { it.courseName.trim() }.filter { it.isNotEmpty() }
+        }
+        // 跨类别兜底：类别名不一致时，若全局只有一个类别含该课程名，仍按已修处理。
+        val gradeCountByCategory = gradesByCategory
 
         val categories = (
             requirementByCategory.keys + gradesByCategory.keys + curriculumByCategory.keys
@@ -777,4 +773,46 @@ internal fun parsePastedGradeText(text: String): List<ParsedGrade> {
         )
     }
     return result
+}
+
+/**
+ * 把成绩**归位到规范类别**再分组（v4.76.16，提为顶层纯函数以便单测，惯例同 parsePastedCurriculumText）。
+ *
+ * 两侧类别名不一致（R40-09 已记载）：成绩侧是教务「性质」列的**短名**（「必修」），而要求 / 清单侧是
+ * 学校**长名**（「学科基础课程平台/必修」，见 NTU/ntu.js）。旧实现直接按 grade.category 分组 ⇒
+ * 成绩落在「必修」而类别 key 是长名 ⇒ earnedCredits 恒为 0；但「已修门数」走课程名跨类别兜底，
+ * 所以是对的 —— 于是同一页面出现「已修 2 门」与「已获 0 学分」并存（南通大学实测反馈）。
+ *
+ * 归位规则（按优先级）：
+ * 1. 成绩自带类别本身已是已知类别（要求或清单里有）→ 用它；
+ * 2. 否则以**课程清单的课程名**为桥梁，归到该课所属的类别；
+ * 3. 都定不了 → 保留原值（含空串 = 未分类）。
+ *
+ * 这样 earnedCredits 与 pendingCourses 用同一套口径，不再各说各话。
+ *
+ * 注意：必须写在 GradeRepository 类**之后**。放在类之前会让 Koin/KSP 报
+ * 「Missing dependency: GradeRepository」（KOIN-D001）—— 注解处理器对文件内声明顺序敏感。
+ */
+internal fun alignGradesToCategories(
+    grades: List<Grade>,
+    requirements: List<CreditRequirement>,
+    curriculumCourses: List<CurriculumCourse>
+): Map<String, List<Grade>> {
+    val requirementByCategory = requirements.associateBy { it.category.trim() }
+    val curriculumByCategory = curriculumCourses.groupBy { it.category?.trim().orEmpty() }
+    val planNameToCategory = LinkedHashMap<String, String>()
+    curriculumByCategory.forEach { (cat, plans) ->
+        plans.forEach { plan ->
+            val name = plan.courseName.trim()
+            if (name.isNotEmpty() && !planNameToCategory.containsKey(name)) {
+                planNameToCategory[name] = cat
+            }
+        }
+    }
+    return grades.groupBy { grade ->
+        val raw = grade.category?.trim().orEmpty()
+        val known = raw.isNotEmpty() &&
+            (requirementByCategory.containsKey(raw) || curriculumByCategory.containsKey(raw))
+        if (known) raw else planNameToCategory[grade.courseName.trim()] ?: raw
+    }
 }

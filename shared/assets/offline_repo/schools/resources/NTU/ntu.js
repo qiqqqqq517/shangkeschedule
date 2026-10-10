@@ -321,6 +321,39 @@ function gradePointOf(raw) {
  *    避免把「第 1 学期」写成「第 3 学期」—— 这类错误用户很难发现。
  * 2. 分页走 `pageNo` / `pageSize`（实测有效），不要用 `queryModel.*`。
  */
+/**
+ * 取一条成绩记录里的**最终成绩**（v4.76.20）。
+ *
+ * 背景：正考不及格、补考通过时，教务页面的「最大成绩」= max(正考, 补考)，
+ * 学校据此判定通过；而接口里的「百分制成绩」(bfzcj) 仍记**正考分**（实测 43），
+ * 只看它会把已通过的课判成挂科 ⇒「不及格门数」偏多、已获学分少算。
+ *
+ * ⚠️ v4.76.17 曾**枚举**补考字段名（bkcj / bkkscj / bkcjfs…），这是错的：
+ * 各校字段命名不一，枚举必然漏，命不中时又静默退回原逻辑，表现为「改了却没生效」。
+ * 现改为按**名字特征**收口，不猜具体名字，两个条件同时满足才算补考/最大成绩候选：
+ *   ① 以成绩类后缀结尾（cj / fs / score）—— 排除 ksxzdm 这类"代码"字段；
+ *   ② 名字里带补考/最大语义（bk / zd / mx / max）—— 排除平时分、期末分等**分项**，
+ *      否则「取最大值」会把分项误当总评（平时 95 + 期末 60 → 总评 70，取 max 会得 95）。
+ * 命中多个取最大；一个都没有则退回 bfzcj / cj（等级制「优秀/良好」原样透传）。
+ */
+function bestScoreText(item) {
+    const primary = String(pickText(item.bfzcj, item.cj) || "").trim();
+    let best = null;
+    const pn = primary === "" ? NaN : Number(primary);
+    if (Number.isFinite(pn)) best = pn;
+    for (const key of Object.keys(item)) {
+        if (!/(cj|fs|score)$/i.test(key)) continue;   // 必须是成绩类字段
+        if (!/(bk|zd|mx|max)/i.test(key)) continue;   // 且带补考 / 最大语义
+        const raw = String(item[key] == null ? "" : item[key]).trim();
+        if (raw === "") continue;
+        const n = Number(raw);
+        if (Number.isFinite(n) && n > 0 && n <= 150) {
+            if (best == null || n > best) best = n;
+        }
+    }
+    return best != null ? String(best) : primary;
+}
+
 async function shangkeScanGrades() {
     // xnm/xqm 留空 = 全部学期；成绩页默认只查当前学期，那样会漏掉历史成绩
     const data = await postForm(
@@ -333,7 +366,9 @@ async function shangkeScanGrades() {
         const courseName = String(item.kcmc || "").trim();
         if (!courseName) continue;
         // 数字成绩优先（便于算平均分/绩点），等级制课程回落到显示成绩（优良中及格）
-        const scoreText = String(pickText(item.bfzcj, item.cj) || "").trim();
+        // v4.76.20：按字段名特征自动纳入「补考 / 最大成绩」，与教务「最大成绩」口径一致
+        //（详见 bestScoreText 注释；v4.76.17 的枚举法已废弃）。
+        const scoreText = bestScoreText(item);
         if (!scoreText) continue;
         const creditText = String(item.xf ?? "").trim();
         const credit = creditText === "" ? null : Number(creditText);
@@ -430,6 +465,8 @@ async function shangkeScanEmptyClassrooms() {
 async function shangkeScanStudy() {
     const rows = document.querySelectorAll("ul.treeview p.title1");
     const requirements = [];
+    // v4.76.15：培养方案课程清单（协议可选 courses），用于统计「应修/已修/未修」
+    const courses = [];
     let currentPlatform = "";
     for (const row of rows) {
         const text = String(row.textContent || "").replace(/\s+/g, "");
@@ -438,32 +475,69 @@ async function shangkeScanStudy() {
         const credits = Number(required[1]);
         if (!Number.isFinite(credits)) continue;
 
-        // 平台行：「XXX课程平台要求学分:…」；子行：「必修课程要求学分:…」
+        // 平台行：「XXX课程平台要求学分:…」；子行：「XX必修课/选修课要求学分:…」
+        // ★ v4.76.15 修正：旧正则 `^(必修课程|选修课程|任选课程|限选课程)要求学分` 要求
+        //   「要求学分」紧跟类别名，而本校实际是**平台名 + 必修课/选修课**，
+        //   且末尾是「课」不是「课程」（通识教育必修课 / 学科基础必修课 / 专业教育任选课程…）。
+        //   实测这 4 个模式一条都匹配不上 ⇒ requirements 恒为空 ⇒ 学业页连学分要求都没有。
+        //   现改为「任意修饰 + 必修/选修/任选/限选 + 课(程)?」的宽松形态。
         const platformMatch = text.match(/^(.+?课程平台)要求学分/);
         if (platformMatch) {
             // 只用来给下面的叶子行定位父平台，本身不入结果（避免总量重复计算）
             currentPlatform = platformMatch[1];
             continue;
         }
-        const categoryMatch = text.match(/^(必修课程|选修课程|任选课程|限选课程)要求学分/);
+        const categoryMatch = text.match(/^(?:.*?)(必修|选修|任选|限选)课(?:程)?要求学分/);
         if (categoryMatch && currentPlatform) {
             // 应修门数（v4.75.0）：子行末尾常带「共（N）门 通过（M）门」，N 即该类别应修门数。
             // 认不出就回传 null（页面只显示已出分门数），**不要猜**。
             // 「通过（M）门」刻意不回传：已修门数一律由本机成绩表现算，混两套口径必然打架。
             const totalMatch = text.match(/共\s*[（(]?\s*(\d+)\s*[）)]?\s*门/);
             const requiredCourses = totalMatch ? Number(totalMatch[1]) : null;
+            const categoryName = currentPlatform + "/" + categoryMatch[1].replace("课程", "");
             requirements.push({
-                category: currentPlatform + "/" + categoryMatch[1].replace("课程", ""),
+                category: categoryName,
                 requiredCredits: credits,
                 requiredCourses: Number.isFinite(requiredCourses) && requiredCourses > 0
                     ? requiredCourses
                     : null
             });
+
+            // ★ v4.76.15：抓该类别下的培养方案课程清单（协议里的可选 courses）。
+            // 每个叶子行的课程表在同级的 div.more_con 里（<table> 的 <tbody>）：
+            //   td[name=kcmc] 课程名 / td[name=xf] 学分（xdzt 属性标记修读状态）
+            //   「建议修读学年」+「学期」两列 → suggestedTerm（回答「哪学期要上」）
+            // 抓不到就留空数组，不影响上面已落库的要求——**不硬编码凑数**。
+            var li = row.closest ? row.closest("li") : null;
+            var table = li ? li.querySelector(".more_con table tbody") : null;
+            if (table) {
+                var trs = table.querySelectorAll("tr");
+                for (var t = 0; t < trs.length; t++) {
+                    var tr = trs[t];
+                    var nameCell = tr.querySelector('td[name="kcmc"]');
+                    var courseName = nameCell ? String(nameCell.textContent || "").trim() : "";
+                    if (!courseName) continue;
+                    var creditCell = tr.querySelector('td[name="xf"]');
+                    var creditText = creditCell ? String(creditCell.textContent || "").trim() : "";
+                    var credit = creditText === "" ? null : Number(creditText);
+                    // 建议修读学年 + 学期 → 拼成如 2026-2027-1
+                    var cells = tr.querySelectorAll("td");
+                    var yearText = cells.length >= 16 ? String(cells[15].textContent || "").trim() : "";
+                    var termText = cells.length >= 17 ? String(cells[16].textContent || "").trim() : "";
+                    var suggestedTerm = yearText ? (termText ? yearText + "-" + termText : yearText) : null;
+                    courses.push({
+                        courseName: courseName,
+                        category: categoryName,
+                        credit: Number.isFinite(credit) ? credit : null,
+                        suggestedTerm: suggestedTerm
+                    });
+                }
+            }
         }
     }
-    console.log("NTU study hook: read", requirements.length, "requirements");
+    console.log("NTU study hook: read", requirements.length, "requirements,", courses.length, "courses");
     // 页面还没展开（用户没打开学业情况页）时返回空数组，由应用侧提示
-    return { requirements };
+    return { requirements: requirements, courses: courses };
 }
 
 // 声明钩子：应用按这三个名字探测并调用

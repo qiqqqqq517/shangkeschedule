@@ -1205,7 +1205,7 @@
     <string name="gpa_scale_4">4.0 制</string>
     <string name="gpa_scale_5">5.0 制</string>
     <string name="gpa_scale_linear5">线性 5.0 制</string>
-    <string name="grade_empty_desc">支持手动录入、粘贴教务成绩页文本自动解析，或直接在教务系统页面里识别成绩</string>
+    <string name="grade_empty_desc">点右下角「添加成绩」手动录入，或点右上角「⋮」从教务导入 / 粘贴成绩页文本</string>
     <string name="grade_action_add">添加成绩</string>
     <string name="grade_action_paste">粘贴导入</string>
     <string name="grade_action_import">从教务导入</string>
@@ -1255,6 +1255,11 @@
     <string name="grade_paste_imported">已导入 %1$d 门课程</string>
     <string name="grade_import_recognize">识别本页成绩</string>
     <string name="grade_import_tip">在打开的教务页面里进入成绩查询页，再点「识别本页成绩」</string>
+    <!-- v4.76.18：成绩页 → 学业情况页联动入口（此前只有学业→成绩的反向入口） -->
+    <string name="grade_link_study_title">培养方案完成度</string>
+    <string name="grade_link_study_subtitle">已获 %1$s / 要求 %2$s 学分 · 查看还差哪些课</string>
+    <!-- v4.76.19：入口改为常驻，无数据时用引导文案而非隐藏整行 -->
+    <string name="grade_link_study_subtitle_empty">还没设置培养方案要求 · 点这里导入或填写</string>
     <string name="grade_import_no_result">本页没有识别到成绩表格，可改用粘贴导入</string>
     <string name="grade_import_success">已导入 %1$d 门课程成绩</string>
     <string name="grade_today_card_title">成绩 / GPA</string>
@@ -1340,6 +1345,8 @@
     <string name="study_need_requirement_hint">还没设置学分要求：点下面的类别填写「要求学分」后即可看到进度。</string>
     <string name="study_no_grade_hint">还没有成绩数据，先在「成绩与绩点」页录入或从教务导入。</string>
     <string name="study_open_grades">去录入成绩</string>
+    <!-- v4.76.21：已有成绩时的入口措辞（入口改为常驻，不再只在零成绩时出现） -->
+    <string name="study_view_grades">查看成绩与绩点</string>
     <string name="study_category_section">按课程类别</string>
     <string name="study_category_ratio">%1$s / %2$s 学分</string>
     <string name="study_category_no_requirement">未设置要求</string>
@@ -1389,6 +1396,9 @@
     <string name="study_import_reading">正在读取培养方案…</string>
     <string name="study_import_success">已导入 %1$d 个类别的学分要求</string>
     <string name="study_import_success_with_courses">已导入 %1$d 个类别要求与 %2$d 门培养方案课程</string>
+    <!-- v4.77.3：学业导入顺带导成绩的提示（留在学业页显示） -->
+    <string name="study_import_success_with_grades">已同时导入 %1$d 门成绩</string>
+    <string name="study_import_grade_none">未读到成绩，可稍后在「成绩与绩点」页单独导入</string>
     <string name="study_import_no_adapter">本校暂未适配培养方案读取，可在学业情况页手动填写各类别学分要求</string>
     <string name="study_import_no_result">未读取到培养方案学分要求，请确认当前页面是本校培养方案 / 学分统计页</string>
     <!-- v4.75.2：此前三个适配扫描钩子（成绩 / 空教室 / 学业）都没有超时兜底，
@@ -1404,7 +1414,7 @@
     <string name="study_curriculum_section">培养方案课程</string>
     <string name="study_curriculum_summary">共 %1$d 门 · 已修 %2$d 门 · 未修 %3$d 门</string>
     <string name="study_curriculum_summary_school">教务应修 %1$d 门 · 已修 %2$d 门 · 未修 %3$d 门</string>
-    <string name="study_curriculum_empty">还没导入培养方案课程清单：导进来才能统计「应修 / 已修 / 未修」，看清还差哪些课。</string>
+    <string name="study_curriculum_empty">还没导入培养方案课程清单：点右上角「⋮」从教务导入或粘贴，导进来才能统计「应修 / 已修 / 未修」。</string>
     <string name="study_pending_section">未修课程</string>
     <string name="study_pending_more">仅显示前 %1$d 门，其余请在下方清单中查看</string>
     <string name="study_curriculum_add">添加培养方案课程</string>

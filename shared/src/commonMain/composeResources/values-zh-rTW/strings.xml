@@ -1205,7 +1205,7 @@
     <string name="gpa_scale_4">4.0 制</string>
     <string name="gpa_scale_5">5.0 制</string>
     <string name="gpa_scale_linear5">線性 5.0 制</string>
-    <string name="grade_empty_desc">支援手動錄入、貼上教務成績頁文字自動解析，或直接在教務系統頁面裡辨識成績</string>
+    <string name="grade_empty_desc">點右下角「新增成績」手動錄入，或點右上角「⋮」從教務匯入 / 貼上成績頁文字</string>
     <string name="grade_action_add">新增成績</string>
     <string name="grade_action_paste">貼上匯入</string>
     <string name="grade_action_import">從教務匯入</string>
@@ -1255,6 +1255,11 @@
     <string name="grade_paste_imported">已匯入 %1$d 門課程</string>
     <string name="grade_import_recognize">辨識本頁成績</string>
     <string name="grade_import_tip">在開啟的教務頁面裡進入成績查詢頁，再點「辨識本頁成績」</string>
+    <!-- v4.76.18：成績頁 → 學業情況頁的聯動入口（此前只有反向入口） -->
+    <string name="grade_link_study_title">培養方案完成度</string>
+    <string name="grade_link_study_subtitle">已獲 %1$s / 要求 %2$s 學分 · 查看還差哪些課</string>
+    <!-- v4.76.19：入口改為常駐，無資料時以引導文案取代隱藏整行 -->
+    <string name="grade_link_study_subtitle_empty">還沒設定培養方案要求 · 點這裡匯入或填寫</string>
     <string name="grade_import_no_result">本頁沒有辨識到成績表格，可改用貼上匯入</string>
     <string name="grade_import_success">已匯入 %1$d 門課程成績</string>
     <string name="grade_today_card_title">成績 / GPA</string>
@@ -1340,6 +1345,8 @@
     <string name="study_need_requirement_hint">還沒設定學分要求：點下面的類別填寫「要求學分」後即可看到進度。</string>
     <string name="study_no_grade_hint">還沒有成績資料，先在「成績與績點」頁錄入或從教務匯入。</string>
     <string name="study_open_grades">去錄入成績</string>
+    <!-- v4.76.21：已有成績時的入口措辭（入口改為常駐，不再只在零成績時出現） -->
+    <string name="study_view_grades">查看成績與績點</string>
     <string name="study_category_section">依課程類別</string>
     <string name="study_category_ratio">%1$s / %2$s 學分</string>
     <string name="study_category_no_requirement">未設定要求</string>
@@ -1389,6 +1396,9 @@
     <string name="study_import_reading">正在讀取培養方案…</string>
     <string name="study_import_success">已匯入 %1$d 個類別的學分要求</string>
     <string name="study_import_success_with_courses">已匯入 %1$d 個類別要求與 %2$d 門培養方案課程</string>
+    <!-- v4.77.3：學業匯入順帶匯成績的提示（留在學業頁顯示） -->
+    <string name="study_import_success_with_grades">已同時匯入 %1$d 門成績</string>
+    <string name="study_import_grade_none">未讀到成績，可稍後在「成績與績點」頁單獨匯入</string>
     <string name="study_import_no_adapter">本校尚未適配培養方案讀取，可在學業情況頁手動填寫各類別學分要求</string>
     <string name="study_import_no_result">未讀取到培養方案學分要求，請確認目前頁面是本校培養方案／學分統計頁</string>
     <!-- v4.75.2：把「讀取超時」與「讀到但為空」分成兩種提示 -->
@@ -1401,7 +1411,7 @@
     <string name="study_curriculum_section">培養方案課程</string>
     <string name="study_curriculum_summary">共 %1$d 門 · 已修 %2$d 門 · 未修 %3$d 門</string>
     <string name="study_curriculum_summary_school">教務應修 %1$d 門 · 已修 %2$d 門 · 未修 %3$d 門</string>
-    <string name="study_curriculum_empty">還沒匯入培養方案課程清單：匯入後才能統計「應修／已修／未修」，看清還差哪些課。</string>
+    <string name="study_curriculum_empty">還沒匯入培養方案課程清單：點右上角「⋮」從教務匯入或貼上，匯入後才能統計「應修／已修／未修」。</string>
     <string name="study_pending_section">未修課程</string>
     <string name="study_pending_more">僅顯示前 %1$d 門，其餘請在下方清單中查看</string>
     <string name="study_curriculum_add">新增培養方案課程</string>
