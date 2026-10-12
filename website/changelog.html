@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4782">v4.78.2 · 三主题深色重点卡配色收口，去除卡片重复节数</a></li>
         <li><a href="#v4781">v4.78.1 · 日程页瘦身与课表卡片收敛，界面细节一轮过</a></li>
         <li><a href="#v4780">v4.78.0 · 新增「AI 图片导入」：复制固定提示词，用你自己的 AI 把课表图片变成可导入文本</a></li>
         <li><a href="#v4774">v4.77.4 · 导入成绩时也顺带导入学业情况（双向联动）</a></li>
@@ -225,6 +226,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4782">
+        <div><span class="tl-ver">v4.78.2</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>深色模式下「下节课卡」三主题串色</h3>
+          <ul>
+            <li>该卡此前在深色档硬编码一组书卷紫（标题 <code>#EBE5FF</code> / 渐变 <code>#3A2F5C → #2E2749</code> / 描边 <code>#9C87F5</code>），与所选主题无关 ⇒ 通透、柔绘、书卷在深色模式下<b>共用同一张紫色卡</b>，主题身份色在该卡上完全丢失。现提升为 <code>TodayCardStyle.nextCardDark</code> token 角色，由各主题显式提供：通透回到系统蓝 <code>#0A84FF</code>、柔绘保留雾蓝紫 <code>#9AA3DC</code>、书卷维持原暖紫观感。</li>
+            <li><b>课程时间轴卡重复展示节数</b>：卡面右上角徽章已给出节数，底部事实行又印了一遍「学时」。同一信息出现两次，属冗余信息噪音。底部改为展示<b>学分</b>（课程无学分时该行自动隐藏，不占位）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li>深色档下节课卡配色改由主题 token 供给，卡上文字与卡片实际渐变底逐级合成后实测，三主题正文对比度全部 ≥ 4.5:1（WCAG 2.2 AA）。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4781">
         <div><span class="tl-ver">v4.78.1</span><span class="tl-date">2026-10-12</span></div>
