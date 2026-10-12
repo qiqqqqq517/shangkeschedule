@@ -167,9 +167,11 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 而仓库同时存在 229 / 265 / 273 / 276 四个数字在不同文档里并行引用，
 巡检无法判断「多少才算对」。现改为**现场核对**：
 
-- 当前实测（2026-10-05）：**291 例 / 0 失败 / 0 错误 / 0 跳过**
-  （`:shared:testAndroidHostTest` 224 + `:androidApp:testDebugUnitTest` 67；
-   源集为 shared 28 文件 / androidApp 8 文件）。
+- 当前实测（2026-10-11，Gradle 真实执行 `:shared:testAndroidHostTest` + `:androidApp:testDebugUnitTest` 后解析 `build/test-results/**/TEST-*.xml` 的 `tests` 属性求和）：**404 例 / 1 失败 / 0 错误 / 0 跳过**
+  （`:shared:testAndroidHostTest` **337** 例 / 44 文件 + `:androidApp:testDebugUnitTest` **67** 例 / 8 文件；
+   `@Test` 注解计数 337 + 67 = 404，与 Gradle 执行数一致）。
+  ⚠️ 该 1 例失败为 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）`
+  （断言「超时后未把 `studyScanRunning` 置回 false」），与本次口径订正无关，属既存缺陷，待单独修复。
 - **每轮以实跑为准**：解析 `build/test-results/**/TEST-*.xml` 的 `tests` 属性求和，
   再与 `@Test` 注解计数对拍；二者不等即判 FAIL 并挂起。
 - 数字只应因**新增测试**而增加；无理由减少即挂起。

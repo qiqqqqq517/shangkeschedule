@@ -212,13 +212,13 @@ window.shangkeImportEntry = myRunImport;   // 函数需返回 Promise，异常�
 通用脚本（按表头猜列）—— 学校层没有任何接口可挂。现在适配脚本可通过声明钩子接管它们。
 
 **参考实现：`resources/NTU/ntu.js`（南通大学 · 正方教务 V9）——本标准的基准件。
-另有一份逻辑等价的通用实现在 `resources/zhengfang/zhengfang.js`，供其余 1022 所正方学校使用。**
+另有一份逻辑等价的通用实现在 `resources/zhengfang/zhengfang.js`，供其余 964 所正方学校使用。**
 
 #### 正方：改平台脚本还是写专用脚本
 
 | 情况 | 改哪里 |
 |---|---|
-| 学校**没有**专用脚本（`type: zhengfang_new` 直接映射到 `zhengfang/`，共 1022 所） | 无需改动 —— 平台脚本已含三个钩子 |
+| 学校**没有**专用脚本（`type: zhengfang_new` 直接映射到 `zhengfang/`，共 964 所；该类型共 1024 所，余 60 所走专用目录） | 无需改动 —— 平台脚本已含三个钩子 |
 | 学校**有**专用脚本（如 `NTU/`，索引 `resource_folder` 指向自己的目录） | 改该专用脚本；专用脚本的钩子**优先于**平台脚本 |
 | 平台钩子的**接口路径 / 字段口径**需要修正 | 改 `zhengfang.js`，**并同步回 `NTU/ntu.js`**（两者应保持一致） |
 
@@ -226,7 +226,7 @@ window.shangkeImportEntry = myRunImport;   // 函数需返回 Promise，异常�
 > 但接口返回的**字段**与**页面上是否存在学业情况页**仍可能因校而异，首次用于某校时
 > 应按 5.2 与本节的自测清单核对。
 >
-> ⚠️ 改 `zhengfang.js` 会影响 1022 所学校，务必按 §9 第 10 条做多校抽样回归。
+> ⚠️ 改 `zhengfang.js` 会影响 964 所学校，务必按 §9 第 10 条做多校抽样回归。
 
 #### 三个钩子
 
@@ -251,7 +251,7 @@ App 注入的调用脚本负责 `Promise.resolve(hook()).then(...)` 并投递 `d
 
 #### 探测先行：为什么 App 不直接调用
 
-钩子是可选能力（195 个适配脚本里绝大多数没有）。直接调用会在页面上抛
+钩子是可选能力（197 个适配脚本里绝大多数没有）。直接调用会在页面上抛
 `undefined is not a function`，被现有错误处理捕获后弹「适配脚本出错」——
 把「本校没适配」误报成「脚本坏了」。因此 App 先注入探测脚本确认钩子存在，再决定调用或回落。
 
@@ -392,7 +392,7 @@ if (isTimetablePage()) runImport();
 
 | 路径 | 适用 | 改哪里 |
 |---|---|---|
-| **timetable 数据集** | 学校已在 `shared/assets/offline_repo/schools/timetable_schools.json`（1778 条，含研究生体系） | 修正该条的 `type` / `url`；`type` 按 `TYPE_TO_JS` 映射到通用平台脚本 |
+| **timetable 数据集** | 学校已在 `shared/assets/offline_repo/schools/timetable_schools.json`（1779 条，含研究生体系） | 修正该条的 `type` / `url`；`type` 按 `TYPE_TO_JS` 映射到通用平台脚本 |
 | **MANUAL_SCHOOLS** | 全新学校手动注册 | `build_schools.py` 的 `MANUAL_SCHOOLS` 列表（id/名称/拼音首字母/适配器/import_url） |
 | **SPECIAL_ADAPTERS** | 多入口学校（校内/校外、WebVPN/直连拆分） | `build_schools.py` 的 `SPECIAL_ADAPTERS`（一个学校 id 挂多个 adapter 条目） |
 
@@ -706,7 +706,7 @@ APK 里的适配脚本是「**发版那一刻**主仓库工作区的快照」；
 | 路径 | 职责 | 入主仓库 git |
 |---|---|---|
 | `shared/assets/offline_repo/schools/resources/<CODE>/<js>` | 内置适配脚本（离线兜底源，174 目录） | ✅ |
-| `shared/assets/offline_repo/schools/timetable_schools.json` | 学校数据集（1778 条，id/name/type/url） | ✅ |
+| `shared/assets/offline_repo/schools/timetable_schools.json` | 学校数据集（1779 条，id/name/type/url） | ✅ |
 | `shared/assets/offline_repo/schools/ADAPTER_GUIDE.md` | 适配脚本开发指南（Bridge / TimetableParser API / **能力钩子**） | ✅ |
 | `shared/assets/offline_repo/schools/resources/NTU/ntu.js` | **正方适配参考实现**：课表导入 + 成绩 / 空教室 / 学业三个钩子 | ✅ |
 | `shared/assets/offline_repo/index/school_index.pb` | 内置学校索引（build_schools.py 产物） | ✅ |

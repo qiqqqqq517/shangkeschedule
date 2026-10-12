@@ -69,7 +69,8 @@
 **验证**：`:shared:compileKotlinJvm` + `:desktopApp:compileKotlin` + `:androidApp:assembleDebug` 全绿；单测 **217 例全通过、0 失败 0 跳过**（新增 5 例重叠回归 + 7 例厂商识别）。
 > **数字已过时（2026-10-02 watchdog 第 3 轮实测）**：本批次当时的 217 例是对的，但仓库此后又增 4 例（v4.67.0 的 `WidgetPinStringsTest`）。
 > **口径演进（每一步都可静态复现）**：217（v4.66.4 批次）→ 221（2026-10-02 复核）→ 229（2026-10-03 watchdog 第 39 轮实测，v4.67.29）→ 265 / 273 / 276（v4.68.0–v4.68.4 各轮实测）→ **291（2026-10-05 实测，v4.74.4）**。
-> **当前真实口径 = 291 例 / 0 失败 / 0 错误 / 0 跳过**（`:shared:testAndroidHostTest` **224**（28 文件） + `:androidApp:testDebugUnitTest` **67**（8 文件）；两种独立计数 —— Gradle XML 与 `@Test` 注解 —— 完全一致）。
+> **当前真实口径（2026-10-11 Gradle 实跑）= 404 例 / 1 失败 / 0 错误 / 0 跳过**（`:shared:testAndroidHostTest` **337**（44 文件） + `:androidApp:testDebugUnitTest` **67**（8 文件）；两种独立计数 —— Gradle XML 与 `@Test` 注解 —— 完全一致）。
+> ⚠️ 唯一失败项 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）` 为既存缺陷，待单独修复。
 > **判定「多少例算对」时不得引用上方演进链或本行历史值**（P2-19 · 2026-10-05）：以 `docs/agents/neverstop-watchdog.md` §L3 的**现场核对流程**为准（解析 `build/test-results/**/TEST-*.xml` 的 `tests` 求和，再与 `@Test` 计数对拍）。
 > 另注：本仓库 L3 的真实 Gradle 任务是 `:shared:testAndroidHostTest` + `:androidApp:testDebugUnitTest`；
 > `:shared:jvmTest` 是 `NO-SOURCE`（`shared/src` 下无 `jvmTest` 源集），写成它会**静默漏跑全部 shared 单测**。

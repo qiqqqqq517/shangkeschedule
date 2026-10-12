@@ -113,9 +113,10 @@
 | **测试总口径** | **276 例 / 0 失败 / 0 错误 / 0 跳过** | 与 `工作日志.md` v4.68.4 记录一致 |
 
 > 📌 **上表是 2026-10-04 v4.68.4 的历史快照，不是当前值**（P2-19 · 2026-10-05 标注）。
-> 当前实测口径 = **291 例 / 0 失败 / 0 错误 / 0 跳过**
-> （`:shared:testAndroidHostTest` **28 文件 / 224 例** + `:androidApp:testDebugUnitTest` **8 文件 / 67 例**，
-> 两种计数法 `@Test` 注解与 Gradle XML 首次闭合对拍）。
+> 当前实测口径（2026-10-11 Gradle 实跑）= **404 例 / 1 失败 / 0 错误 / 0 跳过**
+> （`:shared:testAndroidHostTest` **44 文件 / 337 例** + `:androidApp:testDebugUnitTest` **8 文件 / 67 例**，
+> 两种计数法 `@Test` 注解与 Gradle XML 闭合对拍）。
+> ⚠️ 唯一失败项为既存缺陷 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）`，待单独修复。
 > **判定「多少例算对」时不要引用本表**，以 `docs/agents/neverstop-watchdog.md` §L3 的现场核对流程为准。
 
 > ⚠️ **口径陷阱（本仓已踩过）**：`:shared:jvmTest` 在本仓是 `NO-SOURCE`（不存在 `shared/src/jvmTest` 源集），跑它**零覆盖却报成功**。真实任务是 `:shared:testAndroidHostTest`。且必须加 `--rerun-tasks`（否则复用上轮产物，「通过」只代表上一轮）并**核对执行数**（`NO-SOURCE` 不看执行数就会被骗）。
@@ -535,7 +536,7 @@ python scripts/check_font_scale.py
 | `E-3` / `R1-033`：`CourseDao.kt:68` ABORT + 先查后写 TOCTOU | 待批 | 已定案**无缺口**（同一 `withWriteTransaction` 内） | 移入 §5 不做什么表 |
 | `R1-006`：6 处 `println` 残留 | 待批 | 已修（`v4.64.10`，收归 `AppLog.w`）；`REVIEW.md` 第 7 轮复扫确认 commonMain `println` = 0 | 关闭 |
 | `R1-026` / `R1-027` / `R1-010` / `R1-017` / `R4-001` / `R4-002` | 待批 | 均已修并验证（见 `FIXLOG.md` 与 `REVIEW.md` 问题总账状态列） | 关闭 |
-| 测试口径 `229`（对标清单 §7 第 39 轮）/ `265`（`工作日志.md` v4.68.0–4.68.1）/ `273`（本地 `build/test-results`） | 三口径并存 | **当前实测 276**（shared 26 文件/209 例 + androidApp 8 文件/67 例）；三个旧数字是各自时点的真实值 | 见 `OPT-104`（口径单源化） |
+| 测试口径 `229`（对标清单 §7 第 39 轮）/ `265`（`工作日志.md` v4.68.0–4.68.1）/ `273`（本地 `build/test-results`） | 三口径并存 | **当前实测 404**（shared 44 文件/337 例 + androidApp 8 文件/67 例，2026-10-11 Gradle 实跑）；旧数字是各自时点的真实值 | 见 `OPT-104`（口径单源化） |
 | IMA《06》§一：版本 `4.68.1(471)` / HEAD `be4e1b9`，复核后 `4.68.2(472)` | 快照 | **当前 `4.68.4(474)` / `d9c4e61`**（其后还有 `4.68.3(473)`、`4.68.4(474)`） | 见 `OPT-604` 回写 |
 
 ---
@@ -544,7 +545,7 @@ python scripts/check_font_scale.py
 
 1. **取材来源**【实测】：`工作日志.md`（最新改动区）、`REVIEW.md`、`FIXLOG.md`、`docs/optimization-checklist-xinglian-benchmark.md`、`docs/agents/neverstop-watchdog.md`、`docs/agents/perf-baseline.md`、`scripts/`、`androidApp/build.gradle.kts`、`git log/status/ls-files`、实测行数与测试计数。
 2. **IMA 侧材料**取自本地 Markdown 源 `build_qa/ima-init/notes/`（《06-进度与待办》《07-问题复盘》），其取材为 `v4.68.1(471)`、复核为 `v4.68.2(472)` ⇒ **落后于当前 HEAD**，凡引用处均已按附录 B 订正。**回写（`OPT-604`）已于 2026-10-03 通过 IMA OpenAPI 完成**（三篇追加 + 回读校验）；回写时发现的坑（`media_id` ≠ `note_id`）已作为原则 3 的第三条记入本文件，并同步写入 IMA《07-问题复盘》坑 32。
-3. **本文件未做的事**：未新增任何门禁脚本、未跑 L1/L2/L3、未改任何源码、未执行任何发版动作。唯一的网络动作是 `OPT-604` 的 IMA 回写（`ima.qq.com`）。因此 §2 的「测试 276 例」来自 `@Test` 注解计数与 `工作日志.md` 记录的一致性，**不是本轮 Gradle 实跑结果** —— 首次执行 `OPT-000` 时应以实跑为准。
+3. **本文件未做的事**：未新增任何门禁脚本、未跑 L1/L2/L3、未改任何源码、未执行任何发版动作。唯一的网络动作是 `OPT-604` 的 IMA 回写（`ima.qq.com`）。因此 §2 原表内的「测试 276 例」来自 `@Test` 注解计数与 `工作日志.md` 记录的一致性，**不是当时的 Gradle 实跑结果**；§2 上方标注的「当前实测 404 例」是 2026-10-11 由 Gradle 真实执行后解析 `build/test-results/**/TEST-*.xml` 求和得到的 —— 首次执行 `OPT-000` 时仍应以实跑为准。
 4. **未确认项**（不写入结论，留给执行者复核）：
    - `website/version.json` 的正确取值（本地 `420 / 4.66.0`，而 `v4.66.0` 从未发布；线上该文件曾 404）；
    - `docs/ux-interaction-spec.md` 中 40+ 条「⚠️ 待确认」的当前有效性（已知 ≥2 条与现状冲突）；

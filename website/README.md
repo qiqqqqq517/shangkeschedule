@@ -36,8 +36,8 @@ website/
 
 ```js
 const SITE = {
-  version: '3.56.5',                                  // ← 发版时改这里
-  versionCode: '221',
+  version: '4.77.4',                                  // ← 发版时改这里
+  versionCode: '544',
   quark: 'https://pan.quark.cn/s/02947cbc1d4e',       // ← 换网盘分享链接时改这里
   quarkCode: '~9a263aTFyF~:/',                        // ← 对应的夸克口令
   ...
