@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.78.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>545</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.78.1</b></span>
+        <span>versionCode <b class="mono" data-version-code>548</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,8 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4781">v4.78.1 · 日程页瘦身与课表卡片收敛，界面细节一轮过</a></li>
+        <li><a href="#v4780">v4.78.0 · 新增「AI 图片导入」：复制固定提示词，用你自己的 AI 把课表图片变成可导入文本</a></li>
         <li><a href="#v4774">v4.77.4 · 导入成绩时也顺带导入学业情况（双向联动）</a></li>
         <li><a href="#v4773">v4.77.3 · 导入学业情况时顺带导入成绩，不再需要跑两遍</a></li>
         <li><a href="#v4772">v4.77.2 · 学业情况页的导入操作收进右上角菜单</a></li>
@@ -223,6 +225,34 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4781">
+        <div><span class="tl-ver">v4.78.1</span><span class="tl-date">2026-10-12</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>明日区标题显示的日期不对</h3>
+          <ul>
+            <li>三个主题的「明天 M 月 d 日」此前取的都是<b>今天</b>的日期，等于把今天的日期标在明日课表上。现在改取 <code>today + 1 天</code> 的独立字段，标题与内容对得上。</li>
+            <li><b>学业进度条 0% 时右端多一个实心圆点</b>：Material3 的 stop indicator 是无条件下笔绘制的，进度为 0 时轨道右端仍会画出一个主色圆点，容易被误读成「已满格」。现在把它染成与轨道同色，0% 时即不可见。</li>
+            <li><b>课程详情弹窗「课堂笔记」入口行图标贴边</b>：该行是全库唯一不放在 <code>SectionCard</code> 内的 <code>SettingItem</code>，拿不到卡片统一提供的横向内边距，44dp 图标 chip 直接顶到卡片左边框、被圆角与描边切到。现为该调用点补上与上方各行一致的 16dp 内边距（组件新增可选参数，其余 115 处调用点行为不变）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span>日程页头部瘦身</h3>
+          <ul>
+            <li>页面标题与月份/翻月控件并入同一行，压缩日期栏、农历行与把手高度，减少固定头部占用的纵向空间。</li>
+            <li><b>课程卡收敛</b>：时间轴课程条改为「课程 · 地点 · 教师」单行元信息，收敛卡片内边距、标题字号与条目间距。</li>
+            <li><b>空态/错误态状态卡改为整宽并强制居中</b>，底色与描边收敛到语义色 token。</li>
+            <li><b>底部导航选中态识别度提升</b>：LiquidGlass 底栏补上选中态主题强调色文字，未选中态用柔和二级文字。</li>
+            <li><b>深色模式可读性</b>：课程条填充透明度 0.38 → 0.44，地点/教师元信息透明度 0.82 → 0.88。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item reveal" id="v4780">
+        <div><span class="tl-ver">v4.78.0</span><span class="tl-date">2026-10-12</span></div>
+        <div class="tl-body">
+
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4774">
         <div><span class="tl-ver">v4.77.4</span><span class="tl-date">2026-10-10</span></div>
@@ -1910,7 +1940,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.78.0</span>
+        下载 <span class="mono" data-version>v4.78.1</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>
