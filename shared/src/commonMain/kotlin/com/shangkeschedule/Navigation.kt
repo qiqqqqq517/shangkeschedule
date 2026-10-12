@@ -164,6 +164,20 @@ sealed interface Destination : NavKey {
      */
     @Serializable data object AiImport : Destination
 
+    /**
+     * 「AI 图片导入」页（v4.78.0）：复制固定提示词，交给用户自己的 AI 识别课表图片，
+     * 再把 AI 输出的固定格式文本粘回本应用解析导入。
+     *
+     * 与 [AiImport] 的分工：后者由应用代发请求（用户自填接口地址 / 模型 / Key）；
+     * 本页**不发任何网络请求**，只提供「固定提示词 + 粘贴入口」——
+     * 用户在自己常用的 AI（DeepSeek / ChatGPT / Kimi / 豆包等）里把图片和提示词一起发出，
+     * 拿回固定格式文本后走既有的「文本粘贴导入（纯文本）」链路预览导入。
+     *
+     * 提示词与 [AiImport] 共用同一个常量（`AI_IMPORT_SYSTEM_PROMPT`），
+     * 两条路径产出同一格式，解析口径不会分叉。
+     */
+    @Serializable data object AiImageImport : Destination
+
     // --- 动态传参页面 ---
     @Serializable
     data class AdapterSelection(

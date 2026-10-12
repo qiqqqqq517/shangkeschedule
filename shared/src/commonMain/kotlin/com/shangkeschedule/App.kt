@@ -97,6 +97,7 @@ import com.shangkeschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.shangkeschedule.ui.settings.coursetables.ManageCourseTablesScreen
 import com.shangkeschedule.ui.settings.import.AiImportScreen
+import com.shangkeschedule.ui.settings.import.AiImageImportScreen
 import com.shangkeschedule.ui.settings.import.ExcelImportScreen
 import com.shangkeschedule.ui.settings.import.FileImportHubScreen
 import com.shangkeschedule.ui.settings.import.JsonFileImportScreen
@@ -622,6 +623,11 @@ fun ScreenContent(
         )
         // v4.66.0（J1）：AI 识别导入 —— 识别结果交给「文本粘贴导入」页预览导入，不直接写课表
         Destination.AiImport -> AiImportScreen(
+            onBack = onBack,
+            onNavigate = onNavigate
+        )
+        // v4.78.0：AI 图片导入 —— 复制固定提示词给用户自己的 AI，粘回输出后走纯文本导入
+        Destination.AiImageImport -> AiImageImportScreen(
             onBack = onBack,
             onNavigate = onNavigate
         )

@@ -38,7 +38,7 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
     private val RE_HTML_TAG = Regex("""<[^>]+>""")
     private val RE_INT_RANGE_DASH = Regex("""(\d+)\s*[-~至到]\s*(\d+)""")
     private val RE_DIGITS_CAPTURE = Regex("""(\d+)""")
-    private val RE_DAY_HEADER_CN = Regex("""^(?:星期|周|礼拜)?\s*([一二三四五六日天])$""")
+    private val RE_DAY_HEADER_CN = Regex("""^(?:星期|周|週|礼拜)?\s*([一二三四五六日天])$""")
     private val RE_SECTION_LABEL_RANGE = Regex("""第?\s*(\d{1,2})\s*[-~至到]\s*(\d{1,2})\s*节?""")
     private val RE_SECTION_LABEL_ADJACENT = Regex("""第\s*(\d{1,2})\s+(\d{1,2})\s*节""")
     private val RE_SECTION_LABEL_SINGLE = Regex("""第\s*(\d{1,2})\s*节""")
@@ -668,13 +668,17 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
         if (s.isBlank()) return 0
         s.toIntOrNull()?.let { if (it in 1..7) return it }
 
+        // 繁体「週一」等价简体「周一」：zh-rTW 界面的格式说明与用户自己的课表都常用繁体，
+        // 此前只认简体 ⇒ 繁体课表（含 AI 按繁体输出的行）整门课被静默丢弃、预览里直接少课，
+        // 且没有任何报错（v4.78.0 修）。
+        val text = s.replace('週', '周')
         val cnMap = mapOf("一" to 1, "二" to 2, "三" to 3, "四" to 4, "五" to 5, "六" to 6, "日" to 7, "天" to 7)
         for ((k, v) in cnMap) {
-            if (s.contains("周$k") || s.contains("星期$k") || s == k) return v
+            if (text.contains("周$k") || text.contains("星期$k") || text == k) return v
         }
 
         val enMap = mapOf("mon" to 1, "tue" to 2, "wed" to 3, "thu" to 4, "fri" to 5, "sat" to 6, "sun" to 7)
-        val lower = s.lowercase()
+        val lower = text.lowercase()
         for ((k, v) in enMap) {
             if (lower.contains(k)) return v
         }

@@ -50,6 +50,8 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
+import shangkeschedule.shared.generated.resources.ai_image_import_entry_desc
+import shangkeschedule.shared.generated.resources.ai_image_import_title
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.desc_ai_import
 import shangkeschedule.shared.generated.resources.desc_backup_restore
@@ -229,6 +231,14 @@ fun CourseTableConversionScreen(
                     title = stringResource(Res.string.title_ai_import),
                     subtitle = stringResource(Res.string.desc_ai_import),
                     onClick = { onNavigate(Destination.AiImport) }
+                )
+                // v4.78.0：AI 图片导入 —— 不填接口配置，复制固定提示词给自己的 AI，
+                // 把 AI 输出的固定格式文本粘回来解析导入。与上一条同族（都要先拿到一段文字）。
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.ai_image_import_title),
+                    subtitle = stringResource(Res.string.ai_image_import_entry_desc),
+                    onClick = { onNavigate(Destination.AiImageImport) }
                 )
             }
 
