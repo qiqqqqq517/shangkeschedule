@@ -178,7 +178,6 @@ import shangkeschedule.shared.generated.resources.today_meta_time
 import shangkeschedule.shared.generated.resources.today_next_label
 import shangkeschedule.shared.generated.resources.next_card_label_agenda
 import shangkeschedule.shared.generated.resources.next_card_today_ended
-import shangkeschedule.shared.generated.resources.today_note_hours
 import shangkeschedule.shared.generated.resources.today_note_type
 import shangkeschedule.shared.generated.resources.today_sections_format
 import shangkeschedule.shared.generated.resources.today_sheet_close
@@ -572,12 +571,22 @@ private enum class TodayCardMaterial {
  * 任何字段的取值都与旧三份拷贝逐位对应——像素回归以此为准。
  */
 private class TodayCardStyle(
-    /** 下节课卡亮色档点缀色梯（50/100/500/700/800）。暗色档不在此类：TodayNextClassCard 内三主题共用硬编码书卷紫。 */
+    /** 下节课卡亮色档点缀色梯（50/100/500/700/800）。 */
     val accent50: Color,
     val accent100: Color,
     val accent500: Color,
     val accent700: Color,
     val accent800: Color,
+    /**
+     * 下节课卡**深色档**整体配色（标识 / 标题 / 元信息 / 徽标 / 渐变 / 描边）。
+     *
+     * 原实现在 [TodayNextClassCard] 内按 `isDarkTheme` 硬编码一组「书卷紫」
+     * （`C4B8E8` / `EBE5FF` / 渐变 `3A2F5C → 2E2749` / 描边 `9C87F5`），
+     * 与主题身份无关 ⇒ 深色模式下三套主题**共用同一张紫色卡**，
+     * 通透的「系统蓝」与柔绘的「雾蓝紫」身份色在该卡上完全丢失。
+     * 现提升为 token 角色：由各主题显式提供深色档配色，组件只读角色、不判主题。
+     */
+    val nextCardDark: TodayTimelinePalette,
     /** 卡面材质角色：投影与描边的取法由它决定（见 [TodayCardMaterial]）。 */
     val material: TodayCardMaterial,
     /** 事件分类色走主题语义色（柔绘），否则沿用 Material 500 历史值（书卷/通透）。 */
@@ -603,7 +612,6 @@ private class TodayCardStyle(
     val countdownLabel: StringResource,
     val sectionsFormat: StringResource,
     val noteType: StringResource,
-    val noteHours: StringResource,
     val typeLab: StringResource,
     val typeTheory: StringResource,
 )
@@ -644,13 +652,15 @@ private object ClaudeTodaySkin : TodaySkin {
         val styleFont = claudeReadingSerif()
         val palettePlain = todayClaudePalette(peach = false)
         val palettePeach = todayClaudePalette(peach = true)
-        return remember(styleFont, palettePlain, palettePeach) {
+        val nextCardDark = todayClaudeNextCardDarkPalette()
+        return remember(styleFont, palettePlain, palettePeach, nextCardDark) {
             TodayCardStyle(
                 accent50 = ClaudeLilac50,
                 accent100 = ClaudeLilac100,
                 accent500 = ClaudeLilac500,
                 accent700 = ClaudeLilac700,
                 accent800 = ClaudeLilac800,
+                nextCardDark = nextCardDark,
                 material = TodayCardMaterial.PAPER,
                 semanticEventColors = false,
                 timelineCardHeroShape = false,
@@ -670,7 +680,6 @@ private object ClaudeTodaySkin : TodaySkin {
                 countdownLabel = Res.string.today_countdown_label,
                 sectionsFormat = Res.string.today_sections_format,
                 noteType = Res.string.today_note_type,
-                noteHours = Res.string.today_note_hours,
                 typeLab = Res.string.today_type_lab,
                 typeTheory = Res.string.today_type_theory,
             )
@@ -695,13 +704,15 @@ private object SoftTodaySkin : TodaySkin {
         val styleFont = iosUiSans()
         val palettePlain = todaySoftPalette(peach = false)
         val palettePeach = todaySoftPalette(peach = true)
-        return remember(styleFont, palettePlain, palettePeach) {
+        val nextCardDark = todaySoftNextCardDarkPalette()
+        return remember(styleFont, palettePlain, palettePeach, nextCardDark) {
             TodayCardStyle(
                 accent50 = SoftAccentAlt50,
                 accent100 = SoftAccentAlt100,
                 accent500 = SoftAccentAlt500,
                 accent700 = SoftAccentAlt700,
                 accent800 = SoftAccentAlt800,
+                nextCardDark = nextCardDark,
                 material = TodayCardMaterial.SOFT,
                 semanticEventColors = true,
                 timelineCardHeroShape = true,
@@ -721,7 +732,6 @@ private object SoftTodaySkin : TodaySkin {
                 countdownLabel = Res.string.today_countdown_label,
                 sectionsFormat = Res.string.today_sections_format,
                 noteType = Res.string.today_note_type,
-                noteHours = Res.string.today_note_hours,
                 typeLab = Res.string.today_type_lab,
                 typeTheory = Res.string.today_type_theory,
             )
@@ -746,13 +756,15 @@ private object Ios26TodaySkin : TodaySkin {
         val styleFont = iosUiSans()
         val palettePlain = todayIos26Palette(peach = false)
         val palettePeach = todayIos26Palette(peach = true)
-        return remember(styleFont, palettePlain, palettePeach) {
+        val nextCardDark = todayIos26NextCardDarkPalette()
+        return remember(styleFont, palettePlain, palettePeach, nextCardDark) {
             TodayCardStyle(
                 accent50 = Ios26AccentAlt50,
                 accent100 = Ios26AccentAlt100,
                 accent500 = Ios26AccentAlt500,
                 accent700 = Ios26AccentAlt700,
                 accent800 = Ios26AccentAlt800,
+                nextCardDark = nextCardDark,
                 material = TodayCardMaterial.GLASS,
                 semanticEventColors = false,
                 timelineCardHeroShape = true,
@@ -772,7 +784,6 @@ private object Ios26TodaySkin : TodaySkin {
                 countdownLabel = Res.string.today_countdown_label,
                 sectionsFormat = Res.string.today_sections_format,
                 noteType = Res.string.today_note_type,
-                noteHours = Res.string.today_note_hours,
                 typeLab = Res.string.today_type_lab,
                 typeTheory = Res.string.today_type_theory,
             )
@@ -1424,10 +1435,15 @@ private fun TodayTimelineCard(
                         }
                     )
                 )
-                TodayFactText(
-                    label = stringResource(style.noteHours),
-                    value = sectionCount.toString()
-                )
+                // 节数已由右上角徽章给出，此处原「学时」是其重复表达（走查 E2）：
+                // 改为展示学分——同一行仍是两条事实，但信息不再重复。
+                val creditText = model.course.credit?.takeIf { it.isNotBlank() }
+                if (creditText != null) {
+                    TodayFactText(
+                        label = stringResource(style.metaCredit),
+                        value = creditText
+                    )
+                }
             }
         }
     }
@@ -1629,15 +1645,15 @@ private fun TodayNextClassCard(
     style: TodayCardStyle
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
-    val labelColor = if (isDarkTheme) Color(0xFFC4B8E8) else style.accent700
-    val nameColor = if (isDarkTheme) Color(0xFFEBE5FF) else style.accent800
-    val badgeBg = if (isDarkTheme) Color(0x1FFFFFFF) else Color(0x99FFFFFF)
-    val gradient = if (isDarkTheme) {
-        listOf(Color(0xFF3A2F5C), Color(0xFF2E2749))
-    } else {
-        listOf(style.accent100, style.accent50)
-    }
-    val border = if (isDarkTheme) Color(0x339C87F5) else Color(0x269C87F5)
+    // 深色档原为「三主题共用硬编码书卷紫」，已在代码注释中明确标注为待收口缺陷；
+    // 现改读 [TodayCardStyle.nextCardDark] —— 各主题提供自己的深色档配色，
+    // 通透回到系统蓝、柔绘保留雾蓝紫、书卷维持原暖紫，组件不再判断主题身份。
+    val nextPalette = if (isDarkTheme) style.nextCardDark else null
+    val labelColor = nextPalette?.meta ?: style.accent700
+    val nameColor = nextPalette?.title ?: style.accent800
+    val badgeBg = nextPalette?.badgeBg ?: Color(0x99FFFFFF)
+    val gradient = nextPalette?.gradient ?: listOf(style.accent100, style.accent50)
+    val border = nextPalette?.border ?: Color(0x269C87F5)
     val shape = RoundedCornerShape(28.dp)
     val minutesUntil = data.minutesUntil
     // 淡出/恢复随分钟变化：经 statusFadeMs 渐变，取代二值硬跳（v3.54.0）
@@ -2641,6 +2657,62 @@ private val Ios26AccentWarm700 = Color(0xFFB36800)
  * 书卷是「紫罗兰 / 赤陶」暖冷交替，通透换成「系统蓝 / 系统橙」——
  * 这是 iOS 图标与图表的标准双色搭配，保证在浅色白卡与深色炭卡上都清晰。
  */
+@Composable
+private fun todayClaudeNextCardDarkPalette(): TodayTimelinePalette {
+    // 书卷深色档：保留原有「暖紫」观感（原硬编码值原样搬来），仅改变供给方式
+    return TodayTimelinePalette(
+        gradient = listOf(Color(0xFF3A2F5C), Color(0xFF2E2749)),
+        border = Color(0x339C87F5),
+        title = Color(0xFFEBE5FF),
+        meta = Color(0xFFC4B8E8),
+        badgeBg = Color(0x1FFFFFFF),
+        badgeFg = Color(0xFFEBE5FF),
+        dot = ClaudeBrand400
+    )
+}
+
+/**
+ * 柔绘深色档下节课卡配色。
+ *
+ * 取柔绘深色主色 #9AA3DC（雾蓝紫）作标题与圆点，元信息用柔绘深色次级文字
+ * #A29EAE（深底实测 ≥4.5:1）；底沿用柔绘深色卡片抬起档 #322F39 → #2A2830
+ * 的极轻渐变，保持「薄涂」而不引入通透的玻璃高光。
+ */
+@Composable
+private fun todaySoftNextCardDarkPalette(): TodayTimelinePalette {
+    val colors = appColors()
+    return TodayTimelinePalette(
+        gradient = listOf(colors.cardBgElevated, colors.cardBg),
+        border = colors.primary.copy(alpha = 0.26f),
+        title = colors.textPrimary,
+        meta = colors.textSecondary,
+        badgeBg = colors.primary.copy(alpha = 0.22f),
+        badgeFg = colors.textPrimary,
+        dot = colors.primary
+    )
+}
+
+/**
+ * 通透深色档下节课卡配色。
+ *
+ * 取通透深色主色 #0A84FF（systemBlue dark）作圆点与徽标底，标题用深色档
+ * 系统蓝提亮值 #A9CDFF；底沿用深色卡片抬起档 #2C2C2E → #1C1C1E，
+ * 描边走玻璃高光（iosGlassRim 在卡片层统一处理），与通透其余卡面同语言。
+ */
+@Composable
+private fun todayIos26NextCardDarkPalette(): TodayTimelinePalette {
+    val colors = appColors()
+    return TodayTimelinePalette(
+        gradient = listOf(colors.cardBgElevated, colors.cardBg),
+        border = colors.primary.copy(alpha = 0.28f),
+        title = Color(0xFFA9CDFF),
+        meta = colors.textSecondary,
+        badgeBg = colors.primary.copy(alpha = 0.24f),
+        badgeFg = Color(0xFFA9CDFF),
+        dot = colors.primary
+    )
+}
+
 @Composable
 private fun todayIos26Palette(peach: Boolean): TodayTimelinePalette {
     val colors = appColors()
