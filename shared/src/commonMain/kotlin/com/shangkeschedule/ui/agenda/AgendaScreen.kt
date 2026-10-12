@@ -199,7 +199,16 @@ import kotlin.math.abs
 import kotlin.time.Clock
 
 private val TIME_COLUMN_WIDTH = 56.dp
-private val TIMELINE_COLUMN_WIDTH = 26.dp
+
+/**
+ * 时间列与条目卡之间的时间轴列宽。
+ *
+ * 与今日页对齐（2026-10-13）：今日页时间轴用 `Arrangement.spacedBy(appSpacing().cardGap)`
+ * 即 16dp 横向节奏，本页原为 26dp ⇒ 两页「同结构条目」的卡片**可用宽度差 10dp**、
+ * 圆点位置也不一致。收敛为 16dp 后，两页的「时间列 56 + 间距 16 + 卡片」逐项同宽，
+ * 卡片左右边缘对齐。
+ */
+private val TIMELINE_COLUMN_WIDTH = 16.dp
 
 /** 时间轴分组：0 全天 / 1 上午 / 2 下午 / 3 晚上。 */
 private const val GROUP_ALL_DAY = 0
@@ -1296,18 +1305,26 @@ private fun AgendaEntryRow(
             horizontalAlignment = Alignment.End
         ) {
             // 无时间条目（默认待办）不渲染占位文本，列宽保留维持时间轴对齐
+            // 与今日页时间列同字阶（2026-10-13）：13sp SemiBold / 17sp 行高。
             if (!entry.startTime.isNullOrBlank()) {
                 Text(
                     text = entry.startTime,
-                    fontSize = appType().caption,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 17.sp
+                    ),
                     color = tokens.textPrimary
                 )
             }
             if (!entry.isAllDay && !entry.endTime.isNullOrBlank()) {
                 Text(
                     text = entry.endTime,
-                    fontSize = appType().caption,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = 16.sp
+                    ),
                     color = tokens.textSecondary
                 )
             }
@@ -1338,6 +1355,9 @@ private fun AgendaEntryRow(
             modifier = Modifier
                 .weight(1f)
                 .graphicsLayer { alpha = entryAlpha.value },
+            // 与今日页时间轴卡同形（2026-10-13）：圆角走 heroCard（今日页同款），
+            // 内边距 14/14/14/12 与今日页 TodayTimelineCard 逐项一致，两页卡片同高同宽。
+            shape = appShapes().heroCard,
             elevation = 1
         ) {
             Row(
@@ -1352,7 +1372,7 @@ private fun AgendaEntryRow(
                             }
                         }
                     )
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
             ) {
                 if (canToggleDone) {
                     // AC2（v3.69.2）：外层 Row 的 combinedClickable 负责整行点击/长按，
@@ -1372,21 +1392,25 @@ private fun AgendaEntryRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = entry.title,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 15.sp,
-                            lineHeight = 19.sp
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 20.sp
                         ),
-                        fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary,
                         textDecoration = if (entry.done) TextDecoration.LineThrough else null,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     if (metaLine.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = metaLine,
-                            fontSize = appType().caption,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 16.sp
+                            ),
                             color = tokens.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1394,10 +1418,14 @@ private fun AgendaEntryRow(
                     }
                     if (entry.teacher == null) {
                         entry.note?.let { note ->
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = note,
-                                fontSize = appType().caption,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    lineHeight = 16.sp
+                                ),
                                 color = tokens.textSecondary,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
