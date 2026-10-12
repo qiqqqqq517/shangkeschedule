@@ -474,6 +474,14 @@ fun AdaptiveNavigationScaffold(
                             ) { index ->
                                 val item = navItems[index]
                                 val isSelected = index == selectedTabIndex
+                                // LiquidGlass 方案里选中色此前只进玻璃录制层，屏幕上的
+                                // 图标/文字仍是统一 contentColor；这里恢复与兜底栏同源的
+                                // 语义：选中项吃主题强调色，未选中项吃次级文字色。
+                                val itemColor = if (isSelected) {
+                                    resolvedSelectedTextColor
+                                } else {
+                                    resolvedUnselectedColor
+                                }
                                 LiquidGlassTab(
                                     onClick = {
                                         // 原版流程：点击只更新外部 selectedTabIndex 状态；
@@ -486,7 +494,7 @@ fun AdaptiveNavigationScaffold(
                                     Icon(
                                         imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                         contentDescription = null,
-                                        tint = finalContentColor,
+                                        tint = itemColor,
                                         modifier = Modifier.size(appIconSize().large)
                                     )
                                     Text(
@@ -505,7 +513,7 @@ fun AdaptiveNavigationScaffold(
                                             )
                                         ),
                                         fontWeight = FontWeight.Medium,
-                                        color = finalContentColor,
+                                        color = itemColor,
                                         maxLines = 1,
                                         softWrap = false,
                                         overflow = TextOverflow.Ellipsis

@@ -238,7 +238,7 @@ fun CourseBlock(
         }
 
         // 可用文字区域尺寸（扣除内边距）
-        val innerPadding = style.courseBlockInnerPadding
+        val innerPadding = style.courseBlockInnerPadding.coerceAtMost(2.dp)
         val timetableStartPadding = presetRender.timetableStartPadding
         val contentWidth = maxWidth - innerPadding * 2 - timetableStartPadding
         val contentHeight = maxHeight - innerPadding * 2
@@ -319,7 +319,7 @@ fun CourseBlock(
                     Text(
                         text = "$prefix$breakablePosition",
                         fontSize = metaFontSize,
-                        color = presetRender.textColor.copy(alpha = 0.82f),
+                        color = presetRender.textColor.copy(alpha = 0.88f),
                         textAlign = textAlign,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 2,
@@ -335,7 +335,7 @@ fun CourseBlock(
                     Text(
                         text = teacher,
                         fontSize = metaFontSize,
-                        color = presetRender.textColor.copy(alpha = 0.82f),
+                        color = presetRender.textColor.copy(alpha = 0.88f),
                         textAlign = textAlign,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,

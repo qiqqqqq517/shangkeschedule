@@ -446,6 +446,16 @@ internal fun SettingItem(
      */
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
+    /**
+     * 整行外层修饰符。默认空。
+     *
+     * `SettingItem` 自身**不提供横向内边距**：设置页里它一律放在 [SectionCard] 内，
+     * 由 SectionCard 的 `pageHorizontal` 统一供内边距。若某个调用点不在 SectionCard 内
+     * （如课程详情弹窗的「课堂笔记」入口），leadingIcon chip 会紧贴卡片左边框被圆角+描边切到，
+     * 此时由调用方用本参数补内边距对齐。放在 `clickable` **之前**，
+     * 使补上的内边距也落在可点区域内。
+     */
+    modifier: Modifier = Modifier,
     trailingContent: @Composable () -> Unit = {
         Icon(
             icon,
@@ -469,7 +479,7 @@ internal fun SettingItem(
         color = titleColor
     )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
             .clickable(enabled = enabled && onClick != null) { onClick?.invoke() }

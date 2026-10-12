@@ -381,7 +381,7 @@ private fun AgendaContent(
             modifier = Modifier.padding(
                 start = spacing.pageHorizontal,
                 end = spacing.pageHorizontal,
-                top = 10.dp
+                top = 4.dp
             )
         )
 
@@ -393,8 +393,8 @@ private fun AgendaContent(
             modifier = Modifier.padding(
                 start = spacing.pageHorizontal,
                 end = spacing.pageHorizontal,
-                top = 4.dp,
-                bottom = 8.dp
+                top = 1.dp,
+                bottom = 1.dp
             )
         )
 
@@ -402,7 +402,7 @@ private fun AgendaContent(
             AppEmptyState(
                 hint = stringResource(Res.string.agenda_empty),
                 // 使用主题卡片内边距维持空态与页面内容的舒适呼吸感。
-                modifier = Modifier.padding(top = spacing.cardInner * 2)
+                modifier = Modifier.padding(top = 6.dp)
             )
         } else {
             // PF3（v3.69.0）：分组结果缓存 —— 原写法每次重组都执行 groupBy + toSortedMap。
@@ -416,11 +416,11 @@ private fun AgendaContent(
                 contentPadding = PaddingValues(
                     start = spacing.pageHorizontal,
                     end = spacing.pageHorizontal,
-                    top = 4.dp,
-                    bottom = bottomInset + 24.dp
+                    top = 0.dp,
+                    bottom = bottomInset + 16.dp
                 ),
                 // 日程分组列表使用主题卡片间距，保持空态与内容态的节奏一致。
-                verticalArrangement = Arrangement.spacedBy(spacing.cardGap)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 grouped.forEach { (group, entries) ->
                     item(key = "group_$group") {
@@ -540,19 +540,20 @@ private fun AgendaDatePanel(
                 }
             }
     ) {
-        // 全局 UI 优化批 2：页头统一为 AppPageHeader —— 页面名「日程」成为最大层级，
-        // 月份与翻月胶囊下沉到副标题行（父容器 Column 已处理 statusBarsPadding，此处勿重复）
+        // 页面标题与月份/翻月控件并入一行，减少日程页固定头部的纵向占用
+        //（父容器 Column 已处理 statusBarsPadding，此处勿重复）
         AppPageHeader(
+            bottomGapOverride = 4.dp,
             modifier = Modifier.padding(horizontal = appSpacing().pageHorizontal),
             title = stringResource(Res.string.nav_schedule),
-            leading = {
+            actions = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 月份标题：点击直接选月份
                     Row(
                         modifier = Modifier
                             .clip(shapes.chipSmall)
                             .clickable { onOpenMonthPicker() }
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                            .padding(horizontal = 2.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -567,10 +568,10 @@ private fun AgendaDatePanel(
                             imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
                             contentDescription = stringResource(Res.string.agenda_select_month),
                             tint = tokens.textSecondary,
-                            modifier = Modifier.size(appIconSize().medium)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(appSpacing().sectionTitleGap))
+                    Spacer(modifier = Modifier.width(2.dp))
                     Row(
                         modifier = Modifier
                             .clip(shapes.capsule)
@@ -584,7 +585,7 @@ private fun AgendaDatePanel(
                                 contentDescription = stringResource(Res.string.a11y_agenda_prev_month),
                                 tint = tokens.textSecondary,
                                 modifier = Modifier
-                                    .size(appIconSize().medium)
+                                    .size(16.dp)
                                     .graphicsLayer { rotationZ = 180f }
                             )
                         }
@@ -595,20 +596,18 @@ private fun AgendaDatePanel(
                                 imageVector = vectorResource(Res.drawable.chevron_right_24px),
                                 contentDescription = stringResource(Res.string.a11y_agenda_next_month),
                                 tint = tokens.textSecondary,
-                                modifier = Modifier.size(appIconSize().medium)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 }
-            },
-            actions = {
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = vectorResource(Res.drawable.more_vert_24px),
                             contentDescription = stringResource(Res.string.item_more_options),
                             tint = tokens.textSecondary,
-                            modifier = Modifier.size(appIconSize().large)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     DropdownMenu(
@@ -682,7 +681,7 @@ private fun AgendaDatePanel(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(22.dp)
+                .height(14.dp)
                 .clickable { onToggleExpanded() },
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -695,7 +694,7 @@ private fun AgendaDatePanel(
                 ),
                 tint = tokens.textSecondary,
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(14.dp)
                     .graphicsLayer { rotationZ = if (expanded) 180f else 0f }
             )
         }
@@ -812,33 +811,33 @@ private fun AgendaDateRailCell(
             .clip(shapes.chipSmall)
             .background(if (highlight) tokens.primary else Color.Transparent)
             .clickable { onClick() }
-            .padding(vertical = 8.dp),
+            .padding(vertical = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = weekdayLabel,
-            fontSize = appType().hint,
+            fontSize = appType().timeLabel,
             color = labelColor
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = cell.date.day.toString(),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = numberColor
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
+            text = cell.date.day.toString(),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = numberColor
+        )
+        Spacer(modifier = Modifier.height(1.dp))
+        Text(
             text = cell.lunarLabel,
-            fontSize = 10.sp,
+            fontSize = 9.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = labelColor
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(1.dp))
         Box(
             modifier = Modifier
-                .size(4.dp)
+                .size(2.dp)
                 .clip(CircleShape)
                 .background(
                     when {
@@ -1157,7 +1156,7 @@ private fun AgendaDayHeader(
                 modifier = Modifier
                     .clip(shapes.capsule)
                     .background(tokens.primarySoft)
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text(
                     text = stringResource(Res.string.agenda_today_badge),
@@ -1166,7 +1165,7 @@ private fun AgendaDayHeader(
                     color = tokens.primary
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
         }
         Text(
             text = stringResource(
@@ -1175,7 +1174,7 @@ private fun AgendaDayHeader(
                 state.selectedDate.day,
                 weekFullNames.getOrNull(state.selectedDate.dayOfWeek.isoDayNumber - 1).orEmpty()
             ),
-            fontSize = appType().pageTitle,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = tokens.textPrimary
         )
@@ -1183,13 +1182,13 @@ private fun AgendaDayHeader(
         // AC3（v3.69.0）：命中区提到 48dp（WCAG 2.5.5），可见圆底仍为 40dp —— 视觉不变、热区变大
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(36.dp)
                 .clickable { onCreate() },
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(28.dp)
                     .clip(CircleShape)
                     .background(tokens.primarySoft),
                 contentAlignment = Alignment.Center
@@ -1198,7 +1197,7 @@ private fun AgendaDayHeader(
                     imageVector = vectorResource(Res.drawable.add_24px),
                     contentDescription = stringResource(Res.string.a11y_agenda_add),
                     tint = tokens.primary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -1219,7 +1218,7 @@ private fun AgendaGroupHeader(group: Int, count: Int) {
         // TalkBack 支持按标题跳转；mergeDescendants 把图标与计数并入同一节点，
         // 避免读成「图标」「上午」「3」三个碎片。
         modifier = Modifier
-            .padding(top = 6.dp)
+            .padding(top = 4.dp)
             .semantics(mergeDescendants = true) { heading() },
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1276,7 +1275,11 @@ private fun AgendaEntryRow(
     } else {
         categoryLabel(entry.categoryKey)
     }
-    val metaLine = listOfNotNull(categoryLabel, entry.location).joinToString(" · ")
+    val metaLine = listOfNotNull(
+        categoryLabel,
+        entry.location,
+        entry.teacher?.let { stringResource(Res.string.agenda_teacher_prefix, it) }
+    ).joinToString(" · ")
     // 「待办」类条目可勾选完成：自建日程里分类为待办的事件，以及来自今日页待办列表的条目
     val canToggleDone = !entry.isCourse &&
         ScheduleCategory.fromKey(entry.categoryKey) == ScheduleCategory.TODO
@@ -1289,7 +1292,7 @@ private fun AgendaEntryRow(
         Column(
             modifier = Modifier
                 .width(TIME_COLUMN_WIDTH)
-                .padding(top = 6.dp),
+                .padding(top = 2.dp),
             horizontalAlignment = Alignment.End
         ) {
             // 无时间条目（默认待办）不渲染占位文本，列宽保留维持时间轴对齐
@@ -1316,7 +1319,7 @@ private fun AgendaEntryRow(
                 .fillMaxHeight()
                 .drawBehind {
                     val centerX = size.width / 2f
-                    val dotY = 12.dp.toPx()
+                    val dotY = 10.dp.toPx()
                     drawLine(
                         color = tokens.divider,
                         start = Offset(centerX, 0f),
@@ -1325,7 +1328,7 @@ private fun AgendaEntryRow(
                     )
                     drawCircle(
                         color = tokens.primary,
-                        radius = 4.dp.toPx(),
+                        radius = 3.dp.toPx(),
                         center = Offset(centerX, dotY)
                     )
                 }
@@ -1349,7 +1352,7 @@ private fun AgendaEntryRow(
                             }
                         }
                     )
-                    .padding(appSpacing().cardInner)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 if (canToggleDone) {
                     // AC2（v3.69.2）：外层 Row 的 combinedClickable 负责整行点击/长按，
@@ -1369,7 +1372,10 @@ private fun AgendaEntryRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = entry.title,
-                        fontSize = appType().rowTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 15.sp,
+                            lineHeight = 19.sp
+                        ),
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary,
                         textDecoration = if (entry.done) TextDecoration.LineThrough else null,
@@ -1377,7 +1383,7 @@ private fun AgendaEntryRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (metaLine.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = metaLine,
                             fontSize = appType().caption,
@@ -1386,19 +1392,9 @@ private fun AgendaEntryRow(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    entry.teacher?.let { teacher ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(Res.string.agenda_teacher_prefix, teacher),
-                            fontSize = appType().caption,
-                            color = tokens.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                     if (entry.teacher == null) {
                         entry.note?.let { note ->
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = note,
                                 fontSize = appType().caption,

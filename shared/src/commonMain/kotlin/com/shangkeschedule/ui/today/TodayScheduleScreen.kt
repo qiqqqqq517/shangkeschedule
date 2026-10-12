@@ -679,7 +679,7 @@ private object ClaudeTodaySkin : TodaySkin {
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.tomorrowDate.month.number, state.tomorrowDate.day)
 
     @Composable
     override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
@@ -730,7 +730,7 @@ private object SoftTodaySkin : TodaySkin {
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.tomorrowDate.month.number, state.tomorrowDate.day)
 
     @Composable
     override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
@@ -781,7 +781,7 @@ private object Ios26TodaySkin : TodaySkin {
 
     @Composable
     override fun tomorrowDateText(state: TodayUiState.Success): String =
-        stringResource(Res.string.today_tomorrow_format, state.today.month.number, state.today.day)
+        stringResource(Res.string.today_tomorrow_format, state.tomorrowDate.month.number, state.tomorrowDate.day)
 
     @Composable
     override fun nextLabelText(): String = stringResource(Res.string.today_next_label)
@@ -828,7 +828,7 @@ private fun TodayThemeContent(
         state = scrollState,
         modifier = Modifier.fillMaxSize(),
         // 批 2：魔法值走 token（cardGap / contentBottom）
-        verticalArrangement = Arrangement.spacedBy(appSpacing().cardGap),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = bottomInset + appSpacing().contentBottom)
     ) {
         item {
@@ -1357,7 +1357,7 @@ private fun TodayTimelineCard(
                 indication = LocalIndication.current,
                 onClick = onClick
             )
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.Top) {
@@ -1395,8 +1395,8 @@ private fun TodayTimelineCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
                     TodayMetaRow(
                         icon = Res.drawable.location_on_24px,
@@ -1412,8 +1412,8 @@ private fun TodayTimelineCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TodayFactText(
                     label = stringResource(style.noteType),
                     value = stringResource(
@@ -1657,11 +1657,11 @@ private fun TodayNextClassCard(
             .background(Brush.linearGradient(gradient))
             .then(if (style.material == TodayCardMaterial.SOFT) Modifier.softFeatherRim(shape) else Modifier.border(1.dp, border, shape))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 16.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(appSpacing().cardGap)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1683,21 +1683,21 @@ private fun TodayNextClassCard(
                         color = labelColor
                     )
                 }
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = data.title,
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 22.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 27.sp,
+                        lineHeight = 24.sp,
                         letterSpacing = (-0.01).em
                     ),
                     color = nameColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     data.location?.let { loc ->
                         TodayMetaRow(
                             icon = Res.drawable.location_on_24px,
@@ -1723,7 +1723,7 @@ private fun TodayNextClassCard(
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(badgeBg)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -1737,9 +1737,9 @@ private fun TodayNextClassCard(
                         Text(
                             text = data.timeRange,
                             style = MaterialTheme.typography.labelLarge.copy(
-                                fontSize = 15.sp,
+                            fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                lineHeight = 18.sp
+                            lineHeight = 16.sp
                             ),
                             color = nameColor,
                             maxLines = 1,
@@ -1748,14 +1748,14 @@ private fun TodayNextClassCard(
                     }
                 }
                 if (minutesUntil != null && minutesUntil > 0) {
-                    Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = minutesUntil.toString(),
                             style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 26.sp,
+                            fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
-                                lineHeight = 26.sp,
+                            lineHeight = 22.sp,
                                 letterSpacing = (-0.02).em
                             ),
                             color = nameColor

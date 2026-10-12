@@ -359,6 +359,7 @@ class TodayScheduleViewModel(
             events = events,
             weekIndex = snapshot.weekIndex ?: 0,
             today = today,
+            tomorrowDate = today.plus(1, DateTimeUnit.DAY),
             status = snapshot.status,
             startDate = snapshot.startDate,
             totalWeeks = snapshot.totalWeeks,
@@ -394,6 +395,8 @@ sealed class TodayUiState {
         val events: List<ScheduleEvent> = emptyList(),
         val weekIndex: Int,
         val today: LocalDate,
+        /** 明日预览区标题所用日期（= [today] + 1 天），v4.77.6 起独立字段。 */
+        val tomorrowDate: LocalDate = today.plus(1, DateTimeUnit.DAY),
         val status: TodayStatus,
         val startDate: LocalDate?,
         val totalWeeks: Int,

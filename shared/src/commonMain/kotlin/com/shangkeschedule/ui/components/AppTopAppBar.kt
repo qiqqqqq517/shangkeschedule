@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shangkeschedule.ui.theme.NavBarBottomEdge
@@ -120,6 +121,7 @@ fun AppPageHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     leading: (@Composable () -> Unit)? = null,
+    bottomGapOverride: Dp? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val colors = appColors()
@@ -131,7 +133,7 @@ fun AppPageHeader(
         modifier = modifier
             .fillMaxWidth()
             .padding(top = spacing.pageTop)
-            .padding(bottom = header.bottomGap)
+            .padding(bottom = bottomGapOverride ?: header.bottomGap)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

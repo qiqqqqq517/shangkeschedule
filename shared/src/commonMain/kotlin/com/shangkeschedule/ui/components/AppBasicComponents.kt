@@ -37,6 +37,7 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -115,8 +116,8 @@ fun AppSectionHeader(
 }
 
 /**
- * 空状态：淡灰胶囊底 + 居中辅助文案（与 Today 空态同语言，v2 规范 §3）。
- * [fillScreen] = true 时撑满父容器并居中（整页空态）；false 时仅在本行内居中（局部空态）。
+ * 空状态：整宽状态卡 + 居中辅助文案（与 Today 空态同语言，v2 规范 §3）。
+ * [fillScreen] = true 时撑满父容器高度并居中（整页空态）；false 时保留自然高度。
  *
  * [actionLabel] + [onAction] 成对提供时，在文案下方渲染一个可执行入口（IA5 空态闭环）——
  * 把「这里没有数据」变成「知道下一步该做什么」。两者任一为 null 则不渲染按钮。
@@ -129,6 +130,8 @@ fun AppEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
+    // 空态是三态语言里的正式状态：抬升卡 + hairline 边框提供清晰但不喧闹的边界，
+    // 浅色与页面底自然分层，深色也不会糊成一粒灰胶囊。
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -138,15 +141,19 @@ fun AppEmptyState(
     ) {
         Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .then(rememberContentEnterMotion())
                 .clip(appShapes().card)
-                .background(appColors().inputBg.copy(alpha = 0.55f))
+                .background(appColors().cardBgElevated.copy(alpha = 0.86f))
+                .border(1.dp, appColors().dividerSoft)
                 .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             Text(
                 text = hint,
                 style = MaterialTheme.typography.bodyMedium,
-                color = appColors().textSecondary
+                    color = appColors().textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
             )
         }
         if (actionLabel != null && onAction != null) {
@@ -166,7 +173,7 @@ fun AppEmptyState(
 }
 
 /**
- * 错误状态：与空态同一视觉语言（胶囊底 + 辅助文案），其下可挂一个重试入口。
+ * 错误状态：与空态同一视觉语言（整宽状态卡 + 辅助文案），其下可挂一个重试入口。
  *
  * X2（v3.69.3）三态一致性：此前「加载失败」在两地各写了一遍 ——
  * `SchoolSelectionListScreen` 借用 [AppEmptyState] 再拼一个按钮，
@@ -184,6 +191,7 @@ fun AppErrorState(
     onRetry: (() -> Unit)? = null
 ) {
     val retryLabel = stringResource(Res.string.action_retry)
+    // 错误态与空态共用同一容器材质，保证不同页面里“状态类型”可被一眼认出。
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -193,15 +201,19 @@ fun AppErrorState(
     ) {
         Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .then(rememberContentEnterMotion())
                 .clip(appShapes().card)
-                .background(appColors().inputBg.copy(alpha = 0.55f))
+                .background(appColors().cardBgElevated.copy(alpha = 0.86f))
+                .border(1.dp, appColors().dividerSoft)
                 .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
         ) {
             Text(
                 text = hint,
                 style = MaterialTheme.typography.bodyMedium,
-                color = appColors().textSecondary
+                    color = appColors().textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
             )
         }
         if (onRetry != null) {

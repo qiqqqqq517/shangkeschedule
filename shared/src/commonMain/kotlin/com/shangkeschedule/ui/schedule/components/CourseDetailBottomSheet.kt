@@ -253,10 +253,16 @@ fun CourseDetailBottomSheet(
                     // 课堂笔记入口：笔记挂在课程下，不在详情里直接编辑（笔记按课次一条，
                     // 详情弹窗只处理课程本身），点进去是独立的笔记列表页。
                     Spacer(modifier = Modifier.height(appSpacing().listGap))
+                    // v4.77.5：SettingItem 自身不带横向内边距——设置页里它一律放在
+                    // SectionCard 内，由 SectionCard 的 pageHorizontal 供内边距；唯独本处在
+                    // 详情弹窗的 Column 里（无 SectionCard 包裹），44dp 的 leadingIcon chip
+                    // 会紧贴卡片左边框、被卡片 chip 圆角+1dp 描边切到（截图实测贴边）。
+                    // 这里补上与上方 DetailRow 一致的 16dp 横向内边距对齐。
                     SettingItem(
                         title = textCourseNotes,
                         subtitle = descCourseNotes,
                         leadingIcon = vectorResource(Res.drawable.sticky_note_2_24px),
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         onClick = { onOpenNotes(course) }
                     )
                 }

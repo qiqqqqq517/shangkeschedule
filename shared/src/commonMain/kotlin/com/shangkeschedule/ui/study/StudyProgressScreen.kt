@@ -25,6 +25,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.material3.ProgressIndicatorDefaults.drawStopIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -881,12 +883,14 @@ private fun CurriculumCourseRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StudyProgressBar(
     ratio: Float,
     modifier: Modifier = Modifier
 ) {
     val tokens = appColors()
+    val trackColor = tokens.primary.copy(alpha = 0.15f)
     LinearProgressIndicator(
         progress = { ratio },
         modifier = modifier
@@ -894,7 +898,18 @@ private fun StudyProgressBar(
             .height(8.dp)
             .clip(RoundedCornerShape(4.dp)),
         color = tokens.primary,
-        trackColor = tokens.primary.copy(alpha = 0.15f)
+        trackColor = trackColor,
+        // Material3 的 stop indicator 是无条件下笔绘制的（ProgressIndicator.kt:185）
+        // progress = 0 时轨道右端仍会出现一个纯 primary 色圆点，被误读成「已满格」。
+        // 把它染成与轨道同色，0% 时即不可见。
+        drawStopIndicator = {
+            drawStopIndicator(
+                drawScope = this,
+                stopSize = ProgressIndicatorDefaults.LinearTrackStopIndicatorSize,
+                color = trackColor,
+                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+            )
+        }
     )
 }
 
