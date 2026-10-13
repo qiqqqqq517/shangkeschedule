@@ -24,7 +24,7 @@
 <link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
 <link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
 
-<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/Newsreader-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/site.css">
 
@@ -39,6 +39,60 @@
     } catch (e) { /* 忽略 */ }
   })();
 </script>
+<script type="application/ld+json">
+{
+  "@type": "SoftwareApplication",
+  "name": "上课",
+  "alternateName": "ShangKeSchedule",
+  "applicationCategory": "EducationalApplication",
+  "applicationSubCategory": "课程表 / 教务工具",
+  "operatingSystem": "Android 8.0 及以上",
+  "url": "https://shangke.asia/",
+  "downloadUrl": "https://pan.quark.cn/s/02947cbc1d4e",
+  "installUrl": "https://pan.quark.cn/s/02947cbc1d4e",
+  "softwareVersion": "4.78.12",
+  "softwareHelp": "https://shangke.asia/features",
+  "releaseNotes": "https://shangke.asia/changelog",
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "image": "https://shangke.asia/assets/img/app-icon-1024.png",
+  "description": "面向中国高校的开源无广告课表 App，支持 1700+ 所高校教务一键导入，含今日课表、周课表、日程待办、成绩绩点、考证查分、桌面小组件与 WebDAV 云备份。",
+  "featureList": [
+    "今日课表与周课表",
+    "1700+ 高校教务一键导入",
+    "文件导入导出课表",
+    "成绩绩点与考证查分",
+    "多作息方案",
+    "情侣课表",
+    "桌面小组件与上课免打扰",
+    "WebDAV 云备份",
+    "开源、无广告、无追踪"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "上课 · ShangKeSchedule",
+    "url": "https://shangke.asia/",
+    "logo": "https://shangke.asia/assets/img/app-icon-1024.png",
+    "sameAs": [
+      "https://github.com/qiqqqqq517/shangkeschedule"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "上课 · ShangKeSchedule",
+    "url": "https://shangke.asia/",
+    "logo": "https://shangke.asia/assets/img/app-icon-1024.png",
+    "sameAs": [
+      "https://github.com/qiqqqqq517/shangkeschedule"
+    ]
+  }
+}
+</script>
 </head>
 <body>
 
@@ -48,7 +102,10 @@
 <header class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="index.html">
-      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+            <picture>
+        <source srcset="assets/img/app-icon-1024.webp" type="image/webp">
+        <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标" decoding="async">
+      </picture>
       <span class="brand-text">
         <b>上课</b>
         <span>ShangKeSchedule</span>
@@ -102,7 +159,7 @@
         <div class="btn-row reveal">
           <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-            下载 Android 版 <span class="mono" data-version>v4.78.11</span>
+            下载 Android 版 <span class="mono" data-version>v4.78.12</span>
           </a>
           <a class="btn btn-ghost" data-repo href="https://github.com/qiqqqqq517/shangkeschedule" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.44-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.54 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
@@ -128,7 +185,10 @@
       <div class="hero-visual reveal">
         <div class="phone">
           <div class="phone-screen">
-            <img src="assets/img/today.jpg" width="540" height="1170" alt="「上课」今日课表界面：日期与周次、下节课卡片、今日课程时间轴">
+                        <picture>
+              <source srcset="assets/img/today.webp" type="image/webp">
+              <img src="assets/img/today.jpg" alt="「上课」今日课表界面：日期与周次、下节课卡片、今日课程时间轴" width="540" height="1170" decoding="async">
+            </picture>
           </div>
         </div>
 
@@ -380,7 +440,10 @@
 
       <div class="reveal">
         <figure class="shot" style="margin:0">
-          <img src="assets/img/import-school.jpg" width="540" height="1170" loading="lazy" alt="教务导入的学校选择界面，含本科 / 专科 / 研究生分组与字母索引">
+                    <picture>
+            <source srcset="assets/img/import-school.webp" type="image/webp">
+            <img src="assets/img/import-school.jpg" alt="教务导入的学校选择界面，含本科 / 专科 / 研究生分组与字母索引" width="540" height="1170" loading="lazy" decoding="async">
+          </picture>
           <figcaption>选择学校<small>1700+ 索引 · 分组 + 字母导航</small></figcaption>
         </figure>
         <div class="pills" style="margin-top:20px">
@@ -516,7 +579,10 @@
               <span class="pill">纸页转场</span>
             </div>
           </div>
-          <div class="theme-shot"><img src="assets/img/theme-cjk.jpg" width="540" height="1170" loading="lazy" alt="书卷主题的周课表界面"></div>
+          <div class="theme-shot">          <picture>
+            <source srcset="assets/img/theme-cjk.webp" type="image/webp">
+            <img src="assets/img/theme-cjk.jpg" alt="书卷主题的周课表界面" width="540" height="1170" loading="lazy" decoding="async">
+          </picture>
         </div>
 
         <div class="theme-panel" data-panel="glass">
@@ -530,7 +596,10 @@
               <span class="pill">玻璃底栏</span>
             </div>
           </div>
-          <div class="theme-shot"><img src="assets/img/week.jpg" width="540" height="1170" loading="lazy" alt="通透主题的周课表界面"></div>
+          <div class="theme-shot">          <picture>
+            <source srcset="assets/img/week.webp" type="image/webp">
+            <img src="assets/img/week.jpg" alt="通透主题的周课表界面" width="540" height="1170" loading="lazy" decoding="async">
+          </picture>
         </div>
 
         <div class="theme-panel" data-panel="soft">
@@ -544,7 +613,10 @@
               <span class="pill">零过冲</span>
             </div>
           </div>
-          <div class="theme-shot"><img src="assets/img/theme-soft.jpg" width="540" height="1170" loading="lazy" alt="柔绘主题界面"></div>
+          <div class="theme-shot">          <picture>
+            <source srcset="assets/img/theme-soft.webp" type="image/webp">
+            <img src="assets/img/theme-soft.jpg" alt="柔绘主题界面" width="540" height="1170" loading="lazy" decoding="async">
+          </picture>
         </div>
 
         <div class="theme-panel" data-panel="dark">
@@ -557,18 +629,27 @@
               <span class="pill">动态取色</span>
             </div>
           </div>
-          <div class="theme-shot"><img src="assets/img/theme-dark.jpg" width="540" height="1170" loading="lazy" alt="深色模式下的课表界面"></div>
+          <div class="theme-shot">          <picture>
+            <source srcset="assets/img/theme-dark.webp" type="image/webp">
+            <img src="assets/img/theme-dark.jpg" alt="深色模式下的课表界面" width="540" height="1170" loading="lazy" decoding="async">
+          </picture>
         </div>
       </div>
     </div>
 
     <div class="split-theme reveal">
       <figure class="shot" style="margin:0">
-        <img src="assets/img/appearance.jpg" width="540" height="1170" loading="lazy" alt="外观与样式设置页">
+                <picture>
+          <source srcset="assets/img/appearance.webp" type="image/webp">
+          <img src="assets/img/appearance.jpg" alt="外观与样式设置页" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>外观与样式<small>主题 · 深色模式 · 课表微调 · 动效</small></figcaption>
       </figure>
       <figure class="shot" style="margin:0">
-        <img src="assets/img/time-slots.jpg" width="540" height="1170" loading="lazy" alt="自定义时间段管理页">
+                <picture>
+          <source srcset="assets/img/time-slots.webp" type="image/webp">
+          <img src="assets/img/time-slots.jpg" alt="自定义时间段管理页" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>自定义时间段<small>多方案 · 自动切换 · 后节顺延</small></figcaption>
       </figure>
     </div>
@@ -585,35 +666,59 @@
 
     <div class="gallery">
       <figure class="shot reveal">
-        <img src="assets/img/today.jpg" width="540" height="1170" loading="lazy" alt="今日课表页面">
+                <picture>
+          <source srcset="assets/img/today.webp" type="image/webp">
+          <img src="assets/img/today.jpg" alt="今日课表页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>今日<small>下节课 · 时间轴 · 待办</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/week.jpg" width="540" height="1170" loading="lazy" alt="周课表页面">
+                <picture>
+          <source srcset="assets/img/week.webp" type="image/webp">
+          <img src="assets/img/week.jpg" alt="周课表页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>课表<small>周网格 · 滑动切周 · 长按调整</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/agenda.jpg" width="540" height="1170" loading="lazy" alt="日程页面">
+                <picture>
+          <source srcset="assets/img/agenda.webp" type="image/webp">
+          <img src="assets/img/agenda.jpg" alt="日程页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>日程<small>整月日历 · 待办活动考试</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/settings.jpg" width="540" height="1170" loading="lazy" alt="我的设置页面">
+                <picture>
+          <source srcset="assets/img/settings.webp" type="image/webp">
+          <img src="assets/img/settings.jpg" alt="我的设置页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>我的<small>四组归类 · 全部二级页</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/couple.jpg" width="540" height="1170" loading="lazy" alt="情侣课表设置">
+                <picture>
+          <source srcset="assets/img/couple.webp" type="image/webp">
+          <img src="assets/img/couple.jpg" alt="情侣课表设置" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>情侣课表<small>独立课表 · 独立作息</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/semester.jpg" width="540" height="1170" loading="lazy" alt="学期设置页面">
+                <picture>
+          <source srcset="assets/img/semester.webp" type="image/webp">
+          <img src="assets/img/semester.jpg" alt="学期设置页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>学期管理<small>多学期 · 进度条 · 自动判定</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/course-manage.jpg" width="540" height="1170" loading="lazy" alt="课程管理页面">
+                <picture>
+          <source srcset="assets/img/course-manage.webp" type="image/webp">
+          <img src="assets/img/course-manage.jpg" alt="课程管理页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>课程管理<small>按名聚合 · 调课 · 快速删除</small></figcaption>
       </figure>
       <figure class="shot reveal">
-        <img src="assets/img/reminder.jpg" width="540" height="1170" loading="lazy" alt="课程提醒设置页面">
+                <picture>
+          <source srcset="assets/img/reminder.webp" type="image/webp">
+          <img src="assets/img/reminder.jpg" alt="课程提醒设置页面" width="540" height="1170" loading="lazy" decoding="async">
+        </picture>
         <figcaption>课程提醒<small>免打扰 · 灵动岛 · 节假日</small></figcaption>
       </figure>
     </div>
@@ -663,7 +768,7 @@
       <span class="eyebrow">下载</span>
       <h2>下载安装包</h2>
       <p class="lead" style="color:#b7b5a9">
-        当前版本 <span class="mono" data-version>v4.78.11</span>（versionCode <span class="mono" data-version-code>558</span>）。
+        当前版本 <span class="mono" data-version>v4.78.12</span>（versionCode <span class="mono" data-version-code>559</span>）。
         安装包统一通过夸克网盘分发，三份按 CPU 架构拆分的 APK 都在同一个分享里；
         不确定选哪个就取 <span class="mono">arm64-v8a</span>——近几年的机型基本都是它。
       </p>
@@ -681,17 +786,17 @@
       <div class="dl-card reveal">
         <span class="abi">arm64-v8a</span>
         <span class="abi-desc">绝大多数 2017 年后的 Android 手机 · 约 4.8 MB</span>
-        <span class="size" data-asset-name="arm64-v8a">shangke-v4.78.11-arm64-v8a-release.apk</span>
+        <span class="size" data-asset-name="arm64-v8a">shangke-v4.78.12-arm64-v8a-release.apk</span>
       </div>
       <div class="dl-card reveal">
         <span class="abi">armeabi-v7a</span>
         <span class="abi-desc">较早的 32 位机型与部分平板 · 约 4.8 MB</span>
-        <span class="size" data-asset-name="armeabi-v7a">shangke-v4.78.11-armeabi-v7a-release.apk</span>
+        <span class="size" data-asset-name="armeabi-v7a">shangke-v4.78.12-armeabi-v7a-release.apk</span>
       </div>
       <div class="dl-card reveal">
         <span class="abi">x86_64</span>
         <span class="abi-desc">模拟器 / x86 架构设备 · 约 4.8 MB</span>
-        <span class="size" data-asset-name="x86_64">shangke-v4.78.11-x86_64-release.apk</span>
+        <span class="size" data-asset-name="x86_64">shangke-v4.78.12-x86_64-release.apk</span>
       </div>
     </div>
 
@@ -877,7 +982,10 @@
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-brand">
-        <img src="assets/img/app-icon-1024.png" alt="">
+                <picture>
+          <source srcset="assets/img/app-icon-1024.webp" type="image/webp">
+          <img src="assets/img/app-icon-1024.png" alt="" decoding="async">
+        </picture>
         <div>
           <b>上课 · ShangKeSchedule</b>
           <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>

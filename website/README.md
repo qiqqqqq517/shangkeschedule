@@ -25,7 +25,9 @@ website/
     ├── css/site.css    全站样式（含设计 token 与响应式）
     ├── js/site.js      站点配置 + 交互（主题切换、滚动入场、链接注入）
     ├── fonts/          Poppins / Newsreader / Geist Mono / Noto Serif SC（子集）
+    │                   每个西文字体提供 woff2（主源）+ ttf（回退）
     └── img/            App 截图（取自仓库根目录 picture/）与应用图标
+                        每张图提供 webp（主源）+ 原图（回退）
 ```
 
 ---
@@ -99,6 +101,26 @@ npx wrangler pages domain add www.shangke.asia   --project-name shangkeschedule
 
 ## 维护提示
 
+- **字体格式**：`assets/fonts/` 下每个西文字体都有 **woff2 + ttf 两份**。`site.css` 里每个
+  `@font-face` 声明两条 `src`，woff2 在前、ttf 兜底 —— 浏览器只下载第一条支持的格式，不会重复下载。
+  woff2 是由仓库里的 ttf 直接转出的（无需设计侧重新导出）：
+
+  ```bash
+  python -c "
+  from fontTools.ttLib import TTFont
+  import pathlib
+  for f in sorted(pathlib.Path('website/assets/fonts').glob('*.ttf')):
+      ft = TTFont(str(f)); ft.flavor = 'woff2'; ft.save(str(f.with_suffix('.woff2')))
+  "
+  ```
+
+  实测体积：Newsreader 441→210KB、Poppins 157→50KB、Geist Mono 168→69KB（合计 -55%）。
+  新增字体时请同样提供 woff2 主源。
+- **图片格式**：`assets/img/` 下每张图都有 **webp + 原图（jpg/png）两份**。HTML 里用
+  `<picture>` 包一层：`<source srcset="*.webp" type="image/webp">` 在前、`<img>` 指原图兜底。
+  WebP 由原图生成（`python build_qa/webopt/make_webp.py`，quality=82），实测 -51%。
+  **换截图后需同时重新生成 webp**，否则 `<source>` 会指向不存在的文件（浏览器会自动回退原图，
+  不会白屏，但省不下体积）。`og:image` / favicon / apple-touch-icon **保持 PNG 不转**（爬虫兼容性）。
 - **字体**：`NotoSerifSC-Subset.woff2`（约 99KB）是用 `fonttools` 按站点标题用字（461 字）子集化生成的。
   **如果新增了标题文案且用到了生僻字**，需要重新子集化，否则该字会回退到系统宋体：
   ```python
@@ -111,5 +133,20 @@ npx wrangler pages domain add www.shangke.asia   --project-name shangkeschedule
 - **字体粗细**：子集字体是 `wght=500` 的静态实例，`site.css` 中对应 `font-weight: 500`；
   若要把标题改成其他字重，需重新生成子集。
 - **截图**：`assets/img/*.jpg` 从仓库根目录 `picture/` 复制而来（540×1170）。更新 App 截图后需重新复制。
+- **结构化数据**：4 个可索引页（index / features / changelog / privacy）带 JSON-LD
+  （`SoftwareApplication` + `BreadcrumbList`）。**`404.html` 不加** —— 它已带 `noindex`，
+  加 canonical/JSON-LD 反而是错误信号。版本号由脚本从 `site.js` 的 `SITE.version` 派生，勿手改。
 - **深色模式**：全站支持，偏好存在 `localStorage['sk-theme']`；`<head>` 内联脚本负责首帧前定色，避免闪白。
 - **CSP**：`_headers` 里限制了脚本与样式来源，新增外链资源（图片、字体、脚本）时需同步放宽对应指令。
+  当前 `img-src 'self' data:` 已覆盖 webp，无需为 WebP 改动。
+
+### 优化后自检脚本
+
+`build_qa/webopt/` 下有一组只读校验脚本，改完站点应全绿：
+
+```bash
+python build_qa/webopt/verify_picture.py   # <picture> 开闭配对 + webp 引用存在
+python build_qa/webopt/verify_jsonld.py    # JSON-LD 合法性 + softwareVersion 与 site.js 一致
+python build_qa/webopt/smoke.py            # 起 http.server 8099 逐页逐资源 200 核验
+python build_qa/webopt/savings.py          # 输出传输体积收益
+```

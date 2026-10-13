@@ -16,7 +16,7 @@
 <meta property="og:image" content="https://shangke.asia/assets/img/app-icon-1024.png">
 <link rel="icon" href="assets/img/app-icon-1024.png" type="image/png">
 <link rel="apple-touch-icon" href="assets/img/app-icon-1024.png">
-<link rel="preload" href="assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/Newsreader-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/site.css">
 <script>
@@ -28,6 +28,79 @@
     } catch (e) {}
   })();
 </script>
+<script type="application/ld+json">
+{
+  "@type": "SoftwareApplication",
+  "name": "上课",
+  "alternateName": "ShangKeSchedule",
+  "applicationCategory": "EducationalApplication",
+  "applicationSubCategory": "课程表 / 教务工具",
+  "operatingSystem": "Android 8.0 及以上",
+  "url": "https://shangke.asia/",
+  "downloadUrl": "https://pan.quark.cn/s/02947cbc1d4e",
+  "installUrl": "https://pan.quark.cn/s/02947cbc1d4e",
+  "softwareVersion": "4.78.12",
+  "softwareHelp": "https://shangke.asia/features",
+  "releaseNotes": "https://shangke.asia/changelog",
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "image": "https://shangke.asia/assets/img/app-icon-1024.png",
+  "description": "面向中国高校的开源无广告课表 App，支持 1700+ 所高校教务一键导入，含今日课表、周课表、日程待办、成绩绩点、考证查分、桌面小组件与 WebDAV 云备份。",
+  "featureList": [
+    "今日课表与周课表",
+    "1700+ 高校教务一键导入",
+    "文件导入导出课表",
+    "成绩绩点与考证查分",
+    "多作息方案",
+    "情侣课表",
+    "桌面小组件与上课免打扰",
+    "WebDAV 云备份",
+    "开源、无广告、无追踪"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "上课 · ShangKeSchedule",
+    "url": "https://shangke.asia/",
+    "logo": "https://shangke.asia/assets/img/app-icon-1024.png",
+    "sameAs": [
+      "https://github.com/qiqqqqq517/shangkeschedule"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "上课 · ShangKeSchedule",
+    "url": "https://shangke.asia/",
+    "logo": "https://shangke.asia/assets/img/app-icon-1024.png",
+    "sameAs": [
+      "https://github.com/qiqqqqq517/shangkeschedule"
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://shangke.asia/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "更新日志",
+      "item": "https://shangke.asia/changelog"
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -36,7 +109,10 @@
 <header class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="index.html">
-      <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标">
+            <picture>
+        <source srcset="assets/img/app-icon-1024.webp" type="image/webp">
+        <img src="assets/img/app-icon-1024.png" alt="「上课」应用图标" decoding="async">
+      </picture>
       <span class="brand-text"><b>上课</b><span>ShangKeSchedule</span></span>
     </a>
     <nav aria-label="主导航">
@@ -75,8 +151,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.78.11</b></span>
-        <span>versionCode <b class="mono" data-version-code>558</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.78.12</b></span>
+        <span>versionCode <b class="mono" data-version-code>559</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -2094,7 +2170,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.78.11</span>
+        下载 <span class="mono" data-version>v4.78.12</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>
@@ -2106,7 +2182,10 @@
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-brand">
-        <img src="assets/img/app-icon-1024.png" alt="">
+                <picture>
+          <source srcset="assets/img/app-icon-1024.webp" type="image/webp">
+          <img src="assets/img/app-icon-1024.png" alt="" decoding="async">
+        </picture>
         <div>
           <b>上课 · ShangKeSchedule</b>
           <p>面向中国高校场景的开源课表 App，专注课表排版体验、多作息方案与教务一键导入。</p>

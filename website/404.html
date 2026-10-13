@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/assets/img/app-icon-1024.png" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/app-icon-1024.png">
-<link rel="preload" href="/assets/fonts/Newsreader-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="/assets/fonts/Newsreader-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/NotoSerifSC-Subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <script>
@@ -28,7 +28,10 @@
 <header class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="/">
-      <img src="/assets/img/app-icon-1024.png" alt="「上课」应用图标">
+            <picture>
+        <source srcset="/assets/img/app-icon-1024.webp" type="image/webp">
+        <img src="/assets/img/app-icon-1024.png" alt="「上课」应用图标" decoding="async">
+      </picture>
       <span class="brand-text"><b>上课</b><span>ShangKeSchedule</span></span>
     </a>
     <nav aria-label="主导航">
@@ -83,7 +86,10 @@
         <div style="position:relative;display:flex;justify-content:center">
           <div class="phone" style="width:min(240px,52vw)">
             <div class="phone-screen">
-              <img src="/assets/img/week.jpg" width="540" height="1170" alt="「上课」周课表界面">
+                            <picture>
+                <source srcset="/assets/img/week.webp" type="image/webp">
+                <img src="/assets/img/week.jpg" alt="「上课」周课表界面" width="540" height="1170" decoding="async">
+              </picture>
             </div>
           </div>
           <div class="float-card" style="top:4%;left:-8%;animation-delay:-2s">

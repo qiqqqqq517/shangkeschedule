@@ -6,33 +6,39 @@
  * ========================================================================== */
 
 /* ---------------------------------------------------------------- 字体 */
+/* 每个字体声明两条 src：woff2 优先（实测省 52%~68%），TTF 兜底。
+   两者同字体族同字重，浏览器只下载第一条支持的格式，不会重复下载。 */
 @font-face {
   font-family: 'Newsreader';
   font-style: normal;
   font-weight: 200 800;
   font-display: swap;
-  src: url('../fonts/Newsreader-Variable.ttf') format('truetype');
+  src: url('../fonts/Newsreader-Variable.woff2') format('woff2'),
+       url('../fonts/Newsreader-Variable.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../fonts/Poppins-Regular.ttf') format('truetype');
+  src: url('../fonts/Poppins-Regular.woff2') format('woff2'),
+       url('../fonts/Poppins-Regular.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('../fonts/Poppins-SemiBold.ttf') format('truetype');
+  src: url('../fonts/Poppins-SemiBold.woff2') format('woff2'),
+       url('../fonts/Poppins-SemiBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Geist Mono';
   font-style: normal;
   font-weight: 300 700;
   font-display: swap;
-  src: url('../fonts/GeistMono-Variable.ttf') format('truetype');
+  src: url('../fonts/GeistMono-Variable.woff2') format('woff2'),
+       url('../fonts/GeistMono-Variable.ttf') format('truetype');
 }
 /* 中文衬线（仅标题使用，已按站点标题用字子集化：461 字 / 约 99KB） */
 @font-face {
