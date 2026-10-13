@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4787">v4.78.7 · 字重语义 token 收口，今日页硬编码字重清零</a></li>
         <li><a href="#v4786">v4.78.6 · 图标尺寸归档三档 token，其他页面细节一轮过</a></li>
         <li><a href="#v4785">v4.78.5 · 修复主题门禁 C2 失效，去重三主题设置页色调撞色</a></li>
         <li><a href="#v4784">v4.78.4 · 修复深色档主题注入缺陷，三主题色板与字阶重塑</a></li>
@@ -230,6 +231,17 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4787">
+        <div><span class="tl-ver">v4.78.7</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li><b>今日页字重全部改由主题 token 供给</b>（设计规范 R9：组件层不得硬编码 <code>FontWeight</code>，须读 <code>appType().titleWeight</code> / <code>bodyWeight</code> / <code>captionWeight</code>）。今日页原散落 <b>28 处硬编码字重</b>（27 处 <code>SemiBold</code> / <code>Medium</code>，另有 3 处 <code>Bold</code> 为强调位保留），现按语义收口：</li>
+            <li><b>三主题身份由此真正生效</b>：通透 / 书卷 <code>titleWeight = SemiBold</code>（视觉零变化），<b>柔绘 <code>titleWeight = Medium</code></b> —— 柔绘「轻字重」的既定身份此前被硬编码 <code>SemiBold</code> 抹平，现回到该主题自己的字重语言。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4786">
         <div><span class="tl-ver">v4.78.6</span><span class="tl-date">2026-10-13</span></div>
