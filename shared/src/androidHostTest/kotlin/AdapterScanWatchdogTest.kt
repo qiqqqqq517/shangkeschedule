@@ -124,11 +124,16 @@ class AdapterScanWatchdogTest {
 
     @Test
     fun `超时后必须退出运行态（否则按钮永久禁用）`() {
-        val timeoutHandler = screenSrc.substringAfter("onAdapterScanTimeoutState")
-            .take(600)
+        // R9/本轮修复：原实现用 `take(600)` 固定字符窗口取块 —— 与文件内另一处
+        // （见「投递成功与钩子报错两条路径都会取消看门狗」的注释）同款缺陷。
+        // v4.77.4 在 onAdapterScanTimeoutState 里为「成绩带出学业」「学业带出成绩」
+        // 补了收尾分支与注释后，STUDY 分支的 `studyScanRunning = false` 被推出窗口，
+        // 造成「实现正确、测试假红」（实测断言在 :129 失败）。
+        // 现改为**括号配平取整个 lambda 块**，对注释与分支增删免疫。
+        val timeoutHandler = balancedBlockAfter(screenSrc, "onAdapterScanTimeoutState")
         assertTrue(
             timeoutHandler.contains("studyScanRunning = false"),
-            "超时后未把 studyScanRunning 置回 false ⇒「正在读取…」与按钮禁用会一直留着",
+            "超时后未把 studyScanRunning 置回 false ⇒「正在读取…」与按钮禁用会一直留着：\n$timeoutHandler",
         )
     }
 
