@@ -3,9 +3,7 @@ package com.shangkeschedule.ui.settings.additional
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appShapes
-import com.shangkeschedule.ui.theme.appSpacing
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween

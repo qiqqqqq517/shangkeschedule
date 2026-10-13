@@ -45,7 +45,6 @@ import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppSelectableCard
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appSpacing
-import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.settings.SettingCard
 import kotlinx.coroutines.launch

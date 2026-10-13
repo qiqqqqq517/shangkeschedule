@@ -297,24 +297,7 @@ def main():
     new_sitemap, sm_changed = patch_sitemap()
     print("sitemap.xml：lastmod" + ("已更新" if sm_changed else "未变化"))
 
-    # 4) website/*.html 里被 site.js 覆写的「兜底文本」（P1-9）
-    #
-    # data-version / data-version-code / data-asset-name 三个载体的元素文本此前
-    # 不在本脚本的写入清单里，导致 index.html / features.html 长期停在
-    # v3.71.2 / 290（落后约 100 个版本）—— 禁用 JS、爬虫、查看源码时看到旧版本。
-    # 复用**已入库**的 scripts/sync_web_version_fallbacks.py，避免两份逻辑漂移。
-    fb = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "sync_web_version_fallbacks.py"), "--apply"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
-    fb_lines = (fb.stdout or "").strip().splitlines()
-    print("website/*.html 兜底版本：" + (fb_lines[-2] if len(fb_lines) >= 2 else
-                                       (fb_lines[0] if fb_lines else f"rc={fb.returncode}")))
-    if fb.returncode != 0:
-        # 不静默吞掉：改不动就在 stdout 明说，便于发版时立刻发现
-        print(f"  [WARN] sync_web_version_fallbacks.py rc={fb.returncode}")
-        for line in fb_lines[-6:]:
-            print("        " + line)
+    # 4) website/*.html 兜底文本 —— **必须在所有写盘之后执行**（见下方说明）
 
     if args.dry_run:
         print("\n[dry-run] 本轮将写入：")
@@ -333,6 +316,40 @@ def main():
         CHANGELOG_HTML.write_text(new_html, encoding="utf-8")
     if sm_changed:
         SITEMAP.write_text(new_sitemap, encoding="utf-8")
+
+    # 4) website/*.html 里被 site.js 覆写的「兜底文本」（P1-9）
+    #
+    # ⚠️ 顺序约束（2026-10-13 修复）：本步必须放在**所有文件写盘之后**。
+    # 原实现把它放在步骤 2（changelog.html 内容计算）与写盘之间，导致：
+    #   ① 本步先就地改好 changelog.html 的兜底文本；
+    #   ② 随后 CHANGELOG_HTML.write_text(new_html) 用步骤 2 算出的内容整篇覆盖；
+    #   ③ 兜底文本被打回旧版本 ⇒ 脚本自报「待同步 N 处」却实际未生效，
+    #      紧接着 check_version_sync.py 立刻报同样几处 FAIL（实测多次）。
+    # 现移到写盘之后，并加写盘后复核，不静默放行。
+    fb = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "sync_web_version_fallbacks.py"), "--apply"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    fb_lines = (fb.stdout or "").strip().splitlines()
+    print("website/*.html 兜底版本：" + (fb_lines[-2] if len(fb_lines) >= 2 else
+                                       (fb_lines[0] if fb_lines else f"rc={fb.returncode}")))
+    if fb.returncode != 0:
+        # 不静默吞掉：改不动就在 stdout 明说，便于发版时立刻发现
+        print(f"  [WARN] sync_web_version_fallbacks.py rc={fb.returncode}")
+        for line in fb_lines[-6:]:
+            print("        " + line)
+
+    # 写盘后复核：再跑一次 --check，确认兜底文本已真正落地（exit 0）。
+    # 非 0 说明仍有覆盖路径未清理，必须显式失败而非当作成功。
+    vc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "sync_web_version_fallbacks.py"), "--check"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    if vc.returncode != 0:
+        print("  [FAIL] 兜底文本写盘后复核仍不一致 —— 存在覆盖路径未清理")
+        for line in (vc.stdout or "").strip().splitlines()[-4:]:
+            print("        " + line)
+        sys.exit(1)
 
     print("\n文件同步完成。")
     if not args.no_deploy:
