@@ -227,12 +227,13 @@ class BackupViewModel(
             // 旧实现只锁了落库（restoreFullSoftwareBackup 内部），全部网络 I/O 在锁外
             // ⇒ 恢复期间触发的自动上传会把云端改写为更新版本，而恢复仍按旧元数据回填
             // ⇒ 本机与云端静默分叉，且用户全程无感。
-            val result = backupRepository.withRestoreLock {
+            val result = backupRepository.restoreFullSoftwareBackup {
                 withContext(Dispatchers.IO) {
                 // P2-16：下载落地的 meta_restore.json / *_restore.cbor 是**未加密的用户数据
                 // 明文副本**，原先从不删除 —— 与同文件 importFromLocalZip 已确立的 zip 清理
                 // 纪律不一致。临时路径声明在 try 之外，finally 才能看到。
-                val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+                val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "shangke-restore-${Random.nextLong().toULong()}"
+                FileSystem.SYSTEM.createDirectories(tempDir)
                 val tempFiles = mutableListOf<Path>()
                 try {
                     val metaPath = tempDir / "meta_restore.json"
@@ -240,7 +241,7 @@ class BackupViewModel(
 
                     val corruptedMsg = getString(Res.string.backup_err_corrupted)
                     if (!client.downloadFile("$FIXED_BACKUP_DIR/meta.json", metaPath)) {
-                        return@withContext Result.failure(Exception(corruptedMsg))
+                        throw IllegalStateException(corruptedMsg)
                     }
 
                     // 读取并解析元数据
@@ -259,29 +260,30 @@ class BackupViewModel(
                         }
                         val modulePath = tempDir / "${module.key}_restore.cbor"
                         tempFiles.add(modulePath)
-                        if (client.downloadFile("$FIXED_BACKUP_DIR/${module.key}.cbor", modulePath)) {
+                        if (client.downloadFile(meta.moduleRemotePath(module.key), modulePath)) {
                             val bytes = FileSystem.SYSTEM.read(modulePath) { readByteArray() }
                             payloadMap[module.key] = bytes
                         } else {
-                            // P1-15 静默降级显性化：记录下载失败被跳过的模块，恢复完成后提示用户
+                            // 新快照要求模块完整，不能恢复跨模块引用不一致的半份数据。
+                            if (meta.snapshotId != null) throw IllegalStateException(corruptedMsg)
                             skippedModuleKeys.add(module.key)
                         }
                     }
 
                     if (payloadMap.isEmpty()) {
-                        return@withContext Result.failure(Exception(corruptedMsg))
+                        throw IllegalStateException(corruptedMsg)
                     }
 
                     val availableModules = meta.modules.filter { payloadMap.containsKey(it.key) }
                     val safeMeta = meta.copy(modules = availableModules)
 
                     val packageObj = AppBackupPackage(safeMeta, payloadMap)
-                    backupRepository.restoreFullSoftwareBackup(packageObj)
+                    packageObj
                 } catch (e: Exception) {
                     // 原为静默 `Result.failure(e)`：失败原因只在 UI 里以 message 出现一次，
                     // 日志无痕。补日志，便于用户反馈时定位。
                     AppLog.e(TAG, "云端备份恢复失败", e)
-                    Result.failure(e)
+                    throw e
                 } finally {
                     // P2-16：无论成功、失败还是中途 return，都必须删净明文临时副本。
                     tempFiles.forEach { path ->
@@ -291,6 +293,7 @@ class BackupViewModel(
                             AppLog.w(TAG, "删除临时备份文件失败: ${path.name}", cleanupError)
                         }
                     }
+                    runCatching { FileSystem.SYSTEM.delete(tempDir) }
                 }
             }
             }
@@ -465,7 +468,7 @@ class BackupViewModel(
 }
 
 /** 单条备份条目允许解压的上限。 */
-private const val MAX_BACKUP_ENTRY_BYTES = 32L * 1024 * 1024
+private const val MAX_BACKUP_ENTRY_BYTES = 128L * 1024 * 1024
 
 /** 一次导入允许累计解压的上限。 */
 private const val MAX_BACKUP_TOTAL_BYTES = 128L * 1024 * 1024

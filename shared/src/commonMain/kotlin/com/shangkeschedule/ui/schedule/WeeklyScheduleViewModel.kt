@@ -583,7 +583,7 @@ class WeeklyScheduleViewModel (
                 ?: return@forEachIndexed
 
             if (currentMinutes in startMinutes until endMinutes) {
-                return index + 1
+                return slot.number
             }
         }
         return -1
@@ -670,8 +670,8 @@ class WeeklyScheduleViewModel (
                 val firstSlotStart = parsedSlots.first().startTime
                 val lastSlotEnd = parsedSlots.last().endTime
 
-                if (time <= firstSlotStart) return 1.0f
-                if (time >= lastSlotEnd) return (parsedSlots.size + 1).toFloat()
+                if (time < firstSlotStart) return 1.0f
+                if (time >= lastSlotEnd) return ((parsedSlots.maxOfOrNull { it.slot.number } ?: 0) + 1).toFloat()
 
                 val currentSlot = parsedSlots.find {
                     time in it.startTime..it.endTime
@@ -687,7 +687,7 @@ class WeeklyScheduleViewModel (
                 }
 
                 val nextSlot = parsedSlots.find { it.startTime > time }
-                nextSlot?.slot?.number?.toFloat() ?: (parsedSlots.size + 1).toFloat()
+                nextSlot?.slot?.number?.toFloat() ?: ((parsedSlots.maxOfOrNull { it.slot.number } ?: 0) + 1).toFloat()
             }
         }
     }
@@ -817,9 +817,10 @@ class WeeklyScheduleViewModel (
                         endSection = finalEndSection.coerceIn(1, 24)
                     )
                 } else {
-                    val newStartSection = startSection.toInt().coerceIn(1, slots.size)
-                    val newEndSection = endSection.toInt().coerceIn(1, slots.size)
-                    if (newStartSection > newEndSection) return@launch
+                    val newStartSection = startSection.toInt().coerceIn(1, slots.maxOf { it.number })
+                    val newEndSection = endSection.toInt().coerceIn(1, slots.maxOf { it.number })
+                    if (newStartSection > newEndSection ||
+                        slots.none { it.number == newStartSection } || slots.none { it.number == newEndSection }) return@launch
 
                     originalCourse.copy(
                         day = targetDay,
@@ -912,9 +913,10 @@ class WeeklyScheduleViewModel (
                         endSection = (endSection.toInt() + 1).coerceIn(1, 24)
                     )
                 } else {
-                    val newStartSection = (startSection.toInt() + 1).coerceIn(1, slots.size)
-                    val newEndSection = endSection.toInt().coerceIn(1, slots.size)
-                    if (newStartSection > newEndSection) return@launch
+                    val newStartSection = (startSection.toInt() + 1).coerceIn(1, slots.maxOf { it.number })
+                    val newEndSection = endSection.toInt().coerceIn(1, slots.maxOf { it.number })
+                    if (newStartSection > newEndSection ||
+                        slots.none { it.number == newStartSection } || slots.none { it.number == newEndSection }) return@launch
 
                     originalCourse.copy(
                         day = targetDay,
@@ -991,7 +993,7 @@ class WeeklyScheduleViewModel (
         mode: ScheduleModeProto,
         showTimeRanges: Boolean
     ): List<MergedCourseBlock> {
-        val maxSection = if (mode == ScheduleModeProto.TIME_24H_MODE) 24f else parsedSlots.size.toFloat()
+        val maxSection = if (mode == ScheduleModeProto.TIME_24H_MODE) 24f else (parsedSlots.maxOfOrNull { it.slot.number } ?: 0).toFloat()
         val limit = maxSection + 1.0f
         val minSafeHeight = if (mode == ScheduleModeProto.TIME_24H_MODE) 0.0f else 0.3f
 

@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.cbor.Cbor
+import kotlinx.serialization.cbor.ByteString
 
 object CourseImportExport {
 
@@ -12,7 +13,8 @@ object CourseImportExport {
      * 确立基础全量多课表 CBOR 备份协议规范
      * 未来如果重构了底层数据架构（如颠覆了基础字段或关联关系），可手动升级为 2，借此编写迁移清洗流
      */
-    const val COURSE_SCHEMA_VERSION = 2
+    // v3：作息节次身份保持稳定，允许删除未使用节次后出现编号间隔。
+    const val COURSE_SCHEMA_VERSION = 3
 
     /**
      * 全局用户数据（待办 / 日程 / 成绩 / 课堂笔记 / 培养方案课程）备份规范版本号。
@@ -25,7 +27,8 @@ object CourseImportExport {
      */
     // 3：新增课堂笔记表 course_notes
     // 4：新增培养方案课程表 curriculum_courses
-const val USER_DATA_SCHEMA_VERSION = 4
+    // 5：笔记图片内容及跨设备路径重建
+    const val USER_DATA_SCHEMA_VERSION = 5
 
     /**
      * 自定义 Json 解析器
@@ -279,7 +282,7 @@ const val USER_DATA_SCHEMA_VERSION = 4
      * 背景：`todo_items` / `schedule_events` 是 Room 实体，但此前不属于任何备份模块，
      * 全量备份/恢复（本地 zip 与 WebDAV）完全不覆盖它们 —— 换机或恢复后这两张表为空。
      * v2：`grades` 也纳入（在此之前成绩同样完全不进备份）。
-     * v3：`course_notes` 课堂笔记也纳入（图片文件在 files/notes/ 下，不进备份，恢复后笔记仍在但图片需重新拍）。
+     * v3：`course_notes` 课堂笔记也纳入。v5 起图片内容一同备份并在恢复时重新落盘。
      * v4：`curriculum_courses` 培养方案课程清单也纳入（学业情况的「应修 / 已修 / 未修」依赖它）。
      */
     @Serializable
@@ -294,8 +297,14 @@ const val USER_DATA_SCHEMA_VERSION = 4
         // 可空（v3 新增）：旧备份缺该字段 ⇒ 解码为 null ⇒ 恢复时不动本机笔记。
         val notes: List<CourseNoteBackupModel>? = null,
         // 可空（v4 新增）：旧备份缺该字段 ⇒ 解码为 null ⇒ 恢复时不动本机培养方案课程。
-        val curriculumCourses: List<CurriculumCourseBackupModel>? = null
+        val curriculumCourses: List<CurriculumCourseBackupModel>? = null,
+        // v5：附件以相对身份和字节打包，imagePaths 存对应键；旧版本为 null。
+        val noteImages: Map<String, NoteImageBackupModel>? = null
     )
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable
+    data class NoteImageBackupModel(@ByteString val bytes: ByteArray)
 
     /**
      * 培养方案课程备份模型（v4 新增）。

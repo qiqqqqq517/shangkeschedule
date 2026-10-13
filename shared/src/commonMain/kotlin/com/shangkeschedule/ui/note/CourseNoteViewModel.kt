@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.KoinViewModel
 
 /**
@@ -64,10 +67,15 @@ class CourseNoteViewModel(
             return
         }
         viewModelScope.launch {
-            val ok = runCatching {
+            val written = mutableListOf<String>()
+            var saved = false
+            val result = runCatching {
                 val id = noteId ?: courseNoteRepository.newNoteId()
                 val existing = noteId?.let { courseNoteRepository.getNoteOnce(it) }
-                val written = newImages.mapNotNull { courseNoteRepository.saveImage(id, it) }
+                for (bytes in newImages) {
+                    written += courseNoteRepository.saveImage(id, bytes)
+                        ?: error("笔记图片保存失败")
+                }
                 val paths = keptPaths + written
                 val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
 
@@ -89,6 +97,7 @@ class CourseNoteViewModel(
                         updatedAt = now
                     )
                 )
+                saved = true
 
                 // 用户在这次编辑里移除的旧图：文件一并清掉，避免 notes/ 目录里留孤儿
                 val removed = existing?.imagePaths
@@ -99,8 +108,14 @@ class CourseNoteViewModel(
                 if (removed.isNotEmpty()) {
                     courseNoteRepository.deleteImages(removed.joinToString("\n"))
                 }
-            }.isSuccess
-            onResult(ok)
+            }
+            if (!saved && written.isNotEmpty()) {
+                withContext(NonCancellable) {
+                    courseNoteRepository.deleteImages(written.joinToString("\n"))
+                }
+            }
+            result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            onResult(saved)
         }
     }
 

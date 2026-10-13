@@ -118,9 +118,8 @@ class CourseConversionRepository(
             var lastEndTimeInMinutes = -1
 
             sortedSlots.forEachIndexed { index, slot ->
-                val expectedNumber = index + 1
-                if (slot.number != expectedNumber) {
-                    throw IllegalArgumentException("时间段编号不连续或未从1开始")
+                if (slot.number !in 1..24 || (index > 0 && slot.number <= sortedSlots[index - 1].number)) {
+                    throw IllegalArgumentException("时间段编号非法或重复")
                 }
 
                 if (!timeRegex.matches(slot.startTime) || !timeRegex.matches(slot.endTime)) {
@@ -294,6 +293,52 @@ class CourseConversionRepository(
         return Pair(courseEntities, courseWeekEntities)
     }
 
+    /** 在调用方事务内替换课表；无稳定来源 ID 时仅复用可唯一确认的课程身份。 */
+    private suspend fun replaceCoursesPreservingNotes(
+        tableId: String,
+        courses: List<Course>,
+        weeks: List<CourseWeek>,
+        matchByContent: Boolean = true
+    ) {
+        require(courses.map { it.id }.distinct().size == courses.size) { "课程 ID 重复" }
+        val existing = courseDao.getCoursesOnce(tableId)
+        val existingById = existing.associateBy { it.id }
+        val usedIds = mutableSetOf<String>()
+        val remappedIds = mutableMapOf<String, String>()
+        fun Course.identity() = listOf(name.trim(), day, isCustomTime,
+            if (isCustomTime) customStartTime else startSection,
+            if (isCustomTime) customEndTime else endSection)
+        val existingByIdentity = existing.groupBy { it.identity() }
+        val existingWeeks = existing.associate { it.id to courseWeekDao.getWeekNumbersByCourseId(it.id).toSet() }
+        val incomingWeeks = weeks.groupBy { it.courseId }.mapValues { (_, values) -> values.map { it.weekNumber }.toSet() }
+        // 有来源 ID 的条目先占位，避免内容匹配抢走它的身份。
+        val reservedIds = courses.map { it.id }.filter { it in existingById }.toSet()
+        for (incoming in courses) {
+            val sameId = existingById[incoming.id]?.takeUnless { it.id in usedIds }
+            val candidates = if (matchByContent && sameId == null) {
+                existingByIdentity[incoming.identity()].orEmpty()
+                    .filter { it.id !in usedIds && it.id !in reservedIds }
+            } else emptyList()
+            val matched = sameId ?: candidates.filter {
+                it.teacher == incoming.teacher && it.position == incoming.position &&
+                    existingWeeks[it.id] == incomingWeeks[incoming.id].orEmpty()
+            }.minByOrNull { it.id } ?: candidates.filter {
+                it.teacher == incoming.teacher && it.position == incoming.position
+            }.singleOrNull() ?: candidates.singleOrNull()
+            val id = matched?.id ?: incoming.id
+            usedIds += id
+            remappedIds[incoming.id] = id
+            if (matched == null) courseDao.insertAll(listOf(incoming))
+            else courseDao.update(incoming.copy(id = id))
+            courseWeekDao.deleteByCourseId(id)
+        }
+        val removed = existing.map { it.id }.filter { it !in usedIds }
+        if (removed.isNotEmpty()) courseDao.deleteCoursesByIds(removed)
+        if (weeks.isNotEmpty()) courseWeekDao.insertAll(weeks.map {
+            it.copy(courseId = remappedIds.getValue(it.courseId))
+        })
+    }
+
     suspend fun importCoursesFromList(
         tableId: String,
         coursesJsonModel: List<ImportCourseJsonModel>
@@ -331,18 +376,15 @@ class CourseConversionRepository(
             preserveId = false
         )
 
-        // 真事务：清空旧课程与新课程写入原子化，中途失败不会留下"课程被清空但新数据没进库"的状态
         database.withWriteTransaction {
-            courseDao.deleteCoursesByTableId(tableId)
-            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
+            replaceCoursesPreservingNotes(tableId, courseEntities, courseWeekEntities)
         }
     }
 
     /**
      * 从一个完整的 JSON 模型导入课表数据。
      * 逻辑说明：
-     * 1. 课程数据（courses）：始终清空并重新导入。
+     * 1. 课程数据（courses）：更新稳定身份，只删除本次已移除的课程。
      * 2. 时间段数据（timeSlots）：仅在 JSON 包含有效数据时覆盖，否则保留本地现状。
      * 3. 配置信息（config）：仅在 JSON 包含有效数据时覆盖，且会保留本地的 showWeekends 设置。
      */
@@ -362,7 +404,7 @@ class CourseConversionRepository(
         // 不按 tableId 分域**。于是「A 表导入成功 → 同一份 JSON 再导 B 表」必然撞
         // `CourseDao` 的 ABORT 约束，用户只看到一句裸 SQL 错误。
         // 这里先取出库里已有的全部课程 id，凡与**其它课表**冲突的一律重生 UUID；
-        // 同表重复导入时仍复用原 id，保持幂等（全删全插，结果一致）。
+        // 同表重复导入时复用原 id，通过 UPDATE 保留关联笔记。
         val conflictingIds: Set<String> = courseDao.getAllCourseIds()
             .toSet() - courseDao.getCourseIdsByTableId(tableId).toSet()
 
@@ -407,8 +449,8 @@ class CourseConversionRepository(
 
         // 真事务：课程清空重建 + 时段覆盖 + 配置覆盖全部原子化
         database.withWriteTransaction {
-            // 处理课程数据（始终清空原有课程）
-            courseDao.deleteCoursesByTableId(tableId)
+            // 更新稳定身份，只有真正移除的课程才删除，避免 CASCADE 清掉仍存在的笔记。
+            replaceCoursesPreservingNotes(tableId, courseEntities, courseWeekEntities, matchByContent = !restoreMode)
 
             // 处理时间段数据（仅在有数据时覆盖）
             if (!jsonTimeSlots.isNullOrEmpty()) {
@@ -441,10 +483,6 @@ class CourseConversionRepository(
                     )
                 }
             }
-
-            // 统一执行课程数据插入
-            if (courseEntities.isNotEmpty()) courseDao.insertAll(courseEntities)
-            if (courseWeekEntities.isNotEmpty()) courseWeekDao.insertAll(courseWeekEntities)
 
             // 配置也在同一 Room 事务内写入，避免课程已提交但配置失败
             if (updatedConfig != null) {

@@ -1608,4 +1608,5 @@
     <string name="parser_fmt_excel_grid">Excel 网格课表</string>
     <string name="parser_fmt_excel_list">Excel 列表课表</string>
     <string name="parser_fmt_excel_position_map">Excel 位置映射</string>
+    <string name="timeslot_error_in_use">此节次仍有课程使用，请先修改课程节次后再删除。</string>
 </resources>

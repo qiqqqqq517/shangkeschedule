@@ -23,6 +23,7 @@ import com.shangkeschedule.data.model.CourseImportExport.GradeBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.ScheduleEventBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.TodoBackupModel
 import com.shangkeschedule.data.model.CourseImportExport.UserDataBackupEnvelope
+import com.shangkeschedule.data.model.CourseImportExport.NoteImageBackupModel
 import com.shangkeschedule.data.model.CreditRequirement
 import com.shangkeschedule.data.model.GpaScale
 import com.shangkeschedule.data.model.NextCardMode
@@ -58,6 +59,8 @@ import shangkeschedule.shared.generated.resources.backup_err_upload_failed
 import shangkeschedule.shared.generated.resources.backup_err_version_too_new
 import shangkeschedule.shared.generated.resources.error_webdav_unconfigured
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * 模块化备份定义
@@ -91,8 +94,17 @@ data class BackupMeta(
     val backupTimestamp: Long,
     val appVersionCode: Int,
     val appVersionName: String,
-    val modules: List<ModuleInfo>
-)
+    val modules: List<ModuleInfo>,
+    // 旧备份没有此字段，仍从 Backup/<key>.cbor 读取。
+    val snapshotId: String? = null
+) {
+    fun moduleRemotePath(key: String): String {
+        require(BackupModule.entries.any { it.key == key }) { "未知备份模块" }
+        val snapshot = snapshotId ?: return "Backup/$key.cbor"
+        require(Regex("[a-zA-Z0-9_-]{1,80}").matches(snapshot)) { "备份快照路径非法" }
+        return "Backup/snapshots/$snapshot/$key.cbor"
+    }
+}
 
 @Serializable
 data class ModuleInfo(
@@ -101,26 +113,6 @@ data class ModuleInfo(
 )
 
 private const val WEBDAV_BACKUP_DIR = "Backup"
-
-/**
- * 云端备份暂存目录名（P2-11）。
- *
- * 两阶段提交：模块先落在这里，全部成功后才 MOVE 到正式目录，
- * 最后写 `meta.json` 作为提交标记（恢复端先读 meta 才知道取哪些模块）。
- * 「meta 出现」才代表一份新备份完整落地 —— 中途失败不会留下新旧混合的现场。
- */
-private const val WEBDAV_STAGING_SUFFIX = "_staging"
-
-/**
- * 全部备份模块的 key（P2-11）。
- *
- * 用于「本次备份不再包含的旧模块文件必须从云端清掉」——
- * 否则那些陈旧模块会一直留在云端、将来被误当作有效数据取用。
- *
- * 取自 `BackupModule.entries` 而非手写清单：手写会随新增模块漏改，
- * 漏改的后果正是「旧模块永不清除」这个缺陷本身。
- */
-private val ALL_BACKUP_MODULE_KEYS: Set<String> = BackupModule.entries.map { it.key }.toSet()
 
 /**
  * R1-003：样式备份的版本闸门与迁移分派（顶层函数，便于不依赖 DataStore 即可回归测试）。
@@ -199,7 +191,8 @@ class BackupRepository(
     private val courseConversionRepository: CourseConversionRepository,
     private val appSettingsRepository: AppSettingsRepository,
     private val styleSettingsRepository: StyleSettingsRepository,
-    private val apiConfigRepository: ApiConfigRepository
+    private val apiConfigRepository: ApiConfigRepository,
+    private val courseNoteRepository: CourseNoteRepository
 ) {
     /**
      * 云端备份链路的互斥锁。
@@ -275,139 +268,68 @@ class BackupRepository(
      * 手动备份与后台自动同步共用此入口，保证两者生成的目录结构、元数据和模块文件完全一致。
      * 串行锁避免自动任务与用户手动备份同时写同一批临时文件。
      */
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun uploadFullBackupToWebDav(): Result<Unit> = webDavBackupMutex.withLock {
         withContext(Dispatchers.IO) {
             val client = apiConfigRepository.createWebDavClient()
-                ?: return@withContext Result.failure(
-                    IllegalStateException(getString(Res.string.error_webdav_unconfigured))
-                )
-            val backupPackage = createFullSoftwareBackup(BackupModule.entries)
-                ?: run {
-                    client.close()
-                    return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_empty)))
-                }
-
-            // P2-16：临时明文备份必须在 finally 里删净。
-            // 临时路径声明在 try 之外 —— Kotlin 的 finally 看不到 try 块内声明的变量。
-            val tempDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
-            val tempFiles = mutableListOf<Path>()
-
+                ?: return@withContext Result.failure(IllegalStateException(getString(Res.string.error_webdav_unconfigured)))
+            val snapshotId = Uuid.random().toString()
+            val remoteDir = "$WEBDAV_BACKUP_DIR/snapshots/$snapshotId"
+            val localDir = FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "shangke-backup-$snapshotId"
             try {
-                // P2-11：云端备份此前是「先传 meta.json，再逐模块覆盖」——
-                // 中途失败即留下**新旧混合**的一套文件：meta.json 已经宣称是新备份，
-                // 但部分模块还是旧的（甚至缺失）⇒ 恢复出来是一份拼接数据，且用户无从察觉。
-                // 另：本次备份不再包含的**旧模块文件**此前从不清除，会一直留在云端。
-                //
-                // 现改为两阶段提交：
-                //  阶段一：模块写入**暂存目录** staging/，此时对恢复端完全不可见；
-                // 阶段二：全部成功后，**最后**上传 meta.json 作为提交标记，
-                //         再把暂存模块逐个 MOVE 到正式位置。
-                //         meta.json 是恢复的入口（先读它才知道要取哪些模块），
-                //         所以「meta 出现」= 提交完成，此前任何失败都不会被误读成新备份。
-                val stagingDir = "$WEBDAV_BACKUP_DIR/$WEBDAV_STAGING_SUFFIX"
-
-                // 阶段一：全部模块先落暂存目录
-                val stagedKeys = mutableListOf<String>()
+                val backupPackage = createFullSoftwareBackup(BackupModule.entries)
+                    ?: error(getString(Res.string.backup_err_empty))
+                FileSystem.SYSTEM.createDirectories(localDir)
+                // 独立代次中的模块永不覆盖旧快照，任何模块失败都不触碰正式元数据。
                 for ((key, bytes) in backupPackage.payloadMap) {
-                    val modulePath = tempDir / "$key.cbor"
-                    tempFiles.add(modulePath)
-                    FileSystem.SYSTEM.write(modulePath) {
-                        write(bytes)
-                    }
-                    if (!client.uploadFile(modulePath, "$stagingDir/$key.cbor")) {
-                        // 清场：把已写入暂存区的部分删掉，避免下次上传时被 MOVE 带上来
-                        stagedKeys.forEach { stale ->
-                            client.deleteFile("$stagingDir/$stale.cbor")
-                        }
-                        return@withContext Result.failure(
-                            IllegalStateException(getString(Res.string.backup_err_upload_failed))
-                        )
-                    }
-                    stagedKeys += key
-                }
-
-                // 阶段二：先写 meta.json（提交标记），再把暂存模块搬到正式位置
-                val metaPath = tempDir / "meta.json"
-                tempFiles.add(metaPath)
-                FileSystem.SYSTEM.write(metaPath) {
-                    writeUtf8(Json.encodeToString(BackupMeta.serializer(), backupPackage.meta))
-                }
-                if (!client.uploadFile(metaPath, "$WEBDAV_BACKUP_DIR/meta.json")) {
-                    stagedKeys.forEach { stale -> client.deleteFile("$stagingDir/$stale.cbor") }
-                    return@withContext Result.failure(
-                        IllegalStateException(getString(Res.string.backup_err_upload_failed))
-                    )
-                }
-
-                var movedAll = true
-                for (key in stagedKeys) {
-                    if (!client.moveFile("$stagingDir/$key.cbor", "$WEBDAV_BACKUP_DIR/$key.cbor")) {
-                        movedAll = false
-                        AppLog.w(TAG, "提交阶段移动模块失败: $key")
+                    val local = localDir / "$key.cbor"
+                    FileSystem.SYSTEM.write(local) { write(bytes) }
+                    check(client.uploadFile(local, "$remoteDir/$key.cbor")) {
+                        getString(Res.string.backup_err_upload_failed)
                     }
                 }
-
-                // 清场：本次备份**不包含**的旧模块文件必须删掉，
-                // 否则它们会一直留在云端，将来被误当作有效模块取用。
-                for (oldKey in ALL_BACKUP_MODULE_KEYS) {
-                    if (oldKey in stagedKeys) continue
-                    if (oldKey in backupPackage.payloadMap.keys) continue
-                    client.deleteFile("$WEBDAV_BACKUP_DIR/$oldKey.cbor")
+                val meta = backupPackage.meta.copy(snapshotId = snapshotId)
+                val metaPath = localDir / "meta.json"
+                FileSystem.SYSTEM.write(metaPath) { writeUtf8(Json.encodeToString(BackupMeta.serializer(), meta)) }
+                // 代次目录保留自己的元数据，后续覆盖入口后仍能完整恢复这一代。
+                check(client.uploadFile(metaPath, "$remoteDir/manifest.json")) {
+                    getString(Res.string.backup_err_upload_failed)
                 }
-
-                if (!movedAll) {
-                    return@withContext Result.failure(
-                        IllegalStateException(getString(Res.string.backup_err_upload_failed))
-                    )
+                check(client.uploadFile(metaPath, "$remoteDir/meta.json")) {
+                    getString(Res.string.backup_err_upload_failed)
+                }
+                // 唯一提交点：服务端原子 MOVE 元数据，旧快照保留供回退。
+                check(client.moveFile("$remoteDir/meta.json", "$WEBDAV_BACKUP_DIR/meta.json")) {
+                    getString(Res.string.backup_err_upload_failed)
                 }
                 Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                // P2-15：原先此处 `catch (_: Exception)` 把真因整个吞掉 ——
-                // 用户只看到「上传失败」，日志里没有任何线索。现记录堆栈。
-                AppLog.e(TAG, "云端备份上传失败", e)
-                Result.failure(IllegalStateException(getString(Res.string.backup_err_upload_failed)))
+                AppLog.e(TAG, "云端备份上传失败，保留上一份快照", e)
+                Result.failure(e)
             } finally {
-                // P2-16：meta.json / *.cbor 是**未加密的用户数据明文副本**，
-                // 原先只 close() 客户端、从不删文件 —— 与同仓 zip 路径（BackupViewModel
-                // 的 importFromLocalZip）已确立的清理纪律不一致。逐文件删并记日志，
-                // 单个删除失败不影响其余文件。
-                tempFiles.forEach { path ->
-                    try {
-                        FileSystem.SYSTEM.delete(path)
-                    } catch (cleanupError: Exception) {
-                        AppLog.w(TAG, "删除临时备份文件失败: ${path.name}", cleanupError)
-                    }
-                }
+                // 请求可能已提交但响应丢失，不能据此删除远端代次；仅清理本机临时明文。
+                runCatching { FileSystem.SYSTEM.deleteRecursively(localDir) }
                 client.close()
             }
         }
     }
 
-    /**
-     * 原子化分发恢复网关
-     *
-     * P2-18：整段持 `webDavBackupMutex`，与云端上传互斥 ——
-     * 避免「恢复进行中」与「自动同步上传」并发，把半恢复状态覆盖到云端唯一备份。
-     */
+    /** 下载与恢复共用一次锁；调用方不再嵌套获取不可重入的 Mutex。 */
     suspend fun restoreFullSoftwareBackup(backupPackage: AppBackupPackage): Result<Unit> =
-        withRestoreLock {
-            restoreFullSoftwareBackupLocked(backupPackage)
-        }
+        restoreFullSoftwareBackup { backupPackage }
 
-    /**
-     * 在 webDavBackupMutex 保护下执行一段「恢复流程」。
-     *
-     * R40-05：锁此前只覆盖到 restoreFullSoftwareBackupLocked，而**全部网络 I/O**
-     * （下载 meta.json、逐模块 GET，在 BackupViewModel 里）**全在锁外**；
-     * 上传侧 uploadFullBackupToWebDav 则整条链路串行 —— 两侧不对称。
-     * 受害路径：恢复端下到 meta.json（版本 N）→ 自动同步触发上传，把云端改写为 N+1
-     * → 恢复继续按已下到的旧元数据回填本机 ⇒ 本机与云端静默分叉；
-     * 或恢复写库途中被上传读走中间态。
-     *
-     * 本函数把「下载 + 落库」整段纳入同一把锁，两侧口径对称。
-     */
-    suspend fun <T> withRestoreLock(block: suspend () -> T): T =
-        webDavBackupMutex.withLock { block() }
+    suspend fun restoreFullSoftwareBackup(loadBackup: suspend () -> AppBackupPackage): Result<Unit> =
+        webDavBackupMutex.withLock {
+            try {
+                restoreFullSoftwareBackupLocked(loadBackup())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
 
     private suspend fun restoreFullSoftwareBackupLocked(
         backupPackage: AppBackupPackage
@@ -441,6 +363,9 @@ class BackupRepository(
             val styleSnapshot = exportAppStyleBytes()
             val appSettingsSnapshot = exportAppSettingsBytes()
             val userDataSnapshot = exportUserDataBytes()
+            check(styleSnapshot != null && appSettingsSnapshot != null && userDataSnapshot != null) {
+                "无法创建恢复前的完整快照，已保留本机数据"
+            }
 
             try {
                 // N21：按固定顺序分发，不看备份文件里 modules 的排列（见 RESTORE_ORDER）。
@@ -1036,11 +961,27 @@ class BackupRepository(
                     source = it.source, createdAt = it.createdAt, updatedAt = it.updatedAt
                 )
             }
-            val notes = database.courseNoteDao().getAllNotesOnce().map {
+            val images = linkedMapOf<String, NoteImageBackupModel>()
+            val imageKeys = mutableMapOf<String, String>()
+            var imageBytes = 0L
+            val notes = database.courseNoteDao().getAllNotesOnce().map { note ->
+                val imageRefs = note.imagePaths?.split('\n')?.filter { it.isNotBlank() }?.map { rawPath ->
+                    val path = rawPath.trim()
+                    imageKeys.getOrPut(path) {
+                        val bytes = courseNoteRepository.readImage(path) ?: error("笔记附件缺失，备份已中止")
+                        imageBytes += bytes.size
+                        require(bytes.size <= MAX_NOTE_IMAGE_BYTES && imageBytes <= MAX_NOTE_IMAGES_BYTES) {
+                            "笔记附件超过备份容量上限"
+                        }
+                        val key = "image-${images.size}"
+                        images[key] = NoteImageBackupModel(bytes)
+                        key
+                    }
+                }?.joinToString("\n")
                 CourseNoteBackupModel(
-                    id = it.id, courseId = it.courseId, date = it.date, sections = it.sections,
-                    title = it.title, content = it.content, imagePaths = it.imagePaths,
-                    createdAt = it.createdAt, updatedAt = it.updatedAt
+                    id = note.id, courseId = note.courseId, date = note.date, sections = note.sections,
+                    title = note.title, content = note.content, imagePaths = imageRefs,
+                    createdAt = note.createdAt, updatedAt = note.updatedAt
                 )
             }
             // v4（2026-10-07）：培养方案课程清单。此前不在备份里，换机后「应修 / 已修 / 未修」全丢
@@ -1058,10 +999,14 @@ class BackupRepository(
                 events = events,
                 grades = grades,
                 notes = notes,
-                curriculumCourses = curriculumCourses
+                curriculumCourses = curriculumCourses,
+                noteImages = images
             )
             CourseImportExport.cbor.encodeToByteArray(UserDataBackupEnvelope.serializer(), envelope)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            AppLog.e(TAG, "用户数据备份失败", e)
             null
         }
     }
@@ -1077,6 +1022,8 @@ class BackupRepository(
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun restoreUserDataBytes(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        val writtenImages = mutableListOf<String>()
+        var committed = false
         try {
             if (bytes.isEmpty()) {
                 return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
@@ -1090,6 +1037,27 @@ class BackupRepository(
 
             if (envelope.appVersionCode > CourseImportExport.USER_DATA_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            }
+
+            val imagePaths = mutableMapOf<String, String>()
+            require(envelope.appVersionCode < 5 || envelope.noteImages != null ||
+                envelope.notes.orEmpty().none { !it.imagePaths.isNullOrBlank() }) { "笔记附件缺失" }
+            envelope.noteImages?.let { images ->
+                require(images.size <= 10000 && images.values.sumOf { it.bytes.size.toLong() } <= MAX_NOTE_IMAGES_BYTES) {
+                    "笔记附件超过备份容量上限"
+                }
+                require(images.all { (key, image) ->
+                    Regex("image-[0-9]+").matches(key) && image.bytes.size <= MAX_NOTE_IMAGE_BYTES
+                }) { "笔记附件格式非法" }
+                val referenced = envelope.notes.orEmpty().flatMap { it.imagePaths?.split('\n').orEmpty() }
+                    .filter { it.isNotBlank() }.toSet()
+                require(referenced.all { it in images }) { "笔记附件缺失" }
+                for (key in referenced) {
+                    val saved = courseNoteRepository.saveImage("restore", images.getValue(key).bytes)
+                        ?: error("笔记附件恢复失败")
+                    writtenImages += saved
+                    imagePaths[key] = saved
+                }
             }
 
             database.withWriteTransaction {
@@ -1143,7 +1111,10 @@ class BackupRepository(
                                     ?.trim()
                                     ?.takeIf { s -> s.isNotEmpty() },
                                 title = it.title, content = it.content,
-                                imagePaths = it.imagePaths,
+                                imagePaths = if (envelope.noteImages != null) {
+                                    it.imagePaths?.split('\n')?.filter { ref -> ref.isNotBlank() }
+                                        ?.map { ref -> imagePaths.getValue(ref) }?.joinToString("\n")
+                                } else courseNoteRepository.retainOwnedImages(it.imagePaths),
                                 createdAt = it.createdAt, updatedAt = it.updatedAt
                             )
                         }
@@ -1198,6 +1169,7 @@ class BackupRepository(
                     }
                 }
             }
+            committed = true
             Result.success(Unit)
         } catch (e: CancellationException) {
             // R40-11：CancellationException 是**协程取消**信号，不是业务失败。
@@ -1207,9 +1179,16 @@ class BackupRepository(
             throw e
         } catch (e: Exception) {
             Result.failure(e)
+        } finally {
+            if (!committed && writtenImages.isNotEmpty()) {
+                courseNoteRepository.deleteImages(writtenImages.joinToString("\n"))
+            }
         }
     }
 }
 
 /** 日志模块标签（P2-15：备份链路的异常不再静默吞掉）。 */
 private const val TAG = "BackupRepository"
+
+private const val MAX_NOTE_IMAGE_BYTES = 16 * 1024 * 1024
+private const val MAX_NOTE_IMAGES_BYTES = 96L * 1024 * 1024

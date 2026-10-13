@@ -533,7 +533,12 @@ private val RE_ICS_TEACHER_HINT = Regex("""[\s\-]+([^\s\-@（(]{2,10})\s*$""")
             val positionIdx = header.indexOfFirst { it.contains("教室") || it.contains("位置") || it.contains("location") || it.contains("room") }
             val dayIdx = header.indexOfFirst { it.contains("星期") || it.contains("周几") || it.contains("day") }
             val sectionIdx = header.indexOfFirst { it.contains("节次") || it.contains("节") || it.contains("section") }
-            val weeksIdx = header.indexOfFirst { it.contains("周次") || it.contains("周") || it.contains("week") }
+            val weeksIdx = header.indexOfFirst {
+                it.contains("周次") || it.contains("教学周") || it in setOf("week", "weeks", "week range", "week_range")
+            }.takeIf { it >= 0 } ?: header.indexOfFirst {
+                (it.contains("周") || it.contains("week")) &&
+                    !it.contains("周几") && !it.contains("星期") && !it.contains("day")
+            }
 
             val courses = dataLines.mapNotNull { line ->
                 val cols = line.split(",").map { it.trim() }

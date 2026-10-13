@@ -1605,4 +1605,5 @@
     <string name="parser_fmt_excel_grid">Excel 網格課表</string>
     <string name="parser_fmt_excel_list">Excel 清單課表</string>
     <string name="parser_fmt_excel_position_map">Excel 位置對應</string>
+    <string name="timeslot_error_in_use">此節次仍有課程使用，請先修改課程節次後再刪除。</string>
 </resources>

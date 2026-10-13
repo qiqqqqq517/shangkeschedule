@@ -10,6 +10,9 @@ import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.StyleSettingsRepository
 import com.shangkeschedule.data.repository.TodoRepository
+import com.shangkeschedule.data.repository.GradeRepository
+import com.shangkeschedule.data.repository.CourseNoteRepository
+import com.shangkeschedule.data.repository.CurriculumRepository
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.alarm.ForegroundGate
@@ -54,7 +57,10 @@ class SyncManager(
     private val appSettingsRepository: AppSettingsRepository,
     private val widgetRepository: WidgetRepository,
     private val todoRepository: TodoRepository,
-    private val scheduleEventRepository: ScheduleEventRepository
+    private val scheduleEventRepository: ScheduleEventRepository,
+    private val gradeRepository: GradeRepository,
+    private val courseNoteRepository: CourseNoteRepository,
+    private val curriculumRepository: CurriculumRepository
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -143,9 +149,27 @@ class SyncManager(
             .onEach { scheduleWebDavAutoSyncIfEnabled() }
             .launchIn(scope)
         scheduleEventRepository.getAllEvents()
+            .distinctUntilChanged()
             .drop(1)
-            .onEach { scheduleWebDavAutoSyncIfEnabled() }
+            .debounce(300.milliseconds)
+            .onEach {
+                triggerNotificationSync()
+                updateAllWidgets(appContext)
+                scheduleWebDavAutoSyncIfEnabled()
+            }
             .launchIn(scope)
+
+        // 全量备份中的全局表都要观察，不能等下一次每日同步才上传用户编辑。
+        listOf(
+            gradeRepository.getAllGrades().map { Unit },
+            courseNoteRepository.getAllNotes().map { Unit },
+            curriculumRepository.getAll().map { Unit }
+        ).forEach { changes ->
+            changes.drop(1)
+                .debounce(800.milliseconds)
+                .onEach { scheduleWebDavAutoSyncIfEnabled() }
+                .launchIn(scope)
+        }
 
         Log.d(TAG, "Android 平台同步调度器初始化完毕。")
     }

@@ -204,16 +204,21 @@ class GradeRepository(
                 if (semester.isEmpty() || courseName.isEmpty()) return@forEach
                 val existing = gradeDao.findByNameOnce(semester, courseName)
                 if (existing != null) {
+                    val scoreText = incoming.scoreText ?: existing.scoreText
+                    val scoreValue = if (incoming.scoreText != null || incoming.scoreValue != null) {
+                        incoming.scoreValue ?: scoreValueOf(incoming.scoreText)
+                    } else existing.scoreValue
+                    val scoreChanged = scoreValue != existing.scoreValue ||
+                        (scoreValue == null && scoreText?.trim() != existing.scoreText?.trim())
                     gradeDao.update(
                         existing.copy(
                             credit = incoming.credit ?: existing.credit,
-                            scoreText = incoming.scoreText ?: existing.scoreText,
-                            scoreValue = incoming.scoreValue ?: scoreValueOf(incoming.scoreText)
-                                ?: existing.scoreValue,
+                            scoreText = scoreText,
+                            scoreValue = scoreValue,
                             category = incoming.category ?: existing.category,
                             // 本校绩点：教务这次给了就以教务为准（补考/成绩更正后绩点会变），
-                            // 没给则保留原值，避免「重新导入一次把上次拿到的本校绩点擦掉」。
-                            gradePoint = incoming.gradePoint ?: existing.gradePoint,
+                            // 未给且实际分数不变才保留旧绩点；补考/更正分数后作废旧值。
+                            gradePoint = incoming.gradePoint ?: existing.gradePoint.takeUnless { scoreChanged },
                             // N11（2026-10-07）：原实现**漏写 isRetake**，导致重修标记永远落不到已存在的那行上。
                             // 而 GPA / 平均分统计按 `!it.isRetake` 过滤（见本文件 GPA 与平均分计算），
                             // 于是「同名同学期的重修课」会被**永久排除在 GPA 之外**且毫无提示 —— 用户看到的是

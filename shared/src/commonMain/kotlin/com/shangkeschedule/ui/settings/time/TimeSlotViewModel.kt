@@ -17,6 +17,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.getString
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.error_op_failed
+import shangkeschedule.shared.generated.resources.timeslot_error_in_use
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinViewModel
@@ -148,7 +153,8 @@ class TimeSlotViewModel(
         timeSlots: List<TimeSlot>,
         classDuration: Int,
         breakDuration: Int,
-        onSuccess: () -> Unit = {}
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             val currentTableId = resolveEffectiveTableId()
@@ -172,12 +178,20 @@ class TimeSlotViewModel(
                     defaultClassDuration = classDuration,
                     defaultBreakDuration = breakDuration
                 )
-                timeSlotRepository.saveSchemeSettings(
-                    courseTableId = currentTableId,
-                    timeSlots = timeSlotsWithCorrectId,
-                    schemeId = schemeId,
-                    config = updatedConfig
-                )
+                try {
+                    timeSlotRepository.saveSchemeSettings(
+                        courseTableId = currentTableId,
+                        timeSlots = timeSlotsWithCorrectId,
+                        schemeId = schemeId,
+                        config = updatedConfig
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    onError(if (e.message == "TIMESLOT_IN_USE") getString(Res.string.timeslot_error_in_use)
+                        else getString(Res.string.error_op_failed, e.message.orEmpty()))
+                    return@launch
+                }
 
                 // 3. 同步备份状态
                 updateBackupPoint(timeSlotsWithCorrectId, classDuration, breakDuration)

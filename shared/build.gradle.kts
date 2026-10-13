@@ -152,6 +152,11 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        jvmTest.dependencies {
+            implementation(libs.kotlin.test.junit)
+            implementation(libs.kotlinx.coroutines.swing)
+            implementation(compose.desktop.currentOs)
+        }
     }
 }
 
@@ -300,8 +305,15 @@ val adapterSecrets = Properties().apply {
         adapterSecretsFile.inputStream().use { load(it) }
     }
 }
-val adapterWorkerUrlValue = adapterSecrets.getProperty("adapter.workerUrl").orEmpty().trim()
-val adapterAppSecretValue = adapterSecrets.getProperty("adapter.appSecret").orEmpty().trim()
+val adapterWorkerUrlValue = providers.environmentVariable("SHANGKE_ADAPTER_WORKER_URL")
+    .orElse(adapterSecrets.getProperty("adapter.workerUrl").orEmpty()).get().trim()
+val adapterAppSecretValue = providers.environmentVariable("SHANGKE_ADAPTER_APP_SECRET")
+    .orElse(adapterSecrets.getProperty("adapter.appSecret").orEmpty()).get().trim()
+if (providers.gradleProperty("requireAdapterRemoteConfig").orNull == "true") {
+    check(adapterWorkerUrlValue.startsWith("https://") && adapterAppSecretValue.isNotEmpty()) {
+        "正式构建缺少远程适配配置，请设置 SHANGKE_ADAPTER_WORKER_URL / SHANGKE_ADAPTER_APP_SECRET。"
+    }
+}
 val adapterSecretsOutputDir = layout.buildDirectory.dir("generated/adapterRemoteSecrets/kotlin")
 
 val generateAdapterRemoteSecrets = tasks.register("generateAdapterRemoteSecrets") {

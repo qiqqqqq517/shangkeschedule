@@ -332,7 +332,7 @@ class AdapterRemoteUpdater(
      *     `Files.move(..., ATOMIC_MOVE, REPLACE_EXISTING)`），删除是多余且有害的。
      *  2. **异常分支不再退化为「直接写目标」**。原先 catch 里 `fileSystem.write(target)`
      *     是**非原子**写：中途失败会在正式路径上留下半截脚本，比不做更糟。
-     *     现在兜底也走「删+移」（窗口只在罕见失败路径且极短），再失败就如实返回 false。
+     *     原子替换失败时如实返回 false，旧文件保留供离线使用。
      *
      * P1-9：临时文件名加入随机后缀，避免两个同步者共用同一临时路径而交错写坏。
      *
@@ -345,15 +345,8 @@ class AdapterRemoteUpdater(
             val temp = parent / (target.name + TEMP_SUFFIX + "-" + nextTempSuffix())
             try {
                 fileSystem.write(temp) { write(bytes) }
-                try {
-                    // 直接原子替换；atomicMove 已含 REPLACE_EXISTING，无需先删目标。
-                    fileSystem.atomicMove(temp, target)
-                } catch (moveError: Exception) {
-                    // 兜底：仍走「删+移」而不是直接写目标 —— 直接写会在正式路径留下半截文件。
-                    AppLog.w(TAG, "atomicMove 失败，回退为删除后重搬：${target.name}", moveError)
-                    runCatching { if (fileSystem.exists(target)) fileSystem.delete(target) }
-                    fileSystem.atomicMove(temp, target)
-                }
+                // 原子替换失败时保留旧版本，由下次同步重试。
+                fileSystem.atomicMove(temp, target)
             } finally {
                 runCatching { if (fileSystem.exists(temp)) fileSystem.delete(temp) }
             }

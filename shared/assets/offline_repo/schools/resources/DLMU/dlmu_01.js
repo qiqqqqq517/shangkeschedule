@@ -40,7 +40,7 @@ function parseCourses(jsCode) {
 
   // 主正则：捕获 TaskActivity 参数 + 后续所有代码直到下一个 activity
   const mainRegex =
-    /var\s*teachers\s*=\s*\[([^;]+?)\];(?:[\s\S]*?)activity\s*=\s*new\s*TaskActivity\(([^;]+?)\);([\s\S]*?)(?=(?:varteachers\s*=)|(?:<\/script>))/g;
+    /var\s*teachers\s*=\s*\[([^;]+?)\];(?:[\s\S]*?)activity\s*=\s*new\s*TaskActivity\(([^;]+?)\);([\s\S]*?)(?=(?:var\s*teachers\s*=)|(?:<\/script>))/g;
 
   const courses = [];
   let match;

@@ -103,7 +103,7 @@ fun ScheduleGrid(
 
         val displayDaysCount = displayDays.size
         val is24HourMode = style.scheduleMode == ScheduleModeProto.TIME_24H_MODE
-        val maxGridSections = if (is24HourMode) 24 else viewState.timeSlots.size
+        val maxGridSections = if (is24HourMode) 24 else (viewState.timeSlots.maxOfOrNull { it.number } ?: 0)
 
         val totalGridHeight = style.sectionHeight * maxGridSections
         // 网格线：壁纸模式下改为**跟随文字色**——原实现固定用主题 divider，深色壁纸上

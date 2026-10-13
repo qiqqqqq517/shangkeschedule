@@ -456,7 +456,7 @@ fun TimeColumn(
                             color = slotTextColor
                         )
                     } else {
-                        val slot = timeSlots.getOrNull(index)
+                        val slot = timeSlots.find { it.number == index + 1 }
                         if (slot != null) {
                             Text(
                                 text = slot.alias ?: slot.number.toString(),

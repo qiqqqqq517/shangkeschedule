@@ -58,11 +58,18 @@ class CourseNoteRepository(
      * 复用 [com.shangkeschedule.ui.components.cropImageBitmapNative] 的输出（三端统一 JPEG），
      * 因此扩展名固定 `.jpg`。
      */
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun saveImage(noteId: String, bytes: ByteArray): String? = withContext(Dispatchers.Default) {
         runCatching {
             fileSystem.createDirectories(notesDir)
-            val target = notesDir / "${noteId}_${Clock.System.now().toEpochMilliseconds()}.jpg"
-            fileSystem.write(target) { write(bytes) }
+            // 文件名不使用外部 noteId；随机身份避免同毫秒多图互相覆盖。
+            val target = notesDir / "${Uuid.random()}.jpg"
+            try {
+                fileSystem.write(target) { write(bytes) }
+            } catch (e: Exception) {
+                runCatching { fileSystem.delete(target) }
+                throw e
+            }
             target.toString()
         }.getOrElse { e ->
             // N15（2026-10-07）：原实现是 `getOrNull()`，**静默吞掉**写盘失败（含磁盘满、目录不可写），
@@ -72,6 +79,24 @@ class CourseNoteRepository(
             null
         }
     }
+
+    /** 只接受笔记目录中的普通文件，canonicalize 同时阻止 .. 和符号链接越界。 */
+    internal fun ownedImagePath(value: String): Path? = runCatching {
+        val target = fileSystem.canonicalize(value.toPath())
+        target.takeIf {
+            it.parent == fileSystem.canonicalize(notesDir) && fileSystem.metadata(it).isRegularFile
+        }
+    }.getOrNull()
+
+    suspend fun readImage(value: String): ByteArray? = withContext(Dispatchers.Default) {
+        val target = ownedImagePath(value) ?: return@withContext null
+        require((fileSystem.metadata(target).size ?: 0) <= 16L * 1024 * 1024) { "笔记图片过大" }
+        fileSystem.read(target) { readByteArray() }
+    }
+
+    internal fun retainOwnedImages(imagePaths: String?): String? = imagePaths?.split('\n')
+        ?.mapNotNull { ownedImagePath(it.trim())?.toString() }
+        ?.distinct()?.takeIf { it.isNotEmpty() }?.joinToString("\n")
 
     /** 删除一条笔记，并回收它的图片文件。 */
     suspend fun deleteNote(note: CourseNote) {
@@ -86,8 +111,8 @@ class CourseNoteRepository(
             .filter { it.isNotEmpty() }
             .forEach { path ->
                 runCatching {
-                    val target = path.toPath()
-                    if (fileSystem.exists(target)) fileSystem.delete(target)
+                    val target = ownedImagePath(path) ?: return@runCatching
+                    fileSystem.delete(target)
                 }
             }
     }

@@ -282,17 +282,17 @@ fun TimeSlotManagementScreen(
                     IconButton(
                         onClick = {
                             coroutineScope.launch {
-                                val sortedAndNumberedSlots = localTimeSlots
-                                    .sortedBy { parseLocalTimeSafely(it.startTime) }
-                                    .mapIndexed { index, slot -> slot.copy(number = index + 1) }
+                                val sortedSlots = localTimeSlots
+                                    .sortedBy { it.number }
 
                                 timeSlotViewModel.onSaveAllSettings(
-                                    timeSlots = sortedAndNumberedSlots,
+                                    timeSlots = sortedSlots,
                                     classDuration = localDefaultClassDuration,
                                     breakDuration = localDefaultBreakDuration,
                                     onSuccess = {
                                         ToastManager.show(toastSettingsSaved)
-                                    }
+                                    },
+                                    onError = { ToastManager.show(it) }
                                 )
                             }
                         },
@@ -375,11 +375,8 @@ fun TimeSlotManagementScreen(
                 }
             }
 
-            // key 用稳定身份（起始时间，本页语义下唯一），不能用 slot.number：
-            // number 在每次增删/保存时都会按 startTime 重新编号（mapIndexed），
-            // 删除中间一节会让其后所有项的 key 全部变化，Compose 判定为全新项并重建
-            // （丢失 item 级状态与 animateItem 连续性）。
-            itemsIndexed(localTimeSlots, key = { _, slot -> "slot_${slot.startTime}" }) { _, timeSlot ->
+            // 节次编号保持稳定，时间编辑和删除其它节次都不会改变身份。
+            itemsIndexed(localTimeSlots, key = { _, slot -> "slot_${slot.number}" }) { _, timeSlot ->
                 TimeSlotItem(
                     timeSlot = timeSlot,
                     onEditClick = {
@@ -388,11 +385,10 @@ fun TimeSlotManagementScreen(
                     },
                     onDeleteClick = {
                         localTimeSlots.removeAll { it.number == timeSlot.number }
-                        val renumberedList = localTimeSlots
-                            .sortedBy { parseLocalTimeSafely(it.startTime) }
-                            .mapIndexed { i, slot -> slot.copy(number = i + 1) }
+                        val remainingSlots = localTimeSlots
+                            .sortedBy { it.number }
                         localTimeSlots.clear()
-                        localTimeSlots.addAll(renumberedList)
+                        localTimeSlots.addAll(remainingSlots)
                         ToastManager.show(toastSlotRemovedUnsaved)
                     }
                 )
@@ -490,8 +486,7 @@ fun TimeSlotManagementScreen(
                         }
 
                         val finalSorted = updatedList
-                            .sortedBy { parseLocalTimeSafely(it.startTime) }
-                            .mapIndexed { i, slot -> slot.copy(number = i + 1) }
+                            .sortedBy { it.number }
 
                         localTimeSlots.clear()
                         localTimeSlots.addAll(finalSorted)

@@ -120,6 +120,9 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > androidApp/release.jks
 
       - name: 运行 Release 构建任务 (Build Release APK)
+        env:
+          SHANGKE_ADAPTER_WORKER_URL: ${{ secrets.ADAPTER_WORKER_URL }}
+          SHANGKE_ADAPTER_APP_SECRET: ${{ secrets.ADAPTER_APP_SECRET }}
         run: |
           chmod +x ./gradlew
           SIGNING_ARGS=(
@@ -128,6 +131,7 @@ jobs:
             "-Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }}"
             "-Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}"
             "-PuseMirror=false"
+            "-PrequireAdapterRemoteConfig=true"
           )
           # 关键：-PuseMirror=false 关闭阿里云镜像。运行器为海外 IP，访问 maven.aliyun.com 会返回
           # 502 Bad Gateway；Gradle 命中 5xx 时不会回退到下一仓库，会直接判定插件解析失败（此前

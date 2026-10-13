@@ -84,7 +84,7 @@ object ApiDateImporter {
         try {
             // R59-01：必须补年份段，否则拼出的是无年份的裸路径、线上不可达。
             val year = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
-            val response: ApiResponse = client.get("/$year").body()
+            val response: ApiResponse = client.get("$BASE_URL/$year").body()
 
             val holidayDates = response.holidays.values
                 .filter { it.isHoliday }

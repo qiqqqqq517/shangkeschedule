@@ -1604,4 +1604,5 @@
     <string name="parser_fmt_excel_grid">Excel grid timetable</string>
     <string name="parser_fmt_excel_list">Excel list timetable</string>
     <string name="parser_fmt_excel_position_map">Excel position map</string>
+    <string name="timeslot_error_in_use">This section is used by a course. Change the course sections before removing it.</string>
 </resources>
