@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4789">v4.78.9 · 字重收口全站完成（组件层 SemiBold / Medium 清零）</a></li>
         <li><a href="#v4788">v4.78.8 · 同页卡片等高（固定槽位），字重收口扩至日程与设置页</a></li>
         <li><a href="#v4787">v4.78.7 · 字重语义 token 收口，今日页硬编码字重清零</a></li>
         <li><a href="#v4786">v4.78.6 · 图标尺寸归档三档 token，其他页面细节一轮过</a></li>
@@ -232,6 +233,19 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4789">
+        <div><span class="tl-ver">v4.78.9</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>组件层硬编码字重收口完成**（设计规范 R9：组件层不得硬编码 `FontWeight`，须读 `appType()` 语义角色）。本轮把剩余 **16 处 `FontWeight.SemiBold` 与 18 处 `FontWeight.Medium`** 全部改为 `appType().titleWeight` / `appType().captionWeight`，涉及 **18 个文件</h3>
+          <ul>
+            <li></li>
+            <li><b>收口后的组件层字重现状</b>：<code>SemiBold</code> 与 <code>Medium</code> <b>均为 0 处</b>；仅剩 <code>FontWeight.Bold</code> 58 处与 <code>FontWeight.Normal</code> 6 处。两者<b>按设计保留</b>：</li>
+            <li><b>条件式同步改为角色对</b>：<code>if (isSelected) Bold else Medium</code> 一类写法中的 <code>Medium</code> 分支改读 <code>captionWeight</code>，保留选中态语义（<code>Bold</code> 分支不动）。</li>
+            <li>三主题身份一致生效：通透 / 书卷 <code>titleWeight = SemiBold</code>（与迁移前同值，视觉零变化），柔绘 <code>titleWeight = Medium</code>（其「轻字重」身份）。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4788">
         <div><span class="tl-ver">v4.78.8</span><span class="tl-date">2026-10-13</span></div>
