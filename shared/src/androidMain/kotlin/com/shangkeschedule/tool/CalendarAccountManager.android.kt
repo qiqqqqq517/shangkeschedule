@@ -54,17 +54,57 @@ actual object CalendarAccountManager : KoinComponent {
     // 通过 Koin 动态注入全局 Application Context
     private val context: Context by inject()
 
+    /**
+     * 取本应用专用本地日历的 `_id`；不存在则创建，**已存在则把「我方写下的」旧标识色迁移到当前品牌**。
+     *
+     * ## 为什么已存在的日历也必须看一眼（「新图标没替换完成」的根因）
+     *
+     * 原实现查到 `_id` 就 `return`，于是 `CALENDAR_COLOR` **只在首次创建那一刻写死一次**，
+     * 此后永不刷新。老用户那条日历因此一直挂着创建时的 Google 蓝 `#4285F4`，
+     * 而这条日历在系统日历里的**唯一视觉标识就是那个色块**（本应用用
+     * `ACCOUNT_TYPE_LOCAL` 的本地日历、没有 authenticator，系统不会给它画 App 图标），
+     * 于是用户看到的「同步到日历里的图标」永远是旧的 —— 且**重装 App 也不会自愈**，
+     * 因为日历行活在系统库里、不属于应用数据。
+     *
+     * ## 迁移而非「每次覆盖」
+     *
+     * 只在 [CalendarBrandColor.shouldMigrate] 判定通过时才写一次，写完即脱离白名单、
+     * 后续同步不再触碰。**用户手改过的颜色永远不会被覆盖。**
+     *
+     * ⚠️ 同理不碰 `CALENDAR_DISPLAY_NAME` / `VISIBLE` / `SYNC_EVENTS`：这些在系统日历里
+     * 用户都能改，代它决定属于静默改用户设置。显示名只在**创建时**写入。
+     */
     private suspend fun getOrCreateCalendarId(): Long {
         val contentResolver = context.contentResolver
         val accountName = "${context.packageName}.account"
 
-        val projection = arrayOf(Calendars._ID)
+        val projection = arrayOf(Calendars._ID, Calendars.CALENDAR_COLOR)
         val selection = "${Calendars.ACCOUNT_NAME} = ? AND ${Calendars.ACCOUNT_TYPE} = ?"
         val selectionArgs = arrayOf(accountName, ACCOUNT_TYPE)
 
-        val cursor: Cursor? = contentResolver.query(Calendars.CONTENT_URI, projection, selection, selectionArgs, null)
-        cursor?.use {
-            if (it.moveToFirst()) return it.getLong(0)
+        val existing: Pair<Long, Int?>? =
+            contentResolver.query(Calendars.CONTENT_URI, projection, selection, selectionArgs, null)?.use { c ->
+                if (!c.moveToFirst()) return@use null
+                val colorIdx = c.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR)
+                c.getLong(c.getColumnIndexOrThrow(Calendars._ID)) to
+                    (if (c.isNull(colorIdx)) null else c.getInt(colorIdx))
+            }
+
+        if (existing != null) {
+            val (id, currentColor) = existing
+            if (CalendarBrandColor.shouldMigrate(currentColor)) {
+                val values = ContentValues().apply {
+                    put(Calendars.CALENDAR_COLOR, CalendarBrandColor.BRAND)
+                }
+                try {
+                    contentResolver.update(calendarSyncAdapterUri(id, accountName), values, null, null)
+                    AppLog.i(TAG, "系统日历标识色已迁移到当前品牌（旧值 ${currentColor ?: "未设置"}）")
+                } catch (e: Exception) {
+                    // 迁移失败**不得**让整次同步失败：事件写回才是主职责。
+                    AppLog.e(TAG, "迁移系统日历标识色失败（不影响事件同步）", e)
+                }
+            }
+            return id
         }
 
         val calendarDisplayName = getString(Res.string.app_name)
@@ -73,7 +113,7 @@ actual object CalendarAccountManager : KoinComponent {
             put(Calendars.ACCOUNT_TYPE, ACCOUNT_TYPE)
             put(Calendars.NAME, accountName)
             put(Calendars.CALENDAR_DISPLAY_NAME, calendarDisplayName)
-            put(Calendars.CALENDAR_COLOR, "#4285F4".toColorInt())
+            put(Calendars.CALENDAR_COLOR, CalendarBrandColor.BRAND)
             put(Calendars.CALENDAR_ACCESS_LEVEL, Calendars.CAL_ACCESS_OWNER)
             put(Calendars.OWNER_ACCOUNT, accountName)
             put(Calendars.VISIBLE, 1)
@@ -82,19 +122,36 @@ actual object CalendarAccountManager : KoinComponent {
             put(Calendars.CAN_ORGANIZER_RESPOND, 1)
         }
 
-        val uri: Uri = Calendars.CONTENT_URI.buildUpon()
-            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-            .appendQueryParameter(Calendars.ACCOUNT_NAME, accountName)
-            .appendQueryParameter(Calendars.ACCOUNT_TYPE, ACCOUNT_TYPE)
-            .build()
-
         return try {
-            val resultUri = contentResolver.insert(uri, values)
+            val resultUri = contentResolver.insert(calendarSyncAdapterUri(null, accountName), values)
             resultUri?.let { ContentUris.parseId(it) } ?: -1L
         } catch (e: Exception) {
             AppLog.e(TAG, "创建本地日历账户失败", e)
             -1L
         }
+    }
+
+    /**
+     * 构造本地日历 `Calendars` 行的写入 URI。
+     *
+     * `CALLER_IS_SYNCADAPTER=true` 加账号名 / 账号类型，是 CalendarProvider 对本地日历
+     * `Calendars` 行读写的硬性要求（缺了会抛 `IllegalArgumentException` 或被判无权）。
+     *
+     * [calendarId] 非空时拼成单行 URI —— 必须用 `ContentUris.withAppendedId` 作为**路径段**，
+     * 不能用 `appendQueryParameter("_id", …)`：Provider 会拒绝并抛
+     * `Invalid URI parameter: _id`（v4.66.5 真机实测，同 [eventUri]）。
+     */
+    private fun calendarSyncAdapterUri(calendarId: Long?, accountName: String): Uri {
+        val base = if (calendarId != null) {
+            ContentUris.withAppendedId(Calendars.CONTENT_URI, calendarId)
+        } else {
+            Calendars.CONTENT_URI
+        }
+        return base.buildUpon()
+            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(Calendars.ACCOUNT_NAME, accountName)
+            .appendQueryParameter(Calendars.ACCOUNT_TYPE, ACCOUNT_TYPE)
+            .build()
     }
 
     /** 一次课在目标日历里应有的全部内容。 */
