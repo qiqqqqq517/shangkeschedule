@@ -139,14 +139,36 @@ npx wrangler pages domain add www.shangke.asia   --project-name shangkeschedule
 - **深色模式**：全站支持，偏好存在 `localStorage['sk-theme']`；`<head>` 内联脚本负责首帧前定色，避免闪白。
 - **CSP**：`_headers` 里限制了脚本与样式来源，新增外链资源（图片、字体、脚本）时需同步放宽对应指令。
   当前 `img-src 'self' data:` 已覆盖 webp，无需为 WebP 改动。
+- **颜色 token 与对比度（勿随手调）**：`--ink` / `--muted` / `--faint` 是三级文字层次，
+  取值经 WCAG 2.2 AA 实测校准，**在 paper / paper-2 / paper-3 / card / brand-soft 五种底色上
+  都必须 ≥ 4.5:1**（`.wm-col`、`section-tint` 等位置用的是更深的 paper-3，只对 paper 达标是不够的）。
+  同时要保住 `ink > muted > faint` 的层次——只降 faint 会让它比 muted 更深，语义就反了。
+  当前值（浅色）：ink `#28261b` 14.41、muted `#4a483e` 8.71、faint `#6b6961` 5.22；
+  （深色）：ink `#faf9f5` 16.37、muted `#b7b5a9` 8.38、faint `#97958b` 5.74。
+  改色请跑 `python build_qa/webopt/audit_a11y.py`（应 0 失败）与 `verify_hierarchy.py`（层级须 OK）。
+  ⚠️ `--sage` **只作装饰性背景与边框，不承担文字**，不要按文字对比度去调它。
+- **changelog 标题层级**：版本条目用 `<h2 class="tl-h">` 包版本号，单条改动用 `<h3>`，
+  形成 h1 → h2（版本）→ h3（改动）的正确层级。`.tl-h` 仅重置 h2 默认 margin/字号，
+  外观完全沿用 `.tl-ver` / `.tl-date`。**新增版本条目时保持这个结构**，不要退回裸 `<div>`。
+- **sitemap**：由 `python build_qa/webopt/gen_sitemap.py` 生成，含 `image:image` 条目
+  （每条 29 张图的 loc/title/caption，标题取页面 `alt`，**不得用文件名拼凑**），
+  `lastmod` 取该页在 git 里的最后提交日期。发版后重跑一次即可。
 
 ### 优化后自检脚本
 
 `build_qa/webopt/` 下有一组只读校验脚本，改完站点应全绿：
 
 ```bash
-python build_qa/webopt/verify_picture.py   # <picture> 开闭配对 + webp 引用存在
-python build_qa/webopt/verify_jsonld.py    # JSON-LD 合法性 + softwareVersion 与 site.js 一致
-python build_qa/webopt/smoke.py            # 起 http.server 8099 逐页逐资源 200 核验
-python build_qa/webopt/savings.py          # 输出传输体积收益
+python build_qa/webopt/verify_picture.py    # <picture> 开闭配对 + webp 引用存在（自动排除正文代码示例）
+python build_qa/webopt/verify_jsonld.py     # JSON-LD 合法性 + softwareVersion 与 site.js 一致
+python build_qa/webopt/verify_sitemap.py    # sitemap XML 合法 + 图片条目指向真实文件 + title 非空
+python build_qa/webopt/audit_a11y.py        # WCAG AA 对比度（浅/深两套 × 多种底色）+ ARIA + 标题层级
+python build_qa/webopt/verify_hierarchy.py  # ink > muted > faint 层次未被改塌
+python build_qa/webopt/smoke.py             # 起 http.server 8099 逐页逐资源 200 核验
+python build_qa/webopt/savings.py           # 输出传输体积收益
 ```
+
+⚠️ 写这类校验脚本时的两个坑（实测踩过）：
+① 正文里可能有**作为代码示例展示**的标签字面量（如 changelog 的 `<code><picture></code>`），
+统计结构前必须先剔除 `<code>…</code>`，否则造出假缺陷；
+② 线上核验必须给 `curl.exe` 加 `-L` 跟随 Pages 的 308，否则拿到的是重定向响应体，检查会假阴性。

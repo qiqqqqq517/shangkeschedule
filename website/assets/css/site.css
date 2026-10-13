@@ -57,8 +57,8 @@
   --card:         #ffffff;
   --ink:          #28261b;
   --ink-2:        #3d3929;
-  --muted:        #6e6d68;
-  --faint:        #9b988c;
+  --muted:        #4a483e;
+  --faint:        #6b6961;
   --line:         #e9e6dc;
   --line-2:       #dad9d4;
   --brand:        #c96442;
@@ -93,7 +93,7 @@
   --ink:          #faf9f5;
   --ink-2:        #f1f1ef;
   --muted:        #b7b5a9;
-  --faint:        #908e84;
+  --faint:        #97958b;
   --line:         #343430;
   --line-2:       #3e3e38;
   --brand:        #d97757;
@@ -1071,6 +1071,14 @@ ul, ol { margin: 0; padding: 0; }
   border-top: 1px solid var(--line);
 }
 .tl-item:last-child { border-bottom: 1px solid var(--line); }
+/* 版本条目本身是 h2（可被搜索引擎与读屏器识别为版本分组）；
+   仅重置 h2 的默认 margin/字号，外观完全沿用原有的 .tl-ver / .tl-date。 */
+.tl-h {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
 .tl-ver {
   font-family: var(--font-mono);
   font-size: .95rem;

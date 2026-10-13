@@ -1,27 +1,173 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://shangke.asia/</loc>
     <lastmod>2026-10-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/app-icon-1024.png</image:loc>
+      <image:title>「上课」应用图标</image:title>
+      <image:caption>「上课」应用图标</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/today.jpg</image:loc>
+      <image:title>「上课」今日课表界面：日期与周次、下节课卡片、今日课程时间轴</image:title>
+      <image:caption>「上课」今日课表界面：日期与周次、下节课卡片、今日课程时间轴</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/import-school.jpg</image:loc>
+      <image:title>教务导入的学校选择界面，含本科 / 专科 / 研究生分组与字母索引</image:title>
+      <image:caption>教务导入的学校选择界面，含本科 / 专科 / 研究生分组与字母索引</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/theme-cjk.jpg</image:loc>
+      <image:title>书卷主题的周课表界面</image:title>
+      <image:caption>书卷主题的周课表界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/week.jpg</image:loc>
+      <image:title>通透主题的周课表界面</image:title>
+      <image:caption>通透主题的周课表界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/theme-soft.jpg</image:loc>
+      <image:title>柔绘主题界面</image:title>
+      <image:caption>柔绘主题界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/theme-dark.jpg</image:loc>
+      <image:title>深色模式下的课表界面</image:title>
+      <image:caption>深色模式下的课表界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/appearance.jpg</image:loc>
+      <image:title>外观与样式设置页</image:title>
+      <image:caption>外观与样式设置页</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/time-slots.jpg</image:loc>
+      <image:title>自定义时间段管理页</image:title>
+      <image:caption>自定义时间段管理页</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/agenda.jpg</image:loc>
+      <image:title>日程页面</image:title>
+      <image:caption>日程页面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/settings.jpg</image:loc>
+      <image:title>我的设置页面</image:title>
+      <image:caption>我的设置页面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/couple.jpg</image:loc>
+      <image:title>情侣课表设置</image:title>
+      <image:caption>情侣课表设置</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/semester.jpg</image:loc>
+      <image:title>学期设置页面</image:title>
+      <image:caption>学期设置页面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/course-manage.jpg</image:loc>
+      <image:title>课程管理页面</image:title>
+      <image:caption>课程管理页面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/reminder.jpg</image:loc>
+      <image:title>课程提醒设置页面</image:title>
+      <image:caption>课程提醒设置页面</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://shangke.asia/features</loc>
     <lastmod>2026-10-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/app-icon-1024.png</image:loc>
+      <image:title>「上课」应用图标</image:title>
+      <image:caption>「上课」应用图标</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/today.jpg</image:loc>
+      <image:title>今日课表界面</image:title>
+      <image:caption>今日课表界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/agenda.jpg</image:loc>
+      <image:title>日程界面</image:title>
+      <image:caption>日程界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/reminder.jpg</image:loc>
+      <image:title>课程提醒设置</image:title>
+      <image:caption>课程提醒设置</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/import-export.jpg</image:loc>
+      <image:title>课表导入导出界面</image:title>
+      <image:caption>课表导入导出界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/import-file.jpg</image:loc>
+      <image:title>文件导入界面</image:title>
+      <image:caption>文件导入界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/time-slots.jpg</image:loc>
+      <image:title>时间段管理界面</image:title>
+      <image:caption>时间段管理界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/semester.jpg</image:loc>
+      <image:title>学期设置界面</image:title>
+      <image:caption>学期设置界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/course-manage.jpg</image:loc>
+      <image:title>课程管理界面</image:title>
+      <image:caption>课程管理界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/backup.jpg</image:loc>
+      <image:title>备份与恢复界面</image:title>
+      <image:caption>备份与恢复界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/appearance.jpg</image:loc>
+      <image:title>外观与样式设置界面</image:title>
+      <image:caption>外观与样式设置界面</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/theme.jpg</image:loc>
+      <image:title>主题设置界面</image:title>
+      <image:caption>主题设置界面</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://shangke.asia/changelog</loc>
     <lastmod>2026-10-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/app-icon-1024.png</image:loc>
+      <image:title>「上课」应用图标</image:title>
+      <image:caption>「上课」应用图标</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://shangke.asia/privacy</loc>
     <lastmod>2026-10-14</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <image:image>
+      <image:loc>https://shangke.asia/assets/img/app-icon-1024.png</image:loc>
+      <image:title>「上课」应用图标</image:title>
+      <image:caption>「上课」应用图标</image:caption>
+    </image:image>
   </url>
 </urlset>
