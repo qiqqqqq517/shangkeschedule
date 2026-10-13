@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4788">v4.78.8 · 同页卡片等高（固定槽位），字重收口扩至日程与设置页</a></li>
         <li><a href="#v4787">v4.78.7 · 字重语义 token 收口，今日页硬编码字重清零</a></li>
         <li><a href="#v4786">v4.78.6 · 图标尺寸归档三档 token，其他页面细节一轮过</a></li>
         <li><a href="#v4785">v4.78.5 · 修复主题门禁 C2 失效，去重三主题设置页色调撞色</a></li>
@@ -231,6 +232,23 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4788">
+        <div><span class="tl-ver">v4.78.8</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>同一页内课程卡片高低参差</h3>
+          <ul>
+            <li>今日页时间轴卡此前按数据有无<b>条件渲染</b>副行——课程无地点则地点行消失、无教师则教师行消失，导致同一屏内「字段齐全的卡」比「缺字段的卡」高一整行，列表参差不齐。现改为<b>固定槽位</b>（新增 <code>TodayMetaSlot</code>）：槽位恒定占位，无数据时留同高空白（不画图标、不写字），使同页每张卡高度一致。</li>
+            <li><b>日程页同类问题</b>：日程条目的「分类 · 地点 · 教师」行与备注行同为条件渲染，无内容即整行消失。现两个副行槽位恒定占位，同页卡片等高。</li>
+            <li><b>卡片圆角「巧合式一致」</b>：今日页非 hero 分支硬编码 <code>RoundedCornerShape(20.dp)</code>，恰好等于书卷 <code>heroCard = 20dp</code> 而看似一致——属巧合：若将来调整书卷圆角，今日页不会跟随，两页卡片大小即静默分裂。现统一读 <code>appShapes().heroCard</code>，使一致性成为<b>结构性保证</b>（三主题实测等值：通透 22 / 柔绘 28 / 书卷 20）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li><b>字重收口扩展至三个高频页面</b>（设计规范 R9：组件层不得硬编码 <code>FontWeight</code>）：</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4787">
         <div><span class="tl-ver">v4.78.7</span><span class="tl-date">2026-10-13</span></div>
