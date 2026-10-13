@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v47811">v4.78.11 · 修复遗留单测假红，全量测试转绿</a></li>
         <li><a href="#v47810">v4.78.10 · 组件层字重彻底归零，主题门禁与发版工具加固</a></li>
         <li><a href="#v4789">v4.78.9 · 字重收口全站完成（组件层 SemiBold / Medium 清零）</a></li>
         <li><a href="#v4788">v4.78.8 · 同页卡片等高（固定槽位），字重收口扩至日程与设置页</a></li>
@@ -234,6 +235,17 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v47811">
+        <div><span class="tl-ver">v4.78.11</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span></h3>
+          <ul>
+            <li><b><code>AdapterScanWatchdogTest</code>「超时后必须退出运行态」长期失败</b>（自 <code>7391d76</code> 起存在，历轮均记为「既存缺陷、待单独排期」）。根因是<b>测试自身的固定字符窗口</b>而非实现缺陷：该用例用 <code>screenSrc.substringAfter("onAdapterScanTimeoutState").take(600)</code> 取代码块再断言含 <code>studyScanRunning = false</code>，而 v4.77.4 在 <code>onAdapterScanTimeoutState</code> 里为「成绩带出学业」「学业带出成绩」补了收尾分支与大段注释后，STUDY 分支的复位语句被推出 600 字符窗口 ⇒ <b>实现正确、测试假红</b>。</li>
+            <li>结果：<code>:shared:testAndroidHostTest</code> <b>全量通过</b>（此前 342 例 1 失败）。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v47810">
         <div><span class="tl-ver">v4.78.10</span><span class="tl-date">2026-10-13</span></div>
