@@ -7,6 +7,22 @@
 
 ## 最新版本
 
+### v4.78.7（2026-10-13）· 字重语义 token 收口，今日页硬编码字重清零
+
+#### 外观
+
+- **今日页字重全部改由主题 token 供给**（设计规范 R9：组件层不得硬编码 `FontWeight`，须读 `appType().titleWeight` / `bodyWeight` / `captionWeight`）。今日页原散落 **28 处硬编码字重**（27 处 `SemiBold` / `Medium`，另有 3 处 `Bold` 为强调位保留），现按语义收口：
+  - `FontWeight.SemiBold` → `appType().titleWeight`（27 处，含 1 处 `buildAnnotatedString` 内的 `SpanStyle`）；
+  - `FontWeight.Medium` → `appType().captionWeight`（21 处，含无尾逗号变体）；
+  - `FontWeight.Bold` **保留 3 处**（「下一节课」卡主标题等强调位；token 未设 Bold 角色，强改会削弱层级）。
+- **三主题身份由此真正生效**：通透 / 书卷 `titleWeight = SemiBold`（视觉零变化），**柔绘 `titleWeight = Medium`** —— 柔绘「轻字重」的既定身份此前被硬编码 `SemiBold` 抹平，现回到该主题自己的字重语言。
+
+#### 构建
+
+- versionCode 554，versionName 4.78.7。
+- 编译通过（`:shared:compileKotlinJvm` / `:desktopApp:compileKotlin`）；主题泄漏 / 无障碍语义 / 字体缩放 / 小组件对比度 / 版本同步五道门禁全绿。
+- **回归证据（逐字节比对）**：通透与书卷的浅色 / 深色共 4 张离屏渲染与改动前**完全一致**（零视觉回归，符合「两者 titleWeight 与原硬编码同值」的预期）；柔绘浅色 / 深色按设计意图变化（`Medium` vs 原 `SemiBold`），即本次唯一有意变更。
+
 ### v4.78.6（2026-10-13）· 图标尺寸归档三档 token，其他页面细节一轮过
 
 #### 外观

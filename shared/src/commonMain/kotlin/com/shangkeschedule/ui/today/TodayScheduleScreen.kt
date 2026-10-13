@@ -1091,7 +1091,7 @@ private fun TodaySectionLabelRow(
             style = TextStyle(
                 fontFamily = labelFont,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 letterSpacing = 0.14.em,
                 lineHeight = 16.sp
             ),
@@ -1104,7 +1104,7 @@ private fun TodaySectionLabelRow(
                 text = trailing,
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = appType().captionWeight,
                     lineHeight = 16.sp
                 ),
                 color = colors.textSecondary
@@ -1125,7 +1125,7 @@ private fun TodayTimelineHeader(title: String, count: String) {
             text = title,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 letterSpacing = 0.02.em,
                 lineHeight = 17.sp
             ),
@@ -1136,7 +1136,7 @@ private fun TodayTimelineHeader(title: String, count: String) {
             text = count,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = appType().captionWeight,
                 lineHeight = 16.sp
             ),
             color = colors.textSecondary.copy(alpha = 0.72f)
@@ -1257,7 +1257,7 @@ private fun TodayTimelineItem(
                 text = startTime,
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     lineHeight = 17.sp,
                     // 等宽数字：时刻位数变化（8:00→10:00）不再引起时间列宽度跳变
                     fontFeatureSettings = appType().timeFeature
@@ -1378,7 +1378,7 @@ private fun TodayTimelineCard(
                     text = model.course.name,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = appType().titleWeight,
                         lineHeight = 20.sp,
                         textDecoration = if (isFinished) TextDecoration.LineThrough else null
                     ),
@@ -1401,7 +1401,7 @@ private fun TodayTimelineCard(
                         ),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             lineHeight = 13.sp
                         ),
                         color = palette.badgeFg
@@ -1468,7 +1468,7 @@ private fun TodayFactText(label: String, value: String) {
     val separator = stringResource(Res.string.label_value_separator)
     Text(
         text = buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.textSecondary)) {
+            withStyle(SpanStyle(fontWeight = appType().titleWeight, color = colors.textSecondary)) {
                 append(label)
             }
             append(separator)
@@ -1476,7 +1476,7 @@ private fun TodayFactText(label: String, value: String) {
         },
         style = MaterialTheme.typography.labelSmall.copy(
             fontSize = 11.5.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = appType().captionWeight,
             lineHeight = 15.sp
         ),
         color = colors.textSecondary.copy(alpha = 0.9f),
@@ -1504,7 +1504,7 @@ private fun TodayMetaRow(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = appType().captionWeight,
                 lineHeight = 16.sp
             ),
             color = tint,
@@ -1694,7 +1694,7 @@ private fun TodayNextClassCard(
                         text = data.label,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             letterSpacing = 0.08.em,
                             lineHeight = 12.sp
                         ),
@@ -1784,7 +1784,7 @@ private fun TodayNextClassCard(
                             text = stringResource(style.countdownLabel),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = appType().captionWeight,
                                 lineHeight = 13.sp
                             ),
                             color = labelColor,
@@ -1843,7 +1843,7 @@ private fun TodayTomorrowCard(
                 text = model.course.name,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     lineHeight = 19.sp
                 ),
                 color = colors.textPrimary,
@@ -1856,7 +1856,7 @@ private fun TodayTomorrowCard(
                     text = todayTimeRange(model),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = appType().captionWeight
                     ),
                     color = colors.textSecondary
                 )
@@ -1870,7 +1870,7 @@ private fun TodayTomorrowCard(
                         text = model.course.position,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = appType().captionWeight
                         ),
                         color = colors.textSecondary,
                         maxLines = 1,
@@ -1931,7 +1931,7 @@ private fun EventTitleRow(event: ScheduleEvent, onToggleDone: (String, Boolean) 
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleSmall.copy(
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 lineHeight = 18.sp
             ),
             color = colors.textPrimary,
@@ -2046,7 +2046,7 @@ private fun TodayEventRow(
                         text = metaLine,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             lineHeight = 14.sp
                         ),
                         color = colors.textSecondary,
@@ -2060,7 +2060,7 @@ private fun TodayEventRow(
                         text = note,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             lineHeight = 14.sp
                         ),
                         color = colors.textSecondary.copy(alpha = 0.75f),
@@ -2257,7 +2257,7 @@ private fun TodayTodoRow(
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             lineHeight = 18.sp
                         ),
                         color = colors.textPrimary,
@@ -2272,7 +2272,7 @@ private fun TodayTodoRow(
                         text = time,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             lineHeight = 14.sp
                         ),
                         color = colors.textSecondary,
@@ -2285,7 +2285,7 @@ private fun TodayTodoRow(
                         text = note,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             lineHeight = 14.sp
                         ),
                         color = colors.textSecondary.copy(alpha = 0.75f),
@@ -2313,7 +2313,7 @@ private fun TodayGhostButton(text: String, onClick: () -> Unit) {
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = colors.textPrimary
         )
@@ -2365,7 +2365,7 @@ private fun TodayCourseDetailSheet(
                 style = TextStyle(
                     fontFamily = style.titleFont,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     letterSpacing = 0.1.em
                 ),
                 color = colors.textSecondary
@@ -2375,7 +2375,7 @@ private fun TodayCourseDetailSheet(
                 text = model.course.name,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = appType().titleWeight
                 ),
                 color = colors.textPrimary
             )
@@ -2434,7 +2434,7 @@ private fun TodayCourseDetailSheet(
                         text = stringResource(style.sheetClose),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textPrimary
                     )
@@ -2452,7 +2452,7 @@ private fun TodayCourseDetailSheet(
                         text = stringResource(style.sheetEdit),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textOnPrimary
                     )
@@ -2476,7 +2476,7 @@ private fun TodayDetailRow(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary
         )
@@ -2485,7 +2485,7 @@ private fun TodayDetailRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.End
