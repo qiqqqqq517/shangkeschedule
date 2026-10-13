@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.Role
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import androidx.compose.ui.graphics.Brush
@@ -1347,8 +1348,38 @@ private fun TodayTimelineCard(
     val shape = appShapes().heroCard
     val sectionCount = todaySectionCount(model)
     val cardMotion = rememberTodayCardMotion(index, isFinished)
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+    val titleTextStyle = MaterialTheme.typography.titleSmall.copy(
+        fontSize = 16.sp,
+        fontWeight = appType().titleWeight,
+        lineHeight = 20.sp
+    )
+    // 用统一样本测量主题字体行盒，避免书卷字体在固定 sp 槽位中只能显示一行。
+    // 高度不读取课程内容；同时保留像素取整余量，适应系统字号与不同主题字体。
+    val titleHeight = with(density) {
+        maxOf(42.sp.toDp(), textMeasurer.measure("Ag课程\nAg课程", titleTextStyle).size.height.toDp())
+    }
+    val metaTextStyle = MaterialTheme.typography.labelMedium.copy(
+        fontSize = 12.sp, fontWeight = appType().captionWeight, lineHeight = 16.sp
+    )
+    val metaHeight = with(density) {
+        maxOf(appIconSize().small, 18.sp.toDp(), textMeasurer.measure("Ag课程", metaTextStyle).size.height.toDp())
+    }
+    val factTextStyle = MaterialTheme.typography.labelSmall.copy(
+        fontSize = 11.5.sp, fontWeight = appType().captionWeight, lineHeight = 15.sp
+    )
+    val factHeight = with(density) {
+        maxOf(17.sp.toDp(), textMeasurer.measure("Ag课程", factTextStyle).size.height.toDp())
+    }
+    val cardHeight = with(density) {
+        // 分别取整后相加，与各槽位实际像素一致；42dp = 上下内边距 26 + 行间距 16。
+        (titleHeight.roundToPx() + metaHeight.roundToPx() * 2 +
+            factHeight.roundToPx() + 42.dp.roundToPx()).toDp()
+    }
     Box(
         modifier = modifier
+            .height(cardHeight)
             .graphicsLayer(
                 alpha = cardMotion.alpha,
                 scaleX = cardMotion.scale,
@@ -1378,13 +1409,10 @@ private fun TodayTimelineCard(
             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.Top) {
+            Row(modifier = Modifier.height(titleHeight), verticalAlignment = Alignment.Top) {
                 Text(
                     text = model.course.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 16.sp,
-                        fontWeight = appType().titleWeight,
-                        lineHeight = 20.sp,
+                    style = titleTextStyle.copy(
                         textDecoration = if (isFinished) TextDecoration.LineThrough else null
                     ),
                     color = palette.title,
@@ -1409,31 +1437,33 @@ private fun TodayTimelineCard(
                             fontWeight = appType().titleWeight,
                             lineHeight = 13.sp
                         ),
-                        color = palette.badgeFg
+                        color = palette.badgeFg,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
-            // 卡片等高（2026-10-13）：同页卡片此前按数据有无**条件渲染**槽位
-            // （课程无地点 / 无教师即少一行）⇒ 同一屏内卡片高低参差。
-            // 现改为**固定槽位**（[TodayMetaSlot]）：无数据时留同高空白，
-            // 使同页每张卡高度一致（实测对照：缺字段卡与完整卡高度相同）。
+            // 严格等高：标题恒占两行，副信息恒占一行；空字段也使用同一文字行盒。
+            // 行盒随系统字号缩放，避免固定 dp 空占位与真实文字高度不一致。
             Spacer(modifier = Modifier.height(4.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TodayMetaSlot(
                     icon = Res.drawable.location_on_24px,
                     text = model.course.position.takeIf { !gridStyle.hideLocation && it.isNotBlank() },
-                    tint = palette.meta
+                    tint = palette.meta,
+                    height = metaHeight
                 )
                 TodayMetaSlot(
                     icon = Res.drawable.person_24px,
                     text = model.course.teacher.takeIf { !gridStyle.hideTeacher && it.isNotBlank() },
-                    tint = palette.meta
+                    tint = palette.meta,
+                    height = metaHeight
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             // 事实行：课程类型恒存在，故该行高度恒定；学分按数据有无决定是否追加，
             // 不影响本行高度（Row 高度由最高子项决定）。
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.height(factHeight), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TodayFactText(
                     label = stringResource(style.noteType),
                     value = stringResource(
@@ -1522,17 +1552,17 @@ private fun TodayMetaRow(
 }
 
 /**
- * 元信息**槽位**：与 [TodayMetaRow] 同高，但 [text] 为 null 时渲染等高的空白占位
- * （不画图标、不写字），用于「同一页内卡片等高」——课程缺地点或教师时，
- * 该槽位仍占据与有数据时完全相同的高度，使同页每张卡高度一致。
+ * 元信息槽位：空字段与有数据字段共享相同的单行文字行盒和图标尺寸。
+ * 使用 minLines 保留空行，系统字号放大后仍严格等高。
  */
 @Composable
 private fun TodayMetaSlot(
     icon: DrawableResource,
     text: String?,
-    tint: Color
+    tint: Color,
+    height: Dp
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.height(height), verticalAlignment = Alignment.CenterVertically) {
         if (text != null) {
             Icon(
                 painter = painterResource(icon),
@@ -1540,22 +1570,22 @@ private fun TodayMetaSlot(
                 modifier = Modifier.size(appIconSize().small),
                 tint = tint.copy(alpha = 0.85f)
             )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 12.sp,
-                    fontWeight = appType().captionWeight,
-                    lineHeight = 16.sp
-                ),
-                color = tint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         } else {
-            // 空占位：与有数据时同高（图标 small + 文本 16sp 行高，取两者较大者）
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.size(appIconSize().small))
         }
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = text.orEmpty(),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 12.sp,
+                fontWeight = appType().captionWeight,
+                lineHeight = 16.sp
+            ),
+            color = tint,
+            minLines = 1,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

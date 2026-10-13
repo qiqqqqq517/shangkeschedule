@@ -83,9 +83,9 @@ IDENTITY_REVIEWED = {
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 250, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 251, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 252, "AppThemePreset."),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 432, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 433, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 434, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 435, "AppThemePreset."),
     # 2) 取数据：主题名称文案
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/feedback/FeedbackScreen.kt", 197, "LocalThemePreset"),
     # 3) 算法参数：色块条带/实底策略
@@ -97,9 +97,9 @@ IDENTITY_REVIEWED = {
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 138, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/WeeklyScheduleScreen.kt", 1284, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/coursemanagement/CourseInstanceListScreen.kt", 248, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 216, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 379, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 1865, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 217, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 380, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 1895, "LocalThemePreset"),
 }
 
 
