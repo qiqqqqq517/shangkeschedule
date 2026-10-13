@@ -54,10 +54,16 @@ private val IosSeparatorDark = Color(0x99545458)
 
 // --- iOS 26 系统色（浅 / 深） ----------------------------------------------
 
-private val IosBlueLight = Color(0xFF007AFF)
-private val IosGreenLight = Color(0xFF34C759)
-private val IosOrangeLight = Color(0xFFFF9500)
-private val IosRedLight = Color(0xFFFF3B30)
+// 浅色档语义色 = Apple「高对比/可访问」变体（Accessibility → Increase Contrast 口径）：
+// 原始系统色（#007AFF/#34C759/#FF9500/#FF3B30）压白字仅 3.5~4.0、压 12% 淡底仅 1.4~2.0，
+// 全部低于 WCAG 2.2 AA。高对比变体保持同一色相族，仅加深明度 —— 蓝仍是那个 iOS 蓝，
+// 但正文、图标与底栏选中全部回到 ≥4.5 / ≥3.0。
+private val IosBlueLight = Color(0xFF0066D6)
+// 高对比变体再加深半档（#248A3D→#217A38）：压 12% 淡底实测 3.97→4.51（WCAG AA）。
+private val IosGreenLight = Color(0xFF217A38)
+// 高对比变体再加深半档（#C66900→#A85A00）：压 12% 淡底实测 3.51→4.56（WCAG AA）。
+private val IosOrangeLight = Color(0xFFA85A00)
+private val IosRedLight = Color(0xFFD70015)
 /**
  * 徽标底色（角标数字的背景）。**与 `IosRedLight` 分开定义** —— 后者同时是
  * `error` / `danger` 的语义色，不能为了角标对比度而加深它（会连带改变错误提示与
@@ -71,6 +77,10 @@ private val IosTealLight = Color(0xFF5AC8FA)
 private val IosIndigoLight = Color(0xFF5856D6)
 private val IosYellowLight = Color(0xFFFFCC00)
 
+// 深色档：主色蓝维持 Apple 深色系统色原值 `#0A84FF` —— 压卡片（#1C1C1E）4.66 达标；
+// 「白字压主色」3.65 属 WCAG 大字/图形级（≥3.0），与 Apple 官方深色按钮同口径。
+// （理论证明不存在同时满足「白字压 ≥4.5」且「压卡 ≥4.5」的蓝色：亮度窗口互斥 ≤0.183 vs ≥0.226；
+//  高对比版 #0073E6 把压卡拖到 3.72 反而不达标，已回退。）
 private val IosBlueDark = Color(0xFF0A84FF)
 private val IosGreenDark = Color(0xFF30D158)
 private val IosOrangeDark = Color(0xFFFF9F0A)
@@ -259,6 +269,8 @@ internal val iosShapeTokens = AppShapeTokens(
     capsule = RoundedCornerShape(50),
     fab = RoundedCornerShape(50),
     heroCard = RoundedCornerShape(22.dp),
+    // 同心：22 - 14（hero 内 padding）= 8dp
+    heroCardInner = RoundedCornerShape(8.dp),
     bubble = RoundedCornerShape(
         topStart = 4.dp,
         topEnd = 18.dp,
@@ -319,6 +331,7 @@ internal val iosTypeTokens = AppTypeTokens(
     body = 17.sp,
     caption = 13.sp,
     hint = 11.sp,
+    timeFeature = "tnum",
     // 字重语义（批 1 新增）：标题 SemiBold（SF Display 口径）、正文 Normal、辅助 Medium
     titleWeight = FontWeight.SemiBold,
     bodyWeight = FontWeight.Normal,

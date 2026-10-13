@@ -65,12 +65,17 @@ import androidx.compose.ui.unit.sp
 
 // --- 柔绘色板（浅色）：低饱和 + 暖冷平衡 -------------------------------------
 
-/** 页面底：极淡的暖灰蓝，作为所有晕染层的画布。 */
-private val SoftPageBgLight = Color(0xFFF4F3F7)
-/** 卡片底：近白但带一点暖调，避免纯白在低对比界面上"跳"出来。 */
-private val SoftCardBgLight = Color(0xFFFCFBFD)
-private val SoftCardElevatedLight = Color(0xFFF7F5FA)
-private val SoftInputBgLight = Color(0xFFEFEDF4)
+/** 页面底：暖雾紫 `#F5F1F8`。原 `#F4F3F7` 与通透 systemGroupedBackground `#F2F2F7`
+ * 亮度/色相几乎重合（肉眼不可辨两主题）；现沿色相向暖紫偏移半档——柔绘的
+ * 「暖雾画布」与通透的「系统灰」一眼可分，亮度维持同一区间（不重做深浅关系）。 */
+private val SoftPageBgLight = Color(0xFFF5F1F8)
+/** 卡片底：纯白 `#FFFFFF`。原 `#FCFBFD` 只比页面底亮 1 阶，整页灰蒙蒙缺层次；
+ * 纯白卡放在暖雾页底上，形成「纸卡浮在雾面」的明确分层（柔绘的软投影再托一层）。 */
+private val SoftCardBgLight = Color(0xFFFFFFFF)
+/** 浮起卡：`#FCFAFE`，比纯白卡再暖半档，保持三级阶梯（雾底 < 白卡 < 暖浮卡）。 */
+private val SoftCardElevatedLight = Color(0xFFFCFAFE)
+/** 输入底：`#F1EDF6`，与暖雾页底同族、比页底深半档（原 `#EFEDF4` 偏灰蓝）。 */
+private val SoftInputBgLight = Color(0xFFF1EDF6)
 
 /** 正文：不用纯黑。低对比设计里"黑"会在柔和底色上形成硬边。 */
 private val SoftTextPrimaryLight = Color(0xFF4A4756)
@@ -86,8 +91,9 @@ private val SoftTextPrimaryLight = Color(0xFF4A4756)
  */
 private val SoftTextSecondaryLight = Color(0xFF666370)
 
-/** 主色：低饱和的雾蓝紫，作为唯一强调色。 */
-private val SoftPrimaryLight = Color(0xFF5F6899)
+/** 主色：低饱和雾蓝紫。浅色档加深到 `#4F5A8C`，压白字 5.03（原 3.65 未达 AA）；
+ * 深色档提亮到 `#A8B0E4`，压白字 6.32（原 4.40 未达 AA）。 */
+private val SoftPrimaryLight = Color(0xFF4F5A8C)
 private val SoftPrimaryDeepLight = Color(0xFF5F68A8)
 
 /** 语义色：统一降到马卡龙档（饱和度 ~35%），互相之间饱和度一致。 */
@@ -95,7 +101,8 @@ private val SoftSuccessLight = Color(0xFF5C8A6B)
 private val SoftInfoLight = Color(0xFF5F849D)
 private val SoftWarningLight = Color(0xFFAE8261)
 private val SoftAmberLight = Color(0xFF8F7C55)
-private val SoftDangerLight = Color(0xFFCC8A8A)
+// 压 12% 淡底实测 4.25→4.52（#B45353→#AD5050，WCAG AA）。
+private val SoftDangerLight = Color(0xFFAD5050)
 /**
  * 徽标底色（角标数字背景）。**与 `SoftDangerLight` 分开** —— 后者同时是
  * `error` / `danger` 的语义色，不应为了角标对比度而改动。
@@ -144,9 +151,9 @@ internal fun softLightColorScheme(): ColorScheme = lightColorScheme(
  * 柔绘锁定的 M3 ColorScheme（深色）。
  */
 internal fun softDarkColorScheme(): ColorScheme = darkColorScheme(
-    primary = Color(0xFF9AA3DC),
+    primary = Color(0xFFA8B0E4),
     onPrimary = Color(0xFF23252F),
-    primaryContainer = Color(0x3D9AA3DC),
+    primaryContainer = Color(0x3DA8B0E4),
     onPrimaryContainer = Color(0xFFDDE0F5),
     secondary = Color(0xFFB3ACCF),
     onSecondary = Color(0xFF23252F),
@@ -215,7 +222,7 @@ internal fun softLightAppColorTokens(): AppColorTokens = AppColorTokens(
  * 柔绘深色 tokens。
  */
 internal fun softDarkAppColorTokens(): AppColorTokens = run {
-    val primary = Color(0xFF9AA3DC)
+    val primary = Color(0xFFA8B0E4)
     AppColorTokens(
         pageBg = SoftPageBgDark,
         cardBg = SoftCardBgDark,
@@ -287,6 +294,8 @@ internal val softShapeTokens = AppShapeTokens(
     capsule = RoundedCornerShape(50),
     fab = RoundedCornerShape(50),
     heroCard = RoundedCornerShape(28.dp),
+    // 同心：28 - 14（hero 内 padding）= 14dp
+    heroCardInner = RoundedCornerShape(14.dp),
     bubble = RoundedCornerShape(
         topStart = 8.dp,
         topEnd = 22.dp,
@@ -335,6 +344,7 @@ internal val softTypeTokens = AppTypeTokens(
     body = 16.sp,
     caption = 13.sp,
     hint = 11.sp,
+    timeFeature = "tnum",
     // 字重语义（批 1 新增）：柔绘整体轻一档 —— 标题 Medium（而非 SemiBold）、
     // 正文 Normal、辅助 Medium。这是柔绘「低对比柔和」的既定身份，不做跨主题统一。
     titleWeight = FontWeight.Medium,

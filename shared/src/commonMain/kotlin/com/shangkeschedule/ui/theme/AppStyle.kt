@@ -346,6 +346,13 @@ data class AppShapeTokens(
     val capsule: RoundedCornerShape,
     val fab: RoundedCornerShape,
     val heroCard: RoundedCornerShape,
+    /**
+     * heroCard **内层元素**（徽标 / chip / 内嵌卡）的圆角 —— 同心圆角规则：
+     * `outer - 内 padding` 折算（hero 卡内 padding 为 14dp），保证嵌套圆角视觉同心。
+     * 三主题显式赋值：通透 22-14=8dp / 柔绘 28-14=14dp / 书卷 20-14=6dp。
+     * （A1/C3 同款规则：不得依赖默认值，每套主题必须写出。）
+     */
+    val heroCardInner: RoundedCornerShape,
     val bubble: RoundedCornerShape
 )
 
@@ -432,6 +439,13 @@ data class AppTypeTokens(
     val body: TextUnit,
     val caption: TextUnit,
     val hint: TextUnit,
+    /**
+     * 时间/数字类文本的 OpenType 字体特性串 —— 三主题统一 `"tnum"`（等宽数字）。
+     * 时间轴时刻、卡片时间徽标、节数这类**位数会变的数字**用等宽后可消除宽度跳变。
+     * 字体不支持时静默回退（视觉无回归），故安全。接入方式：
+     * `TextStyle(fontFeatureSettings = appType().timeFeature)`。
+     */
+    val timeFeature: String,
     // ---- 字重语义（全局 UI 优化批 1 新增）----
     /**
      * 标题字重。三主题各自不同（书卷衬线 SemiBold / 柔绘 Medium / 通透 SemiBold），

@@ -39,8 +39,8 @@ import shangkeschedule.shared.generated.resources.Res
 // --- 浅色 primitive ---------------------------------------------------------
 
 private val ClaudeBrand50 = Color(0xFFFBF2ED)
-private val ClaudeBrand400 = Color(0xFFD6866A)
-private val ClaudeBrand500 = Color(0xFFC96442)
+private val ClaudeBrand400 = Color(0xFFC05A3A)
+private val ClaudeBrand500 = Color(0xFFA84A2E)
 /**
  * 徽标底色（角标数字背景）。**与 `ClaudeBrand500` 分开** —— 后者是**主色**
  * （primary + 渐变起点），改它会连带重派生整套 Material 配色，影响面远大于角标。
@@ -77,16 +77,23 @@ private val ClaudeSuccess50 = Color(0xFFF0F3EA)
 private val ClaudeError500 = Color(0xFFD64545)
 private val ClaudeError50 = Color(0xFFFCECEA)
 
-/** chart-2 紫罗兰：设计系统的图表强调色，同时充当 tertiary / info 色相。 */
-private val ClaudeChart2 = Color(0xFF9C87F5)
+/** chart-2 紫罗兰：设计系统的图表强调色，同时充当 tertiary / info 色相。
+ * 浅色档 `#775CD0`：压 brand-50 / 卡片淡底 4.51（`#7B5FD6` 仅 4.29，原 #9C87F5 2.47）。
+ * 深色档另有 `ClaudeDarkChart2`（深底压卡需更亮，深浅不再共用一值）。 */
+private val ClaudeChart2 = Color(0xFF775CD0)
 private val ClaudeChart4 = Color(0xFFDBD3F0)
 
 // --- 深色 primitive ---------------------------------------------------------
 
 private val ClaudeDarkBrand50 = Color(0xFF3A2A22)
-private val ClaudeDarkBrand500 = Color(0xFFD97757)
-private val ClaudeDarkBrand600 = Color(0xFFE08D6F)
+// 深色主色 `#CE7E65`：深字（#141413）压主色 5.97、主色字压卡片（#2C2C2B）4.52，双达标。
+// （并行高对比版 `#C05A3A` 深字仅 4.18 不达标，属回归；旧版 `#D97757` 深字 5.90 但压卡 3.63 不达标。）
+private val ClaudeDarkBrand500 = Color(0xFFCE7E65)
+private val ClaudeDarkBrand600 = Color(0xFFCE7E65)
 private val ClaudeDarkBrand900 = Color(0xFFF8E3D8)
+// 深色 chart-2 / danger：深底上需比浅色档更亮才能压卡 ≥4.5。
+private val ClaudeDarkChart2 = Color(0xFF9B85E0)   // 压卡 4.54（深浅共用 #775CD0 仅 2.96）
+private val ClaudeDarkError = Color(0xFFF26464)     // 压卡 4.51（#EF4444 仅 3.71）
 
 private val ClaudeDarkText500 = Color(0xFFB7B5A9)
 private val ClaudeDarkText800 = Color(0xFFF1F1EF)
@@ -132,7 +139,7 @@ fun claudeLightColorScheme(): ColorScheme = lightColorScheme(
  * CLAUDE 预设锁定的 M3 ColorScheme（深色）。
  */
 fun claudeDarkColorScheme(): ColorScheme = darkColorScheme(
-    primary = ClaudeDarkBrand500,             // brand-500 (dark) #d97757
+    primary = ClaudeDarkBrand500,             // brand-500 (dark) #ce7e65（深字压 5.97 / 压卡 4.52）
     onPrimary = ClaudeIcon900,                // primary-foreground (dark) = #141413
     primaryContainer = ClaudeDarkBrand50,     // brand-50 (dark) #3a2a22
     onPrimaryContainer = ClaudeDarkBrand900,  // brand-900 (dark) #f8e3d8
@@ -140,11 +147,11 @@ fun claudeDarkColorScheme(): ColorScheme = darkColorScheme(
     onSecondary = ClaudeDarkBg300,            // secondary-foreground = bg-300 (dark)
     secondaryContainer = ClaudeDarkBorder300, // border-300 (dark) #3e3e38
     onSecondaryContainer = ClaudeDarkText900,
-    tertiary = ClaudeChart2,                  // chart-2（深浅一致）
+    tertiary = ClaudeDarkChart2,              // chart-2 深色档（深底压卡 ≥4.5）
     onTertiary = ClaudeIcon900,               // #141413
     tertiaryContainer = ClaudeDarkBorder300,
     onTertiaryContainer = ClaudeChart4,       // chart-4 #dbd3f0
-    error = ClaudeDarkError500,               // #ef4444
+    error = ClaudeDarkError,                  // #f26464（深底压卡 ≥4.5）
     onError = Color(0xFFFFFFFF),
     errorContainer = ClaudeDarkError50,       // error-50 (dark) #3a1f1f
     onErrorContainer = ClaudeError50          // error-50 (light) #fcecea
@@ -181,9 +188,10 @@ fun claudeLightAppColorTokens(): AppColorTokens = AppColorTokens(
     // 设计系统无独立 warning 色相，取 brand-600 暖赭 #b0562f（与赤陶主色同族但不撞色）
     warning = ClaudeBrand600,
     warningSoft = Color(0x14B0562F),
-    // 设计系统无独立 amber 色相，取与 success 橄榄绿同族的暖赭金 #a8863c
-    amber = Color(0xFFA8863C),
-    amberSoft = Color(0x14A8863C),
+    // 设计系统无独立 amber 色相，取与 success 橄榄绿同族的暖赭金；
+    // `#806527`：压 8% 淡底 4.55（`#8A6D2A` 仅 4.03，原 #A8863C 2.87，WCAG AA）。
+    amber = Color(0xFF806527),
+    amberSoft = Color(0x14806527),
     danger = ClaudeError500,                  // #d64545
     dangerSoft = ClaudeError50,               // error-50 #fcecea
     // 设计系统无 favorite 色相，取与赤陶同族的暖玫瑰 #c0506a（避开 destructive 红）
@@ -230,13 +238,13 @@ fun claudeDarkAppColorTokens(): AppColorTokens = run {
         primarySoft = ClaudeDarkBrand50,      // brand-50 (dark) #3a2a22
         success = ClaudeDarkSuccess500,       // #8ca06f
         successSoft = ClaudeDarkSuccess50,    // success-50 (dark) #232a1c
-        info = ClaudeChart2,                  // chart-2（深浅一致）
-        infoSoft = Color(0x3D9C87F5),
+        info = ClaudeDarkChart2,              // chart-2 深色档（#9B85E0，压卡 4.54）
+        infoSoft = Color(0x3D9B85E0),
         warning = ClaudeDarkBrand600,         // brand-600 (dark) #e08d6f
         warningSoft = Color(0x3DE08D6F),
         amber = Color(0xFFC7A45C),            // 浅色 #a8863c 在深底上提亮一档
         amberSoft = Color(0x3DC7A45C),
-        danger = ClaudeDarkError500,          // #ef4444
+        danger = ClaudeDarkError,             // #f26464（压卡 4.51，#ef4444 深底仅 3.71）
         dangerSoft = ClaudeDarkError50,       // error-50 (dark) #3a1f1f
         favorite = Color(0xFFDA7E92),         // 浅色 #c0506a 在深底上提亮一档
         favoriteSoft = Color(0x3DDA7E92),
@@ -273,6 +281,8 @@ val claudeShapeTokens: AppShapeTokens = AppShapeTokens(
     capsule = RoundedCornerShape(50),
     fab = RoundedCornerShape(50),
     heroCard = RoundedCornerShape(20.dp),
+    // 同心：20 - 14（hero 内 padding）= 6dp
+    heroCardInner = RoundedCornerShape(6.dp),
     bubble = RoundedCornerShape(
         topStart = 6.dp,
         topEnd = 18.dp,
@@ -326,6 +336,7 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
     body = 15.sp,
     caption = 13.sp,
     hint = 12.sp,
+    timeFeature = "tnum",
     // 字重语义（批 1 新增）：标题 SemiBold（衬线标题需有分量）、正文 Normal、辅助 Medium
     titleWeight = FontWeight.SemiBold,
     bodyWeight = FontWeight.Normal,

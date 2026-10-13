@@ -234,6 +234,13 @@ fun ShangKeScheduleTheme(
         )
     }
     CompositionLocalProvider(
+        // 深浅档事实必须由本函数自证（审美提升第 1 轮修复）：本重载是「核心主题实现」，
+        // 除 settings 重载（L40）外还被预览宿主 PreviewHarness.kt、GlassProbe.kt
+        // 直接调用。此前这里漏了 LocalIsDarkTheme，只靠调用方在外层预先 provide，
+        // 导致绕过 settings 重载的调用方一律读到默认值 false —— 表现是深色档下
+        // 「页面底/卡片（读 token）已是深色，而读 LocalIsDarkTheme 的组件（如下一节课卡）
+        // 仍走浅色分支」，同屏深浅分裂，且离屏预览截图与真机不一致（掩盖了深色档缺陷）。
+        LocalIsDarkTheme provides darkTheme,
         LocalAppColorTokens provides syncedTokens,
         LocalAppShapeTokens provides shapeTokens,
         LocalAppSpacingTokens provides spacingTokens,

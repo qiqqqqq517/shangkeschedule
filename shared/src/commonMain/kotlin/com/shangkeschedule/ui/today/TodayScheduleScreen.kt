@@ -1258,7 +1258,9 @@ private fun TodayTimelineItem(
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    lineHeight = 17.sp
+                    lineHeight = 17.sp,
+                    // 等宽数字：时刻位数变化（8:00→10:00）不再引起时间列宽度跳变
+                    fontFeatureSettings = appType().timeFeature
                 ),
                 color = colors.textPrimary,
                 maxLines = 1,
@@ -1755,7 +1757,8 @@ private fun TodayNextClassCard(
                             style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                            lineHeight = 16.sp
+                            lineHeight = 16.sp,
+                                fontFeatureSettings = appType().timeFeature
                             ),
                             color = nameColor,
                             maxLines = 1,
@@ -2659,15 +2662,19 @@ private val Ios26AccentWarm700 = Color(0xFFB36800)
  */
 @Composable
 private fun todayClaudeNextCardDarkPalette(): TodayTimelinePalette {
-    // 书卷深色档：保留原有「暖紫」观感（原硬编码值原样搬来），仅改变供给方式
+    // 书卷深色档：暖炭紫渐变。原 `#3A2F5C → #2E2749` 偏冷蓝紫，在书卷深色暖炭页面底
+    // （#262624）上色调跳脱——整张卡看起来像从 iOS 主题借来的。现向暖灰方向收半档：
+    // `#3A2C4E → #2B2338`，紫色身份保留、与暖炭页面同族。实测标题 10.41 / 元信息 6.89 达标。
     return TodayTimelinePalette(
-        gradient = listOf(Color(0xFF3A2F5C), Color(0xFF2E2749)),
+        gradient = listOf(Color(0xFF3A2C4E), Color(0xFF2B2338)),
         border = Color(0x339C87F5),
         title = Color(0xFFEBE5FF),
         meta = Color(0xFFC4B8E8),
         badgeBg = Color(0x1FFFFFFF),
         badgeFg = Color(0xFFEBE5FF),
-        dot = ClaudeBrand400
+        // 圆点：浅色档 brand-400 已加深到 #C05A3A（压新渐变仅 2.89，不达图标级 3:1）；
+        // 深色档改取深色 token 主色 #CE7E65（实测 4.12），与深色 ColorScheme 主色同源。
+        dot = Color(0xFFCE7E65)
     )
 }
 
