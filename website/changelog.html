@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v47810">v4.78.10 · 组件层字重彻底归零，主题门禁与发版工具加固</a></li>
         <li><a href="#v4789">v4.78.9 · 字重收口全站完成（组件层 SemiBold / Medium 清零）</a></li>
         <li><a href="#v4788">v4.78.8 · 同页卡片等高（固定槽位），字重收口扩至日程与设置页</a></li>
         <li><a href="#v4787">v4.78.7 · 字重语义 token 收口，今日页硬编码字重清零</a></li>
@@ -233,6 +234,23 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v47810">
+        <div><span class="tl-ver">v4.78.10</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span></h3>
+          <ul>
+            <li><b>组件层硬编码字重彻底归零</b>（设计规范 R9 收尾）：新增 <code>AppTypeTokens.emphasisWeight</code> 角色（三主题显式赋值 <code>Bold</code>，遵循 R2「每个 token 必须由每套主题显式给出」），并把剩余 <b>58 处 <code>FontWeight.Bold</code></b> 与 <b>6 处 <code>FontWeight.Normal</code></b> 一并改为 token 读取（<code>emphasisWeight</code> / <code>bodyWeight</code>）。至此 <code>ui/<b></code>（排除 <code>ui/theme/</b></code>）<b>再无任何 <code>FontWeight</code> 字面量</b>，全部经 <code>appType()</code> 语义角色供给。</li>
+            <li><b>零回归证据</b>：三主题今日页离屏渲染与改动前<b>逐字节一致</b>（<code>emphasisWeight = Bold</code>、<code>bodyWeight = Normal</code> 与原硬编码同值，属恒等迁移）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>发版工具 `tools/update_website.py` 兜底同步失效**（每次发版都会踩的缺陷）：该脚本第 4 步同步 `website/*.html` 的「兜底文本」（`data-version` / `data-version-code` / `data-asset-name`），但它跑在 `changelog.html` 写盘**之前** —— 刚同步好的兜底文本随即被第 5 步的 `write_text(new_html)` 整篇覆盖，脚本自报「待同步 N 处」却实际未生效，紧接着 `check_version_sync.py` 报同样几处 FAIL。现把该步**移到所有写盘之后**，并新增**写盘后复核</h3>
+          <ul>
+            <li>再跑一次 <code>--check</code>，非 0 即显式 <code>exit 1</code>，不静默放行。</li>
+            <li><b>清理 5 处重复 import</b>（<code>StyleComponents.kt</code> 2 处、<code>DeveloperAndIconComponents.kt</code> 2 处、<code>CourseNameListScreen.kt</code> 1 处）—— 属既存瑕疵（HEAD 版即存在），全仓重复 import 现为 0。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4789">
         <div><span class="tl-ver">v4.78.9</span><span class="tl-date">2026-10-13</span></div>
