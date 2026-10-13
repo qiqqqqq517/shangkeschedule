@@ -182,6 +182,7 @@ git commit --no-verify                   # 跳过单次
 | `LocalIsSoftTheme` 在 `ui/theme/Theme.kt` 内被 provide | `Theme.kt:192` | 属于 L2 适配层，合规 |
 | `LegacyGlassBottomBar` 分支 | `ui/components/NavigationComponents.kt:428` | 液态玻璃引擎不可用时的**真机兜底**路径；不参与三主题设计规范 |
 | v2 紫渐变色板 | `AppStyle.kt`（待 P2 删除） | `AppThemePreset.fromString()` 把旧值与未知值统一收敛到 `IOS`（`AppThemePreset.kt:61-64`）⇒ 该分支**可证不可达** |
+| **C1 B 类主题身份直引 17 处** | 见 `scripts/check_theme_leak.py` 的 `IDENTITY_REVIEWED` | **2026-10-13 逐项判定：全部合法**，属「token 表达不了的架构性用法」，四类：①**结构差异**——三主题各自不同的 Composable 实现（加载指示器 呼吸点/墨点/分段环、今日页皮肤 `*TodaySkin`），token 只能表达值、表达不了换组件；②**取数据**——读 `preset.labelRes` 取主题名称文案；③**算法参数**——色块解析需 preset 决定「条带/实底」策略（`CourseBlockColorUtil`）；④**枚举遍历/数据模型**——遍历 `AppThemePreset.entries` 供用户选择主题、ViewModel 的 preset 字段是 UI 状态数据。已登记后门禁报「待判定 0 处 / 已登记 17 处」；登记表按「文件+行号+命中串」精确匹配，代码移动会让条目失效并重新出现在待判定列表（防豁免被静默沿用）。阴性对照实测：新增一处身份读取即报「待判定 1 处」 |
 
 ---
 

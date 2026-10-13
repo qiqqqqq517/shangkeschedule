@@ -61,6 +61,47 @@ FORBIDDEN_IDENTITY = [
 
 COMMENT_PREFIXES = ("//", "*", "/*", "*/")
 
+# ---------------------------------------------------------------- B 类豁免登记表
+#
+# B 类是**提示项**（不是硬指标）：它只说明「这一行读了主题身份」，是否违规需人工判定。
+# 2026-10-13 逐项判定 17 处，结论：**全部合法**，属设计文档 §4 承认的
+# 「token 表达不了的架构性用法」，分四类：
+#
+#   1. 结构差异 —— 三主题各自**不同的 Composable 实现**（不是同一组件的参数差异），
+#      token 只能表达「值」，表达不了「换一个组件」。例：加载指示器（呼吸点/墨点/分段环）、
+#      今日页皮肤（SoftTodaySkin / Ios26TodaySkin / ClaudeTodaySkin）。
+#   2. 取数据 —— 读 preset.labelRes 取主题**名称文案**，是数据而非外观分支。
+#   3. 算法参数 —— 色块解析需 preset 决定「条带 / 实底」策略（CourseBlockColorUtil）。
+#   4. 枚举遍历 / 数据模型 —— 遍历 AppThemePreset.entries 供用户**选择**主题；
+#      ViewModel 的 preset 字段是 UI 状态数据；参数透传给上层皮肤与算法。
+#
+# 登记后，门禁把这 17 处标为「已判定」，只对**新增**的 B 类命中告警。
+# ⚠️ 登记表按「文件 + 行号 + 命中串」精确匹配：代码移动或改写会让条目失效，
+#    届时该处会重新出现在待判定列表里（这是有意的 —— 避免豁免被静默沿用）。
+IDENTITY_REVIEWED = {
+    # 1) 结构差异：三主题不同 Composable 实现
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 250, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 251, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 252, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 432, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 433, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 434, "AppThemePreset."),
+    # 2) 取数据：主题名称文案
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/feedback/FeedbackScreen.kt", 197, "LocalThemePreset"),
+    # 3) 算法参数：色块条带/实底策略
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/components/CourseBlock.kt", 125, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/components/CourseBlockColorUtil.kt", 82, "AppThemePreset."),
+    # 4) 枚举遍历 / 数据模型 / 参数透传
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/appearance/AppearanceSettingsScreen.kt", 532, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 44, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 138, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/WeeklyScheduleScreen.kt", 1284, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/coursemanagement/CourseInstanceListScreen.kt", 248, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 216, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 379, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 1865, "LocalThemePreset"),
+}
+
 
 def iter_kt(base: Path, exclude: Path | None = None):
     for p in sorted(base.rglob("*.kt")):
@@ -81,8 +122,14 @@ def _classify(line: str):
 
 
 def c1_theme_leak():
-    """返回 (branch, identity, mentions)。import / 注释行单独归类，不计入违规。"""
-    branch, identity, mentions = [], [], []
+    """返回 (branch, identity, mentions, reviewed)。
+
+    - branch   : A 类主题分支（硬指标，必须为 0）
+    - identity : B 类主题身份直引中**尚未登记**的（需人工判定）
+    - mentions : 注释/文档里的提及（不计）
+    - reviewed : B 类中**已在 IDENTITY_REVIEWED 登记**的（已判定为合法，仅展示）
+    """
+    branch, identity, mentions, reviewed = [], [], [], []
     for path in iter_kt(UI_DIR, exclude=THEME_DIR):
         rel = path.relative_to(ROOT).as_posix()
         for i, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -97,9 +144,11 @@ def c1_theme_leak():
                 mentions.append(rec)
             elif kind == "branch":
                 branch.append(rec)
+            elif (rel, i, tok) in IDENTITY_REVIEWED:
+                reviewed.append(rec)
             else:
                 identity.append(rec)
-    return branch, identity, mentions
+    return branch, identity, mentions, reviewed
 
 
 # ---------------------------------------------------------------- C2 色调映射单射性
@@ -270,7 +319,7 @@ def count_scanned_kt() -> int:
 
 
 def compute_metrics():
-    branch, identity, mentions = c1_theme_leak()
+    branch, identity, mentions, reviewed = c1_theme_leak()
     tone = c2_tone_injectivity()
     role_name, role_n = role_enum_size()
     outline = c3_token_explicit()
@@ -285,11 +334,14 @@ def compute_metrics():
         # 提示项（不参与门禁）
         "c1_identity": len(identity),
         "c1_comment": len(mentions),
+        # 已登记并判定为合法的 B 类（仅展示，不参与任何门禁）
+        "c1_identity_reviewed": len(reviewed),
     }
     m["total"] = m["c1_branch"] + m["c2_collapse"] + m["c3_missing"] + m["c4_patch"]
     m["scanned"] = count_scanned_kt()
     data = {
         "branch": branch, "identity": identity, "mentions": mentions,
+        "reviewed": reviewed,
         "tone": tone, "role_name": role_name, "role_n": role_n,
         "outline": outline, "patch": patch,
     }
@@ -466,17 +518,30 @@ def main() -> int:
     else:
         p("✅ 无违规。")
     p("")
-    p(f"**B 类 · 主题身份直引（提示项，需人工判定）：{len(identity)} 处**")
+    reviewed = d["reviewed"]
+    p(f"**B 类 · 主题身份直引（提示项）：待判定 {len(identity)} 处 / 已判定登记 {len(reviewed)} 处**")
     p("")
     if identity:
+        p("⚠️ 以下为**尚未判定**的命中 —— 逐条确认是「取数据 / 算法参数 / 结构差异」（合法）"
+          "还是「漏了 token」（违规）；判定为合法后登记进 `IDENTITY_REVIEWED`：")
+        p("")
         p("| 文件:行 | 命中 | 代码 |")
         p("| --- | --- | --- |")
         for rel, line, tok, _note, src in identity:
             safe = src.replace("|", "\\|")
             p(f"| `{rel}:{line}` | `{tok}` | `{safe[:70]}` |")
     else:
-        p("无。")
+        p("✅ 无待判定项。")
     p("")
+    if reviewed:
+        p(f"已登记（判定为合法的架构性用法，不参与门禁）：{len(reviewed)} 处")
+        p("")
+        p("| 文件:行 | 命中 | 代码 |")
+        p("| --- | --- | --- |")
+        for rel, line, tok, _note, src in reviewed:
+            safe = src.replace("|", "\\|")
+            p(f"| `{rel}:{line}` | `{tok}` | `{safe[:70]}` |")
+        p("")
     if mentions:
         p(f"（另有注释/文档提及 {len(mentions)} 处，不计入。）")
         p("")
