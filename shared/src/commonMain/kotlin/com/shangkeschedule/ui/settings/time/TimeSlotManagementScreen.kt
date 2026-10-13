@@ -83,6 +83,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.claudeDisplaySerif
@@ -636,7 +637,7 @@ fun SchemeSelector(
                         text = displayName(currentSchemeId),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = appType().captionWeight
                         ),
                         color = appColors().textPrimary
                     )
@@ -881,7 +882,7 @@ private fun DurationNumberField(
             text = label,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary
         )
@@ -893,7 +894,7 @@ private fun DurationNumberField(
             textStyle = TextStyle(
                 fontFamily = claudeDisplaySerif(),
                 fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 lineHeight = 26.sp,
                 color = if (isFocused) colors.primary else colors.textPrimary
             ),
@@ -939,7 +940,7 @@ fun TimeSlotItem(
                         text = stringResource(Res.string.time_slot_section_number, timeSlot.number.toString()),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textPrimary,
                         maxLines = 1
@@ -1046,7 +1047,7 @@ private fun RestoreDefaultButton(
             text = stringResource(Res.string.action_restore_default),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.primary
         )
@@ -1390,7 +1391,7 @@ fun AutoSwitchToggle(
                         text = itemTitle,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = appType().captionWeight
                         ),
                         color = colors.textPrimary
                     )

@@ -207,7 +207,7 @@ fun TelegramMenuItem(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
-            fontWeight = FontWeight.Medium,
+            fontWeight = appType().captionWeight,
             color = if (danger) tokens.danger else tokens.textPrimary,
             modifier = Modifier.padding(start = 14.dp)
         )
@@ -425,7 +425,7 @@ fun AppRadioRow(
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
-                fontWeight = FontWeight.Medium,
+                fontWeight = appType().captionWeight,
                 color = tokens.textPrimary
             )
             if (subtitle != null) {
@@ -588,7 +588,7 @@ fun AppSegmentedControl(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = if (selected) FontWeight.Bold else appType().captionWeight,
                         color = animatedTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -716,7 +716,7 @@ fun AppDialogActions(
                 Text(
                     dismissText,
                     color = tokens.textSecondary,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = appType().captionWeight
                 )
             }
         }

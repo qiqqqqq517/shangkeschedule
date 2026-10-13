@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shangkeschedule.shared.generated.resources.Res
@@ -88,7 +89,7 @@ fun AcknowledgmentContent() {
             Text(
                 text = stringResource(Res.string.label_special_thanks),
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             )
         }
         Text(

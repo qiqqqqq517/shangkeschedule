@@ -1138,7 +1138,7 @@ fun WebViewScreen(
                                             text = stringResource(Res.string.item_devtools_debug),
                                             modifier = Modifier.padding(start = 14.dp),
                                             style = MaterialTheme.typography.bodyLarge.copy(fontSize = appType().body),
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = appType().captionWeight,
                                             color = appColors().textPrimary
                                         )
                                     }

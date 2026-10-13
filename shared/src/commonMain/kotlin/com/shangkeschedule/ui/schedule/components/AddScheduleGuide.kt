@@ -29,6 +29,7 @@ import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.ia5_other_ways
@@ -102,7 +103,7 @@ fun AddScheduleGuide(
                             text = "${index + 1}",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.primary,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = appType().captionWeight
                         )
                     }
                     Spacer(Modifier.size(4.dp))

@@ -266,7 +266,7 @@ internal fun SettingCard(
 ) {
     val effectiveTitleStyle = titleStyle ?: MaterialTheme.typography.titleMedium.copy(
         fontSize = appType().rowTitle,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = appType().titleWeight,
         color = appColors().textPrimary
     )
     AppCard(modifier = modifier.fillMaxWidth()) {

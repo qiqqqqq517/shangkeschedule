@@ -57,6 +57,7 @@ import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appScheduleHighlight
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.softFeatherRim
 import kotlin.math.roundToInt
 import kotlinx.datetime.TimeZone
@@ -205,7 +206,7 @@ fun DayHeader(
                     Text(
                         text = currentYear,
                         fontSize = AppTypeGrid.timeLabel,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = appType().titleWeight,
                         color = subTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -217,7 +218,7 @@ fun DayHeader(
                         Text(
                             text = currentWeek,
                             fontSize = AppTypeGrid.timeSmall,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             color = subTextColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -451,7 +452,7 @@ fun TimeColumn(
                         Text(
                             text = formatHourStr,
                             fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.timeLabel,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = appType().captionWeight,
                             color = slotTextColor
                         )
                     } else {

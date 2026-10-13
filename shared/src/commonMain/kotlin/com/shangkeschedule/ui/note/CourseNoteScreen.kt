@@ -61,6 +61,7 @@ import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -242,7 +243,7 @@ fun CourseNoteScreen(
             item(key = "course-name") {
                 Text(
                     text = courseName,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = appType().titleWeight),
                     color = colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(spacing.listGap))
@@ -309,7 +310,7 @@ fun CourseNoteScreen(
             ) {
                 Text(
                     text = if (editorNoteId == null) textNew else textEdit,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = appType().titleWeight),
                     color = colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -486,7 +487,7 @@ private fun NoteCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = note.title,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = appType().titleWeight),
                         color = colors.textPrimary
                     )
                 }

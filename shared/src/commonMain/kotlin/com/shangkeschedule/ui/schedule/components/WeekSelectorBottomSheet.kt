@@ -77,7 +77,7 @@ fun WeekSelectorBottomSheet(
                 text = stringResource(Res.string.title_select_week),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = appType().sectionTitle,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = appType().titleWeight
                 ),
                 modifier = Modifier.padding(appSpacing().cardInner)
             )

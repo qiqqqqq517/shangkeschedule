@@ -52,6 +52,7 @@ import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -226,7 +227,7 @@ fun ProfileInfoScreen(
                     text = displayName,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = appType().titleWeight
                     ),
                     color = appColors().textPrimary,
                     maxLines = 1,
@@ -248,7 +249,7 @@ fun ProfileInfoScreen(
                     text = stringResource(Res.string.profile_change_avatar),
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = appType().captionWeight
                     ),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
@@ -394,7 +395,7 @@ private fun ProfileGroupLabel(text: String) {
         text = text,
         style = MaterialTheme.typography.bodySmall.copy(
             fontSize = 13.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = appType().captionWeight
         ),
         color = appColors().textSecondary,
         modifier = Modifier

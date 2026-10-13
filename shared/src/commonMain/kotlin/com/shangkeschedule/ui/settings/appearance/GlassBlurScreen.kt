@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.appearance
+package com.shangkeschedule.ui.settings.appearance
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppTopAppBar
@@ -55,9 +55,10 @@ import com.shangkeschedule.ui.settings.style.StyleSliderItem
 import com.shangkeschedule.ui.theme.AccentTone
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.LiquidGlass
 import com.shangkeschedule.ui.theme.LiquidGlassBlurRadius
 import com.shangkeschedule.ui.theme.appColors
-import com.shangkeschedule.ui.theme.LiquidGlass
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -327,7 +328,7 @@ private fun GlassRefractionToggleRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = appType().titleWeight
                 )
                 if (desc != null) {
                     Text(

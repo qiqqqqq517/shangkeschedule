@@ -77,6 +77,7 @@ import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.content_copy_24px
 import shangkeschedule.shared.generated.resources.delete_24px
 import com.shangkeschedule.ui.theme.appIconSize
+import com.shangkeschedule.ui.theme.appType
 import shangkeschedule.shared.generated.resources.grade_action_add
 import shangkeschedule.shared.generated.resources.grade_action_clear
 import shangkeschedule.shared.generated.resources.grade_action_import
@@ -709,7 +710,7 @@ private fun GradeRow(
                 Text(
                     text = grade.scoreText ?: noneText,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     color = tokens.primary
                 )
                 Text(

@@ -443,7 +443,7 @@ fun WeeklyScheduleScreen(
                                 Text(
                                     text = displayTitle,
                                     style = MaterialTheme.typography.titleMedium.copy(fontSize = appType().sectionTitle),
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = appType().titleWeight,
                                     color = customTextColor
                                 )
                                 Icon(

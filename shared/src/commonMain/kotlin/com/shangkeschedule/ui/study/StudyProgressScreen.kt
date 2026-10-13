@@ -65,6 +65,7 @@ import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -556,7 +557,7 @@ private fun StudyOverviewCard(
                         requiredText
                     ),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     color = tokens.textPrimary
                 )
                 Spacer(modifier = Modifier.weight(1f))

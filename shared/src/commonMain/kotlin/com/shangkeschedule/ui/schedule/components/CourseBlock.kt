@@ -47,6 +47,7 @@ import com.shangkeschedule.ui.theme.appCourseBlock
 import com.shangkeschedule.ui.theme.CourseBlockBorder
 import com.shangkeschedule.ui.theme.CourseBlockPalette
 import com.shangkeschedule.ui.theme.CourseBlockShadow
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.softFeatherRim
 import com.shangkeschedule.ui.theme.softShadow
 
@@ -274,7 +275,7 @@ fun CourseBlock(
                     text = timeTextToShow,
                     fontSize = metaFontSize,
                     color = presetRender.textColor.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     textAlign = textAlign,
                     style = TextStyle(lineHeight = 1.em)
                 )

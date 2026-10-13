@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.theme.appSpacing
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appShapes
+import com.shangkeschedule.ui.theme.appType
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
@@ -297,7 +298,7 @@ fun CourseTablePickerCard(
                             )
                             Text(
                                 text = stringResource(Res.string.couple_badge),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
                                 color = appColors().danger
                             )
                         }

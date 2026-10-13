@@ -7,6 +7,27 @@
 
 ## 最新版本
 
+### v4.78.9（2026-10-13）· 字重收口全站完成（组件层 SemiBold / Medium 清零）
+
+#### 外观
+
+- **组件层硬编码字重收口完成**（设计规范 R9：组件层不得硬编码 `FontWeight`，须读 `appType()` 语义角色）。本轮把剩余 **16 处 `FontWeight.SemiBold` 与 18 处 `FontWeight.Medium`** 全部改为 `appType().titleWeight` / `appType().captionWeight`，涉及 **18 个文件**：
+  - 组件层：`NavigationComponents`（底部导航选中态）、`StyleComponents`（列表行 / 分段控件）、`CourseTablePickerDialog`、`AlphabetIndexerList`；
+  - 课表侧：`WeeklyScheduleScreen`、`CourseBlock`、`ScheduleGridComponents`、`WeekSelectorBottomSheet`、`AddScheduleGuide`；
+  - 设置侧：`SettingsScreen`、`TimeSlotManagementScreen`（6 处）、`AnimationSettingsScreen`、`GlassBlurScreen`、`ProfileInfoScreen`、`MoreOptionsComponents`；
+  - 其他：`GradeScreen`、`CourseNoteScreen`、`StudyProgressScreen`、`WebViewScreen`。
+- **收口后的组件层字重现状**：`SemiBold` 与 `Medium` **均为 0 处**；仅剩 `FontWeight.Bold` 58 处与 `FontWeight.Normal` 6 处。两者**按设计保留**：
+  - `Bold` 属**强调位**（页面主标题、主行动按钮、选中态强调），token 未设 Bold 角色，强行映射会削弱层级；
+  - `Normal` 与 `bodyWeight` 三主题取值相同（均为 Normal），替换为恒等操作，无实际收益。
+- **条件式同步改为角色对**：`if (isSelected) Bold else Medium` 一类写法中的 `Medium` 分支改读 `captionWeight`，保留选中态语义（`Bold` 分支不动）。
+- 三主题身份一致生效：通透 / 书卷 `titleWeight = SemiBold`（与迁移前同值，视觉零变化），柔绘 `titleWeight = Medium`（其「轻字重」身份）。
+
+#### 构建
+
+- versionCode 556，versionName 4.78.9。
+- 编译通过（`:shared:compileKotlinJvm`）；主题泄漏 / 无障碍语义 / 字体缩放 / 小组件对比度四道门禁全绿。
+- **零回归证据**：通透今日页离屏渲染与 v4.78.7 发布版**逐字节一致**（本批改动不含今日页）；柔绘与书卷今日页同样逐字节一致。
+
 ### v4.78.8（2026-10-13）· 同页卡片等高（固定槽位），字重收口扩至日程与设置页
 
 #### 修复

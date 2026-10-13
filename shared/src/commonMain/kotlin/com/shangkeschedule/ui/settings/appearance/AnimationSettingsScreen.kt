@@ -39,6 +39,7 @@ import com.shangkeschedule.ui.theme.AnimationStyle
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -300,7 +301,7 @@ private fun MotionGroupToggle(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = appType().titleWeight
                 )
                 Text(
                     text = desc,
