@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -136,7 +137,7 @@ fun TextFileImportScreen(
                 Text(
                     text = stringResource(Res.string.import_selected_fmt, name),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = appType().emphasisWeight
                 )
             }
 

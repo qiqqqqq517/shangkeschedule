@@ -606,7 +606,7 @@ private fun SummaryStat(
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = tokens.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

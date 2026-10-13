@@ -335,7 +335,9 @@ internal val iosTypeTokens = AppTypeTokens(
     // 字重语义（批 1 新增）：标题 SemiBold（SF Display 口径）、正文 Normal、辅助 Medium
     titleWeight = FontWeight.SemiBold,
     bodyWeight = FontWeight.Normal,
-    captionWeight = FontWeight.Medium
+    captionWeight = FontWeight.Medium,
+    // 强调字重：三主题同值 Bold（通透沿用 SF 的强调口径）
+    emphasisWeight = FontWeight.Bold
 )
 
 /** 通透图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24，与 `touchMin` 命中区解耦。 */

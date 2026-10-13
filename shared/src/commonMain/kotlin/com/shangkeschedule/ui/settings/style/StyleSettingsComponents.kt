@@ -88,6 +88,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.schedule.MergedCourseBlock
 import com.shangkeschedule.ui.schedule.WeeklyScheduleUiState
@@ -680,7 +681,7 @@ fun StyleSliderItem(
                         text = formatValue(value),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = appType().emphasisWeight
                     )
                 }
             }
@@ -1050,7 +1051,7 @@ fun ColorPickerItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(text = label, style = MaterialTheme.typography.titleLarge, fontWeight = appType().emphasisWeight)
 
                     TextButton(onClick = {
                         onReset()

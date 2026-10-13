@@ -297,7 +297,7 @@ fun CourseBlock(
             Text(
                 text = course.name,
                 fontSize = nameFontSize,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 color = presetRender.textColor,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = nameMaxLines,

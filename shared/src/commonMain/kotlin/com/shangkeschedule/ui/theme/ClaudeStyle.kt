@@ -340,7 +340,9 @@ val claudeTypeTokens: AppTypeTokens = AppTypeTokens(
     // 字重语义（批 1 新增）：标题 SemiBold（衬线标题需有分量）、正文 Normal、辅助 Medium
     titleWeight = FontWeight.SemiBold,
     bodyWeight = FontWeight.Normal,
-    captionWeight = FontWeight.Medium
+    captionWeight = FontWeight.Medium,
+    // 强调字重：三主题同值 Bold（书卷衬线在 Bold 下仍有足够字面差异）
+    emphasisWeight = FontWeight.Bold
 )
 
 /** 书卷图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24。 */

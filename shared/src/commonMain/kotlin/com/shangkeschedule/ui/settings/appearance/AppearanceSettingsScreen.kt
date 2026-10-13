@@ -67,6 +67,7 @@ import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SettingCard
 import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.theme.AccentTone
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.settings.style.ScheduleGridContent
 import com.shangkeschedule.ui.settings.style.LocalSettingsScrollState
 import com.shangkeschedule.ui.settings.style.SettingsListContent
@@ -511,7 +512,7 @@ private fun AppearanceSectionHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Bold,
+        fontWeight = appType().emphasisWeight,
         modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
     )
 }
@@ -548,7 +549,7 @@ private fun AppearancePresetSelector(
                     Text(
                         text = stringResource(preset.labelRes),
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (selected) appType().emphasisWeight else appType().bodyWeight,
                         maxLines = 1
                     )
                     Text(

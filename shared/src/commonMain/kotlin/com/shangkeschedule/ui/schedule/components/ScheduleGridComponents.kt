@@ -274,7 +274,7 @@ fun DayHeader(
                             Text(
                                 text = day,
                                 fontSize = AppTypeGrid.dayHeader,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = appType().emphasisWeight,
                                 // 壁纸模式下所有表头文字统一跟随 textColor（黑/白自动切换）——
                                 // 「今天」列原先用固定主色，会在同一天同一行里与其它列不一致；
                                 // 今天的标识仍由该列的淡底 + 加粗承担。
@@ -292,7 +292,7 @@ fun DayHeader(
                                     text = dates[index],
                                     fontSize = AppTypeGrid.timeSmall,
                                     color = subTextColor,
-                                    fontWeight = FontWeight.Normal,
+                                    fontWeight = appType().bodyWeight,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     style = TextStyle(
@@ -434,7 +434,7 @@ fun TimeColumn(
                         Text(
                             text = ":$activeDragMinuteStr",
                             fontSize = if (h < 32.dp) AppTypeGrid.timeCompact else AppTypeGrid.timeLabel,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = appType().emphasisWeight,
                             color = textColor
                         )
                     }

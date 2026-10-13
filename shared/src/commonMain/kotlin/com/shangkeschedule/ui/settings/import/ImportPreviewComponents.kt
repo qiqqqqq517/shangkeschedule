@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 
 import androidx.compose.material3.IconButton
 import org.jetbrains.compose.resources.vectorResource
@@ -119,7 +120,7 @@ internal fun ImportPreviewSection(
                             Text(
                                 text = course.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = appType().emphasisWeight
                             )
                             Text(
                                 text = stringResource(

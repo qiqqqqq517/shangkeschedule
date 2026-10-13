@@ -225,7 +225,7 @@ fun GlassBlurScreen(
                 text = stringResource(Res.string.glass_refraction_title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 modifier = Modifier.padding(start = 4.dp)
             )
             Text(
@@ -382,7 +382,7 @@ private fun GlassRefractionPresetRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (selected) appType().emphasisWeight else appType().bodyWeight,
                     color = if (selected) selectedColor else appColors().textSecondary,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                 )
@@ -533,7 +533,7 @@ private fun DemoCourseBlock(title: String, subtitle: String, bg: Color, fg: Colo
         Text(
             text = title,
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = fg,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -569,7 +569,7 @@ private fun DemoNavItem(icon: ImageVector, label: String, selected: Boolean) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (selected) appType().emphasisWeight else appType().bodyWeight,
             color = if (selected) tokens.textPrimary else tokens.textSecondary
         )
     }
@@ -603,7 +603,7 @@ private fun GlassPresetRow(currentDp: Float, onSelect: (Float) -> Unit) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (selected) appType().emphasisWeight else appType().bodyWeight,
                     color = if (selected) selectedColor else appColors().textSecondary,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                 )

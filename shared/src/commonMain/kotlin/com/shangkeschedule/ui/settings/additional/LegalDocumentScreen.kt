@@ -32,6 +32,7 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -193,7 +194,7 @@ private fun MarkdownBlock(line: String) {
             Text(
                 text = trimmed.removePrefix("## "),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 color = tokens.textPrimary,
                 modifier = Modifier.padding(top = 14.dp, bottom = 6.dp)
             )
@@ -203,7 +204,7 @@ private fun MarkdownBlock(line: String) {
             Text(
                 text = trimmed.removePrefix("# "),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 color = tokens.textPrimary,
                 modifier = Modifier.padding(bottom = 8.dp)
             )

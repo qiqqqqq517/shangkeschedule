@@ -261,7 +261,7 @@ fun AdaptiveNavigationScaffold(
                                 Text(
                                     text = item.label,
                                     fontSize = railTextSize,
-                                    fontWeight = if (isSelected) FontWeight.Bold else appType().captionWeight,
+                                    fontWeight = if (isSelected) appType().emphasisWeight else appType().captionWeight,
                                     color = itemColor,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -697,7 +697,7 @@ private fun LegacyGlassBottomBar(
                     Text(
                         text = item.label,
                         fontSize = if (isSelected) appType().hint else appType().badge,
-                        fontWeight = if (isSelected) FontWeight.Bold else appType().captionWeight,
+                        fontWeight = if (isSelected) appType().emphasisWeight else appType().captionWeight,
                         color = animatedItemColor,
                         maxLines = 1,
                         softWrap = false,

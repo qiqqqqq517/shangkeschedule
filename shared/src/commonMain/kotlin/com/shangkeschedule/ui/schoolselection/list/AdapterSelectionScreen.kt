@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.components.AppEmptyState
 import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 
 import androidx.compose.foundation.layout.Arrangement
@@ -268,7 +269,7 @@ fun AdapterCard(
                 Text(
                     text = adapter.adapter_name,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

@@ -29,6 +29,7 @@ import com.shangkeschedule.ui.components.AppRadioIndicator
 import com.shangkeschedule.ui.settings.SettingsViewModel
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -146,7 +147,7 @@ private fun NextCardModeCard(
                 Text(
                     text = stringResource(labelRes),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = appType().emphasisWeight
                 )
                 Text(
                     text = stringResource(descRes),

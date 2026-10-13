@@ -31,6 +31,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -104,7 +105,7 @@ fun CourseSchemeCard(
                             unfocusedIndicatorColor = Color.Transparent
                         ),
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = appType().emphasisWeight)
                     )
 
                     Text(stringResource(Res.string.label_custom_time), style = MaterialTheme.typography.labelSmall)

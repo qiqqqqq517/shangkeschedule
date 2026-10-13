@@ -123,7 +123,7 @@ fun WeekSelectorBottomSheet(
                         Text(
                             text = "$weekNumber",
                             color = textColor,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = appType().emphasisWeight
                         )
                     }
                 }

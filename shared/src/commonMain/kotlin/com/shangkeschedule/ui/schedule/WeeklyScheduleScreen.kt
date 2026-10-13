@@ -1223,7 +1223,7 @@ private fun ScheduleListView(
                     Text(
                         text = weekDays.getOrNull((day - 1).coerceAtLeast(0)).orEmpty(),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = appType().emphasisWeight,
                         color = pageTextColor
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1372,7 +1372,7 @@ private fun ScheduleListViewBlock(
                 Text(
                     text = course.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     color = textColor
                 )
 

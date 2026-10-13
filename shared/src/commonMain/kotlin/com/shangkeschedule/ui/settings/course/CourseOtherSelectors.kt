@@ -55,6 +55,7 @@ import dev.chrisbanes.haze.HazeState
 import com.shangkeschedule.ui.theme.LocalIsDarkTheme
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -91,12 +92,12 @@ fun WeekSection(
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
             if (selectedWeeks.isEmpty()) {
-                Text(text = noneSelected, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(text = noneSelected, style = MaterialTheme.typography.bodyMedium, fontWeight = appType().emphasisWeight)
             } else {
                 Text(
                     text = stringResource(Res.string.text_weeks_selected, selectedWeeks.sorted().joinToString(", ")),
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     lineHeight = 16.sp
                 )
             }
@@ -120,7 +121,7 @@ fun TimeSection(
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = dayName, style = MaterialTheme.typography.labelSmall, color = appColors().primary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = timeDesc, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(text = timeDesc, style = MaterialTheme.typography.bodyMedium, fontWeight = appType().emphasisWeight)
         }
     }
 }

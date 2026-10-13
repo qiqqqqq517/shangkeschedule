@@ -245,7 +245,7 @@ fun AppBadge(
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = appType().badge),
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = tokens.badgeFg,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -588,7 +588,7 @@ fun AppSegmentedControl(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (selected) FontWeight.Bold else appType().captionWeight,
+                        fontWeight = if (selected) appType().emphasisWeight else appType().captionWeight,
                         color = animatedTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -734,7 +734,7 @@ fun AppDialogActions(
                 disabledContentColor = Color.White
             )
         ) {
-            Text(confirmText, fontWeight = FontWeight.Bold)
+            Text(confirmText, fontWeight = appType().emphasisWeight)
         }
     }
 }

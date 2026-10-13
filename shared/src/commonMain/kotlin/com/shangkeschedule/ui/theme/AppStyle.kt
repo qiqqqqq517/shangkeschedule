@@ -455,7 +455,16 @@ data class AppTypeTokens(
     /** 正文字重（常规 Normal）。 */
     val bodyWeight: FontWeight,
     /** 辅助文字字重（比正文略重一档，保证小字号下的可读性）。 */
-    val captionWeight: FontWeight
+    val captionWeight: FontWeight,
+    /**
+     * 强调字重（页面主标题、主行动按钮、选中态强调）。
+     *
+     * R9 收口最后一块：`titleWeight` 表达「标题」语义（三主题 SemiBold/Medium 各异），
+     * 而 `Bold` 表达的是**比标题更强的强调**（如当前选中项、主按钮文案、日期数字），
+     * 二者语义不同，故独立成角色。三主题当前同值 `Bold`；独立成 token 后，
+     * 若将来某主题想弱化强调（如柔绘改为 SemiBold），改 token 即可全站生效。
+     */
+    val emphasisWeight: FontWeight
 )
 
 // ============================================================================

@@ -349,7 +349,10 @@ internal val softTypeTokens = AppTypeTokens(
     // 正文 Normal、辅助 Medium。这是柔绘「低对比柔和」的既定身份，不做跨主题统一。
     titleWeight = FontWeight.Medium,
     bodyWeight = FontWeight.Normal,
-    captionWeight = FontWeight.Medium
+    captionWeight = FontWeight.Medium,
+    // 强调字重：与其余两主题同值 Bold（柔绘的「轻」由 titleWeight 承担，
+    // 强调位仍需足够对比以保住层级，不随身份一并弱化）
+    emphasisWeight = FontWeight.Bold
 )
 
 /** 柔绘图标尺寸 tokens（批 1 新增）：三档 16 / 20 / 24，与书卷 / 通透同值。 */

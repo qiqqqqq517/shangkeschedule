@@ -4,6 +4,7 @@ import com.shangkeschedule.ui.theme.appShapes
 
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -184,7 +185,7 @@ fun AdvancedColorPicker(
                     text = if (isInputMode) stringResource(Res.string.color_picker_title_precise)
                     else stringResource(Res.string.color_picker_title_edit),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = appType().emphasisWeight
                 )
                 Text(
                     text = if (isInputMode) stringResource(Res.string.color_picker_mode_input)
@@ -248,7 +249,7 @@ fun AdvancedColorPicker(
             Spacer(modifier = Modifier.height(appSpacing().sectionGap))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Surface(color = appColors().primarySoft, shape = MaterialTheme.shapes.small) {
-                    Text(text = ColorInternalUtils.colorToHex(currentColor), modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(text = ColorInternalUtils.colorToHex(currentColor), modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall, fontWeight = appType().emphasisWeight)
                 }
             }
         }
@@ -372,6 +373,6 @@ private fun RgbInputField(
 private fun ColorLabel(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = appColors().textSecondary)
-        Text(value, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.labelSmall, fontWeight = appType().emphasisWeight)
     }
 }

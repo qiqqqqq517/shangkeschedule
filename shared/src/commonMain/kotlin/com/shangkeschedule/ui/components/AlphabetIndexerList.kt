@@ -130,7 +130,7 @@ fun <T> AlphabetIndexerList(
                             text = initial,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = appType().badge,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = appType().emphasisWeight
                             ),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 4.dp)
@@ -153,7 +153,7 @@ private fun DefaultAlphabetHeader(initial: String) {
         Text(
             text = initial,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = MaterialTheme.colorScheme.primary
         )
     }

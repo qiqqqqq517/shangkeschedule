@@ -60,6 +60,7 @@ import com.shangkeschedule.ui.components.DateRangePickerModal
 import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import org.jetbrains.compose.resources.stringArrayResource
@@ -274,7 +275,7 @@ fun QuickDeleteScreen(
                     else stringResource(Res.string.hint_no_selection),
                     color = if (count > 0) appColors().danger else appColors().textSecondary,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -448,7 +449,7 @@ fun DeletePreviewCard(
                     text = course.name,
                     style = MaterialTheme.typography.titleSmall,
                     color = appColors().danger,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = appType().emphasisWeight
                 )
 
                 val weekText = stringResource(Res.string.title_current_week, targetWeek.toString())

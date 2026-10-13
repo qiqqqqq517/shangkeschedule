@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.components.AppTopAppBar
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.stringResource
@@ -133,7 +134,7 @@ fun JsonFileImportScreen(
             Text(
                 text = stringResource(Res.string.import_json_step1),
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = appType().emphasisWeight
             )
             Spacer(modifier = Modifier.height(appSpacing().listGap))
             OutlinedButton(
@@ -150,7 +151,7 @@ fun JsonFileImportScreen(
             Text(
                 text = stringResource(Res.string.import_json_step2),
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = appType().emphasisWeight
             )
             Spacer(modifier = Modifier.height(appSpacing().listGap))
             Button(

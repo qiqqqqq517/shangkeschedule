@@ -832,7 +832,7 @@ private fun AgendaDateRailCell(
         Text(
             text = cell.date.day.toString(),
             fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = numberColor
         )
         Spacer(modifier = Modifier.height(1.dp))
@@ -964,7 +964,7 @@ private fun RowScope.AgendaMonthDayCell(
         Text(
             text = cell.date.day.toString(),
             fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = numberColor
         )
         Spacer(modifier = Modifier.height(1.dp))
@@ -1032,7 +1032,7 @@ private fun AgendaMonthPickerSheet(
                 Text(
                     text = stringResource(Res.string.agenda_select_month),
                     fontSize = type.sectionTitle,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     color = tokens.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
@@ -1065,7 +1065,7 @@ private fun AgendaMonthPickerSheet(
                 Text(
                     text = stringResource(Res.string.agenda_year_format, year),
                     fontSize = type.pageTitle,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     color = tokens.textPrimary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
@@ -1184,7 +1184,7 @@ private fun AgendaDayHeader(
                 weekFullNames.getOrNull(state.selectedDate.dayOfWeek.isoDayNumber - 1).orEmpty()
             ),
             fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = appType().emphasisWeight,
             color = tokens.textPrimary
         )
         Spacer(modifier = Modifier.weight(1f))
@@ -1322,7 +1322,7 @@ private fun AgendaEntryRow(
                     text = entry.endTime,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal,
+                        fontWeight = appType().bodyWeight,
                         lineHeight = 16.sp
                     ),
                     color = tokens.textSecondary
@@ -1534,7 +1534,7 @@ private fun AgendaCreateSheet(
                 Text(
                     text = stringResource(Res.string.agenda_new_title),
                     fontSize = type.sectionTitle,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     color = tokens.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
@@ -1895,7 +1895,7 @@ private fun AgendaTimePickerDialog(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = appType().emphasisWeight
             )
         },
         text = {

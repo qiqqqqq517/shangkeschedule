@@ -119,7 +119,7 @@ fun AnimationSettingsScreen(
                 text = stringResource(Res.string.refresh_rate_title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 modifier = Modifier.padding(start = 4.dp)
             )
             Text(
@@ -142,7 +142,7 @@ fun AnimationSettingsScreen(
                 text = stringResource(Res.string.anim_section_style),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 modifier = Modifier.padding(start = 4.dp)
             )
             Text(
@@ -166,7 +166,7 @@ fun AnimationSettingsScreen(
                 text = stringResource(Res.string.anim_section_speed),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 modifier = Modifier.padding(start = 4.dp)
             )
             Text(
@@ -189,7 +189,7 @@ fun AnimationSettingsScreen(
                 text = stringResource(Res.string.anim_section_groups),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
+                fontWeight = appType().emphasisWeight,
                 modifier = Modifier.padding(start = 4.dp)
             )
             Text(
@@ -267,7 +267,7 @@ private fun MotionStyleCard(
                 Text(
                     text = stringResource(style.labelRes),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = appType().emphasisWeight
                 )
                 Text(
                     text = stringResource(style.descRes),

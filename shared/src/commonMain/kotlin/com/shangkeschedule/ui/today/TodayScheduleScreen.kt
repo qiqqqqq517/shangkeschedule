@@ -1751,7 +1751,7 @@ private fun TodayNextClassCard(
                     text = data.title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = appType().emphasisWeight,
                         lineHeight = 24.sp,
                         letterSpacing = (-0.01).em
                     ),
@@ -1801,7 +1801,7 @@ private fun TodayNextClassCard(
                             text = data.timeRange,
                             style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = appType().emphasisWeight,
                             lineHeight = 16.sp,
                                 fontFeatureSettings = appType().timeFeature
                             ),
@@ -1818,7 +1818,7 @@ private fun TodayNextClassCard(
                             text = minutesUntil.toString(),
                             style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = appType().emphasisWeight,
                             lineHeight = 22.sp,
                                 letterSpacing = (-0.02).em
                             ),

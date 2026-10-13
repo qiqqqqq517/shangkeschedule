@@ -274,7 +274,7 @@ fun MoreOptionsScreen(
                 Text(
                     text = stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = appType().emphasisWeight,
                     fontSize = appType().hero
                 )
                 Text(

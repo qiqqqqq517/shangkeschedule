@@ -38,6 +38,7 @@ import com.shangkeschedule.ui.theme.LocalAppMotion
 import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appFloating
 import com.shangkeschedule.ui.theme.FloatingSurfaceStyle
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
 import com.shangkeschedule.ui.theme.LiquidGlass
@@ -150,7 +151,7 @@ fun FloatingCourseBar(
                 Column(modifier = Modifier.widthIn(max = 180.dp)) {
                     Text(
                         text = cw.course.name,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = appType().emphasisWeight),
                         color = titleColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
