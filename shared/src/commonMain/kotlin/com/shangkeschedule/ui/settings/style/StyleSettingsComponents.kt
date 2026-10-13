@@ -85,6 +85,7 @@ import com.shangkeschedule.ui.components.AppSegmentedControl
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.components.ColorPickerConfig
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import dev.chrisbanes.haze.HazeState
@@ -1055,7 +1056,7 @@ fun ColorPickerItem(
                         onReset()
                         showSheet = false
                     }) {
-                        Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = null, modifier = Modifier.size(appIconSize().small))
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(Res.string.action_reset))
                     }

@@ -1,4 +1,4 @@
-﻿package com.shangkeschedule.ui.settings.additional
+package com.shangkeschedule.ui.settings.additional
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -81,7 +82,7 @@ fun AcknowledgmentContent() {
                 imageVector = vectorResource(Res.drawable.favorite_24px),
                 contentDescription = null,
                 tint = appColors().textSecondary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(appIconSize().small)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(

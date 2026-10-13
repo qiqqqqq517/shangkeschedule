@@ -3,6 +3,7 @@ package com.shangkeschedule.ui.settings.import
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
 
 import androidx.compose.material3.IconButton
@@ -150,7 +151,7 @@ internal fun ImportPreviewSection(
                                 Icon(
                                     vectorResource(Res.drawable.edit_24px),
                                     contentDescription = stringResource(Res.string.a11y_edit),
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(appIconSize().small),
                                     tint = appColors().textSecondary
                                 )
                             }
@@ -160,7 +161,7 @@ internal fun ImportPreviewSection(
                                 Icon(
                                     vectorResource(Res.drawable.delete_24px),
                                     contentDescription = stringResource(Res.string.a11y_delete),
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(appIconSize().small),
                                     tint = appColors().danger
                                 )
                             }

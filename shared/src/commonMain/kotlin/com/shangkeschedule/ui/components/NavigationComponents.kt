@@ -683,7 +683,7 @@ private fun LegacyGlassBottomBar(
                                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = null,
                                 tint = animatedItemColor,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(appIconSize().medium)
                             )
                         }
                     } else {
@@ -691,7 +691,7 @@ private fun LegacyGlassBottomBar(
                             imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                             contentDescription = null,
                             tint = animatedItemColor,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(appIconSize().medium)
                         )
                     }
                     Text(

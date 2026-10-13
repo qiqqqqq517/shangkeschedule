@@ -80,6 +80,7 @@ import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.theme.appGroupCard
 import com.shangkeschedule.ui.theme.GroupCardStyle
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.iosGlassRim
@@ -652,7 +653,7 @@ fun SchemeSelector(
                     contentDescription = null,
                     tint = appColors().textSecondary,
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(appIconSize().small)
                         .alpha(0.7f)
                 )
             }
@@ -984,7 +985,7 @@ fun TimeSlotItem(
                         imageVector = vectorResource(Res.drawable.delete_24px),
                         contentDescription = a11yDeleteTimeSlot,
                         tint = colors.textSecondary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(appIconSize().small)
                     )
                 }
             }

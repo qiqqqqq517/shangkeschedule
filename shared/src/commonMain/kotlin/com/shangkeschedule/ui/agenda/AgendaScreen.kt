@@ -616,7 +616,7 @@ private fun AgendaDatePanel(
                             imageVector = vectorResource(Res.drawable.more_vert_24px),
                             contentDescription = stringResource(Res.string.item_more_options),
                             tint = tokens.textSecondary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(appIconSize().small)
                         )
                     }
                     DropdownMenu(
@@ -1562,7 +1562,7 @@ private fun AgendaCreateSheet(
                     imageVector = vectorResource(Res.drawable.edit_24px),
                     contentDescription = null,
                     tint = tokens.primary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(appIconSize().small)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(

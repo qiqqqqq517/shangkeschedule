@@ -28,6 +28,7 @@ import com.shangkeschedule.data.model.DualColor
 import com.shangkeschedule.ui.components.AppCard
 import com.shangkeschedule.ui.components.AppTextField
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import org.jetbrains.compose.resources.stringArrayResource
@@ -125,7 +126,7 @@ fun CourseSchemeCard(
                     onValueChange = onPositionChange,
                     placeholder = stringResource(Res.string.label_position),
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(vectorResource(Res.drawable.location_on_24px), null, Modifier.size(18.dp)) },
+                    leadingIcon = { Icon(vectorResource(Res.drawable.location_on_24px), null, Modifier.size(appIconSize().small)) },
                     singleLine = true
                 )
 
@@ -137,7 +138,7 @@ fun CourseSchemeCard(
                     onValueChange = onRemarkChange,
                     placeholder = stringResource(Res.string.label_remark),
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    leadingIcon = { Icon(imageVector = vectorResource(Res.drawable.sticky_note_2_24px), contentDescription = null, modifier = Modifier.size(appIconSize().small)) },
                     // 备注为多行文本：singleLine=false（AppTextField 默认 true，否则会把
                     // minLines/maxLines 覆盖成单行）。minLines=1 使其「有几行显示几行」——
                     // 短备注即一行，长备注自动撑到上限 5 行，避免空备注也占 3 行高度

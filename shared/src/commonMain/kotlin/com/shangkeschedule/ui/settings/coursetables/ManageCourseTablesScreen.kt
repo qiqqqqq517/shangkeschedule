@@ -4,6 +4,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.components.AppAlertDialog
 import com.shangkeschedule.ui.theme.SettingsPageMaxWidth
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.iosGlassRim
@@ -668,7 +669,7 @@ private fun SemesterArchiveHeader(
                     imageVector = vectorResource(Res.drawable.add_24px),
                     contentDescription = a11yNewSemester,
                     tint = colors.textOnPrimary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(appIconSize().small)
                 )
             }
         }
@@ -1828,7 +1829,7 @@ private fun SemesterOptionItem(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconFg,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(appIconSize().small)
             )
         }
         Column(modifier = Modifier.weight(1f)) {

@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schoolselection.web
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.components.ThemedLoadingIndicator
@@ -1131,7 +1132,7 @@ fun WebViewScreen(
                                             imageVector = vectorResource(Res.drawable.build_24px),
                                             contentDescription = stringResource(Res.string.a11y_devtools),
                                             tint = appColors().textSecondary,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(appIconSize().medium)
                                         )
                                         Text(
                                             text = stringResource(Res.string.item_devtools_debug),

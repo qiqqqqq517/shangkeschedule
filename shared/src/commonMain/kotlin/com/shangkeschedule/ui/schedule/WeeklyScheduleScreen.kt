@@ -110,6 +110,7 @@ import com.shangkeschedule.ui.schedule.components.rememberWallpaperLuminance
 import com.shangkeschedule.ui.schedule.components.resolveCourseBlockColors
 import com.shangkeschedule.ui.schedule.components.textColorForWallpaper
 import com.shangkeschedule.ui.theme.AppAlpha
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appType
@@ -1016,7 +1017,7 @@ private fun BackToCurrentWeekFab(
                     imageVector = vectorResource(Res.drawable.calendar_today_24px),
                     contentDescription = stringResource(Res.string.a11y_back_to_current_week),
                     tint = appColors().primary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(appIconSize().medium)
                 )
                 // 点击层独立成内层覆盖 Box：只裁水波纹（圆形扩散），不影响外层玻璃
                 // 向节点外绘制的阴影/高光（父级 clip 会把它们一并裁掉，玻璃钮会变"平"）

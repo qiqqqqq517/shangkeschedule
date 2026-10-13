@@ -65,6 +65,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.getValue
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 import com.shangkeschedule.ui.theme.appSurface
@@ -201,7 +202,7 @@ fun TelegramMenuItem(
             imageVector = icon,
             contentDescription = null,
             tint = tokens.tone(iconTone).fg,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(appIconSize().medium)
         )
         Text(
             text = text,

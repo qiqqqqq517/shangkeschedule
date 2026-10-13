@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schedule.components
 
 import com.shangkeschedule.tool.TimeTextUtils
 import com.shangkeschedule.ui.theme.appColors
+import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
 
@@ -558,7 +559,7 @@ private fun EditableCourseDetailContent(
                             contentDescription = stringResource(
                                 Res.string.today_sheet_delete_occurrence
                             ),
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(appIconSize().small),
                             tint = colors.danger
                         )
                     }
@@ -1024,7 +1025,7 @@ private fun DetailActionRow(
         Icon(
             imageVector = vectorResource(Res.drawable.chevron_right_24px),
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(appIconSize().small),
             tint = colors.textSecondary
         )
     }
