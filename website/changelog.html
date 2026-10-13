@@ -75,8 +75,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.78.4</b></span>
-        <span>versionCode <b class="mono" data-version-code>551</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.78.5</b></span>
+        <span>versionCode <b class="mono" data-version-code>552</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -84,6 +84,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4784">v4.78.4 · 修复深色档主题注入缺陷，三主题色板与字阶重塑</a></li>
         <li><a href="#v4783">v4.78.3 · 日程页课程卡片与今日页统一尺寸</a></li>
         <li><a href="#v4782">v4.78.2 · 三主题深色重点卡配色收口，去除卡片重复节数</a></li>
         <li><a href="#v4781">v4.78.1 · 日程页瘦身与课表卡片收敛，界面细节一轮过</a></li>
@@ -227,6 +228,25 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4784">
+        <div><span class="tl-ver">v4.78.4</span><span class="tl-date">2026-10-13</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>深色模式下「同一屏深浅分裂」</h3>
+          <ul>
+            <li>核心主题实现 <code>ShangKeScheduleTheme(darkTheme, themeMode, themePreset, content)</code> 提供了 20 余个 CompositionLocal，<b>唯独漏注入 <code>LocalIsDarkTheme</code></b>——该事实此前只由外层 settings 重载注入，掩盖了缺口。凡绕过 settings 重载直接调用核心重载的调用方，一律读到默认值 <code>false</code>，于是深色档下「页面底 / 课程卡（读 token）已是深色，而读 <code>LocalIsDarkTheme</code> 的今日页『下一节课』卡仍走浅色分支」。现由核心重载自证深浅档事实。<b>该缺陷同时导致此前所有深色档离屏预览截图实际渲染的是浅色</b>（同一主题的 <code>*_night</code> 与 <code>*_light</code> 产物逐字节相同），深色档视觉回归长期失真。</li>
+            <li><b>书卷深色档「下一节课」卡色调跳脱</b>：渐变原为冷蓝紫 <code>#3A2F5C → #2E2749</code>，在书卷深色暖炭页面底（<code>#262624</code>）上像从别的主题借来。现收为暖炭紫 <code>#3A2C4E → #2B2338</code>，紫色身份保留、与页面同族；卡上圆点由浅色档色值改为深色 token 主色（原值在该渐变上仅 2.89:1，不达图标级 3:1）。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-ui">外观</span>三主题色板对比度收口</h3>
+          <ul>
+            <li>通透浅色绿 <code>#248A3D → #217A38</code>（3.97 → 4.86）、橙 <code>#C66900 → #A85A00</code>（3.51 → 4.61）；柔绘浅色危险色 <code>#B45353 → #AD5050</code>（4.25 → 4.67）；书卷浅色图表紫、琥珀色与深色档品牌色 / 图表色 / 错误色逐项校准。全部按 WCAG 2.2 AA（正文 ≥ 4.5:1）实测达标。</li>
+            <li><b>柔绘浅色身份提纯</b>：页面底、卡片底、抬起层与输入底四档重新取值，页面与卡片间形成可辨的「暖雾」层次，与通透的系统灰拉开身份差异。</li>
+            <li><b>同心圆角规则</b>：新增 <code>AppShapeTokens.heroCardInner</code>，按「外圆角 − 内边距」折算（通透 8dp / 柔绘 14dp / 书卷 6dp），保证 hero 卡内嵌元素的嵌套圆角视觉同心。</li>
+            <li><b>时间数字等宽</b>：新增 <code>AppTypeTokens.timeFeature</code>（三主题统一 <code>tnum</code>），今日页时间轴时刻与卡片时间徽标在位数变化（<code>8:00 → 10:00</code>）时不再引起宽度跳变。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4783">
         <div><span class="tl-ver">v4.78.3</span><span class="tl-date">2026-10-13</span></div>
@@ -1969,7 +1989,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.78.4</span>
+        下载 <span class="mono" data-version>v4.78.5</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>

@@ -104,35 +104,77 @@ def c1_theme_leak():
 
 # ---------------------------------------------------------------- C2 色调映射单射性
 
+# 映射函数形态（2026-10-13 修复）：代码已从「扩展函数返回色调枚举」
+# （\`fun SettingsEntryTone.toClaudeTone(): ClaudeCellTone = when (this) { ... }\`）重构为
+# 「按主题取色对」（\`fun claudeSettingsToneColors(tone: SettingsEntryTone): SettingsToneColors { ... }\`），
+# 而旧正则仍按前者匹配 ⇒ **恒定匹配不到任何函数**，C2 表格为空却被算成「硬指标 0」，
+# 属「空比较被算成通过」（项目纪律 2026-10-05 第 23 轮）。现按真实形态重写。
 TONE_FN_RE = re.compile(
-    r"fun\s+(?P<recv>\w+)\.(?P<fn>to\w*Tone)\(\)\s*:\s*(?P<enum>\w+)\s*=\s*when\s*\(this\)\s*\{(?P<body>.*?)\n\}",
-    re.S,
+    r"fun\s+(?P<fn>\w*[Tt]one\w*)\s*\(\s*\w+\s*:\s*(?P<enum>\w+)\s*\)\s*:\s*\w+\s*\{",
 )
-ARROW_RE = re.compile(r"->\s*(?P<enum>\w+)\.(?P<member>\w+)")
+WHEN_TONE_RE = re.compile(r"when\s*\(\s*tone\s*\)\s*\{")
+ROLE_PAIR_RE = re.compile(
+    r"(?P<enum>\w+)\.(?P<role>\w+)\s*->\s*(?P<val>[^\n]*)",
+)
 ROLE_ENUM_RE = re.compile(r"enum class\s+(?P<name>\w*EntryTone|\w*Role\w*)\s*(?:\([^)]*\))?\s*\{(?P<body>[^}]*)\}")
 
 
+def _brace_body(text: str, open_idx: int) -> str:
+    """从 '{' 位置开始做花括号配对，返回内部文本（允许嵌套）。"""
+    depth, i = 0, open_idx
+    while i < len(text):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_idx + 1 : i]
+        i += 1
+    return ""
+
+
 def c2_tone_injectivity():
-    """返回 [(文件, 函数, 角色数, 去重色数, [(角色, 与之撞色的角色, 共用色调)])]"""
+    """返回 [(文件, 函数[档位], 角色数, 去重外观数, [(角色, 与之撞色的角色, 共用外观)])]
+
+    判据（2026-10-13 重写）：同一主题、同一深浅档内，**两个语义角色不得映射到完全
+    相同的外观**（R3 单射性）。外观 = 映射右侧整段表达式归一化后的文本
+    （如 SettingsToneColors(Color(0xFF34C759), Color.White)）；行尾注释先剥离，
+    否则「同色不同注释」会被误判为不撞色。
+    """
     results = []
     for path in iter_kt(UI_DIR):
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(ROOT).as_posix()
         for m in TONE_FN_RE.finditer(text):
-            body = m.group("body")
-            pairs = [(a.group("enum"), a.group("member")) for a in ARROW_RE.finditer(body)]
-            if not pairs:
+            fn, enum = m.group("fn"), m.group("enum")
+            fbody = _brace_body(text, m.end() - 1)
+            if not fbody:
                 continue
-            lefts = [x.group("role") for x in re.finditer(r"^\s*(?:\w+\.)?(?P<role>\w+)\s*->", body, re.M)]
-            roles = lefts if len(lefts) == len(pairs) else [mbr for _, mbr in pairs]
-            used, first, dup = [], {}, []
-            for role, (_, member) in zip(roles, pairs):
-                used.append(member)
-                if member in first:
-                    dup.append((role, first[member], member))
-                else:
-                    first[member] = role
-            results.append((rel, m.group("fn"), len(used), len(set(used)), dup))
+            for wm in WHEN_TONE_RE.finditer(fbody):
+                wbody = _brace_body(fbody, wm.end() - 1)
+                if not wbody:
+                    continue
+                # 档位标签：when (tone) 前 40 字符内出现 isDark 即深色档，否则浅色档
+                head = fbody[max(0, wm.start() - 40) : wm.start()]
+                mode = "dark" if "isDark" in head else "light"
+                pairs = []
+                for pm in ROLE_PAIR_RE.finditer(wbody):
+                    if pm.group("enum") != enum:
+                        continue
+                    val = pm.group("val").split("//")[0]
+                    val = " ".join(val.split())
+                    if val:
+                        pairs.append((pm.group("role"), val))
+                if not pairs:
+                    continue
+                used, first, dup = [], {}, []
+                for role, val in pairs:
+                    used.append(val)
+                    if val in first:
+                        dup.append((role, first[val], val))
+                    else:
+                        first[val] = role
+                results.append((rel, f"{fn}[{mode}]", len(used), len(set(used)), dup))
     return results
 
 

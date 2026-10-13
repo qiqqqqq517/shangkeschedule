@@ -7,6 +7,27 @@
 
 ## 最新版本
 
+### v4.78.5（2026-10-13）· 修复主题门禁 C2 失效，去重三主题设置页色调撞色
+
+#### 修复
+
+- **主题泄漏门禁 C2 检测器失效（空集假绿）**：`scripts/check_theme_leak.py` 的 C2「色调映射单射性」检测器，其正则仍按旧代码形态匹配 `fun SettingsEntryTone.toClaudeTone(): ClaudeCellTone = when (this) { … }`，而该代码早已重构为「按主题取色对」形态 `fun claudeSettingsToneColors(tone: SettingsEntryTone): SettingsToneColors { … }`。正则恒不命中 ⇒ 映射函数集合为空 ⇒ `c2_collapse` 恒为 0，报告表格空白却计入「硬指标违规合计」并显示 0。**门禁输出与「真扫干净」逐字节相同**，把「根本没比」报成「全部一致」。现按真实形态重写检测器（花括号配对取函数体、逐 `when (tone)` 分档、档位由 `isDark` 判定、映射右侧整段表达式归一化并剥离行尾注释），并消除脚本内一处 `SyntaxWarning`。
+- **三主题设置页色调撞色 4 处**（R3 单射性，同一主题档内两个语义角色映射到同一外观 ⇒ 入口身份信息丢失，此前被上述空集掩盖）：
+  - 通透浅色 + 深色：`MATCHA` 原与 `GREEN` 同为 systemGreen、`BROWN` 原与 `GRAY` 同为 systemGray。现 `MATCHA` 改 Apple `systemMint`（浅 `#00C7BE` / 深 `#63E6E2`）、`BROWN` 改 `systemBrown`（浅 `#A2845E` / 深 `#AC8E68`），均为系统色中未被占用的档。
+  - 柔绘浅色 + 深色：`OLIVE` 原与 `GREEN` 同为 SAGE。现拆出独立「苔绿 MOSS」档（浅 `#8C9E5F` / 深 `#AEBE85`）。
+
+#### 外观
+
+- 去重后三主题 × 深浅档共 6 组均为 **10 个角色 / 10 种外观**（原通透 8、柔绘 9）。
+- 去重后可区分性（CIEDE2000 ΔE）：通透浅色最小 **10.3**、深色 **11.0**（`RED/PINK`），达「明显可区分」；柔绘最紧为 `ORANGE/BROWN` 6.7 / 5.3（原有分布，非本次引入）。
+- 柔绘新「苔绿 MOSS」档图标色 / 自身薄涂底实测 2.52（浅）/ 4.56（深），与原 SAGE 的 2.23 / 4.66 基本持平。
+
+#### 构建
+
+- versionCode 552，versionName 4.78.5。
+- 编译通过（`:shared:compileKotlinJvm` / `:desktopApp:compileKotlin`）；主题泄漏门禁硬指标 0（C2 六行全部 10/10 ✅）。
+- **阴性对照**：把 `OLIVE` 改回与 `GREEN` 同色，`--baseline` 门禁实测 exit 1 并点名 `c2_collapse: 0 → 1`；恢复后 exit 0 ⇒ 证明检测器真会拦，非又一次空集假绿。
+
 ### v4.78.4（2026-10-13）· 修复深色档主题注入缺陷，三主题色板与字阶重塑
 
 #### 修复

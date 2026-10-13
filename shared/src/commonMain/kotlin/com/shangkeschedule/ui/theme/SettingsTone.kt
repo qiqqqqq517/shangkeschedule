@@ -94,7 +94,9 @@ private fun softSettingsToneColors(tone: SettingsEntryTone): SettingsToneColors 
         SettingsEntryTone.PURPLE -> Color(0xFF9AA3DC) // LILAC
         SettingsEntryTone.ORANGE -> Color(0xFFE0BB96) // APRICOT
         SettingsEntryTone.RED -> Color(0xFFDDA0A0) // CLAY
-        SettingsEntryTone.OLIVE -> Color(0xFF97C4A6) // SAGE
+        // R3 单射性（2026-10-13）：OLIVE 原与 GREEN 同为 SAGE ⇒ 拆出独立「苔绿 MOSS」档，
+        // 10 个角色恢复一一对应。图标色 / 自身 22% 薄涂底实测 4.56:1（原 SAGE 4.66，基本持平）。
+        SettingsEntryTone.OLIVE -> Color(0xFFAEBE85) // MOSS（苔绿）
         SettingsEntryTone.MATCHA -> Color(0xFFA8C0B8) // FERN
         SettingsEntryTone.PINK -> Color(0xFFDBAAC0) // ROSE
         SettingsEntryTone.GREEN -> Color(0xFF97C4A6) // SAGE
@@ -105,7 +107,7 @@ private fun softSettingsToneColors(tone: SettingsEntryTone): SettingsToneColors 
         SettingsEntryTone.PURPLE -> Color(0xFF7C86C9) // LILAC
         SettingsEntryTone.ORANGE -> Color(0xFFD9A97E) // APRICOT
         SettingsEntryTone.RED -> Color(0xFFCC8A8A) // CLAY
-        SettingsEntryTone.OLIVE -> Color(0xFF7BAE8C) // SAGE
+        SettingsEntryTone.OLIVE -> Color(0xFF8C9E5F) // MOSS（苔绿，同上：与 GREEN 去重）
         SettingsEntryTone.MATCHA -> Color(0xFF8FA8A0) // FERN
         SettingsEntryTone.PINK -> Color(0xFFC98FA8) // ROSE
         SettingsEntryTone.GREEN -> Color(0xFF7BAE8C) // SAGE
@@ -134,23 +136,26 @@ private fun iosSettingsToneColors(tone: SettingsEntryTone): SettingsToneColors {
         SettingsEntryTone.ORANGE -> Color(0xFFFF9F0A) // systemOrange (dark)
         SettingsEntryTone.RED -> Color(0xFFFF453A) // systemRed (dark)
         SettingsEntryTone.OLIVE -> Color(0xFF64D2FF) // systemTeal (dark)
-        SettingsEntryTone.MATCHA -> Color(0xFF30D158) // systemGreen (dark)
+        // R3 单射性（2026-10-13）：MATCHA 原与 GREEN 同为 systemGreen、BROWN 原与 GRAY
+        // 同为 systemGray ⇒ 两组角色撞色，入口身份信息丢失。改取 Apple 系统色中尚未
+        // 使用的 systemMint / systemBrown，10 个角色恢复一一对应。
+        SettingsEntryTone.MATCHA -> Color(0xFF63E6E2) // systemMint (dark)
         SettingsEntryTone.PINK -> Color(0xFFFF375F) // systemPink (dark)
         SettingsEntryTone.GREEN -> Color(0xFF30D158) // systemGreen (dark)
         SettingsEntryTone.GRAY -> Color(0xFF98989D) // systemGray (dark)
         SettingsEntryTone.AMBER -> Color(0xFFFFD60A) // systemYellow (dark)
-        SettingsEntryTone.BROWN -> Color(0xFF98989D) // systemGray (dark)
+        SettingsEntryTone.BROWN -> Color(0xFFAC8E68) // systemBrown (dark)
     } else when (tone) {
         SettingsEntryTone.PURPLE -> Color(0xFFAF52DE) // systemPurple
         SettingsEntryTone.ORANGE -> Color(0xFFFF9500) // systemOrange
         SettingsEntryTone.RED -> Color(0xFFFF3B30) // systemRed
         SettingsEntryTone.OLIVE -> Color(0xFF30B0C7) // systemTeal
-        SettingsEntryTone.MATCHA -> Color(0xFF34C759) // systemGreen
+        SettingsEntryTone.MATCHA -> Color(0xFF00C7BE) // systemMint（同上：与 GREEN 去重）
         SettingsEntryTone.PINK -> Color(0xFFFF2D55) // systemPink
         SettingsEntryTone.GREEN -> Color(0xFF34C759) // systemGreen
         SettingsEntryTone.GRAY -> Color(0xFF8E8E93) // systemGray
         SettingsEntryTone.AMBER -> Color(0xFFF7C600) // systemYellow（浅底上压暗一档保证白图标可读）
-        SettingsEntryTone.BROWN -> Color(0xFF8E8E93) // systemGray
+        SettingsEntryTone.BROWN -> Color(0xFFA2845E) // systemBrown（同上：与 GRAY 去重）
     }
     return SettingsToneColors(bg = bg, fg = Color.White)
 }
