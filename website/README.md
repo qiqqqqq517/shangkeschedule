@@ -101,6 +101,14 @@ npx wrangler pages domain add www.shangke.asia   --project-name shangkeschedule
 
 ## 维护提示
 
+- **图片框余空（改样式前必读）**：`.shot` / `.theme-shot` 用 flex 纵向布局，图片加 `aspect-ratio: 540/1170`。
+  这三条规则缺一不可，否则卡片会露出空白：
+  1. 只设 `max-height` 不给 `aspect-ratio` ⇒ 图片盒按未收缩高度撑开、画面按 contain 缩小
+     ⇒ **上下各留 117.8px 空白**（实测图册每图共空 235.5px）；
+  2. `<picture>` / `<source>` 不设 `display:block` ⇒ 行盒间隙把容器撑高（实测 20.2px）；
+  3. 容器不用 flex ⇒ element 之间的缩进空白文本节点产生行盒，同样撑高容器；
+  4. 说明区不加 `flex:1` ⇒ grid 等高拉伸后，说明行数少的卡片底部露出断层色块。
+  另：`.shot picture` 需 `flex-shrink:0`，否则说明区撑高时会把图片压扁。
 - **字体格式**：`assets/fonts/` 下每个西文字体都有 **woff2 + ttf 两份**。`site.css` 里每个
   `@font-face` 声明两条 `src`，woff2 在前、ttf 兜底 —— 浏览器只下载第一条支持的格式，不会重复下载。
   woff2 是由仓库里的 ttf 直接转出的（无需设计侧重新导出）：

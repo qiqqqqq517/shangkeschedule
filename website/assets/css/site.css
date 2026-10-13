@@ -867,6 +867,9 @@ ul, ol { margin: 0; padding: 0; }
 .theme-stage[data-stage='dark'] .theme-panel p { color: #b7b5a9; }
 .theme-panel .pills { margin-top: 22px; }
 .theme-shot {
+  /* 与 .shot 同理：flex 消除缩进空白文本节点的行盒，并让图片区与说明区贴合 */
+  display: flex;
+  flex-direction: column;
   width: min(230px, 46vw);
   border-radius: 24px;
   overflow: hidden;
@@ -876,8 +879,14 @@ ul, ol { margin: 0; padding: 0; }
 .theme-stage[data-stage='dark'] .theme-shot { border-color: #3e3e38; }
 .theme-shot img { width: 100%; }
 /* 手机截图为超长竖屏(540×1170)，统一限高，超高即等比收缩居中显示、不裁切内容 */
+/* ⚠️ 必须同时给 aspect-ratio：只设 max-height 时，盒子仍按「未收缩前的布局高度」撑开，
+   而画面按 contain 等比缩小后只占盒子中间一段 ⇒ 上下各留大片空白（实测图册卡片
+   每图上下共空 235.5px、单侧 117.8px）。加上 aspect-ratio 让盒高随画面等比贴合，
+   容器就正好包住画面，消除余空。 */
 .shot img,
 .theme-shot img {
+  aspect-ratio: 540 / 1170;
+  height: auto;
   max-height: min(620px, 76vh);
   object-fit: contain;
 }
@@ -909,6 +918,10 @@ ul, ol { margin: 0; padding: 0; }
 
 /* --------------------------------------------------------- 截图图册 */
 .shot {
+  /* flex 让容器忽略 picture 与 figcaption 之间的缩进空白文本节点 —— 这些纯空白
+     行盒会把容器撑高（实测 20.2px）；普通块级布局下它们是要参与排版的。 */
+  display: flex;
+  flex-direction: column;
   border-radius: var(--r-m);
   overflow: hidden;
   border: 1px solid var(--line);
@@ -917,8 +930,22 @@ ul, ol { margin: 0; padding: 0; }
   transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease;
 }
 .shot:hover { transform: translateY(-6px) scale(1.012); box-shadow: var(--shadow-m); }
+/* picture 默认是 inline，行盒会在基线下方留出间隙（实测 .shot 容器多出 20.6px）。
+   统一设为 block，容器高度正好等于「图片 + 说明文字」。 */
+.shot picture,
+.theme-shot picture { display: block; }
+/* <source> 本身不渲染内容，但默认是 inline，会在 picture 内产生一个行盒，
+   把容器撑高（实测 .shot 多出 20.6px）。设为 block 且高度 0 即可消除。 */
+.shot picture source,
+.theme-shot picture source { display: block; height: 0; }
+/* 图片区不参与收缩，只让说明区撑满被 grid 拉伸出的剩余高度 */
+.shot picture { flex-shrink: 0; }
 .shot img { width: 100%; }
 .shot figcaption {
+  /* flex:1 撑满被 grid 拉伸出的剩余高度：同排卡片若说明文字行数不同，
+     较短的那张底部会露出容器底色（实测 20.2px）。撑满后说明区与卡片同高，
+     不再出现断层色块。 */
+  flex: 1;
   padding: 13px 16px 15px;
   font-size: .86rem;
   font-weight: 600;
