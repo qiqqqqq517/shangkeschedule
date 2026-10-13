@@ -7,6 +7,32 @@
 
 ## 最新版本
 
+### v4.78.10（2026-10-13）· 组件层字重彻底归零，主题门禁与发版工具加固
+
+#### 外观
+
+- **组件层硬编码字重彻底归零**（设计规范 R9 收尾）：新增 `AppTypeTokens.emphasisWeight` 角色（三主题显式赋值 `Bold`，遵循 R2「每个 token 必须由每套主题显式给出」），并把剩余 **58 处 `FontWeight.Bold`** 与 **6 处 `FontWeight.Normal`** 一并改为 token 读取（`emphasisWeight` / `bodyWeight`）。至此 `ui/**`（排除 `ui/theme/**`）**再无任何 `FontWeight` 字面量**，全部经 `appType()` 语义角色供给。
+  - `emphasisWeight` 与 `titleWeight` 的语义分工：前者是**比标题更强的强调**（当前选中项、主按钮文案、日历日期数字），后者是**标题**（三主题 SemiBold/Medium 各异）；独立成角色后，若将来某主题想弱化强调，改 token 即可全站生效。
+- **零回归证据**：三主题今日页离屏渲染与改动前**逐字节一致**（`emphasisWeight = Bold`、`bodyWeight = Normal` 与原硬编码同值，属恒等迁移）。
+
+#### 修复
+
+- **发版工具 `tools/update_website.py` 兜底同步失效**（每次发版都会踩的缺陷）：该脚本第 4 步同步 `website/*.html` 的「兜底文本」（`data-version` / `data-version-code` / `data-asset-name`），但它跑在 `changelog.html` 写盘**之前** —— 刚同步好的兜底文本随即被第 5 步的 `write_text(new_html)` 整篇覆盖，脚本自报「待同步 N 处」却实际未生效，紧接着 `check_version_sync.py` 报同样几处 FAIL。现把该步**移到所有写盘之后**，并新增**写盘后复核**：再跑一次 `--check`，非 0 即显式 `exit 1`，不静默放行。
+  - **阴性对照实测**：注入旧版本兜底 → 跑脚本 → 复核 `exit 0`（修复生效）；改动前同样注入会残留漂移。
+- **清理 5 处重复 import**（`StyleComponents.kt` 2 处、`DeveloperAndIconComponents.kt` 2 处、`CourseNameListScreen.kt` 1 处）—— 属既存瑕疵（HEAD 版即存在），全仓重复 import 现为 0。
+
+#### 工具
+
+- **主题泄漏门禁新增 B 类豁免登记表**（`scripts/check_theme_leak.py` 的 `IDENTITY_REVIEWED`）：C1 B 类「主题身份直引」17 处经**逐项判定全部合法**，属「token 表达不了的架构性用法」四类 —— ①**结构差异**（三主题各自不同的 Composable 实现：加载指示器呼吸点/墨点/分段环、今日页 `*TodaySkin` 皮肤，token 只能表达值、表达不了换组件）②**取数据**（读 `preset.labelRes` 取主题名称文案）③**算法参数**（色块解析需 preset 决定「条带/实底」策略）④**枚举遍历/数据模型**（遍历 `AppThemePreset.entries` 供用户选择主题、ViewModel 的 preset 字段是 UI 状态数据）。
+  - 门禁输出改为「**待判定 N 处 / 已判定登记 17 处**」，只对**新增**命中告警；登记表按「文件+行号+命中串」精确匹配，**代码移动会让条目失效并重新出现在待判定列表**（防豁免被静默沿用）。
+  - **阴性对照实测**：在组件层新增一处 `LocalThemePreset` 读取 → 门禁报「待判定 1 处」；恢复后回到 0 处 ⇒ 豁免非恒真放行。
+  - 棘轮基线随之锁定（`c1_identity: 17 → 0`）。
+
+#### 构建
+
+- versionCode 557，versionName 4.78.10。
+- 编译通过（`:shared:compileKotlinJvm`）；主题泄漏 / 无障碍语义 / 字体缩放 / 小组件对比度 / 版本同步五道门禁全绿。
+
 ### v4.78.9（2026-10-13）· 字重收口全站完成（组件层 SemiBold / Medium 清零）
 
 #### 外观
