@@ -1339,7 +1339,12 @@ private fun TodayTimelineCard(
     modifier: Modifier = Modifier
 ) {
     val colors = appColors()
-    val shape = if (style.timelineCardHeroShape) appShapes().heroCard else RoundedCornerShape(20.dp)
+    // 圆角一律读 token（2026-10-13）：此前非 hero 分支硬编码 RoundedCornerShape(20.dp)，
+    // 恰好等于书卷 claudeHeroCard=20dp 而「看起来一致」——属**巧合式一致**：若将来调书卷
+    // heroCard，今日页不会跟随、日程页（恒读 heroCard）会跟随，两页卡片大小即静默分裂，
+    // 直接违反「日程页与今日页课程卡片保持大小相同」这条既定约束。改为统一读 appShapes().heroCard，
+    // 让该约束成为结构性保证（三主题实测等值：通透 22 / 柔绘 28 / 书卷 20）。
+    val shape = appShapes().heroCard
     val sectionCount = todaySectionCount(model)
     val cardMotion = rememberTodayCardMotion(index, isFinished)
     Box(
@@ -1408,24 +1413,26 @@ private fun TodayTimelineCard(
                     )
                 }
             }
+            // 卡片等高（2026-10-13）：同页卡片此前按数据有无**条件渲染**槽位
+            // （课程无地点 / 无教师即少一行）⇒ 同一屏内卡片高低参差。
+            // 现改为**固定槽位**（[TodayMetaSlot]）：无数据时留同高空白，
+            // 使同页每张卡高度一致（实测对照：缺字段卡与完整卡高度相同）。
             Spacer(modifier = Modifier.height(4.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (!gridStyle.hideLocation && model.course.position.isNotBlank()) {
-                    TodayMetaRow(
-                        icon = Res.drawable.location_on_24px,
-                        text = model.course.position,
-                        tint = palette.meta
-                    )
-                }
-                if (!gridStyle.hideTeacher && model.course.teacher.isNotBlank()) {
-                    TodayMetaRow(
-                        icon = Res.drawable.person_24px,
-                        text = model.course.teacher,
-                        tint = palette.meta
-                    )
-                }
+                TodayMetaSlot(
+                    icon = Res.drawable.location_on_24px,
+                    text = model.course.position.takeIf { !gridStyle.hideLocation && it.isNotBlank() },
+                    tint = palette.meta
+                )
+                TodayMetaSlot(
+                    icon = Res.drawable.person_24px,
+                    text = model.course.teacher.takeIf { !gridStyle.hideTeacher && it.isNotBlank() },
+                    tint = palette.meta
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
+            // 事实行：课程类型恒存在，故该行高度恒定；学分按数据有无决定是否追加，
+            // 不影响本行高度（Row 高度由最高子项决定）。
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TodayFactText(
                     label = stringResource(style.noteType),
@@ -1511,6 +1518,44 @@ private fun TodayMetaRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+/**
+ * 元信息**槽位**：与 [TodayMetaRow] 同高，但 [text] 为 null 时渲染等高的空白占位
+ * （不画图标、不写字），用于「同一页内卡片等高」——课程缺地点或教师时，
+ * 该槽位仍占据与有数据时完全相同的高度，使同页每张卡高度一致。
+ */
+@Composable
+private fun TodayMetaSlot(
+    icon: DrawableResource,
+    text: String?,
+    tint: Color
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (text != null) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                modifier = Modifier.size(appIconSize().small),
+                tint = tint.copy(alpha = 0.85f)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = appType().captionWeight,
+                    lineHeight = 16.sp
+                ),
+                color = tint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        } else {
+            // 空占位：与有数据时同高（图标 small + 文本 16sp 行高，取两者较大者）
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 

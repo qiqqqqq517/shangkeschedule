@@ -7,6 +7,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 import com.shangkeschedule.ui.theme.iosGlassRim
 import com.shangkeschedule.ui.theme.claudeGroupBg
 import com.shangkeschedule.ui.theme.claudeGroupBorder
@@ -637,7 +638,7 @@ private fun SemesterArchiveHeader(
             style = TextStyle(
                 fontFamily = claudeReadingSerif(),
                 fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 letterSpacing = 0.1.em,
                 lineHeight = 14.sp
             ),
@@ -687,7 +688,7 @@ private fun SemesterArchiveHeader(
                 if (idx >= 0) {
                     append(totalText.substring(0, idx))
                     withStyle(
-                        SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
+                        SpanStyle(fontWeight = appType().titleWeight, color = colors.textPrimary)
                     ) { append(countText) }
                     append(totalText.substring(idx + countText.length))
                 } else {
@@ -738,7 +739,7 @@ private fun SuccessStatusBadge(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
             color = colors.textOnPrimary
         )
     }
@@ -765,7 +766,7 @@ private fun CompletedBadge() {
         )
         Text(
             text = stringResource(Res.string.status_semester_completed),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
             color = colors.textPrimary
         )
     }
@@ -821,7 +822,7 @@ private fun HistoryStatusBadge(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
             color = colors.textPrimary
         )
     }
@@ -993,7 +994,7 @@ private fun CurrentSemesterCard(
                             style = TextStyle(
                                 fontFamily = claudeReadingSerif(),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = appType().titleWeight,
                                 letterSpacing = 0.1.em,
                                 lineHeight = 13.sp
                             ),
@@ -1035,7 +1036,7 @@ private fun CurrentSemesterCard(
                     }
                     Text(
                         text = stringResource(Res.string.progress_percent_format, weekPercent),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
                         color = colors.success,
                         modifier = Modifier.align(Alignment.End)
                     )
@@ -1125,7 +1126,7 @@ private fun HeroFilledButton(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = colors.textOnPrimary
         )
@@ -1162,7 +1163,7 @@ private fun HeroSecondaryButton(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = colors.textPrimary
         )
@@ -1200,7 +1201,7 @@ private fun HistoryYearGroup(
                 style = TextStyle(
                     fontFamily = claudeReadingSerif(),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     letterSpacing = 0.14.em,
                     lineHeight = 15.sp
                 ),
@@ -1283,7 +1284,7 @@ private fun HistorySemesterCard(
                         text = semesterInfo.table.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 17.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textPrimary,
                         maxLines = 1,
@@ -1475,7 +1476,7 @@ private fun CoupleBadge() {
         )
         Text(
             text = stringResource(Res.string.couple_badge),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = appType().titleWeight),
             color = colors.danger
         )
     }
@@ -1511,7 +1512,7 @@ private fun CoupleSemesterCard(
                     text = couple.table.name,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = appType().titleWeight
                     ),
                     color = colors.textPrimary,
                     maxLines = 1,
@@ -1608,7 +1609,7 @@ private fun AddCoupleCard(onAdd: () -> Unit) {
         )
         Text(
             text = stringResource(Res.string.manage_add_couple),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = appType().titleWeight),
             color = colors.textPrimary
         )
         Text(
@@ -1680,7 +1681,7 @@ private fun GhostActionButton(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = contentColor
         )
@@ -1753,7 +1754,7 @@ private fun NewSemesterActionsCard(
                 style = TextStyle(
                     fontFamily = claudeReadingSerif(),
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     letterSpacing = 0.12.em,
                     lineHeight = 12.sp
                 ),
@@ -1835,7 +1836,7 @@ private fun SemesterOptionItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = appType().titleWeight),
                 color = colors.textPrimary
             )
             Text(

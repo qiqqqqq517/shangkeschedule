@@ -5,6 +5,7 @@ import com.shangkeschedule.ui.theme.appColors
 import com.shangkeschedule.ui.theme.appIconSize
 import com.shangkeschedule.ui.theme.appShapes
 import com.shangkeschedule.ui.theme.appSpacing
+import com.shangkeschedule.ui.theme.appType
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -200,7 +201,7 @@ fun CourseDetailBottomSheet(
                     text = dayStr,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = appType().titleWeight,
                         letterSpacing = 0.1.em
                     ),
                     color = colors.textSecondary
@@ -210,7 +211,7 @@ fun CourseDetailBottomSheet(
                     text = course.name,
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = appType().titleWeight
                     ),
                     color = colors.textPrimary,
                     maxLines = 2,
@@ -285,7 +286,7 @@ fun CourseDetailBottomSheet(
                             text = textClose,
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = appType().titleWeight
                             ),
                             color = colors.textPrimary
                         )
@@ -308,7 +309,7 @@ fun CourseDetailBottomSheet(
                                 text = textClose,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = appType().titleWeight
                                 ),
                                 color = colors.textPrimary
                             )
@@ -326,7 +327,7 @@ fun CourseDetailBottomSheet(
                                 text = textEdit,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = appType().titleWeight
                                 ),
                                 color = colors.textOnPrimary
                             )
@@ -521,7 +522,7 @@ private fun EditableCourseDetailContent(
                         text = dayNames.getOrNull(dayIndex).orEmpty(),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             letterSpacing = 0.1.em
                         ),
                         color = colors.textSecondary
@@ -535,7 +536,7 @@ private fun EditableCourseDetailContent(
                         singleLine = true,
                         textStyle = MaterialTheme.typography.headlineSmall.copy(
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             color = colors.textPrimary
                         ),
                         cursorBrush = SolidColor(colors.primary),
@@ -742,7 +743,7 @@ private fun EditableCourseDetailContent(
                         text = stringResource(Res.string.action_cancel),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textPrimary
                     )
@@ -760,7 +761,7 @@ private fun EditableCourseDetailContent(
                         text = stringResource(Res.string.action_save_changes),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = appType().titleWeight
                         ),
                         color = colors.textOnPrimary
                     )
@@ -903,7 +904,7 @@ private fun DetailRow(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary
         )
@@ -912,7 +913,7 @@ private fun DetailRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = appType().titleWeight
             ),
             color = colors.textPrimary,
             textAlign = TextAlign.End
@@ -946,7 +947,7 @@ private fun EditableDetailRow(
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary
         )
@@ -962,7 +963,7 @@ private fun EditableDetailRow(
                 maxLines = maxLines,
                 textStyle = TextStyle(
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     color = colors.textPrimary,
                     textAlign = TextAlign.End
                 ),
@@ -977,7 +978,7 @@ private fun EditableDetailRow(
                                 text = "—",
                                 style = TextStyle(
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = appType().titleWeight,
                                     color = colors.textSecondary
                                 )
                             )
@@ -1015,7 +1016,7 @@ private fun DetailActionRow(
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary
         )
@@ -1053,7 +1054,7 @@ private fun DetailSwitchRow(
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = appType().captionWeight
             ),
             color = colors.textSecondary,
             modifier = Modifier.weight(1f)
@@ -1077,7 +1078,7 @@ private fun DetailValueText(text: String) {
         text = text,
         style = MaterialTheme.typography.bodySmall.copy(
             fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = appType().titleWeight
         ),
         color = appColors().textPrimary,
         textAlign = TextAlign.End

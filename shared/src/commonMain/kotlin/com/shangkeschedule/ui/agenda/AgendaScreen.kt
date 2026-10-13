@@ -1139,7 +1139,7 @@ private fun AgendaMonthOption(
         Text(
             text = label,
             fontSize = appType().body,
-            fontWeight = if (selected || isCurrentMonth) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (selected || isCurrentMonth) appType().titleWeight else appType().bodyWeight,
             color = content,
             maxLines = 1
         )
@@ -1170,7 +1170,7 @@ private fun AgendaDayHeader(
                 Text(
                     text = stringResource(Res.string.agenda_today_badge),
                     fontSize = appType().caption,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = appType().titleWeight,
                     color = tokens.primary
                 )
             }
@@ -1241,7 +1241,7 @@ private fun AgendaGroupHeader(group: Int, count: Int) {
         Text(
             text = label,
             fontSize = appType().caption,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = appType().titleWeight,
             color = tokens.textSecondary
         )
         Spacer(modifier = Modifier.width(6.dp))
@@ -1311,7 +1311,7 @@ private fun AgendaEntryRow(
                     text = entry.startTime,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = appType().titleWeight,
                         lineHeight = 17.sp
                     ),
                     color = tokens.textPrimary
@@ -1394,7 +1394,7 @@ private fun AgendaEntryRow(
                         text = entry.title,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = appType().titleWeight,
                             lineHeight = 20.sp
                         ),
                         color = tokens.textPrimary,
@@ -1402,43 +1402,43 @@ private fun AgendaEntryRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (metaLine.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = metaLine,
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                lineHeight = 16.sp
-                            ),
-                            color = tokens.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (entry.teacher == null) {
-                        entry.note?.let { note ->
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = note,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    lineHeight = 16.sp
-                                ),
-                                color = tokens.textSecondary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+                    // 卡片等高（2026-10-13）：同页卡片此前按数据有无**条件渲染**副行
+                    // （无「分类/地点/教师」则整行消失、无备注则第二副行消失）⇒ 同页卡片
+                    // 高度参差。现两个副行槽位**恒定占位**（无内容时留同高空白），
+                    // 使本页每张卡高度一致。
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = metaLine,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = appType().captionWeight,
+                            lineHeight = 16.sp
+                        ),
+                        color = tokens.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = entry.note.orEmpty(),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = appType().captionWeight,
+                            lineHeight = 16.sp
+                        ),
+                        color = tokens.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 if (!entry.done) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = statusLabel,
                         fontSize = appType().hint,
-                        color = statusColor
+                        color = statusColor,
+                        // 卡片等高：状态标签限单行，避免换行撑高该卡
+                        maxLines = 1
                     )
                 }
             }
@@ -1730,7 +1730,7 @@ private fun AgendaCreateSheet(
                 Text(
                     text = stringResource(Res.string.agenda_create),
                     fontSize = type.rowTitle,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = appType().titleWeight
                 )
             }
         }
@@ -1795,7 +1795,7 @@ private fun AgendaCategoryChip(
         Text(
             text = categoryLabel(category.key),
             fontSize = appType().body,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (selected) appType().titleWeight else appType().bodyWeight,
             color = contentColor,
             maxLines = 1
         )
@@ -1853,7 +1853,7 @@ private fun AgendaDateTimeRow(
             Text(
                 text = lastShownTime.orEmpty(),
                 fontSize = appType().body,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = appType().titleWeight,
                 color = tokens.textPrimary,
                 modifier = Modifier
                     .clip(appShapes().chipSmall)
