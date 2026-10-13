@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v47812">v4.78.12 · 今日课程卡严格等高 + 官网资源体积减半（WebP / WOFF2）</a></li>
         <li><a href="#v47811">v4.78.11 · 修复遗留单测假红，全量测试转绿</a></li>
         <li><a href="#v47810">v4.78.10 · 组件层字重彻底归零，主题门禁与发版工具加固</a></li>
         <li><a href="#v4789">v4.78.9 · 字重收口全站完成（组件层 SemiBold / Medium 清零）</a></li>
@@ -311,6 +312,22 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v47812">
+        <div><span class="tl-ver">v4.78.12</span><span class="tl-date">2026-10-14</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-ui">外观</span>今日课程卡同页严格等高</h3>
+          <ul>
+            <li>此前 v4.78.8 只做了「固定槽位」，标题换行、空字段的字体缩放与像素取整仍会让同屏四张卡高度不同（1.5 倍字号实测 129 / 175 / 145 / 145 px）。本次把标题、两行副信息、事实行的行盒统一由主题字体<b>实测测量</b>得出，再逐项取整相加得到卡片总高——高度不再随课程内容、系统字号或主题字体变化。</li>
+            <li><b>官网字体与图片改用现代格式，首屏传输体积约减半</b>：四个西文字体新增 WOFF2 主源（TTF 保留兜底，同族同字重，浏览器只下载支持的那一份），20 张截图新增 WebP（quality 82）并以 <code><picture></code> 升级 37 处图片引用、保留原图回退，同时补 <code>decoding="async"</code>。实测用户下载 <b>2286 KB → 1095 KB（-52.1%）</b>。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-fix">修复</span>教务适配「双落点」不一致（NTU）</h3>
+          <ul>
+            <li>主仓库的 <code>NTU/ntu.js</code> 在 v4.77.4 改过（成绩取「补考 / 最大成绩」、培养方案分类正则放宽）却未同步到私有适配仓库，App 启动时的 OTA 热更新会<b>用线上旧版覆盖包内新脚本</b>——症状是「原有功能正常、本次新增能力失效」。本版已把主仓脚本同步至 <code>.adapter_private</code>、重建 <code>index.json</code> 并推送，线上 <code>adapter.shangke.asia</code> 远端 sha256 与本地<b>逐字节一致</b>，正文含新特征串。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v47811">
         <div><span class="tl-ver">v4.78.11</span><span class="tl-date">2026-10-13</span></div>
