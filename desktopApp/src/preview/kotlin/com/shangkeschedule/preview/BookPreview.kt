@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import com.shangkeschedule.data.model.AppThemePreset
 import java.io.File
@@ -11,7 +11,7 @@ import java.io.File
  * 的同尺寸截图做像素比对（tools/compare-shots.mjs）。
  *
  * 运行：
- *   .\gradlew.bat :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.ClaudePreviewKt"
+ *   .\gradlew.bat :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.BookPreviewKt"
  * 可用 -DclaudePreviewDark / -DclaudePreviewWidth / -DclaudePreviewHeight / -DclaudePreviewName 调整。
  */
 fun main() = renderTodayPreview(

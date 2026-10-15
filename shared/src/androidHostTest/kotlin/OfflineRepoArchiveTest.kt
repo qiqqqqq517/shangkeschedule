@@ -1,5 +1,6 @@
 import com.shangkeschedule.tool.OfflineRepoArchive
 import java.io.File
+import java.time.LocalDateTime
 import java.util.zip.ZipFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,6 +24,21 @@ import okio.use
  * `OfflineRepoArchive`，两侧必须逐字节对应；本测试是二者的唯一一致性护栏。
  */
 class OfflineRepoArchiveTest {
+
+    @Test
+    fun generatedArchiveLivesOutsideSourceTree() {
+        val archive = offlineArchive().canonicalFile
+        val sourceTree = File(repoRoot(), "shared/src").canonicalFile
+        assertTrue(!archive.toPath().startsWith(sourceTree.toPath()), "生成产物不能写入源码目录")
+        assertTrue(archive.isFile, "生成的离线包缺失")
+    }
+
+    @Test
+    fun archiveTimestampIsIndependentOfMachineTimezone() {
+        ZipFile(offlineArchive()).use { zip ->
+            assertEquals(LocalDateTime.of(2000, 1, 1, 0, 0), zip.getEntry(OfflineRepoArchive.ENTRY_NAME).timeLocal)
+        }
+    }
 
     @Test
     fun archiveHasSingleStreamEntry() {
@@ -73,7 +89,7 @@ class OfflineRepoArchiveTest {
     }
 
     /**
-     * 打包排除规则 —— **必须与 `shared/build.gradle.kts` 的 `packSchoolsZip.isExcluded` 保持一致**。
+     * 打包排除规则 —— 必须与 `shared/build.gradle.kts` 的 packSchoolsZip 输入过滤保持一致。
      *
      * P2-2：构建侧新增了 `timetable_schools.json`（构建期数据集，运行时从不读它，
      * 入口见 SchoolRepository / AdapterRemoteUpdater.INDEX_RELATIVE_PATH），
@@ -86,7 +102,7 @@ class OfflineRepoArchiveTest {
             relativePath.endsWith("timetable_schools.json")
 
     private fun offlineArchive(): File =
-        File(repoRoot(), "shared/src/commonMain/composeResources/files/offline_schools.zip")
+        File(System.getProperty("shangke.offlineArchive") ?: fail("缺少 shangke.offlineArchive 系统属性"))
 
     /** 仓库根由 Gradle 通过 `shangke.repoRoot` 系统属性注入，避免依赖测试进程工作目录。 */
     private fun repoRoot(): File {

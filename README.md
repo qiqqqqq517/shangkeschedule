@@ -8,7 +8,7 @@
 ![Android](https://img.shields.io/badge/Android-8.0%2B-32DE84)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF)
 ![Compose](https://img.shields.io/badge/Compose-Multiplatform-4285F4)
-![Version](https://img.shields.io/badge/version-4.78.14-blueviolet)
+![Version](https://img.shields.io/badge/version-4.78.15-blueviolet)
 ![Release](https://img.shields.io/github/v/release/qiqqqqq517/shangkeschedule)
 ![Website](https://img.shields.io/badge/website-shangke.asia-c96442)
 
@@ -339,24 +339,31 @@ git add -A && git commit -m "adapter: update <学校代码>" && git push
 ./gradlew :shared:compileKotlinJvm :desktopApp:compileKotlin :androidApp:assembleDebug
 ```
 
-Windows 下也可直接运行项目内增强脚本（先按本机路径修改脚本中的 `JAVA_HOME` / `ANDROID_HOME`）：
+Windows 下可直接运行脚本：优先使用有效的 `JAVA_HOME`，否则查找 Android Studio 自带的 JBR；Android SDK 使用本地 `local.properties` 或环境配置，无需修改脚本。
 
 ```bat
 run-android.bat
 ```
 
-> **Release 签名说明**：签名参数外置于项目根目录 `keystore.properties`（已被 git 忽略，不会提交），字段为 `storeFile` / `storePassword` / `keyAlias` / `keyPassword`。请妥善保管签名密钥：它是应用的唯一身份，丢失后将无法对已安装版本增量升级。
+> **Release 签名说明**：签名参数外置于 `androidApp/keystore.properties`（已被 git 忽略，不会提交），字段为 `storeFile` / `storePassword` / `keyAlias` / `keyPassword`。请妥善保管签名密钥：它是应用的唯一身份，丢失后将无法对已安装版本增量升级。
 
 ## 项目结构
 
 ```text
 ├── androidApp    # Android 应用入口、通知、小组件、教务 WebView
-├── desktopApp    # Desktop 桌面端（开发中）
+├── desktopApp    # Desktop 桌面端；main 为应用，preview 为独立预览/诊断
 ├── iosApp        # iOS 入口（开发中）
 ├── shared        # Compose Multiplatform 公共代码（UI、数据库、业务逻辑、教务适配资源）
+├── scripts       # 可复用的维护、校验与知识库入口
+├── tools         # 历史发布入口白名单，其余内容仅本地使用
+├── docs          # 架构、协作与操作说明
+├── website       # 官网静态源文件
+├── adapter-worker # 远程适配网关，独立依赖与部署
 ├── picture       # README 界面截图
 └── fastlane      # 商店元数据与发布配置
 ```
+
+代码放置、命名、测试与产物路径统一见 [仓库结构与构建产物](docs/repository-layout.md)。生成资源写入 `shared/build/generated/`；桌面预览使用 `:desktopApp:runPreview`，不会进入正式 JAR。
 
 ## 反馈与教务适配
 

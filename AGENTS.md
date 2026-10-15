@@ -21,6 +21,7 @@
 | 用户明确要求巡检/持续修复 | [巡检流程](docs/agents/neverstop-watchdog.md)，普通任务不启动 |
 | GitHub Issue / 分诊 / 领域建模 | 按需读 [Issue](docs/agents/issue-tracker.md) / [标签](docs/agents/triage-labels.md) / [领域](docs/agents/domain.md) |
 | 跨模块或入口不明 | [任务路由](docs/agents/task-routing.md)，定位后只读取命中章节 |
+| 目录、命名、代码放置、生成资源与产物 | [仓库结构与构建产物](docs/repository-layout.md) |
 
 - 改动前读 `工作日志.md` 的「记录规范」与最新改动（先取顶部约 60 行），必要时再按关键词检索；禁止默认通读全文或归档。
 - IMA 已知主题直接检索；不知道入口时才读《项目索引》。只读问答、纯文案/链接修正不强制检索 IMA；规则或项目结论变化仍须回写。

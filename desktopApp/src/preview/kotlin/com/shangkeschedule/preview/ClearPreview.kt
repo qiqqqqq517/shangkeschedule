@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import com.shangkeschedule.data.model.AppThemePreset
 import java.io.File
@@ -10,11 +10,11 @@ import javax.imageio.ImageIO
  * 用 ImageComposeScene 把**通透（iOS 26）**主题的今日课表页离屏渲染成 PNG，
  * 输出到 build_qa/ios26/，并附一份关键像素采样报告（像素级验证在无可视化工具时也能跑）。
  *
- * 与 [ClaudePreviewKt] 的分工：那个渲染书卷主题，这个渲染通透主题——两套主题各自
+ * 与 [BookPreviewKt] 的分工：那个渲染书卷主题，这个渲染通透主题——两套主题各自
  * 走自己的 CompositionLocal 链（`themePreset` 分别传 CLAUDE / IOS）。
  *
  * 运行：
- *   .\gradlew.bat :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.IosPreviewKt"
+ *   .\gradlew.bat :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.ClearPreviewKt"
  * 可用 -DiosPreviewDark / -DiosPreviewWidth / -DiosPreviewHeight / -DiosPreviewName 调整。
  */
 fun main() = renderTodayPreview(

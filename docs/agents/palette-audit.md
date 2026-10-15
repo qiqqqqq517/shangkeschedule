@@ -87,10 +87,10 @@
 
 ## 方法（为什么必须测「实际渲染色」）
 
-`desktopApp/src/main/kotlin/com/shangkeschedule/PaletteProbe.kt`
+`desktopApp/src/preview/kotlin/com/shangkeschedule/preview/PaletteProbe.kt`
 
 ```bash
-./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.PaletteProbeKt"
+./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.PaletteProbeKt"
 ```
 
 - 直接调用 **public** 的 `resolveCourseBlockColors(...)` 取回 `background`，
@@ -105,5 +105,5 @@
 ```bash
 # 主仓工作区若被其他改动占用，用独立 worktree 在已提交状态跑
 git worktree add ../shangke-probe HEAD && cp local.properties ../shangke-probe/
-./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.PaletteProbeKt"
+./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.PaletteProbeKt"
 ```

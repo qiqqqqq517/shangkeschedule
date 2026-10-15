@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import androidx.compose.ui.graphics.Color
 import com.shangkeschedule.data.model.AppThemePreset
@@ -24,7 +24,7 @@ import java.io.File
  *   色觉缺陷模拟下放宽（红/绿/蓝色盲普遍压缩色域，要求过严会永远不达标）。
  *
  * 运行：
- *   ./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.PaletteProbeKt"
+ *   ./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.PaletteProbeKt"
  * 产物：build_qa/palette_probe/report.md
  */
 

@@ -121,7 +121,7 @@
 > ⚠️ 唯一失败项为既存缺陷 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）`，待单独修复。
 > **判定「多少例算对」时不要引用本表**，以 `docs/agents/neverstop-watchdog.md` §L3 的现场核对流程为准。
 
-> ⚠️ **口径陷阱（本仓已踩过）**：`:shared:jvmTest` 在本仓是 `NO-SOURCE`（不存在 `shared/src/jvmTest` 源集），跑它**零覆盖却报成功**。真实任务是 `:shared:testAndroidHostTest`。默认复用相同输入的增量结果；仅有陈旧产物证据时 `--rerun-tasks`。核对目标测试和 XML 实际结果，不把固定数字或源码注解数作为恒定执行数。
+> **测试来源（2026-10-15 复核）**：历史上 `:shared:jvmTest` 曾为 `NO-SOURCE`，不能据此替代 Android 宿主测试。当前 `androidHostTest` 与 `jvmTest` 均有真实测试：前者运行 `:shared:testAndroidHostTest`，后者运行 `:shared:jvmTest`，按受影响平台选择或同时执行。默认复用增量结果，核对 XML 的实际执行与失败/错误/跳过，不引用历史固定总数。
 
 ### 2.2 代码规模与 God 文件
 

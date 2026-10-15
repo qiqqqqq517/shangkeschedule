@@ -58,11 +58,13 @@ $env:PYTHONUTF8=1
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 # 每次调用 Gradle 前确认以上 JBR 路径有效。
 .\gradlew.bat :shared:compileKotlinJvm :desktopApp:compileKotlin :androidApp:assembleDebug --console=plain
-# 需要相关业务回归或完整巡检时运行；shared 测试的实际来源是 androidHostTest：
+# 需要相关业务回归或完整巡检时运行；两个 shared 测试源集互不替代：
 .\gradlew.bat :shared:testAndroidHostTest :androidApp:testDebugUnitTest --console=plain
+# 桌面数据库、备份等 JVM 集成回归：
+.\gradlew.bat :shared:jvmTest --console=plain
 ```
 
-- 不以 `:shared:jvmTest` 的 `NO-SOURCE` 认定 shared 测试通过。核对 XML 报告确实执行了目标测试，记录失败/错误/跳过；不写死历史测试总数。
+- Android 宿主测试运行 `:shared:testAndroidHostTest`；JVM 集成测试运行 `:shared:jvmTest`，两者均有实际源码。不能以某个源集的 `NO-SOURCE` 或成功状态替代另一源集的覆盖。核对 XML 实际执行与失败/错误/跳过，不写死历史总数。
 - 默认使用 Gradle 增量构建；只有缓存/旧产物疑点、门禁反向验证等明确原因才 `--rerun-tasks`。不要为同一份未变源码反复全量验证。
 - 静态检查通过 [统一入口](checks.md) 按实际输入选择，不在本文维护第二份触发清单。`--plan --json` 可预览，提交钩子使用 `--staged`，完整巡检显式 `--full`。
 - 业务缺陷用有意义的回归测试验证；纯文案或可直接静态核验的小改动不补镜像实现的测试。测试、装机、外部环境的覆盖边界如实记录。

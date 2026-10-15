@@ -23,7 +23,7 @@
    ├─【离线内置 · 随 APK 发布】
    │   shared/assets/offline_repo/                        （主仓库，git 跟踪）
    │     ├─ tools/build_schools.py ──▶ index/school_index.pb   学校索引
-   │     └─ :shared:packSchoolsZip（Gradle，构建时自动）─▶ composeResources/files/offline_schools.zip
+   │     └─ :shared:packSchoolsZip（Gradle，构建时自动）─▶ shared/build/generated/offlineResources/files/offline_schools.zip
    │            → 装机后 ResourceInitializerManager 解压到 filesDir/repo/（离线兜底）
    │            ※ tools/rebuild_zip.py 已废弃（产物格式不兼容），见 §4.5
    │
@@ -714,7 +714,7 @@ APK 里的适配脚本是「**发版那一刻**主仓库工作区的快照」；
 | `shared/assets/offline_repo/schools/ADAPTER_GUIDE.md` | 适配脚本开发指南（Bridge / TimetableParser API / **能力钩子**） | ✅ |
 | `shared/assets/offline_repo/schools/resources/NTU/ntu.js` | **正方适配参考实现**：课表导入 + 成绩 / 空教室 / 学业三个钩子 | ✅ |
 | `shared/assets/offline_repo/index/school_index.pb` | 内置学校索引（build_schools.py 产物） | ✅ |
-| `shared/src/commonMain/composeResources/files/offline_schools.zip` | 离线资源包（`:shared:packSchoolsZip` 产物，随 APK） | ✅ |
+| `shared/build/generated/offlineResources/files/offline_schools.zip` | 离线资源包（`:shared:packSchoolsZip` 产物，随 APK） | ✅ |
 | `shared/src/commonMain/kotlin/.../web/WebBridgeProtocol.kt` | JS Bridge 协议与注入脚本（App 侧契约源头） | ✅ |
 | `shared/src/commonMain/kotlin/.../web/WebViewScreen.kt` | 导入执行页（脚本读取与注入入口） | ✅ |
 | `shared/src/commonMain/kotlin/.../tool/AdapterRemoteUpdater.kt` | 热更新同步器（清单比对 / sha256 / 原子写） | ✅ |

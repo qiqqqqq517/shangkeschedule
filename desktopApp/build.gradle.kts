@@ -14,6 +14,14 @@ kotlin {
     }
 }
 
+// 预览与诊断工具独立编译；正式 JAR 和安装包只包含 main 源集。
+val preview = sourceSets.create("preview") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+configurations[preview.implementationConfigurationName].extendsFrom(configurations.implementation.get())
+configurations[preview.runtimeOnlyConfigurationName].extendsFrom(configurations.runtimeOnly.get())
+
 dependencies {
     implementation(project(":shared"))
     implementation(project.dependencies.platform(libs.koin.bom))
@@ -22,12 +30,9 @@ dependencies {
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
-    implementation(libs.compose.ui.tooling.preview)
-
-    // 视觉回归预览宿主（claude_preview.kt）需要的直接依赖：
-    // material3 / kotlinx-datetime 在 shared 内是间接依赖，桌面模块显式声明后才能被预览代码引用
-    implementation(libs.compose.material3)
-    implementation(libs.kotlinx.datetime)
+    add(preview.implementationConfigurationName, libs.compose.ui.tooling.preview)
+    add(preview.implementationConfigurationName, libs.compose.material3)
+    add(preview.implementationConfigurationName, libs.kotlinx.datetime)
 }
 
 
@@ -51,11 +56,37 @@ val appVersionName: String = providers.fileContents(
     raw
 }.get()
 
+// 保留既有诊断命令的入口别名；打包入口始终为正式 App。
+val previewMainClass = providers.gradleProperty("previewMainClass").map { requested ->
+    val name = requested.removePrefix("com.shangkeschedule.")
+    when (name) {
+        "ClaudePreviewKt" -> "com.shangkeschedule.preview.BookPreviewKt"
+        "IosPreviewKt" -> "com.shangkeschedule.preview.ClearPreviewKt"
+        "SoftPreviewKt", "ContrastProbeKt", "GlassProbeKt", "PaletteProbeKt" ->
+            "com.shangkeschedule.preview.$name"
+        else -> requested
+    }
+}
+
+tasks.register<JavaExec>("runPreview") {
+    group = "application"
+    description = "运行独立预览/诊断源集，默认预览柔绘主题。"
+    dependsOn(preview.classesTaskName)
+    classpath = preview.runtimeClasspath
+    mainClass.set(previewMainClass.orElse("com.shangkeschedule.preview.SoftPreviewKt"))
+    workingDir = projectDir
+}
+
+tasks.withType<Jar>().configureEach {
+    archiveBaseName.set("shangkeschedule-desktop")
+    archiveVersion.set(appVersionName)
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
 compose.desktop {
     application {
-        // 视觉回归预览宿主可通过 -PpreviewMainClass=... 临时切换入口，默认仍是正式 App
-        mainClass = (project.findProperty("previewMainClass") as String?)
-            ?: "com.shangkeschedule.MainKt"
+        mainClass = "com.shangkeschedule.MainKt"
 
         buildTypes.release.proguard {
             isEnabled.set(false)
@@ -63,9 +94,23 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "shangke"
+            packageName = "ShangKeSchedule"
+            linux {
+                packageName = "shangkeschedule"
+            }
             // 版本单源：取自上方 appVersionName，见文件顶部派生逻辑。
             packageVersion = appVersionName
+        }
+    }
+}
+
+// Compose 在配置收尾时设置 run 任务，随后再应用兼容入口，防止被正式入口覆盖。
+afterEvaluate {
+    if (previewMainClass.isPresent) {
+        tasks.named<JavaExec>("run") {
+            dependsOn(preview.classesTaskName)
+            classpath = preview.runtimeClasspath
+            mainClass.set(previewMainClass)
         }
     }
 }

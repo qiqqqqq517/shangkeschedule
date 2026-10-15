@@ -28,10 +28,10 @@
 
 ## 方法（为什么用运行时探针）
 
-`desktopApp/src/main/kotlin/com/shangkeschedule/ContrastProbe.kt`
+`desktopApp/src/preview/kotlin/com/shangkeschedule/preview/ContrastProbe.kt`
 
 ```bash
-./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.ContrastProbeKt"
+./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.ContrastProbeKt"
 ```
 
 - 直接调用 `appColorTokens(isDark, preset)` 取**真实渲染值**，而不是解析源码 ——
@@ -141,6 +141,6 @@ WCAG 2.2 AA：正文文本 ≥ **4.5:1**；大号文本 / 非文本 UI ≥ **3:1
 
 ```bash
 # 主仓工作区若被其他改动占用，可用独立 worktree 在已提交状态下跑，避免干扰
-./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.ContrastProbeKt"
+./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.ContrastProbeKt"
 # 报告：build_qa/contrast_probe/report.md
 ```

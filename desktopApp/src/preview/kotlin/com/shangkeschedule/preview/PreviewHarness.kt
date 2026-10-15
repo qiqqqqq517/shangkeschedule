@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -32,7 +32,7 @@ import java.io.File
  * 渲染链、稳定帧等待、PNG 编码与共享预览数据统一收口在这里。
  */
 
-/** 读 `-D` 系统属性；Gradle 的 `:desktopApp:run` 会 fork JVM，`-D` 不总透传，故同时支持同名大写环境变量。 */
+/** 读 `-D` 系统属性；Gradle 的 `:desktopApp:runPreview` 会 fork JVM，`-D` 不总透传，故同时支持同名大写环境变量。 */
 internal fun readPreviewProp(name: String, default: String): String =
     System.getProperty(name)
         ?: System.getenv(

@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import androidx.compose.ui.graphics.Color
 import com.shangkeschedule.data.model.AppThemePreset
@@ -20,7 +20,7 @@ import java.io.File
  * 判据（WCAG 2.2 AA）：正文文本 ≥ 4.5:1；大号文本 / 非文本 UI 边界 ≥ 3:1。
  *
  * 运行：
- *   ./gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.ContrastProbeKt"
+ *   ./gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.ContrastProbeKt"
  * 产物：`build_qa/contrast_probe/report.md` + 控制台明细。
  */
 
@@ -169,7 +169,7 @@ private fun semanticSoft(t: AppColorTokens, name: String): Color? = when (name) 
 }
 
 fun main() {
-    // 控制台按 UTF-8 输出：`:desktopApp:run` 的工作目录是 desktopApp，且重定向到日志时
+    // 控制台按 UTF-8 输出：`:desktopApp:runPreview` 的工作目录是 desktopApp，且重定向到日志时
     // JVM 默认用系统 GBK 编码，中文会变成乱码（读日志时无法判断哪一项不达标）。
     System.setOut(java.io.PrintStream(java.io.FileOutputStream(java.io.FileDescriptor.out), true, "UTF-8"))
 

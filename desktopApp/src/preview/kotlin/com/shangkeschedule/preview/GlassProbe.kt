@@ -1,4 +1,4 @@
-package com.shangkeschedule
+package com.shangkeschedule.preview
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

@@ -55,7 +55,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat :shared:testAndroidHostTest :androidApp:testDebugUnitTest --console=plain
 ```
 
-使用真实来源任务 `testAndroidHostTest`，不以 `jvmTest/NO-SOURCE` 代替。完整巡检时完整跑，一般任务先针对受影响业务回归；共享基础设施/数据库/依赖变化时跑完整相关任务。默认复用 Gradle 增量，只有证据指向陈旧产物才 `--rerun-tasks`。
+Android 宿主回归使用 `testAndroidHostTest`；当前另有真实 `jvmTest` 集成回归，桌面数据库/备份等变化时也运行它，两者互不替代。完整巡检时完整跑，一般任务先针对受影响业务回归；共享基础设施/数据库/依赖变化时跑完整相关任务。核对 XML 实际执行，默认复用 Gradle 增量，只有证据指向陈旧产物才 `--rerun-tasks`。
 
 核对 XML 报告中的测试套件/用例确实覆盖预期目标，报告 tests/failures/errors/skipped；无理由缺少预期用例须排查。不能把源码 `@Test` 注解数机械等同执行数（参数化/继承等会不同），也不引用历史固定总数。
 

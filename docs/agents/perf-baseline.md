@@ -133,7 +133,7 @@ python scripts/perf_jank.py --check-baseline    # 与基线比对，有回归则
 3. 本版涉及上述路径时，在发布前复用相同输入/设备环境的测量结果；输入已变再测，不为纯文档或无关版本重复采样。
 
 玻璃路径改动另需**离屏探针**通关：
-`gradlew :desktopApp:run "-PpreviewMainClass=com.shangkeschedule.GlassProbeKt"`，
+`gradlew :desktopApp:runPreview "-PpreviewMainClass=com.shangkeschedule.preview.GlassProbeKt"`，
 判读锚点 `[control]` 必须为 0.000、`realGlass blur24 vs blur0` ≈ 128。
 两者职责不同：探针守「玻璃是否还生效」，本基线守「是否变慢」。
 

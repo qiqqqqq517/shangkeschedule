@@ -73,7 +73,7 @@
 > ⚠️ 唯一失败项 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）` 为既存缺陷，待单独修复。
 > **判定「多少例算对」时不得引用上方演进链或本行历史值**（P2-19 · 2026-10-05）：以 `docs/agents/neverstop-watchdog.md` §L3 的**现场核对流程**为准（解析 `build/test-results/**/TEST-*.xml` 的 `tests` 求和，再与 `@Test` 计数对拍）。
 > 另注：本仓库 L3 的真实 Gradle 任务是 `:shared:testAndroidHostTest` + `:androidApp:testDebugUnitTest`；
-> `:shared:jvmTest` 是 `NO-SOURCE`（`shared/src` 下无 `jvmTest` 源集），写成它会**静默漏跑全部 shared 单测**。
+> 2026-10-15 复核：Android 宿主回归运行 `:shared:testAndroidHostTest`，当前另有真实 `jvmTest` 集成回归，运行 `:shared:jvmTest`。两者不能互相替代，核对 XML 实际执行结果；历史 `jvmTest/NO-SOURCE` 结论已过期。
 
 **本轮发现并修正的自身错误**（供后续参考）：
 1. 重写日历写回时把 `withValueBackReference` 的批次索引算错，且把提醒分钟数放进内容指纹 —— 会导致**每次同步全量重写**，正好退回旧行为。改为查询 `Reminders` 归并真实分钟数后才正确。

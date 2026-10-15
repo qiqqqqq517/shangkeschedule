@@ -44,6 +44,8 @@ jnmc_session/
 __pycache__/
 *.pyc
 .trae/
+.claude/
+.commandcode/
 
 # 根目录临时截图
 /.ui1.png
@@ -124,3 +126,7 @@ schedule-icon.design/
 .rmv/
 .v2c/
 .trae-html-share-packages/
+
+# 本地审查过程记录
+/FIXLOG.md
+/REVIEW.md

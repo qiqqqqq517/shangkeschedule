@@ -1,6 +1,7 @@
 import java.io.BufferedOutputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.time.LocalDateTime
 import java.util.Properties
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -52,6 +53,9 @@ kotlin {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
     }
+
+    // 显式保留 iOS 默认层级；下面的自定义 dependsOn 否则会关闭自动模板。
+    applyDefaultHierarchyTemplate()
 
     sourceSets {
         // ------------------------------------------------------------------
@@ -171,8 +175,8 @@ dependencies {
 // 导出第三方依赖许可信息
 aboutLibraries {
     export {
-        outputPath = file("src/commonMain/composeResources/files/aboutlibraries.json")
-        prettyPrint = true
+        outputPath = layout.buildDirectory.file("generated/licenseResources/files/aboutlibraries.json").get().asFile
+        prettyPrint = false
     }
     library {
         duplicationMode = com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE
@@ -204,39 +208,28 @@ wire {
 //   zip（唯一入口 repo.skr，DEFLATE level 9）内为顺序流：
 //     "SKR1" | u32LE 文件数 | 重复{ u32LE 路径字节数, 路径(UTF-8), u32LE 数据字节数, 数据 }
 //
-// 为什么把 197 个文件合成「一条 deflate 流」而不是逐文件压缩：适配脚本之间有大量公共
+// 把文件合成「一条 deflate 流」：适配脚本之间有大量公共
 // 模板代码，合并后压缩器可在整个仓库范围内复用字典，实测 932 KB(逐文件) → ~723 KB(-22%)。
 // 固定条目时间戳 + 按路径排序，保证产物可复现（内容不变则字节不变）。
 // ---------------------------------------------------------------------------
 val offlineRepoRoot = layout.projectDirectory.dir("assets/offline_repo").asFile
-val offlineRepoArchive = layout.projectDirectory
-    .file("src/commonMain/composeResources/files/offline_schools.zip").asFile
+val offlineRepoArchive = layout.buildDirectory
+    .file("generated/offlineResources/files/offline_schools.zip")
 
 val packSchoolsZip = tasks.register("packSchoolsZip") {
     group = "build"
-    description = "将离线适配资源打包为单流压缩容器（composeResources/files/offline_schools.zip）。"
+    description = "将运行时离线资源打包到 build/generated/offlineResources。"
 
-    inputs.dir(offlineRepoRoot).withPropertyName("offlineRepo")
+    inputs.files(fileTree(offlineRepoRoot) {
+        exclude("**/*.md", "**/schools_template.json", "**/timetable_schools.json")
+    }).withPropertyName("offlineRepo").withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.file(offlineRepoArchive)
 
     // 任务动作内只使用下面捕获的普通 File 对象与自身 inputs/outputs（配置缓存要求）
     val repoRoot = offlineRepoRoot
-    val archive = offlineRepoArchive
+    val archive = offlineRepoArchive.get().asFile
 
     doLast {
-        // 排除规则：文档 / 模板 / **构建期源数据**不进正式包。
-        //
-        // P2-2（2026-10-08 修复）：`timetable_schools.json`（284.5 KB）是**构建期数据集** ——
-        // 它是 `tools/build_schools.py` 生成 `school_index.pb` 的输入，App 运行时从不读它
-        // （全仓 `shared/src` 对该文件名零命中；运行时只读 `index/school_index.pb`，
-        // 入口见 `SchoolRepository` / `AdapterRemoteUpdater.INDEX_RELATIVE_PATH`）。
-        // 此前它随 `offline_schools.zip` 打进每个正式包并被解压到 filesDir，白占约 285 KB
-        // （解压后计入用户存储），且随 OTA 一并下发。
-        fun isExcluded(relativePath: String): Boolean =
-            relativePath.endsWith(".md") ||
-                relativePath.endsWith("schools_template.json") ||
-                relativePath.endsWith("timetable_schools.json")
-
         fun writeLeInt(out: OutputStream, value: Int) {
             out.write(value and 0xFF)
             out.write((value ushr 8) and 0xFF)
@@ -244,10 +237,8 @@ val packSchoolsZip = tasks.register("packSchoolsZip") {
             out.write((value ushr 24) and 0xFF)
         }
 
-        val entries = repoRoot.walkTopDown()
-            .filter { it.isFile }
+        val entries = inputs.files.files.asSequence()
             .map { it to it.relativeTo(repoRoot).invariantSeparatorsPath }
-            .filter { (_, relativePath) -> !isExcluded(relativePath) }
             .sortedBy { (_, relativePath) -> relativePath }
             .toList()
 
@@ -256,8 +247,8 @@ val packSchoolsZip = tasks.register("packSchoolsZip") {
         ZipOutputStream(BufferedOutputStream(FileOutputStream(archive))).use { zipOut ->
             zipOut.setLevel(9)
             val entry = ZipEntry("repo.skr")
-            // 2000-01-01T00:00:00Z：固定时间戳，避免每次构建都因时间戳不同而被判定为变更
-            entry.time = 946684800000L
+            // ZIP 使用本地 DOS 时间；固定本地日期，避免机器时区改变相同输入的字节。
+            entry.timeLocal = LocalDateTime.of(2000, 1, 1, 0, 0)
             zipOut.putNextEntry(entry)
 
             zipOut.write(byteArrayOf(0x53, 0x4B, 0x52, 0x31)) // "SKR1"
@@ -280,16 +271,23 @@ val packSchoolsZip = tasks.register("packSchoolsZip") {
     }
 }
 
-// 绑定生成 Task 至 Compose Resources 编译生命周期
-val exportLibraryDefinitions = tasks.named("exportLibraryDefinitions")
-
-tasks.matching {
-    it.name.startsWith("generateComposeResClass") ||
-            it.name.startsWith("copyNonXmlValueResources") ||
-            it.name.startsWith("prepareComposeResources")
-}.configureEach {
-    dependsOn(packSchoolsZip)
-    dependsOn(exportLibraryDefinitions)
+// customDirectory 替换默认资源目录，因此同时汇总手写资源和生成资源。
+// Provider 负责串联任务依赖，避免依赖 Compose 插件内部任务名。
+val commonResourcesDirectory = layout.buildDirectory.dir("generated/composeResources/commonMain")
+val assembleCommonResources = tasks.register<Sync>("assembleCommonResources") {
+    group = "build"
+    description = "汇总手写与生成的 Compose 资源，不向 src 写入构建产物。"
+    dependsOn(packSchoolsZip, tasks.named("exportLibraryDefinitions"))
+    from("src/commonMain/composeResources") {
+        // 旧工作区可能残留此前生成的文件，只采用本次任务输出。
+        exclude("files/offline_schools.zip", "files/aboutlibraries.json")
+    }
+    from(layout.buildDirectory.dir("generated/offlineResources"))
+    from(layout.buildDirectory.dir("generated/licenseResources"))
+    into(commonResourcesDirectory)
+}
+compose.resources {
+    customDirectory("commonMain", assembleCommonResources.map { commonResourcesDirectory.get() })
 }
 
 // =====================================================================
@@ -380,5 +378,7 @@ tasks.matching { it.name.startsWith("compileKotlin") || it.name.startsWith("ksp"
 // 避免依赖测试进程的工作目录（AGP host 测试的工作目录不保证是模块目录）。
 val repositoryRootPath = rootProject.projectDir.absolutePath
 tasks.withType<Test>().configureEach {
+    dependsOn(packSchoolsZip)
     systemProperty("shangke.repoRoot", repositoryRootPath)
+    systemProperty("shangke.offlineArchive", offlineRepoArchive.get().asFile.absolutePath)
 }
