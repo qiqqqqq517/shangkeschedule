@@ -12,9 +12,9 @@
  *
  * 用法（node scripts/ima_kb.cjs <命令> …）：
  *   kb                                  列出账号下全部知识库（含类型）
- *   ls [--folder <名>] [--kb <名>]      列出共享库内容；带 --folder 则列该文件夹
- *   find <关键词> [--kb <名>]           在共享库内搜索
- *   read <note_id>                      读一篇笔记正文（notes 通道）
+ *   ls [--folder <名>] [--kb <名>] [--json]      浏览；JSON 只返回指定层级，不递归盘点
+ *   find <关键词> [--kb <名>] [--json]          搜索；JSON 含后续命令可用的 mediaId
+ *   read <note_id|media_id> [--head N|--tail N]  读笔记，可限制显示字符数
  *   note-new <标题> <md文件> [--folder <名>] [--kb <名>] [--backup] [--dry-run]
  *                                      新建笔记 → add_knowledge(media_type=11) 入目标文件夹
  *   note-append <note_id> <md文件> [--marker <纯文本片段>] [--max-ratio N] [--dry-run]
@@ -76,12 +76,23 @@ function credentials() {
  */
 function call(apiPath, bodyObj) {
   const creds = credentials();
+  const redact = (value) => Object.values(creds).reduce((text, credential) =>
+    credential ? text.split(credential).join('[已隐藏]') : text, String(value));
   const bodyFile = tmpFile('.json', JSON.stringify(bodyObj));
   try {
-    const out = execFileSync(process.execPath, [IMA_API, apiPath, fs.readFileSync(bodyFile, 'utf8'),
-      JSON.stringify(creds)], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    const json = JSON.parse(out);
-    if (json.code !== 0) throw new Error(`${apiPath} 业务失败 code=${json.code} msg=${json.msg}`);
+    let out;
+    try {
+      out = execFileSync(process.execPath, [IMA_API, apiPath, fs.readFileSync(bodyFile, 'utf8'),
+        JSON.stringify(creds)], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (error) {
+      // ChildProcess 的默认 message 含完整命令和凭据，只采用结构化原因。
+      let message = 'IMA API 子进程执行失败；请求未确认成功';
+      try { const detail = JSON.parse(String(error.stderr || '')); if (typeof detail.msg === 'string') message = detail.msg; } catch (_) { /* 不回显原始命令或非结构化输出 */ }
+      throw new Error(redact(message));
+    }
+    let json;
+    try { json = JSON.parse(out); } catch (_) { throw new Error('IMA API 未返回合法 JSON；请求未确认成功'); }
+    if (json.code !== 0) throw new Error(redact(`${apiPath} 业务失败 code=${json.code} msg=${json.msg}`));
     return json.data;
   } finally {
     try { fs.unlinkSync(bodyFile); } catch (_) { /* 临时文件清理失败不阻断 */ }
@@ -356,6 +367,12 @@ async function cmdKb() {
 
 async function cmdLs(flags) {
   const kb = resolveKb(flags.kb || DEFAULT_KB);
+  if (flags.json) {
+    const fid = flags.folder ? resolveFolder(kb.id, flags.folder) : undefined;
+    console.log(JSON.stringify({ kb: kb.name, folder: flags.folder || null,
+      items: listAll(kb.id, fid).map(itemSummary) }));
+    return;
+  }
   console.log(`知识库「${kb.name}」（${kb.baseType || '类型未知'}） content_count=${kb.contentCount}`);
   if (flags.folder) {
     const fid = resolveFolder(kb.id, flags.folder);
@@ -380,19 +397,52 @@ async function cmdFind(positional, flags) {
   const q = positional[0];
   if (!q) throw new Error('用法：ima_kb.cjs find <关键词> [--kb 名称]');
   const kb = resolveKb(flags.kb || DEFAULT_KB);
-  const items = listItems(call('openapi/wiki/v1/search_knowledge',
-    { query: q, knowledge_base_id: kb.id, cursor: '' }));
+  const result = call('openapi/wiki/v1/search_knowledge',
+    { query: q, knowledge_base_id: kb.id, cursor: flags.cursor || '' });
+  const items = listItems(result);
+  if (flags.json) {
+    console.log(JSON.stringify({ kb: kb.name, items: items.map(itemSummary),
+      nextCursor: result.next_cursor || null, isEnd: result.is_end ?? null }));
+    return;
+  }
   console.log(`「${kb.name}」检索「${q}」命中 ${items.length} 条：`);
   for (const it of items) console.log(`   · ${it.title}`);
 }
 
-async function cmdRead(positional) {
-  const noteId = positional[0];
-  if (!noteId) throw new Error('用法：ima_kb.cjs read <note_id>');
+function itemSummary(item) {
+  return { title: item.title, mediaId: item.media_id, mediaType: item.media_type,
+    noteId: item.notebook_ext_info?.notebook_id || item.note_info?.content_id || null };
+}
+
+function resolveNoteReference(reference) {
+  if (/^\d+$/.test(reference)) return String(reference);
+  const media = call('openapi/wiki/v1/get_media_info', { media_id: String(reference) });
+  const noteId = media.notebook_ext_info?.notebook_id;
+  if (media.media_type !== 11 || !noteId) throw new Error('目标不是可读写笔记，请使用 IMA 客户端查看原文');
+  return String(noteId);
+}
+
+async function cmdRead(positional, flags = {}) {
+  const reference = positional[0];
+  if (!reference) throw new Error('用法：ima_kb.cjs read <note_id|media_id> [--head N|--tail N]');
+  if (flags.head !== undefined && flags.tail !== undefined) throw new Error('--head 与 --tail 只能选一个');
+  const rawLimit = flags.head ?? flags.tail;
+  let limit;
+  if (rawLimit !== undefined) {
+    limit = Number(rawLimit);
+    if (typeof rawLimit !== 'string' || !/^\d+$/.test(rawLimit) || !Number.isSafeInteger(limit) || limit < 1)
+      throw new Error('读取长度必须是正整数');
+  }
+  const noteId = resolveNoteReference(reference);
   const d = call('openapi/note/v1/get_doc_content',
     { note_id: String(noteId), target_content_format: 0 });
   const text = d.content || d.doc_content || d.text || '';
-  console.log(text);
+  if (limit === undefined) console.log(text);
+  else {
+    const chars = Array.from(text);
+    const part = flags.tail !== undefined ? chars.slice(-limit) : chars.slice(0, limit);
+    console.log(`〔显示${flags.tail !== undefined ? '末尾' : '开头'} ${part.length}/${chars.length} 字符〕\n${part.join('')}`);
+  }
 }
 
 async function cmdNoteNew(positional, flags) {
@@ -423,9 +473,10 @@ async function cmdNoteNew(positional, flags) {
 }
 
 async function cmdNoteAppend(positional, flags) {
-  const [noteId, file] = positional;
-  if (!noteId || !file) throw new Error('用法：ima_kb.cjs note-append <note_id> <md文件> [--marker "纯文本片段"] [--dry-run] [--max-ratio N]');
+  const [reference, file] = positional;
+  if (!reference || !file) throw new Error('用法：ima_kb.cjs note-append <note_id|media_id> <md文件> [--marker "纯文本片段"] [--dry-run] [--max-ratio N]');
   const md = readUtf8(file);
+  const noteId = resolveNoteReference(reference);
   const r = appendNote(noteId, md, flags.marker, {
     dryRun: !!flags['dry-run'],
     maxRatio: flags['max-ratio'] ? Number(flags['max-ratio']) : 2,
@@ -476,11 +527,11 @@ async function cmdVerify(positional, flags) {
 const HELP = `用法：node scripts/ima_kb.cjs <命令> [参数]
 
   kb                                          列出全部知识库
-  ls [--folder <名>] [--kb <名>]              浏览共享库 / 指定文件夹
-  find <关键词> [--kb <名>]                   检索
-  read <note_id>                              读笔记正文
+  ls [--folder <名>] [--kb <名>] [--json]      浏览；JSON 不递归盘点
+  find <关键词> [--kb <名>] [--json] [--cursor <游标>]
+  read <note_id|media_id> [--head N|--tail N]   读笔记正文或指定片段
   note-new <标题> <md> [--folder <名>] [--backup] [--dry-run]
-  note-append <note_id> <md> [--marker <纯文本片段>] [--max-ratio N] [--dry-run]
+  note-append <note_id|media_id> <md> [--marker <纯文本片段>] [--max-ratio N] [--dry-run]
   up <文件> [--folder <名>] [--backup] [--dry-run]
   verify <标题片段> [--folder <名>] [--kb <名>]
 
@@ -493,7 +544,7 @@ async function main() {
     case 'kb': return cmdKb();
     case 'ls': return cmdLs(flags);
     case 'find': return cmdFind(positional, flags);
-    case 'read': return cmdRead(positional);
+    case 'read': return cmdRead(positional, flags);
     case 'note-new': return cmdNoteNew(positional, flags);
     case 'note-append': return cmdNoteAppend(positional, flags);
     case 'up': return cmdUp(positional, flags);

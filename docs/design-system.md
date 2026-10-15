@@ -164,18 +164,20 @@ python scripts/check_theme_leak.py --fail                 # 绝对门禁（只�
 - 基线文件 `scripts/theme-leak-baseline.json` 已入库；**不要手改**，用 `--update-baseline` 生成。
   手改引入的 UTF-8 BOM 会被容错；但若损坏成非法 JSON 会 **fail-closed 拦截** —— 门禁不允许静默失效。
 
-### 3.2 提交门禁（已启用）
+### 3.2 提交门禁
 
-```bash
-git config core.hooksPath .githooks     # 启用（新克隆需各自执行一次）
-git config --unset core.hooksPath        # 关闭
-git commit --no-verify                   # 跳过单次
+主题约束由本文件维护，检查触发与执行由 [统一检查入口](agents/checks.md) 维护；不再复制一份 hook 调度逻辑。
+
+```powershell
+git config core.hooksPath .githooks   # 新克隆启用一次
+python scripts/project_checks.py --changed
 ```
 
-- Hook：`.githooks/pre-commit` —— 调用棘轮检查，**只在回归时拦截**。
-- Python 发现顺序：环境变量 `SHANGKE_PYTHON` → `git config shangke.python` → PATH（`python3`/`python`/`py`）。
-  **找不到 python 时 fail-open**（只警告不阻断），避免环境问题卡住提交。
-- 已实测三态：通过 → `exit 0`；制造回归 → `exit 1` 且打印差异项；基线损坏 → `exit 1`（fail-closed）。
+- UI/主题扫描器/基线变化时触发主题棘轮，其他任务按实际输入选检查；预览计划不等于通过。
+- Python 发现顺序由钩子维护；找不到解释器时明确失败，不 fail-open，不使用跳过钩子作为常规流程。
+- 通过/违规/基线损坏须分别按真实退出码判断。违规只允许减少；更新基线不能用来掩盖回归。
+
+> 2026-10-15 更正：旧版“关闭 hook/单次跳过、Python 缺失仍放行”由上述统一安全门替代，依据是保留红线检查并消除重复执行入口。
 
 ---
 

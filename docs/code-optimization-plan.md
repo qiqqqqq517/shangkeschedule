@@ -1,5 +1,7 @@
 # 代码优化指导计划 · OPT（ShangKeSchedule）
 
+> **流程更正（2026-10-15）**：本文保留历史优化台账与测量快照，不作为第二套常驻规则。旧版每项全量检查、强制重跑、固定用例数和重复提交协议已被 §6 的统一入口替代；只按本次任务取相关条目，不通读/自动执行整份计划。
+
 > **定位**：本文件是仓库的**第三本台账**，专门回答「代码该优化什么、按什么顺序、动之前要满足什么前提、怎么算做完」。
 > 它**不重新审计、不复制证据原文、不做功能开发** —— 每条只给「来源台账编号 + 证据锚点 + 改动范围 + 开工前提 + 退出判据」，明细一律回引原台账。
 >
@@ -113,13 +115,13 @@
 | **测试总口径** | **276 例 / 0 失败 / 0 错误 / 0 跳过** | 与 `工作日志.md` v4.68.4 记录一致 |
 
 > 📌 **上表是 2026-10-04 v4.68.4 的历史快照，不是当前值**（P2-19 · 2026-10-05 标注）。
-> 当前实测口径（2026-10-11 Gradle 实跑）= **404 例 / 1 失败 / 0 错误 / 0 跳过**
+> 后续历史快照（2026-10-11 Gradle 实跑，仍非当前值）= **404 例 / 1 失败 / 0 错误 / 0 跳过**
 > （`:shared:testAndroidHostTest` **44 文件 / 337 例** + `:androidApp:testDebugUnitTest` **8 文件 / 67 例**，
 > 两种计数法 `@Test` 注解与 Gradle XML 闭合对拍）。
 > ⚠️ 唯一失败项为既存缺陷 `AdapterScanWatchdogTest.超时后必须退出运行态（否则按钮永久禁用）`，待单独修复。
 > **判定「多少例算对」时不要引用本表**，以 `docs/agents/neverstop-watchdog.md` §L3 的现场核对流程为准。
 
-> ⚠️ **口径陷阱（本仓已踩过）**：`:shared:jvmTest` 在本仓是 `NO-SOURCE`（不存在 `shared/src/jvmTest` 源集），跑它**零覆盖却报成功**。真实任务是 `:shared:testAndroidHostTest`。且必须加 `--rerun-tasks`（否则复用上轮产物，「通过」只代表上一轮）并**核对执行数**（`NO-SOURCE` 不看执行数就会被骗）。
+> ⚠️ **口径陷阱（本仓已踩过）**：`:shared:jvmTest` 在本仓是 `NO-SOURCE`（不存在 `shared/src/jvmTest` 源集），跑它**零覆盖却报成功**。真实任务是 `:shared:testAndroidHostTest`。默认复用相同输入的增量结果；仅有陈旧产物证据时 `--rerun-tasks`。核对目标测试和 XML 实际结果，不把固定数字或源码注解数作为恒定执行数。
 
 ### 2.2 代码规模与 God 文件
 
@@ -343,88 +345,15 @@ Top-8 单文件行数：
 
 ---
 
-## 6. 执行协议（复用既有机制，**不新造流程**）
+## 6. 执行协议（统一引用，2026-10-15 更正）
 
-### 6.1 开工对表（每轮）
+- 开工、隔离、版本、授权、提交与重试按 [开发流程](agents/workflow.md)，本计划不再维护另一份决策树。
+- 静态检查按 [统一入口](agents/checks.md) 的实际输入调度；App 编译与测试按验证矩阵，相关性能/设备验收仍须提供实际证据。
+- 从失败证据定位根因，先验证失败项，再验证影响范围；门禁变动须验证通过与拒绝路径，禁止放宽基线。
+- 用户在途补充并入同一批次；同批次只迭代/记录一次，提交推送按已有授权执行，不为本计划的历史停机条款重复征询。
+- 持续巡检仅在用户明确要求时启动，按 [巡检流程](agents/neverstop-watchdog.md) 等待变化，不重跑相同输入。
 
-```powershell
-cd "D:\01课程表\shangkeschedule"
-git fetch origin
-git merge --ff-only origin/main
-git branch --show-current      # 必须输出 main
-git status --short
-```
-
-- 主工作区**常驻 `main`**；`merge --ff-only` 失败（分叉）⇒ **挂起等人**，不 rebase、不 reset。
-- `git status` 出现**不属于自己**的改动 ⇒ 判定为并行会话在途，**本轮只报告、不动手**。
-- **并行会话严禁占用主工作区切分支**，一律 `git worktree add`。新 worktree 首次构建前必须复制三样：`androidApp/keystore.properties`、`androidApp/shangkeschedule-release.jks`、`local.properties`（否则 `validateSigningRelease` 必失败）。
-
-### 6.2 分层验证（由浅到深，逐层向下）
-
-| 层 | 命令 | 判读 |
-|---|---|---|
-| L1 | `python scripts/check_version_sync.py` / `check_theme_leak.py --baseline scripts/theme-leak-baseline.json` / `check_a11y.py --baseline scripts/a11y-baseline.json` / `check_widget_contrast.py` / `check_adapters.py` / `check_font_scale.py` | **六道全部跑完再汇总**，不得首条失败即停；`check_font_scale.py` 记录 `?`（可能裁切）**数量，较上轮增长即挂起**，不自行改布局 |
-| L2 | `.\gradlew.bat :shared:compileKotlinJvm :desktopApp:compileKotlin :androidApp:assembleDebug --console=plain` | 三关全绿；任一失败 ⇒ L3 不跑并注明 |
-| L3 | `.\gradlew.bat :shared:testAndroidHostTest :androidApp:testDebugUnitTest --rerun-tasks --console=plain` | 必须 `--rerun-tasks`；**必须核对执行数 = `@Test` 注解数**（本仓基线 **276**）；`NO-SOURCE` **一律不算通过** |
-| L4 | 每 4 小时：提交↔工作日志对账、tag↔CHANGELOG、文档引用抽查、worktree/分支残留、磁盘与缓存、真机盲区清单复核 | 只报告不擅自处理他人分支；磁盘低于 5 GB 只报告 |
-| PF6 | `python scripts/perf_jank.py` / `--save-baseline` / `--check-baseline` | 涉及 `ui/glass/**`、列表/网格测量逻辑、发版前**必跑**；玻璃路径另需离屏探针 `[control]` = 0.000 |
-
-> **`JAVA_HOME` 本机是坏的**：每条 Gradle 命令前显式设 `C:\Program Files\Android\Android Studio\jbr`。
-
-### 6.3 修复纪律
-
-```
-失败项
- ├─ 1. 读报错原文与门禁输出（必要时重跑取完整日志），不凭印象
- ├─ 2. 用证据定位根因（复现 / 日志 / 源码对照）；找不到根因不许改代码
- ├─ 3. 一次只改一个根因，最小 diff，不夹带
- ├─ 4. 验证：a. 重跑失败的那条门禁/编译/测试
- │         b. 改过门禁逻辑 ⇒ 强制反向验证（临时还原缺陷确认变红，再恢复）
- │         c. 从受影响层级向下全量重跑
- ├─ 5. 同一失败项连续 2 轮未通过 ⇒ 停止重试，写入挂起清单，跳到下一项
- └─ 6. 命中「硬停机条件」⇒ 立即挂起等人
-```
-
-**修复手段优先级**：改代码/资源消除缺陷 **>** 补门禁防复发 **>** 证明误判后调整规则。调整任何检查规则**必须给出误判证据**（文件、行号、判定值）。
-
-**棘轮纪律**：`--update-baseline` 仅在违规数**净下降**时允许，且必须在工作日志写明。**严禁为让门禁变绿而放宽基线。**
-
-### 6.4 收尾（一条改完就走完）
-
-1. **判类型**：`FIX` / `FEAT` / `REFACTOR` / `DOCS` / `DATA` / `BUILD`。
-2. **版本迭代**：`FIX`→`python tools/publish_new_version.py --bump patch --bump-only`；`FEAT`→`minor`；破坏性→`major`；`versionCode` 每次无条件 +1。**纯文档变更不 bump**（本文件自身属此类）。
-3. **手动改 README 徽章**（无脚本同步；历史教训：徽章曾落后约 100 个版本）。
-4. **重跑版本门禁** `python scripts/check_version_sync.py` ⇒ 三条 `[OK]`。
-5. **追加工作日志**：`python tools/worklog/worklog.py append --date <YYYY-MM-DD> --version <新版本> --code <新code> --type <类型> --summary "<一句话>" --body-file <正文文件>`。正文写：失败项与报错、根因、关键文件、验证方式与结果（含反向验证）、**验证状态（编译 / 未装机）**。
-6. **显式 add**：`git add -- <本次文件…>`（**严禁** `git add .` / `-A`）；add 后 `git status --short` 核对，发现多余文件立即 `git reset HEAD <文件>` 撤出。
-7. **提交**：`git commit -m "<type>(<范围>): <中文摘要> vX.Y.Z"`。
-8. **推送**：`git push origin main`，**gitee 镜像按同法同步**。
-
-**红线（用户确认了也不得入库）**：`*.jks` / `keystore.properties` / `local.properties` / `google-services.json` / `adapter_secrets.properties`；AI 会话产物（`.trae/`、`.zcode/`、`build_qa/`、`工作日志.md`、`tools/`）。
-
-### 6.5 已知故障处置（不要自创解法）
-
-| 症状 | 正确处置 | **严禁** |
-|---|---|---|
-| `schannel: failed to receive handshake` | 等约 20 秒 ⇒ `git ls-remote --heads origin main` 探活 ⇒ 恢复后原样重推 | ❌ 清空代理直连（报 `Connection was reset`）❌ 切 `http.sslBackend=openssl`（报 `SSL_ERROR_SYSCALL`） |
-| `could not read Password ... terminal prompts disabled` | `python scripts/push_via_wincred.py`（代理故障加 `--direct`） | ❌ 依赖 `git credential fill`（本机凭据链不可靠） |
-| 推送连续失败 3 次 | **挂起**；本地提交**保留不回退** | ❌ force push |
-| 依赖下载/镜像/网络错误 | 等 20 秒重试，最多 3 次，仍失败则该项挂起 | ❌ 无限重试 |
-
-### 6.6 硬停机条件（立即停止自动修复，保留现场等人）
-
-1. 需要改签名、密钥、凭据、`adapter_secrets.properties` 或私有适配仓库写入；
-2. **需要真机验证**：日历写回、响铃/勿扰切换、通知投递、桌面组件放置、权限变更广播等 JVM 测不到的链路；
-3. 需要修改 `AGENTS.md` 规则本身、`docs/agents/neverstop-watchdog.md` 或发版流程；
-4. 需要删除/移动用户文件、删除分支、force push、撤销提交；
-5. 同一失败项连续 2 轮修复失败；
-6. 依赖下载/镜像/网络类错误重试 3 次仍失败；
-7. Gradle OOM、机器资源不足等环境问题（冷却后仍复现）；
-8. 修复需要**新功能、新文案、设计或产品决策**（⇒ 转入 §4 决策队列）；
-9. 发现红线文件被跟踪、或工作区存在来源不明的改动（并行会话事故苗头）；
-10. 用户直接下达新指令 —— 立即让位。
-
----
+旧 §6 曾复制六层门禁、全量重跑、网络兜底、版本与提交步骤；现改为单一来源引用，依据是消除与根规则的漂移。历史优化结果与方案取舍保留。
 
 ## 7. 验收标准
 
@@ -433,11 +362,11 @@ git status --short
 同时满足才算完成：
 
 1. **代码/资源改动**已落地，最小 diff，无夹带；
-2. **L1 六道全绿**（改动后全量重跑，不只看受影响的那条）；
-3. **L2 三关 + L3 逐例**通过，**执行数 ≥ 276**（只应因新增测试而增加；无理由减少即挂起）；
+2. 本次应触发的静态检查通过，未触发/未执行的检查如实标注；
+3. 按开发流程完成适用编译与相关测试，核对目标套件和真实报告，不以历史固定数字判定；
 4. 若改了门禁或新增门禁：**反向验证在档**（还原缺陷 ⇒ 变红）；
 5. **验证状态如实标注**（编译 / 未装机）；测不了的链路不得翻转为「已验证」；
-6. 工作日志已追加、版本已迭代（纯文档变更除外）、README 徽章与 `check_version_sync.py` 同步；
+6. 工作日志已记录，符合迭代条件时才 bump，版本载体一致；项目结论按 IMA 规则回写；
 7. 本文件对应条目状态已更新为 `✅ 已落地 vX.Y.Z(code)` + 一行证据。
 
 ### 7.2 对「整体优化目标」的验收（阶段级）

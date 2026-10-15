@@ -1,5 +1,8 @@
 # 教务系统适配标准流程（SOP）
 
+> **按需入口**：新学校读 §2–§4，已有能力扩展读 §3.7，调试读 §5，热更新读 §6–§7，发版边界读 §8；不要默认通读本文。通用验证与提交引用 `docs/agents/workflow.md`，静态检查统一经 `scripts/project_checks.py`。本 SOP 保留适配专用契约和线上双落点核验。
+
+
 > **读者**：为本项目新增 / 修复教务系统适配的开发者与 AI 会话。
 > **覆盖场景**：① 新增学校适配；② 修复既有学校的适配问题；③ 新增通用教务平台支持；
 > ④ **为学校补成绩 / 空教室 / 学业情况三个能力钩子**（见 §3.7，参考实现 `NTU/ntu.js`）。
@@ -432,7 +435,7 @@ python tools/build_schools.py
 
 ```powershell
 python scripts/check_adapters.py            # 全量体检 + 双落点核对
-python scripts/check_adapters.py --strict   # 提示项也判失败（CI 用）
+python scripts/check_adapters.py --strict   # 仅在任务明确要求零 WARN 时使用
 python scripts/check_adapters.py --require-private   # 私有仓库必须存在，缺失即 ERROR
 ```
 
@@ -441,7 +444,7 @@ python scripts/check_adapters.py --require-private   # 私有仓库必须存在�
 > 而「新 worktree / 未 clone 私有仓库」恰恰是最需要这条防线的场景（远端旧脚本会覆盖包内新版，
 > 见 §6.4）。因此**凡本次确实改了适配脚本**的场合（pre-commit 已默认带上该开关、
 > 发版 runbook 与 CI 亦应带上），一律用 `--require-private`，让"拿不到私有仓库"变成**显式失败**
-> 而不是静默跳过；确实未 clone 私有仓库的本机，用 `git commit --no-verify` 显式放行。
+> 而不是静默跳过。私有仓库缺失时保留本次适配提交为未完成，准备好副本后重跑，不使用跳过钩子兜底。
 > 也可用环境变量 `ADAPTER_REQUIRE_PRIVATE=1` 达到同样效果。
 
 > ⚠️ 为什么不能逐字节比：主仓库工作副本是 CRLF、私有仓库是 LF，同一份文件会因行尾被误报成
@@ -601,16 +604,17 @@ Invoke-WebRequest 'https://adapter.shangke.asia/adapters/<CODE>/<js>' -Headers @
 > 现成脚本：`build_qa/verify_live_adapters.py`（比对指定脚本的远端/本地 sha256，并下载正文检查钩子字符串），
 > 可作为模板改成要核验的文件清单。
 
-**已加的前置拦截（2026-10-05）**：`.githooks/pre-commit` 在我改动适配脚本（暂存路径命中
-`shared/assets/offline_repo/`、`.adapter_private/`、`adapter-worker/`）时，会以
-`check_adapters.py --skip-node --require-private` 运行体检 ——
+**现行前置拦截（2026-10-15）**：`.githooks/pre-commit` 调用统一入口，暂存路径命中
+`shared/assets/offline_repo/` 或 `adapter-worker/` 时，以
+`check_adapters.py --skip-node --require-private` 加危险 API 基线运行体检 ——
+`.adapter_private/` 被主仓库忽略，不是可达的暂存触发源，其一致性仍须按本节核验。
 **私有仓库工作副本缺失即判 ERROR 并拦截提交**。
 
 > 拦的是哪一类事故：以前「改了适配脚本、但本机没有 `.adapter_private/`」（典型是新 worktree）
 > 时，双落点校验会**静默跳过**且默认模式下不影响退出码 —— 于是提交照过、发版照发，
 > 而 OTA 会用远端旧脚本覆盖包内新版，症状就是本节的「原有功能正常、新增功能全失效」。
 > 现在这条路径会在**提交那一刻**被拦住，而不是等到线上排查。
-> 确实拿不到私有仓库的本机，用 `git commit --no-verify` 显式放行（属有意为之，非默认）。
+> 缺失私有副本时不能绕过安全门；先补齐本次验证条件，再继续提交或发布。
 
 ---
 
