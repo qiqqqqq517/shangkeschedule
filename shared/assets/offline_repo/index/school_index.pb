@@ -1,4 +1,4 @@
-auto-b5f8727fb437059d�
+auto-7925ae104513b404�
 GENERAL_ZHENGFANG正方教务系统（通用）zfjwxt"	zhengfang*�
 GENERAL_ZHENGFANG正方教务系统"zhengfang.js2N适用于所有正方教务系统高校，输入学校教务网址即可导入:general-platform�
 GENERAL_URPURP教务系统（通用）urpjwxt"urp*�
@@ -5772,7 +5772,10 @@ njlgdxzjxy"urp*�
 u_7efa914c湖南财政经济学院hnczjjxy"hufe*�
 u_7efa914c_01 强智教务系统(湖南财政)"hufe.js*8https://jiaowu.hufe.edu.cn/jsxsd/framework/xsMainV.htmlx2(自动导入自 timetable，类型: hufe:auto-import�
 u_gzutcm_001广州中医药大学gzzyydx"GZUTCM*�
-u_gzutcm_001_01乘方教务系统"	gzutcm.js*https://jw.gzucm.edu.cn/2多入口：乘方教务系统:manual-multi-entry�
+u_gzutcm_001_01乘方教务系统"	gzutcm.js*https://jw.gzucm.edu.cn/2多入口：乘方教务系统:manual-multi-entry�
+
+u_whit_001芜湖职业技术大学whzyjsdx"WHIT*�
+u_whit_001_01融合门户教务系统"whit.js*)https://casp.whit.edu.cn/index.html#/hall20自动导入自 timetable，类型: 融合门户:auto-import�
 
 u_9b650832右江民族医学院yjmzyxy"YMUN*�
 u_9b650832_01)乘方教务系统(右江民族医学院)"ymun.js*http://emis.ymun.edu.cn/2(自动导入自 timetable，类型: ymun:auto-import

@@ -1,42 +1,13 @@
-// 湖北师范大学 教务适配器（正方 V-9.0 · jwxt.hbnu.edu.cn · 经 ehall 统一认证进入）
-// 课表页：https://jwxt.hbnu.edu.cn/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N253508
-// 数据接口：POST /kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N253508  参数 xnm=<学年值>&xqm=<学期代码>
-// 实测（2026-09-29，学号 2026115070433）：
-//   - xnm=2026 & xqm=3 返回 kbList（19条）+ sjkList（实践课程）
-//   - kbList 字段：kcmc 课程名 / xm 教师 / zcmc 职称 / cdmc 教室 / xqj 星期(1-7) /
-//     jcs 节次(如"1-2") / zcd 周次(如"5-10周") / xf 学分 / jxbmc 教学班
-// 流程：ehall 统一认证登录 → 打开「教务系统」→ 进入个人课表查询页 → 自动抓取
-// 优先解析页面课表表格，接口抓取作为兜底；使用 Bridge 与原生通信。
-
-(function() {
+// 湖北师范大学：正方 V9，通过 ehall 统一认证后进入个人课表查询。
+// 优先请求整学期接口；失败时才使用带明确周次的页面课表。
+(function () {
     'use strict';
-
     var WEEK_NAMES = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
     var lastPageDiag = '';
-
-    // ---------- Bridge 桥接（兼容多种宿主封装） ----------
-    var Bridge = (function () {
-        function toast(msg) {
-            try { if (window.shangkeBridge && window.shangkeBridge.showToast) return window.shangkeBridge.showToast(msg); } catch (e) {}
-            try { if (window.shangkeBridgePromise && window.shangkeBridgePromise.showToast) return window.shangkeBridgePromise.showToast(msg); } catch (e) {}
-            try { if (window.Bridge && window.Bridge.showToast) return window.Bridge.showToast(msg); } catch (e) {}
-        }
-        function alert(title, msg, confirmText) {
-            try { if (window.shangkeBridgePromise && window.shangkeBridgePromise.showAlert) return window.shangkeBridgePromise.showAlert(title, msg, confirmText || '确定'); } catch (e) {}
-            try { if (window.Bridge && window.Bridge.showAlert) return window.Bridge.showAlert(title, msg, confirmText || '确定'); } catch (e) {}
-            return Promise.resolve(false);
-        }
-        function save(courses) {
-            // 契约：调用方传课程对象数组，此处做唯一一次 JSON 编码；
-            // 调用方不得预先 stringify，否则原生侧会因双重编码解析失败导致导入失败。
-            var s = JSON.stringify(courses);
-            try { if (window.shangkeBridge && window.shangkeBridge.saveImportedCourses) return window.shangkeBridge.saveImportedCourses(s); } catch (e) {}
-            try { if (window.shangkeBridgePromise && window.shangkeBridgePromise.saveImportedCourses) return window.shangkeBridgePromise.saveImportedCourses(s); } catch (e) {}
-            try { if (window.Bridge && window.Bridge.saveImportedCourses) return window.Bridge.saveImportedCourses(s); } catch (e) {}
-        }
-        return { showToast: toast, showAlert: alert, saveImportedCourses: save };
-    })();
-
+    var importing = null;
+    function toast(text) {
+        if (window.shangkeBridge && window.shangkeBridge.showToast) window.shangkeBridge.showToast(text);
+    }
     // ---------- 文本工具 ----------
     function extractText(html) {
         if (!html) return '';
@@ -245,164 +216,6 @@
         return courses;
     }
 
-    // 判断是否在正方教务页面（hbnu 为 V-9.0，路径 /kbcx/ 或 /xtgl/ 下，无 jwglxt 前缀）
-    function isZhengfangPage() {
-        var url = window.location.href || '';
-        if (url.indexOf('jwxt.hbnu.edu.cn') !== -1) return true;
-        if (url.indexOf('/kbcx/') !== -1 || url.indexOf('/xtgl/') !== -1) return true;
-        var docs = collectDocuments();
-        for (var i = 0; i < docs.length; i++) {
-            try {
-                var body = docs[i].body;
-                if (!body) continue;
-                var text = body.innerText || body.textContent || '';
-                if (text.indexOf('正方软件') !== -1 || text.indexOf('教学管理信息服务平台') !== -1) return true;
-                if (text.indexOf('个人课表查询') !== -1) return true;
-            } catch (e) {}
-        }
-        return false;
-    }
-
-    // 获取学年学期：优先读页面下拉 xnm/xqm，否则按当前日期推算
-    function getXnxq() {
-        var xnm = '', xqm = '';
-        var xnmSelect = document.getElementById('xnm');
-        var xqmSelect = document.getElementById('xqm');
-        if (xnmSelect) xnm = xnmSelect.value;
-        if (xqmSelect) xqm = xqmSelect.value;
-        if (!xnm) {
-            var now = new Date();
-            var year = now.getFullYear();
-            var month = now.getMonth() + 1;
-            if (month >= 9) { xnm = year.toString(); xqm = '3'; }
-            else if (month >= 2) { xnm = (year - 1).toString(); xqm = '12'; }
-            else { xnm = (year - 1).toString(); xqm = '3'; }
-        }
-        return { xnm: xnm, xqm: xqm };
-    }
-
-    // 从 URL / 隐藏域提取功能模块编号 gnmkdm
-    function getGnmkdm() {
-        try {
-            var query = window.location.search || '';
-            var qm = query.match(/[?&]gnmkdm=([^&]+)/);
-            if (qm) return decodeURIComponent(qm[1]);
-            var url = window.location.href || '';
-            var um = url.match(/gnmkdm=([^&]+)/);
-            if (um) return decodeURIComponent(um[1]);
-            var el = document.getElementById('gnmkdm');
-            if (el && el.value) return el.value;
-        } catch (e) {}
-        return 'N253508';  // hbnu 个人课表查询模块实测值
-    }
-
-    // 从 performance 资源里找页面已经请求过的课表接口（最可靠）
-    function findCourseApiFromPerformance() {
-        var entries = [];
-        try { entries = performance.getEntriesByType('resource') || []; } catch (e) { return null; }
-        var candidates = [];
-        for (var i = 0; i < entries.length; i++) {
-            var name = entries[i].name || '';
-            if (!name) continue;
-            if (/xskbcx_cxXsgrkb/.test(name)) return name;
-            if (/xskbcx/i.test(name) && /gnmkdm=/.test(name)) candidates.push(name);
-        }
-        if (candidates.length) {
-            for (var j = 0; j < candidates.length; j++) {
-                if (!/xskbcx_cxXskbcxIndex/i.test(candidates[j])) return candidates[j];
-            }
-            return candidates[0];
-        }
-        return null;
-    }
-
-    // 从 API 获取课程数据（页面无课表表格时兜底）
-    // 依次尝试多个候选接口地址：页面实际请求过的地址最优先（ehall 代理解析场景下最可靠），
-    // 其次按当前路径推导，最后按站点根推导；全部失败才报出诊断信息。
-    function fetchCoursesFromApi() {
-        if (!isZhengfangPage()) {
-            Bridge.showToast('请先进入正方教务系统的「个人课表查询」页面');
-            return;
-        }
-
-        var xnxq = getXnxq();
-        var gnmkdm = getGnmkdm();
-        var basePath = window.location.pathname;
-        var candidates = [];
-        var knownApi = findCourseApiFromPerformance();
-        if (knownApi) candidates.push(knownApi);
-        var derived = '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
-        var kbcxIdx = basePath.indexOf('/kbcx/');
-        if (kbcxIdx !== -1) {
-            derived = basePath.substring(0, kbcxIdx) + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
-        }
-        if (candidates.indexOf(derived) === -1) candidates.push(derived);
-        try {
-            var rootApi = window.location.origin + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + gnmkdm;
-            if (candidates.indexOf(rootApi) === -1) candidates.push(rootApi);
-        } catch (e) {}
-
-        Bridge.showToast('正在从教务接口获取课程数据...');
-        var firstError = '';
-        tryCandidate(0);
-
-        function respHead(xhr) {
-            try {
-                var t = xhr.responseText ? String(xhr.responseText).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120) : '';
-                return t;
-            } catch (e) { return ''; }
-        }
-        function tryCandidate(i) {
-            if (i >= candidates.length) {
-                var msg = '课程数据请求失败（' + firstError + '）｜页面:' + window.location.href + '｜学期:' + xnxq.xnm + '/' + xnxq.xqm;
-                if (firstError === '接口返回空课表') msg += '｜请确认已选择正确学年学期并点查询';
-                else if (/状态码(0|502|504|404)|网络错误/.test(firstError)) msg += '｜如在校外请连接校园VPN后重试';
-                Bridge.showToast(msg);
-                return;
-            }
-            var apiPath = candidates[i];
-            var advanced = false;
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', apiPath, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.withCredentials = true;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            var list = resp.kbList || [];
-                            if (list.length === 0) {
-                                if (!firstError) firstError = '接口返回空课表';
-                                next();
-                                return;
-                            }
-                            parseAndImport(list);
-                        } catch (e) {
-                            if (!firstError) firstError = '返回非数据页面:' + respHead(xhr);
-                            next();
-                        }
-                    } else {
-                        if (!firstError) {
-                            firstError = '状态码' + xhr.status;
-                            var head = respHead(xhr);
-                            if (head) firstError += ':' + head;
-                        }
-                        next();
-                    }
-                }
-            };
-            xhr.onerror = function() {
-                if (!firstError) firstError = '网络错误';
-                next();
-            };
-            xhr.send('xnm=' + xnxq.xnm + '&xqm=' + xnxq.xqm);
-            function next() {
-                if (!advanced) { advanced = true; tryCandidate(i + 1); }
-            }
-        }
-    }
-
     // 解析接口节次：jcs / jc / djj+cs
     function parseApiSections(item) {
         var numbers = String(item.jcs || item.jc || '').match(/\d+/g);
@@ -464,7 +277,7 @@
 
             courses.push({
                 name: name,
-                teacher: teacher,
+                teacher: teacher || '未安排',
                 position: position,
                 day: day,
                 startSection: sections.start,
@@ -474,56 +287,142 @@
             });
         });
 
-        if (courses.length === 0) {
-            var sample = kbList.length > 0 ? Object.keys(kbList[0]).join(',') : '空列表';
-            Bridge.showToast('未提取到有效课程（接口返回' + kbList.length + '条，字段：' + sample + '）');
+        return courses;
+    }
+
+    // 递归处理同源门户/代理 iframe；跨域 iframe 交由用户进入后再执行。
+    function findContext() {
+        var seen = [];
+        function visit(w) {
+            try {
+                if (seen.indexOf(w) >= 0) return null;
+                seen.push(w);
+                var d = w.document;
+                if (/\/(?:kbcx|xtgl)\//i.test(w.location.pathname) ||
+                    w.location.hostname === 'jwxt.hbnu.edu.cn') return { window: w, document: d };
+                var frames = d.querySelectorAll('iframe');
+                for (var i = 0; i < frames.length; i++) {
+                    var found = visit(frames[i].contentWindow);
+                    if (found) return found;
+                }
+            } catch (e) { /* 跨域页面不能从门户读取。 */ }
+            return null;
+        }
+        return visit(window);
+    }
+    function termOf(ctx) {
+        var now = new Date(), month = now.getMonth() + 1, year = now.getFullYear();
+        var xn = ctx.document.getElementById('xnm');
+        var xq = ctx.document.getElementById('xqm');
+        return {
+            xnm: xn && xn.value || String(month >= 9 ? year : year - 1),
+            xqm: xq && xq.value || (month >= 2 && month < 9 ? '12' : '3')
+        };
+    }
+    function request(ctx, url, body) {
+        return new Promise(function (resolve, reject) {
+            var Xhr = ctx.window.XMLHttpRequest || XMLHttpRequest;
+            var xhr = new Xhr();
+            xhr.open('POST', url, true);
+            xhr.withCredentials = true;
+            xhr.timeout = 15000;
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status === 0) return; // 网络错误/超时由对应事件给出准确提示。
+                if (xhr.status !== 200) return reject(new Error('教务接口暂不可用（HTTP ' + xhr.status + '），校外请确认校园网/VPN连接'));
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (!Array.isArray(data.kbList) || !data.kbList.length) return reject(new Error('当前学期没有课表，请确认学年学期后查询'));
+                    resolve(data.kbList);
+                } catch (e) { reject(new Error('登录可能已失效，请重新登录教务系统后进入个人课表查询')); }
+            };
+            xhr.onerror = function () { reject(new Error('教务网络请求失败，请检查校园网/VPN连接')); };
+            xhr.ontimeout = function () { reject(new Error('教务请求超时，请稍后重试')); };
+            xhr.onabort = function () { reject(new Error('教务请求已中断，请重试')); };
+            xhr.send(body);
+        });
+    }
+    async function fetchCoursesFromApi(ctx) {
+        var location = ctx.window.location;
+        var match = location.search.match(/[?&]gnmkdm=([^&]+)/);
+        var module = match ? decodeURIComponent(match[1]) : 'N253508';
+        var pos = location.pathname.indexOf('/kbcx/');
+        var prefix = pos >= 0 ? location.pathname.slice(0, pos) : location.pathname.indexOf('/jwglxt/') >= 0 ? '/jwglxt' : '';
+        var candidates = [];
+        try {
+            (ctx.window.performance.getEntriesByType('resource') || []).forEach(function (entry) {
+                var url = new URL(entry.name, location.href);
+                if (/xskbcx_cxXsgrkb\.html/i.test(url.pathname) && url.origin === location.origin) candidates.push(url.href);
+            });
+        } catch (e) { /* 无资源记录时按实际课表路径推导。 */ }
+        candidates.push(new URL(prefix + '/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=' + encodeURIComponent(module), location.href).href);
+        var term = termOf(ctx), lastError;
+        for (var i = 0; i < candidates.length; i++) {
+            if (candidates.indexOf(candidates[i]) !== i) continue;
+            try {
+                var rows = await request(ctx, candidates[i], 'xnm=' + encodeURIComponent(term.xnm) + '&xqm=' + encodeURIComponent(term.xqm));
+                var courses = parseAndImport(rows);
+                if (!courses.length || courses.length !== rows.length) throw new Error('部分课表数据的星期、节次或周次不完整，请查询完整学期课表');
+                return courses;
+            } catch (e) { lastError = e; }
+        }
+        throw lastError || new Error('未找到课表接口');
+    }
+    function mergeCourses(courses) {
+        var map = {};
+        courses.forEach(function (c) {
+            if (!c.name || !c.weeks.length) return;
+            var key = JSON.stringify([c.name, c.teacher, c.position, c.day, c.startSection, c.endSection]);
+            if (!map[key]) map[key] = c;
+            else map[key].weeks = map[key].weeks.concat(c.weeks);
+        });
+        var rows = Object.keys(map).map(function (key) {
+            var c = map[key];
+            c.weeks = c.weeks.filter(function (week, index, all) { return all.indexOf(week) === index; }).sort(function (a,b) { return a-b; });
+            return c;
+        });
+        rows.sort(function (a,b) { return a.startSection-b.startSection; });
+        for (var i = 0; i < rows.length; i++) {
+            for (var j = i+1; j < rows.length; j++) {
+                var a = rows[i], b = rows[j];
+                if (a.name === b.name && a.teacher === b.teacher && a.position === b.position && a.day === b.day &&
+                    a.endSection + 1 === b.startSection && a.weeks.join(',') === b.weeks.join(',')) {
+                    a.endSection = b.endSection;
+                    rows.splice(j--, 1);
+                }
+            }
+        }
+        return rows;
+    }
+    async function runImport() {
+        var ctx = findContext();
+        if (!ctx) {
+            toast('请先在办事大厅登录并打开「教务系统 → 个人课表查询」，校外请连接校园网/VPN后重试');
             return;
         }
-
-        Bridge.saveImportedCourses(courses);
-        Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
-    }
-
-    // 湖北师范大学引导
-    function showGuide() {
-        var guide = '湖北师范大学教务导入步骤：\n\n'
-            + '1. 在 ehall 办事大厅登录统一身份认证（账号=学号，密码与今日校园APP一致）\n'
-            + '2. 搜索并打开「教务系统」（jwxt.hbnu.edu.cn）\n'
-            + '3. 进入「个人课表查询」，选择学年学期后点查询\n'
-            + '4. 回到本页点「确定」，自动抓取课表\n\n'
-            + '提示：jwxt 仅校园网/VPN 可达。';
-        return Bridge.showAlert('湖北师范大学教务导入', guide, '确定');
-    }
-
-    // 导入入口：优先解析页面课表，失败再走接口
-    function fetchCourses() {
-        if (!isZhengfangPage()) {
-            return showGuide();
+        toast('正在读取完整学期课表…');
+        var courses;
+        try { courses = await fetchCoursesFromApi(ctx); }
+        catch (error) {
+            courses = parseScheduleFromPage().filter(function (c) { return c.weeks.length > 0; });
+            if (!courses.length) throw error;
         }
-        var courses = parseScheduleFromPage();
-        if (courses.length > 0) {
-            Bridge.saveImportedCourses(courses);
-            Bridge.showToast('成功解析 ' + courses.length + ' 门课程，正在导入...');
-            return;
-        }
-        var noTextYet = /有文本0/.test(lastPageDiag || '');
-        window.__hbnuRetries = window.__hbnuRetries || 0;
-        if (noTextYet && window.__hbnuRetries < 3) {
-            window.__hbnuRetries++;
-            Bridge.showToast('正在读取课表数据...');
-            window.setTimeout(function () { fetchCourses(); }, 1000);
-            return;
-        }
-        fetchCoursesFromApi();
+        courses = mergeCourses(courses);
+        var bridge = window.shangkeBridgePromise;
+        if (!bridge || typeof bridge.saveImportedCourses !== 'function') throw new Error('导入桥接不可用，请返回 App 重新执行导入');
+        var ok = await bridge.saveImportedCourses(JSON.stringify(courses));
+        if (ok !== true && ok !== 'true') throw new Error('课表保存未成功，请确认已选择课表后重试');
+        toast('成功导入 ' + courses.length + ' 项课程安排');
+        if (window.shangkeBridge && window.shangkeBridge.notifyTaskCompletion) window.shangkeBridge.notifyTaskCompletion();
     }
-
-    window.zhengfangImport = fetchCourses;
-    window.shangkeImportEntry = fetchCourses;
-
-    if (isZhengfangPage()) {
-        Bridge.showToast('检测到湖北师范大学正方教务，点击导入按钮抓取课表');
-    } else if ((window.location.href || '').indexOf('ehall') !== -1 ||
-               (window.location.href || '').indexOf('authserver') !== -1) {
-        Bridge.showToast('请在办事大厅登录后打开「教务系统」，再进入课表页点击导入');
+    function startImport() {
+        if (!importing) importing = runImport().catch(function (error) {
+            if (typeof window.__shangkeReportScriptError === 'function') window.__shangkeReportScriptError(error);
+            else toast(error && error.message || '课表导入失败，请重新登录后重试');
+        }).then(function () { importing = null; });
+        return importing;
     }
+    window.zhengfangImport = startImport;
+    window.shangkeImportEntry = startImport;
 })();

@@ -151,8 +151,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.78.15</b></span>
-        <span>versionCode <b class="mono" data-version-code>562</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.79.0</b></span>
+        <span>versionCode <b class="mono" data-version-code>563</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4790">v4.79.0 · 发布说明</a></li>
         <li><a href="#v47815">v4.78.15 · 发布说明</a></li>
         <li><a href="#v47814">v4.78.14 · 发布说明</a></li>
         <li><a href="#v47813">v4.78.13 · 修复「同步到日历里的图标没换成新图标」+ 应用商店图标刷新</a></li>
@@ -315,6 +316,20 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4790">
+        <div><span class="tl-ver">v4.79.0</span><span class="tl-date">2026-10-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-feat">适配</span>芜湖职业技术大学</h3>
+          <ul>
+            <li>新增融合门户课表导入，登录后按学期读取课程、周次、节次与教室，并同步学期起始日和学校作息；过滤个人日程与节假日。</li>
+          </ul>
+          <h3><span class="tl-tag tag-fix">适配</span>湖北师范大学</h3>
+          <ul>
+            <li>优先读取带周次的整学期课表，避免页面缺周次导致当前版本拒绝导入；兼容同源内嵌页面，补全请求超时、登录失效与保存失败处理，保存成功后完成导入。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v47815">
         <div><span class="tl-ver">v4.78.15</span><span class="tl-date">2026-10-16</span></div>
@@ -2234,7 +2249,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.78.15</span>
+        下载 <span class="mono" data-version>v4.79.0</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>
