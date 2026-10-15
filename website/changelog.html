@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v47815">v4.78.15 · 发布说明</a></li>
         <li><a href="#v47814">v4.78.14 · 发布说明</a></li>
         <li><a href="#v47813">v4.78.13 · 修复「同步到日历里的图标没换成新图标」+ 应用商店图标刷新</a></li>
         <li><a href="#v47812">v4.78.12 · 今日课程卡严格等高 + 官网资源体积减半（WebP / WOFF2）</a></li>
@@ -314,6 +315,23 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v47815">
+        <div><span class="tl-ver">v4.78.15</span><span class="tl-date">2026-10-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>多平台工程配置</h3>
+          <ul>
+            <li>修复自定义 Android/JVM 共享源集导致 iOS 默认源集未接入目标的问题，保持平台实现分离。</li>
+          </ul>
+
+          <h3><span class="tl-tag tag-refactor">重构</span>仓库结构与维护流程</h3>
+          <ul>
+            <li>统一目录、代码放置与产物命名约定；静态检查采用统一入口，按实际改动选择检查，减少重复读取与无效验证。</li>
+            <li><b>桌面预览工具</b>：将主题预览和诊断工具移入独立源集，正式桌面 JAR 不再包含这些工具；统一桌面产品名称，保留既有预览命令兼容入口。</li>
+            <li><b>Windows 启动脚本</b>：使用有效的 JAVA_HOME 或 Android Studio 自带 JBR，取消固定机器路径，支持参数透传。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v47814">
         <div><span class="tl-ver">v4.78.14</span><span class="tl-date">2026-10-14</span></div>
