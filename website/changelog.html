@@ -151,8 +151,8 @@
         这里保留每一次发版的改动明细，方便你判断某个问题是否已经解决。
       </p>
       <div class="doc-meta">
-        <span>当前版本 <b class="mono" data-version>v4.79.0</b></span>
-        <span>versionCode <b class="mono" data-version-code>563</b></span>
+        <span>当前版本 <b class="mono" data-version>v4.79.1</b></span>
+        <span>versionCode <b class="mono" data-version-code>564</b></span>
         <span>支持 ABI：arm64-v8a / armeabi-v7a / x86_64</span>
       </div>
     </div>
@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4791">v4.79.1 · 系统日历账户图标修复</a></li>
         <li><a href="#v4790">v4.79.0 · 发布说明</a></li>
         <li><a href="#v47815">v4.78.15 · 发布说明</a></li>
         <li><a href="#v47814">v4.78.14 · 发布说明</a></li>
@@ -316,6 +317,18 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4791">
+        <div><span class="tl-ver">v4.79.1</span><span class="tl-date">2026-10-16</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>系统日历账户图标</h3>
+          <ul>
+            <li>补齐本应用专属日历账户的图标关联，账户大小图标与桌面应用共用图标资源；日历标识颜色继续按原有白名单规则维护。</li>
+            <li><b>旧日历升级</b>：同步时原位迁移本应用创建的旧本地日历，保留日历 ID、课程、手工事件、提醒及用户自定义设置；迁移失败时保留已有数据，不另建重复日历。</li>
+            <li><b>日历同步</b>：继续通过应用内原有入口手动写入课表，账户登记不启用系统自动同步。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4790">
         <div><span class="tl-ver">v4.79.0</span><span class="tl-date">2026-10-16</span></div>
@@ -2249,7 +2262,7 @@
 
     <div class="btn-row reveal" style="margin-top:34px">
       <a class="btn btn-primary" data-dl="quark" href="https://pan.quark.cn/s/02947cbc1d4e">
-        下载 <span class="mono" data-version>v4.79.0</span>
+        下载 <span class="mono" data-version>v4.79.1</span>
       </a>
       <a class="btn btn-ghost" href="index.html">返回首页</a>
     </div>

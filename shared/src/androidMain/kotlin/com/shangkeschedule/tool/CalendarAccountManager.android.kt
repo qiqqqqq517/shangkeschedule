@@ -1,5 +1,7 @@
 package com.shangkeschedule.tool
 
+import android.accounts.Account
+import android.accounts.AccountManager
 import android.content.ContentProviderOperation
 import android.content.ContentUris
 import android.content.ContentResolver
@@ -9,11 +11,12 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.CalendarContract
 import android.provider.CalendarContract.Calendars
-import androidx.core.graphics.toColorInt
 import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.TimeSlot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -49,49 +52,95 @@ private const val TAG = "CalendarAccountManager"
  */
 actual object CalendarAccountManager : KoinComponent {
 
-    private const val ACCOUNT_TYPE = CalendarContract.ACCOUNT_TYPE_LOCAL
+    private val calendarIdentityMutex = Mutex()
 
     // 通过 Koin 动态注入全局 Application Context
     private val context: Context by inject()
 
     /**
-     * 取本应用专用本地日历的 `_id`；不存在则创建，**已存在则把「我方写下的」旧标识色迁移到当前品牌**。
-     *
-     * ## 为什么已存在的日历也必须看一眼（「新图标没替换完成」的根因）
-     *
-     * 原实现查到 `_id` 就 `return`，于是 `CALENDAR_COLOR` **只在首次创建那一刻写死一次**，
-     * 此后永不刷新。老用户那条日历因此一直挂着创建时的 Google 蓝 `#4285F4`，
-     * 而这条日历在系统日历里的**唯一视觉标识就是那个色块**（本应用用
-     * `ACCOUNT_TYPE_LOCAL` 的本地日历、没有 authenticator，系统不会给它画 App 图标），
-     * 于是用户看到的「同步到日历里的图标」永远是旧的 —— 且**重装 App 也不会自愈**，
-     * 因为日历行活在系统库里、不属于应用数据。
-     *
-     * ## 迁移而非「每次覆盖」
-     *
-     * 只在 [CalendarBrandColor.shouldMigrate] 判定通过时才写一次，写完即脱离白名单、
-     * 后续同步不再触碰。**用户手改过的颜色永远不会被覆盖。**
-     *
-     * ⚠️ 同理不碰 `CALENDAR_DISPLAY_NAME` / `VISIBLE` / `SYNC_EVENTS`：这些在系统日历里
-     * 用户都能改，代它决定属于静默改用户设置。显示名只在**创建时**写入。
+     * 系统账户的 authenticator 使用应用图标；日历颜色只负责日历/事件的色块。
+     * 旧 LOCAL 日历原位改为本应用账户类型，保留日历 ID、事件、提醒和用户设置。
      */
-    private suspend fun getOrCreateCalendarId(): Long {
+    private suspend fun getOrCreateCalendarId(): Long = calendarIdentityMutex.withLock {
         val contentResolver = context.contentResolver
         val accountName = "${context.packageName}.account"
+        val calendarDisplayName = getString(Res.string.app_name)
+        val existingColors = mutableMapOf<Long, Int?>()
 
-        val projection = arrayOf(Calendars._ID, Calendars.CALENDAR_COLOR)
-        val selection = "${Calendars.ACCOUNT_NAME} = ? AND ${Calendars.ACCOUNT_TYPE} = ?"
-        val selectionArgs = arrayOf(accountName, ACCOUNT_TYPE)
-
-        val existing: Pair<Long, Int?>? =
-            contentResolver.query(Calendars.CONTENT_URI, projection, selection, selectionArgs, null)?.use { c ->
-                if (!c.moveToFirst()) return@use null
-                val colorIdx = c.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR)
-                c.getLong(c.getColumnIndexOrThrow(Calendars._ID)) to
-                    (if (c.isNull(colorIdx)) null else c.getInt(colorIdx))
+        val store = object : CalendarIdentityStore {
+            override fun ensureAccount(): Boolean {
+                val manager = AccountManager.get(context)
+                val account = Account(accountName, CalendarAccountIdentity.TYPE)
+                if (manager.getAccountsByType(account.type).any { it == account }) return true
+                val created = manager.addAccountExplicitly(account, null, null)
+                if (created) {
+                    // 仅登记系统日历能力，仍由原有手动同步入口写课表。
+                    ContentResolver.setIsSyncable(account, CalendarContract.AUTHORITY, 0)
+                    ContentResolver.setSyncAutomatically(account, CalendarContract.AUTHORITY, false)
+                }
+                return created || manager.getAccountsByType(account.type).any { it == account }
             }
 
-        if (existing != null) {
-            val (id, currentColor) = existing
+            override fun findCalendars(): List<CalendarIdentity> {
+                val projection = arrayOf(Calendars._ID, Calendars.ACCOUNT_TYPE, Calendars.CALENDAR_COLOR)
+                val selection = "${Calendars.ACCOUNT_NAME} = ? AND ${Calendars.ACCOUNT_TYPE} IN (?, ?)"
+                val args = arrayOf(accountName, CalendarAccountIdentity.TYPE, CalendarAccountIdentity.LEGACY_TYPE)
+                val cursor = contentResolver.query(Calendars.CONTENT_URI, projection, selection, args, null)
+                    ?: error("无法读取本应用日历，已停止创建以避免重复")
+                return cursor.use { c ->
+                    val idIdx = c.getColumnIndexOrThrow(Calendars._ID)
+                    val typeIdx = c.getColumnIndexOrThrow(Calendars.ACCOUNT_TYPE)
+                    val colorIdx = c.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR)
+                    buildList {
+                        while (c.moveToNext()) {
+                            val id = c.getLong(idIdx)
+                            existingColors[id] = if (c.isNull(colorIdx)) null else c.getInt(colorIdx)
+                            add(CalendarIdentity(id, c.getString(typeIdx)))
+                        }
+                    }
+                }
+            }
+
+            override fun migrateLocalCalendar(id: Long): Boolean {
+                // 只改本包名专属 LOCAL 日历的账户类型，不删除/重建日历或事件。
+                val values = ContentValues().apply { put(Calendars.ACCOUNT_TYPE, CalendarAccountIdentity.TYPE) }
+                val updated = contentResolver.update(
+                    calendarSyncAdapterUri(id, accountName, CalendarAccountIdentity.LEGACY_TYPE),
+                    values, "${Calendars.ACCOUNT_TYPE} = ?", arrayOf(CalendarAccountIdentity.LEGACY_TYPE)
+                )
+                if (updated != 1) return false
+                // OEM Provider 可能忽略账户字段；回读确认后才能继续，失败时不另建副本。
+                return contentResolver.query(
+                    ContentUris.withAppendedId(Calendars.CONTENT_URI, id),
+                    arrayOf(Calendars.ACCOUNT_TYPE), null, null, null
+                )?.use { it.moveToFirst() && it.getString(0) == CalendarAccountIdentity.TYPE } == true
+            }
+
+            override fun createCalendar(): Long {
+                val values = ContentValues().apply {
+                    put(Calendars.ACCOUNT_NAME, accountName)
+                    put(Calendars.ACCOUNT_TYPE, CalendarAccountIdentity.TYPE)
+                    put(Calendars.NAME, accountName)
+                    put(Calendars.CALENDAR_DISPLAY_NAME, calendarDisplayName)
+                    put(Calendars.CALENDAR_COLOR, CalendarBrandColor.BRAND)
+                    put(Calendars.CALENDAR_ACCESS_LEVEL, Calendars.CAL_ACCESS_OWNER)
+                    put(Calendars.OWNER_ACCOUNT, accountName)
+                    put(Calendars.VISIBLE, 1)
+                    put(Calendars.SYNC_EVENTS, 1)
+                    put(Calendars.CALENDAR_TIME_ZONE, java.util.TimeZone.getDefault().id)
+                    put(Calendars.CAN_ORGANIZER_RESPOND, 1)
+                }
+                return contentResolver.insert(calendarSyncAdapterUri(null, accountName), values)
+                    ?.let { ContentUris.parseId(it) } ?: -1L
+            }
+        }
+        val id = CalendarIdentityMigration.resolve(store)
+        if (id == -1L) {
+            AppLog.e(TAG, "系统日历账户登记或图标迁移失败，已保留已有日历")
+            return@withLock -1L
+        }
+        if (id in existingColors) {
+            val currentColor = existingColors[id]
             if (CalendarBrandColor.shouldMigrate(currentColor)) {
                 val values = ContentValues().apply {
                     put(Calendars.CALENDAR_COLOR, CalendarBrandColor.BRAND)
@@ -104,31 +153,8 @@ actual object CalendarAccountManager : KoinComponent {
                     AppLog.e(TAG, "迁移系统日历标识色失败（不影响事件同步）", e)
                 }
             }
-            return id
         }
-
-        val calendarDisplayName = getString(Res.string.app_name)
-        val values = ContentValues().apply {
-            put(Calendars.ACCOUNT_NAME, accountName)
-            put(Calendars.ACCOUNT_TYPE, ACCOUNT_TYPE)
-            put(Calendars.NAME, accountName)
-            put(Calendars.CALENDAR_DISPLAY_NAME, calendarDisplayName)
-            put(Calendars.CALENDAR_COLOR, CalendarBrandColor.BRAND)
-            put(Calendars.CALENDAR_ACCESS_LEVEL, Calendars.CAL_ACCESS_OWNER)
-            put(Calendars.OWNER_ACCOUNT, accountName)
-            put(Calendars.VISIBLE, 1)
-            put(Calendars.SYNC_EVENTS, 1)
-            put(Calendars.CALENDAR_TIME_ZONE, java.util.TimeZone.getDefault().id)
-            put(Calendars.CAN_ORGANIZER_RESPOND, 1)
-        }
-
-        return try {
-            val resultUri = contentResolver.insert(calendarSyncAdapterUri(null, accountName), values)
-            resultUri?.let { ContentUris.parseId(it) } ?: -1L
-        } catch (e: Exception) {
-            AppLog.e(TAG, "创建本地日历账户失败", e)
-            -1L
-        }
+        id
     }
 
     /**
@@ -141,7 +167,11 @@ actual object CalendarAccountManager : KoinComponent {
      * 不能用 `appendQueryParameter("_id", …)`：Provider 会拒绝并抛
      * `Invalid URI parameter: _id`（v4.66.5 真机实测，同 [eventUri]）。
      */
-    private fun calendarSyncAdapterUri(calendarId: Long?, accountName: String): Uri {
+    private fun calendarSyncAdapterUri(
+        calendarId: Long?,
+        accountName: String,
+        accountType: String = CalendarAccountIdentity.TYPE
+    ): Uri {
         val base = if (calendarId != null) {
             ContentUris.withAppendedId(Calendars.CONTENT_URI, calendarId)
         } else {
@@ -150,7 +180,7 @@ actual object CalendarAccountManager : KoinComponent {
         return base.buildUpon()
             .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
             .appendQueryParameter(Calendars.ACCOUNT_NAME, accountName)
-            .appendQueryParameter(Calendars.ACCOUNT_TYPE, ACCOUNT_TYPE)
+            .appendQueryParameter(Calendars.ACCOUNT_TYPE, accountType)
             .build()
     }
 
@@ -221,8 +251,7 @@ actual object CalendarAccountManager : KoinComponent {
      * 读出本日历下的全部事件，按开始时刻索引。
      *
      * 分两次查询：先取事件行，再取提醒分钟数并按 EVENT_ID 归并。
-     * 本应用用的是 `ACCOUNT_TYPE_LOCAL` 的**专用**本地日历（账号名固定为本包名），
-     * 其下事件全部由本应用写入，因此整表扫的代价与事件量同阶，可忽略。
+     * 只读取本应用专属日历；其中也可能有用户手工添加的事件，必须按归属标记区分。
      */
     private fun readExisting(resolver: ContentResolver, calendarId: Long): ExistingSnapshot {
         val rows = LinkedHashMap<Long, Array<String>>()   // eventId -> 指纹的字段数组

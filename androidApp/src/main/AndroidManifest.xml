@@ -15,6 +15,8 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!-- 本应用日历账户首次登记时关闭系统自动同步；课程仍通过原有入口手动写回。 -->
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <!--
       电池优化白名单：设置页「电池优化」入口用
       `Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 直接弹白名单申请对话框，
@@ -76,6 +78,29 @@
         android:theme="@style/Theme.shangkeschedule"
         tools:targetApi="33"
         android:enableOnBackInvokedCallback="true">
+
+        <!-- 系统日历通过账户类型读取图标；与桌面入口共用 ic_launcher。 -->
+        <service
+            android:name=".calendar.CalendarAuthenticatorService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/calendar_authenticator" />
+        </service>
+
+        <service
+            android:name=".calendar.CalendarSyncAdapterService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/calendar_sync_adapter" />
+        </service>
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

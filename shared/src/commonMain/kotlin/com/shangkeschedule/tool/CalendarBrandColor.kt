@@ -5,10 +5,8 @@ package com.shangkeschedule.tool
  *
  * ## 要解决什么
  *
- * 本应用用 `ACCOUNT_TYPE_LOCAL` 的本地日历写入课表，而 `Calendars.CALENDAR_COLOR`
- * **只在日历首次创建时写一次**。于是这条日历在系统日历里的**唯一视觉标识**（那个色块）
- * 会永远停在创建那一刻的取值 —— 品牌色换过之后，老用户看到的就是旧色，
- * 且**重装 App 也不会自愈**（日历行活在系统库里，不属于应用数据）。
+ * `Calendars.CALENDAR_COLOR` 决定日历/事件色块，账户图标则来自 authenticator 的图标资源。
+ * 历史版本只在创建日历时设置颜色，故这里负责迁移我方旧色；图标关联由 Android 账户声明负责。
  *
  * ## 为什么迁移判据要单独成文件
  *
