@@ -116,7 +116,7 @@ fun AppSectionHeader(
 }
 
 /**
- * 空状态：整宽状态卡 + 居中辅助文案（与 Today 空态同语言，v2 规范 §3）。
+ * 空状态：状态图标、提示与后续操作共用一张主题卡片。
  * [fillScreen] = true 时撑满父容器高度并居中（整页空态）；false 时保留自然高度。
  *
  * [actionLabel] + [onAction] 成对提供时，在文案下方渲染一个可执行入口（IA5 空态闭环）——
@@ -130,50 +130,18 @@ fun AppEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    // 空态是三态语言里的正式状态：抬升卡 + hairline 边框提供清晰但不喧闹的边界，
-    // 浅色与页面底自然分层，深色也不会糊成一粒灰胶囊。
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (fillScreen) Modifier.fillMaxSize() else Modifier),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(rememberContentEnterMotion())
-                .clip(appShapes().card)
-                .background(appColors().cardBgElevated.copy(alpha = 0.86f))
-                .border(1.dp, appColors().dividerSoft)
-                .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
-        ) {
-            Text(
-                text = hint,
-                style = MaterialTheme.typography.bodyMedium,
-                    color = appColors().textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
-            Button(
-                onClick = onAction,
-                shape = appShapes().capsule,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = appColors().primary,
-                    contentColor = appColors().textOnPrimary
-                )
-            ) {
-                Text(actionLabel)
-            }
-        }
-    }
+    AppStateCard(
+        hint = hint,
+        kind = AppStateKind.EMPTY,
+        modifier = modifier,
+        fillScreen = fillScreen,
+        actionLabel = actionLabel,
+        onAction = onAction,
+    )
 }
 
 /**
- * 错误状态：与空态同一视觉语言（整宽状态卡 + 辅助文案），其下可挂一个重试入口。
+ * 错误状态：与空态共用卡片结构，以警示色图标区分，并将重试入口放在卡内。
  *
  * X2（v3.69.3）三态一致性：此前「加载失败」在两地各写了一遍 ——
  * `SchoolSelectionListScreen` 借用 [AppEmptyState] 再拼一个按钮，
@@ -191,45 +159,14 @@ fun AppErrorState(
     onRetry: (() -> Unit)? = null
 ) {
     val retryLabel = stringResource(Res.string.action_retry)
-    // 错误态与空态共用同一容器材质，保证不同页面里“状态类型”可被一眼认出。
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (fillScreen) Modifier.fillMaxSize() else Modifier),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(rememberContentEnterMotion())
-                .clip(appShapes().card)
-                .background(appColors().cardBgElevated.copy(alpha = 0.86f))
-                .border(1.dp, appColors().dividerSoft)
-                .padding(horizontal = appSpacing().cardInner, vertical = appSpacing().cardInner)
-        ) {
-            Text(
-                text = hint,
-                style = MaterialTheme.typography.bodyMedium,
-                    color = appColors().textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (onRetry != null) {
-            Spacer(modifier = Modifier.height(appSpacing().sectionTitleGap))
-            Button(
-                onClick = onRetry,
-                shape = appShapes().capsule,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = appColors().primary,
-                    contentColor = appColors().textOnPrimary
-                )
-            ) {
-                Text(retryLabel)
-            }
-        }
-    }
+    AppStateCard(
+        hint = hint,
+        kind = AppStateKind.ERROR,
+        modifier = modifier,
+        fillScreen = fillScreen,
+        actionLabel = retryLabel,
+        onAction = onRetry,
+    )
 }
 
 /**

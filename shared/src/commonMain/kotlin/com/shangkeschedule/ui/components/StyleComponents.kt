@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +60,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
@@ -536,6 +539,7 @@ fun AppSegmentedControl(
             .fillMaxWidth()
             .clip(CircleShape)
             .background(softContainer)
+            .selectableGroup()
     ) {
         if (pillMeasured) {
             Box(
@@ -576,11 +580,15 @@ fun AppSegmentedControl(
                         // 白色选中胶囊的滑动动画本身就是按压反馈；再叠加书卷/通透的
                         // 整块加深或柔绘的径向扩散，会在点击瞬间出现「灰色按压块」与
                         // 滑动中的白色胶囊错位并存（胶囊旧位置没被灰块盖住，观感漏一块）。
-                        .clickable(
+                        .selectable(
+                            selected = selected,
+                            role = Role.Tab,
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onSelect(index) }
-                        .padding(vertical = 10.dp),
+                            indication = null,
+                            onClick = { onSelect(index) },
+                        )
+                        .heightIn(min = appSpacing().touchMin)
+                        .padding(horizontal = appSpacing().sectionTitleGap, vertical = appSpacing().sectionTitleGap),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

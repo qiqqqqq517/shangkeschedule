@@ -3,6 +3,8 @@ package com.shangkeschedule.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -266,53 +270,51 @@ fun AppSettingRow(
                 )
             }
             Spacer(modifier = Modifier.width(r.iconGap))
-            if (subtitle == null) {
-                // 单行：无副标题时保持原样（标题独占一列）
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = r.titleSize,
-                        fontWeight = r.titleWeight,
-                        letterSpacing = r.titleLetterSpacing
-                    ),
-                    color = colors.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                // 双行：标题 + 功能说明同处一列（weight 落在 Column 上，尾部插槽仍贴右）
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = r.titleSize,
-                            fontWeight = r.titleWeight,
-                            letterSpacing = r.titleLetterSpacing
-                        ),
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = SettingsRowSubtitleSize,
-                            lineHeight = SettingsRowSubtitleLineHeight
-                        ),
-                        color = colors.textSecondary,
-                        maxLines = SettingsRowSubtitleMaxLines,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            // 先为图标和尾部控件留位，取值最多占文字区的 40%，优先保证标题可读。
+            BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                val detailMaxWidth = maxWidth * 0.4f
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(appSpacing().sectionTitleGap / 2),
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = r.titleSize,
+                                fontWeight = r.titleWeight,
+                                letterSpacing = r.titleLetterSpacing
+                            ),
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (subtitle != null) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = SettingsRowSubtitleSize,
+                                    lineHeight = SettingsRowSubtitleLineHeight
+                                ),
+                                color = colors.textSecondary,
+                                maxLines = SettingsRowSubtitleMaxLines,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (detail != null) {
+                        Text(
+                            text = detail,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = r.detailSize),
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.widthIn(max = detailMaxWidth)
+                                .padding(horizontal = appSpacing().sectionTitleGap),
+                        )
+                    }
                 }
-            }
-            if (detail != null) {
-                Text(
-                    text = detail,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = r.detailSize),
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
             }
             if (r.trailingSlot == SettingsTrailingSlot.FIXED_56X32) {
                 // 固定宽 × 固定高尾部插槽：箭头 / 开关都在同一个盒子里居中。

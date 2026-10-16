@@ -80,9 +80,9 @@ COMMENT_PREFIXES = ("//", "*", "/*", "*/")
 #    届时该处会重新出现在待判定列表里（这是有意的 —— 避免豁免被静默沿用）。
 IDENTITY_REVIEWED = {
     # 1) 结构差异：三主题不同 Composable 实现
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 250, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 251, "AppThemePreset."),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 252, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 187, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 188, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 189, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 433, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 434, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 435, "AppThemePreset."),
