@@ -138,44 +138,48 @@ sealed interface Destination : NavKey {
      */
     @Serializable data object WidgetTroubleshoot : Destination
 
-    // --- 导入分类二级页 ---
-    @Serializable data object FileImportHub : Destination
-    @Serializable data object ExcelImport : Destination
-    @Serializable data object JsonFileImport : Destination
-    /** 文本类文件导入；format 传 TextImportFormat 名称，空/AUTO = 自动识别（CSV/ICS/HTML/TXT/JSON） */
-    @Serializable data class TextFileImport(val format: String = "AUTO") : Destination
-    @Serializable data object TextImportHub : Destination
-    @Serializable data class TextImportFormatPage(val format: String) : Destination
+    // --- 导入体系（v4.80.0 整合） ---
 
     /**
-     * 外部选中文本导入页（v4.66.0 · L1）。
+     * 统一导入页：把原「文件导入」与「文本粘贴导入」两条并行链路合并为一页。
      *
-     * 由系统文本选择工具栏的「上课」触发（Android `ACTION_PROCESS_TEXT`）：选中文本
-     * 经 `com.shangkeschedule.tool.ExternalTextImport` 一次性交接，导航层推到栈顶后
-     * 由 `TextImportScreen` 预填并清空。页面本体与文本粘贴导入页一致（自动嗅探格式）。
+     * 页内用来源分段选择器区分「粘贴文本 / 选择文件」，格式识别交给
+     * `UniversalScheduleParser` 自动嗅探（含失败回退链），随后共用同一套
+     * 预览 → 逐条改错 → 另存新课表 / 覆盖已有课表 → 覆盖二次确认。
+     *
+     * [source] 取 `ImportSource` 常量：TEXT / FILE / AUTO。
      */
-    @Serializable data object ShareTextImport : Destination
+    @Serializable
+    data class ImportEntry(val source: String = "AUTO") : Destination
 
     /**
-     * 「AI 识别导入」页（v4.66.0，J1）。
+     * 「AI 识别导入」页（v4.66.0 起；v4.80.0 合并原「AI 图片导入」页）。
      *
-     * 把课表截图或文字交给用户自己填写的接口（OpenAI 兼容 `/chat/completions`）识别成纯文本，
-     * 再走与「文本粘贴导入」完全相同的预览与导入链路；默认关闭，首次开启前有数据外发明示。
+     * 两条路线产出的都是同一种「一行一门课」纯文本，最终都进 [ImportEntry] 预览后入库：
+     * - 提示词法（默认）：复制固定提示词给自己的 AI，不联网、无需配置；
+     * - 接口法：应用代发 OpenAI 兼容请求；默认关闭，首次开启前有数据外发明示。
      */
     @Serializable data object AiImport : Destination
 
-    /**
-     * 「AI 图片导入」页（v4.78.0）：复制固定提示词，交给用户自己的 AI 识别课表图片，
-     * 再把 AI 输出的固定格式文本粘回本应用解析导入。
-     *
-     * 与 [AiImport] 的分工：后者由应用代发请求（用户自填接口地址 / 模型 / Key）；
-     * 本页**不发任何网络请求**，只提供「固定提示词 + 粘贴入口」——
-     * 用户在自己常用的 AI（DeepSeek / ChatGPT / Kimi / 豆包等）里把图片和提示词一起发出，
-     * 拿回固定格式文本后走既有的「文本粘贴导入（纯文本）」链路预览导入。
-     *
-     * 提示词与 [AiImport] 共用同一个常量（`AI_IMPORT_SYSTEM_PROMPT`），
-     * 两条路径产出同一格式，解析口径不会分叉。
-     */
+    // --- 以下是 v4.80.0 之前的导入页，仅为解码旧返回栈保留，不再作任何入口 ---
+    // rememberNavBackStack 把返回栈编码进 savedInstanceState：App 更新后系统恢复任务时，
+    // 旧栈里可能出现已被合并掉的页面。删除这些类会让反序列化抛异常（升级即崩），
+    // 故保留定义并在 App.kt 统一重定向到 [ImportEntry] / [AiImport]。
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data object FileImportHub : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data object ExcelImport : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data object JsonFileImport : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data class TextFileImport(val format: String = "AUTO") : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data object TextImportHub : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data class TextImportFormatPage(val format: String) : Destination
+    @Deprecated("v4.80.0 合并到 ImportEntryScreen，仅为解码旧返回栈保留")
+    @Serializable data object ShareTextImport : Destination
+    @Deprecated("v4.80.0 合并到 AiImportScreen（提示词法），仅为解码旧返回栈保留")
     @Serializable data object AiImageImport : Destination
 
     // --- 动态传参页面 ---
@@ -320,15 +324,26 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.ThemeShare::class)
 subclass(Destination.WidgetTroubleshoot::class)
 
-        // 导入分类二级页
-        subclass(Destination.FileImportHub::class)
-        subclass(Destination.ExcelImport::class)
-        subclass(Destination.JsonFileImport::class)
-        subclass(Destination.TextFileImport::class)
-        subclass(Destination.TextImportHub::class)
-        subclass(Destination.TextImportFormatPage::class)
-        subclass(Destination.ShareTextImport::class)
+        // 导入体系（v4.80.0 整合）
+        subclass(Destination.ImportEntry::class)
         subclass(Destination.AiImport::class)
+        // 旧导入页：仅为解码升级前保存的返回栈，不再作为入口
+        @Suppress("DEPRECATION")
+        subclass(Destination.FileImportHub::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.ExcelImport::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.JsonFileImport::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.TextFileImport::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.TextImportHub::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.TextImportFormatPage::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.ShareTextImport::class)
+        @Suppress("DEPRECATION")
+        subclass(Destination.AiImageImport::class)
 
         // 带参数据类
         subclass(Destination.AdapterSelection::class)

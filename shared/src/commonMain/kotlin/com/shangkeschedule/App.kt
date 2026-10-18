@@ -97,14 +97,8 @@ import com.shangkeschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.shangkeschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.shangkeschedule.ui.settings.coursetables.ManageCourseTablesScreen
 import com.shangkeschedule.ui.settings.import.AiImportScreen
-import com.shangkeschedule.ui.settings.import.AiImageImportScreen
-import com.shangkeschedule.ui.settings.import.ExcelImportScreen
-import com.shangkeschedule.ui.settings.import.FileImportHubScreen
-import com.shangkeschedule.ui.settings.import.JsonFileImportScreen
-import com.shangkeschedule.ui.settings.import.TextFileImportScreen
-import com.shangkeschedule.ui.settings.import.TextImportHubScreen
-import com.shangkeschedule.ui.settings.import.TextImportScreen
-import com.shangkeschedule.data.parser.TextImportFormat
+import com.shangkeschedule.ui.settings.import.ImportEntryScreen
+import com.shangkeschedule.ui.settings.import.ImportSource
 import com.shangkeschedule.ui.settings.notification.NotificationSettingsScreen
 import com.shangkeschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.shangkeschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
@@ -245,12 +239,12 @@ fun AppNavigation(startDestination: Destination) {
 
     // v4.66.0（L1）：外部选中文本导入 —— 系统文本选择工具栏点「上课」时，
     // MainActivity 把 `ACTION_PROCESS_TEXT` 的文本放进 ExternalTextImport；
-    // 这里只负责把入口页推到栈顶（文本由 TextImportScreen 预填后清空）。
+    // 这里只负责把统一导入页推到栈顶并落在文本来源（文本由 ImportEntryScreen 预填后清空）。
     // 冷启动（进程未活）时 MainActivity.onCreate 先 offer、组合随后才跑，故不会漏。
     val pendingExternalText by ExternalTextImport.pending.collectAsStateWithLifecycle()
     LaunchedEffect(pendingExternalText) {
         if (!pendingExternalText.isNullOrBlank()) {
-            onNavigate(Destination.ShareTextImport)
+            onNavigate(Destination.ImportEntry(ImportSource.TEXT))
         }
     }
 
@@ -601,35 +595,36 @@ fun ScreenContent(
         Destination.ThemeShare -> ThemeShareScreen(onBack = onBack)
         Destination.WidgetTroubleshoot -> WidgetTroubleshootScreen(onBack = onBack)
 
-        // 导入分类二级页
-        Destination.FileImportHub -> FileImportHubScreen(onNavigate, onBack)
-        Destination.ExcelImport -> ExcelImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
-        Destination.JsonFileImport -> JsonFileImportScreen(onBack, onImportSuccess = { handleImportSuccess() })
-        is Destination.TextFileImport -> TextFileImportScreen(
-            onBack,
+        // 导入体系（v4.80.0 整合）：文件 / 文本 / 分享串合并为统一导入页
+        is Destination.ImportEntry -> ImportEntryScreen(
+            onBack = onBack,
             onImportSuccess = { handleImportSuccess() },
-            forcedFormat = TextImportFormat.fromName(targetDest.format)
+            source = targetDest.source
         )
-        Destination.TextImportHub -> TextImportHubScreen(onNavigate, onBack)
-        is Destination.TextImportFormatPage -> TextImportScreen(
-            onBack,
-            onImportSuccess = { handleImportSuccess() },
-            format = TextImportFormat.fromName(targetDest.format)
-        )
-        // v4.66.0（L1）：外部选中文本 —— 与「文本粘贴导入」同款页面，自动嗅探格式
-        Destination.ShareTextImport -> TextImportScreen(
-            onBack,
-            onImportSuccess = { handleImportSuccess() }
-        )
-        // v4.66.0（J1）：AI 识别导入 —— 识别结果交给「文本粘贴导入」页预览导入，不直接写课表
+        // AI 识别导入（提示词法 + 接口法）：识别结果交给统一导入页预览，不直接写课表
         Destination.AiImport -> AiImportScreen(
             onBack = onBack,
             onNavigate = onNavigate
         )
-        // v4.78.0：AI 图片导入 —— 复制固定提示词给用户自己的 AI，粘回输出后走纯文本导入
-        Destination.AiImageImport -> AiImageImportScreen(
+
+        // 旧导入页：仅在系统恢复升级前保存的返回栈时命中，一律重定向到统一导入页。
+        // 旧「文本粘贴导入 / 文本分类页 / 外部选中文本 / AI 图片导入」→ 文本来源。
+        is Destination.FileImportHub,
+        is Destination.ExcelImport,
+        is Destination.JsonFileImport,
+        is Destination.TextFileImport -> ImportEntryScreen(
             onBack = onBack,
-            onNavigate = onNavigate
+            onImportSuccess = { handleImportSuccess() },
+            source = ImportSource.FILE
+        )
+
+        is Destination.TextImportHub,
+        is Destination.TextImportFormatPage,
+        is Destination.ShareTextImport,
+        is Destination.AiImageImport -> ImportEntryScreen(
+            onBack = onBack,
+            onImportSuccess = { handleImportSuccess() },
+            source = ImportSource.TEXT
         )
 
         is Destination.AdapterSelection -> AdapterSelectionScreen(

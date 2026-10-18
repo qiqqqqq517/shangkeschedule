@@ -21,6 +21,7 @@ import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.import_fmt_share_code
+import shangkeschedule.shared.generated.resources.import_fmt_strict_json
 import shangkeschedule.shared.generated.resources.parser_err_csv_empty
 import shangkeschedule.shared.generated.resources.parser_err_csv_failed
 import shangkeschedule.shared.generated.resources.parser_err_csv_no_courses
@@ -52,14 +53,12 @@ import shangkeschedule.shared.generated.resources.parser_fmt_plain_text
 import shangkeschedule.shared.generated.resources.tivm_error_empty_file
 import shangkeschedule.shared.generated.resources.tivm_error_empty_input
 import shangkeschedule.shared.generated.resources.tivm_error_no_courses
-import shangkeschedule.shared.generated.resources.tivm_error_not_utf8
 import shangkeschedule.shared.generated.resources.tivm_error_not_utf8_guidance
 import shangkeschedule.shared.generated.resources.tivm_error_old_xls
 import shangkeschedule.shared.generated.resources.tivm_error_parse_first
 import shangkeschedule.shared.generated.resources.tivm_error_share_code_invalid
 import shangkeschedule.shared.generated.resources.tivm_error_table_name_empty
 import shangkeschedule.shared.generated.resources.tivm_import_failed_fmt
-import shangkeschedule.shared.generated.resources.tivm_json_parse_failed
 
 /**
  * 文本/文件导入 ViewModel
@@ -87,9 +86,12 @@ class TextImportViewModel(
 
     /**
      * 解析粘贴文本。
-     * @param forcedFormat 二级分类页强制格式；null 走自动嗅探（含多格式回退链）
+     *
+     * 改造前按二级分类页传 `forcedFormat` 强制某一种解析器；导入体系整合后不再让用户
+     * 先选格式 —— 格式由 [parseTextContent] 嗅探，只有内部调用方（如 AI 提示词约定
+     * 输出纯文本）才显式指定。
      */
-    fun parseInput(forcedFormat: TextImportFormat? = null) {
+    fun parseInput() {
         val text = _uiState.value.inputText
         if (text.isBlank()) {
             viewModelScope.launch {
@@ -100,33 +102,69 @@ class TextImportViewModel(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val result = withContext(Dispatchers.Default) {
-                // 「课表分享串」优先：`SK1:` 是自包含编码，交给通用格式嗅探只会被当成乱文本。
-                if (CourseShareCodec.looksLikeCode(text)) {
-                    when (val decoded = CourseShareCodec.decode(text)) {
-                        is CourseShareCodec.DecodeResult.Success -> UniversalScheduleParser.ParseResult.Success(
-                            model = decoded.model,
-                            format = getString(Res.string.import_fmt_share_code)
-                        )
-                        CourseShareCodec.DecodeResult.NotAShareCode ->
-                            UniversalScheduleParser.parseWithFormat(text, forcedFormat)
-                        CourseShareCodec.DecodeResult.Invalid ->
-                            UniversalScheduleParser.ParseResult.Error(
-                                getString(Res.string.tivm_error_share_code_invalid)
-                            )
-                    }
-                } else {
-                    UniversalScheduleParser.parseWithFormat(text, forcedFormat)
-                }
-            }
+            val result = withContext(Dispatchers.Default) { parseTextContent(text, forcedFormat = null) }
             applyParseResult(result)
+        }
+    }
+
+    /**
+     * 文本内容的统一解析入口（粘贴 / 文件文本 / AI 输出共用）。
+     *
+     * 顺序即优先级，与旧「自动嗅探」链一致，只是把两条**高保真**分支提到前面：
+     * 1. `SK1:` 课表分享串 —— 自包含编码，交给通用嗅探只会被当成乱文本；
+     * 2. 本 App 导出的 JSON —— 严格解码可保留时间段、学期配置与作息方案元信息，
+     *    通用 `parseWakeUpJson` 只取 `courses` 数组，会把作息一起丢掉；
+     * 3. 其余交给 `UniversalScheduleParser` 的自动嗅探与失败回退链。
+     */
+    private suspend fun parseTextContent(text: String, forcedFormat: TextImportFormat?): UniversalScheduleParser.ParseResult {
+        // 1) 课表分享串
+        if (CourseShareCodec.looksLikeCode(text)) {
+            return when (val decoded = CourseShareCodec.decode(text)) {
+                is CourseShareCodec.DecodeResult.Success -> UniversalScheduleParser.ParseResult.Success(
+                    model = decoded.model,
+                    format = getString(Res.string.import_fmt_share_code)
+                )
+                CourseShareCodec.DecodeResult.NotAShareCode -> continueAfterShareCode(text, forcedFormat)
+                CourseShareCodec.DecodeResult.Invalid -> UniversalScheduleParser.ParseResult.Error(
+                    getString(Res.string.tivm_error_share_code_invalid)
+                )
+            }
+        }
+        return continueAfterShareCode(text, forcedFormat)
+    }
+
+    private suspend fun continueAfterShareCode(
+        text: String,
+        forcedFormat: TextImportFormat?
+    ): UniversalScheduleParser.ParseResult = strictJsonOrNull(text)
+        ?: UniversalScheduleParser.parseWithFormat(text, forcedFormat)
+
+    /**
+     * 按本 App 导出格式严格解码（保留时间段 / 学期配置 / 作息方案）。
+     *
+     * 返回 null 表示「不是本 App 的完整导出 JSON」，交给通用解析链处理 ——
+     * 不能返回 Error，否则会把合法的 WakeUp JSON 挡在门外。
+     */
+    private suspend fun strictJsonOrNull(text: String): UniversalScheduleParser.ParseResult? {
+        val trimmed = text.trim().removePrefix("\uFEFF").trimStart()
+        if (!trimmed.startsWith("{")) return null
+        return try {
+            val model = CourseImportExport.json.decodeFromString<CourseTableImportModel>(trimmed)
+            if (model.courses.isEmpty()) null
+            else UniversalScheduleParser.ParseResult.Success(
+                model = model,
+                format = getString(Res.string.import_fmt_strict_json)
+            )
+        } catch (_: Exception) {
+            // 缺字段 / 不是该结构 → 交回通用解析
+            null
         }
     }
 
     /**
      * 解析选择的文件。
      * - .xlsx（ZIP 魔数）→ ExcelScheduleParser 提取网格 → 网格/列表双策略识别
-     * - 其他 → UTF-8 解码文本（含 BOM 处理），按 forcedFormat 或文件扩展名/自动嗅探解析
+     * - 其他 → UTF-8 解码文本（含 BOM 处理），走 [parseTextContent] 统一解析
      */
     fun parseFileBytes(bytes: ByteArray, fileName: String?, forcedFormat: TextImportFormat? = null) {
         if (bytes.isEmpty()) {
@@ -161,7 +199,7 @@ class TextImportViewModel(
                             if (text.contains('\uFFFD')) {
                                 UniversalScheduleParser.ParseResult.Error(getString(Res.string.tivm_error_not_utf8_guidance))
                             } else {
-                                UniversalScheduleParser.parseWithFormat(text, forcedFormat ?: TextImportFormat.forFileName(fileName))
+                                parseTextContent(text, forcedFormat ?: TextImportFormat.forFileName(fileName))
                             }
                         }
                     }
@@ -170,68 +208,6 @@ class TextImportViewModel(
                 }
             }
             applyParseResult(result)
-        }
-    }
-
-    /**
-     * 导入 JSON 文件内容到指定已有课表（JSON 文件导入页用）。
-     * 优先按本 App 导出格式严格解析（保留 id/配置），失败则回退 WakeUp JSON/通用解析。
-     */
-    fun importJsonFileIntoTable(
-        bytes: ByteArray,
-        tableId: String,
-        onSuccess: (String) -> Unit,
-        onError: (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            if (bytes.isEmpty()) {
-                onError(getString(Res.string.tivm_error_empty_file))
-                return@launch
-            }
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                // 空结果保护（v4.64.26）：importCourseTableFromJson 是「先清空目标表再插入」，
-                // 0 门课会把已有课表静默删光并返回成功。此前预览页可逐条删空（P1-6）后仍能走到这里，
-                // 因此把「解析成功但没有任何课程」当失败上报。守卫放在 VM 层而非 repository：
-                // BackupRepository 的回滚快照分支允许合法空表（见 importCourseTableFromJson 调用点）。
-                val failure: String? = withContext(Dispatchers.IO) {
-                    val text = bytes.decodeToString().removePrefix("\uFEFF")
-                    if (text.contains('\uFFFD')) throw IllegalArgumentException(getString(Res.string.tivm_error_not_utf8))
-
-                    // 1) 本 App 导出格式严格解析
-                    try {
-                        val model = CourseImportExport.json.decodeFromString<CourseTableImportModel>(text)
-                        if (model.courses.isEmpty()) {
-                            throw IllegalArgumentException(getString(Res.string.tivm_error_no_courses))
-                        }
-                        courseConversionRepository.importCourseTableFromJson(tableId, model)
-                        return@withContext null
-                    } catch (_: Exception) {
-                    }
-
-                    // 2) WakeUp / 通用 JSON 解析
-                    when (val r = UniversalScheduleParser.parseWithFormat(text, TextImportFormat.JSON)) {
-                        is UniversalScheduleParser.ParseResult.Success -> {
-                            if (r.model.courses.isEmpty()) {
-                                getString(Res.string.tivm_error_no_courses)
-                            } else {
-                                courseConversionRepository.importCourseTableFromJson(tableId, r.model)
-                                null
-                            }
-                        }
-                        is UniversalScheduleParser.ParseResult.Error -> getString(Res.string.tivm_json_parse_failed)
-                    }
-                }
-                if (failure == null) {
-                    onSuccess(tableId)
-                } else {
-                    onError(failure)
-                }
-            } catch (e: Exception) {
-                onError(getString(Res.string.tivm_import_failed_fmt, e.message ?: ""))
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
         }
     }
 

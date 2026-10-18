@@ -93,7 +93,7 @@
 
 #### 1. 范围声明
 
-本文描述「上课」App（Android/KMP，Compose Multiplatform）的信息架构与页面层级，覆盖：4 个一级 Tab、37 个导航 Destination（`shared/src/commonMain/kotlin/com/shangkeschedule/Navigation.kt`：一级 4 个 L28-32 + 二级 23 个 L35-72 + 导入分类 6 个 L75-81 + 动态传参 4 个 L84-109 = **37**，全部注册于 navSerializersModule L118-165）、页面内弹层，以及小组件/通知等外部入口的落点。仅描述已实现代码；设计稿 `docs/ia5-onboarding-design.md` 与代码的差异见第 6 节。
+本文描述「上课」App（Android/KMP，Compose Multiplatform）的信息架构与页面层级，覆盖：4 个一级 Tab、44 个导航 Destination（`shared/src/commonMain/kotlin/com/shangkeschedule/Navigation.kt`：一级 4 个 L28-32 + 二级 22 个 L35-139 + 导入体系 2 个 L141-162 + 旧导入页 8 个 L164-183（v4.80.0 起只为解码旧返回栈保留）+ 动态传参 4 个 L185-236 = **44**，全部注册于 navSerializersModule）、页面内弹层，以及小组件/通知等外部入口的落点。仅描述已实现代码；设计稿 `docs/ia5-onboarding-design.md` 与代码的差异见第 6 节。
 
 - 根容器：`shared/src/commonMain/kotlin/com/shangkeschedule/App.kt:100-130` —— `App()` 由启动门控决定：未就绪显示加载占位（L122-129），就绪后按 `startScreen` 进入 COURSE_SCHEDULE→`Destination.CourseSchedule` 或 TODAY_SCHEDULE→`Destination.TodaySchedule`（L110-115）。
 - 导航实现：`App.kt:133-384` `AppNavigation`，`rememberNavBackStack(startDestination)`（L134-137），主屏采用「段」式 per-tab 栈（v3.55.0，L146-177）。
@@ -121,7 +121,7 @@ App 根（App.kt:100-130）
 │  │   ├─ 课程块点击 → CourseDetailBottomSheet [sheet]（L904-919）→ 编辑 AddEditCourse() [push]（L731）
 │  │   ├─ 空态（列表视图整周无课）→ AddScheduleGuide 引导组件（L1170-1179，详见 §6）
 │  │   │        ├─ 主按钮「教务系统导入」→ SchoolSelectionListScreen [push]（L1175）
-│  │   │        └─ 展开「其他添加方式」→ FileImportHub [push]（L1176）/ AddEditCourse() [push]（L1177）
+│  │   │        └─ 展开「其他添加方式」→ ImportEntry(AUTO) [push]（L1176）/ AddEditCourse() [push]（L1177）
 │  │   └─ 长按课程块 → 悬浮编辑模式（非页面，L624-632）
 │  ├─ 日程 Schedule「日程」[tab]（叶子页，无 push 出口）
 │  │   ├─ 弹层：创建/编辑日程 AppGlassBottomSheet [sheet]（AgendaScreen.kt:998/1482）
@@ -137,12 +137,10 @@ App 根（App.kt:100-130）
 │  │   └─ 学校卡片 → 选择适配 AdapterSelection [push]（SchoolSelectionListScreen.kt:143/184）
 │  │        └─ 适配项 → 教务网页 WebView [push]（AdapterSelectionScreen.kt:222）
 │  │             └─ 导入成功 → 学期设置 SemesterSettings [push]（WebViewScreen.kt:175）
-│  ├─ 文件导入 FileImportHub（从课表空态引导、课表导入导出、情侣课表进入）
-│  │   ├─ Excel 导入 ExcelImport [push]（FileImportHubScreen.kt:90）
-│  │   ├─ JSON 文件导入 JsonFileImport [push]（L96）
-│  │   └─ 文本文件导入 TextFileImport("ICS"/"CSV"/"AUTO") [push]（L102/108/114）
-│  ├─ 文本粘贴导入 TextImportHub（从课表导入导出进入）
-│  │   └─ 格式页 TextImportFormatPage(WAKEUP/PLAIN/JSON/CSV/ICS) [push]（TextImportHubScreen.kt:78-102）
+│  ├─ 导入课表 ImportEntry(source)（从课表空态引导、课表导入导出、情侣课表进入）
+│  │   ├─ 来源=粘贴文本：文本框 →「解析预览」→ 预览可编辑 → 另存新课表 / 覆盖已有课表
+│  │   └─ 来源=选择文件：系统文件选择器（xlsx/json/csv/ics/html/txt）→ 同一预览与目标表单
+│  │        （格式由 UniversalScheduleParser 自动嗅探，不再按格式分页）
 │  ├─ 外观与样式 AppearanceSettings（从我的、课表页 ⋮ 进入）
 │  │   ├─ 主题 ThemeSettings [push]（AppearanceSettingsScreen.kt:126）
 │  │   ├─ 自定义课表页 ScheduleStyleSettings [push]（L133）
@@ -165,14 +163,14 @@ App 根（App.kt:100-130）
 │  │   ├─ 选择学校 SchoolSelectionListScreen [push]（L349）
 │  │   └─ 备份与恢复 BackupAndRestore [push]（L350）
 │  ├─ 课表导入/导出 CourseTableConversion（从我的进入）
-│  │   ├─ 文件导入 FileImportHub [push]（CourseTableConversionScreen.kt:191）
+│  │   ├─ 导入课表 ImportEntry(AUTO) [push]（CourseTableConversionScreen.kt:191）
 │  │   ├─ 选择学校 SchoolSelectionListScreen [push]（L214）
-│  │   ├─ 文本粘贴导入 TextImportHub [push]（L220）
+│  │   ├─ AI 识别导入 AiImport（提示词法 / 接口法同页）[push]（L228）
 │  │   └─ 备份与恢复 BackupAndRestore [push]（L237）
 │  ├─ 情侣课表 CoupleScheduleSettings（从我的进入）
 │  │   ├─ 时间段管理 TimeSlotSettings(coupleTable.id) [push]（CoupleScheduleSettingsScreen.kt:235）
 │  │   ├─ 选择学校 SchoolSelectionListScreen [push]（L327）
-│  │   └─ 文件导入 FileImportHub [push]（L334）
+│  │   └─ 导入课表 ImportEntry(AUTO) [push]（L334）
 │  ├─ 时间段管理 TimeSlotSettings（从我的、课表页 ⋮、情侣课表进入）
 │  ├─ 学期设置 SemesterSettings（从我的、课表页周次 pill、WebView、学期管理进入）
 │  ├─ 课程提醒设置 NotificationSettings（叶子）
@@ -235,12 +233,8 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 | NextCardSettings | 下节课卡（item_next_card_settings, strings.xml:663） | ui/settings/appearance/NextCardSettingsScreen.kt | T4 | 个性化显示 | 叶子 |
 | BackupAndRestore | 备份与恢复（item_backup_restore, strings.xml:686） | ui/settings/backup/BackupScreen.kt | T2 | 我的、学期管理、课表导入导出 | 叶子 |
 | LanguageSettings | 语言设置（item_language_settings, strings.xml:430） | ui/settings/additional/LanguageSettingScreen.kt | T3 | 更多 | 叶子 |
-| FileImportHub | 文件导入（import_file_hub_title, strings.xml:730） | ui/settings/import/FileImportHubScreen.kt | T2/T3 | 课表空态、导入导出、情侣课表 | |
-| ExcelImport | Excel 导入（import_cat_excel, strings.xml:731） | ui/settings/import/ExcelImportScreen.kt | T3 | 文件导入 | |
-| JsonFileImport | JSON 文件导入（import_json_title, strings.xml:750） | ui/settings/import/JsonFileImportScreen.kt | T3 | 文件导入 | |
-| TextFileImport(format) | 文本文件导入（import_cat_text_file, strings.xml:739） | ui/settings/import/TextFileImportScreen.kt | T3 | 文件导入（ICS/CSV/AUTO） | 强制格式时标题=该格式 screenTitle（TextFileImportScreen.kt:99） |
-| TextImportHub | 文本粘贴导入（import_cat_text_paste, strings.xml:789） | ui/settings/import/TextImportHubScreen.kt | T3 | 课表导入导出 | |
-| TextImportFormatPage(format) | 动态=所选格式名 | ui/settings/import/TextImportScreen.kt | T4 | 文本粘贴导入（WAKEUP/PLAIN/JSON/CSV/ICS，TextImportHubScreen.kt:78-102） | 缺省=「文本/文件导入」（import_text_any_title, strings.xml:769；TextImportScreen.kt:69） |
+| ImportEntry(source) | 导入课表（import_entry_title, strings.xml:791） | ui/settings/import/ImportEntryScreen.kt | T2/T3 | 课表空态、导入导出、情侣课表 | v4.80.0 合并原 FileImportHub / ExcelImport / JsonFileImport / TextFileImport / TextImportHub / TextImportFormatPage / ShareTextImport；来源用页内分段选择器切换 |
+| AiImport | AI 识别导入（title_ai_import） | ui/settings/import/AiImportScreen.kt | T3 | 课表导入导出 | v4.80.0 合并原 AiImageImport；页内分段「用自己的 AI（提示词法，默认）/ 应用代发识别（接口法）」 |
 | AdapterSelection(schoolId,schoolName,categoryNumber,resourceFolder) | 动态=「校名 - 类别名」 | ui/schoolselection/list/AdapterSelectionScreen.kt | T3 | 选择学校 | 标题为参数拼接（AdapterSelectionScreen.kt:152），⚠️ 无独立三语标题键 |
 | WebView(initialUrl,assetJsPath,forceDesktopMode) | 动态=网页标题 | ui/schoolselection/web/WebViewScreen.kt | T4 | 选择适配 | 初始「输入网址」（title_enter_url, strings.xml:475）/「加载中...」（title_loading, strings.xml:15），加载后由 onTitleChange 更新（WebViewScreen.kt:146/250/428） |
 | AddEditCourse(courseId?,targetCourseTableId?) | 添加课程（title_add_course, strings.xml:141）/ 编辑课程（title_edit_course, strings.xml:140） | ui/settings/course/AddEditCourseScreen.kt | T2~T4 | 今日、课表、课程管理、课程实例 | 按 isEditing 切换标题（AddEditCourseScreen.kt:164-165）；未保存返回有确认弹窗（L428/432） |
@@ -296,10 +290,10 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 |---|---|---|---|
 | 1 | 首启引导流程（按「第几次启动」触发） | 不存在首启 flag：全库 grep onboarding/firstLaunch/isFirstRun/hasSeen/Welcome 仅命中 AddScheduleGuide.kt:49 注释；触发条件=**课表为空**（WeeklyScheduleScreen.kt:1170 `pageCourses.isEmpty()`），注释明言「不做全屏 Onboarding…真正决定要不要引导的不是第几次启动，而是有没有课表」（AddScheduleGuide.kt:44-48） | **不一致（有意）**：以数据状态代替首启状态，无 A/C 方案的首启判定 |
 | 2 | 方案 A 全屏引导 | 未见实现 | 未实现（代码明确放弃，AddScheduleGuide.kt:46） |
-| 3 | 方案 B 空态三步引导 | 已实现：AppEmptyState「本周没有课程」（text_no_courses_this_week, strings.xml:73）+ 不可点击的三步条「选择学校›登录教务›完成导入」（ia5_step_*，strings.xml:979-981；AddScheduleGuide.kt:66-70、L52 注明仅视觉引导无状态机）+ 主按钮「教务系统导入」→ SchoolSelectionListScreen + 可展开「其他添加方式」（ia5_other_ways, strings.xml:982）→ 文件导入 FileImportHub / 手动添加 AddEditCourse()（AddScheduleGuide.kt:120-162；WeeklyScheduleScreen.kt:1175-1177） | 基本一致（实现为 B 的增强版） |
+| 3 | 方案 B 空态三步引导 | 已实现：AppEmptyState「本周没有课程」（text_no_courses_this_week, strings.xml:73）+ 不可点击的三步条「选择学校›登录教务›完成导入」（ia5_step_*，strings.xml:979-981；AddScheduleGuide.kt:66-70、L52 注明仅视觉引导无状态机）+ 主按钮「教务系统导入」→ SchoolSelectionListScreen + 可展开「其他添加方式」（ia5_other_ways, strings.xml:982）→ 导入课表 ImportEntry / 手动添加 AddEditCourse()（AddScheduleGuide.kt:120-162；WeeklyScheduleScreen.kt:1175-1177） | 基本一致（实现为 B 的增强版） |
 | 4 | 方案 C（B+首启弹层） | 未见实现（无首启弹层逻辑） | 未实现 |
 | 5 | 引导位置=课表页空态 | 仅挂载于课表页**列表视图**分支的空态（WeeklyScheduleScreen.kt:614-635 LIST 分支 → L1172）；**网格视图**空态未见该引导 | ⚠️ 待确认：网格视图空态是否有意不放引导（代码未见） |
-| 6 | 四条添加路径 | 引导内收敛为 3 条（教务/文件/手动），第 4 条（文本粘贴导入 TextImportHub）不在引导内，仅可从「课表导入/导出」页进入 | 与设计稿「路径平铺会造成选择困难」的取舍一致（AddScheduleGuide.kt:53-54） |
+| 6 | 四条添加路径 | 引导内收敛为 3 条（教务/导入课表/手动）；v4.80.0 起「导入课表」页内即可切换文件与粘贴，故四条路径全部可达且不新增入口 | 与设计稿「路径平铺会造成选择困难」的取舍一致（AddScheduleGuide.kt:53-54） |
 | 7 | 页面树位置 | 引导是课表页内嵌组件，**不新增任何 Destination**、不入导航栈 | 一致（无独立引导页） |
 
 ---
@@ -328,7 +322,7 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 | 5 | 课表页网格视图的空态引导 | AddScheduleGuide 仅挂载在列表视图分支（WeeklyScheduleScreen.kt:614-635/1172）；网格分支空态用什么占位、是否有意不放引导，代码未见 |
 | 6 | 「双击返回退出」/退出确认 | 全库无命中；且段式栈已知缺陷（≥2 段时 Tab 根吞返回键，无法退出 App，App.kt:186-189 注释自认）使「返回退出」行为本身不确定，是否算缺陷待产品确认 |
 | 7 | 导航「替换」语义 | 代码未见 replace/popUpTo 类调用（App.kt 仅 add/remove），判断为纯 push+弹段模型；如有隐藏调用点需进一步全文审计 |
-| 8 | 动态标题的三语覆盖 | AdapterSelection 标题为参数拼接「校名 - 类别名」（AdapterSelectionScreen.kt:152）、TextImportFormatPage/TextFileImport 标题随 format 枚举值变化、WebView 为网页实时标题——固定三语键不适用，实际展示值是否已覆盖三语需运行验证 |
+| 8 | 动态标题的三语覆盖 | AdapterSelection 标题为参数拼接「校名 - 类别名」（AdapterSelectionScreen.kt:152）、WebView 为网页实时标题——固定三语键不适用，实际展示值是否已覆盖三语需运行验证 |
 | 9 | ManageCourseTables 三处三名 | Destination=ManageCourseTables、页面标题=「学期管理」（strings.xml:882）、入口菜单=「我的课表」（title_manage_course_tables, strings.xml:310）；术语是否统一属文案决策 |
 | 10 | README 版本徽章 | README.md:11 为 v3.56.6，任务描述称 v4.64.24；以工作区代码为准，徽章明显落后，文档同步责任待确认 |
 
@@ -731,12 +725,12 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 | 三步条文案 | ① 选择学校 ② 登录教务 ③ 完成导入 | 纯视觉，**不可点** | — | AddScheduleGuide.kt:66-70,80-116；strings `ia5_step_select_school`(values/strings.xml:979)、`ia5_step_login`(:980)、`ia5_step_done`(:981) |
 | 主按钮「教务系统导入」 | 实心胶囊主色按钮 | `Button` | `Destination.SchoolSelectionListScreen`（学校选择页） | AddScheduleGuide.kt:120-129；WeeklyScheduleScreen.kt:1175 |
 | 「其他添加方式」次入口 | 灰色文字按钮，点击**展开** | `TextButton`(ia5_other_ways, strings:982) | 本地展开，无导航 | AddScheduleGuide.kt:131-137 |
-| 展开后·文件导入 | 文字按钮 | `TextButton` | `Destination.FileImportHub` | AddScheduleGuide.kt:144-149；strings `import_file_hub_title`(values/strings.xml:730) |
+| 展开后·导入课表 | 文字按钮 | `TextButton` | `Destination.ImportEntry(AUTO)` | AddScheduleGuide.kt:144-149；strings `import_entry_title` |
 | 展开后·手动添加 | 文字按钮 | `TextButton` | `Destination.AddEditCourse()` | AddScheduleGuide.kt:155-160；strings `title_add_course`(values/strings.xml:141) |
 | 课表页 ⋮ 菜单（有课/无课均在） | 「教务系统导入」菜单项 | TelegramMenuItem | `Destination.SchoolSelectionListScreen` | WeeklyScheduleScreen.kt:493-499 |
 | 其他 Tab（今日/日程/我的） | 普通空态（无三步引导） | — | — | ⚠️ 本轮未逐页核对空态文案；设计稿亦承认 B 方案盲区（docs/ia5-onboarding-design.md:51） |
 
-注：设计稿提的 ③ 文本导入 `TextImportHub` 在代码展开项中**未实现**，展开项只有文件导入+手动添加（AddScheduleGuide.kt:140-162）。
+注：设计稿提的 ③ 文本导入 v4.80.0 起由「导入课表」页内的来源分段承接，展开项只保留一个导入入口（AddScheduleGuide.kt:140-162）。
 
 #### 3. 与 docs/ia5-onboarding-design.md 的差异清单（设计说 vs 代码做）
 
@@ -960,7 +954,7 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 - TweakScheduleScreen.kt（课程调动）：选目标课表（:175-186）+ 从/至日期（:189-197）+ 三模式 MERGE/OVERWRITE/EXCHANGE（:332-334）+ From/To 课程卡（:218-267）；顶栏 ✓→AppDangerDialog「确认调课 / 确定执行调课吗？将影响 %1$d 门课程，此操作无法撤销。」（dialog_title/text_confirm_tweak）→moveCourses :276-287（strings.xml:854-855）。
 
 #### 5. 转换枢纽页（conversion/CourseTableConversionScreen.kt）
-- 三组入口：文件转换 = 文件导入 Hub / 导出 JSON / 导出 ICS（:186-205）；学校导入 = 教务系统 / 文本粘贴→TextImportHub（:209-222）；同步 = 同步系统日历 / 备份恢复→Backup（:226-239）。
+- 三组入口：文件转换 = 导入课表→ImportEntry / 导出 JSON / 导出 ICS（:186-205）；学校导入 = 教务系统 / AI 识别导入→AiImport（:210-230）；同步 = 同步系统日历 / 备份恢复→Backup（:226-239）。
 - 导出：JSON 写 cacheDir/share_temp 后走系统分享（:117-128）；ICS 文件名 ShangKe_<epochMillis>.ics、MIME text/calendar（:129-143）；isLoading→顶部 LinearProgressIndicator（:166-172）；消息走 snackbar（:144-146）。
 - 本页全部为非破坏性入口，无删除/覆盖确认（符合预期）。
 
@@ -971,21 +965,29 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 ### C5 文件与文本导入（UX 规格 · 资料员摘录）
 
 
-目录 shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/import/（下称 import/）；文案 shared/src/commonMain/composeResources/values/strings.xml。六个 Screen 中三个内容页共用 TextImportViewModel.kt。
+目录 shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/import/（下称 import/）；文案 shared/src/commonMain/composeResources/values/strings.xml。
+
+> v4.80.0 导入体系整合：原 FileImportHub / ExcelImport / JsonFileImport / TextFileImport /
+> TextImportHub / TextImportFormatPage / ShareTextImport 七页合并为 ImportEntryScreen 一页，
+> 原 AiImageImportScreen 合并进 AiImportScreen（分段选择「用自己的 AI」/「应用代发识别」）。
+> 下表保留旧口径便于追溯，现行实现见 ImportEntryScreen.kt。
 
 #### 1. 入口与支持格式
 | Screen | 入口 | 支持格式/动作 | 依据 |
 |---|---|---|---|
-| FileImportHubScreen | Conversion→import_file_hub_title | 分类导航：Excel→ExcelImport / JSON→JsonFileImport / ICS→TextFileImport("ICS") / CSV→TextFileImport("CSV") / 文本→TextFileImport("AUTO") + 底部提示 import_file_hub_hint | FileImportHubScreen.kt:86-123 |
-| ExcelImportScreen | Hub→import_cat_excel | 文件选择 xlsx（importFile(listOf("xlsx"))）→parseFileBytes | ExcelImportScreen.kt:106-112 |
-| JsonFileImportScreen | Hub→import_cat_json | 两步：选目标课表（import_json_step1）→选 .json 导入；覆盖所选课表课程数据 | JsonFileImportScreen.kt:63-64,133-166 |
-| TextFileImportScreen | Hub→分类 | 扩展名按格式：ICS ics/ical/ifb、CSV csv、HTML html/htm、JSON json、AUTO csv/ics/html/txt（AUTO 明确不收 json） | TextFileImportScreen.kt:68-74 |
-| TextImportHubScreen | Conversion→import_cat_text_paste | 分类：WAKEUP/PLAIN/JSON/CSV/ICS→TextImportFormatPage + 提示 import_text_hub_hint | TextImportHubScreen.kt:74-111 |
-| TextImportScreen | 文本分类页（format 参数） | 粘贴文本→解析预览→命名→导入；null=自动嗅探 | TextImportScreen.kt:46-59,107 |
+| ImportEntryScreen | 空态引导 / 转换枢纽 / 情侣课表 | 分段选择来源：粘贴文本 or 选择文件；文件一次接收 xlsx/xls/json/csv/ics/ical/html/htm/txt，格式由解析器自动嗅探 | ImportEntryScreen.kt |
+| AiImportScreen | 转换枢纽 | 分段选择方法：提示词法（默认，不联网）/ 接口法（OpenAI 兼容，默认关闭） | AiImportScreen.kt |
+| FileImportHubScreen（已合并） | Conversion→import_file_hub_title | 分类导航：Excel→ExcelImport / JSON→JsonFileImport / ICS→TextFileImport("ICS") / CSV→TextFileImport("CSV") / 文本→TextFileImport("AUTO") + 底部提示 import_file_hub_hint | FileImportHubScreen.kt:86-123 |
+| ExcelImportScreen（已合并） | Hub→import_cat_excel | 文件选择 xlsx（importFile(listOf("xlsx"))）→parseFileBytes | ExcelImportScreen.kt:106-112 |
+| JsonFileImportScreen（已合并） | Hub→import_cat_json | 两步：选目标课表（import_json_step1）→选 .json 导入；覆盖所选课表课程数据 | JsonFileImportScreen.kt:63-64,133-166 |
+| TextFileImportScreen（已合并） | Hub→分类 | 扩展名按格式：ICS ics/ical/ifb、CSV csv、HTML html/htm、JSON json、AUTO csv/ics/html/txt（AUTO 明确不收 json） | TextFileImportScreen.kt:68-74 |
+| TextImportHubScreen（已合并） | Conversion→import_cat_text_paste | 分类：WAKEUP/PLAIN/JSON/CSV/ICS→TextImportFormatPage + 提示 import_text_hub_hint | TextImportHubScreen.kt:74-111 |
+| TextImportScreen（已合并） | 文本分类页（format 参数） | 粘贴文本→解析预览→命名→导入；null=自动嗅探 | TextImportScreen.kt:46-59,107 |
 
-#### 2. 共用流程（Text/Excel/TextFile 三屏一致）
-选文件/输入→解析（Loading）→ImportPreviewSection 预览（P1-6 可编辑，onCoursesChanged=updateParsedCourses 回写 VM，保证预览与导入一致）→ImportDestinationForm（另存新课表：默认表名=文件名去扩展名 take(20)；或覆盖已有课表）→成功 toast import_toast_success + reset + onImportSuccess(tableId)。
-依据：ExcelImportScreen.kt:147-183；TextImportScreen.kt:129-163；TextImportViewModel.kt:185-235；ImportPreviewComponents.kt:88。
+#### 2. 共用流程（现行：全部导入来源一致）
+选文件/输入→解析（Loading）→ImportPreviewSection 预览（P1-6 可编辑，onCoursesChanged=updateParsedCourses 回写 VM，保证预览与导入一致）→ImportDestinationForm（另存新课表：默认表名=文件名去扩展名 take(20)；或覆盖已有课表，二者均需二次确认）→成功 toast import_toast_success + reset + onImportSuccess(tableId)。
+解析优先级（parseTextContent）：`SK1:` 分享串 → 本 App 导出 JSON 严格解码（保留时间段/学期配置/作息方案元信息）→ 通用自动嗅探。
+依据：ImportEntryScreen.kt；TextImportViewModel.kt:parseTextContent；ImportPreviewComponents.kt:88。
 
 #### 3. 状态矩阵（解析失败/空结果/部分成功）
 | 状态 | 表现 | 文案键 | 出口 | 依据 |
@@ -996,16 +998,16 @@ Destination 共 **37** 个。路径前缀 `shared/src/commonMain/kotlin/com/shan
 | 非 UTF-8（含 U+FFFD） | 解析失败红字 | tivm_error_not_utf8_guidance（文件）/ tivm_error_not_utf8（JSON） | 留在页面 | TextImportViewModel.kt:114-118,147-149 |
 | 解析异常 | 红字「导入失败:%s」 | tivm_import_failed_fmt | 留在页面 | TextImportViewModel.kt:122-124,173-174,209 |
 | 解析失败（格式不识别） | 红字 result.message，parseResult=null | UniversalScheduleParser 消息 | 留在页面 | TextImportViewModel.kt:245-250 |
-| 解析中 | 整段加载态（仅 parseResult==null 时）/按钮禁用 | import_status_parsing（Excel/文件）、import_status_importing（JSON）、import_status_processing（预览表单） | — | ExcelImportScreen.kt:137-144; JsonFileImportScreen.kt:168-175; ImportPreviewComponents.kt:398-430 |
-| 成功 | toast + reset + 导航回调 | import_toast_success | onImportSuccess(tableId) | TextImportScreen.kt:144-161 |
+| 解析中 | 整段加载态（仅 parseResult==null 时）/按钮禁用 | import_status_parsing（解析中）、import_status_processing（预览表单处理中） | — | ImportEntryScreen.kt; ImportPreviewComponents.kt |
+| 成功 | toast + reset + 导航回调 | import_toast_success | onImportSuccess(tableId) | ImportEntryScreen.kt |
 | 空结果（0 门课） | ⚠️ 未拦截：applyParseResult 不检查 courses.isEmpty，空预览照常渲染可继续导入 | — | — | TextImportViewModel.kt:237-252 |
 | 部分成功 | ⚠️ 导入无部分成功概念；JSON 导入失败整体失败（本 App 格式严格解析→失败回退 WakeUp/通用 JSON→再失败 tivm_json_parse_failed） | tivm_json_parse_failed | 留在页面 | TextImportViewModel.kt:146-177 |
-| 未选目标课表（JSON） | toast | import_error_no_table | 留在页面 | JsonFileImportScreen.kt:94-95 |
-| 文件取消/空回调 | toast | import_error_no_file | 留在页面 | ExcelImportScreen.kt:71-73; TextFileImportScreen.kt:86-89 |
-| 检测到格式 | 主色小字 | import_detected_fmt | — | TextImportScreen.kt:113-119 |
+| 未选目标课表 | 覆盖按钮置灰（未选表时不可点） | — | 留在页面 | ImportDestinationForm |
+| 文件取消/空回调 | toast | import_error_no_file | 留在页面 | ImportEntryScreen.kt |
+| 检测到格式 | 主色小字 | import_detected_fmt | — | ImportEntryScreen.kt |
 
 #### 4. 覆盖确认
-- JSON 文件导入有二次确认：AppDangerDialog「确认覆盖导入 / 导入将覆盖课表「%1$s」的全部课程数据，此操作无法撤销。确定继续吗？」（dialog_title/text_confirm_overwrite_import，action_overwrite_import）：JsonFileImportScreen.kt:97-99,196-216; strings.xml:847-849。
+- 覆盖导入统一二次确认：AppDangerDialog「确认覆盖导入 / 导入将覆盖课表「%1$s」的全部课程数据，此操作无法撤销。确定继续吗？」（dialog_title/text_confirm_overwrite_import，action_overwrite_import）：ImportPreviewComponents.kt。
 - ⚠️ 缺失：Excel/文本文件/粘贴三屏的「覆盖已有课表」走 importToExistingTable 直接入库、无确认弹窗（ImportPreviewComponents.kt:341-430 表单无 dialog；TextImportViewModel.kt:217-235）。
 
 #### 5. 二次确认台账：存在 1（JSON 覆盖导入）；缺失 3 入口（Excel/文本文件/粘贴覆盖已有表，共用同一表单路径）。
@@ -1155,7 +1157,7 @@ TestResult 定义：sealed interface { Idle / Success / PartialSuccess(message) 
 - 结论：从情侣课表单独显示进入课程编辑（targetCourseTableId=null，跟随当前=情侣表）或从设置页携带情侣表 id 进入，课程/作息都写入情侣表而非本人表；防跨表误写。⚠️ 叠加模式（看本人表+开关开）下点 TA 课程格子是否可进入编辑，未在本页与 AddEditCourse 中找到证据。
 
 #### 5. 其他入口与持久化
-- 导入：无情侣表→toast `couple_need_create_first`；否则教务导入→`Destination.SchoolSelectionListScreen`、文件导入→`Destination.FileImportHub` :322-350（导入流程与主课表复用，目标课表在导入流程内选择）。
+- 导入：无情侣表→toast `couple_need_create_first`；否则教务导入→`Destination.SchoolSelectionListScreen`、导入课表→`Destination.ImportEntry(AUTO)` :322-350（导入流程与主课表复用，目标课表在导入流程内选择）。
 - 课表管理页：情侣表单列展示、与本人表配对归组（ManageCourseTablesViewModel.kt:77-86）。
 - 备份/恢复：保留 isCouple、pairedCourseTableId、coupleScheduleEnabled（BackupRepository.kt:290,362,409,530,615）。
 - 本页入口：设置页 item（SettingsScreen.kt:689，PINK 色 favorite 图标）；路由 App.kt:425。
@@ -1238,7 +1240,7 @@ TestResult 定义：sealed interface { Idle / Success / PartialSuccess(message) 
 | 组件 | 定义（components/ 内） | 用途 | 被引用（前 5） |
 |---|---|---|---|
 | AppLoading | AppBasicComponents.kt:389 | 全屏居中统一加载态 | ui/today/TodayScheduleScreen.kt:262、ui/agenda/AgendaScreen.kt:254、ui/schoolselection/list/SchoolSelectionListScreen.kt:224、App.kt:126 |
-| ThemedLoadingIndicator | AppBasicComponents.kt:238 | 主题三变体加载指示器（SOFT 呼吸圆点 / CLAUDE 墨点 / iOS 八段环） | ui/schoolselection/web/WebViewScreen.kt:453、ui/settings/import/ImportPreviewComponents.kt:403,428、ui/settings/notification/AdvancedSettingsCard.kt:76、ui/settings/import/ExcelImportScreen.kt:140、TextImportScreen.kt:111（含 AppLoading 全仓 17 处调用） |
+| ThemedLoadingIndicator | AppBasicComponents.kt:238 | 主题三变体加载指示器（SOFT 呼吸圆点 / CLAUDE 墨点 / iOS 八段环） | ui/schoolselection/web/WebViewScreen.kt:453、ui/settings/import/ImportPreviewComponents.kt:403,428、ui/settings/notification/AdvancedSettingsCard.kt:76、ui/settings/import/ImportEntryScreen.kt（含 AppLoading 全仓 17 处调用） |
 | AppEmptyState | AppBasicComponents.kt:128 | 空态胶囊提示（可选 actionLabel 动作钮） | TodayScheduleScreen.kt:873、AgendaScreen.kt:393、ui/settings/time/TimeSlotManagementScreen.kt:352、TweakScheduleScreen.kt:350、ManageCourseTablesScreen.kt:557（全仓 11 处调用） |
 | AppErrorState | AppBasicComponents.kt:183 | 错误态提示 + 可选重试钮（Res.string.action_retry） | SchoolSelectionListScreen.kt:228（onRetry=viewModel::retryLoad）、AdapterSelectionScreen.kt:175（onRetry=retryKey++）——全仓仅此 2 处 |
 | AppAlertDialog | AppBasicComponents.kt:545 | M3 AlertDialog 薄包装（同名同默认值，仅叠统一入场动效） | ui/settings/SettingsScreen.kt:313,510,566,608、TimeSlotManagementScreen.kt:506,749,1453、BackupScreen.kt:449,492、WebDialogHost.kt:106,136,173、ManageCourseTablesScreen.kt:358,399（24 文件 30+ 处） |
@@ -1261,7 +1263,7 @@ TestResult 定义：sealed interface { Idle / Success / PartialSuccess(message) 
 | AdaptiveNavigationScaffold | NavigationComponents.kt:122 | 底部导航（LiquidGlassTabs 默认 / 崩溃兜底 LegacyGlassBottomBar:547） | App 级根导航 |
 | AlphabetIndexerList | AlphabetIndexerList.kt:28 | 粘性字母头 + 右侧索引条（点击/拖拽跳转） | SchoolSelectionListScreen.kt:242（唯一） |
 | NativeNumberPicker | NumberPicker.kt:44 | 滚轮数字选择（拨档触觉） | TimeSlotManagementScreen.kt:1214-1570、CourseTimeDialogs.kt:231-358、SettingsScreen.kt:514,570,612、AgendaScreen.kt:1873,1880 |
-| CourseTablePickerDialog | CourseTablePickerDialog.kt:107 | 选课表弹窗（内嵌新增课表子弹窗） | CourseTableConversionDialogs.kt:115,138,148、WebViewScreen.kt:463、WeeklyScheduleScreen.kt:892、JsonFileImportScreen.kt:185、ImportPreviewComponents.kt:441 |
+| CourseTablePickerDialog | CourseTablePickerDialog.kt:107 | 选课表弹窗（内嵌新增课表子弹窗） | CourseTableConversionDialogs.kt:115,138,148、WebViewScreen.kt:463、WeeklyScheduleScreen.kt:892、ImportPreviewComponents.kt:441 |
 | ShareDialog | ShareManager.kt:28 | 系统分享确认弹窗（desktop 不支持直接 return） | CourseTableConversionScreen.kt:252（唯一） |
 | DatePickerModal | DatePickerModal.kt:27 | M3 日期选择（裸 TextButton 按钮） | NotificationDialogs.kt:467、SemesterSettingsScreen.kt:204、TweakScheduleScreen.kt:298,302、AgendaScreen.kt:1721 |
 | DateRangePickerModal | DateRangePickerModal.kt:37 | 日期范围选择（未选完禁用确认） | NotificationDialogs.kt:477、QuickDeleteScreen.kt:325 |
@@ -1595,12 +1597,12 @@ TestResult 定义：sealed interface { Idle / Success / PartialSuccess(message) 
 - [ ] 课程管理两级页：一级不重名课程两列网格+实例数 Badge+长按多选+批删二次确认；二级同名实例网格同构（CN:209-227,262-301）
 - [ ] 快速删除：预览「预计从课表中移除 %1$d 节课程记录」或 hint_no_selection + 危险色删除钮+不可撤销确认；⚠️ 周次筛选硬编码 1..20，未跟随学期总周数（QD:268-310,371）
 
-#### 7. 文件导入（Hub=…/ui/settings/import/FileImportHubScreen.kt；VM=…/ui/settings/import/TextImportViewModel.kt；JSON=…/ui/settings/import/JsonFileImportScreen.kt）
-- [ ] Hub 呈现 5 类入口（Excel/JSON/ICS/CSV/文本）+底部提示 import_file_hub_hint（Hub:86-123）
-- [ ] 三屏共用流程：选文件/输入→解析→ImportPreviewSection 预览可编辑并回写 VM→目标表单（另存新课表默认表名=文件名去扩展名 take(20)，或覆盖已有）→成功 toast+reset+onImportSuccess(tableId)（VM:185-235）
-- [ ] 解析失败红字留在原页：空输入/空文件/旧版二进制 .xls（提示先转 .xlsx）/非 UTF-8/解析异常/格式不识别（VM:64-124,245-250；strings.xml:829）
-- [ ] 覆盖确认：JSON 文件导入有二次确认「导入将覆盖课表「%1$s」的全部课程数据…」；⚠️ Excel/文本文件/粘贴三屏覆盖已有课表直接入库、无确认弹窗（JSON:97-99,196-216；ImportPreviewComponents.kt:341-430）
-- [ ] ⚠️ 0 门课未拦截：applyParseResult 不检查 courses.isEmpty，空预览照常渲染并可继续导入（VM:237-252）
+#### 7. 导入（现行 ImportEntry=…/ui/settings/import/ImportEntryScreen.kt；VM=…/ui/settings/import/TextImportViewModel.kt。v4.80.0 前的 FileImportHub / JsonFileImport 等页已合并，仅供追溯）
+- [ ] 单页呈现来源分段（粘贴文本 / 选择文件），文件一次接收 xlsx/xls/json/csv/ics/ical/html/htm/txt，失败原因红字留在原页
+- [ ] 共用流程：选文件/输入→解析→ImportPreviewSection 预览可编辑并回写 VM→目标表单（另存新课表默认表名=文件名去扩展名 take(20)，或覆盖已有）→成功 toast+reset+onImportSuccess(tableId)（VM:parseTextContent / importToNewTable / importToExistingTable）
+- [ ] 解析顺序：`SK1:` 分享串 → 本 App 导出 JSON 严格解码（保留时间段/学期配置/作息方案）→ 通用自动嗅探回退链
+- [ ] 覆盖确认：另存新课表与覆盖已有课表都走 ImportDestinationForm，覆盖前弹确认「导入将覆盖课表「%1$s」的全部课程数据…」（ImportPreviewComponents.kt）
+- [ ] 0 门课拦截：预览可逐条删空，但 importToNewTable / importToExistingTable 均拒绝空课程列表（VM）
 
 #### 8. 备份恢复（BK=…/ui/settings/backup/BackupScreen.kt；BVM=…/ui/settings/backup/BackupViewModel.kt）
 - [ ] 仅两通道 BackupTarget{WEBDAV, LOCAL_ZIP}；ICS 导出与系统日历同步挂在转换枢纽页，本页无相关键（BK:111-114；CourseTableConversionScreen.kt:200-204,228-232）
@@ -1733,8 +1735,8 @@ TestResult 定义：sealed interface { Idle / Success / PartialSuccess(message) 
 
 ### A4　数据正确性与防误触
 
-- **0 门课仍提示成功**：教务导入 `saveImportedCourses` 无空结果校验（`WebBridgeHandler.kt:375-443`）→ 仍弹「课程导入成功！共导入 0 门课。」（`strings.xml:798`）；文本导入 `applyParseResult` 不检查 `courses.isEmpty`，空预览可继续导入（`TextImportViewModel.kt:237-252`）。
-- **覆盖类导入缺二次确认**：Excel / 文本文件 / 粘贴三屏「覆盖已有课表」直接入库（`ImportPreviewComponents.kt:341-430`；`TextImportViewModel.kt:217-235`），仅 JSON 导入有确认（`JsonFileImportScreen.kt:97-99`）。
+- **0 门课仍提示成功**：教务导入 `saveImportedCourses` 无空结果校验（`WebBridgeHandler.kt:375-443`）→ 仍弹「课程导入成功！共导入 0 门课。」（`strings.xml:798`）。文本/文件导入侧已收口：`importToNewTable` / `importToExistingTable` 均拒绝空课程列表（`TextImportViewModel.kt`）。
+- **覆盖类导入已补齐二次确认**：v4.80.0 起文件与粘贴共用 `ImportDestinationForm`，覆盖已有课表统一弹 AppDangerDialog 确认（`ImportPreviewComponents.kt:341-430`）。
 - **时间合法性不校验**：保存不校验起止节次（`AddEditCourseScreen.kt:183-197`）。
 - **新建待办地点输入被静默丢弃**：`addTodo` 无 location 参数（`AgendaViewModel.kt:252-258`）。
 - **跨天课程 24H 截断 23:59**，不跨日渲染；跨周移动走拆课（clone 新 Uuid），页内无提示（`WeeklyScheduleViewModel.kt:796-808`）。

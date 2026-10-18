@@ -36,7 +36,7 @@ import shangkeschedule.shared.generated.resources.ia5_other_ways
 import shangkeschedule.shared.generated.resources.ia5_step_done
 import shangkeschedule.shared.generated.resources.ia5_step_login
 import shangkeschedule.shared.generated.resources.ia5_step_select_school
-import shangkeschedule.shared.generated.resources.import_file_hub_title
+import shangkeschedule.shared.generated.resources.import_entry_title
 import shangkeschedule.shared.generated.resources.item_school_system_import
 import shangkeschedule.shared.generated.resources.text_no_courses_this_week
 import shangkeschedule.shared.generated.resources.title_add_course
@@ -51,8 +51,8 @@ import shangkeschedule.shared.generated.resources.title_add_course
  *
  * 设计要点：
  * - 步骤条仅为**视觉引导**，不可点击，不做分步状态机（避免把简单问题复杂化）；
- * - 主按钮只指向覆盖面最广的**教务系统导入**；文件导入与手动添加收在
- *   「其他添加方式」展开项里 —— 四条路径平铺首屏正是"不知道点哪个"的来源；
+ * - 主按钮只指向覆盖面最广的**教务系统导入**；文件 / 粘贴导入与手动添加收在
+ *   「其他添加方式」展开项里 —— 路径平铺首屏正是"不知道点哪个"的来源；
  * - 任何一步都可跳过，不阻塞用户去别的页面。
  */
 @Composable
@@ -144,7 +144,7 @@ fun AddScheduleGuide(
             ) {
                 TextButton(onClick = onFileImport) {
                     Text(
-                        text = stringResource(Res.string.import_file_hub_title),
+                        text = stringResource(Res.string.import_entry_title),
                         style = MaterialTheme.typography.labelMedium
                     )
                 }

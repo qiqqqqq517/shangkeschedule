@@ -37,10 +37,9 @@ import com.shangkeschedule.ui.components.ShareDialog
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
-import shangkeschedule.shared.generated.resources.import_cat_text_paste
-import shangkeschedule.shared.generated.resources.import_file_hub_title
-import shangkeschedule.shared.generated.resources.conversion_file_import_desc
-import shangkeschedule.shared.generated.resources.conversion_text_paste_desc
+import com.shangkeschedule.ui.settings.import.ImportSource
+import shangkeschedule.shared.generated.resources.conversion_import_entry_desc
+import shangkeschedule.shared.generated.resources.import_entry_title
 import kotlinx.coroutines.launch
 import okio.FileSystem
 import okio.SYSTEM
@@ -50,8 +49,6 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.a11y_back
-import shangkeschedule.shared.generated.resources.ai_image_import_entry_desc
-import shangkeschedule.shared.generated.resources.ai_image_import_title
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.desc_ai_import
 import shangkeschedule.shared.generated.resources.desc_backup_restore
@@ -73,6 +70,7 @@ import shangkeschedule.shared.generated.resources.snackbar_file_save_canceled
 import shangkeschedule.shared.generated.resources.title_ai_import
 import shangkeschedule.shared.generated.resources.title_conversion
 import shangkeschedule.shared.generated.resources.title_course_share
+import shangkeschedule.shared.generated.resources.upload_24px
 import kotlin.time.Clock
 
 /**
@@ -188,12 +186,15 @@ fun CourseTableConversionScreen(
         ) {
             Spacer(Modifier.height(appSpacing().pageTop))
 
+            // v4.80.0 导入体系整合：文件导入与文本粘贴导入合并为唯一的「导入课表」入口，
+            // 来源（文件 / 粘贴）在页面内切换；格式由解析器自动嗅探，不再让用户先选格式。
             AppSectionHeader(stringResource(Res.string.section_file_conversion), modifier = Modifier.fillMaxWidth())
             SectionCard {
                 SettingItem(
-                    title = stringResource(Res.string.import_file_hub_title),
-                    subtitle = stringResource(Res.string.conversion_file_import_desc),
-                    onClick = { onNavigate(Destination.FileImportHub) }
+                    title = stringResource(Res.string.import_entry_title),
+                    subtitle = stringResource(Res.string.conversion_import_entry_desc),
+                    leadingIcon = vectorResource(Res.drawable.upload_24px),
+                    onClick = { onNavigate(Destination.ImportEntry(ImportSource.AUTO)) }
                 )
                 SectionDivider()
                 SettingItem(
@@ -218,27 +219,12 @@ fun CourseTableConversionScreen(
                     subtitle = stringResource(Res.string.desc_school_import_quick),
                     onClick = { onNavigate(Destination.SchoolSelectionListScreen()) }
                 )
-                SectionDivider()
-                SettingItem(
-                    title = stringResource(Res.string.import_cat_text_paste),
-                    subtitle = stringResource(Res.string.conversion_text_paste_desc),
-                    onClick = { onNavigate(Destination.TextImportHub) }
-                )
-                // v4.66.0（J1）：AI 识别导入与「文本粘贴导入」同族（都要先拿到一段文字再预览导入），
-                // 故追加在同一张「教务导入」卡里，不另开卡片（见方案 §7.1）
+                // AI 识别导入：提示词法（默认）+ 接口法同页，识别结果同样进统一导入页预览。
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.title_ai_import),
                     subtitle = stringResource(Res.string.desc_ai_import),
                     onClick = { onNavigate(Destination.AiImport) }
-                )
-                // v4.78.0：AI 图片导入 —— 不填接口配置，复制固定提示词给自己的 AI，
-                // 把 AI 输出的固定格式文本粘回来解析导入。与上一条同族（都要先拿到一段文字）。
-                SectionDivider()
-                SettingItem(
-                    title = stringResource(Res.string.ai_image_import_title),
-                    subtitle = stringResource(Res.string.ai_image_import_entry_desc),
-                    onClick = { onNavigate(Destination.AiImageImport) }
                 )
             }
 

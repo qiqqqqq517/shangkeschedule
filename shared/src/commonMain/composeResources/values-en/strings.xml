@@ -786,61 +786,26 @@
     <!-- Today to-do (creation/editing lives on the Agenda tab; Today shows read-only) -->
 
 
+    <!-- v4.80.0 unified import hub + merged AI routes -->
+    <string name="import_entry_title">Import timetable</string>
+    <string name="import_entry_intro">Pick a file or paste text — the format is detected automatically and a preview appears first, so nothing is written until you confirm.</string>
+    <string name="import_entry_source_text">Paste text</string>
+    <string name="import_entry_source_file">Pick a file</string>
+    <string name="import_entry_file_pick">Choose a timetable file</string>
+    <string name="import_entry_file_hint">Supports .xlsx sheets, .json (this app\'s export or WakeUp), .csv, .ics calendars, .html tables and .txt text. Re-save legacy .xls as .xlsx first.</string>
+    <string name="conversion_import_entry_desc">File or paste, auto-detected format, preview before import</string>
+    <string name="ai_import_method_prompt">Use your own AI</string>
+    <string name="ai_import_method_api">Recognize in app</string>
+
     <!-- import 链路 i18n（UI 迭代第 4 轮） -->
-    <string name="import_file_hub_title">File Import</string>
-    <string name="import_cat_excel">Excel Import</string>
-    <string name="import_file_hub_excel_desc">Auto-detects grid or list timetables (.xlsx)</string>
-    <string name="import_cat_json">JSON Import</string>
-    <string name="import_file_hub_json_desc">Import into the selected timetable. Supports this app\'s export and WakeUp JSON</string>
-    <string name="import_cat_ics">ICS Calendar Import</string>
-    <string name="import_file_hub_ics_desc">.ics calendar files exported from WakeUp or the system calendar</string>
-    <string name="import_cat_csv">CSV Import</string>
-    <string name="import_file_hub_csv_desc">.csv sheets (header: course, teacher, room, day, period, weeks)</string>
-    <string name="import_cat_text_file">Text File Import</string>
-    <string name="import_file_hub_text_desc">HTML tables or plain TXT, format auto-detected</string>
-    <string name="import_file_hub_hint">Tip: for school system import, go back and use “School System Import”; use “Pasted Text Import” for pasted text.</string>
     <string name="import_error_no_file">No file selected</string>
     <string name="import_toast_success">Import successful!</string>
     <string name="import_status_parsing">Parsing file…</string>
-    <string name="import_excel_action_select">Choose Excel file</string>
     <string name="import_selected_fmt">Selected: %1$s</string>
     <string name="import_detected_fmt">Detected format: %1$s</string>
-    <string name="import_excel_desc_support">Supports .xlsx files with two auto-detected layouts:\n① Grid timetable: rows = periods, columns = days (SuperCourse / QQ group / school exports)\n② List timetable: one course per line (header: course/teacher/room/day/period/weeks)\nLegacy .xls: save as .xlsx in Office/WPS first</string>
     <string name="import_error_no_table">Select a target timetable first</string>
-    <string name="import_json_title">JSON File Import</string>
-    <string name="import_json_desc_support">Imports a .json timetable file into the chosen timetable (its courses will be replaced):\n· This app\'s JSON: keeps courses, time slots and term settings\n· WakeUp JSON (with courses array): imports course data</string>
-    <string name="import_json_step1">Step 1: choose the target timetable</string>
-    <string name="import_json_pick_table_placeholder">Choose target timetable</string>
-    <string name="import_json_step2">Step 2: choose a JSON file</string>
-    <string name="import_json_action_select_and_import">Choose JSON file and import</string>
-    <string name="import_status_importing">Importing…</string>
-    <string name="import_json_dialog_title">Choose the timetable to import into</string>
-    <string name="import_textfile_fmt_info">Import %1$s file:\n%2$s</string>
     <!-- Text import format categories: labels and hints (were hardcoded in the TextImportFormat enum) -->
-    <string name="import_format_wakeup_label">WakeUp share text</string>
-    <string name="import_format_wakeup_hint">Paste the full text produced by WakeUp (Share with friend / Copy text): either the WakeUp curriculum header line or a JSON block</string>
-    <string name="import_format_plain_label">Plain text (one class per line)</string>
-    <string name="import_format_plain_hint">One class per line, fields separated by tab / comma / | / runs of spaces:\nCourse Teacher Room Weekday Periods Weeks\nExample: Calculus Zhang San Bldg5-103 Mon 1-2 1-16</string>
-    <string name="import_format_json_label">JSON</string>
-    <string name="import_format_json_hint">Paste the contents of a .json timetable exported by this app, or WakeUp JSON (with a courses array)</string>
-    <string name="import_format_csv_label">CSV table</string>
-    <string name="import_format_csv_hint">First row is the header: Course,Teacher,Room,Weekday,Periods,Weeks (Chinese/English column names, partial match, any order)\nExample: Course,Teacher,Room,Weekday,Periods,Weeks</string>
-    <string name="import_format_ics_label">ICS calendar</string>
-    <string name="import_format_ics_hint">Paste .ics calendar text (starting with BEGIN:VCALENDAR and containing VEVENT); each event becomes one class</string>
-    <string name="import_format_html_label">HTML table</string>
-    <string name="import_format_html_hint">Paste HTML source containing &lt;table&gt;; parsed row by row: Course/Teacher/Room/Weekday/Periods/Weeks</string>
-    <string name="import_format_screen_title">Import %1$s</string>
-    <string name="import_textfile_desc_fallback">Supports text timetable files, detected by extension first with automatic fallback:\nCSV (header: course, teacher, room, day, period, weeks)\nICS calendar (BEGIN:VCALENDAR)\nHTML table (&lt;table&gt;)\nPlain TXT (one course per line)</string>
-    <string name="import_textfile_action_select">Choose timetable file</string>
-    <string name="import_text_hub_wakeup">WakeUp shared text</string>
-    <string name="import_text_hub_wakeup_desc">Paste the text shared from the WakeUp timetable app</string>
-    <string name="import_text_hub_plain">Plain Text Import</string>
-    <string name="import_text_hub_plain_desc">One course per line: name, teacher, room, day, period, weeks</string>
-    <string name="import_text_hub_json_desc">This app\'s export JSON or WakeUp JSON</string>
-    <string name="import_text_hub_csv_desc">Header: course, teacher, room, day, period, weeks</string>
-    <string name="import_text_hub_ics_desc">Paste .ics calendar text (with VEVENT)</string>
-    <string name="import_text_hub_hint">Tip: pick any type and try pasting; a failed parse reports the specific reason.</string>
-    <string name="import_text_any_title">Text / File Import</string>
+        <string name="import_fmt_strict_json">This app JSON export</string>
     <string name="import_text_any_desc">Supported: WakeUp text, JSON, ICS, CSV, HTML tables, plain text (one per line)</string>
     <!-- v4.66.0 (L1): shown after importing text shared from the system text-selection toolbar -->
     <string name="import_external_text_hint">Content brought in from your selection — tap "Parse Preview" to import it</string>
@@ -872,8 +837,6 @@
     <string name="ai_import_notice_confirm">I understand, turn it on</string>
     <string name="ai_import_notice_cancel">Not now</string>
     <string name="ai_import_toast_config_saved">Endpoint settings saved</string>
-    <string name="ai_image_import_title">AI image import</string>
-    <string name="ai_image_import_entry_desc">Copy a fixed prompt to your own AI and turn a timetable image into importable text</string>
     <string name="ai_image_import_intro">Three steps: copy the fixed prompt below, send it together with your timetable image in your own AI, then paste the AI output back here to parse and import. This page makes no network requests and needs no endpoint setup.</string>
     <string name="ai_image_import_section_prompt">Step 1 · Copy the fixed prompt</string>
     <string name="ai_image_import_prompt_desc">The prompt is already written to match ShangKe\'s parser, so the AI replies one course per line and writes 待定 instead of guessing what it cannot read.</string>
@@ -890,7 +853,6 @@
     <string name="ai_image_import_section_paste">Step 3 · Paste it back into ShangKe</string>
     <string name="ai_image_import_go_paste">Paste AI output</string>
     <string name="ai_image_import_paste_desc">Parsed as \"one course per line\"; preview and fix before importing</string>
-    <string name="ai_image_import_use_api_instead">Don\'t want to copy by hand? \"AI recognition import\" can send the request for you once you fill in your own endpoint.</string>
     <string name="import_ai_text_hint">Content filled in by AI — check it, then tap Parse Preview to import</string>
     <string name="ai_import_error_not_configured">The endpoint URL, model and API key are not all filled in</string>
     <string name="ai_import_error_empty_input">Choose a screenshot or paste some timetable text first</string>
@@ -919,10 +881,7 @@
     <string name="appearance_switch_title">Switch Theme</string>
     <string name="appearance_switch_message">Switch to “%1$s”? This resets current customizations (corners, spacing, colors, etc.).</string>
     <string name="appearance_switch_confirm">Confirm Switch</string>
-    <string name="import_cat_text_paste">Pasted Text Import</string>
     <string name="import_status_processing">Processing…</string>
-    <string name="conversion_file_import_desc">Excel / JSON / text files, sorted by type</string>
-    <string name="conversion_text_paste_desc">WakeUp text / plain text / JSON / CSV / ICS, preview before import</string>
 
     <!-- VM/Bridge 层 i18n（UI 迭代第 6 轮） -->
     <string name="wb_import_no_table">Import failed: no timetable selected.</string>
@@ -1094,8 +1053,8 @@
     <string name="couple_solo_banner">Showing the couple schedule solo</string>
     <string name="couple_solo_back">Back to my schedule</string>
     <string name="couple_manage_import_school_desc">Import TA's schedule from the academic system; pick the target table when importing</string>
-    <string name="couple_manage_import_file">Import from file</string>
-    <string name="couple_manage_import_file_desc">Supports Excel / JSON / text files; pick the target table when importing</string>
+    <string name="couple_manage_import_file">Import a timetable</string>
+    <string name="couple_manage_import_file_desc">Pick a file or paste text: Excel / JSON / CSV / ICS / HTML / plain text. Choose the target table when importing</string>
     <!-- D2 common free time (v4.66.0) -->
     <string name="title_couple_free_time">Find common free time</string>
     <string name="desc_couple_free_time">Merge both schedules and find slots where neither of you has class</string>

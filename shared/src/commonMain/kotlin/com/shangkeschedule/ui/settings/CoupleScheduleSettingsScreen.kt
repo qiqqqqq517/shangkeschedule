@@ -41,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.shangkeschedule.Destination
+import com.shangkeschedule.ui.settings.import.ImportSource
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -106,7 +107,7 @@ import shangkeschedule.shared.generated.resources.title_couple_free_time
  * - 未创建时提供创建入口；
  * - 已创建时支持查看（切换单独显示）/ 重命名 / 作息设置 / 删除；
  * - 「双人同显」开关控制叠加显示（当前正在单独显示情侣课表时自动失效）；
- * - 导入与编辑复用主课表能力（教务 / Excel / JSON / 文本，导入时选择目标课表）。
+ * - 导入与编辑复用主课表能力（教务 / 文件 / 粘贴，导入时选择目标课表）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -341,7 +342,7 @@ fun CoupleScheduleSettingsScreen(
                     if (coupleTable == null) {
                         ToastManager.show(needCoupleFirst)
                     } else {
-                        onNavigate(Destination.FileImportHub)
+                        onNavigate(Destination.ImportEntry(ImportSource.AUTO))
                     }
                 }
                 SettingItem(

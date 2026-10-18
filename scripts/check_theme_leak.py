@@ -95,7 +95,7 @@ IDENTITY_REVIEWED = {
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/appearance/AppearanceSettingsScreen.kt", 532, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 44, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 138, "AppThemePreset."),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/WeeklyScheduleScreen.kt", 1284, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/WeeklyScheduleScreen.kt", 1285, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/coursemanagement/CourseInstanceListScreen.kt", 248, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 217, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 380, "LocalThemePreset"),

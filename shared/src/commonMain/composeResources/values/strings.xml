@@ -787,61 +787,26 @@
     <!-- 今日待办（创建/编辑统一由「日程」页承载，今日页只读展示） -->
 
 
+    <!-- v4.80.0 导入体系整合：统一导入页 + AI 双路线合并 -->
+    <string name="import_entry_title">导入课表</string>
+    <string name="import_entry_intro">选择文件或直接粘贴，都会自动识别格式并先给出预览，确认无误再写入课表。</string>
+    <string name="import_entry_source_text">粘贴文本</string>
+    <string name="import_entry_source_file">选择文件</string>
+    <string name="import_entry_file_pick">选择课表文件</string>
+    <string name="import_entry_file_hint">支持 .xlsx 表格、.json（本 App 导出或 WakeUp）、.csv、.ics 日历、.html 表格与 .txt 纯文本；旧版 .xls 请先另存为 .xlsx。</string>
+    <string name="conversion_import_entry_desc">文件或粘贴，自动识别格式，先预览再导入</string>
+    <string name="ai_import_method_prompt">用自己的 AI</string>
+    <string name="ai_import_method_api">应用代发识别</string>
+
     <!-- import 链路 i18n（UI 迭代第 4 轮） -->
-    <string name="import_file_hub_title">文件导入</string>
-    <string name="import_cat_excel">Excel 导入</string>
-    <string name="import_file_hub_excel_desc">网格课表 / 列表课表自动识别（.xlsx）</string>
-    <string name="import_cat_json">JSON 导入</string>
-    <string name="import_file_hub_json_desc">导入到所选课表，支持本App导出文件与 WakeUp JSON</string>
-    <string name="import_cat_ics">ICS 日历导入</string>
-    <string name="import_file_hub_ics_desc">WakeUp / 系统日历导出的 .ics 日历文件</string>
-    <string name="import_cat_csv">CSV 导入</string>
-    <string name="import_file_hub_csv_desc">.csv 表格（表头：课程,教师,教室,星期,节次,周次）</string>
-    <string name="import_cat_text_file">文本文件导入</string>
-    <string name="import_file_hub_text_desc">HTML 表格 / TXT 纯文本，自动识别格式</string>
-    <string name="import_file_hub_hint">提示：教务系统导入请返回上一页使用「教务系统导入」；粘贴文本请使用「文本粘贴导入」。</string>
     <string name="import_error_no_file">未选择文件</string>
     <string name="import_toast_success">导入成功！</string>
     <string name="import_status_parsing">正在解析文件…</string>
-    <string name="import_excel_action_select">选择 Excel 文件</string>
     <string name="import_selected_fmt">已选择：%1$s</string>
     <string name="import_detected_fmt">识别格式：%1$s</string>
-    <string name="import_excel_desc_support">支持 .xlsx 文件，自动识别两种课表形态：\n① 网格课表：行=节次、列=星期（超级课程表 / QQ群课表 / 教务系统导出）\n② 列表课表：一行一门课（表头含 课程/教师/教室/星期/节次/周次）\n旧版 .xls 请先在 Office/WPS 中另存为 .xlsx</string>
     <string name="import_error_no_table">请先选择目标课表</string>
-    <string name="import_json_title">JSON 文件导入</string>
-    <string name="import_json_desc_support">将 .json 课表文件导入到指定课表（会覆盖该课表的课程数据）：\n· 本 App 导出的 JSON：完整保留课程、时间段与学期配置\n· WakeUp JSON（含 courses 数组）：按课程数据导入</string>
-    <string name="import_json_step1">第一步：选择导入到的课表</string>
-    <string name="import_json_pick_table_placeholder">选择目标课表</string>
-    <string name="import_json_step2">第二步：选择 JSON 文件</string>
-    <string name="import_json_action_select_and_import">选择 JSON 文件并导入</string>
-    <string name="import_status_importing">正在导入…</string>
-    <string name="import_json_dialog_title">选择导入到的课表</string>
-    <string name="import_textfile_fmt_info">导入 %1$s 文件：\n%2$s</string>
     <!-- 文本导入格式类别：类别名与说明（原硬编码在 TextImportFormat 枚举里） -->
-    <string name="import_format_wakeup_label">WakeUp 分享文本</string>
-    <string name="import_format_wakeup_hint">粘贴 WakeUp 课程表 App「分享给好友/复制文本」得到的完整内容（含【来自WakeUp课程表】开头或 JSON 数据段）</string>
-    <string name="import_format_plain_label">纯文本（一行一课）</string>
-    <string name="import_format_plain_hint">每行一门课，字段用制表符 / 逗号 / | / 连续空格分隔：\n课程名 教师 教室 星期 节次 周次\n例：高等数学 张三 教5-103 周一 1-2节 1-16周</string>
-    <string name="import_format_json_label">JSON</string>
-    <string name="import_format_json_hint">粘贴本 App 导出的 .json 课表文件内容，或 WakeUp JSON（含 courses 数组）</string>
-    <string name="import_format_csv_label">CSV 表格</string>
-    <string name="import_format_csv_hint">首行为表头：课程,教师,教室,星期,节次,周次（列名支持 中英文/部分匹配，顺序可变）\n例：课程,教师,教室,星期,节次,周次</string>
-    <string name="import_format_ics_label">ICS 日历</string>
-    <string name="import_format_ics_hint">粘贴 .ics 日历文本（以 BEGIN:VCALENDAR 开头、含 VEVENT 事件），每条事件识别为一门课</string>
-    <string name="import_format_html_label">HTML 表格</string>
-    <string name="import_format_html_hint">粘贴含 &lt;table&gt; 的 HTML 源码，按行解析：课程/教师/教室/星期/节次/周次</string>
-    <string name="import_format_screen_title">%1$s 导入</string>
-    <string name="import_textfile_desc_fallback">支持文本类课表文件，按扩展名优先识别，失败自动回退其他格式：\nCSV（表头：课程,教师,教室,星期,节次,周次）\nICS 日历（BEGIN:VCALENDAR）\nHTML 表格（&lt;table&gt;）\nTXT 纯文本（一行一课）</string>
-    <string name="import_textfile_action_select">选择课表文件</string>
-    <string name="import_text_hub_wakeup">WakeUp 分享文本</string>
-    <string name="import_text_hub_wakeup_desc">粘贴 WakeUp 课程表 App 分享的文本内容</string>
-    <string name="import_text_hub_plain">纯文本导入</string>
-    <string name="import_text_hub_plain_desc">一行一课：课程名 教师 教室 星期 节次 周次</string>
-    <string name="import_text_hub_json_desc">本App导出 JSON / WakeUp JSON</string>
-    <string name="import_text_hub_csv_desc">表头：课程,教师,教室,星期,节次,周次</string>
-    <string name="import_text_hub_ics_desc">粘贴 .ics 日历文本（含 VEVENT）</string>
-    <string name="import_text_hub_hint">提示：不确定格式可任选一类粘贴尝试；各类别解析失败时会给出具体原因。</string>
-    <string name="import_text_any_title">文本/文件导入</string>
+        <string name="import_fmt_strict_json">本 App 导出 JSON</string>
     <string name="import_text_any_desc">支持格式：WakeUp分享文本、JSON、ICS日历、CSV、HTML表格、纯文本（一行一课）</string>
     <!-- v4.66.0（L1）：外部选中文本导入（Android 系统文本选择工具栏「上课」）带入后的提示 -->
     <string name="import_external_text_hint">已从选中文本带入内容，可直接点「解析预览」识别导入</string>
@@ -873,8 +838,6 @@
     <string name="ai_import_notice_confirm">我已了解，开启</string>
     <string name="ai_import_notice_cancel">暂不开启</string>
     <string name="ai_import_toast_config_saved">接口配置已保存</string>
-    <string name="ai_image_import_title">AI 图片导入</string>
-    <string name="ai_image_import_entry_desc">复制固定提示词给自己的 AI，把课表图片变成可导入文本</string>
     <string name="ai_image_import_intro">三步导入：复制下方固定提示词，在自己的 AI 里连同课表图片一起发送，再把 AI 输出的课程文本粘回来解析导入。本页不联网、不需要填任何接口。</string>
     <string name="ai_image_import_section_prompt">第一步 · 复制固定提示词</string>
     <string name="ai_image_import_prompt_desc">这段提示词已按上课的解析格式写好，AI 会一行一门课地输出；看不清的地方它会写「待定」而不是编造。</string>
@@ -891,7 +854,6 @@
     <string name="ai_image_import_section_paste">第三步 · 粘回上课导入</string>
     <string name="ai_image_import_go_paste">去粘贴 AI 输出</string>
     <string name="ai_image_import_paste_desc">粘贴后按「一行一门课」解析，可预览、改错后再导入</string>
-    <string name="ai_image_import_use_api_instead">不想手动复制？也可以在「AI 识别导入」里填自己的接口，由应用直接代发识别。</string>
     <string name="import_ai_text_hint">已由 AI 识别带入内容，核对后点「解析预览」导入</string>
     <string name="ai_import_error_not_configured">还没填完接口地址、模型名与 API Key</string>
     <string name="ai_import_error_empty_input">先选一张课表截图，或粘贴一段课表文字</string>
@@ -920,10 +882,7 @@
     <string name="appearance_switch_title">切换主题</string>
     <string name="appearance_switch_message">切换到「%1$s」将重置当前的个性化配置（圆角、间距、配色等），是否继续？</string>
     <string name="appearance_switch_confirm">确认切换</string>
-    <string name="import_cat_text_paste">文本粘贴导入</string>
     <string name="import_status_processing">处理中…</string>
-    <string name="conversion_file_import_desc">Excel / JSON / 文本文件，分类导入</string>
-    <string name="conversion_text_paste_desc">WakeUp文本/纯文本/JSON/CSV/ICS 分类导入，先预览再导入</string>
 
     <!-- VM/Bridge 层 i18n（UI 迭代第 6 轮） -->
     <string name="wb_import_no_table">导入失败：未选择课表。</string>
@@ -1095,8 +1054,8 @@
     <string name="couple_solo_banner">正在单独显示情侣课表</string>
     <string name="couple_solo_back">返回本人课表</string>
     <string name="couple_manage_import_school_desc">从教务系统导入 TA 的课表，导入时可选择目标课表</string>
-    <string name="couple_manage_import_file">文件导入</string>
-    <string name="couple_manage_import_file_desc">支持 Excel / JSON / 文本文件，导入时可选择目标课表</string>
+    <string name="couple_manage_import_file">导入课表</string>
+    <string name="couple_manage_import_file_desc">选择文件或直接粘贴：Excel / JSON / CSV / ICS / HTML / 纯文本，导入时可选择目标课表</string>
     <!-- D2 找共同空闲（v4.66.0）：合并双方课表求空档 -->
     <string name="title_couple_free_time">找共同空闲</string>
     <string name="desc_couple_free_time">合并双方课表，找出都没课的时间段</string>
