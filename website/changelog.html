@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4801">v4.80.1 · 发布说明</a></li>
         <li><a href="#v4800">v4.80.0 · 发布说明</a></li>
         <li><a href="#v4792">v4.79.2 · 界面质感打磨</a></li>
         <li><a href="#v4791">v4.79.1 · 发布说明</a></li>
@@ -319,6 +320,17 @@
     </div>
 
     <div class="timeline doc-body" style="max-width:none">
+
+      <div class="tl-item reveal" id="v4801">
+        <div><span class="tl-ver">v4.80.1</span><span class="tl-date">2026-10-18</span></div>
+        <div class="tl-body">
+          <h3><span class="tl-tag tag-fix">修复</span>「另存为新课表」导入后不生效</h3>
+          <ul>
+            <li>新建的课表不会被设为当前课表，而导入成功后判断的是「当前课表」有没有开学日期 —— 于是新表永远停在未配置状态，用户去设置开学日期写的也是旧表，回去看到的还是原来那张课表，观感等同按钮失灵。现在导入完成会切换到刚导入的那张课表，再按需引导设置开学日期。</li>
+            <li><b>新课表名称输入框默认空白</b>：粘贴来源没有文件名可用，输入框是空的，直接点「导入为新课表」只会弹一句「请输入课表名称」。现在默认填入「导入的课表」，留空也会自动使用该名称。</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="tl-item reveal" id="v4800">
         <div><span class="tl-ver">v4.80.0</span><span class="tl-date">2026-10-18</span></div>
