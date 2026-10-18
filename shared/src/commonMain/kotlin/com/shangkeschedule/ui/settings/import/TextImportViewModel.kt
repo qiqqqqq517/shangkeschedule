@@ -220,8 +220,19 @@ class TextImportViewModel(
         _uiState.value = _uiState.value.copy(parseResult = current.copy(courses = courses))
     }
 
-    /** 导入到新表 */
-    fun importToNewTable(tableName: String, onSuccess: (String) -> Unit, onError: (String) -> Unit) {
+    /**
+     * 导入到新表。
+     *
+     * [tableName] 留空时用 [fallbackTableName] 兜底 —— 粘贴来源没有文件名，
+     * 输入框默认是空的，此前用户点了「导入为新课表」只会收到一句「请输入课表名称」，
+     * 看起来与「按钮失灵」无异。默认名由 UI 传入（当前学期 / 文件名去扩展名）。
+     */
+    fun importToNewTable(
+        tableName: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit,
+        fallbackTableName: String = ""
+    ) {
         viewModelScope.launch {
             val model = _uiState.value.parseResult
             if (model == null) {
@@ -233,13 +244,14 @@ class TextImportViewModel(
                 onError(getString(Res.string.tivm_error_no_courses))
                 return@launch
             }
-            if (tableName.isBlank()) {
+            val resolvedName = tableName.trim().ifBlank { fallbackTableName.trim() }
+            if (resolvedName.isBlank()) {
                 onError(getString(Res.string.tivm_error_table_name_empty))
                 return@launch
             }
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val tableId = courseTableRepository.createNewCourseTable(tableName)
+                val tableId = courseTableRepository.createNewCourseTable(resolvedName)
                 courseConversionRepository.importCourseTableFromJson(tableId, model)
                 _uiState.value = _uiState.value.copy(importSuccess = true)
                 onSuccess(tableId)

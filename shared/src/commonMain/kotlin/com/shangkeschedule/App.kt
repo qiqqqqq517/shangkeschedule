@@ -46,6 +46,7 @@ import com.shangkeschedule.data.repository.CourseConversionRepository
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
 import com.shangkeschedule.tool.AppExternalLinks
+import com.shangkeschedule.tool.AppLog
 import com.shangkeschedule.tool.ExternalTextImport
 import com.shangkeschedule.widget.WidgetRoute
 import com.shangkeschedule.widget.WidgetRouteHandoff
@@ -532,11 +533,39 @@ fun ScreenContent(
         }
     }
 
-    // 文件/文本/Excel 导入成功后：若当前课表未设置开学日期，弹窗引导去学期设置；
-    // 已设置则直接回课表管理。两种情况在**真的跳走之后**都把本页从返回栈摘掉：
-    // 它的使命已经结束，留着只会让用户从结果页返回时又回到「已经导完」的导入页。
-    fun handleImportSuccess() {
+    // 导入成功后的落点（v4.81.1 修复「另存为新课表」看起来失效）：
+    //
+    // 原实现只有一条分支：读**当前课表**的开学日期决定是回学期管理还是弹引导。
+    // 但「另存为新课表」刚建出来的表 `semesterStartDate` 必然为空，且
+    // `createNewCourseTable` **不会**把它设为当前课表 —— 于是：
+    //   ① 弹窗分支被必然触发，看起来像「点了没反应，只弹一句设置开学日期」；
+    //   ② 即便用户去设了开学日期，设的也是**旧表**（当前课表仍是旧表），
+    //      新课表永远停在未配置状态，用户回去看课表还是原来那张 —— 判定为「按钮失效」。
+    //
+    // 现在按「导入结果落在哪张表」分流：
+    // - [importedTableId] 与当前课表不同 ⇒ 这是新表：先切换当前课表，再走开学日期引导；
+    // - 相同 / 为空（覆盖已有课表）⇒ 沿用原判断。
+    // 两种情况都在**真的跳走之后**把本页从返回栈摘掉：它的使命已经结束，
+    // 留着只会让用户从结果页返回时又回到「已经导完」的导入页。
+    fun handleImportSuccess(importedTableId: String? = null) {
         scope.launch {
+            val currentTableId = runCatching {
+                courseConversionRepository.getCurrentTableId()
+            }.getOrNull()
+
+            // 新课表：必须切过去，否则用户看到的仍是旧表，等同于「导入没成功」
+            if (!importedTableId.isNullOrBlank() && importedTableId != currentTableId) {
+                runCatching {
+                    // 先读后整份改写：AppSettings 是单一 DataStore 快照，没有单独改某个字段的 setter
+                    val settings = appSettingsRepository.getAppSettingsOnce()
+                    appSettingsRepository.insertOrUpdateAppSettings(
+                        settings.copy(currentCourseTableId = importedTableId)
+                    )
+                }.onFailure { AppLog.w("App", "切换到导入的新课表失败", it) }
+            }
+
+            // 判断用的是「导入后的当前课表」：新课表必然未设开学日期，此时引导去设置
+            // 写的正是刚导入的那张表，不再是旧表。
             if (courseConversionRepository.isSemesterStartDateSet()) {
                 onNavigate(Destination.ManageCourseTables)
                 onRemoveSelf()
@@ -598,7 +627,7 @@ fun ScreenContent(
         // 导入体系（v4.80.0 整合）：文件 / 文本 / 分享串合并为统一导入页
         is Destination.ImportEntry -> ImportEntryScreen(
             onBack = onBack,
-            onImportSuccess = { handleImportSuccess() },
+            onImportSuccess = { importedTableId -> handleImportSuccess(importedTableId) },
             source = targetDest.source
         )
         // AI 识别导入（提示词法 + 接口法）：识别结果交给统一导入页预览，不直接写课表
@@ -614,7 +643,7 @@ fun ScreenContent(
         is Destination.JsonFileImport,
         is Destination.TextFileImport -> ImportEntryScreen(
             onBack = onBack,
-            onImportSuccess = { handleImportSuccess() },
+            onImportSuccess = { importedTableId -> handleImportSuccess(importedTableId) },
             source = ImportSource.FILE
         )
 
@@ -623,7 +652,7 @@ fun ScreenContent(
         is Destination.ShareTextImport,
         is Destination.AiImageImport -> ImportEntryScreen(
             onBack = onBack,
-            onImportSuccess = { handleImportSuccess() },
+            onImportSuccess = { importedTableId -> handleImportSuccess(importedTableId) },
             source = ImportSource.TEXT
         )
 

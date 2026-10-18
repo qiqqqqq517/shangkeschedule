@@ -338,4 +338,51 @@ class ProjectAuditRegressionTest {
         assertEquals(2, db.courseNoteDao().getAllNotesOnce().size)
         assertEquals(listOf(2), db.courseWeekDao().getWeekNumbersByCourseId("course2"))
     }
+
+    /**
+     * 「另存为新课表」看起来失效的根因回归。
+     *
+     * 新建课表 `createNewCourseTable` 只写课表/默认作息/默认配置，**不会**切换当前课表；
+     * 而导入成功后的落点判断读的是「当前课表」的开学日期。于是新建出来的表永远
+     * `semesterStartDate` 为空、又从来不是当前课表 —— 用户去设置开学日期设置的也是旧表，
+     * 新课表始终未配置且不生效，观感就是「点了按钮没反应」。
+     *
+     * 修复后由 `handleImportSuccess(importedTableId)` 负责把当前课表切到导入结果。
+     * 这里固化两条不变量：
+     * 1. 新建课表本身不会偷改当前课表（避免有人误以为是 repository 的职责）；
+     * 2. 新课表未设开学日期，且切换后学期配置查询落在新表上 —— 这正是必须切换的原因。
+     */
+    @Test fun newTableImportNeedsExplicitCurrentTableSwitch() = runBlocking {
+        val before = settings.getAppSettingsOnce().currentCourseTableId
+
+        val newTableId = tableRepo.createNewCourseTable("导入的新课表")
+        // 不变量 1：新建课表不改当前课表
+        assertEquals(before, settings.getAppSettingsOnce().currentCourseTableId)
+
+        // 不变量 2：新课表未设开学日期
+        assertTrue(settings.getCourseConfigOnce(newTableId)?.semesterStartDate.isNullOrBlank())
+
+        // 模拟修复后的落点：显式切到导入的新课表
+        val current = settings.getAppSettingsOnce()
+        settings.insertOrUpdateAppSettings(current.copy(currentCourseTableId = newTableId))
+        assertEquals(newTableId, settings.getAppSettingsOnce().currentCourseTableId)
+        // 切换后「当前课表是否已设开学日期」判断的是新表，用户去设置也就写在正确的表上
+        assertFalse(conversion.isSemesterStartDateSet())
+    }
+
+    /** 导入内容确实写进目标新课表（另存为新课表的数据侧保证）。 */
+    @Test fun importIntoNewTableLandsCoursesOnThatTable() = runBlocking {
+        // 复用夹具里已存在的课表作为「目标新表」，只验证导入落点与隔离：
+        // 不额外建表，避免与 tearDown 的 deleteRecursively 抢 Room 句柄（该夹具的已知时序限制）。
+        val targetTableId = "table"
+        conversion.importCourseTableFromJson(
+            targetTableId,
+            CourseTableImportModel(listOf(courseJson.copy(id = null, name = "另存课程")))
+        )
+
+        val landed = db.courseDao().getCoursesOnce(targetTableId)
+        assertEquals(listOf("另存课程"), landed.map { it.name })
+        // 导入后该表只应包含本次导入的课程（覆盖语义），旧课程名不再残留
+        assertTrue(landed.none { it.name == courseJson.name }, "目标表应被本次导入覆盖")
+    }
 }

@@ -788,6 +788,7 @@
 
 
     <!-- v4.80.0 匯入體系整合：統一匯入頁 + AI 雙路線合併 -->
+    <string name="import_new_table_default_name">匯入的課表</string>
     <string name="import_entry_title">匯入課表</string>
     <string name="import_entry_intro">選擇檔案或直接貼上，都會自動辨識格式並先給出預覽，確認無誤再寫入課表。</string>
     <string name="import_entry_source_text">貼上文字</string>

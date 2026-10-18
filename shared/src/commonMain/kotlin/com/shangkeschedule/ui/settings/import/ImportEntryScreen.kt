@@ -53,6 +53,7 @@ import shangkeschedule.shared.generated.resources.import_entry_intro
 import shangkeschedule.shared.generated.resources.import_entry_source_file
 import shangkeschedule.shared.generated.resources.import_entry_source_text
 import shangkeschedule.shared.generated.resources.import_entry_title
+import shangkeschedule.shared.generated.resources.import_new_table_default_name
 import shangkeschedule.shared.generated.resources.import_error_no_file
 import shangkeschedule.shared.generated.resources.import_external_text_hint
 import shangkeschedule.shared.generated.resources.import_selected_fmt
@@ -105,6 +106,8 @@ fun ImportEntryScreen(
     // Toast 文案在非组合式回调中使用：提前在组合式作用域解析（stringResource 限定）
     val toastNoFile = stringResource(Res.string.import_error_no_file)
     val toastSuccess = stringResource(Res.string.import_toast_success)
+    // 「另存为新课表」名称输入框的兜底默认值（粘贴来源没有文件名可用）
+    val defaultImportTableName = stringResource(Res.string.import_new_table_default_name)
 
     var mode by remember(source) { mutableStateOf(ImportSource.normalize(source)) }
 
@@ -277,9 +280,17 @@ fun ImportEntryScreen(
                 )
 
                 Spacer(Modifier.height(appSpacing().cardGap))
+                // 默认名：文件来源用文件名去扩展名；粘贴来源此前是空串 —— 输入框空白，
+                // 用户直接点「导入为新课表」只会收到「请输入课表名称」，观感等同按钮失灵。
+                // 现改为回落「导入的课表」，输入框始终有可确认的默认值。
+                val defaultTableName = uiState.fileName
+                    ?.substringBeforeLast('.')
+                    ?.take(20)
+                    ?.takeIf { it.isNotBlank() }
+                    ?: defaultImportTableName
                 ImportDestinationForm(
                     isLoading = uiState.isLoading,
-                    defaultName = uiState.fileName?.substringBeforeLast('.')?.take(20) ?: "",
+                    defaultName = defaultTableName,
                     onImportToNewTable = { tableName ->
                         viewModel.importToNewTable(
                             tableName = tableName,
@@ -288,7 +299,8 @@ fun ImportEntryScreen(
                                 viewModel.reset()
                                 onImportSuccess(newTableId)
                             },
-                            onError = { err -> ToastManager.show(err) }
+                            onError = { err -> ToastManager.show(err) },
+                            fallbackTableName = defaultTableName
                         )
                     },
                     onImportToExistingTable = { tableId ->
