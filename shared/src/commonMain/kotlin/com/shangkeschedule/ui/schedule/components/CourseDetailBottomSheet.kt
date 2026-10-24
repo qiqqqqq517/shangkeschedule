@@ -94,6 +94,8 @@ import shangkeschedule.shared.generated.resources.dialog_title_delete_occurrence
 import shangkeschedule.shared.generated.resources.common_action_continue_editing
 import shangkeschedule.shared.generated.resources.common_action_exit_without_save
 import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shangkeschedule.shared.generated.resources.toast_save_in_progress
+import shangkeschedule.shared.generated.resources.toast_saved_with_pending_changes
 import shangkeschedule.shared.generated.resources.common_dialog_title_abandon_changes
 import shangkeschedule.shared.generated.resources.label_assessment_method
 import shangkeschedule.shared.generated.resources.label_course_color
@@ -415,6 +417,8 @@ private fun EditableCourseDetailContent(
     val saveSuccessText = stringResource(Res.string.toast_save_success)
     val nameEmptyText = stringResource(Res.string.toast_name_empty)
     val timeInvalidText = stringResource(Res.string.toast_time_invalid)
+    val savingText = stringResource(Res.string.toast_save_in_progress)
+    val pendingText = stringResource(Res.string.toast_saved_with_pending_changes)
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var activeSchemeId by remember { mutableStateOf<String?>(null) }
@@ -456,9 +460,11 @@ private fun EditableCourseDetailContent(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 UiEvent.SaveSuccess -> {
-                    ToastManager.show(saveSuccessText)
-                    onSaved()
+                    if (viewModel.hasUnsavedChanges() || viewModel.uiState.value.isSaving) ToastManager.show(pendingText)
+                    else { ToastManager.show(saveSuccessText); onSaved() }
                 }
+                UiEvent.SavedWithChanges -> ToastManager.show(pendingText)
+                is UiEvent.SaveError -> ToastManager.show(event.message)
                 // 本弹层的「只删本次」不经过该事件（直接调用课表页的仓储删除）；此处仅为兜底
                 UiEvent.DeleteSuccess -> onSaved()
                 UiEvent.Cancel -> onCancelEditing()
@@ -474,7 +480,9 @@ private fun EditableCourseDetailContent(
 
     // 编辑态下「取消」/手势关闭：有改动先确认，确认后丢弃改动回到只读预览；无改动直接回预览
     val requestCancelEditing = {
-        if (uiState.isDataLoaded && viewModel.hasUnsavedChanges()) {
+        if (viewModel.uiState.value.isSaving) {
+            ToastManager.show(savingText)
+        } else if (uiState.isDataLoaded && viewModel.hasUnsavedChanges()) {
             showExitConfirmDialog = true
         } else {
             onCancelEditing()
@@ -552,7 +560,7 @@ private fun EditableCourseDetailContent(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(colors.dangerSoft)
-                            .clickable { showDeleteOccurrenceConfirm = true },
+                            .clickable(enabled = !uiState.isSaving) { showDeleteOccurrenceConfirm = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -754,7 +762,7 @@ private fun EditableCourseDetailContent(
                         .height(48.dp)
                         .clip(appShapes().chip)
                         .background(colors.primary)
-                        .clickable(onClick = requestSave),
+                        .clickable(enabled = uiState.isDataLoaded && !uiState.isSaving, onClick = requestSave),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -879,7 +887,7 @@ private fun EditableCourseDetailContent(
             confirmText = stringResource(Res.string.confirm_delete),
             onConfirm = {
                 showDeleteOccurrenceConfirm = false
-                onDeleteOccurrence(occurrenceWeek)
+                if (!viewModel.uiState.value.isSaving) onDeleteOccurrence(occurrenceWeek)
             },
             dismissText = stringResource(Res.string.action_cancel),
             onDismiss = { showDeleteOccurrenceConfirm = false }

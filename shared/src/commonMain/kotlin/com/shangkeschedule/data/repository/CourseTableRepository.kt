@@ -395,6 +395,28 @@ class CourseTableRepository(
      * 插入或更新一个课程，并同时更新其对应的周数列表。
      */
     suspend fun upsertCourse(course: Course, weekNumbers: List<Int>) {
+        database.withWriteTransaction { upsertCourseInTransaction(course, weekNumbers) }
+    }
+
+    /** 一门课的方案增删与周次必须整批提交；失败时连同级联删除的笔记一起回滚。 */
+    suspend fun saveCourseSchemes(
+        courseTableId: String,
+        originalCourseIds: Set<String>,
+        courses: List<Pair<Course, List<Int>>>,
+    ) {
+        require(courses.isNotEmpty() && courses.all { it.first.courseTableId == courseTableId })
+        require(courses.map { it.first.id }.distinct().size == courses.size)
+        database.withWriteTransaction {
+            val existingIds = courseDao.getCoursesOnce(courseTableId).map { it.id }.toSet()
+            require(originalCourseIds.all { it in existingIds }) { "课程已发生变化，请重新打开编辑" }
+            val retainedIds = courses.map { it.first.id }.toSet()
+            val removedIds = (originalCourseIds - retainedIds).toList()
+            if (removedIds.isNotEmpty()) courseDao.deleteCoursesByIds(removedIds)
+            courses.forEach { (course, weeks) -> upsertCourseInTransaction(course, weeks) }
+        }
+    }
+
+    private suspend fun upsertCourseInTransaction(course: Course, weekNumbers: List<Int>) {
         // take(300) 会截取前 300 个字符，如果为 null 则返回 null
         val safeRemark = course.remark?.take(300)?.ifBlank { null }
 
@@ -405,19 +427,12 @@ class CourseTableRepository(
             CourseWeek(courseId = processedCourse.id, weekNumber = week)
         }
 
-        // 真事务：课程主体与周次关联原子更新
-        database.withWriteTransaction {
-            // 逻辑判断：如果数据库里已经有这个 ID
-            if (courseDao.exists(processedCourse.id)) {
-                // 使用 @Update 精准修改字段。
-                courseDao.update(processedCourse)
-            } else {
-                // 如果是新 ID，则执行插入。
-                courseDao.insertAll(listOf(processedCourse))
-            }
-            // 更新周次关联（保持不变）
-            courseWeekDao.updateCourseWeeks(processedCourse.id, courseWeeks)
+        if (courseDao.exists(processedCourse.id)) {
+            courseDao.update(processedCourse)
+        } else {
+            courseDao.insertAll(listOf(processedCourse))
         }
+        courseWeekDao.updateCourseWeeks(processedCourse.id, courseWeeks)
     }
 
     /**

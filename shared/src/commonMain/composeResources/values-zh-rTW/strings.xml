@@ -1566,4 +1566,13 @@
     <string name="parser_fmt_excel_list">Excel 清單課表</string>
     <string name="parser_fmt_excel_position_map">Excel 位置對應</string>
     <string name="timeslot_error_in_use">此節次仍有課程使用，請先修改課程節次後再刪除。</string>
+    <string name="a11y_color_option">顏色 %1$d</string>
+    <string name="toast_save_failed">儲存失敗，請重試，目前修改已保留</string>
+    <string name="toast_save_in_progress">正在儲存，請稍候</string>
+    <string name="toast_saved_with_pending_changes">已儲存，仍有新的修改待儲存</string>
+    <string name="action_apply_to_list">套用至列表</string>
+    <string name="action_save_and_continue">儲存後繼續</string>
+    <string name="action_discard_changes">放棄修改並繼續</string>
+    <string name="dialog_unsaved_before_action">有修改尚未儲存，請選擇儲存後繼續、放棄修改，或繼續編輯。</string>
+    <string name="timeslot_pending_changes">有待儲存的修改，請點選頂部儲存</string>
 </resources>

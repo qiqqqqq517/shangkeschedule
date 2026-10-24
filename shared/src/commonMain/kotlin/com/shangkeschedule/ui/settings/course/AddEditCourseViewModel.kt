@@ -14,6 +14,10 @@ import com.shangkeschedule.navigation.PresetCourseData
 import com.shangkeschedule.tool.TimeTextUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.getString
+import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.toast_save_failed
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -312,49 +316,69 @@ class AddEditCourseViewModel(
     }
 
     fun onSave() {
+        val state = uiState.value
+        if (!state.isDataLoaded || state.name.isBlank() || state.isSaving) return
+        if (!_uiState.compareAndSet(state, state.copy(isSaving = true))) return
         viewModelScope.launch {
-            val state = uiState.value
-            if (state.name.isBlank()) return@launch
+            var result: UiEvent? = null
+            try {
 
-            // 保存目标课表：优先当前选中；新装/未选择课表时 currentCourseTableId 可能为空，
-            // 空 id 落库会因外键引用不存在的课表而闪退，故兜底为第一个有效（本人）课表。
-            val tableId = state.currentCourseTableId.orEmpty()
-                .ifBlank { courseTableRepository.getAllCourseTables().first().firstOrNull { !it.isCouple }?.id.orEmpty() }
-            // 数据库尚无任何课表时拒绝落库，避免写入空 courseTableId 触发外键约束异常
-            if (tableId.isBlank()) return@launch
-
-            val currentSchemeDbIds = state.schemes.mapNotNull { it.dbId }.toSet()
-
-            (originalDbIds - currentSchemeDbIds).forEach { idToRemove ->
-                courseTableRepository.deleteCourse(createEmptyCourseForDelete(idToRemove, tableId))
+                // 保存目标课表：优先当前选中；新装/未选择课表时 currentCourseTableId 可能为空，
+                // 空 id 落库会因外键引用不存在的课表而闪退，故兜底为第一个有效（本人）课表。
+                val tableId = state.currentCourseTableId.orEmpty()
+                    .ifBlank { courseTableRepository.getAllCourseTables().first().firstOrNull { !it.isCouple }?.id.orEmpty() }
+                // 数据库尚无任何课表时拒绝落库，避免写入空 courseTableId 触发外键约束异常
+                check(tableId.isNotBlank())
+                val savedSchemes = state.schemes.map { it.copy(dbId = it.dbId ?: Uuid.random().toString()) }
+                val courses = savedSchemes.map { scheme ->
+                    val course = Course(
+                        id = checkNotNull(scheme.dbId),
+                        courseTableId = tableId,
+                        name = state.name,
+                        teacher = scheme.teacher,
+                        position = scheme.position,
+                        remark = scheme.remark,
+                        day = scheme.day,
+                        startSection = if (scheme.isCustomTime) null else scheme.startSection,
+                        endSection = if (scheme.isCustomTime) null else scheme.endSection,
+                        isCustomTime = scheme.isCustomTime,
+                        customStartTime = if (scheme.isCustomTime) scheme.customStartTime else null,
+                        customEndTime = if (scheme.isCustomTime) scheme.customEndTime else null,
+                        colorInt = scheme.colorIndex,
+                        credit = state.credit.ifBlank { null },
+                        assessmentMethod = state.assessmentMethod.ifBlank { null },
+                        isLab = state.isLab
+                    )
+                    course to scheme.weeks.toList()
+                }
+                courseTableRepository.saveCourseSchemes(tableId, originalDbIds, courses)
+                originalDbIds = savedSchemes.mapNotNull { it.dbId }.toSet()
+                initialName = state.name
+                initialSchemes = savedSchemes
+                initialCredit = state.credit
+                initialAssessmentMethod = state.assessmentMethod
+                initialIsLab = state.isLab
+                val savedIds = savedSchemes.associate { it.id to it.dbId }
+                // 保存期间新增的编辑继续保留，只回填这次成功提交的持久化身份。
+                _uiState.update { current -> current.copy(
+                    schemes = current.schemes.map { scheme ->
+                        savedIds[scheme.id]?.let { scheme.copy(dbId = it) } ?: scheme
+                    },
+                ) }
+                result = if (hasUnsavedChanges()) UiEvent.SavedWithChanges else UiEvent.SaveSuccess
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                result = UiEvent.SaveError(getString(Res.string.toast_save_failed))
+            } finally {
+                _uiState.update { it.copy(isSaving = false) }
             }
-
-            state.schemes.forEach { scheme ->
-                val course = Course(
-                    id = scheme.dbId ?: Uuid.random().toString(),
-                    courseTableId = tableId,
-                    name = state.name,
-                    teacher = scheme.teacher,
-                    position = scheme.position,
-                    remark = scheme.remark,
-                    day = scheme.day,
-                    startSection = if (scheme.isCustomTime) null else scheme.startSection,
-                    endSection = if (scheme.isCustomTime) null else scheme.endSection,
-                    isCustomTime = scheme.isCustomTime,
-                    customStartTime = if (scheme.isCustomTime) scheme.customStartTime else null,
-                    customEndTime = if (scheme.isCustomTime) scheme.customEndTime else null,
-                    colorInt = scheme.colorIndex,
-                    credit = state.credit.ifBlank { null },
-                    assessmentMethod = state.assessmentMethod.ifBlank { null },
-                    isLab = state.isLab
-                )
-                courseTableRepository.upsertCourse(course, scheme.weeks.toList())
-            }
-            _uiEvent.send(UiEvent.SaveSuccess)
+            result?.let { _uiEvent.send(it) }
         }
     }
 
     fun onDelete() {
+        if (uiState.value.isSaving) return
         viewModelScope.launch {
             val tableId = uiState.value.currentCourseTableId.orEmpty()
             originalDbIds.forEach { id ->
@@ -392,12 +416,15 @@ class AddEditCourseViewModel(
 
 sealed interface UiEvent {
     data object SaveSuccess : UiEvent
+    data object SavedWithChanges : UiEvent
+    data class SaveError(val message: String) : UiEvent
     data object DeleteSuccess : UiEvent
     data object Cancel : UiEvent
 }
 
 data class AddEditCourseUiState(
     val isEditing: Boolean = false,
+    val isSaving: Boolean = false,
     val isDataLoaded: Boolean = false,
     val name: String = "",
     val schemes: List<CourseScheme> = emptyList(),

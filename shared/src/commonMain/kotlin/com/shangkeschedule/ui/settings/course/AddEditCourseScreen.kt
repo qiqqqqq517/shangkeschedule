@@ -63,6 +63,8 @@ import shangkeschedule.shared.generated.resources.action_add
 import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.common_action_continue_editing
+import shangkeschedule.shared.generated.resources.toast_save_in_progress
+import shangkeschedule.shared.generated.resources.toast_saved_with_pending_changes
 import shangkeschedule.shared.generated.resources.common_action_exit_without_save
 import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
 import shangkeschedule.shared.generated.resources.common_dialog_title_abandon_changes
@@ -112,10 +114,14 @@ fun AddEditCourseScreen(
     val deleteSuccessText = stringResource(Res.string.toast_delete_success)
     val nameEmptyText = stringResource(Res.string.toast_name_empty)
     val toastTimeInvalid = stringResource(Res.string.toast_time_invalid)
+    val savingText = stringResource(Res.string.toast_save_in_progress)
+    val pendingText = stringResource(Res.string.toast_saved_with_pending_changes)
 
     // 统一的退出拦截逻辑
     val handleBackPress = {
-        if (viewModel.hasUnsavedChanges()) {
+        if (viewModel.uiState.value.isSaving) {
+            ToastManager.show(savingText)
+        } else if (viewModel.hasUnsavedChanges()) {
             showExitConfirmDialog = true
         } else {
             onBack()
@@ -139,9 +145,11 @@ fun AddEditCourseScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 UiEvent.SaveSuccess -> {
-                    ToastManager.show(saveSuccessText)
-                    onBack()
+                    if (viewModel.hasUnsavedChanges() || viewModel.uiState.value.isSaving) ToastManager.show(pendingText)
+                    else { ToastManager.show(saveSuccessText); onBack() }
                 }
+                UiEvent.SavedWithChanges -> ToastManager.show(pendingText)
+                is UiEvent.SaveError -> ToastManager.show(event.message)
                 UiEvent.DeleteSuccess -> {
                     ToastManager.show(deleteSuccessText)
                     onBack()
@@ -175,11 +183,12 @@ fun AddEditCourseScreen(
                 },
                 actions = {
                     if (uiState.isEditing) {
-                        IconButton(onClick = { showDeleteConfirmDialog = true }) {
+                        IconButton(enabled = !uiState.isSaving, onClick = { showDeleteConfirmDialog = true }) {
                             Icon(vectorResource(Res.drawable.delete_24px), contentDescription = stringResource(Res.string.a11y_delete))
                         }
                     }
                     IconButton(
+                        enabled = uiState.isDataLoaded && !uiState.isSaving,
                         onClick = {
                             if (uiState.name.isBlank()) {
                                 ToastManager.show(nameEmptyText)

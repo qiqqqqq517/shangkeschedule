@@ -24,6 +24,8 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -147,10 +149,10 @@ fun AppPageHeader(
                     letterSpacing = header.titleLetterSpacing
                 ),
                 color = colors.textPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 // 标题占满动作区之外的剩余空间，避免宽标题与右侧操作争抢布局宽度。
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).semantics { heading() }
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -175,7 +177,7 @@ fun AppPageHeader(
                             fontWeight = type.captionWeight
                         ),
                         color = colors.textSecondary,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

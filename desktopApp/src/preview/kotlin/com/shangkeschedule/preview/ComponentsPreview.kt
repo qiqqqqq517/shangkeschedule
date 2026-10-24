@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+
 package com.shangkeschedule.preview
 
 import androidx.compose.foundation.background
@@ -18,6 +20,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.AppThemeMode
@@ -27,6 +30,7 @@ import com.shangkeschedule.ui.components.AppErrorState
 import com.shangkeschedule.ui.components.AppPageHeader
 import com.shangkeschedule.ui.components.AppSectionHeader
 import com.shangkeschedule.ui.components.AppSegmentedControl
+import com.shangkeschedule.ui.components.AppSwitch
 import com.shangkeschedule.ui.settings.AppSettingRow
 import com.shangkeschedule.ui.settings.AppSettingsGroup
 import com.shangkeschedule.ui.theme.SettingsEntryTone
@@ -52,14 +56,17 @@ private val previewIcon = ImageVector.Builder("preview-list", 24.dp, 24.dp, 24f,
 fun main() = runBlocking(Dispatchers.Default) {
     val phase = readPreviewProp("componentsPreviewPhase", "after")
     val width = readPreviewProp("componentsPreviewWidth", "390").toInt()
+    val height = readPreviewProp("componentsPreviewHeight", "1320").toInt()
     val fontScale = readPreviewProp("componentsPreviewFontScale", "1.0").toFloat()
+    val rtl = readPreviewProp("componentsPreviewRtl", "false").toBoolean()
     val outDir = File("../build_qa/ui-polish/$phase").apply { mkdirs() }
     for (preset in AppThemePreset.entries) {
         for (dark in listOf(false, true)) {
             val scene = ImageComposeScene(
                 width = width,
-                height = 1320,
+                height = height,
                 density = Density(1f, fontScale),
+                layoutDirection = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
             ) {
                 ShangKeComponentsPreview(preset, dark)
             }
@@ -67,7 +74,8 @@ fun main() = runBlocking(Dispatchers.Default) {
                 scene.render()
                 Thread.sleep(600)
                 val bytes = checkNotNull(scene.render().encodeToData(EncodedImageFormat.PNG)).bytes
-                val name = "${preset.name.lowercase()}-${if (dark) "dark" else "light"}-$width-$fontScale.png"
+                val suffix = if (rtl) "-rtl" else ""
+                val name = "${preset.name.lowercase()}-${if (dark) "dark" else "light"}-$width-$fontScale$suffix.png"
                 File(outDir, name).writeBytes(bytes)
                 println("rendered -> ${File(outDir, name).absolutePath}")
             } finally {
@@ -114,13 +122,16 @@ private fun ShangKeComponentsPreview(preset: AppThemePreset, dark: Boolean) {
                             detail = "2026—2027 学年第一学期 · 软件工程专业",
                             onClick = {},
                         )
+                        var syncEnabled by remember { mutableStateOf(false) }
                         AppSettingRow(
                             title = "自动同步",
                             subtitle = "备份课表与偏好设置，换设备时也能继续使用。",
                             icon = previewIcon,
                             tone = SettingsEntryTone.GREEN,
                             showDivider = true,
-                            onClick = {},
+                            checked = syncEnabled,
+                            onCheckedChange = { syncEnabled = it },
+                            trailing = { AppSwitch(checked = syncEnabled, onCheckedChange = null) },
                         )
                     }
                 }

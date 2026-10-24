@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,14 +46,18 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -60,8 +65,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
@@ -417,7 +425,7 @@ fun AppRadioRow(
             .fillMaxWidth()
             .heightIn(min = appSpacing().rowMinHeight)
             .clip(appShapes().menu)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = appSpacing().pageHorizontal, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -475,6 +483,7 @@ fun AppSegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (options.isEmpty()) return
     val tokens = appColors()
     // A1/V2 第二批（v3.69.0）：容器涂色浓度 + 胶囊材质形态收口为角色 token
     // （原为 LocalThemePreset.current == AppThemePreset.SOFT + if (isSoft)）。
@@ -487,16 +496,23 @@ fun AppSegmentedControl(
         tokens.inputBg.copy(alpha = segLook.containerAlpha)
     }
     val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
 
     // v3.43.0：选中胶囊由「各选项瞬切底色」改为**共享胶囊滑动**——
     // 位置 / 宽度 / 颜色三者同时补间，关掉「切换标签」分组（tabIndicatorMs=0）⇒ 瞬移。
     // v3.53.4：胶囊尺寸/位置全部来自选项实测 bounds。此前高度用 fillMaxHeight()，
     // 在「父给有界大高度」的容器（如 Column(fillMaxSize) 顶部的学校列表分类条）中
     // 会把整个控件撑满剩余高度（fillMaxHeight 对有界约束恒成立），渲染成整屏巨胶囊。
-    val optionBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val optionBounds = remember(options) { mutableStateMapOf<Int, Rect>() }
+    var rowWidth by remember { mutableIntStateOf(0) }
     val pillRect = optionBounds[selectedIndex]
     val pillLeft by animateDpAsState(
-        targetValue = pillRect?.let { with(density) { it.left.toDp() } } ?: 0.dp,
+        targetValue = pillRect?.let {
+            with(density) {
+                // bounds 是物理坐标，offset 从布局起始侧计算；RTL 时从右侧量距离。
+                (if (layoutDirection == LayoutDirection.Rtl) rowWidth - it.right else it.left).toDp()
+            }
+        } ?: 0.dp,
         animationSpec = tween(motion.tokens.tabIndicatorMs, easing = motion.tokens.navEasing),
         label = "segmentedPillLeft"
     )
@@ -540,21 +556,20 @@ fun AppSegmentedControl(
             .clip(CircleShape)
             .background(softContainer)
             .selectableGroup()
+            .padding(4.dp)
     ) {
         if (pillMeasured) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
+                    .align(Alignment.TopStart)
                     .offset(x = pillLeft)
-                    // 高度 = 选项实测高 + 上下各 4dp 外扩（padding 内缩后与选项等大并垂直居中），
-                    // 等价于旧 fillMaxHeight 在 wrap 容器中的观感，但不再被父容器的有界大高度撑爆
-                    .size(width = pillWidth, height = pillHeight + 8.dp)
-                    .padding(4.dp)
+                    .size(width = pillWidth, height = pillHeight)
                     .then(pillSurface)
             )
         }
         Row(
-            modifier = Modifier.padding(4.dp),
+            // 由最长标签决定共同高度；只在这条有界 Row 内填高，避免撑满页面。
+            modifier = Modifier.height(IntrinsicSize.Min).onSizeChanged { rowWidth = it.width },
             verticalAlignment = Alignment.CenterVertically
         ) {
             options.forEachIndexed { index, label ->
@@ -567,6 +582,7 @@ fun AppSegmentedControl(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .clip(CircleShape)
                         // 测量失败（首帧）时保留旧式瞬切底色，避免出现"无选中态"的一帧
                         .background(
@@ -593,10 +609,12 @@ fun AppSegmentedControl(
                 ) {
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.labelLarge.copy(lineBreak = LineBreak.Heading),
                         fontWeight = if (selected) appType().emphasisWeight else appType().captionWeight,
                         color = animatedTextColor,
-                        maxLines = 1,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

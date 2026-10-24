@@ -1569,4 +1569,13 @@
     <string name="parser_fmt_excel_list">Excel 列表课表</string>
     <string name="parser_fmt_excel_position_map">Excel 位置映射</string>
     <string name="timeslot_error_in_use">此节次仍有课程使用，请先修改课程节次后再删除。</string>
+    <string name="a11y_color_option">颜色 %1$d</string>
+    <string name="toast_save_failed">保存失败，请重试，当前修改已保留</string>
+    <string name="toast_save_in_progress">正在保存，请稍候</string>
+    <string name="toast_saved_with_pending_changes">已保存，仍有新的修改待保存</string>
+    <string name="action_apply_to_list">应用到列表</string>
+    <string name="action_save_and_continue">保存后继续</string>
+    <string name="action_discard_changes">放弃修改并继续</string>
+    <string name="dialog_unsaved_before_action">有修改尚未保存，请选择保存后继续、放弃修改，或继续编辑。</string>
+    <string name="timeslot_pending_changes">有待保存的修改，请点击顶部保存</string>
 </resources>

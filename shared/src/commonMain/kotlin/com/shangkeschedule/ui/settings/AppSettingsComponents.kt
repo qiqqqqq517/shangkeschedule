@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +32,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -87,6 +90,9 @@ import shangkeschedule.shared.generated.resources.chevron_right_24px
 /** 尾部插槽固定宽 / 高：保证导航行与开关行等宽等高（通透 / 柔绘共用）。 */
 private val SettingsTrailingSlotWidth = 56.dp
 private val SettingsTrailingSlotHeight = 32.dp
+
+/** 文字区不足以并排阅读标题与取值时，将取值移到标题下方；随系统字号同比放大。 */
+private val SettingsInlineDetailMinWidth = 200.dp
 
 /** 图标徽章内的图标尺寸：三主题一致。 */
 private val SettingsRowIconSize = 16.dp
@@ -199,6 +205,7 @@ fun AppSettingsGroup(
  *
  * [tone] 是**语义角色**（如「课程管理 = PURPLE」），具体颜色由主题层
  * [settingsToneColors] 决定——组件不再接触任何主题专属色调枚举。
+ * [checked] 与 [onCheckedChange] 成对提供时，整行为开关；尾部开关的回调应设为 null。
  */
 @Composable
 fun AppSettingRow(
@@ -210,11 +217,23 @@ fun AppSettingRow(
     detail: String? = null,
     showDivider: Boolean = false,
     onClick: (() -> Unit)? = null,
-    trailing: (@Composable () -> Unit)? = null
+    checked: Boolean? = null,
+    onCheckedChange: ((Boolean) -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val r = appSettingsRow()
     val colors = appColors()
     val toneColors = settingsToneColors(tone)
+    // 开关与标签共用一个交互节点，整行可点，辅助功能可一次读出名称与状态。
+    val interaction = when {
+        checked != null && onCheckedChange != null -> Modifier.toggleable(
+            value = checked,
+            role = Role.Switch,
+            onValueChange = onCheckedChange,
+        )
+        onClick != null -> Modifier.clickable(role = Role.Button, onClick = onClick)
+        else -> Modifier
+    }
     // 有副标题时收窄上下内距，保持整页总高度可控（详见 KDoc）。
     val verticalPadding: Dp = if (subtitle != null) {
         (r.paddingVertical - SettingsSubtitlePaddingCut).coerceAtLeast(0.dp)
@@ -243,7 +262,7 @@ fun AppSettingRow(
                 // 与 `AppSettingsRowTokens.settingsRowMinHeight`（三主题都写 52dp）**互相矛盾**
                 // ⇒ token 说一套、渲染做另一套。删除枚举后二者合一。
                 .defaultMinSize(minHeight = appSpacing().settingsRowMinHeight)
-                .clickable(enabled = onClick != null) { onClick?.invoke() }
+                .then(interaction)
                 .padding(horizontal = r.paddingHorizontal, vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -273,6 +292,8 @@ fun AppSettingRow(
             // 先为图标和尾部控件留位，取值最多占文字区的 40%，优先保证标题可读。
             BoxWithConstraints(modifier = Modifier.weight(1f)) {
                 val detailMaxWidth = maxWidth * 0.4f
+                val detailBelowTitle = detail != null &&
+                    maxWidth < SettingsInlineDetailMinWidth * LocalDensity.current.fontScale
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(
                         modifier = Modifier.weight(1f),
@@ -286,7 +307,7 @@ fun AppSettingRow(
                                 letterSpacing = r.titleLetterSpacing
                             ),
                             color = colors.textPrimary,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (subtitle != null) {
@@ -301,8 +322,17 @@ fun AppSettingRow(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        if (detailBelowTitle) {
+                            Text(
+                                text = checkNotNull(detail),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = r.detailSize),
+                                color = colors.textSecondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
-                    if (detail != null) {
+                    if (detail != null && !detailBelowTitle) {
                         Text(
                             text = detail,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = r.detailSize),

@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -31,6 +32,13 @@ class CourseNoteViewModel(
 ) : ViewModel() {
 
     private val boundCourseId = MutableStateFlow<String?>(null)
+    private val saving = MutableStateFlow(false)
+    val isSaving = saving.asStateFlow()
+    private var editingNoteId: String? = null
+
+    fun beginEditing(noteId: String?) {
+        if (!saving.value) editingNoteId = noteId
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val notes: StateFlow<List<CourseNote>> = boundCourseId
@@ -39,6 +47,7 @@ class CourseNoteViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun bindCourse(courseId: String) {
+        if (boundCourseId.value != courseId) editingNoteId = null
         boundCourseId.value = courseId
     }
 
@@ -61,60 +70,65 @@ class CourseNoteViewModel(
         newImages: List<ByteArray>,
         onResult: (Boolean) -> Unit = {}
     ) {
+        if (!saving.compareAndSet(false, true)) { onResult(false); return }
         val courseId = boundCourseId.value
         if (courseId == null) {
+            saving.value = false
             onResult(false)
             return
         }
         viewModelScope.launch {
-            val written = mutableListOf<String>()
             var saved = false
-            val result = runCatching {
-                val id = noteId ?: courseNoteRepository.newNoteId()
-                val existing = noteId?.let { courseNoteRepository.getNoteOnce(it) }
-                for (bytes in newImages) {
-                    written += courseNoteRepository.saveImage(id, bytes)
-                        ?: error("笔记图片保存失败")
-                }
-                val paths = keptPaths + written
-                val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+            try {
+                val written = mutableListOf<String>()
+                val result = runCatching {
+                    val id = noteId ?: editingNoteId ?: courseNoteRepository.newNoteId()
+                    editingNoteId = id
+                    val existing = courseNoteRepository.getNoteOnce(id)
+                    for (bytes in newImages) {
+                        written += courseNoteRepository.saveImage(id, bytes)
+                            ?: error("笔记图片保存失败")
+                    }
+                    val paths = keptPaths + written
+                    val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
 
-                courseNoteRepository.saveNote(
-                    CourseNote(
-                        id = id,
-                        courseId = courseId,
-                        date = date,
-                        // R68-01：补上长度上限。sections（节次描述，如「第 3-4 节」）
-                        // 此前是三个文本字段里**唯一既无长度上限、又无渲染行数上限**的一个：
-                        // UI 输入框无条件接受 / VM 只 trim 不 take / 列表项无 maxLines。
-                        // 误粘贴一整段文章即可撑高单条列表项，而同列表项的 content 有 maxLines=4。
-                        // 取值先 trim 后 take：trim 只减少长度，顺序与 title 一致。
-                        sections = sections?.trim()?.take(MAX_SECTIONS_LENGTH)?.takeIf { it.isNotEmpty() },
-                        title = title.trim().take(MAX_TITLE_LENGTH),
-                        content = content.take(MAX_CONTENT_LENGTH),
-                        imagePaths = paths.takeIf { it.isNotEmpty() }?.joinToString("\n"),
-                        createdAt = existing?.createdAt ?: now,
-                        updatedAt = now
+                    courseNoteRepository.saveNote(
+                        CourseNote(
+                            id = id,
+                            courseId = courseId,
+                            date = date,
+                            // R68-01：补上长度上限。sections（节次描述，如「第 3-4 节」）
+                            // 此前是三个文本字段里**唯一既无长度上限、又无渲染行数上限**的一个：
+                            // UI 输入框无条件接受 / VM 只 trim 不 take / 列表项无 maxLines。
+                            // 误粘贴一整段文章即可撑高单条列表项，而同列表项的 content 有 maxLines=4。
+                            // 取值先 trim 后 take：trim 只减少长度，顺序与 title 一致。
+                            sections = sections?.trim()?.take(MAX_SECTIONS_LENGTH)?.takeIf { it.isNotEmpty() },
+                            title = title.trim().take(MAX_TITLE_LENGTH),
+                            content = content.take(MAX_CONTENT_LENGTH),
+                            imagePaths = paths.takeIf { it.isNotEmpty() }?.joinToString("\n"),
+                            createdAt = existing?.createdAt ?: now,
+                            updatedAt = now
+                        )
                     )
-                )
-                saved = true
+                    saved = true
 
-                // 用户在这次编辑里移除的旧图：文件一并清掉，避免 notes/ 目录里留孤儿
-                val removed = existing?.imagePaths
-                    ?.split('\n')
-                    ?.map { it.trim() }
-                    ?.filter { it.isNotEmpty() && it !in keptPaths }
-                    .orEmpty()
-                if (removed.isNotEmpty()) {
-                    courseNoteRepository.deleteImages(removed.joinToString("\n"))
+                    // 用户在这次编辑里移除的旧图：文件一并清掉，避免 notes/ 目录里留孤儿
+                    val removed = existing?.imagePaths
+                        ?.split('\n')
+                        ?.map { it.trim() }
+                        ?.filter { it.isNotEmpty() && it !in keptPaths }
+                        .orEmpty()
+                    if (removed.isNotEmpty()) {
+                        courseNoteRepository.deleteImages(removed.joinToString("\n"))
+                    }
                 }
-            }
-            if (!saved && written.isNotEmpty()) {
-                withContext(NonCancellable) {
-                    courseNoteRepository.deleteImages(written.joinToString("\n"))
+                if (!saved && written.isNotEmpty()) {
+                    withContext(NonCancellable) {
+                        courseNoteRepository.deleteImages(written.joinToString("\n"))
+                    }
                 }
-            }
-            result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            } finally { saving.value = false }
             onResult(saved)
         }
     }

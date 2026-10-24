@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -2373,14 +2374,15 @@ private fun TodayTodoRow(
     }
 }
 
-/** 幽灵小按钮：设计稿 .btn.ghost.view-all-btn（32dp 高 + 12sp + chevron）。 */
+/** 辅助操作沿用轻量外观，点击区域至少 48dp，支持系统字号放大。 */
 @Composable
 private fun TodayGhostButton(text: String, onClick: () -> Unit) {
     val colors = appColors()
     Row(
         modifier = Modifier
             .clip(appShapes().chip)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = appSpacing().touchMin)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2396,7 +2398,7 @@ private fun TodayGhostButton(text: String, onClick: () -> Unit) {
         Icon(
             imageVector = vectorResource(Res.drawable.chevron_right_24px),
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(appIconSize().small),
             tint = colors.textPrimary
         )
     }

@@ -42,7 +42,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,7 +88,6 @@ import com.shangkeschedule.ui.theme.softSurface
 import com.shangkeschedule.ui.theme.claudeDisplaySerif
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -114,8 +112,14 @@ import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
 import shangkeschedule.shared.generated.resources.check_24px
 import shangkeschedule.shared.generated.resources.common_action_continue_editing
-import shangkeschedule.shared.generated.resources.common_action_exit_without_save
-import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shangkeschedule.shared.generated.resources.action_apply_to_list
+import shangkeschedule.shared.generated.resources.action_save_and_continue
+import shangkeschedule.shared.generated.resources.action_discard_changes
+import shangkeschedule.shared.generated.resources.dialog_unsaved_before_action
+import shangkeschedule.shared.generated.resources.timeslot_pending_changes
+import shangkeschedule.shared.generated.resources.toast_save_in_progress
+import shangkeschedule.shared.generated.resources.toast_save_failed
+import shangkeschedule.shared.generated.resources.toast_saved_with_pending_changes
 import shangkeschedule.shared.generated.resources.common_dialog_title_abandon_changes
 import shangkeschedule.shared.generated.resources.default_scheme_name
 import shangkeschedule.shared.generated.resources.delete_24px
@@ -180,8 +184,8 @@ fun TimeSlotManagementScreen(
     targetCourseTableId: String? = null,
     timeSlotViewModel: TimeSlotViewModel = koinViewModel()
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val uiState by timeSlotViewModel.timeSlotsUiState.collectAsStateWithLifecycle()
+    val isSaving by timeSlotViewModel.isSaving.collectAsStateWithLifecycle()
 
     LaunchedEffect(targetCourseTableId) {
         timeSlotViewModel.initWithTargetTable(targetCourseTableId)
@@ -194,6 +198,7 @@ fun TimeSlotManagementScreen(
     var localDefaultBreakDuration by remember { mutableIntStateOf(uiState.defaultBreakDuration) }
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showCreateSchemeDialog by remember { mutableStateOf(false) }
     var showSchemeDatesDialog by remember { mutableStateOf(false) }
     // 删除作息方案二次确认（删除不可撤销）
@@ -205,6 +210,9 @@ fun TimeSlotManagementScreen(
     val a11yAddTimeSlot = stringResource(Res.string.a11y_add_time_slot)
     val a11ySaveAllSettings = stringResource(Res.string.a11y_save_all_settings)
     val toastSettingsSaved = stringResource(Res.string.toast_settings_saved)
+    val savingText = stringResource(Res.string.toast_save_in_progress)
+    val saveFailedText = stringResource(Res.string.toast_save_failed)
+    val pendingText = stringResource(Res.string.toast_saved_with_pending_changes)
     val toastSlotRemovedUnsaved = stringResource(Res.string.toast_slot_removed_unsaved)
     val textNoTimeSlotsHint = stringResource(Res.string.text_no_time_slots_hint)
     val toastSlotModifiedUnsaved = stringResource(Res.string.toast_slot_modified_unsaved)
@@ -231,17 +239,49 @@ fun TimeSlotManagementScreen(
     /**
      * 核心拦截逻辑：判断是否有变更，决定直接返回还是弹窗
      */
-    val handleBackPress = {
+    fun requestAction(action: () -> Unit) {
+        if (timeSlotViewModel.isSaving.value) { ToastManager.show(savingText); return }
         val hasChanged = timeSlotViewModel.hasUnsavedChanges(
             currentTimeSlots = localTimeSlots.toList(),
             currentClassDuration = localDefaultClassDuration,
             currentBreakDuration = localDefaultBreakDuration
         )
         if (hasChanged) {
+            pendingAction = action
             showExitConfirmDialog = true
         } else {
-            onBack()
+            action()
         }
+    }
+    val handleBackPress = { requestAction(onBack) }
+
+    fun saveDraft(afterSave: (() -> Unit)? = null) {
+        val submitted = localTimeSlots.sortedBy { it.number }
+        val submittedClass = localDefaultClassDuration
+        val submittedBreak = localDefaultBreakDuration
+        timeSlotViewModel.onSaveAllSettings(
+            timeSlots = submitted,
+            classDuration = submittedClass,
+            breakDuration = submittedBreak,
+            onSaved = { saved ->
+                // 仅回填本次提交的草稿，保存期间产生的新修改不能被覆盖。
+                if (localTimeSlots.toList().sortedBy { it.number } == submitted &&
+                    localDefaultClassDuration == submittedClass && localDefaultBreakDuration == submittedBreak) {
+                    localTimeSlots.clear()
+                    localTimeSlots.addAll(saved)
+                }
+            },
+            onSuccess = {
+                val clean = !timeSlotViewModel.hasUnsavedChanges(localTimeSlots.toList(), localDefaultClassDuration, localDefaultBreakDuration)
+                ToastManager.show(if (clean) toastSettingsSaved else pendingText)
+                if (clean) {
+                    showExitConfirmDialog = false
+                    pendingAction = null
+                    afterSave?.invoke()
+                }
+            },
+            onError = { ToastManager.show(it) },
+        )
     }
 
     val navEventState = rememberNavigationEventState(
@@ -280,27 +320,12 @@ fun TimeSlotManagementScreen(
                         Icon(vectorResource(Res.drawable.add_24px), contentDescription = a11yAddTimeSlot)
                     }
                     IconButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                val sortedSlots = localTimeSlots
-                                    .sortedBy { it.number }
-
-                                timeSlotViewModel.onSaveAllSettings(
-                                    timeSlots = sortedSlots,
-                                    classDuration = localDefaultClassDuration,
-                                    breakDuration = localDefaultBreakDuration,
-                                    onSuccess = {
-                                        ToastManager.show(toastSettingsSaved)
-                                    },
-                                    onError = { ToastManager.show(it) }
-                                )
-                            }
-                        },
+                        onClick = { saveDraft() },
                         // 首帧/空列表保护：uiState 初始 isDataLoaded=false，localTimeSlots 初值取自
                         // uiState.timeSlots（此时为空）。若在这一帧点保存，会传入空列表 →
                         // saveSchemeSettings 先无条件 deleteTimeSlotsByScheme、空列表则跳过插入
                         // → 该作息方案全部时间段被清空（不可恢复），却提示「已保存」。
-                        enabled = uiState.isDataLoaded && localTimeSlots.isNotEmpty()
+                        enabled = uiState.isDataLoaded && localTimeSlots.isNotEmpty() && !isSaving
                     ) {
                         Icon(vectorResource(Res.drawable.save_24px), contentDescription = a11ySaveAllSettings)
                     }
@@ -328,9 +353,16 @@ fun TimeSlotManagementScreen(
                     currentSchemeId = uiState.currentSchemeId,
                     schemeIds = uiState.schemeIds,
                     schemeMetas = uiState.schemeMetas,
-                    onSwitch = { schemeId -> timeSlotViewModel.onSwitchScheme(schemeId) },
-                    onCreate = { showCreateSchemeDialog = true },
-                    onDelete = { schemeId -> pendingDeleteSchemeId = schemeId },
+                    onSwitch = { schemeId ->
+                        if (schemeId != uiState.currentSchemeId) requestAction {
+                            timeSlotViewModel.onSwitchScheme(schemeId, onError = { ToastManager.show(it) })
+                        }
+                    },
+                    onCreate = { requestAction { showCreateSchemeDialog = true } },
+                    onDelete = { schemeId ->
+                        if (schemeId == uiState.currentSchemeId) requestAction { pendingDeleteSchemeId = schemeId }
+                        else pendingDeleteSchemeId = schemeId
+                    },
                     onEditDates = { schemeId ->
                         editingSchemeForDates = schemeId
                         showSchemeDatesDialog = true
@@ -339,7 +371,7 @@ fun TimeSlotManagementScreen(
                 Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 AutoSwitchToggle(
                     enabled = uiState.autoSwitchScheme,
-                    onToggle = { timeSlotViewModel.onToggleAutoSwitch(it) }
+                    onToggle = { timeSlotViewModel.onToggleAutoSwitch(it, onError = { message -> ToastManager.show(message) }) }
                 )
                 Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 DefaultDurationSettings(
@@ -348,6 +380,14 @@ fun TimeSlotManagementScreen(
                     defaultBreakDuration = localDefaultBreakDuration,
                     onBreakDurationChange = { newValue -> localDefaultBreakDuration = newValue }
                 )
+                if (isSaving || timeSlotViewModel.hasUnsavedChanges(localTimeSlots.toList(), localDefaultClassDuration, localDefaultBreakDuration)) {
+                    Text(
+                        text = if (isSaving) savingText else stringResource(Res.string.timeslot_pending_changes),
+                        color = appColors().textSecondary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = appSpacing().cardGap),
+                    )
+                }
                 Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 if (localTimeSlots.isEmpty()) {
                     // 统一空状态
@@ -450,7 +490,9 @@ fun TimeSlotManagementScreen(
                         editingTimeSlot = null
                     },
                     onConfirm = { number, startTime, endTime, alias ->
-                        val newOrUpdatedSlot = TimeSlot(number, startTime, endTime, courseTableId = "", alias = alias)
+                        val newOrUpdatedSlot = editingTimeSlot?.copy(
+                            number = number, startTime = startTime, endTime = endTime, alias = alias,
+                        ) ?: TimeSlot(number, startTime, endTime, courseTableId = "", alias = alias, schemeId = uiState.currentSchemeId)
 
                         val updatedList = localTimeSlots.toMutableList()
                         if (isEditing) {
@@ -499,22 +541,30 @@ fun TimeSlotManagementScreen(
         }
 
         if (showExitConfirmDialog) {
-            // 退出确认（统一操作区语言：危险色「不保存」+ 灰字「继续编辑」）
+            // 返回、切换、新建及删除当前方案共用一份草稿离开确认。
             AppAlertDialog(
-                onDismissRequest = { showExitConfirmDialog = false },
+                onDismissRequest = { if (!timeSlotViewModel.isSaving.value) { showExitConfirmDialog = false; pendingAction = null } },
                 title = { Text(text = stringResource(Res.string.common_dialog_title_abandon_changes)) },
-                text = { Text(text = stringResource(Res.string.common_dialog_msg_unsaved_changes)) },
+                text = { Text(text = stringResource(Res.string.dialog_unsaved_before_action)) },
                 confirmButton = {
-                    AppDialogActions(
-                        confirmText = stringResource(Res.string.common_action_exit_without_save),
-                        onConfirm = {
+                    Column {
+                        AppDialogActions(
+                            confirmText = stringResource(Res.string.action_save_and_continue),
+                            onConfirm = { saveDraft(pendingAction) },
+                            confirmEnabled = !isSaving && localTimeSlots.isNotEmpty(),
+                            dismissText = stringResource(Res.string.common_action_continue_editing),
+                            onDismiss = { if (!timeSlotViewModel.isSaving.value) { showExitConfirmDialog = false; pendingAction = null } },
+                        )
+                        TextButton(enabled = !isSaving, onClick = {
+                            if (timeSlotViewModel.isSaving.value) return@TextButton
+                            val action = pendingAction
+                            pendingAction = null
                             showExitConfirmDialog = false
-                            onBack()
-                        },
-                        dismissText = stringResource(Res.string.common_action_continue_editing),
-                        onDismiss = { showExitConfirmDialog = false },
-                        danger = true
-                    )
+                            action?.invoke()
+                        }, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(Res.string.action_discard_changes), color = appColors().danger)
+                        }
+                    }
                 },
                 dismissButton = {}
             )
@@ -533,7 +583,7 @@ fun TimeSlotManagementScreen(
                 onConfirm = {
                     val schemeId = pendingDeleteSchemeId
                     pendingDeleteSchemeId = null
-                    if (schemeId != null) timeSlotViewModel.onDeleteScheme(schemeId)
+                    if (schemeId != null) timeSlotViewModel.onDeleteScheme(schemeId, onError = { ToastManager.show(it) })
                 }
             )
         }
@@ -549,6 +599,7 @@ fun TimeSlotManagementScreen(
                             when (code) {
                                 "empty" -> ToastManager.show(toastSchemeNameEmpty)
                                 "duplicate" -> ToastManager.show(toastSchemeNameDuplicate)
+                                else -> ToastManager.show(saveFailedText)
                             }
                         }
                     )
@@ -567,9 +618,11 @@ fun TimeSlotManagementScreen(
                     editingSchemeForDates = null
                 },
                 onConfirm = { startMonthDay, endMonthDay ->
-                    timeSlotViewModel.onSaveSchemeDates(editingSchemeId, startMonthDay, endMonthDay)
-                    showSchemeDatesDialog = false
-                    editingSchemeForDates = null
+                    timeSlotViewModel.onSaveSchemeDates(
+                        editingSchemeId, startMonthDay, endMonthDay,
+                        onSuccess = { showSchemeDatesDialog = false; editingSchemeForDates = null },
+                        onError = { ToastManager.show(it) },
+                    )
                 }
             )
         }
@@ -1283,7 +1336,7 @@ fun TimeSlotEditContent(
                 Spacer(modifier = Modifier.height(appSpacing().cardGap))
                 // 统一操作区：取消灰字 + 确认主色胶囊（AppDialogActions）
                 AppDialogActions(
-                    confirmText = if (isEditing) actionSaveChanges else actionAdd,
+                    confirmText = stringResource(Res.string.action_apply_to_list),
                     onConfirm = {
                         val startTimeObj = LocalTime(startHourState, startMinuteState)
                         val endTimeObj = LocalTime(endHourState, endMinuteState)

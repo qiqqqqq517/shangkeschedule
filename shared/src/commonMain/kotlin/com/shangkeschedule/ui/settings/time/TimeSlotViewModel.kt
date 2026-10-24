@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -20,8 +21,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.getString
 import shangkeschedule.shared.generated.resources.Res
-import shangkeschedule.shared.generated.resources.error_op_failed
 import shangkeschedule.shared.generated.resources.timeslot_error_in_use
+import shangkeschedule.shared.generated.resources.toast_save_failed
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.KoinViewModel
@@ -58,7 +59,14 @@ class TimeSlotViewModel(
     private var initialClassDuration: Int = 45
     private var initialBreakDuration: Int = 10
     private var initialSchemeId: String = TimeSlot.DEFAULT_SCHEME_ID
+    private var initialTableId: String? = null
     private var isDataInitialized = false
+    private val saving = MutableStateFlow(false)
+    val isSaving = saving.asStateFlow()
+
+    /** 所属课表/方案由编辑页面确定，未保存判断只比较用户实际编辑的字段。 */
+    private fun normalizeSlots(slots: List<TimeSlot>) = slots
+        .map { it.copy(courseTableId = "", schemeId = "") }.sortedBy { it.number }
 
     /**
      * 将时间段列表、方案列表、默认时长组合成单一的 UI 状态流。
@@ -81,11 +89,12 @@ class TimeSlotViewModel(
                         val breakDuration = config?.defaultBreakDuration ?: 10
 
                         // 首次加载或切换方案后，重新建立备份点
-                        if (!isDataInitialized || initialSchemeId != schemeId) {
-                            initialTimeSlots = timeSlots.map { it.copy(courseTableId = "") }.sortedBy { it.startTime }
+                        if (!isDataInitialized || initialTableId != currentTableId || initialSchemeId != schemeId) {
+                            initialTimeSlots = normalizeSlots(timeSlots)
                             initialClassDuration = classDuration
                             initialBreakDuration = breakDuration
                             initialSchemeId = schemeId
+                            initialTableId = currentTableId
                             isDataInitialized = true
                         }
 
@@ -132,7 +141,7 @@ class TimeSlotViewModel(
 
         if (currentTimeSlots.size != initialTimeSlots.size) return true
 
-        val normalizedCurrent = currentTimeSlots.map { it.copy(courseTableId = "") }.sortedBy { it.startTime }
+        val normalizedCurrent = normalizeSlots(currentTimeSlots)
 
         return normalizedCurrent != initialTimeSlots
     }
@@ -141,7 +150,7 @@ class TimeSlotViewModel(
      * 保存成功后更新备份点，这样点击返回就不会再触发拦截弹窗
      */
     private fun updateBackupPoint(timeSlots: List<TimeSlot>, classDuration: Int, breakDuration: Int) {
-        initialTimeSlots = timeSlots.map { it.copy(courseTableId = "") }.sortedBy { it.startTime }
+        initialTimeSlots = normalizeSlots(timeSlots)
         initialClassDuration = classDuration
         initialBreakDuration = breakDuration
     }
@@ -154,49 +163,57 @@ class TimeSlotViewModel(
         classDuration: Int,
         breakDuration: Int,
         onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        onError: (String) -> Unit = {},
+        onSaved: (List<TimeSlot>) -> Unit = {},
     ) {
+        if (!saving.compareAndSet(false, true)) return
+        val requestedSchemeId = timeSlotsUiState.value.currentSchemeId
         viewModelScope.launch {
-            val currentTableId = resolveEffectiveTableId()
-            val allTables = courseTableRepository.getAllCourseTables().first()
-            val allTableIds = allTables.map { it.id }
-
-            val tableExists = allTableIds.contains(currentTableId)
-
-            if (tableExists) {
+            var savedSlots: List<TimeSlot>? = null
+            try {
+                val currentTableId = resolveEffectiveTableId()
+                check(courseTableRepository.getAllCourseTables().first().any { it.id == currentTableId })
                 val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
                     ?: CourseTableConfig(courseTableId = currentTableId)
-                val schemeId = currentConfig.currentSchemeId
-
-                // 确保时间段关联正确的课表 ID 与方案 ID 后写入数据库
-                val timeSlotsWithCorrectId = timeSlots.map {
-                    it.copy(courseTableId = currentTableId, schemeId = schemeId)
+                check(currentConfig.currentSchemeId == requestedSchemeId)
+                val normalized = timeSlots.map {
+                    it.copy(courseTableId = currentTableId, schemeId = requestedSchemeId)
                 }
-
-                // 原子保存当前方案时间段与课表默认时长配置
-                val updatedConfig = currentConfig.copy(
-                    defaultClassDuration = classDuration,
-                    defaultBreakDuration = breakDuration
+                timeSlotRepository.saveSchemeSettings(
+                    courseTableId = currentTableId,
+                    timeSlots = normalized,
+                    schemeId = requestedSchemeId,
+                    config = currentConfig.copy(
+                        defaultClassDuration = classDuration,
+                        defaultBreakDuration = breakDuration,
+                    ),
                 )
-                try {
-                    timeSlotRepository.saveSchemeSettings(
-                        courseTableId = currentTableId,
-                        timeSlots = timeSlotsWithCorrectId,
-                        schemeId = schemeId,
-                        config = updatedConfig
-                    )
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    onError(if (e.message == "TIMESLOT_IN_USE") getString(Res.string.timeslot_error_in_use)
-                        else getString(Res.string.error_op_failed, e.message.orEmpty()))
-                    return@launch
-                }
+                updateBackupPoint(normalized, classDuration, breakDuration)
+                savedSlots = normalized
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onError(if (e.message == "TIMESLOT_IN_USE") getString(Res.string.timeslot_error_in_use)
+                    else getString(Res.string.toast_save_failed))
+            } finally {
+                saving.value = false
+            }
+            savedSlots?.let { onSaved(it); onSuccess() }
+        }
+    }
 
-                // 3. 同步备份状态
-                updateBackupPoint(timeSlotsWithCorrectId, classDuration, breakDuration)
-
-                onSuccess()
+    /** 与保存共用在途保护，避免方案切换或配置写入与草稿保存交叉覆盖。 */
+    private fun changeSettings(onError: (String) -> Unit = {}, change: suspend () -> Unit) {
+        if (!saving.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            try {
+                change()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                onError(getString(Res.string.toast_save_failed))
+            } finally {
+                saving.value = false
             }
         }
     }
@@ -204,8 +221,8 @@ class TimeSlotViewModel(
     /**
      * 切换当前课表生效的作息方案。
      */
-    fun onSwitchScheme(schemeId: String) {
-        viewModelScope.launch {
+    fun onSwitchScheme(schemeId: String, onError: (String) -> Unit = {}) {
+        changeSettings(onError) {
             val currentTableId = resolveEffectiveTableId()
             val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
                 ?: CourseTableConfig(courseTableId = currentTableId)
@@ -220,17 +237,17 @@ class TimeSlotViewModel(
      * @param onError 失败时回调，返回错误码："empty" 名称为空 / "duplicate" 名称重复。
      */
     fun onCreateScheme(name: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        viewModelScope.launch {
+        changeSettings(onError = { onError("failed") }) {
             val currentTableId = resolveEffectiveTableId()
             val schemeId = name.trim()
             if (schemeId.isEmpty()) {
                 onError("empty")
-                return@launch
+                return@changeSettings
             }
             val existingIds = timeSlotRepository.getSchemeIdsByCourseTableId(currentTableId).first()
             if (schemeId in existingIds) {
                 onError("duplicate")
-                return@launch
+                return@changeSettings
             }
 
             val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
@@ -252,9 +269,9 @@ class TimeSlotViewModel(
     /**
      * 删除作息方案（默认方案不可删除）。
      */
-    fun onDeleteScheme(schemeId: String, onSuccess: () -> Unit = {}) {
-        viewModelScope.launch {
-            if (schemeId == TimeSlot.DEFAULT_SCHEME_ID) return@launch
+    fun onDeleteScheme(schemeId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        if (schemeId == TimeSlot.DEFAULT_SCHEME_ID) return
+        changeSettings(onError) {
 
             val currentTableId = resolveEffectiveTableId()
             timeSlotRepository.deleteScheme(currentTableId, schemeId)
@@ -265,8 +282,8 @@ class TimeSlotViewModel(
     /**
      * 切换“根据日期自动切换作息方案（夏令时/冬令时）”开关。
      */
-    fun onToggleAutoSwitch(enabled: Boolean) {
-        viewModelScope.launch {
+    fun onToggleAutoSwitch(enabled: Boolean, onError: (String) -> Unit = {}) {
+        changeSettings(onError) {
             val currentTableId = resolveEffectiveTableId()
             val currentConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
                 ?: CourseTableConfig(courseTableId = currentTableId)
@@ -279,8 +296,8 @@ class TimeSlotViewModel(
     /**
      * 保存某套作息方案的生效日期范围（月-日，支持跨年）。
      */
-    fun onSaveSchemeDates(schemeId: String, startMonthDay: String?, endMonthDay: String?) {
-        viewModelScope.launch {
+    fun onSaveSchemeDates(schemeId: String, startMonthDay: String?, endMonthDay: String?, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        changeSettings(onError) {
             val currentTableId = resolveEffectiveTableId()
             timeSlotRepository.upsertSchemeMeta(
                 TimeSlotScheme(
@@ -290,6 +307,7 @@ class TimeSlotViewModel(
                     endMonthDay = endMonthDay
                 )
             )
+            onSuccess()
         }
     }
 }

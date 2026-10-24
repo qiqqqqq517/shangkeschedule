@@ -1565,4 +1565,13 @@
     <string name="parser_fmt_excel_list">Excel list timetable</string>
     <string name="parser_fmt_excel_position_map">Excel position map</string>
     <string name="timeslot_error_in_use">This section is used by a course. Change the course sections before removing it.</string>
+    <string name="a11y_color_option">Color %1$d</string>
+    <string name="toast_save_failed">Save failed. Your changes are kept; please try again.</string>
+    <string name="toast_save_in_progress">Saving, please wait</string>
+    <string name="toast_saved_with_pending_changes">Saved. Newer changes still need saving.</string>
+    <string name="action_apply_to_list">Apply to list</string>
+    <string name="action_save_and_continue">Save and continue</string>
+    <string name="action_discard_changes">Discard and continue</string>
+    <string name="dialog_unsaved_before_action">You have unsaved changes. Save and continue, discard them, or keep editing.</string>
+    <string name="timeslot_pending_changes">Unsaved changes. Use Save at the top.</string>
 </resources>

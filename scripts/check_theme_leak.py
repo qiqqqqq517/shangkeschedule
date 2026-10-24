@@ -80,12 +80,12 @@ COMMENT_PREFIXES = ("//", "*", "/*", "*/")
 #    届时该处会重新出现在待判定列表里（这是有意的 —— 避免豁免被静默沿用）。
 IDENTITY_REVIEWED = {
     # 1) 结构差异：三主题不同 Composable 实现
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 187, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 188, "AppThemePreset."),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 189, "AppThemePreset."),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 433, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 191, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 192, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/components/AppBasicComponents.kt", 193, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 434, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 435, "AppThemePreset."),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 436, "AppThemePreset."),
     # 2) 取数据：主题名称文案
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/feedback/FeedbackScreen.kt", 197, "LocalThemePreset"),
     # 3) 算法参数：色块条带/实底策略
@@ -97,9 +97,9 @@ IDENTITY_REVIEWED = {
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/share/ThemeShareViewModel.kt", 138, "AppThemePreset."),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/schedule/WeeklyScheduleScreen.kt", 1285, "LocalThemePreset"),
     ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/settings/coursemanagement/CourseInstanceListScreen.kt", 248, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 217, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 380, "LocalThemePreset"),
-    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 1895, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 218, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 381, "LocalThemePreset"),
+    ("shared/src/commonMain/kotlin/com/shangkeschedule/ui/today/TodayScheduleScreen.kt", 1896, "LocalThemePreset"),
 }
 
 

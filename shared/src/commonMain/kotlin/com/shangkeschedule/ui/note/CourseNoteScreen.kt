@@ -28,11 +28,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -69,6 +72,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.common_dialog_title_abandon_changes
+import shangkeschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
+import shangkeschedule.shared.generated.resources.common_action_continue_editing
+import shangkeschedule.shared.generated.resources.action_discard_changes
+import shangkeschedule.shared.generated.resources.toast_save_in_progress
 import shangkeschedule.shared.generated.resources.a11y_back
 import shangkeschedule.shared.generated.resources.add_24px
 import shangkeschedule.shared.generated.resources.arrow_back_24px
@@ -122,6 +130,7 @@ fun CourseNoteScreen(
     LaunchedEffect(courseId) { viewModel.bindCourse(courseId) }
 
     val notes by viewModel.notes.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val colors = appColors()
     val spacing = appSpacing()
@@ -152,6 +161,7 @@ fun CourseNoteScreen(
     val textImageFailed = stringResource(Res.string.note_image_failed)
     val textSaved = stringResource(Res.string.note_saved)
     val textSaveFailed = stringResource(Res.string.note_save_failed)
+    val savingText = stringResource(Res.string.toast_save_in_progress)
 
     // ---- 编辑态 ----
     // 标量草稿用 rememberSaveable：转屏 / 进程重建后不丢用户输入；
@@ -163,21 +173,56 @@ fun CourseNoteScreen(
     var editorTitle by rememberSaveable { mutableStateOf("") }
     var editorContent by rememberSaveable { mutableStateOf("") }
     val editorImages = remember { mutableStateListOf<NoteImageSource>() }
+    var initialFields by rememberSaveable { mutableStateOf(arrayListOf(today, sectionLabel, "", "")) }
+    var initialPaths by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var editorGeneration by remember { mutableIntStateOf(0) }
+    var imagePickGeneration by remember { mutableIntStateOf(0) }
+    var imageLoading by remember { mutableStateOf(false) }
+    val editorSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden || !viewModel.isSaving.value },
+    )
+
+    fun captureBaseline() {
+        initialFields = arrayListOf(editorDate, editorSections, editorTitle, editorContent)
+        initialPaths = ArrayList(editorImages.filterIsInstance<NoteImageSource.Existing>().map { it.path })
+    }
+    fun hasDraftChanges() = initialFields != listOf(editorDate, editorSections, editorTitle, editorContent) ||
+        initialPaths != editorImages.filterIsInstance<NoteImageSource.Existing>().map { it.path } ||
+        editorImages.any { it is NoteImageSource.Fresh } || imageLoading
+    fun requestCloseEditor() {
+        if (viewModel.isSaving.value) ToastManager.show(savingText)
+        else if (hasDraftChanges()) showDiscardConfirm = true
+        else editorOpen = false
+    }
+    LaunchedEffect(showDiscardConfirm) {
+        if (showDiscardConfirm && editorOpen) editorSheetState.show()
+    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<CourseNote?>(null) }
 
     fun openNewNote() {
+        if (viewModel.isSaving.value) return
+        editorGeneration++
+        imageLoading = false
+        viewModel.beginEditing(null)
         editorNoteId = null
         editorDate = today
         editorSections = sectionLabel
         editorTitle = ""
         editorContent = ""
         editorImages.clear()
+        captureBaseline()
         editorOpen = true
     }
 
     fun openExistingNote(note: CourseNote) {
+        if (viewModel.isSaving.value) return
+        editorGeneration++
+        imageLoading = false
+        viewModel.beginEditing(note.id)
         editorNoteId = note.id
         editorDate = note.date
         editorSections = note.sections.orEmpty()
@@ -192,22 +237,27 @@ fun CourseNoteScreen(
                 ?.map { NoteImageSource.Existing(it) }
                 .orEmpty()
         )
+        captureBaseline()
         editorOpen = true
     }
 
     val fileManager = rememberFileManager(
         FileManagerCallbacks(
             onImagePicked = { bitmap ->
-                if (bitmap != null) {
+                if (bitmap != null && editorOpen && imagePickGeneration == editorGeneration) {
+                    val generation = imagePickGeneration
+                    imageLoading = true
                     scope.launch {
-                        val bytes = runCatching {
-                            cropImageBitmapNative(bitmap, 0, 0, bitmap.width, bitmap.height)
-                        }.getOrNull()
-                        if (bytes == null || bytes.isEmpty()) {
-                            ToastManager.show(textImageFailed)
-                        } else {
-                            editorImages.add(NoteImageSource.Fresh(bytes, bitmap))
-                        }
+                        try {
+                            val bytes = runCatching {
+                                cropImageBitmapNative(bitmap, 0, 0, bitmap.width, bitmap.height)
+                            }.getOrNull()
+                            if (bytes == null || bytes.isEmpty()) {
+                                ToastManager.show(textImageFailed)
+                            } else if (editorOpen && generation == editorGeneration) {
+                                editorImages.add(NoteImageSource.Fresh(bytes, bitmap))
+                            }
+                        } finally { if (generation == editorGeneration) imageLoading = false }
                     }
                 }
             }
@@ -299,7 +349,8 @@ fun CourseNoteScreen(
     if (editorOpen) {
         AppGlassBottomSheet(
             hazeState = null,
-            onDismissRequest = { editorOpen = false }
+            sheetState = editorSheetState,
+            onDismissRequest = ::requestCloseEditor,
         ) {
             Column(
                 modifier = Modifier
@@ -318,6 +369,7 @@ fun CourseNoteScreen(
                 // 课次日期：用系统日期选择器，避免手打 "yyyy-MM-dd" 出错
                 SettingItem(
                     title = labelDate,
+                    enabled = !isSaving,
                     subtitle = editorDate,
                     verticalPadding = 10.dp,
                     onClick = { showDatePicker = true }
@@ -325,6 +377,7 @@ fun CourseNoteScreen(
 
                 AppTextField(
                     value = editorSections,
+                    enabled = !isSaving,
                     // R68-01：与同编辑器的 title / content 一致地拒收超限新值。
                     // 此前是无条件接受 —— 三个输入框里只有这一个没有上限。
                     onValueChange = {
@@ -337,6 +390,7 @@ fun CourseNoteScreen(
 
                 AppTextField(
                     value = editorTitle,
+                    enabled = !isSaving,
                     onValueChange = { if (it.length <= CourseNoteViewModel.MAX_TITLE_LENGTH) editorTitle = it },
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     label = labelTitle,
@@ -345,6 +399,7 @@ fun CourseNoteScreen(
 
                 AppTextField(
                     value = editorContent,
+                    enabled = !isSaving,
                     onValueChange = { if (it.length <= CourseNoteViewModel.MAX_CONTENT_LENGTH) editorContent = it },
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     label = labelContent,
@@ -363,14 +418,19 @@ fun CourseNoteScreen(
                 NoteImagePickerRow(
                     images = editorImages,
                     addLabel = textAddImage,
-                    onAdd = { fileManager.pickImage() },
-                    onRemove = { index -> editorImages.removeAt(index) }
+                    onAdd = { if (!viewModel.isSaving.value && !imageLoading) {
+                        imagePickGeneration = editorGeneration
+                        fileManager.pickImage()
+                    } },
+                    onRemove = { index -> if (!viewModel.isSaving.value) editorImages.removeAt(index) }
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
                 AppDialogActions(
-                    confirmText = textSave,
+                    confirmText = if (isSaving) savingText else textSave,
+                    confirmEnabled = !isSaving && !imageLoading,
                     onConfirm = {
+                        if (viewModel.isSaving.value || imageLoading) return@AppDialogActions
                         viewModel.saveNote(
                             noteId = editorNoteId,
                             date = editorDate,
@@ -391,10 +451,27 @@ fun CourseNoteScreen(
                         }
                     },
                     dismissText = textCancel,
-                    onDismiss = { editorOpen = false }
+                    onDismiss = ::requestCloseEditor,
                 )
             }
         }
+    }
+
+    if (showDiscardConfirm) {
+        AppAlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(Res.string.common_dialog_title_abandon_changes)) },
+            text = { Text(stringResource(Res.string.common_dialog_msg_unsaved_changes)) },
+            confirmButton = {
+                AppDialogActions(
+                    confirmText = stringResource(Res.string.action_discard_changes),
+                    onConfirm = { showDiscardConfirm = false; editorOpen = false; editorImages.clear() },
+                    dismissText = stringResource(Res.string.common_action_continue_editing),
+                    onDismiss = { showDiscardConfirm = false },
+                    danger = true,
+                )
+            },
+        )
     }
 
     if (showDatePicker) {

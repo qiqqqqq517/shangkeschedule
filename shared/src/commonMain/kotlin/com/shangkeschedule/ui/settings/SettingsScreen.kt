@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -71,6 +74,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.DrawableResource
 import org.koin.compose.viewmodel.koinViewModel
 import shangkeschedule.shared.generated.resources.Res
+import shangkeschedule.shared.generated.resources.a11y_color_option
 import shangkeschedule.shared.generated.resources.app_name
 import shangkeschedule.shared.generated.resources.hero_subtitle
 import shangkeschedule.shared.generated.resources.item_couple_schedule
@@ -353,7 +357,10 @@ internal fun ColorPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 colors.chunked(4).forEachIndexed { rowIndex, rowColors ->
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         rowColors.forEachIndexed { colIndex, dualColor ->
@@ -361,6 +368,7 @@ internal fun ColorPickerDialog(
                             ColorSwatch(
                                 dualColor = dualColor,
                                 selected = index == selectedIndex,
+                                label = stringResource(Res.string.a11y_color_option, index + 1),
                                 onClick = { onSelect(index) }
                             )
                         }
@@ -388,6 +396,7 @@ internal fun ColorPickerDialog(
 internal fun ColorSwatch(
     dualColor: DualColor,
     selected: Boolean,
+    label: String,
     onClick: () -> Unit
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
@@ -398,6 +407,7 @@ internal fun ColorSwatch(
             .size(48.dp)
             .clip(MaterialTheme.shapes.small)
             .background(bgColor)
+            .semantics { contentDescription = label }
             .border(
                 width = if (selected) 3.dp else 1.dp,
                 color = if (selected) MaterialTheme.colorScheme.primary else dualColor.dark.copy(alpha = 0.5f),
@@ -963,7 +973,7 @@ private fun LazyListScope.appSettingsItems(
                 AppSettingsGroup {
                     section.entries.forEachIndexed { entryIndex, entry ->
                         val toggleTrailing: (@Composable () -> Unit)? = entry.toggle?.let { t ->
-                            { AppSwitch(checked = t.checked, onCheckedChange = t.onCheckedChange) }
+                            { AppSwitch(checked = t.checked, onCheckedChange = null) }
                         }
                         AppSettingRow(
                             title = stringResource(entry.titleRes),
@@ -974,7 +984,9 @@ private fun LazyListScope.appSettingsItems(
                             showDivider = entryIndex > 0,
                             // 有 destination 就导航；否则执行条目自带动作（如「自动同步教务系统」）
                             onClick = entry.destination?.let { d -> { onNavigate(d) } } ?: entry.onClick,
-                            trailing = toggleTrailing
+                            trailing = toggleTrailing,
+                            checked = entry.toggle?.checked,
+                            onCheckedChange = entry.toggle?.onCheckedChange,
                         )
                     }
                 }
