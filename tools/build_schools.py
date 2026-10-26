@@ -247,6 +247,22 @@ SPECIAL_ADAPTERS = {
             'import_url': 'https://ehall.hbnu.edu.cn/',
         },
     ],
+    # 常州信息职业技术学院（常州信息职业技术大学）：正方 V9 教务（jx.ccit.js.cn），
+    # 须经 authserver 统一认证 + ehall「阳光院务」门户进入。必须显式接线：
+    # 本校域名 authserver.ccit.js.cn 与长春工程学院（cgcjw.ccit.edu.cn）共享 "ccit"
+    # 域名段，URL 匹配会把本校劫持到 CCIT（长春）的脚本，故用 CZIT 文件夹 + SPECIAL_ADAPTERS。
+    # 实测链路（2026-10-26）：登录 authserver → ehall 大厅 →「教务系统」应用
+    # (appShow?appId=5843399900513599) → jwglxt；个人课表查询 gnmkdm=N2151。
+    'u_0f4df8fc': [
+        {
+            'adapter_id': 'u_0f4df8fc_sso',
+            'adapter_name': '统一认证（阳光院务）',
+            'asset_js_path': 'czit.js',
+            'resource_folder': 'CZIT',
+            'import_url': 'https://authserver.ccit.js.cn/authserver/login?service=http%3A%2F%2Fehall.ccit.js.cn%2Fywtb-portal%2Fstandard%2Findex.html%3Fbrowser%3Dno%23%2Fhome%2Fhome',
+            'description': '统一认证入口：登录后自动进入教务系统导入',
+        },
+    ],
     # 沈阳农业大学：URP 平台，公网直连正方端点被拒，须经统一认证进入。
     # 校内/校外环境入口不同，拆成两个选择：校外用户走 WebVPN，校内用户走 tpass 统一认证。
     'u_26bd7359': [

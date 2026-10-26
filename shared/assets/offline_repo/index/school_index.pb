@@ -311,11 +311,11 @@ u_b3a73035北京科技职业大学bjkjzydx"	zhengfang*�
 u_b3a73035_01正方教务系统"zhengfang.js*#https://e.besti.edu.cn/login#/login21自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_b611bd83$川南幼儿师范高等专科学校cnyesfgdzkxx"	zhengfang*�
-u_b611bd83_01正方教务系统"zhengfang.js*?https://cnyz.edu.cn/p/0/?StId=st_app_news_i_x63829100464100959921自动导入自 timetable，类型: zhengfang_new:auto-import�
+u_b611bd83_01正方教务系统"zhengfang.js*?https://cnyz.edu.cn/p/0/?StId=st_app_news_i_x63829100464100959921自动导入自 timetable，类型: zhengfang_new:auto-import�
 
 u_0f4df8fc常州信息职业技术学院
-czxxzyjsxy"CCIT*�
-u_0f4df8fc_01正方教务系统"ccit.js*�https://authserver.ccit.js.cn/authserver/login?service=http%3A%2F%2Fehall.ccit.js.cn%2Fywtb-portal%2Fstandard%2Findex.html%3Fbrowser%3Dno%23%2Fhome%2Fhome21自动导入自 timetable，类型: zhengfang_new:auto-import�
+czxxzyjsxy"CZIT*�
+u_0f4df8fc_sso统一认证（阳光院务）"czit.js*�https://authserver.ccit.js.cn/authserver/login?service=http%3A%2F%2Fehall.ccit.js.cn%2Fywtb-portal%2Fstandard%2Findex.html%3Fbrowser%3Dno%23%2Fhome%2Fhome2<统一认证入口：登录后自动进入教务系统导入:manual-multi-entry�
 
 u_f64cfb0f常州工学院czgxy"	zhengfang*�
 u_f64cfb0f_01正方教务系统"zhengfang.js*http://jwglx.czu.cn/jwglxt21自动导入自 timetable，类型: zhengfang_new:auto-import�
