@@ -29,8 +29,13 @@
     var HOST_JW = 'jx.ccit.js.cn';
     var HOST_EHALL = 'ehall.ccit.js.cn';
     var HOST_CAS = 'authserver.ccit.js.cn';
-    // 门户「教务系统」应用的启动地址（实测 window.open 参数，含静默 SSO 换票链）
-    var JW_APP_SHOW_URL = 'http://ehall.ccit.js.cn/appShow?appId=5843399900513599';
+    // 门户「教务系统」应用的启动地址（实测 window.open 参数，含静默 SSO 换票链）。
+    // ⚠️ 不能写死 http://：若当前已在 https 门户，跳到 http 会被 WebView 按不安全导航拦下
+    // （2026-10-27 用户侧表现为点「执行导入」后页面无反应/报网络错误）⇒ 跟随当前页协议。
+    function appShowUrl() {
+        var scheme = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        return scheme + '//ehall.ccit.js.cn/appShow?appId=5843399900513599';
+    }
 
     var importing = null;
 
@@ -211,6 +216,12 @@
             },
             body: body,
             credentials: 'include'
+        }).catch(function () {
+            // 网络层失败（DNS/连接被拒/TLS/代理拦截/断网）时 fetch 只抛 TypeError: Failed to fetch，
+            // 直接透传会让用户在弹窗里看到一串英文（2026-10-27 报障原文即 "failed to fetch"）。
+            // 本校教务在校园网外经常完全不可达（实测 jx.ccit.js.cn 校外 443 直接连不上）⇒ 翻译成可执行提示。
+            throw new Error('无法连接常州信息职院教务系统（' + HOST_JW + '）。' +
+                '请确认已连接校园网或学校 VPN，并关闭手机/电脑上的代理、加速器后重试。');
         }).then(function (response) {
             if (response.status !== 200) throw new Error('教务接口暂不可用（HTTP ' + response.status + '）');
             return response.text();
@@ -351,7 +362,12 @@
                             for (var wi = 0; wi < wm.length; wi++) {
                                 var ws = parseApiWeeks(wm[wi]);
                                 for (var wj = 0; wj < ws.length; wj++) {
-                                    if (weeks.indexOf(ws[wj]) < 0) weeks.push(ws[wj]);
+                                    // 手写去重：本校页面重写了 Array.prototype（见文件头），不用 indexOf
+                                    var existed = false;
+                                    for (var wk = 0; wk < weeks.length; wk++) {
+                                        if (weeks[wk] === ws[wj]) { existed = true; break; }
+                                    }
+                                    if (!existed) weeks.push(ws[wj]);
                                 }
                             }
                         }
@@ -384,7 +400,7 @@
         if (state === 'portal') {
             // 已登录大厅：直接走 appShow 启动链（CAS TGC 静默换票），整链路无感
             toast('正在进入教务系统，请稍候…进入后请再次点击「执行导入」');
-            window.location.href = JW_APP_SHOW_URL;
+            window.location.href = appShowUrl();
             return;
         }
         if (state === 'cas' || state === 'ehall_login') {

@@ -257,9 +257,17 @@
             .sort(function(a, b) { return a - b; });
     }
 
-    // 解析并导入课程（接口数据）
+    // 解析并导入课程（接口数据）。
+    //
+    // 返回 `{ courses, skipped }`：**不静默丢课**，也不因个别行残缺就整单失败。
+    // 背景（2026-10-27 用户报「缺少周次信息导入失败」）：v4.79.0 起这里是
+    // `if (courses.length !== rows.length) throw`，只要 kbList 里有一行 zcd 为空
+    // （实践环节/军训/重修等无周次行很常见）整份课表就导不进来。
+    // 现改为：能解析的照常导入，解析不了的记进 skipped 并在导入前明确告知课程名，
+    // 既不静默漏课，也不让一条脏数据毁掉整次导入（口径同 czit.js / zhengfang.js）。
     function parseAndImport(kbList) {
         var courses = [];
+        var skipped = [];
         kbList.forEach(function(item) {
             var name = cleanCourseName(extractText(item.kcmc));
             var teacher = cleanTeacher(extractText(item.xm || ''));
@@ -269,7 +277,10 @@
             var weeks = parseApiWeeks(item.zcd);
             if (weeks.length === 0) weeks = parseWeeks(item.zcd || '');
 
-            if (!name || isNaN(day) || day < 1 || day > 7 || !sections || weeks.length === 0) return;
+            if (!name || isNaN(day) || day < 1 || day > 7 || !sections || weeks.length === 0) {
+                skipped.push(name || ('第 ' + (courses.length + skipped.length + 1) + ' 条记录'));
+                return;
+            }
 
             var remarkParts = [];
             if (item.jxbmc) remarkParts.push('教学班：' + item.jxbmc);
@@ -287,7 +298,7 @@
             });
         });
 
-        return courses;
+        return { courses: courses, skipped: skipped };
     }
 
     // 递归处理同源门户/代理 iframe；跨域 iframe 交由用户进入后再执行。
@@ -314,9 +325,13 @@
         var now = new Date(), month = now.getMonth() + 1, year = now.getFullYear();
         var xn = ctx.document.getElementById('xnm');
         var xq = ctx.document.getElementById('xqm');
+        // 页面下拉框可能存在但 value 为空串（未选择学期），空值必须回落到日期启发，
+        // 否则 xnm='' 会以空参数请求接口，返回的 kbList 全为初始化结构（2026-10-27 用户实测踩坑）。
+        var xnValue = xn && xn.value != null ? String(xn.value).trim() : '';
+        var xqValue = xq && xq.value != null ? String(xq.value).trim() : '';
         return {
-            xnm: xn && xn.value || String(month >= 9 ? year : year - 1),
-            xqm: xq && xq.value || (month >= 2 && month < 9 ? '12' : '3')
+            xnm: xnValue || String(month >= 9 ? year : year - 1),
+            xqm: xqValue || (month >= 2 && month < 9 ? '12' : '3')
         };
     }
     function request(ctx, url, body) {
@@ -362,9 +377,9 @@
             if (candidates.indexOf(candidates[i]) !== i) continue;
             try {
                 var rows = await request(ctx, candidates[i], 'xnm=' + encodeURIComponent(term.xnm) + '&xqm=' + encodeURIComponent(term.xqm));
-                var courses = parseAndImport(rows);
-                if (!courses.length || courses.length !== rows.length) throw new Error('部分课表数据的星期、节次或周次不完整，请查询完整学期课表');
-                return courses;
+                var parsed = parseAndImport(rows);
+                if (!parsed.courses.length) throw new Error('接口返回的课表没有可用的星期/节次/周次，请确认已查询整学期课表');
+                return parsed;
             } catch (e) { lastError = e; }
         }
         throw lastError || new Error('未找到课表接口');
@@ -395,6 +410,26 @@
         }
         return rows;
     }
+    // 部分接口行残缺（无 zcd / 无节次 / 星期越界）时，先弹窗列明被跳过的课程名，
+    // 再继续保存其余课程 —— 既不静默漏课，也不让一条脏数据毁掉整次导入。
+    function notifySkippedCourses(skipped) {
+        var unique = [];
+        for (var i = 0; i < skipped.length; i++) {
+            if (skipped[i] && unique.indexOf(skipped[i]) < 0) unique.push(skipped[i]);
+        }
+        if (!unique.length) return Promise.resolve();
+        var shown = unique.slice(0, 6).join('、');
+        var suffix = unique.length > 6 ? ' 等 ' + unique.length + ' 条' : '';
+        var text = '有 ' + skipped.length + ' 条课程记录缺少星期/节次/周次信息，已跳过：' + shown + suffix +
+            '。其余课程已正常导入；如需补录，请在教务系统「个人课表查询」确认后手动添加。';
+        toast('部分课程因缺少周次信息被跳过，详见弹窗');
+        var bridge = window.shangkeBridgePromise;
+        if (bridge && typeof bridge.showAlert === 'function') {
+            return bridge.showAlert('部分课程未导入', text, '知道了').catch(function () { /* 用户关闭弹窗不阻断导入 */ });
+        }
+        return Promise.resolve();
+    }
+
     async function runImport() {
         var ctx = findContext();
         if (!ctx) {
@@ -402,13 +437,16 @@
             return;
         }
         toast('正在读取完整学期课表…');
-        var courses;
-        try { courses = await fetchCoursesFromApi(ctx); }
+        var parsed;
+        try { parsed = await fetchCoursesFromApi(ctx); }
         catch (error) {
-            courses = parseScheduleFromPage().filter(function (c) { return c.weeks.length > 0; });
-            if (!courses.length) throw error;
+            var pageCourses = parseScheduleFromPage().filter(function (c) { return c.weeks.length > 0; });
+            if (!pageCourses.length) throw error;
+            parsed = { courses: pageCourses, skipped: [] };
+            toast('接口不可用，已按课表页面解析');
         }
-        courses = mergeCourses(courses);
+        var courses = mergeCourses(parsed.courses);
+        await notifySkippedCourses(parsed.skipped || []);
         var bridge = window.shangkeBridgePromise;
         if (!bridge || typeof bridge.saveImportedCourses !== 'function') throw new Error('导入桥接不可用，请返回 App 重新执行导入');
         var ok = await bridge.saveImportedCourses(JSON.stringify(courses));

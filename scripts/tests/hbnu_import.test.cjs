@@ -12,7 +12,7 @@ const lesson = (extra = {}) => ({ kcmc: '课程甲', xm: '甲老师（讲师）'
 function harness({ rows = [lesson()], table = null, child = null, save = true,
   url = 'https://jwxt.hbnu.edu.cn/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N253508',
   timeout = false, responseText, status = 200, resources = [] } = {}) {
-  const calls = { requests: [], saved: [], toasts: [], completed: 0 };
+  const calls = { requests: [], saved: [], toasts: [], alerts: [], completed: 0 };
   const document = {
     body: { innerText: '' },
     getElementById(id) { return ({ xnm: { value: '2026' }, xqm: { value: '3' } })[id] || null; },
@@ -44,7 +44,7 @@ function harness({ rows = [lesson()], table = null, child = null, save = true,
         calls.saved.push(JSON.parse(json));
         return save instanceof Error ? Promise.reject(save) : Promise.resolve(save);
       },
-      showAlert: async () => true,
+      showAlert: async (title, content) => { calls.alerts.push({ title, content }); return true; },
     },
     shangkeBridge: {
       showToast: text => calls.toasts.push(text),
@@ -149,8 +149,21 @@ test('HBNU 登录失效时给出登录引导，不保存 HTML 登录页', async 
   assert.ok(calls.toasts.some(text => /登录/.test(text)));
 });
 
-test('HBNU 部分接口记录缺周次时整体报错，避免漏课后提示成功', async () => {
-  const calls = await harness({ rows: [lesson(), lesson({ kcmc:'课程乙',zcd:'' })] }).run();
-  assert.equal(calls.saved.length, 0);
-  assert.ok(calls.toasts.some(text => /周次|不完整/.test(text)));
+test('HBNU 部分接口记录缺周次时导入其余课程并明确告知被跳过的课程', async () => {
+  const h = harness({ rows: [lesson(), lesson({ kcmc: '课程乙', zcd: '' })] });
+  const calls = await h.run();
+  // v4.81.1 起：个别行 zcd 为空（实践环节/军训等无周次行很常见）不再整单失败——
+  // 能解析的照常导入，被跳过的行必须**明确列名告知**，不允许静默漏课。
+  assert.equal(calls.saved.length, 1, '其余课程应照常导入');
+  assert.equal(calls.saved[0].length, 1);
+  assert.equal(calls.saved[0][0].name, '课程甲');
+  assert.ok(calls.alerts.some(a => /课程乙/.test(a.content)), '必须弹窗列明被跳过的课程名，不能静默丢');
+  assert.equal(calls.completed, 1, '导入仍算成功并完成任务');
+});
+
+test('HBNU 接口记录全部缺周次时报错且不保存空表', async () => {
+  const h = harness({ rows: [lesson({ kcmc: '课程乙', zcd: '' })] });
+  const calls = await h.run();
+  assert.equal(calls.saved.length, 0, '没有任何有效课程时不得保存');
+  assert.ok(calls.toasts.some(text => /周次|课表|登录/.test(text)));
 });
