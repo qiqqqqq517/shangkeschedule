@@ -2,6 +2,7 @@ package com.shangkeschedule.ui.schoolselection.web
 
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.wb_adapter_error_fmt
+import shangkeschedule.shared.generated.resources.wb_adapter_network_error
 import shangkeschedule.shared.generated.resources.wb_adapter_no_entry
 import shangkeschedule.shared.generated.resources.wb_default_confirm
 import shangkeschedule.shared.generated.resources.wb_config_import_failed_fmt
@@ -626,6 +627,10 @@ class WebBridgeHandler(
         coroutineScope.launch(Dispatchers.Main) {
             val text = if (payload.kind == "noEntry") {
                 getString(Res.string.wb_adapter_no_entry)
+            } else if (isNativeNetworkErrorText(payload.message)) {
+                // 原生 fetch/XHR 网络错误（Failed to fetch 等）：脚本侧普遍没有 .catch，
+                // 这里统一换成可执行的中文提示，避免把浏览器英文原文弹给用户（见 AdapterErrorText）。
+                getString(Res.string.wb_adapter_network_error)
             } else {
                 getString(Res.string.wb_adapter_error_fmt, payload.message)
             }

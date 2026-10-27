@@ -892,6 +892,7 @@
     <string name="wb_import_success_fmt">课程导入成功！共导入 %1$d 门课。</string>
     <string name="wb_import_timeout">导入无响应：适配脚本未在限定时间内启动，请确认已登录教务并打开课表页面后重试。</string>
     <string name="wb_adapter_error_fmt">适配脚本执行出错：%1$s</string>
+    <string name="wb_adapter_network_error">无法连接教务系统，请检查网络：确认已连接校园网或学校 VPN，并关闭代理、加速器后重试。</string>
     <string name="wb_adapter_no_entry">未找到导入入口：请确认已打开课表页面后重试，或改用文本导入。</string>
     <string name="wb_native_dialog_title">提示</string>
     <string name="wb_import_failed_fmt">课程导入失败: %1$s</string>

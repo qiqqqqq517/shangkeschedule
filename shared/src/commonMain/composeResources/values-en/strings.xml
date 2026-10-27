@@ -891,6 +891,7 @@
     <string name="wb_import_success_fmt">Courses imported! %1$d courses added.</string>
     <string name="wb_import_timeout">Import not responding: the adapter script did not start in time. Make sure you are logged in and on the timetable page, then retry.</string>
     <string name="wb_adapter_error_fmt">Adapter script error: %1$s</string>
+    <string name="wb_adapter_network_error">Cannot reach the academic system. Check your network: connect to the campus network or your school VPN, turn off any proxy or accelerator, then retry.</string>
     <string name="wb_adapter_no_entry">No import entry found: open the timetable page and retry, or use text import instead.</string>
     <string name="wb_native_dialog_title">Notice</string>
     <string name="wb_import_failed_fmt">Course import failed: %1$s</string>
