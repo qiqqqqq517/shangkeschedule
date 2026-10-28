@@ -90,3 +90,25 @@ test('CZIT 在统一认证页点击导入时只提示登录，不发任何请求
   assert.equal(calls.fetches.length, 0);
   assert.ok(calls.toasts.some(t => /登录/.test(t)));
 });
+
+test('CZIT 真实接口字段（jcs 无"节"字、zcd 混合周次、kcmc 带制表符）全部正确解析', async () => {
+  // 样例取自 2026-10-28 真实 kbList（35 条中摘 2 条），字段结构勿按惯例改写：
+  //   jcs="1-8"（没有"节"字）、zcd="19周" / "3周,8-18周"（逗号分隔混合单周与范围）、
+  //   kcmc 带尾部制表符。
+  const h = harness({ kbList: [
+    { kcmc: '设计基础\t', xm: '刘丹', cdmc: '教学楼D407', xqj: '1', jcs: '1-8', zcd: '19周' },
+    { kcmc: '应用语文', xm: '曹洁萍', cdmc: '教学楼B211', xqj: '1', jcs: '3-4', zcd: '3周,8-18周' },
+  ]});
+  const calls = await h.run();
+  assert.equal(calls.saved[0].length, 2, '两条真实记录都应导入');
+  const [a, b] = calls.saved[0];
+  assert.equal(a.name, '设计基础', '课程名要去掉尾部制表符');
+  assert.equal(a.startSection, 1);
+  assert.equal(a.endSection, 8);
+  assert.deepEqual(a.weeks, [19]);
+  assert.equal(a.position, '教学楼D407');
+  assert.deepEqual(b.weeks, [3, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], '混合周次必须拆成单周集合');
+  assert.equal(b.startSection, 3);
+  assert.equal(b.endSection, 4);
+  assert.equal(b.teacher, '曹洁萍');
+});

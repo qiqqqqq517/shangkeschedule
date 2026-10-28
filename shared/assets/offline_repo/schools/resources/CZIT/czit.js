@@ -4,8 +4,9 @@
 // ⚠️ 本校域名 ccit.js.cn 与长春工程学院（ccit.edu.cn）共享 "ccit" 域名段，
 // 不得放入 resources/CCIT/（会被 build_schools.py 的域名段匹配与长春混线），故用 CZIT。
 //
-// 实测链路（2026-10-26，测试账号实走）：
-//   authserver.ccit.js.cn 登录 → ehall.ccit.js.cn「阳光院务」大厅
+// 实测链路（2026-10-26 首测；2026-10-28 真实账号全链路复验通过）：
+//   authserver.ccit.js.cn 登录（金智 CAS，AES-CBC key=salt/iv=salt 可程序化登录）
+//     → ehall.ccit.js.cn「阳光院务」大厅
 //     → 大厅点「教务系统」= window.open('//ehall.ccit.js.cn/appShow?appId=5843399900513599')
 //     → (CAS TGC 静默换票) → jx.ccit.js.cn/jwglxt/xtgl/index_initMenu.html
 //
@@ -14,11 +15,17 @@
 //     jwglxt 未配直通 CAS，直接访问 jwglxt 会 302 到正方自己的登录页 ⇒
 //     进教务只能走 ehall appShow 启动链（无 ehall 会话时它自己会 302 到登录页）。
 //   · 个人课表查询菜单 gnmkdm=N2151；整学期接口
-//     POST /jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151 实测返回 kbList 33 条。
-//   · 成绩接口 cjcx_cxXsgrcj.html?doType=query 连通（新生账号暂无出分数据）；
-//     空教室接口 cdjy_cxKxcdlb.html?doType=query 连通，字段 cdmc/zws/jxlmc/xqmc 齐全。
+//     POST /jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151
+//     实测返回 kbList 35 条（2026-10-28；2026-10-26 首测 33 条，随学期数据浮动）。
+//   · 课表页无 #xnm/#xqm 元素（正方 V9 动态渲染）⇒ termOf 的日期启发生效：
+//     9-12/1 月 → 当学年第一学期(xnm=年, xqm=3)；2-8 月 → 上一学年第二学期(xqm=12)。
+//   · 成绩接口 cjcx_cxXsgrcj.html?doType=query 连通（新生账号暂无出分数据 items=0）；
+//     空教室接口 cdjy_cxKxcdlb.html?doType=query 连通，items 有数据。
 //   · 菜单无「学业情况」页面 ⇒ 不声明 shangkeScanStudy 钩子（App 会提示本校暂未适配）。
-//   · kcmc 带尾部制表符（"设计基础\t"）、zcd 形如 "19周"、jcs 形如 "1-8节"。
+//   · kcmc 带尾部制表符（"设计基础\t"）、zcd 形如 "19周" 或 "3周,8-18周"、
+//     jcs 形如 "1-8" / "3-4"（无"节"字；parseApiSections 的范围正则不要求"节"）。
+//   · 2026-10-28 真实 kbList 端到端解析：35/35 全部入课表、0 丢行、
+//     周次覆盖 2-19（fixture 见 scripts/tests/czit_import.test.cjs 的真实字段样例）。
 //
 // 状态机：教务页(jw) 导入 / 大厅页(portal) 自动进教务 / 登录页(cas|ehall_login) 引导。
 // 注意：自动跳转只发生在用户点击「执行导入」之后（runImport 内），脚本顶层不自动跑 ——
