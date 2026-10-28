@@ -184,7 +184,10 @@
         <!-- 时间/时区/日期/语言变更：闹钟时间基准的纠偏入口。
              此前由 MyApplication 在启动期运行时注册，与进程同寿 —— 用户在 App 未启动时
              改时区或改系统时间，已排闹钟不重排，课表整体偏移且 App 无感知。
-             四个 action 均为受保护的系统广播，静态注册照常投递。 -->
+             TIME_SET / TIMEZONE_CHANGED / LOCALE_CHANGED 在官方隐式广播豁免清单内，
+             静态注册照常投递；DATE_CHANGED **不在**清单内（见 TimeChangeReceiver KDoc），
+             保留它只是「万一 OEM 投递」的免费机会，跨天不能依赖它
+             —— 跨天由 .widget.WidgetDayBoundaryReceiver 的精确闹钟负责。 -->
         <receiver
             android:name=".service.notification.TimeChangeReceiver"
             android:enabled="true"
@@ -228,6 +231,16 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!-- 小组件跨天精确锚点（v4.80.4）：由 WidgetDayBoundaryAlarmScheduler 的精确闹钟
+             （每日 00:00:20）显式拉起。刻意没有 intent-filter —— 该闹钟用显式 PendingIntent
+             指定组件，不需要也不应对外声明 action。零点后在此同步组件数据并重绘全部组件：
+             WorkManager 的 00:05 自愈是不精确任务（Doze 下可推迟数小时），而 DATE_CHANGED
+             投递不到 manifest 接收器，两者都保证不了「零点后立刻翻页」。 -->
+        <receiver
+            android:name=".widget.WidgetDayBoundaryReceiver"
+            android:enabled="true"
+            android:exported="false" />
 
         <receiver
             android:name=".widget.tiny.TinyNativeProvider"

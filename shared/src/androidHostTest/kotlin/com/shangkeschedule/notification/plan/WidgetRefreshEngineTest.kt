@@ -320,6 +320,108 @@ class WidgetRefreshEngineTest {
         )
     }
 
+    /**
+     * 跨天锚点的请求码 = `codeBase + codeLimit`（平台层 `WidgetDayBoundaryAlarmScheduler`
+     * 由 `WIDGET_REFRESH_CODE_BASE + WIDGET_REFRESH_CODE_LIMIT` 推导），
+     * 必须**永远**不被课程边界分配占用：一旦撞码，跨天闹钟会被边界重排
+     * （`FLAG_UPDATE_CURRENT` 覆盖 / `cancelRange` 误撤）静默顶掉。
+     */
+    @Test
+    fun dayBoundaryRequestCodeIsNeverAllocated() {
+        // 塞满整个命名空间：200 个点 ⇒ 64000..64199，最后一个码正好是 limit 内末位
+        val saturated = (0 until codeLimit).map { i ->
+            WidgetRefreshEngine.RefreshPoint(
+                date = date,
+                time = LocalTime((i + 1) / 60, (i + 1) % 60),
+                courseId = "fill-$i"
+            )
+        }
+        val allocated = WidgetRefreshEngine.allocate(
+            points = saturated,
+            now = LocalDateTime(date, LocalTime(0, 0)),
+            codeBase = codeBase,
+            codeLimit = codeLimit
+        )
+        assertEquals("应排满整个命名空间", codeLimit, allocated.size)
+        assertEquals(codeBase + codeLimit - 1, allocated.last().requestCode)
+        assertTrue(
+            "课程边界不得占用跨天锚点码 ${codeBase + codeLimit}",
+            allocated.all { it.requestCode < codeBase + codeLimit }
+        )
+    }
+
+    // ---------------------------------------------------------------------
+    // 跨天锚点（v4.80.4）
+    //
+    // 课程边界点全部**相对课程**（一天首点 = 首节课前 15 分），于是「零点 → 首节课」
+    // 之间一个刷新点都没有；而 DATE_CHANGED 投递不到 manifest 接收器、
+    // WorkManager 的 00:05 自愈在 Doze 下可被推迟数小时 ⇒ 零点后桌面继续显示昨天。
+    // 跨天锚点补上这个与课程内容无关的确定性时刻，以下单测钉死它的语义。
+    // ---------------------------------------------------------------------
+
+    /** 钉住锚点常量：零点后、但不要在 00:00:00 与系统广播争抢。 */
+    @Test
+    fun dayBoundaryAnchorIsShortlyAfterMidnight() {
+        assertEquals(LocalTime(0, 0, 20), WidgetRefreshEngine.DAY_BOUNDARY_TIME)
+    }
+
+    @Test
+    fun dayBoundaryAnchorIsTodayWhenStillAhead() {
+        val before = LocalDateTime(date, LocalTime(0, 0, 10))
+        assertEquals(
+            LocalDateTime(date, WidgetRefreshEngine.DAY_BOUNDARY_TIME),
+            WidgetRefreshEngine.nextDayBoundary(before)
+        )
+    }
+
+    /** 刚好等于锚点时必须给「明天」：返回同一时刻会排出一个立即触发的无用唤醒。 */
+    @Test
+    fun dayBoundaryAnchorRollsToNextDayWhenAlreadyReached() {
+        val atAnchor = LocalDateTime(date, WidgetRefreshEngine.DAY_BOUNDARY_TIME)
+        val nextDay = date.plus(1L, DateTimeUnit.DAY)
+        assertEquals(
+            LocalDateTime(nextDay, WidgetRefreshEngine.DAY_BOUNDARY_TIME),
+            WidgetRefreshEngine.nextDayBoundary(atAnchor)
+        )
+    }
+
+    @Test
+    fun dayBoundaryAnchorRollsOverLateEvening() {
+        val lateEvening = LocalDateTime(date, LocalTime(23, 59, 59))
+        assertEquals(
+            LocalDateTime(date.plus(1L, DateTimeUnit.DAY), WidgetRefreshEngine.DAY_BOUNDARY_TIME),
+            WidgetRefreshEngine.nextDayBoundary(lateEvening)
+        )
+    }
+
+    /** 全天 1440 个分钟点扫描：锚点必须严格晚于 now，且只落在今天或明天的锚点上。 */
+    @Test
+    fun dayBoundaryAnchorIsAlwaysStrictlyInTheFuture() {
+        for (minute in 0 until 24 * 60) {
+            val nowAt = LocalDateTime(date, LocalTime(minute / 60, minute % 60))
+            val next = WidgetRefreshEngine.nextDayBoundary(nowAt)
+            assertTrue("锚点必须严格晚于 now=$nowAt，实际 $next", next > nowAt)
+            val todayAnchor = LocalDateTime(nowAt.date, WidgetRefreshEngine.DAY_BOUNDARY_TIME)
+            val expectedDate =
+                if (todayAnchor > nowAt) nowAt.date else nowAt.date.plus(1L, DateTimeUnit.DAY)
+            assertEquals("now=$nowAt 的锚点日期应为 $expectedDate", expectedDate, next.date)
+            assertEquals(WidgetRefreshEngine.DAY_BOUNDARY_TIME, next.time)
+        }
+    }
+
+    /** 跨月 / 跨年边界：加一天是按日历日算的，不得退化成固定 24 小时。 */
+    @Test
+    fun dayBoundaryAnchorCrossesMonthAndYearBoundaries() {
+        assertEquals(
+            LocalDateTime(LocalDate(2026, 11, 1), WidgetRefreshEngine.DAY_BOUNDARY_TIME),
+            WidgetRefreshEngine.nextDayBoundary(LocalDateTime(LocalDate(2026, 10, 31), LocalTime(23, 59)))
+        )
+        assertEquals(
+            LocalDateTime(LocalDate(2027, 1, 1), WidgetRefreshEngine.DAY_BOUNDARY_TIME),
+            WidgetRefreshEngine.nextDayBoundary(LocalDateTime(LocalDate(2026, 12, 31), LocalTime(12, 0)))
+        )
+    }
+
     /** 四节课固定落在 [date] 当天（供只关心单日行为的测试用）。 */
     private val MANY_COURSES = listOf(
         course("a", "08:00", "09:40"),

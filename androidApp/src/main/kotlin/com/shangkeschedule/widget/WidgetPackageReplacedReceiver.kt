@@ -31,6 +31,16 @@ class WidgetPackageReplacedReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 Log.d("WidgetPackageReplaced", "应用已升级，立即刷新全部小组件...")
+
+                // 升级会清除本应用的 AlarmManager 闹钟（系统按「强制停止」语义处理更新），
+                // 跨天锚点因此不会自己回来 —— 重挂一次，否则升级后首次跨天就不翻页了
+                // （v4.81.2）。与 onEnabled 一样只在桌面确有组件时挂。
+                runCatching {
+                    if (WorkManagerHelper.hasAnyWidget(context.applicationContext)) {
+                        WidgetDayBoundaryAlarmScheduler(context.applicationContext).schedule()
+                    }
+                }.onFailure { Log.e("WidgetPackageReplaced", "升级后重挂跨天锚点失败", it) }
+
                 updateAllWidgets(context.applicationContext, WidgetRefreshReason.REQUIRED)
             } catch (e: Exception) {
                 Log.e("WidgetPackageReplaced", "升级后刷新小组件失败", e)

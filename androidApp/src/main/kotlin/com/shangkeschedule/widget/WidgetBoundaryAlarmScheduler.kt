@@ -140,11 +140,11 @@ internal class WidgetBoundaryAlarmScheduler(private val context: Context) {
         }
     }
 
-    private companion object {
+    internal companion object {
         const val TAG = "WidgetBoundaryAlarm"
 
         /** 小组件刷新闹钟请求码基址（独占段，见类 KDoc 的命名空间表）。 */
-        const val WIDGET_REFRESH_CODE_BASE = 64_000
+        internal const val WIDGET_REFRESH_CODE_BASE = 64_000
 
         /**
          * 上限（对应请求码 64000–64199，**整个排程窗口共用这一段**）。
@@ -154,8 +154,12 @@ internal class WidgetBoundaryAlarmScheduler(private val context: Context) {
          *
          * 必须是「全局连续分配」而非按天分段 —— [cancelRange] 只扫这一段，
          * 任何落到段外的请求码都永远撤不掉，每轮重排都会叠加一批孤儿闹钟。
+         *
+         * [WidgetDayBoundaryAlarmScheduler] 的跨天锚点取
+         * `BASE + LIMIT`（= 64200，**段外第一个码**），保证它既不会被本段的
+         * [cancelRange] 误撤，也不会被 [allocate] 分配到（分配上限是 64199）。
          */
-        const val WIDGET_REFRESH_CODE_LIMIT = 200
+        internal const val WIDGET_REFRESH_CODE_LIMIT = 200
 
         /** 排程窗口：今天 + 明天。更远的日期靠每日零点自愈与开 App 重排。 */
         const val WINDOW_DAYS = 2

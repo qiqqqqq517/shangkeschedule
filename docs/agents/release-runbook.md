@@ -58,9 +58,11 @@ git ls-remote --tags origin "refs/tags/v$version*"
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
-.\gradlew.bat :androidApp:assembleRelease --console=plain
+.\gradlew.bat :androidApp:assembleRelease --console=plain -PrequireAdapterRemoteConfig=true
 $apkDir='androidApp/build/outputs/apk/release'
 ```
+
+`-PrequireAdapterRemoteConfig=true` 是**发布必带**的门禁：缺 `adapter_secrets.properties`（或 `SHANGKE_ADAPTER_WORKER_URL` / `SHANGKE_ADAPTER_APP_SECRET` 环境变量）时构建立即失败，而不是静默产出「更多 → 自动同步教务系统」提示「远程同步未启用」的包（该提示的唯一成因就是注入值为空，2026-10-26 排查确认）。贡献者/无密钥环境不要加此参数（保持可编译）。
 
 `validateSigningRelease`、R8/lint 等构建检查必须成功。整体 `UP-TO-DATE` 时确认 APK mtime 晚于发布提交时间；无法证明包含本次变更才加 `--rerun-tasks`，不要默认全量重打。
 

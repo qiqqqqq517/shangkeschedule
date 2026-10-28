@@ -25,6 +25,7 @@ object WorkManagerHelper {
     private const val UI_UPDATE_WORK_NAME = "WidgetUiUpdateWorker_Periodic"
     private const val FULL_DATA_SYNC_WORK_NAME = "FullDataSyncWorker_Periodic"
     private const val DAILY_ROLLOVER_WORK_NAME = "DailyRolloverWorker_Once"
+    private const val DAY_BOUNDARY_SYNC_WORK_NAME = "DayBoundarySync_Once"
     private const val WEBDAV_AUTO_SYNC_WORK_NAME = "WebDavAutoSyncWorker_Periodic"
     private const val WEBDAV_AUTO_SYNC_NOW_WORK_NAME = "WebDavAutoSyncWorker_Once"
 
@@ -53,6 +54,58 @@ object WorkManagerHelper {
 
         // 每日零点自愈：跨天自动重排课程提醒闹钟 / 勿扰 / 灵动岛 / 小组件（无需打开 App）
         scheduleDailyRollover(context)
+
+        // 跨天精确锚点（v4.80.4）：上面那条是 WorkManager 的**不精确**任务，夜间 Doze 下
+        // 可被推迟数小时，而小组件必须在零点后立刻翻到新的一天（含数据同步，
+        // 见 WidgetDayBoundaryReceiver）。只在桌面确实有组件时挂：没有组件就没有要翻页的
+        // RemoteViews，不该为无组件用户每天多唤醒一次。
+        if (hasAnyWidget(context)) {
+            WidgetDayBoundaryAlarmScheduler(context).schedule()
+        }
+    }
+
+    /**
+     * 桌面是否还存在本应用的任一规格小组件（8 类规格任一件即算「有组件」）。
+     *
+     * 读取失败（OEM 限制等）按「没有组件」处理：宁可漏挂跨天锚点（退化回 tick 兜底），
+     * 也不要在无法确认组件状态时每天零点唤醒设备。
+     */
+    internal fun hasAnyWidget(context: Context): Boolean = runCatching {
+        val manager = android.appwidget.AppWidgetManager.getInstance(context)
+        WIDGET_PROVIDER_CLASSES.any { cls ->
+            manager.getAppWidgetIds(android.content.ComponentName(context, cls)).isNotEmpty()
+        }
+    }.getOrElse { false }
+
+    /** 8 类小组件的 Provider 类（与 AndroidManifest 的 receiver 声明一一对应）。 */
+    private val WIDGET_PROVIDER_CLASSES = listOf(
+        com.shangkeschedule.widget.tiny.TinyNativeProvider::class.java,
+        com.shangkeschedule.widget.compact.CompactNativeProvider::class.java,
+        com.shangkeschedule.widget.double_days.DoubleDaysNativeProvider::class.java,
+        com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider::class.java,
+        com.shangkeschedule.widget.next_course.NextCourseNativeProvider::class.java,
+        com.shangkeschedule.widget.exam_countdown.ExamCountdownNativeProvider::class.java,
+        com.shangkeschedule.widget.week_courses.WeekCoursesNativeProvider::class.java,
+        com.shangkeschedule.widget.agenda_list.AgendaListNativeProvider::class.java
+    )
+
+    /**
+     * 派发「跨天同步」：由 [WidgetDayBoundaryReceiver] 在零点锚点触发后调用。
+     *
+     * 为什么单独一条一次性任务，而不直接复用周期任务：周期任务的触发时刻不可控，
+     * 而跨天需要「零点后立刻」跑一次。`REPLACE` 保证同一时刻只有一份在跑
+     * （跨天锚点被重复触发、或与每日自愈撞点，都不会叠加成两次全量同步）。
+     *
+     * [FullDataSyncWorker] 同步完成后会经 `syncCompletedFlow` 驱动 `SyncManager`
+     * 重排提醒并重绘全部组件，故这里不需要再单独触发渲染。
+     */
+    fun enqueueDayBoundarySync(context: Context) {
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            DAY_BOUNDARY_SYNC_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            OneTimeWorkRequestBuilder<FullDataSyncWorker>().build()
+        )
+        Log.d("WidgetWorkManager", "跨天同步任务已派发")
     }
 
     /**
@@ -138,24 +191,12 @@ object WorkManagerHelper {
      */
     fun onWidgetDisabled(context: Context) {
         runCatching {
-            val manager = android.appwidget.AppWidgetManager.getInstance(context)
-            val providers = listOf(
-                com.shangkeschedule.widget.tiny.TinyNativeProvider::class.java,
-                com.shangkeschedule.widget.compact.CompactNativeProvider::class.java,
-                com.shangkeschedule.widget.double_days.DoubleDaysNativeProvider::class.java,
-                com.shangkeschedule.widget.list_vertical.ListVerticalNativeProvider::class.java,
-                com.shangkeschedule.widget.next_course.NextCourseNativeProvider::class.java,
-                com.shangkeschedule.widget.exam_countdown.ExamCountdownNativeProvider::class.java,
-                com.shangkeschedule.widget.week_courses.WeekCoursesNativeProvider::class.java,
-                com.shangkeschedule.widget.agenda_list.AgendaListNativeProvider::class.java
-            )
-            val hasAnyWidget = providers.any { cls ->
-                manager.getAppWidgetIds(android.content.ComponentName(context, cls)).isNotEmpty()
-            }
-            if (!hasAnyWidget) {
+            if (!hasAnyWidget(context)) {
                 Log.d("WidgetWorkManager", "全部小组件已移除，仅取消组件专属任务（保留每日零点自愈）")
                 WorkManager.getInstance(context).cancelUniqueWork(UI_UPDATE_WORK_NAME)
                 WorkManager.getInstance(context).cancelUniqueWork(FULL_DATA_SYNC_WORK_NAME)
+                // 跨天锚点只服务于桌面组件：8 类规格全部移除后没有理由每天零点唤醒一次。
+                WidgetDayBoundaryAlarmScheduler(context).cancel()
             }
         }.onFailure { Log.e("WidgetWorkManager", "onWidgetDisabled 检查失败", it) }
     }

@@ -1,9 +1,11 @@
 package com.shangkeschedule.notification.plan
 
 import com.shangkeschedule.data.db.widget.WidgetCourse
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
 
 /**
  * 小组件「课表边界刷新时刻」计算引擎（纯逻辑，无平台依赖，v4.67.36）。
@@ -75,6 +77,42 @@ object WidgetRefreshEngine {
      * 又不把设备在深夜反复唤醒。
      */
     const val NIGHT_GAP_HOURS = 3
+
+    /**
+     * 跨天锚点时刻：每日 **00:00:20**（本地时区）。
+     *
+     * 为什么单独要一个「跨天锚点」：[refreshPoints] 产出的点全部**相对课程**，
+     * 一天的首个点 = 首节课开始前 15 分（早八 08:00 ⇒ 07:45）。于是从零点到
+     * 07:45 之间**不存在任何刷新点**：设备夜间进入 Doze、WorkManager 的 15 分钟 tick
+     * 与 00:05 每日自愈都被推迟时，桌面会一直保留「昨天」的那份 RemoteViews
+     * （早八前打开手机看到的是昨天的课表）。跨天锚点就是补上「零点后必须刷新一次」
+     * 这个与课程无关的确定性时刻。
+     *
+     * 取 20 秒而不是 00:00:00：零点整是系统广播 / 各类每日任务的拥塞点，
+     * 错开几秒可避开争抢，也不影响「跨天」语义。
+     */
+    val DAY_BOUNDARY_TIME: LocalTime = LocalTime(0, 0, 20)
+
+    /**
+     * 计算**严格晚于** [now] 的下一个跨天锚点（每日 [anchor]，默认 [DAY_BOUNDARY_TIME]）。
+     *
+     * 平台层（`WidgetDayBoundaryAlarmScheduler`）用它挂跨天精确闹钟。为什么必须「严格晚于」：
+     * 若 [now] 正好等于锚点时刻，返回同一时刻会排出一个立即触发的闹钟，
+     * 醒来做的事与「刚排完就该做」完全重合，白白多唤醒一次。
+     *
+     * 纯逻辑：不读系统时钟、不碰 Android API，可在 JVM 直接单测。
+     */
+    fun nextDayBoundary(
+        now: LocalDateTime,
+        anchor: LocalTime = DAY_BOUNDARY_TIME
+    ): LocalDateTime {
+        val todayAnchor = LocalDateTime(now.date, anchor)
+        return if (todayAnchor > now) {
+            todayAnchor
+        } else {
+            LocalDateTime(now.date.plus(1, DateTimeUnit.DAY), anchor)
+        }
+    }
 
     /** 一次刷新请求。 */
     data class RefreshPoint(
