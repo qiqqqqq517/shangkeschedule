@@ -5,6 +5,14 @@
     var WEEK_NAMES = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
     var lastPageDiag = '';
     var importing = null;
+    // 正方页面库（zftal 等）会覆盖 Array.prototype.filter/some/every，且回调参数序
+    // 被改成 (index, value, array)：此时 .filter(function (c) { … }) 里的 c 是数字下标，
+    // 轻则全部课程被误过滤（=「解析的课程均缺少周次信息」），重则读 c.weeks 直接
+    // TypeError（=「适配脚本执行出错」）。与 zhengfang.js 同款：先备份原生实现，
+    // 本脚本内所有过滤统一走原生版本，不被页面库污染。
+    var _nativeFilter = Array.prototype.filter;
+    var _nativeSome = Array.prototype.some;
+    var _nativeEvery = Array.prototype.every;
     function toast(text) {
         if (window.shangkeBridge && window.shangkeBridge.showToast) window.shangkeBridge.showToast(text);
     }
@@ -47,8 +55,8 @@
 
         var list = Object.keys(weeks).map(function(k) { return parseInt(k, 10); })
             .sort(function(a, b) { return a - b; });
-        if (isOdd) list = list.filter(function(w) { return w % 2 === 1; });
-        else if (isEven) list = list.filter(function(w) { return w % 2 === 0; });
+        if (isOdd) list = _nativeFilter.call(list, function(w) { return w % 2 === 1; });
+        else if (isEven) list = _nativeFilter.call(list, function(w) { return w % 2 === 0; });
         return list;
     }
     // 节次：(1-2节) / 第3节 / 1-2
@@ -65,7 +73,7 @@
         if (text === undefined || text === null || String(text).trim() === '') {
             text = (cell.innerHTML || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(div|p|td|tr|span)>/gi, '\n').replace(/<[^>]+>/g, '');
         }
-        return String(text).split(/\r?\n/).map(function(s) { return s.replace(/ /g, ' ').replace(/\s+/g, ' ').trim(); }).filter(function(s) { return s.length > 0; });
+        return _nativeFilter.call(String(text).split(/\r?\n/).map(function(s) { return s.replace(/ /g, ' ').replace(/\s+/g, ' ').trim(); }), function(s) { return s.length > 0; });
     }
     function buildGrid(table) {
         var grid = [];
@@ -394,7 +402,7 @@
         });
         var rows = Object.keys(map).map(function (key) {
             var c = map[key];
-            c.weeks = c.weeks.filter(function (week, index, all) { return all.indexOf(week) === index; }).sort(function (a,b) { return a-b; });
+            c.weeks = _nativeFilter.call(c.weeks, function (week, index, all) { return all.indexOf(week) === index; }).sort(function (a,b) { return a-b; });
             return c;
         });
         rows.sort(function (a,b) { return a.startSection-b.startSection; });
@@ -440,7 +448,7 @@
         var parsed;
         try { parsed = await fetchCoursesFromApi(ctx); }
         catch (error) {
-            var pageCourses = parseScheduleFromPage().filter(function (c) { return c.weeks.length > 0; });
+            var pageCourses = _nativeFilter.call(parseScheduleFromPage(), function (c) { return c.weeks.length > 0; });
             if (!pageCourses.length) throw error;
             parsed = { courses: pageCourses, skipped: [] };
             toast('接口不可用，已按课表页面解析');
