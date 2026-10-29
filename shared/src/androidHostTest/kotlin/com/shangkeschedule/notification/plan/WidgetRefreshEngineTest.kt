@@ -16,7 +16,7 @@ import org.junit.Test
  * 重点锁三件事：
  * 1. 每节课必须产出 **4 个刷新点**（开始前 15 / 开始 / 开始后 6 / 结束），
  *    缺任一个都会让某次状态翻转错过 —— 而这正是本引擎存在的唯一理由；
- * 2. **夜间降频不能误伤课间**：白天空档（12:00→14:00）必须全部保留；
+ * 2. 课程边界不能因长课或长空档被误删；
  * 3. 脏数据（缺时间、结束早于开始、非本日期）一律不排，不得产生无效闹钟。
  */
 class WidgetRefreshEngineTest {
@@ -109,37 +109,24 @@ class WidgetRefreshEngineTest {
     }
 
     @Test
-    fun dayGapIsThinnedButClassGapIsNot() {
-        // 上午 08:00 的课结束于 12:00，下午 16:00 的课开始 —— 间隔 4 小时应降频
-        val day = WidgetRefreshEngine.thinNightGaps(
-            WidgetRefreshEngine.refreshPoints(
-                listOf(
-                    course("a", "08:00", "12:00"),
-                    course("b", "16:00", "17:40")
-                ),
-                date
-            )
-        )
-        assertTrue(
-            "4 小时空档应被降频，实际 ${times(day)}",
-            day.size < WidgetRefreshEngine.refreshPoints(
-                listOf(
-                    course("a", "08:00", "12:00"),
-                    course("b", "16:00", "17:40")
-                ),
-                date
-            ).size
-        )
-        // 但首尾必须保留（跨天后仍能正确刷新）
-        assertEquals("07:45", day.first().time.toString())
-        assertEquals("17:40", day.last().time.toString())
+    fun longGapPreservesEveryClassBoundary() {
+        val courses = listOf(course("a", "08:00", "09:00"), course("b", "16:00", "17:40"))
+        val scheduled = times(WidgetRefreshEngine.scheduleFor(courses, date))
+        assertEquals(listOf("07:45", "08:00", "08:06", "09:00", "15:45", "16:00", "16:06", "17:40"), scheduled)
+    }
+
+    @Test
+    fun longCoursePreservesEndBeforeNextCourse() {
+        val courses = listOf(course("a", "08:00", "12:00"), course("b", "12:30", "13:30"))
+        val scheduled = times(WidgetRefreshEngine.scheduleFor(courses, date))
+        assertTrue("长课程结束时必须刷新，实际 $scheduled", scheduled.contains("12:00"))
     }
 
     @Test
     fun normalClassGapIsFullyKept() {
         // 09:40 下课、10:00 上课：课间 20 分钟，必须全部保留刷新点
         val all = times(
-            WidgetRefreshEngine.refreshPoints(
+            WidgetRefreshEngine.scheduleFor(
                 listOf(
                     course("a", "08:00", "09:40"),
                     course("b", "10:00", "11:40")
@@ -183,10 +170,6 @@ class WidgetRefreshEngineTest {
     fun constantsAreSane() {
         assertEquals(15, WidgetRefreshEngine.PRE_CLASS_LEAD_MINUTES)
         assertEquals(6, WidgetRefreshEngine.POST_CLASS_OFFSET_MINUTES)
-        assertTrue(
-            "课间空档必须小于夜间降频阈值，否则课间刷新会被误降频",
-            2 < WidgetRefreshEngine.NIGHT_GAP_HOURS
-        )
     }
 
     // ---------------------------------------------------------------------

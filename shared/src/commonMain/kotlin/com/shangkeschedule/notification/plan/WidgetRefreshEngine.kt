@@ -60,25 +60,6 @@ object WidgetRefreshEngine {
     const val POST_CLASS_OFFSET_MINUTES = 6
 
     /**
-     * 一天的「课程相关时段」起点之前 / 终点之后，用于夜间降频。
-     *
-     * 凌晨到清晨一般没有课，但**也不排除**早八（08:00 前）或夜间课程。
-     * 因此这两个常量**只用于剔除明显不可能有课的时刻**，不作为「不排闹钟」的依据；
-     * 真正的取舍是 [nightGapHours]：相邻两次刷新间隔超过它就跳过中间的排程。
-     */
-    const val NIGHT_START_HOUR = 6
-    const val NIGHT_END_HOUR = 22
-
-    /**
-     * 夜间降频窗口（小时）：相邻刷新点间隔超过该值时跳过。
-     *
-     * 取 3 小时意味着「22:00 之后到次日 06:00 之前」这段长达 8 小时的静默期
-     * 只保留首尾各一个闹钟，中间不再排 —— 既保住跨天后的首刷，
-     * 又不把设备在深夜反复唤醒。
-     */
-    const val NIGHT_GAP_HOURS = 3
-
-    /**
      * 跨天锚点时刻：每日 **00:00:20**（本地时区）。
      *
      * 为什么单独要一个「跨天锚点」：[refreshPoints] 产出的点全部**相对课程**，
@@ -181,43 +162,15 @@ object WidgetRefreshEngine {
     }
 
     /**
-     * 对刷新点序列做**夜间降频**：间隔超过 [NIGHT_GAP_HOURS] 的相邻两点之间，
-     * 跳过中间点，只保留首尾。
+     * 排程用的课程状态翻转点。
      *
-     * 为什么不直接按 [NIGHT_START_HOUR] / [NIGHT_END_HOUR] 过滤：
-     * 那两个常量描述的是「课可能在哪几个小时」，而早八（08:00 前）、
-     * 夜间选修课都真实存在。一刀切按小时过滤会**漏排**真实存在的课，
-     * 那比多排几个闹钟严重得多。按间隔降频则与课表内容无关，
-     * 无论用户在哪个时段上课都一定保留它的首尾两个刷新点。
-     *
-     * 白天空档（如 12:00→14:00）间隔只有 2 小时 < 3，**不会**被降频 ——
-     * 这正是我们想要的：课间仍要准时刷新。
-     *
-     * 输入须**按时刻升序**（[refreshPoints] 已保证）；本方法不会重排输入。
-     */
-    fun thinNightGaps(points: List<RefreshPoint>): List<RefreshPoint> {
-        if (points.size <= 2) return points
-        val out = mutableListOf(points.first())
-        for (i in 1 until points.lastIndex) {
-            val prev = out.last()
-            val current = points[i]
-            val gapHours = current.time.hour - prev.time.hour
-            // 同小时（分钟级间隔）必然保留；仅当「跨了足够多的整小时」才丢弃中间点。
-            if (gapHours < NIGHT_GAP_HOURS) out += current
-        }
-        out += points.last()
-        return out
-    }
-
-    /**
-     * 排程用：一天内最终要挂精确闹钟的刷新点（已排序）。
-     *
-     * = [refreshPoints] + [thinNightGaps]，两步分开的目的是让两者都能独立单测。
+     * refreshPoints 只生成课程边界，不在空档生成周期点；按间隔删点会误删
+     * 长课结束或下一节课开始时刻。夜间无课时自然没有额外课程闹钟。
      */
     fun scheduleFor(
         courses: List<WidgetCourse>,
         date: LocalDate
-    ): List<RefreshPoint> = thinNightGaps(refreshPoints(courses, date))
+    ): List<RefreshPoint> = refreshPoints(courses, date)
 
     /**
      * 一个刷新点的最终排程结果：请求码 + 触发时刻。
