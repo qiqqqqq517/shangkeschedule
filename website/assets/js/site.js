@@ -12,6 +12,8 @@ const SITE = {
   /* 主分发渠道：夸克网盘分享。改分享链接只需改这里 */
   quark: 'https://pan.quark.cn/s/02947cbc1d4e',
   quarkCode: '~9a263aTFyF~:/',
+  /* 百度网盘分享地址；留空时不显示入口 */
+  baidu: 'https://pan.baidu.com/s/16oiKPYuVN2s_QokkEkjrnQ?pwd=wpw6',
   /* 备用渠道与仓库 */
   repo: 'https://github.com/qiqqqqq517/shangkeschedule',
   email: 'hhixingchen520@163.com'
@@ -23,11 +25,30 @@ const SITE = {
   /* --------------------------------------------------- 下载链接 / 版本号 */
   const apkName = (abi) => 'shangke-v' + SITE.version + '-' + abi + '-release.apk';
 
-  /* data-dl 默认指向夸克网盘；data-dl="release" 显式指定走 GitHub Releases 备用通道 */
+  /* 仅启用真实的百度网盘 HTTPS 分享地址，避免空链接指向当前页面 */
+  let baiduUrl = '';
+  let baiduCode = '';
+  try {
+    const url = new URL(SITE.baidu);
+    if (url.protocol === 'https:' && url.hostname === 'pan.baidu.com' && url.pathname.startsWith('/s/')) {
+      baiduUrl = url.href;
+      const code = url.searchParams.get('pwd') || '';
+      if (/^[a-z0-9]{4}$/.test(code)) baiduCode = code;
+    }
+  } catch (e) { /* 未配置时隐藏 */ }
+
+  /* 已知分发渠道分别指向其分享地址；未知渠道不作处理 */
   document.querySelectorAll('[data-dl]').forEach((el) => {
-    el.href = el.getAttribute('data-dl') === 'release'
-      ? SITE.repo + '/releases/latest'
-      : SITE.quark;
+    const channel = el.getAttribute('data-dl');
+    if (channel === 'baidu') {
+      if (!baiduUrl) return;
+      el.href = baiduUrl;
+      el.hidden = false;
+    } else if (channel === 'release') {
+      el.href = SITE.repo + '/releases/latest';
+    } else if (channel === 'quark') {
+      el.href = SITE.quark;
+    } else return;
     el.removeAttribute('download');
     el.setAttribute('rel', 'noopener');
   });
@@ -42,10 +63,23 @@ const SITE = {
     el.textContent = SITE.quarkCode;
   });
 
+  if (baiduUrl && baiduCode) {
+    document.querySelectorAll('[data-baidu-code]').forEach((el) => { el.textContent = baiduCode; });
+    document.querySelectorAll('[data-baidu-secret]').forEach((el) => { el.hidden = false; });
+  }
+
   document.querySelectorAll('[data-copy]').forEach((btn) => {
     const label = btn.textContent;
     btn.addEventListener('click', () => {
-      const text = SITE.quarkCode;
+      const values = {
+        quark: SITE.quarkCode,
+        baidu: baiduCode,
+        'baidu-share': baiduUrl && baiduCode
+          ? '复制这段内容后打开百度网盘APP，操作更方便哦。 链接:' + baiduUrl + '\u00a0--来自百度网盘超级会员V1的分享'
+          : ''
+      };
+      const text = values[btn.getAttribute('data-copy')];
+      if (!text) return;
       const done = (ok) => {
         btn.textContent = ok ? '已复制 ✓' : '请手动复制';
         setTimeout(() => { btn.textContent = label; }, 2200);

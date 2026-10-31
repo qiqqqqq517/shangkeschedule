@@ -994,6 +994,8 @@ ul, ol { margin: 0; padding: 0; }
 }
 
 /* ------------------------------------------------------------ 下载区 */
+.download-secondary { color: #faf9f5; border-color: #4a4a43; }
+.download-secondary[hidden], .secret[hidden] { display: none; }
 .dl-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

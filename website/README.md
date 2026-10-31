@@ -56,15 +56,18 @@ const SITE = {
 
 ### 下载入口的规则
 
-站点有**两个**分发渠道，靠 `data-dl` 区分：
+站点靠 `data-dl` 区分分发渠道：
 
 | 标记 | 指向 | 用在哪 |
 | --- | --- | --- |
 | `data-dl="quark"` | 夸克网盘分享（`SITE.quark`） | 全部主下载入口：导航栏、首屏、下载区按钮、各页脚、404 页 |
+| `data-dl="baidu"` | 百度网盘分享（`SITE.baidu`） | 下载区 arm64 备用入口；仅填写有效的 `https://pan.baidu.com/s/…` 地址后显示 |
 | `data-dl="release"` | GitHub Releases 最新版 | 仅下载区「安装提示」里那一句备用通道说明 |
 
 > 换网盘链接时只改 `SITE.quark` / `SITE.quarkCode` 两个值即可，页面无需改动。
 > `_redirects` 里的 `/download` 短链也要同步改（它不走 JS）。
+
+> 百度网盘入口在 `SITE.baidu` 为空时关闭。按发版手册运行 `scripts/release_baidu_sync.py` 转正式版时，将自动调用百度网盘 CLI 上传当版 arm64 包到「上课」文件夹，并保留用户指定的 `SITE.baidu` 分享地址；该命令不部署官网。现有分享能否向访客显示后续新增文件需在发版时核验。提取码从地址的 `pwd` 参数读取，下载区可单独复制提取码或复制基于用户提供样式的 App 分享内容；复制文本使用同一个地址，避免版本不一致。
 
 > 每次发版后同步更新 `changelog.html`（顶部新增一条 `tl-item`）与 `sitemap.xml` 的 `lastmod`。
 

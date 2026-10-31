@@ -769,7 +769,7 @@
       <h2>下载安装包</h2>
       <p class="lead" style="color:#b7b5a9">
         当前版本 <span class="mono" data-version>v4.82.0</span>（versionCode <span class="mono" data-version-code>574</span>）。
-        安装包统一通过夸克网盘分发，三份按 CPU 架构拆分的 APK 都在同一个分享里；
+        安装包按 CPU 架构拆分，夸克分享提供下载入口；
         不确定选哪个就取 <span class="mono">arm64-v8a</span>——近几年的机型基本都是它。
       </p>
     </div>
@@ -779,6 +779,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
         打开夸克网盘下载
       </a>
+      <a class="btn btn-ghost download-secondary" data-dl="baidu" hidden>百度网盘 · arm64 下载</a>
       <a class="btn btn-ghost" href="changelog.html" style="color:#faf9f5;border-color:#4a4a43">查看更新日志</a>
     </div>
 
@@ -806,6 +807,15 @@
         <code class="secret-code" data-quark-code>~9a263aTFyF~:/</code>
       </div>
       <button class="btn btn-quiet btn-sm" type="button" data-copy="quark">复制口令</button>
+    </div>
+
+    <div class="secret reveal" data-baidu-secret hidden>
+      <div class="secret-body">
+        <span class="secret-label">百度网盘提取码</span>
+        <code class="secret-code" data-baidu-code></code>
+      </div>
+      <button class="btn btn-quiet btn-sm" type="button" data-copy="baidu">复制提取码</button>
+      <button class="btn btn-quiet btn-sm" type="button" data-copy="baidu-share">复制 App 分享内容</button>
     </div>
 
     <div class="dl-note reveal">
