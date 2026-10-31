@@ -14,6 +14,8 @@ import com.shangkeschedule.data.model.toCompose
 import com.shangkeschedule.data.model.toProto
 import com.shangkeschedule.tool.AppLog
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -188,6 +190,9 @@ class StyleSettingsRepository(
 
     /** 仓库私有作用域：替代 GlobalScope，生命周期仍为进程级单例，但可测试、可追踪。 */
     private val preloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** 停止缓存预热与共享流，再释放底层数据源。 */
+    internal suspend fun close() { preloadScope.coroutineContext[Job]?.cancelAndJoin() }
 
     init {
         // 异步预热缓存

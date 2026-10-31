@@ -134,6 +134,7 @@ class SyncManager(
                     dynamicIslandEnabled = settings.dynamicIslandEnabled,
                     morningAlarmEnabled = settings.morningAlarmEnabled,
                     morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes,
+                    morningAlarmWeeklyRevision = settings.morningAlarmWeeklyRevision,
                     nextClassNotificationEnabled = settings.nextClassNotificationEnabled,
                     examCountdownReminderEnabled = settings.examCountdownReminderEnabled
                 )
@@ -260,6 +261,7 @@ class SyncManager(
         val dynamicIslandEnabled: Boolean,
         val morningAlarmEnabled: Boolean,
         val morningAlarmLeadMinutes: Int,
+        val morningAlarmWeeklyRevision: String,
         val nextClassNotificationEnabled: Boolean,
         val examCountdownReminderEnabled: Boolean
     )

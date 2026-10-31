@@ -12,6 +12,8 @@ import com.shangkeschedule.data.db.main.CourseWithWeeks
 import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.TimeSlot
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +42,9 @@ class CourseTableRepository(
     private val appSettingsRepository: AppSettingsRepository
 ) {
     private val repositoryScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    /** 停止初始化任务，再释放其数据库。 */
+    internal suspend fun close() { repositoryScope.coroutineContext[Job]?.cancelAndJoin() }
 
     init {
         // 当仓库被依赖注入创建时，自动触发保护/种子数据填充逻辑

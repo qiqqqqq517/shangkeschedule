@@ -25,9 +25,9 @@ import com.shangkeschedule.notification.plan.MorningAlarmPlan
  *  - 注册簿里已登记的日期**一律不重写**（即使标签变了），把最终调整权交给用户；
  *  - 只有**从未登记过**的日期才写入；
  *  - 计划里消失的日期**不做删除动作**（删不掉，且删除会打断用户自己的修改），
- *    仅在注册簿里标记为「已失效」，由设置页提示用户到系统闹钟页手动清理。
+ *    登记项保留到到期，设置页提示用户到系统闹钟页手动管理。
  *
- * 这样即便删除能力缺失，也保证：**任何一条闹钟一个日期只写入一次，永不堆积**。
+ * 未到期登记项尚存且无法删除时，不能另写不同日期的闹钟。
  */
 object MorningAlarmDiff {
 
@@ -58,6 +58,10 @@ object MorningAlarmDiff {
         allowDismiss: Boolean = false
     ): List<Action> {
         val actions = mutableListOf<Action>()
+
+        // 调用方已清除到期登记项。旧闹钟不能删除时，它仍可能在系统时钟里；
+        // 即使课表变化使目标日期不同，也不能追加第二条。
+        if (!allowDismiss && registry.isNotEmpty()) return actions
 
         for (alarm in plan) {
             val key = alarm.courseDate.toString()

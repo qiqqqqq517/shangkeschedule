@@ -150,6 +150,12 @@ data class AppSettingsModel(
      */
     val morningAlarmLeadMinutes: Int = 45,
 
+    /** 每周方案仅表示用户偏好；不表示本机系统时钟已创建。 */
+    val morningAlarmMode: MorningAlarmMode = MorningAlarmMode.SMART_DAILY,
+    val morningAlarmWeeklyTimes: Map<Int, String> = emptyMap(),
+    /** 每次设置更改和恢复时更新，不参与上课备份。 */
+    val morningAlarmWeeklyRevision: String = "",
+
     /** 是否显示非本周课程 */
     val showNonCurrentWeekCourses: Boolean = false,
 
@@ -328,6 +334,9 @@ data class AppSettingsModel(
         val KEY_EXAM_COUNTDOWN_REMINDER_ENABLED = booleanPreferencesKey("exam_countdown_reminder_enabled")
         val KEY_MORNING_ALARM_ENABLED = booleanPreferencesKey("morning_alarm_enabled")
         val KEY_MORNING_ALARM_LEAD_MINUTES = intPreferencesKey("morning_alarm_lead_minutes")
+        val KEY_MORNING_ALARM_MODE = stringPreferencesKey("morning_alarm_mode")
+        val KEY_MORNING_ALARM_WEEKLY_TIMES = stringSetPreferencesKey("morning_alarm_weekly_times")
+        val KEY_MORNING_ALARM_WEEKLY_REVISION = stringPreferencesKey("morning_alarm_weekly_revision")
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
@@ -412,6 +421,9 @@ data class AppSettingsModel(
                 starPromptShown = prefs[KEY_STAR_PROMPT_SHOWN] ?: d.starPromptShown,
                 morningAlarmEnabled = prefs[KEY_MORNING_ALARM_ENABLED] ?: d.morningAlarmEnabled,
                 morningAlarmLeadMinutes = prefs[KEY_MORNING_ALARM_LEAD_MINUTES] ?: d.morningAlarmLeadMinutes,
+                morningAlarmMode = MorningAlarmMode.fromString(prefs[KEY_MORNING_ALARM_MODE]),
+                morningAlarmWeeklyTimes = MorningAlarmWeeklyTimes.decode(prefs[KEY_MORNING_ALARM_WEEKLY_TIMES] ?: emptySet()),
+                morningAlarmWeeklyRevision = prefs[KEY_MORNING_ALARM_WEEKLY_REVISION] ?: "",
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,

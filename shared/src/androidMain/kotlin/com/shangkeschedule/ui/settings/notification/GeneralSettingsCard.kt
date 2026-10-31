@@ -1,6 +1,7 @@
 package com.shangkeschedule.ui.settings.notification
 
 import com.shangkeschedule.notification.live.LiveUpdateSupport
+import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
 import com.shangkeschedule.ui.settings.SettingItem
@@ -75,6 +76,9 @@ import shangkeschedule.shared.generated.resources.status_unauthorized
 import shangkeschedule.shared.generated.resources.text_auto_mode_dependency
 import shangkeschedule.shared.generated.resources.text_permission_importance_detail
 import shangkeschedule.shared.generated.resources.text_permission_importance_title
+import shangkeschedule.shared.generated.resources.morning_alarm_schedule_mode
+import shangkeschedule.shared.generated.resources.morning_alarm_mode_daily
+import shangkeschedule.shared.generated.resources.morning_alarm_mode_hybrid
 
 /**
  * 常规设置卡片 UI 组件 (Android 专属)。
@@ -111,6 +115,7 @@ fun GeneralSettingsCard(
     onRemindTimeClick: () -> Unit,
     onMorningAlarmToggle: (Boolean) -> Unit,
     onMorningAlarmLeadClick: () -> Unit,
+    onMorningAlarmWeeklyClick: () -> Unit,
     onOpenSystemAlarm: () -> Unit,
     onAppSettingsClick: () -> Unit,
     onBatteryOptimizationClick: () -> Unit,
@@ -269,6 +274,15 @@ fun GeneralSettingsCard(
                 }
             )
             if (uiState.morningAlarmEnabled) {
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.morning_alarm_schedule_mode),
+                    subtitle = stringResource(
+                        if (uiState.morningAlarmMode == MorningAlarmMode.HYBRID_WEEKLY)
+                            Res.string.morning_alarm_mode_hybrid else Res.string.morning_alarm_mode_daily
+                    ),
+                    onClick = onMorningAlarmWeeklyClick
+                )
                 SectionDivider()
                 // 闹钟提前量（独立于课程提醒的课前提醒时间）
                 SettingItem(

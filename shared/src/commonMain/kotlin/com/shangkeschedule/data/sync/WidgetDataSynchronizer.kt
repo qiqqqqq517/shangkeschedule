@@ -150,7 +150,7 @@ class WidgetDataSynchronizer(
                     settings.autoModeEnabled to settings.autoControlMode,
                     settings.compatWearableSync,
                     settings.dynamicIslandEnabled,
-                    settings.morningAlarmEnabled to settings.morningAlarmLeadMinutes
+                    Triple(settings.morningAlarmEnabled, settings.morningAlarmLeadMinutes, settings.morningAlarmWeeklyRevision)
                 )
             }
             .distinctUntilChanged()

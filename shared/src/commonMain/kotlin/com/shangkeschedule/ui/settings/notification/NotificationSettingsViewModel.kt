@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.shangkeschedule.data.api.date.ApiDateImporter
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AutoControlMode
+import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
@@ -39,6 +41,9 @@ sealed interface NotificationDialogType {
 
     /** 编辑早八闹钟的提前分钟数。 */
     data object EditMorningAlarmLead : NotificationDialogType
+
+    /** 配置用户自行核对的每周系统闹钟。 */
+    data object EditMorningAlarmWeekly : NotificationDialogType
 }
 
 /**
@@ -74,6 +79,8 @@ data class NotificationSettingsUiState(
     val examCountdownReminderEnabled: Boolean = false,
     val morningAlarmEnabled: Boolean = false,
     val morningAlarmLeadMinutes: Int = 45,
+    val morningAlarmMode: MorningAlarmMode = MorningAlarmMode.SMART_DAILY,
+    val morningAlarmWeeklyTimes: Map<Int, String> = emptyMap(),
     val nextMorningAlarm: MorningAlarmPlan.MorningAlarm? = null,
     val activeDialog: NotificationDialogType = NotificationDialogType.None
 )
@@ -118,7 +125,9 @@ class NotificationSettingsViewModel(
                     nextClassNotificationEnabled = settings.nextClassNotificationEnabled,
                     examCountdownReminderEnabled = settings.examCountdownReminderEnabled,
                     morningAlarmEnabled = settings.morningAlarmEnabled,
-                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes
+                    morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes,
+                    morningAlarmMode = settings.morningAlarmMode,
+                    morningAlarmWeeklyTimes = settings.morningAlarmWeeklyTimes
                 )
                 refreshMorningAlarmPreview()
             }
@@ -232,6 +241,14 @@ class NotificationSettingsViewModel(
             dismissDialog()
         }
     }
+
+    /** 保存后回读完整快照，供平台侧绑定当前 revision 进行人工确认。 */
+    suspend fun saveMorningAlarmSchedule(mode: MorningAlarmMode, times: Map<Int, String>, revision: String): AppSettingsModel {
+        appSettingsRepository.updateMorningAlarmSchedule(mode, times, revision)
+        return appSettingsRepository.getAppSettingsOnce()
+    }
+
+    suspend fun currentMorningAlarmSchedule(): AppSettingsModel = appSettingsRepository.getAppSettingsOnce()
 
     /**
      * 保存提前提醒分钟数并关闭弹窗

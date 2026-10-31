@@ -33,3 +33,5 @@ Remove-Variable releaseToken,headers
 ```
 
 核对正式状态、tag 指向发布提交，继续主手册 §5–§7。API 返回已有同名 Release 时查询并核验现有草稿，不能盲目重建。
+
+REST 直接转正式不会自动调用本地百度同步入口。转正式成功后，从 `$apks` 中确认唯一 arm64 包并运行 `python scripts/release_baidu_sync.py --version $version --apk <arm64包完整路径>`；该入口会识别 Release 已发布并只执行同步，不部署官网。如果 `gh release view` 也不可用，则保留待办并报告百度同步未完成，不能把 REST 发布成功当作同步成功。

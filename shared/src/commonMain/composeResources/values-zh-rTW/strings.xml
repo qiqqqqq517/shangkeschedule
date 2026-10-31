@@ -276,10 +276,26 @@
     <string name="item_course_reminder">課程提醒</string>
     <string name="desc_course_reminder">每節課前按下方的提前量推送提醒通知；課程或時間變動後自動重排</string>
     <string name="item_morning_alarm">早八鬧鐘</string>
+    <string name="morning_alarm_schedule_mode">早八鬧鐘安排</string>
+    <string name="morning_alarm_mode_daily">按課表逐日設定</string>
+    <string name="morning_alarm_mode_hybrid">每週重複與逐日結合</string>
+    <string name="morning_weekly_title">設定每週重複鬧鐘</string>
+    <string name="morning_weekly_info">選擇響鈴星期和時間，逐項前往系統時鐘設定；未選擇的星期繼續按課表逐日提醒。放假、單雙週和調課無法自動關閉重複鬧鐘，請在系統時鐘手動調整。</string>
+    <string name="morning_weekly_warning">請先在系統時鐘關閉舊的重複和單次鬧鐘，避免重複響鈴。切回逐日時也須手動關閉每週鬧鐘。修改提前量、開關或還原備份後須重新核對；核對前逐日鬧鐘可能與舊週鬧鐘同時響。</string>
+    <string name="morning_weekly_set">前往設定</string>
+    <string name="morning_weekly_time">時間（HH:mm）</string>
+    <string name="morning_weekly_ack">我已核對所選每週鬧鐘，並在系統時鐘關閉舊的上課單次和重複鬧鐘</string>
+    <string name="morning_weekly_confirm">確認並啟用</string>
+    <string name="morning_weekly_daily">切回逐日</string>
+    <string name="morning_weekly_error">請檢查時間格式，並設定預設時鐘應用程式後再確認</string>
+    <string name="morning_weekly_clock_error">無法開啟系統時鐘，請手動設定並核對</string>
+    <string name="morning_weekly_disable_title">關閉早八鬧鐘</string>
+    <string name="morning_weekly_disable_note">系統中的每週重複鬧鐘不會自動關閉。請先前往系統時鐘手動關閉，再返回確認。</string>
+    <string name="morning_weekly_open_clock">開啟系統時鐘</string>
     <string name="desc_morning_alarm">把最近一次早八時間寫入系統時鐘，之後每天自動往後順延</string>
-    <string name="desc_morning_alarm_managed_in_clock">鬧鐘寫入後由系統時鐘管理：修改或刪除都請到時鐘應用程式裡操作</string>
+    <string name="desc_morning_alarm_managed_in_clock">鬧鐘寫入後由系統時鐘管理。課表變更時請到時鐘應用程式檢查並調整既有鬧鐘；部分手機會保留響過的鬧鐘，可在那裡手動清理。</string>
     <string name="item_morning_alarm_lead">鬧鐘提前量</string>
-    <string name="morning_alarm_preview_title">下一個鬧鐘</string>
+    <string name="morning_alarm_preview_title">預計下次早八</string>
     <string name="morning_alarm_preview_format">%1$s %2$s · 第一節 %3$s %4$s</string>
     <string name="morning_alarm_preview_none">近期沒有需要早起的課程</string>
     <string name="item_remind_time_before">課前提醒時間</string>
@@ -473,7 +489,7 @@
     
     <!-- 更多設定 -->
     <string name="item_developer_options">開發者選項</string>
-    <string name="error_sync_calendar_failed">同步失敗，請檢查行事曆權限</string>
+    <string name="error_sync_calendar_failed">同步失敗，請檢查課表、學期設定和行事曆權限</string>
     <string name="title_more_options">更多</string>
     <string name="a11y_app_icon">應用程式圖示</string>
     <string name="label_special_thanks">特別鳴謝</string>

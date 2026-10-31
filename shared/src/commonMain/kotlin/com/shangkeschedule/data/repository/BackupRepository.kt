@@ -11,6 +11,8 @@ import com.shangkeschedule.data.db.main.MainAppDatabase
 import com.shangkeschedule.data.db.main.ScheduleEvent
 import com.shangkeschedule.data.db.main.TodoItem
 import com.shangkeschedule.data.model.AppThemeMode
+import com.shangkeschedule.data.model.MorningAlarmMode
+import com.shangkeschedule.data.model.MorningAlarmWeeklyTimes
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.CourseImportExport
@@ -741,6 +743,7 @@ class BackupRepository(
          *     故恢复链路向前兼容，无需迁移旧数据。
          * v4：新增培养方案学分要求、绩点制、两个常驻通知开关（下一节课 / 考试倒计时）；
          *     同样全可空，旧备份恢复时保留设备现值。
+         * v4 的可选扩展：早八模式和每周时间；旧版可忽略未知字段。
          */
         const val APP_SETTINGS_SCHEMA_VERSION = 4
     }
@@ -793,6 +796,8 @@ class BackupRepository(
                 profileAvatarPath = settings.profileAvatarPath,
                 morningAlarmEnabled = settings.morningAlarmEnabled,
                 morningAlarmLeadMinutes = settings.morningAlarmLeadMinutes,
+                morningAlarmMode = settings.morningAlarmMode.name,
+                morningAlarmWeeklyTimes = MorningAlarmWeeklyTimes.normalize(settings.morningAlarmWeeklyTimes),
                 // v4：学业要求 / 绩点制 / 常驻通知开关
                 creditRequirements = CreditRequirement.encode(settings.creditRequirements),
                 gpaScale = settings.gpaScale.name,
@@ -898,6 +903,9 @@ class BackupRepository(
                 morningAlarmEnabled = bm.morningAlarmEnabled ?: currentSettings.morningAlarmEnabled,
                 morningAlarmLeadMinutes = (bm.morningAlarmLeadMinutes ?: currentSettings.morningAlarmLeadMinutes)
                     .coerceIn(0, 180),
+                morningAlarmMode = MorningAlarmMode.parseOrNull(bm.morningAlarmMode) ?: currentSettings.morningAlarmMode,
+                morningAlarmWeeklyTimes = bm.morningAlarmWeeklyTimes?.let(MorningAlarmWeeklyTimes::normalize)
+                    ?: currentSettings.morningAlarmWeeklyTimes,
                 // v4 可空字段：旧备份 ⇒ null ⇒ 保留设备现值
                 creditRequirements = bm.creditRequirements?.let { raw -> CreditRequirement.decode(raw) }
                     ?: currentSettings.creditRequirements,

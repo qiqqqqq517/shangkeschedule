@@ -9,6 +9,8 @@
 
 完整发版必须完成：CHANGELOG → 发布提交双端同步 → 构建 → 三包校验 → GitHub Release → 官网单独提交并部署 → arm64 归档 → 夸克同步 → 日志与 IMA。失败或待授权的环节如实保留为未完成。
 
+用户明确要求不部署官网时，本轮不执行官网部署，记录该环节未完成；百度网盘与本地官网配置可按授权继续同步。
+
 - **本地/CI 二选一**，两者均可用于正式发布，实际产物均须过同一套校验。`android-build.yml` 仅手动 `workflow_dispatch`，环境为 `Release-Signing`。
 - 对外发布用手动 `gh release create`；`android-release.yml` 保持 disabled，不启用自动发布链路。
 - 构建输入必须对应明确且已推送的发布提交；不混入其他会话改动，不重复 bump 已迭代版本。
@@ -126,15 +128,24 @@ gh release create "v$version" --draft --target $releaseSha --title "v$version ·
 ```powershell
 $env:PYTHONUTF8=1
 python scripts/check_release_body.py "v$version"
-# 上条门禁通过且三资产名称/体积均正确后才转正式
+# 上条门禁通过且三资产名称/体积/哈希均正确后才转正式
 gh release view "v$version" --json isDraft,isPrerelease,assets
-gh release edit "v$version" --draft=false
+$arm64Apk=@($apks | Where-Object { $_.Name -eq "shangke-v$version-arm64-v8a-release.apk" })
+if ($arm64Apk.Count -ne 1) { throw '未找到唯一的 arm64 正式包' }
+python scripts/release_baidu_sync.py --version $version --apk $($arm64Apk[0].FullName)
+if ($LASTEXITCODE -ne 0) { throw '正式发布或百度同步失败；先检查结果并修复后重试' }
 git ls-remote --tags origin "refs/tags/v$version*"
 ```
 
 收尾核对 `draft=false/prerelease=false`、三资产名称/体积/SHA-256 与已校验本地文件一致、正文与 CHANGELOG 一致、tag 指向 `$releaseSha`（annotated tag 看解引用提交），同步 gitee 的该 tag。
 
+`release_baidu_sync.py` 在转正式前核对百度授权、官网版本、现有分享链接格式及 arm64 资产 SHA-256；转正式成功后立即同步安装包到百度网盘，保留用户指定的分享链接和官网配置，不执行官网部署。如果百度同步失败，Release 可能已经发布：保留现场，修复授权或网络后重新执行同一命令；已转正式的 Release 不会再次转正式。通过其他途径直接发布 Release 不会触发此本地脚本。
+
 ## 5. 官网：同步、单独提交、部署、线上核验
+
+百度网盘同步已由 §4 的发布命令触发。需要先安装并授权百度官方 `bdpan` CLI，并在其授权目录创建「上课」文件夹；令牌留在本机，不写进仓库。脚本上传到「上课」，不覆盖同名文件，并保留现有百度分享地址；仅当上述步骤成功后继续后续官网处理。
+
+上传元数据校验不等于逐字节下载校验；应检查现有分享是否可访问、提取码可用，并确认新版本确实出现在访客可见的分享中。现有分享对后续新增文件是否自动更新尚未验证，不能仅凭上传成功就宣称访客可下载新版本。失败时保留实际结果并停止官网部署。百度 CLI 安装与授权见[官方项目](https://github.com/baidu-netdisk/bdpan-storage)。
 
 ```powershell
 python tools/update_website.py --no-deploy

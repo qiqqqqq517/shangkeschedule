@@ -18,6 +18,7 @@ import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.morning.pendingMorningAlarms
 import com.shangkeschedule.tool.ExternalTextImport
 import com.shangkeschedule.widget.WidgetRoute
 import com.shangkeschedule.widget.WidgetRouteHandoff
@@ -146,7 +147,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                     days = 7,
                     leadMinutes = settings.morningAlarmLeadMinutes
                 )
-                MorningAlarmWriter(applicationContext, now).sync(plan)
+                MorningAlarmWriter(applicationContext, now).sync(pendingMorningAlarms(applicationContext, settings, plan))
             }.onFailure { Log.w(TAG, "前台补写早八闹钟失败", it) }
         }
     }

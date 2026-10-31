@@ -1,6 +1,7 @@
 package com.shangkeschedule.service.notification.morning
 
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
 import com.shangkeschedule.notification.registry.MorningAlarmRegistry
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -8,6 +9,10 @@ import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * 早八闹钟差分逻辑单测。
@@ -24,6 +29,34 @@ import org.junit.Test
  * 本测试锁死这个契约——它直接决定用户的系统闹钟列表会不会被污染。
  */
 class MorningAlarmDiffTest {
+
+    @Test
+    fun concurrentSyncRequestsOnlyWriteOnce() {
+        val executor = Executors.newFixedThreadPool(2)
+        val ready = CyclicBarrier(2)
+        val writes = AtomicInteger()
+        val registry = java.util.concurrent.ConcurrentHashMap<String, String>()
+        val target = alarm("2026-09-28", 8, 0, 7, 15)
+        try {
+            val tasks = (1..2).map {
+                executor.submit {
+                    ready.await(5, TimeUnit.SECONDS)
+                    MorningAlarmSyncGate.run {
+                        val actions = MorningAlarmDiff.diff(listOf(target), registry.toMap())
+                        if (actions.isNotEmpty()) {
+                            Thread.sleep(100)
+                            writes.incrementAndGet()
+                            registry[target.courseDate.toString()] = MorningAlarmPlan.label(target)
+                        }
+                    }
+                }
+            }
+            tasks.forEach { it.get(5, TimeUnit.SECONDS) }
+            assertEquals("并发请求只能写入一次", 1, writes.get())
+        } finally {
+            executor.shutdownNow()
+        }
+    }
 
     private fun alarm(
         date: String,
@@ -91,19 +124,15 @@ class MorningAlarmDiffTest {
     }
 
     @Test
-    fun staleDateIsNeverDismissedWhenUnsupported() {
+    fun pendingOldDateBlocksNewDateWhenDismissUnsupported() {
         // 计划里已消失的日期：系统不支持删除时不得产出删除动作
         // （删不掉；产出动作会让调用方误以为清理成功）
-        val stale = alarm("2026-09-20", 8, 0, 7, 15)
-        val registry = mapOf("2026-09-20" to MorningAlarmPlan.label(stale))
+        val stale = alarm("2026-09-27", 8, 0, 7, 15)
+        val registry = mapOf("2026-09-27" to MorningAlarmPlan.label(stale))
         val newPlan = listOf(alarm("2026-09-28", 8, 0, 7, 15))
 
         val actions = MorningAlarmDiff.diff(newPlan, registry, allowDismiss = false)
-        assertTrue(
-            "不支持删除时不得产出删除动作，也不得重写新日期之外的条目",
-            actions.all { it is MorningAlarmDiff.Action.Write }
-        )
-        assertEquals(1, actions.size)
+        assertTrue("旧闹钟尚未到期且不能删除时，不应再写入新日期", actions.isEmpty())
     }
 
     @Test
@@ -119,15 +148,13 @@ class MorningAlarmDiffTest {
     }
 
     @Test
-    fun newDateAddedWhileOthersUnchanged() {
+    fun registeredPendingAlarmBlocksOtherDate() {
         val a = alarm("2026-09-28", 8, 0, 7, 15)
         val b = alarm("2026-09-29", 10, 30, 9, 45)
         val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(a))
 
         val actions = MorningAlarmDiff.diff(listOf(a, b), registry)
-        assertEquals("只有新增日期需要写入", 1, actions.size)
-        val write = actions[0] as MorningAlarmDiff.Action.Write
-        assertEquals("2026-09-29", write.alarm.courseDate.toString())
+        assertTrue("已有未到期闹钟时不增加另一条", actions.isEmpty())
     }
 
     @Test

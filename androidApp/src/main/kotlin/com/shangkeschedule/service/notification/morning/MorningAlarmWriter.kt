@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.notification.registry.MorningAlarmRegistry
+import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
 import com.shangkeschedule.service.notification.alarm.ForegroundGate
 import com.shangkeschedule.service.notification.notify.MorningAlarmNotifier
 import kotlinx.datetime.LocalDateTime
@@ -106,7 +107,11 @@ class MorningAlarmWriter(
      *
      * @return 写入结果，供上层决定是否提示用户
      */
-    fun sync(plan: List<MorningAlarmPlan.MorningAlarm>): Result {
+    fun sync(plan: List<MorningAlarmPlan.MorningAlarm>): Result = MorningAlarmSyncGate.run {
+        syncLocked(plan)
+    }
+
+    private fun syncLocked(plan: List<MorningAlarmPlan.MorningAlarm>): Result {
         if (!hasClockApp()) {
             Log.w(TAG, "无可用系统时钟应用，早八闹钟降级为应用内提醒")
             return Result.NoClockApp
@@ -158,6 +163,11 @@ class MorningAlarmWriter(
 
         if (actions.isEmpty()) {
             if (persisted != registry) saveRegistry(persisted)
+            if (next != null && persisted.isNotEmpty() &&
+                persisted[next.courseDate.toString()]?.label != MorningAlarmPlan.label(next)
+            ) {
+                return Result.BlockedByExisting
+            }
             return Result.Unchanged
         }
 
@@ -314,6 +324,7 @@ class MorningAlarmWriter(
     sealed interface Result {
         /** 写入了 [count] 条闹钟。 */ data class Written(val count: Int) : Result
         /** 计划与已写入状态一致，无需改动（尊重用户改动）。 */ data object Unchanged : Result
+        /** 未到期的旧系统闹钟不能可靠删除，新计划尚未写入。 */ data object BlockedByExisting : Result
         /** 系统无可用时钟应用，需降级为应用内提醒。 */ data object NoClockApp : Result
         /**
          * 当前不在前台，写入会被后台启动限制静默拦下，故本次**不写也不登记**，

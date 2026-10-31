@@ -8,6 +8,9 @@ import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseTableConfigDao
 import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.model.AppSettingsModel
+import com.shangkeschedule.data.model.MorningAlarmMode
+import com.shangkeschedule.data.model.MorningAlarmWeeklyTimes
+import com.shangkeschedule.data.model.newMorningAlarmWeeklyRevision
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
@@ -26,6 +29,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -100,6 +105,10 @@ class AppSettingsRepository(
     private val courseTableDao: CourseTableDao,
     private val courseTableConfigDao: CourseTableConfigDao
 ) {
+    private val settingsScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** 关闭仓储生命周期前，等待共享流停止访问数据源。 */
+    internal suspend fun close() { settingsScope.coroutineContext[Job]?.cancelAndJoin() }
     // ------------------------------------------------------------------
     // 「只在本机」数据的存储边界（v4.67.16）
     //
@@ -175,7 +184,7 @@ class AppSettingsRepository(
     ) { prefs, dbFirstTableId ->
         AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
     }.shareIn(
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        scope = settingsScope,
         started = SharingStarted.WhileSubscribed(5000),
         replay = 1
     )
@@ -374,7 +383,12 @@ class AppSettingsRepository(
 
     /** 单独持久化早八闹钟开关。 */
     suspend fun updateMorningAlarmEnabled(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] = enabled }
+        dataStore.edit { prefs ->
+            if ((prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] ?: false) != enabled) {
+                prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_REVISION] = newMorningAlarmWeeklyRevision()
+            }
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] = enabled
+        }
     }
 
     /**
@@ -383,7 +397,26 @@ class AppSettingsRepository(
      */
     suspend fun updateMorningAlarmLeadMinutes(minutes: Int) {
         val clamped = minutes.coerceIn(0, 180)
-        dataStore.edit { prefs -> prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] = clamped }
+        dataStore.edit { prefs ->
+            if ((prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] ?: 45) != clamped) {
+                prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_REVISION] = newMorningAlarmWeeklyRevision()
+            }
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] = clamped
+        }
+    }
+
+    /** 原子保存用户确认的模式和周计划；每次保存都使旧设备确认失效。 */
+    suspend fun updateMorningAlarmSchedule(
+        mode: MorningAlarmMode,
+        weeklyTimes: Map<Int, String>,
+        revision: String = newMorningAlarmWeeklyRevision()
+    ) {
+        require(revision.matches(Regex("[A-Za-z0-9-]{1,80}")))
+        dataStore.edit { prefs ->
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_MODE] = mode.name
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_TIMES] = MorningAlarmWeeklyTimes.encode(weeklyTimes)
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_REVISION] = revision
+        }
     }
 
     /**
@@ -417,6 +450,11 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_MORNING_ALARM_ENABLED] = settings.morningAlarmEnabled
             prefs[AppSettingsModel.KEY_MORNING_ALARM_LEAD_MINUTES] =
                 settings.morningAlarmLeadMinutes.coerceIn(0, 180)
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_MODE] = settings.morningAlarmMode.name
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_TIMES] =
+                MorningAlarmWeeklyTimes.encode(settings.morningAlarmWeeklyTimes)
+            // 即使恢复的是同一份方案，也必须使本机已有确认失效；版本不从备份导入。
+            prefs[AppSettingsModel.KEY_MORNING_ALARM_WEEKLY_REVISION] = newMorningAlarmWeeklyRevision()
             // 常驻通知开关
             prefs[AppSettingsModel.KEY_NEXT_CLASS_NOTIFICATION_ENABLED] =
                 settings.nextClassNotificationEnabled

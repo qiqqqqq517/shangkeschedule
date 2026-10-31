@@ -2,6 +2,9 @@ package com.shangkeschedule.ui.settings.notification
 
 import android.Manifest
 import android.os.Build
+import com.shangkeschedule.ui.components.AppAlertDialog as AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -16,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.shangkeschedule.data.model.AutoControlMode
+import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.ui.components.ToastManager
 import org.jetbrains.compose.resources.stringResource
 import shangkeschedule.shared.generated.resources.Res
@@ -24,6 +28,11 @@ import shangkeschedule.shared.generated.resources.auto_mode_off
 import shangkeschedule.shared.generated.resources.auto_mode_silent
 import shangkeschedule.shared.generated.resources.toast_enable_reminder_first
 import shangkeschedule.shared.generated.resources.toast_notification_permission_denied
+import shangkeschedule.shared.generated.resources.morning_weekly_disable_title
+import shangkeschedule.shared.generated.resources.morning_weekly_disable_note
+import shangkeschedule.shared.generated.resources.morning_weekly_open_clock
+import shangkeschedule.shared.generated.resources.action_confirm
+import shangkeschedule.shared.generated.resources.action_cancel
 
 /**
  * 平台通用的常规设置区块实现（Android 端）
@@ -43,6 +52,7 @@ actual fun PlatformGeneralSettingsSection(
     // 同样的「先授权后补开」意图，分别对应新增的两个通知开关
     var pendingNextClassNotificationEnable by remember { mutableStateOf(false) }
     var pendingExamCountdownReminderEnable by remember { mutableStateOf(false) }
+    var showWeeklyDisableWarning by remember { mutableStateOf(false) }
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -154,10 +164,15 @@ actual fun PlatformGeneralSettingsSection(
             // 早八闹钟是**独立**能力：调度器（syncMorningAlarm）只判 morningAlarmEnabled，
             // 与课程提醒总开关无关。真机验证时曾误加「需先开课程提醒」门控，
             // 导致只想早八起床、不要课前提醒的用户无法开启——已移除该耦合。
-            viewModel.updateMorningAlarmEnabled(isEnabled)
+            if (!isEnabled && uiState.morningAlarmMode == MorningAlarmMode.HYBRID_WEEKLY) {
+                showWeeklyDisableWarning = true
+            } else viewModel.updateMorningAlarmEnabled(isEnabled)
         },
         onMorningAlarmLeadClick = {
             viewModel.showDialog(NotificationDialogType.EditMorningAlarmLead)
+        },
+        onMorningAlarmWeeklyClick = {
+            viewModel.showDialog(NotificationDialogType.EditMorningAlarmWeekly)
         },
         onOpenSystemAlarm = {
             // 直达系统闹钟列表页，用户可在那里直接修改/停用本应用写入的闹钟
@@ -166,6 +181,28 @@ actual fun PlatformGeneralSettingsSection(
         onAppSettingsClick = { openAppSettings(context) },
         onBatteryOptimizationClick = { openIgnoreBatteryOptimizationSettings(context) }
     )
+
+    if (showWeeklyDisableWarning) {
+        AlertDialog(
+            onDismissRequest = { showWeeklyDisableWarning = false },
+            title = { Text(stringResource(Res.string.morning_weekly_disable_title)) },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text(stringResource(Res.string.morning_weekly_disable_note))
+                    TextButton(onClick = { openSystemAlarmList(context) }) {
+                        Text(stringResource(Res.string.morning_weekly_open_clock))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = {
+                viewModel.updateMorningAlarmEnabled(false)
+                showWeeklyDisableWarning = false
+            }) { Text(stringResource(Res.string.action_confirm)) } },
+            dismissButton = { TextButton(onClick = { showWeeklyDisableWarning = false }) {
+                Text(stringResource(Res.string.action_cancel))
+            } }
+        )
+    }
 }
 
 /**

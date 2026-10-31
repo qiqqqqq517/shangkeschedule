@@ -9,6 +9,7 @@ import com.shangkeschedule.data.di.AppStorage
 import com.shangkeschedule.data.model.CourseImportExport.CourseTableImportModel
 import com.shangkeschedule.data.model.CourseImportExport.ImportCourseJsonModel
 import com.shangkeschedule.data.model.GpaScale
+import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.parser.UniversalScheduleParser
 import com.shangkeschedule.data.repository.*
@@ -63,9 +64,26 @@ class ProjectAuditRegressionTest {
         tables.insert(CourseTable("table", "样本课表", 1))
         conversion.importCourseTableFromJson("table", CourseTableImportModel(listOf(courseJson)))
     }
-    @AfterTest fun tearDown() {
+    @AfterTest fun tearDown() = runBlocking {
+        tableRepo.close()
+        style.close()
+        settings.close()
         db.close()
         FileSystem.SYSTEM.deleteRecursively(root)
+    }
+
+    @Test fun weeklyAlarmBackupRestoresPlanButInvalidatesDeviceConfirmation() = runBlocking {
+        settings.updateMorningAlarmSchedule(MorningAlarmMode.HYBRID_WEEKLY, mapOf(1 to "07:15", 3 to "08:00"))
+        val original = settings.getAppSettingsOnce()
+        val bytes = backup.exportAppSettingsBytes()!!
+        settings.updateMorningAlarmSchedule(MorningAlarmMode.SMART_DAILY, emptyMap())
+        val changed = settings.getAppSettingsOnce()
+        backup.restoreAppSettingsBytes(bytes).getOrThrow()
+        val restored = settings.getAppSettingsOnce()
+        assertEquals(MorningAlarmMode.HYBRID_WEEKLY, restored.morningAlarmMode)
+        assertEquals(mapOf(1 to "07:15", 3 to "08:00"), restored.morningAlarmWeeklyTimes)
+        assertNotEquals(original.morningAlarmWeeklyRevision, restored.morningAlarmWeeklyRevision)
+        assertNotEquals(changed.morningAlarmWeeklyRevision, restored.morningAlarmWeeklyRevision)
     }
 
     @Test fun changedImportedScoreInvalidatesOldGradePoint() = runBlocking {

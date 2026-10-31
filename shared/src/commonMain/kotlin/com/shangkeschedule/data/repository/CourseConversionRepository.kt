@@ -702,7 +702,7 @@ class CourseConversionRepository(
     suspend fun syncCurrentTableToSystemCalendar(): Boolean {
         val appSettings = appSettingsRepository.getAppSettingsOnce()
         val currentTableId = appSettings.currentCourseTableId
-        if (currentTableId.isEmpty()) return true
+        if (currentTableId.isEmpty()) return false
 
         val courses = courseDao.getCoursesWithWeeksByTableId(currentTableId).first()
         val alarmMinutes = appSettings.remindBeforeMinutes
@@ -711,10 +711,10 @@ class CourseConversionRepository(
 
         val semesterStartDate = courseConfig?.semesterStartDate?.let {
             try { LocalDate.parse(it) } catch (_: Exception) { null }
-        } ?: return true
+        } ?: return false
 
         if (courseConfig.semesterTotalWeeks <= 0 || courses.isEmpty()) {
-            return true
+            return false
         }
 
         return CalendarAccountManager.syncCurrentTableToSystemCalendar(

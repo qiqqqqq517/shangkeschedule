@@ -7,6 +7,7 @@ import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.morning.pendingMorningAlarms
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
 import kotlinx.datetime.LocalDate
@@ -52,11 +53,12 @@ internal class MorningAlarmScheduler(
             days = days,
             leadMinutes = settings.morningAlarmLeadMinutes
         )
-        val result = MorningAlarmWriter(context, now).sync(plan)
+        val pending = pendingMorningAlarms(context, settings, plan)
+        val result = MorningAlarmWriter(context, now).sync(pending)
         if (result is MorningAlarmWriter.Result.NoClockApp) {
             // 系统没有可用时钟应用：降级为应用内闹钟（高优先级 + 闹钟铃声通知），
             // 否则用户开了早八闹钟却什么也收不到。
-            scheduleFallback(plan, now)
+            scheduleFallback(pending, now)
         }
         return result
     }

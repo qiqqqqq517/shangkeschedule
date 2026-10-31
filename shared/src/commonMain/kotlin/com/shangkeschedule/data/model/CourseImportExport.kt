@@ -265,6 +265,8 @@ object CourseImportExport {
         // 可空：旧备份缺字段 ⇒ 解码为 null ⇒ 恢复时保留设备现值
         val morningAlarmEnabled: Boolean? = null,
         val morningAlarmLeadMinutes: Int? = null,
+        val morningAlarmMode: String? = null,
+        val morningAlarmWeeklyTimes: Map<Int, String>? = null,
 
         // ---- v4 新增：学业要求 / 绩点制 / 常驻通知开关 ----
         // 同样可空：旧备份缺字段 ⇒ null ⇒ 恢复时保留设备现值

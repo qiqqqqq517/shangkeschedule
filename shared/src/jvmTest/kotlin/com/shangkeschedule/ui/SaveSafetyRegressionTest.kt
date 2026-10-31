@@ -45,11 +45,12 @@ class SaveSafetyRegressionTest {
     private val store = ViewModelStore()
     private var vmCount = 0
     private val jobs = mutableListOf<Job>()
+    private val repositories = mutableListOf<CourseTableRepository>()
     private fun <T : ViewModel> keep(vm: T): T = vm.also {
         jobs += it.viewModelScope.coroutineContext[Job]!!
         store.put("vm${vmCount++}", it)
     }
-    private fun tables(dao: CourseDao = db.courseDao()) = CourseTableRepository(db, db.courseTableDao(), dao, db.courseWeekDao(), slots, settings)
+    private fun tables(dao: CourseDao = db.courseDao()) = CourseTableRepository(db, db.courseTableDao(), dao, db.courseWeekDao(), slots, settings).also { repositories += it }
     private fun course(id: String, position: String = "A101") = Course(id, "table", "课程", "教师", position, 1, 1, 2, false, null, null, 0)
 
     @BeforeTest fun setup() = runBlocking {
@@ -61,8 +62,22 @@ class SaveSafetyRegressionTest {
     @AfterTest fun cleanup() = runBlocking {
         store.clear()
         jobs.forEach { it.join() }
+        repositories.forEach { it.close() }
+        style.close()
+        settings.close()
         db.close()
-        FileSystem.SYSTEM.deleteRecursively(root)
+        // Windows 上 SQLite 关闭后文件句柄可能稍晚释放；有限重试，超时仍报错。
+        var failure: IOException? = null
+        repeat(20) {
+            try {
+                FileSystem.SYSTEM.deleteRecursively(root)
+                return@runBlocking
+            } catch (e: IOException) {
+                failure = e
+                delay(100)
+            }
+        }
+        throw failure ?: IOException("无法清理测试临时目录")
     }
 
     @Test fun savingCustomSchemeDoesNotReportIdentityFieldsAsUnsaved() = runBlocking {

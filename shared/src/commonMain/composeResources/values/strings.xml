@@ -276,10 +276,26 @@
     <string name="item_course_reminder">课程提醒</string>
     <string name="desc_course_reminder">每节课前按下方提前量推送提醒通知；课程或时间变动后自动重排</string>
     <string name="item_morning_alarm">早八闹钟</string>
+    <string name="morning_alarm_schedule_mode">早八闹钟安排</string>
+    <string name="morning_alarm_mode_daily">按课表逐日设置</string>
+    <string name="morning_alarm_mode_hybrid">每周重复与逐日结合</string>
+    <string name="morning_weekly_title">设置每周重复闹钟</string>
+    <string name="morning_weekly_info">选择响铃星期和时间，逐项前往系统时钟设置；未选择的星期继续按课表逐日提醒。放假、单双周和调课无法自动关闭重复闹钟，请在系统时钟手动调整。</string>
+    <string name="morning_weekly_warning">请先在系统时钟关闭旧的重复和单次闹钟，避免重复响铃。切回逐日时也须手动关闭每周闹钟。修改提前量、开关或恢复备份后须重新核对；核对前逐日闹钟可能与旧周闹钟同时响。</string>
+    <string name="morning_weekly_set">前往设置</string>
+    <string name="morning_weekly_time">时间（HH:mm）</string>
+    <string name="morning_weekly_ack">我已核对选中的每周闹钟，并在系统时钟关闭旧的上课单次和重复闹钟</string>
+    <string name="morning_weekly_confirm">确认并启用</string>
+    <string name="morning_weekly_daily">切回逐日</string>
+    <string name="morning_weekly_error">请检查时间格式，并设置默认时钟应用后再确认</string>
+    <string name="morning_weekly_clock_error">无法打开系统时钟，请手动设置并核对</string>
+    <string name="morning_weekly_disable_title">关闭早八闹钟</string>
+    <string name="morning_weekly_disable_note">系统中的每周重复闹钟不会自动关闭。请先前往系统时钟手动关闭，再返回确认。</string>
+    <string name="morning_weekly_open_clock">打开系统时钟</string>
     <string name="desc_morning_alarm">把最近一次早八时间写入系统时钟，之后每天自动往后顺延</string>
-    <string name="desc_morning_alarm_managed_in_clock">闹钟写入后由系统时钟管理：修改或删除都请到时钟应用里操作</string>
+    <string name="desc_morning_alarm_managed_in_clock">闹钟写入后由系统时钟管理。课表变更时请到时钟应用检查并调整已有闹钟；部分手机会保留响过的闹钟，可在那里手动清理。</string>
     <string name="item_morning_alarm_lead">闹钟提前量</string>
-    <string name="morning_alarm_preview_title">下一个闹钟</string>
+    <string name="morning_alarm_preview_title">预计下次早八</string>
     <string name="morning_alarm_preview_format">%1$s %2$s · 第一节 %3$s %4$s</string>
     <string name="morning_alarm_preview_none">近期没有需要早起的课程</string>
     <string name="item_remind_time_before">课前提醒时间</string>
@@ -474,7 +490,7 @@
     <string name="item_sync_to_system_calendar">同步到系统日历</string>
     <string name="desc_sync_to_system_calendar">将当前课表一键同步至手机系统日历</string>
     <string name="toast_sync_calendar_success">同步成功</string>
-    <string name="error_sync_calendar_failed">同步失败，请检查日历权限</string>
+    <string name="error_sync_calendar_failed">同步失败，请检查课表、学期设置和日历权限</string>
 
     <!-- 更多设置 -->
     <string name="title_more_options">更多</string>

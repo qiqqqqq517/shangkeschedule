@@ -102,11 +102,13 @@ actual object CalendarAccountManager : KoinComponent {
             }
 
             override fun migrateLocalCalendar(id: Long): Boolean {
-                // 只改本包名专属 LOCAL 日历的账户类型，不删除/重建日历或事件。
+                // 单行 URI 不允许 selection；集合 URI 用账户和 ID 限定更新范围。
                 val values = ContentValues().apply { put(Calendars.ACCOUNT_TYPE, CalendarAccountIdentity.TYPE) }
                 val updated = contentResolver.update(
-                    calendarSyncAdapterUri(id, accountName, CalendarAccountIdentity.LEGACY_TYPE),
-                    values, "${Calendars.ACCOUNT_TYPE} = ?", arrayOf(CalendarAccountIdentity.LEGACY_TYPE)
+                    calendarSyncAdapterUri(null, accountName, CalendarAccountIdentity.LEGACY_TYPE),
+                    values,
+                    "${Calendars.ACCOUNT_NAME} = ? AND ${Calendars.ACCOUNT_TYPE} = ? AND ${Calendars._ID} = ?",
+                    arrayOf(accountName, CalendarAccountIdentity.LEGACY_TYPE, id.toString())
                 )
                 if (updated != 1) return false
                 // OEM Provider 可能忽略账户字段；回读确认后才能继续，失败时不另建副本。
@@ -205,7 +207,7 @@ actual object CalendarAccountManager : KoinComponent {
          * `startMillis` 不进指纹 —— 它是匹配键本身（见 [ExistingEvent]）。
          */
         val fingerprint: String
-            get() = "$endMillis|$title|$location|$description|${alarmMinutes ?: NO_ALARM}"
+            get() = calendarEventFingerprint(endMillis, title, location, description, alarmMinutes ?: NO_ALARM)
     }
 
     /**
@@ -227,9 +229,6 @@ actual object CalendarAccountManager : KoinComponent {
      * (课程, 周次) 只产出一个跨越全部连排节的实例）。它公开、可查可写、不参与任何
      * 重复规则解析，且课程改名 / 换教室时保持不变 —— 正好符合「同一堂课」的定义。
      */
-    /** 日历里已存在的一次课。 */
-    private class ExistingEvent(val eventId: Long, val fingerprint: String, val ownedByUs: Boolean)
-
     /** 本日历下的现状快照。 */
     private class ExistingSnapshot(
         /** 开始时刻 -> 已存在事件。 */
@@ -237,12 +236,7 @@ actual object CalendarAccountManager : KoinComponent {
         /**
          * 同一开始时刻出现多条事件时的**多余**那几条。
          *
-         * 达不到「一个时刻至多一条」就说明日历里混进了手工事件（或历史脏数据）。
-         * 它们必须被显式删掉，否则回读校验会永远对不上、每次同步都判失败。
-         *
-         * ⚠️ v4.68.2：**只删本应用写的那些**（`ownedByUs = true`）。
-         * 手工事件与本应用的课撞在同一时刻时，保留手工的那条 ——
-         * 删错的是用户数据，删对的只是「一条重复的课」，后者下次同步仍会补回来。
+         * 仅包含同一时刻多条本应用课程的多余项；手工事件始终保留。
          */
         val duplicateIds: List<Long>
     )
@@ -288,7 +282,7 @@ actual object CalendarAccountManager : KoinComponent {
                     NO_ALARM.toString()
                 )
             }
-        }
+        } ?: error("无法读取日历事件")
         if (rows.isEmpty()) return ExistingSnapshot(emptyMap(), emptyList())
 
         // 归并提醒分钟数（同一事件可能有多条提醒，取第一条即可 —— 我们只会建一条）
@@ -306,35 +300,13 @@ actual object CalendarAccountManager : KoinComponent {
                     fields[4] = c.getInt(minIdx).toString()
                 }
             }
-        }
+        } ?: error("无法读取日历提醒")
 
-        val byStart = LinkedHashMap<Long, ExistingEvent>()
-        val duplicates = ArrayList<Long>()
-        for ((id, fields) in rows) {
-            val start = startById[id] ?: continue
-            val description = fields[3]
-            val owned = CalendarOwnerMark.isOwnedBy(description)
-            // 指纹里的描述用**去掉标记的正文**，否则标记一旦变化就会把
-            // 「内容其实没变」误判成「变了」而全量重写。
-            val event = ExistingEvent(
-                eventId = id,
-                fingerprint = fields.toMutableList().apply { this[3] = CalendarOwnerMark.unmark(description).orEmpty() }
-                    .joinToString("|"),
-                ownedByUs = owned
-            )
-            val kept = byStart.put(start, event)
-            if (kept != null) {
-                // 同一时刻有两条：只把**本应用写的**那条当多余副本。
-                // 若两条都不是本应用写的（全是手工事件），一条都不动。
-                val redundant = when {
-                    kept.ownedByUs && !event.ownedByUs -> kept.eventId
-                    !kept.ownedByUs && event.ownedByUs -> id
-                    else -> id
-                }
-                duplicates.add(redundant)
-            }
-        }
-        return ExistingSnapshot(byStart, duplicates)
+        val indexed = indexCalendarEvents(rows.mapNotNull { (id, fields) ->
+            val start = startById[id] ?: return@mapNotNull null
+            CalendarEventRow(id, start, fields[0].toLong(), fields[1], fields[2], fields[3], fields[4].toInt())
+        })
+        return ExistingSnapshot(indexed.byStart, indexed.duplicateIds)
     }
 
     /** 回读校验：本日历下**由本应用写入**的事件条数。 */
@@ -347,7 +319,7 @@ actual object CalendarAccountManager : KoinComponent {
             null
         )
         var count = 0
-        cursor?.use {
+        (cursor ?: error("无法回读日历事件")).use {
             val descIdx = it.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
             // 只数本应用写的：用户手工加的事件不参与校验，否则它会让本应用
             // 每次同步都判「少写了事件」而反复失败。
@@ -505,7 +477,7 @@ actual object CalendarAccountManager : KoinComponent {
                 var updated = 0
                 var deleted = 0
 
-                // 2a. 同一开始时刻的多余副本（日历里混进了手工事件）→ 删
+                // 2a. 同一开始时刻多条本应用课程的多余副本 → 删
                 existing.duplicateIds.forEach {
                     ops.add(deleteOp(it))
                     deleted++
@@ -597,4 +569,31 @@ actual object CalendarAccountManager : KoinComponent {
 
     /** 「无提醒」在指纹里的哨兵值，与任何合法分钟数（0..60）都不冲突。 */
     private const val NO_ALARM = -1
+}
+
+internal data class ExistingEvent(val eventId: Long, val fingerprint: String, val ownedByUs: Boolean)
+internal data class CalendarEventRow(
+    val id: Long, val start: Long, val end: Long, val title: String,
+    val location: String, val description: String, val alarmMinutes: Int
+)
+internal data class CalendarEventIndex(val byStart: Map<Long, ExistingEvent>, val duplicateIds: List<Long>)
+
+internal fun calendarEventFingerprint(end: Long, title: String, location: String, description: String, alarmMinutes: Int): String =
+    "$end|$title|$location|${CalendarOwnerMark.unmark(description) ?: description}|$alarmMinutes"
+
+internal fun indexCalendarEvents(rows: List<CalendarEventRow>): CalendarEventIndex {
+    val byStart = LinkedHashMap<Long, ExistingEvent>()
+    val duplicates = ArrayList<Long>()
+    for (row in rows) {
+        val event = ExistingEvent(row.id,
+            calendarEventFingerprint(row.end, row.title, row.location, row.description, row.alarmMinutes),
+            CalendarOwnerMark.isOwnedBy(row.description))
+        val kept = byStart[row.start]
+        when {
+            kept == null -> byStart[row.start] = event
+            !kept.ownedByUs && event.ownedByUs -> byStart[row.start] = event
+            kept.ownedByUs && event.ownedByUs -> duplicates.add(event.eventId)
+        }
+    }
+    return CalendarEventIndex(byStart, duplicates)
 }
