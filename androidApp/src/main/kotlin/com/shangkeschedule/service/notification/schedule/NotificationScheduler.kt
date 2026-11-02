@@ -3,12 +3,14 @@ package com.shangkeschedule.service.notification.schedule
 import android.content.Context
 import android.util.Log
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.MorningAlarmSemesterRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.ReminderEngine
 import com.shangkeschedule.service.DynamicIslandManager
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.control.AutoModeScheduler
 import com.shangkeschedule.service.notification.morning.MorningAlarmScheduler
+import com.shangkeschedule.service.notification.morning.MorningAlarmCoordinator
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
 import com.shangkeschedule.service.notification.notify.ExamCountdownNotifier
 import com.shangkeschedule.service.notification.notify.NextClassNotifier
@@ -157,8 +159,18 @@ class NotificationScheduler(
         val reminderCount = guard("课程提醒") { courseReminders.sync(settings, effective, now) } ?: 0
         val autoModeCount = guard("自动模式") { autoMode.sync(settings, effective, now) } ?: 0
         // 早八要自己判断「某天是否还有课」，故传**原始**课程 + 窗口天数
-        val morningResult = guard("早八闹钟") {
-            morningAlarms.sync(settings, courses, WINDOW_DAYS, today, now)
+        val morningResult = try {
+            when (val outcome = MorningAlarmCoordinator(context, appSettingsRepository, NotificationSchedulerDeps.morningAlarmSemesterRepository)
+                .run(settings, now) { current -> morningAlarms.sync(current, courses, WINDOW_DAYS, today, now) }) {
+                is MorningAlarmCoordinator.Outcome.Executed -> outcome.value
+                MorningAlarmCoordinator.Outcome.ReviewRequired -> null
+                MorningAlarmCoordinator.Outcome.Stale -> { failedStrategies++; null }
+            }
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            failedStrategies++
+            Log.e(TAG, "早八闹钟排程失败，其余策略继续", error)
+            null
         }
 
         // 「下一节课」常驻通知（G1）：复用同一份有效课程与同一个「今天/此刻」，
@@ -255,4 +267,5 @@ class NotificationScheduler(
  */
 private object NotificationSchedulerDeps : KoinComponent {
     val dynamicIslandManager: DynamicIslandManager by inject()
+    val morningAlarmSemesterRepository: MorningAlarmSemesterRepository by inject()
 }

@@ -7,6 +7,8 @@ import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
+import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
 import com.shangkeschedule.notification.morning.pendingMorningAlarms
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
@@ -53,14 +55,17 @@ internal class MorningAlarmScheduler(
             days = days,
             leadMinutes = settings.morningAlarmLeadMinutes
         )
-        val pending = pendingMorningAlarms(context, settings, plan)
-        val result = MorningAlarmWriter(context, now).sync(pending)
-        if (result is MorningAlarmWriter.Result.NoClockApp) {
-            // 系统没有可用时钟应用：降级为应用内闹钟（高优先级 + 闹钟铃声通知），
-            // 否则用户开了早八闹钟却什么也收不到。
-            scheduleFallback(pending, now)
+        return MorningAlarmSyncGate.runIfReviewed(WeeklyAlarmConfirmationStore(context)) {
+            val pending = pendingMorningAlarms(context, settings, plan)
+            val result = MorningAlarmWriter(context, now).sync(pending)
+            val next = MorningAlarmPlan.nextUpcoming(pending, now)
+            MorningAlarmWriteStatusReporter.report(context, result, next?.let { LocalDateTime(it.alarmDate, it.alarmTime) })
+            if (result is MorningAlarmWriter.Result.NoClockApp) {
+                // 系统没有可用时钟应用时，降级为应用内闹钟。
+                scheduleFallback(pending, now)
+            }
+            result
         }
-        return result
     }
 
     /**

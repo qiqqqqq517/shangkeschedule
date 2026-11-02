@@ -27,6 +27,8 @@
 
     <!-- Morning alarm (written into the system clock app) -->
     <string name="notification_title_morning_alarm">Morning alarm</string>
+    <string name="morning_alarm_review_notification_title">Check your morning alarms</string>
+    <string name="morning_alarm_review_notification_text">Your timetable or alarm settings need review. Existing clock alarms may still ring. Open notification settings in the app to check them.</string>
     <string name="notification_text_morning_alarm_format">First class %1$s at %2$s — time to head out</string>
     <string name="notification_channel_morning_alarm">Morning alarm</string>
     <string name="notification_channel_morning_alarm_desc">In-app morning reminder used when no system clock app is available</string>
@@ -169,4 +171,11 @@
     <string name="widget_desc_week_courses">The full week timetable</string>
     <string name="widget_desc_agenda_list">To-dos, activities and homework</string>
     <string name="widget_desc_exam_countdown">Countdown to your next exam</string>
+    <string name="morning_alarm_write_title">Check your morning alarm</string>
+    <string name="morning_alarm_write_blocked">An old alarm is still pending, so the new one was not added. Manage old alarms in your clock, then review morning alarm settings.</string>
+    <string name="morning_alarm_write_deferred">The new alarm has not been added. Open the app and check morning alarm settings.</string>
+    <string name="morning_alarm_write_not_expressible">The system clock cannot set an alarm for this date yet. Open the app and check again closer to class.</string>
+    <string name="morning_alarm_write_failed">The system clock could not be opened and the alarm was not added. Check morning alarm settings.</string>
+    <string name="morning_alarm_write_no_clock">No system clock was found. In-app reminders may not be available; check morning alarm settings.</string>
+    <string name="morning_alarm_write_unknown">The morning alarm status is unknown. Check morning alarm settings.</string>
 </resources>

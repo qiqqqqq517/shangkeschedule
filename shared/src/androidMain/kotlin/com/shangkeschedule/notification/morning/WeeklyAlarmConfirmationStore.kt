@@ -20,6 +20,33 @@ class WeeklyAlarmConfirmationStore internal constructor(private val directory: F
     constructor(context: Context) : this(context.noBackupFilesDir)
 
     private val file get() = File(directory, "morning_weekly_confirmation.txt")
+    private val reviewMarker get() = File(directory, "morning_weekly_review_pending")
+
+    /** 核对中或存储不可读时，不得把闹钟状态视为已确认。 */
+    fun requiresReview(): Boolean = synchronized(lock) {
+        !directory.isDirectory || !Files.notExists(reviewMarker.toPath())
+    }
+
+    /** 跳转系统时钟前持久化屏障；取消或进程退出均保留。 */
+    fun beginReview(): Boolean = synchronized(lock) {
+        runCatching {
+            if (!directory.exists()) check(directory.mkdirs())
+            check(directory.isDirectory)
+            if (!reviewMarker.exists()) Files.createFile(reviewMarker.toPath())
+            check(reviewMarker.isFile)
+            true
+        }.getOrDefault(false)
+    }
+
+    /** 所有本地状态写入均成功后才解除屏障；失败和异常留待用户核对恢复。 */
+    fun completeReview(action: () -> Boolean): Boolean = synchronized(lock) {
+        if (!beginReview()) return@synchronized false
+        runCatching {
+            if (!action()) return@synchronized false
+            Files.delete(reviewMarker.toPath())
+            true
+        }.getOrDefault(false)
+    }
 
     private fun encoded(revision: String, weeklyTimes: Map<Int, String>): String? {
         if (!revision.matches(Regex("[A-Za-z0-9-]{1,80}"))) return null

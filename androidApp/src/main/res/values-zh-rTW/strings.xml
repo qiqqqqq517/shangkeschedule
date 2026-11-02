@@ -27,6 +27,8 @@
 
     <!-- 早八鬧鐘（寫入系統時鐘） -->
     <string name="notification_title_morning_alarm">早八鬧鐘</string>
+    <string name="morning_alarm_review_notification_title">請核對早八鬧鐘</string>
+    <string name="morning_alarm_review_notification_text">課表或鬧鐘狀態需要核對。已有系統鬧鐘仍可能響，請開啟應用程式的通知設定檢查。</string>
     <string name="notification_text_morning_alarm_format">第一節 %1$s 的 %2$s，現在出發剛好</string>
     <string name="notification_channel_morning_alarm">早八鬧鐘</string>
     <string name="notification_channel_morning_alarm_desc">系統無可用時鐘應用程式時的應用內早八提醒</string>
@@ -169,4 +171,11 @@
     <string name="widget_desc_week_courses">整週課表</string>
     <string name="widget_desc_agenda_list">待辦、活動與作業彙總</string>
     <string name="widget_desc_exam_countdown">距下一場考試的倒數</string>
+    <string name="morning_alarm_write_title">早八鬧鐘需要檢查</string>
+    <string name="morning_alarm_write_blocked">舊鬧鐘尚未到期，新課表鬧鐘未寫入。請在系統時鐘處理舊鬧鐘後，返回早八設定重新核對。</string>
+    <string name="morning_alarm_write_deferred">新鬧鐘尚未寫入，請開啟上課並進入早八設定檢查。</string>
+    <string name="morning_alarm_write_not_expressible">系統時鐘暫時無法準確設定這一天的鬧鐘，請臨近上課時開啟上課並檢查。</string>
+    <string name="morning_alarm_write_failed">系統鬧鐘啟動失敗，新鬧鐘未寫入，請開啟早八設定檢查。</string>
+    <string name="morning_alarm_write_no_clock">找不到系統時鐘，應用程式內提醒可能無法使用，請檢查早八設定。</string>
+    <string name="morning_alarm_write_unknown">無法確認早八鬧鐘狀態，請開啟早八設定檢查。</string>
 </resources>

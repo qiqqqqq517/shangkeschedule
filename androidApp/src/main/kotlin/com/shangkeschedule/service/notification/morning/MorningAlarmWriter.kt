@@ -113,15 +113,11 @@ class MorningAlarmWriter(
 
     private fun syncLocked(plan: List<MorningAlarmPlan.MorningAlarm>): Result {
         if (!hasClockApp()) {
+            val hasPendingCourse = MorningAlarmPlan.nextUpcoming(plan, now) != null
+            val hasPendingOldAlarm = MorningAlarmRegistry.prune(loadRegistry(), now, MORNING_ALARM_RETENTION_DAYS).isNotEmpty()
+            if (!hasPendingCourse && !hasPendingOldAlarm) return Result.Unchanged
             Log.w(TAG, "无可用系统时钟应用，早八闹钟降级为应用内提醒")
             return Result.NoClockApp
-        }
-
-        // 前台守卫（本次修复的关键一处）：后台发起 startActivity 会被系统静默拦下，
-        // 此时若照常登记，登记簿会把「其实没写成功」记成成功，之后永远不再补写。
-        if (!ForegroundGate.isAppVisible(context)) {
-            Log.w(TAG, "当前不在前台，跳过系统时钟写入（后台启动限制），待下次前台补写")
-            return Result.Deferred
         }
 
         val registry = loadRegistry()
@@ -143,15 +139,20 @@ class MorningAlarmWriter(
             retentionDays = MORNING_ALARM_RETENTION_DAYS
         )
 
-        val next = MorningAlarmPlan.nextUpcoming(plan, now)
-        val targets = if (next != null && MorningAlarmPlan.expressibleBySystemClock(next, now)) {
-            listOf(next)
-        } else {
-            if (next != null) {
-                Log.w(TAG, "最近一条闹钟无法被系统时钟如实表达，本次跳过：$next")
+        val decision = MorningAlarmWriteDecision.evaluate(plan, registry, now, ForegroundGate.isAppVisible(context))
+        if (decision != MorningAlarmWriteDecision.State.ReadyToWrite) {
+            if (persisted != registry) saveRegistry(persisted)
+            return when (decision) {
+                MorningAlarmWriteDecision.State.NoPlan,
+                MorningAlarmWriteDecision.State.AlreadyRegistered -> Result.Unchanged
+                MorningAlarmWriteDecision.State.BlockedByExisting -> Result.BlockedByExisting
+                MorningAlarmWriteDecision.State.NotExpressible -> Result.NotExpressible
+                MorningAlarmWriteDecision.State.Deferred -> Result.Deferred
+                MorningAlarmWriteDecision.State.ReadyToWrite -> error("已处理可写状态")
             }
-            emptyList()
         }
+        val next = requireNotNull(MorningAlarmPlan.nextUpcoming(plan, now))
+        val targets = listOf(next)
 
         // 真机实测：本机（及多数 OEM）不支持按标签删除，故只做「未登记则写入」。
         // allowDismiss 保持明确传入，便于未来在确实支持的设备上开启差分删除。
@@ -163,11 +164,6 @@ class MorningAlarmWriter(
 
         if (actions.isEmpty()) {
             if (persisted != registry) saveRegistry(persisted)
-            if (next != null && persisted.isNotEmpty() &&
-                persisted[next.courseDate.toString()]?.label != MorningAlarmPlan.label(next)
-            ) {
-                return Result.BlockedByExisting
-            }
             return Result.Unchanged
         }
 
@@ -194,7 +190,7 @@ class MorningAlarmWriter(
         }
 
         saveRegistry(newRegistry)
-        return Result.Written(wrote)
+        return if (wrote > 0) Result.Written(wrote) else Result.WriteFailed
     }
 
     /**
@@ -325,6 +321,8 @@ class MorningAlarmWriter(
         /** 写入了 [count] 条闹钟。 */ data class Written(val count: Int) : Result
         /** 计划与已写入状态一致，无需改动（尊重用户改动）。 */ data object Unchanged : Result
         /** 未到期的旧系统闹钟不能可靠删除，新计划尚未写入。 */ data object BlockedByExisting : Result
+        /** 系统时钟不支持指定日期，该计划暂不能准确写入。 */ data object NotExpressible : Result
+        /** 启动系统时钟失败，本轮没有写入。 */ data object WriteFailed : Result
         /** 系统无可用时钟应用，需降级为应用内提醒。 */ data object NoClockApp : Result
         /**
          * 当前不在前台，写入会被后台启动限制静默拦下，故本次**不写也不登记**，

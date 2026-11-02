@@ -14,17 +14,23 @@ import androidx.lifecycle.repeatOnLifecycle
 import android.util.Log
 import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.MorningAlarmSemesterRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import com.shangkeschedule.service.notification.morning.MorningAlarmCoordinator
+import com.shangkeschedule.service.notification.morning.MorningAlarmWriteStatusReporter
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.notification.morning.pendingMorningAlarms
+import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
+import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
 import com.shangkeschedule.tool.ExternalTextImport
 import com.shangkeschedule.widget.WidgetRoute
 import com.shangkeschedule.widget.WidgetRouteHandoff
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
@@ -37,6 +43,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
 
     private val appSettingsRepository: AppSettingsRepository by inject()
     private val widgetRepository: WidgetRepository by inject()
+    private val morningAlarmSemesterRepository: MorningAlarmSemesterRepository by inject()
 
     private companion object {
         const val TAG = "MainActivity"
@@ -147,7 +154,16 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                     days = 7,
                     leadMinutes = settings.morningAlarmLeadMinutes
                 )
-                MorningAlarmWriter(applicationContext, now).sync(pendingMorningAlarms(applicationContext, settings, plan))
+                MorningAlarmCoordinator(applicationContext, appSettingsRepository, morningAlarmSemesterRepository)
+                    .run(settings, now) { current ->
+                    MorningAlarmSyncGate.runIfReviewed(WeeklyAlarmConfirmationStore(applicationContext)) {
+                        val pending = pendingMorningAlarms(applicationContext, current, plan)
+                        val result = MorningAlarmWriter(applicationContext, now).sync(pending)
+                        val next = MorningAlarmPlan.nextUpcoming(pending, now)
+                        MorningAlarmWriteStatusReporter.report(applicationContext, result, next?.let { LocalDateTime(it.alarmDate, it.alarmTime) })
+                        result
+                    }
+                }
             }.onFailure { Log.w(TAG, "前台补写早八闹钟失败", it) }
         }
     }

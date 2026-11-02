@@ -30,6 +30,9 @@ import shangkeschedule.shared.generated.resources.morning_weekly_confirm
 import shangkeschedule.shared.generated.resources.morning_weekly_daily
 import shangkeschedule.shared.generated.resources.morning_weekly_error
 import shangkeschedule.shared.generated.resources.morning_weekly_clock_error
+import shangkeschedule.shared.generated.resources.morning_weekly_review_pending
+import shangkeschedule.shared.generated.resources.morning_weekly_risky_days
+import shangkeschedule.shared.generated.resources.morning_weekly_open_clock
 import com.shangkeschedule.ui.components.AppDangerDialog
 import com.shangkeschedule.ui.components.AppDialogActions
 import com.shangkeschedule.ui.components.AppTextField
@@ -252,10 +255,13 @@ fun NotificationDialogDispatcher(
 private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel: NotificationSettingsViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val store = remember(context) { WeeklyAlarmConfirmationStore(context) }
+    var reviewPending by remember(store) { mutableStateOf(store.requiresReview()) }
     val days = stringArrayResource(Res.array.week_days_full_names)
     val draft = remember { mutableStateMapOf<Int, String>().apply { putAll(uiState.morningAlarmWeeklyTimes) } }
     var checked by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    var riskyDays by remember { mutableStateOf<Set<Int>>(emptySet()) }
     val label = stringResource(Res.string.morning_weekly_title)
     val clockError = stringResource(Res.string.morning_weekly_clock_error)
     val error = stringResource(Res.string.morning_weekly_error)
@@ -266,22 +272,33 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
         if (saving || !checked || (mode == MorningAlarmMode.HYBRID_WEEKLY && !valid)) return
         saving = true
         scope.launch {
+            if (mode == MorningAlarmMode.HYBRID_WEEKLY) {
+                val unsafe = viewModel.unsafeMorningAlarmWeekdays(normalized)
+                if (unsafe.isNotEmpty()) {
+                    riskyDays = unsafe
+                    saving = false
+                    return@launch
+                }
+            }
+            riskyDays = emptySet()
             val ok = withContext(Dispatchers.IO) {
                 MorningAlarmSyncGate.run {
-                    val store = WeeklyAlarmConfirmationStore(context)
-                    val revision = newMorningAlarmWeeklyRevision()
-                    val times = if (mode == MorningAlarmMode.HYBRID_WEEKLY) normalized else emptyMap()
-                    val confirmedRevision = weeklyConfirmationRevision(context, revision)
-                    val saved = if (mode == MorningAlarmMode.HYBRID_WEEKLY) {
-                        confirmedRevision != null && store.confirm(confirmedRevision, times)
-                    } else store.clear()
-                    saved && MorningAlarmSyncGate.clearVerifiedOldAlarms(context) &&
-                        runCatching { runBlocking { viewModel.saveMorningAlarmSchedule(mode, times, revision) } }.isSuccess
+                    store.completeReview {
+                        val revision = newMorningAlarmWeeklyRevision()
+                        val times = if (mode == MorningAlarmMode.HYBRID_WEEKLY) normalized else emptyMap()
+                        val confirmedRevision = weeklyConfirmationRevision(context, revision)
+                        val saved = if (mode == MorningAlarmMode.HYBRID_WEEKLY) {
+                            confirmedRevision != null && store.confirm(confirmedRevision, times)
+                        } else store.clear()
+                        saved && MorningAlarmSyncGate.clearVerifiedOldAlarms(context) &&
+                            runCatching { runBlocking { viewModel.saveMorningAlarmSchedule(mode, times, revision) } }.isSuccess
+                    }
                 }
             }
             if (ok) {
                 viewModel.dismissDialog()
             } else {
+                reviewPending = store.requiresReview()
                 ToastManager.show(error)
                 saving = false
             }
@@ -295,12 +312,32 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Text(stringResource(Res.string.morning_weekly_info))
                 Text(stringResource(Res.string.morning_weekly_warning), color = MaterialTheme.colorScheme.error)
+                if (reviewPending) {
+                    Text(stringResource(Res.string.morning_weekly_review_pending), color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(enabled = !saving, onClick = {
+                    if (!MorningAlarmSyncGate.run { store.beginReview() }) {
+                        ToastManager.show(error)
+                        return@TextButton
+                    }
+                    reviewPending = true
+                    checked = false
+                    val intent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    if (runCatching { context.startActivity(intent) }.isFailure) ToastManager.show(clockError)
+                }) { Text(stringResource(Res.string.morning_weekly_open_clock)) }
+                if (riskyDays.isNotEmpty()) {
+                    val names = riskyDays.sorted().joinToString("、") { days.getOrElse(it - 1) { it.toString() } }
+                    Text(stringResource(Res.string.morning_weekly_risky_days, names), color = MaterialTheme.colorScheme.error)
+                }
                 for (day in 1..7) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = draft.containsKey(day), onCheckedChange = { selected ->
                             if (selected) draft[day] = "07:15" else draft.remove(day)
                             checked = false
-                        })
+                            if (!selected) riskyDays = riskyDays - day
+                        }, enabled = !saving)
                         Text(days.getOrElse(day - 1) { day.toString() })
                     }
                     if (day in draft) {
@@ -309,24 +346,43 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
                             onValueChange = { draft[day] = it; checked = false },
                             label = { Text(stringResource(Res.string.morning_weekly_time)) },
                             singleLine = true,
+                            enabled = !saving,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        TextButton(enabled = day in normalized, onClick = {
+                        TextButton(enabled = !saving && valid && day in normalized, onClick = {
                             val time = normalized[day] ?: return@TextButton
-                            val intent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
-                                putExtra(AlarmClock.EXTRA_HOUR, time.substring(0, 2).toInt())
-                                putExtra(AlarmClock.EXTRA_MINUTES, time.substring(3, 5).toInt())
-                                putExtra(AlarmClock.EXTRA_MESSAGE, label)
-                                putIntegerArrayListExtra(AlarmClock.EXTRA_DAYS, arrayListOf(if (day == 7) Calendar.SUNDAY else day + 1))
-                                putExtra(AlarmClock.EXTRA_SKIP_UI, false)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            saving = true
+                            scope.launch {
+                                val unsafe = viewModel.unsafeMorningAlarmWeekdays(normalized)
+                                if (unsafe.isNotEmpty()) {
+                                    riskyDays = unsafe
+                                    saving = false
+                                    return@launch
+                                }
+                                riskyDays = emptySet()
+                                if (!MorningAlarmSyncGate.run { store.beginReview() }) {
+                                    ToastManager.show(error)
+                                    saving = false
+                                    return@launch
+                                }
+                                reviewPending = true
+                                checked = false
+                                val intent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
+                                    putExtra(AlarmClock.EXTRA_HOUR, time.substring(0, 2).toInt())
+                                    putExtra(AlarmClock.EXTRA_MINUTES, time.substring(3, 5).toInt())
+                                    putExtra(AlarmClock.EXTRA_MESSAGE, label)
+                                    putIntegerArrayListExtra(AlarmClock.EXTRA_DAYS, arrayListOf(if (day == 7) Calendar.SUNDAY else day + 1))
+                                    putExtra(AlarmClock.EXTRA_SKIP_UI, false)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                if (runCatching { context.startActivity(intent) }.isFailure) ToastManager.show(clockError)
+                                saving = false
                             }
-                            if (runCatching { context.startActivity(intent) }.isFailure) ToastManager.show(clockError)
                         }) { Text(stringResource(Res.string.morning_weekly_set)) }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = checked, onCheckedChange = { checked = it })
+                    Checkbox(checked = checked, onCheckedChange = { checked = it }, enabled = !saving)
                     Text(stringResource(Res.string.morning_weekly_ack))
                 }
                 TextButton(enabled = checked && !saving, onClick = { save(MorningAlarmMode.SMART_DAILY) }) {

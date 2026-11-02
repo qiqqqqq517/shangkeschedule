@@ -48,4 +48,32 @@ class WeeklyAlarmConfirmationStoreTest {
         assertTrue(store.clear())
         assertTrue(store.confirmedFor("revision-a", schedule).isEmpty())
     }
+
+    @Test fun interruptedReviewSurvivesReopenUntilCompleted() {
+        assertFalse(store.requiresReview())
+        assertTrue(store.beginReview())
+        val afterRestart = WeeklyAlarmConfirmationStore(dir)
+        assertTrue(afterRestart.requiresReview())
+        assertTrue(afterRestart.completeReview { true })
+        assertFalse(store.requiresReview())
+    }
+
+    @Test fun failedOrExceptionalSaveKeepsReviewPending() {
+        assertTrue(store.beginReview())
+        assertFalse(store.completeReview { false })
+        assertTrue(store.requiresReview())
+        assertFalse(store.completeReview { error("save failed") })
+        assertTrue(store.requiresReview())
+        assertTrue(store.completeReview { true })
+        assertFalse(store.requiresReview())
+    }
+
+    @Test fun unavailableStoragePreventsReviewAndCannotBeTreatedAsSafe() {
+        val invalidDirectory = dir.resolve("not-a-directory").apply { writeText("x") }
+        val invalidStore = WeeklyAlarmConfirmationStore(invalidDirectory)
+        assertFalse(invalidStore.beginReview())
+        assertTrue(invalidStore.requiresReview())
+        assertFalse(invalidStore.completeReview { error("must not save") })
+    }
+
 }

@@ -7,9 +7,13 @@ import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.MorningAlarmMode
+import com.shangkeschedule.data.model.MorningAlarmWeeklyTimes
 import com.shangkeschedule.data.repository.AppSettingsRepository
+import com.shangkeschedule.data.repository.MorningAlarmSemesterRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import com.shangkeschedule.notification.plan.MorningAlarmSemesterProjection
+import com.shangkeschedule.notification.plan.MorningAlarmWeeklyRisk
 import com.shangkeschedule.tool.HolidayRange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -21,7 +25,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -44,6 +51,20 @@ sealed interface NotificationDialogType {
 
     /** 配置用户自行核对的每周系统闹钟。 */
     data object EditMorningAlarmWeekly : NotificationDialogType
+}
+
+/** 仅完整区间可用于放行每周闹钟；无效星期或时间一律拒绝。 */
+internal fun morningWeeklyUnsafeDays(
+    projection: MorningAlarmSemesterProjection.Result,
+    times: Map<Int, String>
+): Set<Int> {
+    if (times.isEmpty() || MorningAlarmWeeklyTimes.normalize(times) != times) return times.keys
+    val start = projection.coverageStart ?: return times.keys
+    val end = projection.coverageEnd ?: return times.keys
+    val weekly = times.mapKeys { (day, _) -> DayOfWeek.entries.first { it.isoDayNumber == day } }
+        .mapValues { (_, time) -> LocalTime.parse(time) }
+    return MorningAlarmWeeklyRisk.assess(start, end, projection.complete, projection.alarms, weekly)
+        .unsafe.keys.map { it.isoDayNumber }.toSet()
 }
 
 /**
@@ -98,7 +119,8 @@ data class NotificationSettingsUiState(
 @KoinViewModel
 class NotificationSettingsViewModel(
     private val appSettingsRepository: AppSettingsRepository,
-    private val widgetRepository: WidgetRepository
+    private val widgetRepository: WidgetRepository,
+    private val morningAlarmSemesterRepository: MorningAlarmSemesterRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationSettingsUiState())
@@ -249,6 +271,20 @@ class NotificationSettingsViewModel(
     }
 
     suspend fun currentMorningAlarmSchedule(): AppSettingsModel = appSettingsRepository.getAppSettingsOnce()
+
+    /** 每次创建或保存前重新读取课表；未知状态按全部选中星期有风险处理。 */
+    suspend fun unsafeMorningAlarmWeekdays(times: Map<Int, String>): Set<Int> = withContext(Dispatchers.IO) {
+        try {
+            val settings = appSettingsRepository.getAppSettingsOnce()
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val projection = morningAlarmSemesterRepository.read(today, settings.morningAlarmLeadMinutes)
+            morningWeeklyUnsafeDays(projection, times)
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
+        } catch (_: Exception) {
+            times.keys
+        }
+    }
 
     /**
      * 保存提前提醒分钟数并关闭弹窗

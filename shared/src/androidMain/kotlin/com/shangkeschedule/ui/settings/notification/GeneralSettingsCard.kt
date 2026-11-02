@@ -1,6 +1,8 @@
 package com.shangkeschedule.ui.settings.notification
 
 import com.shangkeschedule.notification.live.LiveUpdateSupport
+import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
+import com.shangkeschedule.notification.morning.MorningAlarmWriteStatusStore
 import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.ui.settings.SectionCard
 import com.shangkeschedule.ui.settings.SectionDivider
@@ -8,6 +10,7 @@ import com.shangkeschedule.ui.settings.SettingItem
 import com.shangkeschedule.ui.settings.SettingValueTrailing
 
 import android.os.Build
+import android.os.FileObserver
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,16 +21,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.launch
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -79,6 +92,15 @@ import shangkeschedule.shared.generated.resources.text_permission_importance_tit
 import shangkeschedule.shared.generated.resources.morning_alarm_schedule_mode
 import shangkeschedule.shared.generated.resources.morning_alarm_mode_daily
 import shangkeschedule.shared.generated.resources.morning_alarm_mode_hybrid
+import shangkeschedule.shared.generated.resources.morning_weekly_review_pending
+import shangkeschedule.shared.generated.resources.morning_write_status_title
+import shangkeschedule.shared.generated.resources.morning_write_status_blocked
+import shangkeschedule.shared.generated.resources.morning_write_status_deferred
+import shangkeschedule.shared.generated.resources.morning_write_status_date
+import shangkeschedule.shared.generated.resources.morning_write_status_failed
+import shangkeschedule.shared.generated.resources.morning_write_status_no_clock
+import shangkeschedule.shared.generated.resources.morning_write_status_unknown
+import shangkeschedule.shared.generated.resources.morning_write_status_expired
 
 /**
  * 常规设置卡片 UI 组件 (Android 专属)。
@@ -122,6 +144,36 @@ fun GeneralSettingsCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    val weeklyStore = remember(context) { WeeklyAlarmConfirmationStore(context) }
+    val writeStore = remember(context) { MorningAlarmWriteStatusStore(context) }
+    var weeklyReviewPending by remember(weeklyStore) { mutableStateOf(weeklyStore.requiresReview()) }
+    var writeStatus by remember(writeStore) { mutableStateOf(writeStore.read()) }
+    LaunchedEffect(writeStore) {
+        MorningAlarmWriteStatusStore.changes.collect { writeStatus = writeStore.read() }
+    }
+    DisposableEffect(weeklyStore, writeStore, lifecycleOwner) {
+        fun refresh() { scope.launch {
+            weeklyReviewPending = weeklyStore.requiresReview()
+            writeStatus = writeStore.read()
+        } }
+        @Suppress("DEPRECATION")
+        val observer = object : FileObserver(context.noBackupFilesDir.absolutePath,
+            FileObserver.CREATE or FileObserver.DELETE or FileObserver.MOVED_TO or FileObserver.MOVED_FROM) {
+            override fun onEvent(event: Int, path: String?) { refresh() }
+        }
+        runCatching { observer.startWatching() }
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+        refresh()
+        onDispose {
+            observer.stopWatching()
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+        }
+    }
 
     // 仅在开启提醒开关但无权限时弹窗引导
     var showExactAlarmDialog by remember { mutableStateOf(false) }
@@ -273,12 +325,38 @@ fun GeneralSettingsCard(
                     )
                 }
             )
+            writeStatus?.let { status ->
+                SectionDivider()
+                val plannedAt = status.plannedAt
+                val expired = plannedAt != null && plannedAt <= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                val message = stringResource(
+                    if (expired) Res.string.morning_write_status_expired else when (status.kind) {
+                        MorningAlarmWriteStatusStore.Kind.BLOCKED -> Res.string.morning_write_status_blocked
+                        MorningAlarmWriteStatusStore.Kind.DEFERRED -> Res.string.morning_write_status_deferred
+                        MorningAlarmWriteStatusStore.Kind.NOT_EXPRESSIBLE -> Res.string.morning_write_status_date
+                        MorningAlarmWriteStatusStore.Kind.WRITE_FAILED -> Res.string.morning_write_status_failed
+                        MorningAlarmWriteStatusStore.Kind.NO_CLOCK -> Res.string.morning_write_status_no_clock
+                        MorningAlarmWriteStatusStore.Kind.UNKNOWN -> Res.string.morning_write_status_unknown
+                    }
+                )
+                SettingItem(
+                    title = stringResource(Res.string.morning_write_status_title),
+                    subtitle = listOfNotNull(plannedAt?.toString()?.replace('T', ' '), message).joinToString(" · "),
+                    onClick = when (status.kind) {
+                        MorningAlarmWriteStatusStore.Kind.BLOCKED -> onMorningAlarmWeeklyClick
+                        MorningAlarmWriteStatusStore.Kind.WRITE_FAILED,
+                        MorningAlarmWriteStatusStore.Kind.UNKNOWN -> onOpenSystemAlarm
+                        else -> null
+                    }
+                )
+            }
             if (uiState.morningAlarmEnabled) {
                 SectionDivider()
                 SettingItem(
                     title = stringResource(Res.string.morning_alarm_schedule_mode),
                     subtitle = stringResource(
-                        if (uiState.morningAlarmMode == MorningAlarmMode.HYBRID_WEEKLY)
+                        if (weeklyReviewPending) Res.string.morning_weekly_review_pending
+                        else if (uiState.morningAlarmMode == MorningAlarmMode.HYBRID_WEEKLY)
                             Res.string.morning_alarm_mode_hybrid else Res.string.morning_alarm_mode_daily
                     ),
                     onClick = onMorningAlarmWeeklyClick
@@ -302,7 +380,9 @@ fun GeneralSettingsCard(
                 val preview = uiState.nextMorningAlarm
                 // 星期文案取自既有本地化数组（与 AgendaScreen / ScheduleGrid 同一口径），不要手写中文
                 val weekDayNames = stringArrayResource(Res.array.week_days_full_names)
-                val previewText = if (preview == null) {
+                val previewText = if (weeklyReviewPending) {
+                    stringResource(Res.string.morning_weekly_review_pending)
+                } else if (preview == null) {
                     stringResource(Res.string.morning_alarm_preview_none)
                 } else {
                     stringResource(
@@ -320,6 +400,13 @@ fun GeneralSettingsCard(
                     title = stringResource(Res.string.morning_alarm_preview_title),
                     subtitle = previewText,
                     onClick = onOpenSystemAlarm
+                )
+            } else if (weeklyReviewPending) {
+                SectionDivider()
+                SettingItem(
+                    title = stringResource(Res.string.morning_alarm_schedule_mode),
+                    subtitle = stringResource(Res.string.morning_weekly_review_pending),
+                    onClick = onMorningAlarmWeeklyClick
                 )
             }
         }
