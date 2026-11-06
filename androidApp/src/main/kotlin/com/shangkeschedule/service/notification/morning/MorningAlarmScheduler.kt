@@ -6,10 +6,10 @@ import android.util.Log
 import com.shangkeschedule.R
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.AppSettingsModel
-import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
 import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
 import com.shangkeschedule.notification.morning.pendingMorningAlarms
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.receiver.ReminderAlarmReceiver
 import kotlinx.datetime.LocalDate
@@ -24,6 +24,17 @@ import kotlinx.datetime.LocalDateTime
  *
  * 写入本身（前台门禁、登记簿、只写最近一条）全在 [MorningAlarmWriter]；本类只负责
  * 「取开关 → 算计划 → 写入 → 无时钟应用时降级」这条决策链。
+ *
+ * ## 两个调用方共用本类（2026-11-06 重构）
+ *
+ * `NotificationScheduler.reschedule()`（前台内联 / 后台 Worker）与
+ * `MainActivity.onResume()`（回到前台补写）此前**各写了一份**同样的流程：
+ * 读设置 → 取 7 天课程 → `MorningAlarmPlan.plan` → `MorningAlarmCoordinator.run`
+ * → `runIfReviewed` → `pendingMorningAlarms` → `MorningAlarmWriter.sync` → 状态上报。
+ *
+ * 两份实现已经漂移：`MainActivity` 那份**没有**「无时钟应用时排应用内降级闹钟」分支，
+ * 于是「系统无时钟应用」的设备只有后台路径能收到降级提醒，回到前台这条补写路径
+ * 写不进去、也不排兜底。现在两条路径都走 [sync]，不再各自实现。
  */
 internal class MorningAlarmScheduler(
     private val context: Context,

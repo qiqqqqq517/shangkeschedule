@@ -164,7 +164,11 @@ class NotificationScheduler(
                 .run(settings, now) { current -> morningAlarms.sync(current, courses, WINDOW_DAYS, today, now) }) {
                 is MorningAlarmCoordinator.Outcome.Executed -> outcome.value
                 MorningAlarmCoordinator.Outcome.ReviewRequired -> null
-                MorningAlarmCoordinator.Outcome.Stale -> { failedStrategies++; null }
+                // 设置在本轮读取期间已变 → 本轮作废属正常并发，**不计失败**、不触发重试；
+                // 设置变更本身会再触发一轮排程。
+                MorningAlarmCoordinator.Outcome.Stale -> null
+                // 读设置异常 → 本轮确实没排上，计失败让调用方重试。
+                MorningAlarmCoordinator.Outcome.Unavailable -> { failedStrategies++; null }
             }
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) throw error

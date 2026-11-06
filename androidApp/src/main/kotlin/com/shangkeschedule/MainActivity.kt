@@ -16,21 +16,17 @@ import com.shangkeschedule.data.model.RefreshRateMode
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.MorningAlarmSemesterRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.service.notification.alarm.AlarmScheduler
 import com.shangkeschedule.service.notification.migrate.LegacyAlarmMigrator
-import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
 import com.shangkeschedule.service.notification.morning.MorningAlarmCoordinator
-import com.shangkeschedule.service.notification.morning.MorningAlarmWriteStatusReporter
-import com.shangkeschedule.notification.plan.MorningAlarmPlan
-import com.shangkeschedule.notification.morning.pendingMorningAlarms
-import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
-import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
+import com.shangkeschedule.service.notification.morning.MorningAlarmScheduler
+import com.shangkeschedule.service.notification.schedule.NotificationScheduler
 import com.shangkeschedule.tool.ExternalTextImport
 import com.shangkeschedule.widget.WidgetRoute
 import com.shangkeschedule.widget.WidgetRouteHandoff
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
@@ -44,6 +40,17 @@ class MainActivity : AppCompatActivity(), KoinComponent {
     private val appSettingsRepository: AppSettingsRepository by inject()
     private val widgetRepository: WidgetRepository by inject()
     private val morningAlarmSemesterRepository: MorningAlarmSemesterRepository by inject()
+
+    /**
+     * 早八前台补写用的前瞻天数。
+     *
+     * 与 `NotificationScheduler.WINDOW_DAYS` 同值：两处若不一致，前台补写看到的
+     * 「下一条闹钟」会与后台重排算出的不同，状态上报与预览就会互相打脸。
+     */
+    private val morningWindowDays = NotificationScheduler.WINDOW_DAYS
+
+    /** 复用同一个系统闹钟出口：请求码分配器是有状态的，不能每次 onResume 新建。 */
+    private val alarmScheduler by lazy { AlarmScheduler(applicationContext) }
 
     private companion object {
         const val TAG = "MainActivity"
@@ -144,26 +151,18 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                 val courses = widgetRepository
                     .getWidgetCoursesByDateRange(
                         today.toString(),
-                        today.plus(7, DateTimeUnit.DAY).toString()
+                        today.plus(morningWindowDays, DateTimeUnit.DAY).toString()
                     )
                     .first()
-                val plan = MorningAlarmPlan.plan(
-                    courses = courses,
-                    skippedDates = settings.skippedDates,
-                    today = today,
-                    days = 7,
-                    leadMinutes = settings.morningAlarmLeadMinutes
-                )
+                // 与 NotificationScheduler 走**同一个** MorningAlarmScheduler.sync，
+                // 不再在此手写一遍「plan → coordinator → writer → reporter」。
+                // 手写版曾漏掉「无时钟应用时排应用内降级闹钟」分支，导致无时钟设备
+                // 回到前台时既不写入、也不排兜底提醒。
                 MorningAlarmCoordinator(applicationContext, appSettingsRepository, morningAlarmSemesterRepository)
                     .run(settings, now) { current ->
-                    MorningAlarmSyncGate.runIfReviewed(WeeklyAlarmConfirmationStore(applicationContext)) {
-                        val pending = pendingMorningAlarms(applicationContext, current, plan)
-                        val result = MorningAlarmWriter(applicationContext, now).sync(pending)
-                        val next = MorningAlarmPlan.nextUpcoming(pending, now)
-                        MorningAlarmWriteStatusReporter.report(applicationContext, result, next?.let { LocalDateTime(it.alarmDate, it.alarmTime) })
-                        result
+                        MorningAlarmScheduler(applicationContext, alarmScheduler)
+                            .sync(current, courses, morningWindowDays, today, now)
                     }
-                }
             }.onFailure { Log.w(TAG, "前台补写早八闹钟失败", it) }
         }
     }

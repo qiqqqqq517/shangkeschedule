@@ -16,7 +16,18 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
 
-/** 共同守住前台补写和后台重排：核对期间不写系统时钟，也不排应用内兜底。 */
+/**
+ * 共同守住前台补写和后台重排：核对期间不写系统时钟，也不排应用内兜底。
+ *
+ * ## Outcome 三分（2026-11-06 重构）
+ *
+ * 旧版只有 `Executed` / `ReviewRequired` / `Stale` 三态，而 `Stale` 被
+ * `NotificationScheduler` 当作「策略失败」计入 `failedStrategies`，进而触发
+ * Worker 重试。但 `Stale` 的真实语义是「本轮开始时读到的设置已经变了，本轮作废、
+ * 下一轮会用新设置重来」——这是**正常的并发作废**，不是失败。
+ * 现在拆成 [Outcome.Stale]（静默作废，不计失败）与 [Outcome.Unavailable]
+ * （读设置抛异常，本轮确实无法判断，计为失败并允许重试）。
+ */
 internal class MorningAlarmCoordinator(
     private val context: Context,
     private val settingsRepository: AppSettingsRepository,
@@ -24,8 +35,20 @@ internal class MorningAlarmCoordinator(
 ) {
     sealed interface Outcome<out T> {
         data class Executed<T>(val value: T) : Outcome<T>
+
+        /** 核对尚未完成，本轮不得写入；已投递核对通知。 */
         data object ReviewRequired : Outcome<Nothing>
+
+        /**
+         * 本轮开始时传入的 [AppSettingsModel] 已与库中现状不一致，本轮**作废**。
+         *
+         * 不是失败：调用方应静默跳过，不得计入失败策略、不得触发重试——
+         * 设置变更本身会再触发一轮排程。
+         */
         data object Stale : Outcome<Nothing>
+
+        /** 无法读到当前设置（读库异常），本轮**确实**无法判断，调用方可计失败并重试。 */
+        data object Unavailable : Outcome<Nothing>
     }
 
     suspend fun <T> run(
@@ -51,13 +74,22 @@ internal class MorningAlarmCoordinator(
         val store = WeeklyAlarmConfirmationStore(context)
         val outcome: Outcome<T> = MorningAlarmSyncGate.run locked@{
             // 不能只检查 marker：一轮完整核对可能在投影读取期间开始并结束。
+            //
+            // 这里的 runBlocking **不是坏味道，不能删**：本块要同时满足两个约束——
+            // ① `MorningAlarmSyncGate` 是 `synchronized`（线程级监视器），锁内不能挂起
+            //   （跨挂起点恢复可能换线程，退出时抛 IllegalMonitorStateException）；
+            // ② 同一把锁又被 `Writer.sync` / 排程入口共享，换成 Mutex 会与 synchronized
+            //   嵌套（Writer 里 `SyncGate.run` → 决策再进锁）造成自死锁。
+            // 故在 IO 线程里用 runBlocking 桥接这一次冷读设置。它已是阻塞 IO 语境，
+            // 阻塞成本可接受；外层 withContext(Dispatchers.IO) 保证不会占住主线程。
+            // CancellationException 仍在此显式透传，取消语义不受影响。
             val current = try {
                 runBlocking { settingsRepository.getAppSettingsOnce() }
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
                 Log.w(TAG, "无法复核早八设置，本轮跳过", error)
-                return@locked Outcome.Stale
+                return@locked Outcome.Unavailable
             }
             if (!MorningAlarmReviewDecision.sameSettings(settings, current)) return@locked Outcome.Stale
             if (!current.morningAlarmEnabled) return@locked Outcome.Executed(action(current))
@@ -74,7 +106,7 @@ internal class MorningAlarmCoordinator(
             Outcome.ReviewRequired -> MorningAlarmReviewNotifier.post(context)
             is Outcome.Executed -> if (store.requiresReview()) MorningAlarmReviewNotifier.post(context)
                 else if (clearResolvedNotice) MorningAlarmReviewNotifier.cancel(context) else Unit
-            Outcome.Stale -> Unit
+            Outcome.Stale, Outcome.Unavailable -> Unit
         }
         outcome
     }

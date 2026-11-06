@@ -1,26 +1,22 @@
 package com.shangkeschedule.service.notification.morning
 
-import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
 import com.shangkeschedule.service.notification.notify.NotificationChannels
+import com.shangkeschedule.service.notification.notify.NotificationPermission
 
 /** 只提示人工核对，不使用闹钟响铃渠道；持久状态由 WeeklyAlarmConfirmationStore 管理。 */
 internal object MorningAlarmReviewNotifier {
     private const val ID = 700_101
 
     fun post(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        if (!NotificationPermission.canPost(context)) return
         runCatching {
             NotificationChannels.ensureAll(context)
             val intent = PendingIntent.getActivity(context, ID, Intent(context, MainActivity::class.java).apply {

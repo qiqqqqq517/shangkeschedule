@@ -60,14 +60,23 @@ object MorningAlarmPlan {
         val lead = leadMinutes.coerceIn(ReminderEngine.MORNING_LEAD_RANGE)
         val effective = ReminderEngine.effectiveCourses(courses, skippedDates)
 
+        // 按日期**预分组**，避免每个日期都全量 filter 一遍课程。
+        // 学期投影会一次传整学期（100+ 天），旧写法是 O(天数 × 课程数)：
+        // 100 天 × 每学期几百节课 = 数万次字符串比较，且每次都在主线程之外的
+        // IO 协程里做纯 CPU 工作。分组后为 O(课程数 + 天数)。
+        val byDate = effective
+            .groupBy { it.date }
+            .mapValues { (_, dayCourses) ->
+                dayCourses
+                    .mapNotNull { c -> ReminderEngine.parseTime(c.startTime)?.let { c to it } }
+                    .minByOrNull { it.second }
+                    ?.first
+            }
+
         return (0 until days).mapNotNull { offset ->
             val date = today.plusDaysCompat(offset)
-            // 当天最早的一节课
-            val first = effective
-                .filter { it.date == date.toString() }
-                .mapNotNull { c -> ReminderEngine.parseTime(c.startTime)?.let { c to it } }
-                .minByOrNull { it.second }?.first
-                ?: return@mapNotNull null
+            // 当天最早的一节课（分组时已选出）
+            val first = byDate[date.toString()] ?: return@mapNotNull null
 
             val start = ReminderEngine.parseTime(first.startTime) ?: return@mapNotNull null
             val end = ReminderEngine.parseTime(first.endTime) ?: return@mapNotNull null

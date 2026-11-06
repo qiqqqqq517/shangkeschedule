@@ -12,8 +12,13 @@ object MorningAlarmSyncGate {
         if (runCatching { store.requiresReview() }.getOrDefault(true)) null else block()
     }
 
-    /** 仅在用户确认已在系统时钟关闭旧上课闹钟后调用。 */
+    /**
+     * 仅在用户确认已在系统时钟关闭旧上课闹钟后调用。
+     *
+     * 具体的 prefs 名与读写收敛在 [MorningAlarmRegistryStore]，此处不再出现字面量
+     * —— 曾经这里与 `MorningAlarmWriter` 各硬编码一次 `"morning_alarm_registry"`，
+     * 改一处就会静默清空不到真正的登记簿。
+     */
     fun clearVerifiedOldAlarms(context: Context): Boolean =
-        context.applicationContext.getSharedPreferences("morning_alarm_registry", Context.MODE_PRIVATE)
-            .edit().remove("registry").commit()
+        MorningAlarmRegistryStore.clear(context)
 }

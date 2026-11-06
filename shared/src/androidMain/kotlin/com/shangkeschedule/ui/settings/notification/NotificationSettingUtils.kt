@@ -117,7 +117,7 @@ fun openIgnoreBatteryOptimizationSettings(context: Context) {
  * 打开系统闹钟列表页（早八闹钟的「管理入口」）。
  *
  * 早八闹钟写入的是**系统时钟应用**的闹钟，用户在那里修改/停用/删除都生效，
- * 本应用不会在下一轮同步时把它改回来（见 `MorningAlarmDiff`：标签未变则不重写）。
+ * 本应用不会在下一轮同步时把它改回来（见 `MorningAlarmWriteDecision.actions`：标签未变则不重写）。
  * 部分精简 ROM 无该 Activity，此时回退到应用详情页。
  */
 fun openSystemAlarmList(context: Context) {

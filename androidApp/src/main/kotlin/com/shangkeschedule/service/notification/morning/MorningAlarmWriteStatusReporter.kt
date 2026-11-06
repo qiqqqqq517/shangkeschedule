@@ -3,18 +3,16 @@ package com.shangkeschedule.service.notification.morning
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
 import com.shangkeschedule.notification.morning.MorningAlarmWriteStatusStore
 import com.shangkeschedule.notification.morning.MorningAlarmWriteStatusStore.Kind
 import com.shangkeschedule.notification.morning.MorningAlarmWriteStatusStore.Status
 import com.shangkeschedule.service.notification.notify.NotificationChannels
+import com.shangkeschedule.service.notification.notify.NotificationPermission
 import kotlinx.datetime.LocalDateTime
 
 /** 一次性闹钟状态，与每周重复闹钟核对通知相互独立。须在本次排程仍有效时调用。 */
@@ -35,9 +33,7 @@ object MorningAlarmWriteStatusReporter {
     }
 
     private fun postNotification(context: Context, status: Status) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
+        if (!NotificationPermission.canPost(context)) return
         runCatching {
             NotificationChannels.ensureAll(context)
             val message = context.getString(when (status.kind) {

@@ -11,6 +11,7 @@ import com.shangkeschedule.data.model.MorningAlarmWeeklyTimes
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.MorningAlarmSemesterRepository
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.notification.plan.MorningAlarmHybridPlan
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import com.shangkeschedule.notification.plan.MorningAlarmSemesterProjection
 import com.shangkeschedule.notification.plan.MorningAlarmWeeklyRisk
@@ -82,6 +83,9 @@ internal fun morningWeeklyUnsafeDays(
  * @property dynamicIslandEnabled 灵动岛（Android 16 实时更新）开关
  * @property morningAlarmEnabled 早八闹钟开关
  * @property morningAlarmLeadMinutes 早八闹钟提前分钟数
+ * @property morningAlarmMode 早八闹钟排程方式（逐日 / 结合每周重复）
+ * @property morningAlarmWeeklyTimes 用户已确认的每周响铃星期与时刻（ISO 星期 → HH:mm）
+ * @property morningAlarmWeekdaySuggestions 按课表算出的各星期建议时刻（勾选每周时的初值）
  * @property nextMorningAlarm 下一个早八闹钟预览；null = 近期无需早起
  * @property activeDialog 当前展示的弹窗类型
  */
@@ -102,6 +106,7 @@ data class NotificationSettingsUiState(
     val morningAlarmLeadMinutes: Int = 45,
     val morningAlarmMode: MorningAlarmMode = MorningAlarmMode.SMART_DAILY,
     val morningAlarmWeeklyTimes: Map<Int, String> = emptyMap(),
+    val morningAlarmWeekdaySuggestions: Map<Int, String> = emptyMap(),
     val nextMorningAlarm: MorningAlarmPlan.MorningAlarm? = null,
     val activeDialog: NotificationDialogType = NotificationDialogType.None
 )
@@ -157,14 +162,17 @@ class NotificationSettingsViewModel(
     }
 
     /**
-     * 重算「下一个早八闹钟」预览。
+     * 重算「下一个早八闹钟」预览与「各星期建议时刻」。
      *
-     * 读课程表里未来 7 天的课，取每天最早的一节按提前量回推，
-     * 展示最近的一条（或 null 表示近期无需早起）。
+     * 读课程表里未来 7 天的课，取每天最早的一节按提前量回推：
+     *  - [NotificationSettingsUiState.nextMorningAlarm] 取最近的一条（null = 近期无需早起）；
+     *  - [NotificationSettingsUiState.morningAlarmWeekdaySuggestions] 按**实际响铃星期**汇总，
+     *    作为周核对弹窗里勾选某天时的初值。此前该弹窗把初值写死成 `"07:15"`，
+     *    与用户设置的提前量和当天第一节完全脱钩。
      */
     fun refreshMorningAlarmPreview() {
         viewModelScope.launch {
-            val preview = runCatching {
+            val computed = runCatching {
                 withContext(Dispatchers.IO) {
                     val state = _uiState.value
                     val today = Clock.System.now()
@@ -179,10 +187,18 @@ class NotificationSettingsViewModel(
                         today = today,
                         days = 7,
                         leadMinutes = state.morningAlarmLeadMinutes
-                    ).firstOrNull()
+                    )
                 }
             }.getOrNull()
-            _uiState.value = _uiState.value.copy(nextMorningAlarm = preview)
+            val suggestions = computed
+                ?.let { MorningAlarmHybridPlan.suggestTimes(it) }
+                ?.mapKeys { (day, _) -> day.isoDayNumber }
+                ?.mapValues { (_, time) -> MorningAlarmPlan.formatTime(time) }
+                .orEmpty()
+            _uiState.value = _uiState.value.copy(
+                nextMorningAlarm = computed?.firstOrNull(),
+                morningAlarmWeekdaySuggestions = suggestions
+            )
         }
     }
 

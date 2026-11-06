@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * 早八闹钟差分逻辑单测。
+ * 早八闹钟写入动作单测（原 MorningAlarmDiffTest，2026-11-06 随差分并入决策层而改名）。
  *
  * ## 为什么要锁「不重写」这个行为
  *
@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * 已登记过的日期绝不重写，哪怕标签变了（把最终调整权交给用户）。
  * 本测试锁死这个契约——它直接决定用户的系统闹钟列表会不会被污染。
  */
-class MorningAlarmDiffTest {
+class MorningAlarmActionsTest {
 
     @Test
     fun concurrentSyncRequestsOnlyWriteOnce() {
@@ -42,7 +42,7 @@ class MorningAlarmDiffTest {
                 executor.submit {
                     ready.await(5, TimeUnit.SECONDS)
                     MorningAlarmSyncGate.run {
-                        val actions = MorningAlarmDiff.diff(listOf(target), registry.toMap())
+                        val actions = MorningAlarmWriteDecision.actions(listOf(target), registry.toMap())
                         if (actions.isNotEmpty()) {
                             Thread.sleep(100)
                             writes.incrementAndGet()
@@ -79,9 +79,9 @@ class MorningAlarmDiffTest {
             alarm("2026-09-28", 8, 0, 7, 15),
             alarm("2026-09-29", 10, 30, 9, 45)
         )
-        val actions = MorningAlarmDiff.diff(plan, emptyMap())
+        val actions = MorningAlarmWriteDecision.actions(plan, emptyMap())
         assertEquals(2, actions.size)
-        assertTrue("空登记簿应全部为写入动作", actions.all { it is MorningAlarmDiff.Action.Write })
+        assertTrue("空登记簿应全部为写入动作", actions.all { it is MorningAlarmWriteDecision.Decision.Write })
     }
 
     @Test
@@ -90,7 +90,7 @@ class MorningAlarmDiffTest {
         val plan = listOf(a)
         val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(a))
 
-        val actions = MorningAlarmDiff.diff(plan, registry)
+        val actions = MorningAlarmWriteDecision.actions(plan, registry)
         assertTrue("计划未变时不应产生任何动作（幂等）", actions.isEmpty())
     }
 
@@ -102,7 +102,7 @@ class MorningAlarmDiffTest {
         val changed = alarm("2026-09-28", 8, 30, 7, 45, name = "大学英语")
         val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(original))
 
-        val actions = MorningAlarmDiff.diff(listOf(changed), registry, allowDismiss = false)
+        val actions = MorningAlarmWriteDecision.actions(listOf(changed), registry, allowDismiss = false)
         assertTrue("不支持删除时绝不重写已登记日期（否则重复堆积）", actions.isEmpty())
     }
 
@@ -112,27 +112,39 @@ class MorningAlarmDiffTest {
         val changed = alarm("2026-09-28", 8, 30, 7, 45, name = "大学英语")
         val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(original))
 
-        val actions = MorningAlarmDiff.diff(listOf(changed), registry, allowDismiss = true)
+        val actions = MorningAlarmWriteDecision.actions(listOf(changed), registry, allowDismiss = true)
         assertEquals("支持删除时应产出「先删后写」两个动作", 2, actions.size)
-        assertTrue(actions[0] is MorningAlarmDiff.Action.Dismiss)
-        assertTrue(actions[1] is MorningAlarmDiff.Action.Write)
+        assertTrue(actions[0] is MorningAlarmWriteDecision.Decision.Dismiss)
+        assertTrue(actions[1] is MorningAlarmWriteDecision.Decision.Write)
         assertEquals(
             "删除必须用旧标签精确定位",
             MorningAlarmPlan.label(original),
-            (actions[0] as MorningAlarmDiff.Action.Dismiss).label
+            (actions[0] as MorningAlarmWriteDecision.Decision.Dismiss).label
         )
     }
 
     @Test
     fun pendingOldDateBlocksNewDateWhenDismissUnsupported() {
-        // 计划里已消失的日期：系统不支持删除时不得产出删除动作
-        // （删不掉；产出动作会让调用方误以为清理成功）
-        val stale = alarm("2026-09-27", 8, 0, 7, 15)
-        val registry = mapOf("2026-09-27" to MorningAlarmPlan.label(stale))
-        val newPlan = listOf(alarm("2026-09-28", 8, 0, 7, 15))
+        // 旧闹钟尚未到期且系统不支持删除时：**决策层**先拦下（BlockedByExisting），
+        // 写入动作层因此永远见不到「登记簿非空 + 新日期」的组合。
+        // 该守卫曾在差分层重复一道，因决策层已排除而成为死代码，2026-11-06 合并时删除。
+        // 注意登记项的 firedAt 必须在未来：过期的条目会被 prune 丢弃（那是回收语义）。
+        val now = LocalDateTime.parse("2026-09-28T12:00:00")
+        val oldAlarm = alarm("2026-09-29", 8, 0, 7, 15)
+        val newPlan = listOf(alarm("2026-09-30", 8, 0, 7, 15))
+        val registry = mapOf(
+            "2026-09-29" to MorningAlarmRegistry.Entry(
+                firedAt = LocalDateTime.parse("2026-09-29T07:15:00"),
+                label = MorningAlarmPlan.label(oldAlarm)
+            )
+        )
 
-        val actions = MorningAlarmDiff.diff(newPlan, registry, allowDismiss = false)
-        assertTrue("旧闹钟尚未到期且不能删除时，不应再写入新日期", actions.isEmpty())
+        val state = MorningAlarmWriteDecision.evaluate(newPlan, registry, now, visible = true)
+        assertEquals(
+            "旧闹钟尚未到期且不能删除时，决策层必须拦成 BlockedByExisting",
+            MorningAlarmWriteDecision.State.BlockedByExisting,
+            state
+        )
     }
 
     @Test
@@ -141,20 +153,33 @@ class MorningAlarmDiffTest {
         val registry = mapOf("2026-09-20" to MorningAlarmPlan.label(stale))
         val newPlan = listOf(alarm("2026-09-28", 8, 0, 7, 15))
 
-        val actions = MorningAlarmDiff.diff(newPlan, registry, allowDismiss = true)
+        val actions = MorningAlarmWriteDecision.actions(newPlan, registry, allowDismiss = true)
         assertEquals(2, actions.size)
-        assertTrue(actions.any { it is MorningAlarmDiff.Action.Dismiss })
-        assertTrue(actions.any { it is MorningAlarmDiff.Action.Write })
+        assertTrue(actions.any { it is MorningAlarmWriteDecision.Decision.Dismiss })
+        assertTrue(actions.any { it is MorningAlarmWriteDecision.Decision.Write })
     }
 
     @Test
     fun registeredPendingAlarmBlocksOtherDate() {
-        val a = alarm("2026-09-28", 8, 0, 7, 15)
-        val b = alarm("2026-09-29", 10, 30, 9, 45)
-        val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(a))
+        // 同上：已有未到期登记项时由**决策层**拦下，不再写另一条
+        // （真机实测 SET_ALARM 非幂等 + DISMISS 删不掉 ⇒ 写第二条必堆积重复）。
+        // 登记项（明天响）与计划的最近一条（后天）是不同日期。
+        val now = LocalDateTime.parse("2026-09-28T12:00:00")
+        val registeredAlarm = alarm("2026-09-29", 11, 30, 10, 30)
+        val nextPlan = listOf(alarm("2026-09-30", 10, 30, 9, 45))
+        val registry = mapOf(
+            "2026-09-29" to MorningAlarmRegistry.Entry(
+                firedAt = LocalDateTime.parse("2026-09-29T10:30:00"),
+                label = MorningAlarmPlan.label(registeredAlarm)
+            )
+        )
 
-        val actions = MorningAlarmDiff.diff(listOf(a, b), registry)
-        assertTrue("已有未到期闹钟时不增加另一条", actions.isEmpty())
+        val state = MorningAlarmWriteDecision.evaluate(nextPlan, registry, now, visible = true)
+        assertEquals(
+            "已有未到期闹钟时不增加另一条",
+            MorningAlarmWriteDecision.State.BlockedByExisting,
+            state
+        )
     }
 
     @Test
@@ -217,7 +242,7 @@ class MorningAlarmDiffTest {
         val registry = mapOf("2026-09-28" to MorningAlarmPlan.label(a))
 
         // 重开开关后按同一计划同步：登记簿仍在 ⇒ 不产生任何写入动作（不重复）
-        val actions = MorningAlarmDiff.diff(listOf(a), registry)
+        val actions = MorningAlarmWriteDecision.actions(listOf(a), registry)
         assertTrue("登记簿保留时应幂等无动作（这正是防重复的关键）", actions.isEmpty())
     }
 }

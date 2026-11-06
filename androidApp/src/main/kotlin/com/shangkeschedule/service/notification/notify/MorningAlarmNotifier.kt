@@ -3,11 +3,9 @@ package com.shangkeschedule.service.notification.notify
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.shangkeschedule.MainActivity
 import com.shangkeschedule.R
 
@@ -26,7 +24,7 @@ object MorningAlarmNotifier {
     const val NOTIFICATION_ID = 700_100
 
     fun postFallback(context: Context, title: String, courseName: String, startTime: String) {
-        if (!hasPermission(context)) {
+        if (!NotificationPermission.canPost(context)) {
             Log.w(TAG, "通知权限未授予，早八降级提醒无法投递")
             return
         }
@@ -59,12 +57,4 @@ object MorningAlarmNotifier {
         },
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
-
-    private fun hasPermission(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
-        return ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.POST_NOTIFICATIONS
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
 }

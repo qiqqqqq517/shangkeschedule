@@ -15,6 +15,7 @@ import com.shangkeschedule.data.model.newMorningAlarmWeeklyRevision
 import com.shangkeschedule.notification.morning.WeeklyAlarmConfirmationStore
 import com.shangkeschedule.notification.morning.weeklyConfirmationRevision
 import com.shangkeschedule.notification.morning.MorningAlarmSyncGate
+import com.shangkeschedule.notification.plan.MorningAlarmPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.runBlocking
@@ -77,6 +78,7 @@ import com.shangkeschedule.ui.components.ToastManager
 import com.shangkeschedule.ui.components.toUtcLocalDate
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -252,8 +254,7 @@ fun NotificationDialogDispatcher(
 }
 
 @Composable
-private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel: NotificationSettingsViewModel) {
-    val context = LocalContext.current
+private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel: NotificationSettingsViewModel) {    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember(context) { WeeklyAlarmConfirmationStore(context) }
     var reviewPending by remember(store) { mutableStateOf(store.requiresReview()) }
@@ -267,6 +268,10 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
     val error = stringResource(Res.string.morning_weekly_error)
     val normalized = MorningAlarmWeeklyTimes.normalize(draft.toMap())
     val valid = draft.isNotEmpty() && draft.toMap() == normalized
+
+    // 按课表算出的「各星期建议时刻」。仅作勾选时的**初值**，用户随后可自由改写，
+    // 因此缺项（该星期无课、或数据不全）回落到提前量 + 默认第一节课 08:00。
+    val suggestedTimes = uiState.morningAlarmWeekdaySuggestions
 
     fun save(mode: MorningAlarmMode) {
         if (saving || !checked || (mode == MorningAlarmMode.HYBRID_WEEKLY && !valid)) return
@@ -282,17 +287,20 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
             }
             riskyDays = emptySet()
             val ok = withContext(Dispatchers.IO) {
-                MorningAlarmSyncGate.run {
-                    store.completeReview {
-                        val revision = newMorningAlarmWeeklyRevision()
-                        val times = if (mode == MorningAlarmMode.HYBRID_WEEKLY) normalized else emptyMap()
-                        val confirmedRevision = weeklyConfirmationRevision(context, revision)
-                        val saved = if (mode == MorningAlarmMode.HYBRID_WEEKLY) {
-                            confirmedRevision != null && store.confirm(confirmedRevision, times)
-                        } else store.clear()
-                        saved && MorningAlarmSyncGate.clearVerifiedOldAlarms(context) &&
-                            runCatching { runBlocking { viewModel.saveMorningAlarmSchedule(mode, times, revision) } }.isSuccess
-                    }
+                // 不再整段包 MorningAlarmSyncGate.run：那是同步临界区，包住挂起的
+                // saveMorningAlarmSchedule 会把 Room 写入压进锁里（旧实现为此叠了
+                // 一层 runBlocking，既新开事件循环又不响应取消）。
+                // 改用 completeReviewSuspend：建屏障与解除屏障各自短暂持锁，
+                // 挂起的保存段由**屏障文件**挡住并发调度入口（见其 KDoc）。
+                store.completeReviewSuspend {
+                    val revision = newMorningAlarmWeeklyRevision()
+                    val times = if (mode == MorningAlarmMode.HYBRID_WEEKLY) normalized else emptyMap()
+                    val confirmedRevision = weeklyConfirmationRevision(context, revision)
+                    val saved = if (mode == MorningAlarmMode.HYBRID_WEEKLY) {
+                        confirmedRevision != null && store.confirm(confirmedRevision, times)
+                    } else store.clear()
+                    saved && MorningAlarmSyncGate.clearVerifiedOldAlarms(context) &&
+                        runCatching { viewModel.saveMorningAlarmSchedule(mode, times, revision) }.isSuccess
                 }
             }
             if (ok) {
@@ -334,7 +342,11 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
                 for (day in 1..7) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = draft.containsKey(day), onCheckedChange = { selected ->
-                            if (selected) draft[day] = "07:15" else draft.remove(day)
+                            // 勾选某天时用**该天课表算出的默认时刻**，而不是写死的 "07:15"：
+                            // 用户把提前量改成 60 分钟、或第一节本就是 09:00 时，
+                            // 写死 07:15 会给出一个与课表完全无关的闹钟，用户还得手动改。
+                            if (selected) draft[day] = defaultWeeklyTimeFor(day, uiState.morningAlarmLeadMinutes, suggestedTimes)
+                            else draft.remove(day)
                             checked = false
                             if (!selected) riskyDays = riskyDays - day
                         }, enabled = !saving)
@@ -397,6 +409,27 @@ private fun MorningWeeklyDialog(uiState: NotificationSettingsUiState, viewModel:
         },
         dismissButton = { TextButton(enabled = !saving, onClick = { viewModel.dismissDialog() }) { Text(stringResource(Res.string.action_cancel)) } }
     )
+}
+
+/**
+ * 勾选某个星期时填入的初值时刻。
+ *
+ * 优先级：**该星期按课表算出的建议时刻** → 提前量 + 默认第一节课 08:00。
+ *
+ * 为什么不再写死 `"07:15"`：那等于假定「第一节 08:00、提前 45 分钟」，
+ * 而这两个值都由用户控制（提前量 0–180 分钟可调、第一节时间来自课表）。
+ * 写死的初值会与真实课表脱钩，用户勾完还得自己改，且改了也难判断对不对。
+ */
+internal fun defaultWeeklyTimeFor(
+    isoDay: Int,
+    leadMinutes: Int,
+    suggestions: Map<Int, String>
+): String {
+    suggestions[isoDay]?.let { return it }
+    // 无课/数据不全：回落到「08:00 第一节 − 提前量」，与历史默认值（45 → 07:15）一致。
+    val fallbackFirstPeriodMinutes = 8 * 60
+    val total = (fallbackFirstPeriodMinutes - leadMinutes.coerceIn(0, 180)).mod(24 * 60)
+    return MorningAlarmPlan.formatTime(LocalTime(total / 60, total % 60))
 }
 
 /**

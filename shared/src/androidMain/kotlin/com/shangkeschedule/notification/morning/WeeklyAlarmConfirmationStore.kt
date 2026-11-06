@@ -8,6 +8,7 @@ import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.notification.plan.MorningAlarmHybridPlan
 import com.shangkeschedule.notification.plan.MorningAlarmPlan
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
@@ -46,6 +47,47 @@ class WeeklyAlarmConfirmationStore internal constructor(private val directory: F
             Files.delete(reviewMarker.toPath())
             true
         }.getOrDefault(false)
+    }
+
+    /**
+     * [completeReview] 的挂起版本：屏障语义完全相同，只是 [action] 可以是挂起函数。
+     *
+     * ## 为什么需要它
+     *
+     * 周核对弹窗的保存链要「先建屏障 → 保存设置（挂起，走 Room）→ 成功才解除屏障」。
+     * 旧实现在 `completeReview` 的同步 lambda 里用 `runBlocking { ... }` 包住那次挂起调用：
+     *  - 它会新开一个事件循环，把 Room 的挂起写入压在同一次同步临界区里；
+     *  - `runBlocking` 不响应外部取消，用户中途退出页面时无法及时中断；
+     *  - 一旦 Room 抛异常，`runBlocking` 的传播路径与 `runCatching` 叠加后语义变得难读。
+     *
+     * ## 为什么不能简单地把 synchronized 包在 suspend 外面
+     *
+     * `synchronized` 的监视器是**线程级**的，而挂起函数可能在恢复时跑到**另一个线程**上：
+     * 跨挂起点持有监视器会造成「原线程持锁、协程在新线程继续」，退出临界区时抛
+     * `IllegalMonitorStateException`，同时其他线程被无谓阻塞。故这里把三段拆开——
+     * 建屏障、执行、解除屏障，**只在前后两段**进出锁，中间那段不持锁。
+     *
+     * 屏障期间的正确性由**屏障文件的存在性**保证，而不是由监视器保证：
+     * 并发的调度入口读 [requiresReview] 会看到屏障文件从而拒绝写入系统时钟。
+     * 这与同步版 [completeReview] 的对外可观测行为一致。
+     */
+    suspend fun completeReviewSuspend(action: suspend () -> Boolean): Boolean {
+        // 建屏障与解除屏障各自短暂持「调度入口锁 + 存储锁」；中间的挂起段不持任何锁。
+        // 挂起期间调度入口被**屏障文件**挡住（requiresReview 见到标记即拒绝写入系统时钟），
+        // 这与同步版对外可观测行为一致，且不会跨挂起点持有线程级监视器。
+        if (!MorningAlarmSyncGate.run { beginReview() }) return false
+        return try {
+            if (!action()) return false
+            MorningAlarmSyncGate.run {
+                Files.delete(reviewMarker.toPath())
+                true
+            }
+        } catch (cancel: CancellationException) {
+            // 取消也要保留屏障：本轮没有完成核对，交给下次前台时机重新核对。
+            throw cancel
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun encoded(revision: String, weeklyTimes: Map<Int, String>): String? {
