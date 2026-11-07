@@ -41,24 +41,21 @@
                 tools:text="今日还有 3 节课" />
         </RelativeLayout>
 
-        <LinearLayout
+        <!-- v4.83.0：课程多时可滑动——LinearLayout 静态插行超出可视高度直接截断，
+             改为 ListView（collection widget），行内容由 WidgetCourseListService 提供，
+             课程超出可视高度时组件内即可上下滑动。行由 Factory 惰性绑定，
+             渲染端只负责头部/空态/适配器挂载。 -->
+        <ListView
             android:id="@+id/container_courses"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="vertical"
-            tools:visibility="visible">
-
-            <include layout="@layout/widget_item_course_list_node" />
-
-            <include layout="@layout/widget_divider_horizontal" />
-
-            <include layout="@layout/widget_item_course_list_node" />
-
-            <include layout="@layout/widget_divider_horizontal" />
-
-            <include layout="@layout/widget_item_course_list_node" />
-        </LinearLayout>
+            android:divider="@drawable/widget_divider_inset"
+            android:dividerHeight="5dp"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            tools:listitem="@layout/widget_item_course_list_node"
+            tools:visibility="visible" />
 
         <LinearLayout
             android:id="@+id/container_status"

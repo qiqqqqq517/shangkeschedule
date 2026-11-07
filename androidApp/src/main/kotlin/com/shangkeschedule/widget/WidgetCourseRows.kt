@@ -4,6 +4,10 @@ import android.content.Context
 import android.util.TypedValue
 import android.widget.RemoteViews
 import com.shangkeschedule.R
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 /**
  * 七个规格共用（仅「考试倒计时」不消费本文件）的「课程行构造 / 列表插入 + 分隔线 / 空态与周次判定」。
@@ -103,3 +107,73 @@ internal fun addCourseRows(
     courses: List<WidgetCourseProto>,
     rowFactory: (WidgetCourseProto) -> RemoteViews
 ) = addRows(rootRv, containerId, context, courses, rowFactory)
+
+/**
+ * 「今日课程」条目 B 行（`widget_item_course_list_node`）的统一构造。
+ *
+ * v4.83.0 起有两个消费方：[com.shangkeschedule.widget.list_vertical.ListVerticalNativeRenderer]
+ * （静态路径，容量 ≤ MAX_ROWS 时仍走它，保持单次 RemoteViews 更新）与
+ * [com.shangkeschedule.widget.courselist.CourseListRemoteViewsService]（ListView 路径，
+ * 课程超出容量时可滑动）。行内容（字号 / 取色 / 时间截取）必须完全一致，
+ * 否则同一门课在「渲染时」与「滑动后」外观不同。
+ */
+internal fun courseListRow(
+    context: Context,
+    course: WidgetCourseProto,
+    snapshot: WidgetSnapshot,
+    space: WidgetSpaceClass = WidgetSpaceClass.S
+): RemoteViews = RemoteViews(context.packageName, R.layout.widget_item_course_list_node).apply {
+    setTextViewText(R.id.tv_course_name, course.name)
+    setTextViewText(R.id.tv_course_position, course.position)
+    setTextViewText(R.id.tv_course_start_time, course.start_time.take(5))
+    setTextViewText(R.id.tv_course_end_time, course.end_time.take(5))
+    // 按空间放大 + 按字数自适应（v4.61.0，见 WidgetTextScale）
+    setTextViewTextSize(R.id.tv_course_name, TypedValue.COMPLEX_UNIT_SP, courseNameSizeSp(space))
+    val metaSp = rowMetaSizeSp(space)
+    setTextViewTextSize(R.id.tv_course_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    setTextViewTextSize(R.id.tv_course_start_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    setTextViewTextSize(R.id.tv_course_end_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    bindCourseRowBody(context, course, snapshot)
+}
+
+/**
+ * 「周课程」条目（`widget_item_week_course_node`）的统一构造。
+ *
+ * v4.83.0 起两个消费方同上（WeekCoursesNativeRenderer 静态路径 +
+ * CourseListRemoteViewsService 的周课程模式）。[dayLabel] 的「今天/明天/周X」口径
+ * 也由本函数承载，保证滑动后滚出来的行日期标签一致。
+ */
+internal fun weekCourseRow(
+    context: Context,
+    course: WidgetCourseProto,
+    snapshot: WidgetSnapshot,
+    space: WidgetSpaceClass = WidgetSpaceClass.S,
+    today: LocalDate = LocalDate.now()
+): RemoteViews = RemoteViews(context.packageName, R.layout.widget_item_week_course_node).apply {
+    setTextViewText(R.id.tv_week_day, dayLabel(context, course.date, today))
+    setTextViewText(R.id.tv_week_time, course.start_time.take(5))
+    setTextViewText(R.id.tv_week_name, course.name)
+    setTextViewText(R.id.tv_week_position, course.position)
+    setTextViewTextSize(R.id.tv_week_name, TypedValue.COMPLEX_UNIT_SP, courseNameSizeSp(space))
+    val metaSp = rowMetaSizeSp(space)
+    setTextViewTextSize(R.id.tv_week_day, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    setTextViewTextSize(R.id.tv_week_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    setTextViewTextSize(R.id.tv_week_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
+    applyCourseColor(
+        context,
+        lightViewId = R.id.course_bar_light,
+        darkViewId = R.id.course_bar_dark,
+        maps = snapshot.style?.course_color_maps,
+        colorInt = course.color_int
+    )
+}
+
+/** 周课程行首日期：今天 / 明天用相对文案，其余用「周X」（原 WeekCoursesNativeRenderer 私有实现上移）。 */
+internal fun dayLabel(context: Context, date: String, today: LocalDate): String {
+    val target = runCatching { LocalDate.parse(date) }.getOrNull() ?: return date
+    return when (ChronoUnit.DAYS.between(today, target)) {
+        0L -> context.getString(R.string.widget_title_today)
+        1L -> context.getString(R.string.widget_title_tomorrow)
+        else -> target.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    }
+}

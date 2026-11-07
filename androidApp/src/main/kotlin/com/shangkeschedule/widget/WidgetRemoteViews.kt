@@ -35,6 +35,21 @@ internal fun bindWidgetClickIntent(
     rv: RemoteViews,
     providerClass: Class<*>? = null,
 ) {
+    rv.setOnClickPendingIntent(R.id.widget_root, widgetClickPendingIntent(context, providerClass))
+}
+
+/**
+ * 「点击打开 App」的 PendingIntent 本体（v4.83.0 自 [bindWidgetClickIntent] 拆出）。
+ *
+ * 除了绑到整卡根视图，列表型组件（collection widget）还需要把它经
+ * `setPendingIntentTemplate` 设为 ListView 的**点击模板**：列表行会消费点击事件，
+ * 只绑根视图时「点课程行」不会打开 App。同一 PendingIntent 对象两处复用（模板 +
+ * 根视图），请求码身份约定见 [widgetClickRequestCode]。
+ */
+internal fun widgetClickPendingIntent(
+    context: Context,
+    providerClass: Class<*>? = null,
+): PendingIntent {
     val intent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         if (providerClass != null) {
@@ -44,13 +59,12 @@ internal fun bindWidgetClickIntent(
             )
         }
     }
-    val pendingIntent = PendingIntent.getActivity(
+    return PendingIntent.getActivity(
         context,
         widgetClickRequestCode(providerClass),
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
-    rv.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 }
 
 /**

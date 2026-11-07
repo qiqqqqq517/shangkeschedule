@@ -1,6 +1,7 @@
 package com.shangkeschedule.widget.list_vertical
 
 import android.content.Context
+import android.content.Intent
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -10,17 +11,31 @@ import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addCourseRows
-import com.shangkeschedule.widget.bindCourseRowBody
 import com.shangkeschedule.widget.bindWidgetClickIntent
 import com.shangkeschedule.widget.setWidgetCardBackground
-import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.headerSizeSp
-import com.shangkeschedule.widget.rowMetaSizeSp
 import com.shangkeschedule.widget.todayEmptyTip
+import com.shangkeschedule.widget.widgetClickPendingIntent
+import com.shangkeschedule.widget.courselist.CourseListRemoteViewsService
 import java.time.LocalDate
 import java.time.LocalTime
 
+/**
+ * 「今日课程」小组件渲染（4×N）。
+ *
+ * ## v4.83.0：课程多时可滑动
+ *
+ * 行容器由静态 LinearLayout 改为 ListView（collection widget）。此前课程数超出
+ * 可视容量（WidgetListCapacity.rowsFor，上限 12 行）时直接截断不可见；现在把
+ * **全部**课程交给 [CourseListRemoteViewsService]，系统按可视范围惰性绑定行，
+ * 组件内即可上下滑动查看。
+ *
+ * 静态插行路径（[renderStaticRows]）仅剩一个消费场景：**列数据通知失败时的降级**。
+ * `setRemoteAdapter` + `notifyAppWidgetViewDataChanged` 由本类与 WidgetUpdateHelper
+ * 两处触发；适配器读库失败时返回 0 行，ListView 呈空——此时头部的「还有 N 节课」
+ * 计数仍在（来自静态渲染），用户可打开 App 查看详情，数据由 15 分钟 tick 自愈。
+ */
 object ListVerticalNativeRenderer {
 
     fun render(
@@ -73,12 +88,16 @@ object ListVerticalNativeRenderer {
                 val weekText = context.getString(R.string.status_current_week_format, currentWeek)
                 rv.setTextViewText(R.id.tv_header_title, "$weekText  $dayOfWeekStr")
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_today, todayRemaining.size))
-                renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot, space)
+                attachScrollableList(context, rv, todayRemaining, maxCourseCount, space) {
+                    renderCourseContent(context, rv, todayRemaining.take(maxCourseCount), snapshot, space)
+                }
             }
             tomorrowCourses.isNotEmpty() -> {
                 rv.setTextViewText(R.id.tv_header_title, context.getString(R.string.widget_tomorrow_course_preview))
                 rv.setTextViewText(R.id.tv_header_count_summary, context.getString(R.string.widget_remaining_courses_format_tomorrow, tomorrowCourses.size))
-                renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot, space)
+                attachScrollableList(context, rv, tomorrowCourses, maxCourseCount, space) {
+                    renderCourseContent(context, rv, tomorrowCourses.take(maxCourseCount), snapshot, space)
+                }
             }
             else -> {
                 val tip = todayEmptyTip(context, snapshot.courses, todayStr)
@@ -98,12 +117,43 @@ object ListVerticalNativeRenderer {
         return rv
     }
 
+    /**
+     * 挂载可滑动列表。
+     *
+     * 策略：**全部课程**走 RemoteViewsService（滑动可见，不再受 maxCourseCount 截断）；
+     * count <= 1 时退回静态插行——单行场景不值得引入 service 绑定开销，也与旧行为一致。
+     * [staticFallback] 仅在降级分支执行。
+     */
+    private fun attachScrollableList(
+        context: Context,
+        rv: RemoteViews,
+        courses: List<WidgetCourseProto>,
+        maxCourseCount: Int,
+        @Suppress("UNUSED_PARAMETER") space: WidgetSpaceClass,
+        staticFallback: () -> Unit
+    ) {
+        if (courses.size <= 1) {
+            staticFallback()
+            return
+        }
+        rv.setRemoteAdapter(
+            R.id.container_courses,
+            CourseListRemoteViewsService.intent(context, CourseListRemoteViewsService.Mode.TODAY)
+        )
+        rv.setPendingIntentTemplate(
+            R.id.container_courses,
+            widgetClickPendingIntent(context, ListVerticalNativeProvider::class.java)
+        )
+        rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
+    }
+
     private fun resetWidgetState(rv: RemoteViews) {
         rv.setViewVisibility(R.id.container_full_status, View.GONE)
         rv.setViewVisibility(R.id.inner_content_card, View.VISIBLE)
-        rv.setViewVisibility(R.id.container_courses, View.GONE)
+        rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
         rv.setViewVisibility(R.id.container_status, View.GONE)
-        rv.removeAllViews(R.id.container_courses)
+        // ListView 路径下行由 Factory 提供，不允许 removeAllViews（不支持该操作会抛异常）。
+        // 静态路径在插行前由调用方保证容器为空（每次都是全新 RemoteViews）。
     }
 
     private fun renderCourseContent(
@@ -117,19 +167,7 @@ object ListVerticalNativeRenderer {
 
         // 行内容与分隔线统一走 WidgetCourseRows；仅行布局不同
         addCourseRows(rv, R.id.container_courses, context, courses) { course ->
-            RemoteViews(context.packageName, R.layout.widget_item_course_list_node).apply {
-                setTextViewText(R.id.tv_course_name, course.name)
-                setTextViewText(R.id.tv_course_position, course.position)
-                setTextViewText(R.id.tv_course_start_time, course.start_time.take(5))
-                setTextViewText(R.id.tv_course_end_time, course.end_time.take(5))
-                // 按空间放大 + 按字数自适应（v4.61.0，见 WidgetTextScale）
-                setTextViewTextSize(R.id.tv_course_name, TypedValue.COMPLEX_UNIT_SP, courseNameSizeSp(space))
-                val metaSp = rowMetaSizeSp(space)
-                setTextViewTextSize(R.id.tv_course_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                setTextViewTextSize(R.id.tv_course_start_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                setTextViewTextSize(R.id.tv_course_end_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                bindCourseRowBody(context, course, snapshot)
-            }
+            com.shangkeschedule.widget.courseListRow(context, course, snapshot, space)
         }
     }
 

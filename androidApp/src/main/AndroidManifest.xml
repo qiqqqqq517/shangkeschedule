@@ -242,6 +242,14 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- 列表型小组件（今日课程 / 周课程）的 ListView 数据源（v4.83.0）：
+             课程超出可视高度时组件内可滑动。exported=false：仅本应用的 RemoteViews 绑定，
+             RemoteViewsService 的 intent 无 action、由布局 setRemoteAdapter 显式指定类名。 -->
+        <service
+            android:name=".widget.courselist.CourseListRemoteViewsService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
         <receiver
             android:name=".widget.tiny.TinyNativeProvider"
             android:label="@string/widget_name_tiny"

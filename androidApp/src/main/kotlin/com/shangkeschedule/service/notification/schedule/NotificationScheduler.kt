@@ -17,7 +17,9 @@ import com.shangkeschedule.service.notification.notify.NextClassNotifier
 import com.shangkeschedule.service.notification.notify.NotificationChannels
 import com.shangkeschedule.service.notification.reminder.CourseReminderScheduler
 import com.shangkeschedule.widget.WidgetBoundaryAlarmScheduler
+import com.shangkeschedule.widget.WidgetDayBoundaryAlarmScheduler
 import com.shangkeschedule.widget.WidgetRefreshReason
+import com.shangkeschedule.widget.WorkManagerHelper
 import com.shangkeschedule.widget.updateAllWidgets
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DateTimeUnit
@@ -212,6 +214,25 @@ class NotificationScheduler(
         runCatching {
             WidgetBoundaryAlarmScheduler(context).reschedule(effective, today, now)
         }.onFailure { Log.w(TAG, "小组件边界刷新排程失败，不影响其余排程: ${it.message}") }
+
+        // 小组件「跨天锚点」重挂（v4.82.3）：每日 00:00:20 的精确闹钟（请求码 64200），
+        // 与上面 64xxx 边界闹钟同属「系统会静默取消」的范畴 —— 精确闹钟权限被撤销时
+        // AlarmManager 清掉本应用**全部**精确闹钟（含该锚点），而本方法的调用方之一
+        // AlarmPermissionReceiver（权限撤销/恢复）此前只经这里补回边界闹钟，
+        // 锚点从此无人重挂 ⇒ 零点后失去唯一确定性翻页点，只能等 15 分钟 tick
+        // 或 00:05 不精确自愈，表现即「小组件不及时更新」。
+        //
+        // 放在编排层而不是各调用方：reschedule() 的 4 个调用方（SyncManager /
+        // TimeChangeReceiver / AlarmPermissionReceiver / NotificationSyncWorker）
+        // 自动全覆盖，与「边界闹钟放这里」同一理由（见下方 v4.68.1 注释的调用方清单）。
+        // schedule() 同请求码 FLAG_UPDATE_CURRENT 顶替，幂等；hasAnyWidget 守卫与
+        // 其余 5 处挂锚点调用点（WorkManagerHelper / onEnabled / 升级 / 时间变更 /
+        // 触发自续）口径一致 —— 无组件用户不多挂零点闹钟。
+        runCatching {
+            if (WorkManagerHelper.hasAnyWidget(context.applicationContext)) {
+                WidgetDayBoundaryAlarmScheduler(context).schedule(now = now)
+            }
+        }.onFailure { Log.w(TAG, "跨天锚点重挂失败，不影响其余排程: ${it.message}") }
 
         // 小组件**数据**重绘（v4.68.1）。
         //

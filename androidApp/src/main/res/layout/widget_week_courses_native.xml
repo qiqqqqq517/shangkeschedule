@@ -47,24 +47,18 @@
                 tools:text="本周还有 6 节课" />
         </RelativeLayout>
 
-        <LinearLayout
+        <!-- v4.83.0：课程多时可滑动（同 widget_list_vertical_native.xml 的 ListView 改造）。 -->
+        <ListView
             android:id="@+id/container_courses"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="vertical"
-            tools:visibility="visible">
-
-            <include layout="@layout/widget_item_week_course_node" />
-
-            <include layout="@layout/widget_divider_horizontal" />
-
-            <include layout="@layout/widget_item_week_course_node" />
-
-            <include layout="@layout/widget_divider_horizontal" />
-
-            <include layout="@layout/widget_item_week_course_node" />
-        </LinearLayout>
+            android:divider="@drawable/widget_divider_inset"
+            android:dividerHeight="5dp"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            tools:listitem="@layout/widget_item_week_course_node"
+            tools:visibility="visible" />
 
         <LinearLayout
             android:id="@+id/container_status"

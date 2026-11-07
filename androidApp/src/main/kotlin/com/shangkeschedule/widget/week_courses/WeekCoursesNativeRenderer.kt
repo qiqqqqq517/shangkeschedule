@@ -9,18 +9,15 @@ import com.shangkeschedule.widget.WidgetCourseSelection
 import com.shangkeschedule.widget.WidgetSnapshot
 import com.shangkeschedule.widget.WidgetSpaceClass
 import com.shangkeschedule.widget.addRows
-import com.shangkeschedule.widget.applyCourseColor
 import com.shangkeschedule.widget.bindWidgetClickIntent
-import com.shangkeschedule.widget.courseNameSizeSp
 import com.shangkeschedule.widget.currentWeekOrNull
 import com.shangkeschedule.widget.headerSizeSp
-import com.shangkeschedule.widget.rowMetaSizeSp
 import com.shangkeschedule.widget.setWidgetCardBackground
+import com.shangkeschedule.widget.weekCourseRow
+import com.shangkeschedule.widget.widgetClickPendingIntent
+import com.shangkeschedule.widget.courselist.CourseListRemoteViewsService
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 /**
  * 「周课程」小组件渲染（v4.67.0，C3）。
@@ -35,6 +32,14 @@ import java.util.Locale
  * 与 `docs` 里「周课程」理想形态（7 天全矩阵）的差异：矩阵在 RemoteViews 下只能靠
  * 固定行列的窄格子实现，字号会被压到 10sp 以下且无法自适应；这里改用
  * 「日期 + 时间 + 课程名」的纵向列表，信息更完整，也与既有列表组件视觉统一。
+ *
+ * ## v4.83.0：课程多时可滑动
+ *
+ * 行容器改为 ListView，「本周剩余」**全部**课程交给
+ * [CourseListRemoteViewsService]（Mode.WEEK），超出可视高度时组件内滑动查看，
+ * 不再被 [WidgetListCapacity 的容量] 截断。课程 ≤ 1 时退回静态插行（单行不值得
+ * service 绑定开销）；行构造统一走 WidgetCourseRows 的 [weekCourseRow]，
+ * 与 Factory 侧外观逐字段一致。
  */
 object WeekCoursesNativeRenderer {
 
@@ -49,9 +54,8 @@ object WeekCoursesNativeRenderer {
 
         rv.setViewVisibility(R.id.container_full_status, View.GONE)
         rv.setViewVisibility(R.id.inner_content_card, View.VISIBLE)
-        rv.setViewVisibility(R.id.container_courses, View.GONE)
+        rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
         rv.setViewVisibility(R.id.container_status, View.GONE)
-        rv.removeAllViews(R.id.container_courses)
 
         bindWidgetClickIntent(context, rv, WeekCoursesNativeProvider::class.java)
 
@@ -99,6 +103,7 @@ object WeekCoursesNativeRenderer {
 
         if (remaining.isEmpty()) {
             rv.setTextViewText(R.id.tv_header_count_summary, "")
+            rv.setViewVisibility(R.id.container_courses, View.GONE)
             rv.setViewVisibility(R.id.container_status, View.VISIBLE)
             rv.setTextViewText(R.id.tv_status_title, context.getString(R.string.widget_week_finished))
             rv.setTextViewText(R.id.tv_status_msg, context.getString(R.string.widget_week_finished_hint))
@@ -109,45 +114,25 @@ object WeekCoursesNativeRenderer {
             R.id.tv_header_count_summary,
             context.getString(R.string.widget_week_remaining, remaining.size)
         )
-        rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
 
-        val metaSp = rowMetaSizeSp(space)
-        val nameSp = courseNameSizeSp(space)
-        addRows(rv, R.id.container_courses, context, remaining.take(maxCourseCount)) { course ->
-            RemoteViews(context.packageName, R.layout.widget_item_week_course_node).apply {
-                setTextViewText(R.id.tv_week_day, dayLabel(context, course.date, today))
-                setTextViewText(R.id.tv_week_time, course.start_time.take(5))
-                setTextViewText(R.id.tv_week_name, course.name)
-                setTextViewText(R.id.tv_week_position, course.position)
-                setTextViewTextSize(R.id.tv_week_name, TypedValue.COMPLEX_UNIT_SP, nameSp)
-                setTextViewTextSize(R.id.tv_week_day, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                setTextViewTextSize(R.id.tv_week_time, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                setTextViewTextSize(R.id.tv_week_position, TypedValue.COMPLEX_UNIT_SP, metaSp)
-                applyCourseColor(
-                    context,
-                    lightViewId = R.id.course_bar_light,
-                    darkViewId = R.id.course_bar_dark,
-                    maps = snapshot.style?.course_color_maps,
-                    colorInt = course.color_int
-                )
+        if (remaining.size > 1) {
+            // 多行：全部课程交给 ListView（滑动可见，不截断）。
+            rv.setRemoteAdapter(
+                R.id.container_courses,
+                CourseListRemoteViewsService.intent(context, CourseListRemoteViewsService.Mode.WEEK)
+            )
+            rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
+            rv.setPendingIntentTemplate(
+                R.id.container_courses,
+                widgetClickPendingIntent(context, WeekCoursesNativeProvider::class.java)
+            )
+        } else {
+            // 单行：静态插行，与旧行为一致，省一次 service 绑定。
+            rv.setViewVisibility(R.id.container_courses, View.VISIBLE)
+            addRows(rv, R.id.container_courses, context, remaining) { course ->
+                weekCourseRow(context, course, snapshot, space, today)
             }
         }
         return rv
-    }
-
-    /**
-     * 行首日期：今天 / 明天用相对文案，其余用「周X」。
-     *
-     * 星期取法与 Compact / DoubleDays / ListVertical 统一走
-     * `getDisplayName(TextStyle.SHORT, Locale.getDefault())`——避免系统语言非中英时
-     * 出现硬编码中文（该问题在 v4.61.0 的 ListVertical 上已经踩过一次）。
-     */
-    private fun dayLabel(context: Context, date: String, today: LocalDate): String {
-        val target = runCatching { LocalDate.parse(date) }.getOrNull() ?: return date
-        return when (ChronoUnit.DAYS.between(today, target)) {
-            0L -> context.getString(R.string.widget_title_today)
-            1L -> context.getString(R.string.widget_title_tomorrow)
-            else -> target.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        }
     }
 }

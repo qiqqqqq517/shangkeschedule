@@ -294,6 +294,20 @@ private suspend fun performUpdate(context: Context) {
                             space
                         )
                         appWidgetManager.updateAppWidget(widgetId, remoteViews)
+                        // v4.83.0：列表型规格的行容器是 ListView（课程多时可滑动），
+                        // 静态渲染只更新头部/空态/适配器挂载；行数据必须显式通知 Factory
+                        // 重取（onDataSetChanged → 重读主库），否则桌面仍显示上一轮的行。
+                        when (kind) {
+                            WidgetKind.LIST_VERTICAL ->
+                                appWidgetManager.notifyAppWidgetViewDataChanged(
+                                    widgetId, R.id.container_courses
+                                )
+                            WidgetKind.WEEK_COURSES ->
+                                appWidgetManager.notifyAppWidgetViewDataChanged(
+                                    widgetId, R.id.container_courses
+                                )
+                            else -> Unit
+                        }
                         Log.d("WidgetUpdateHelper", "成功刷新组件 $widgetId (${providerClass.simpleName})")
                     } catch (e: Exception) {
                         Log.e("WidgetUpdateHelper", "组件 $widgetId 渲染失败 (${providerClass.simpleName})", e)

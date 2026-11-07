@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 列表型小组件 ListView 的原生分隔线（v4.83.0）。
+     ListView.divider 只接受 drawable（不接受 RemoteViews），
+     故把旧 widget_divider_horizontal.xml（1dp 线 + 上下 2dp margin + 水平 6dp inset）
+     等价搬到这里：总占位 1dp + 2dp×2 margin = 5dp（dividerHeight），两侧留 6dp。
+     widget_divider_horizontal.xml 仍被静态行路径（Compact/DoubleDays/Agenda）使用，保留。 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@color/widget_divider"
+    android:insetLeft="6dp"
+    android:insetRight="6dp"
+    android:insetTop="2dp"
+    android:insetBottom="2dp" />
