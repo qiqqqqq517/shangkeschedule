@@ -160,6 +160,7 @@
     <div class="toc reveal">
       <div class="toc-title">本页版本索引</div>
       <ol>
+        <li><a href="#v4830">v4.83.0 · 发布说明</a></li>
         <li><a href="#v4823">v4.82.3 · 发布说明</a></li>
         <li><a href="#v4822">v4.82.2 · 发布说明</a></li>
         <li><a href="#v4821">v4.82.1 · 发布说明</a></li>
@@ -330,10 +331,32 @@
 
     <div class="timeline doc-body" style="max-width:none">
 
+      <div class="tl-item reveal" id="v4830">
+        <div><span class="tl-ver">v4.83.0</span><span class="tl-date">2026-11-07</span></div>
+        <div class="tl-body">
+          <h4>桌面小组件</h4>
+          <ul>
+            <li><strong>「今日课程」与「周课程」课程多时可滑动</strong>：两个列表组件此前按桌面高度算出可容纳条数（上限 12 行），超出的课程直接截断不可见；现在列表容器改为可滚动列表，全部课程交给后台数据源按需渲染，组件内上下滑动即可看到当天/本周的每一节课。头部的「还有 N 节课」计数不变，点击组件仍直达对应页面。</li>
+            <li>空态、假期、无课等状态显示与此前一致；单行课程不引入列表机制，行为与外观不变。</li>
+          </ul>
+          <h4>构建</h4>
+          <ul>
+            <li>versionCode 578，versionName 4.83.0；支持 arm64-v8a、armeabi-v7a、x86_64 三种 ABI。</li>
+          </ul>
+        </div>
+      </div>
+
       <div class="tl-item reveal" id="v4823">
         <div><span class="tl-ver">v4.82.3</span><span class="tl-date">2026-11-07</span></div>
         <div class="tl-body">
-
+          <h4>桌面小组件</h4>
+          <ul>
+            <li><strong>修复「闹钟和提醒」权限变更后跨天翻页失效</strong>：撤销该权限时系统会静默取消全部精确闹钟，其中包含小组件每天 00:00:20 的跨天翻页锚点；此前重排只补回课程边界闹钟，锚点不再重挂，导致零点后桌面停留在昨天的课表、只能等不定时的兜底刷新。现在锚点重挂并入统一重排流程，任何触发重排的场景（打开应用、课表变更、时间/时区变更、权限恢复等）都会自动补回。</li>
+          </ul>
+          <h4>构建</h4>
+          <ul>
+            <li>versionCode 577，versionName 4.82.3；支持 arm64-v8a、armeabi-v7a、x86_64 三种 ABI。</li>
+          </ul>
         </div>
       </div>
 
