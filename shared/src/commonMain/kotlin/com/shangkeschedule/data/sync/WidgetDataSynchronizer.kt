@@ -132,8 +132,7 @@ class WidgetDataSynchronizer(
 
         // 1. 监听课表数据与小组件所需数据的实时变更（快照无变化时不广播，v3.54.0）
         syncFlow
-            .debounce(500.milliseconds)
-            .filter { it }
+            .changedSnapshotNotifications()
             .onEach {
                 _syncCompletedChannel.trySend(Unit)
             }
@@ -300,3 +299,7 @@ class WidgetDataSynchronizer(
     }
 
 }
+
+@OptIn(FlowPreview::class)
+internal fun Flow<Boolean>.changedSnapshotNotifications(): Flow<Boolean> =
+    filter { it }.debounce(500.milliseconds)

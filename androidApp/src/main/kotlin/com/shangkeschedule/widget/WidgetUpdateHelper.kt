@@ -33,9 +33,9 @@ import com.shangkeschedule.widget.tiny.TinyNativeProvider
 import com.shangkeschedule.widget.tiny.TinyNativeRenderer
 import com.shangkeschedule.widget.week_courses.WeekCoursesNativeProvider
 import com.shangkeschedule.widget.week_courses.WeekCoursesNativeRenderer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -96,44 +96,14 @@ enum class WidgetRefreshReason {
     REQUIRED
 }
 
-private val updateMutex = Mutex()
+private val refreshCoordinator = WidgetRefreshCoordinator()
 
-/** 渲染进行中收到的 [WidgetRefreshReason.REQUIRED] 请求：本次渲染结束后必须补跑一次。 */
-@Volatile
-private var requiredRefreshPending = false
-
-/**
- * 小组件统一分发中心
- * 负责从 Repository 提取数据并分发给所有 8 种规格的原生 Renderer
- *
- * 并发语义（v3.66.3）：同一时刻只允许一次渲染，其余请求按 [WidgetRefreshReason] 分流——
- * `SYSTEM_NUDGE` 合并丢弃（消除 8 个 receiver 齐发造成的重复渲染），`REQUIRED` 登记补跑
- * （保证任何一次数据变更都不会被吞掉）。
- *
- * 这里刻意**不使用「距上次刷新 < N 毫秒就跳过」的时间窗口**：`WidgetDataSynchronizer` 上游
- * 恰好也有 500ms 防抖，两者会形成隐式的时间对齐契约，一旦上游改动就会静默丢刷新。
- */
+/** 统一串行分发小组件更新。 */
 suspend fun updateAllWidgets(
     context: Context,
     reason: WidgetRefreshReason = WidgetRefreshReason.REQUIRED
 ) {
-    while (true) {
-        if (!updateMutex.tryLock()) {
-            // 已有渲染在进行中：仅「必须刷新」的请求登记补跑。
-            if (reason == WidgetRefreshReason.REQUIRED) {
-                requiredRefreshPending = true
-            }
-            return
-        }
-        try {
-            requiredRefreshPending = false
-            performUpdate(context)
-        } finally {
-            updateMutex.unlock()
-        }
-        // 解锁后再读一次：若期间（含「读标志」与「解锁」之间的窄窗口）登记了补跑则继续下一轮。
-        if (!requiredRefreshPending) return
-    }
+    refreshCoordinator.refresh(reason) { performUpdate(context) }
 }
 
 private suspend fun performUpdate(context: Context) {
@@ -309,6 +279,8 @@ private suspend fun performUpdate(context: Context) {
                             else -> Unit
                         }
                         Log.d("WidgetUpdateHelper", "成功刷新组件 $widgetId (${providerClass.simpleName})")
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.e("WidgetUpdateHelper", "组件 $widgetId 渲染失败 (${providerClass.simpleName})", e)
                     }
@@ -316,6 +288,8 @@ private suspend fun performUpdate(context: Context) {
             }
         }
 
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Log.e("WidgetUpdateHelper", "更新流程异常: ${e.stackTraceToString()}")
     }
