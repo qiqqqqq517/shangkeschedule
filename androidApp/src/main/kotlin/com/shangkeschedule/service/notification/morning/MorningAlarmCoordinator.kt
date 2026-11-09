@@ -92,23 +92,35 @@ internal class MorningAlarmCoordinator(
                 return@locked Outcome.Unavailable
             }
             if (!MorningAlarmReviewDecision.sameSettings(settings, current)) return@locked Outcome.Stale
-            if (!current.morningAlarmEnabled) return@locked Outcome.Executed(action(current))
-            if (store.requiresReview()) return@locked Outcome.ReviewRequired
+            if (!current.morningAlarmEnabled) {
+                val result = action(current)
+                updateReviewNotice(current.morningAlarmEnabled, store.requiresReview(), clearResolvedNotice)
+                return@locked Outcome.Executed(result)
+            }
+            if (store.requiresReview()) {
+                MorningAlarmReviewNotifier.post(context)
+                return@locked Outcome.ReviewRequired
+            }
             val revision = weeklyConfirmationRevision(context, current.morningAlarmWeeklyRevision)
             val confirmed = revision?.let { store.confirmedFor(it, current.morningAlarmWeeklyTimes) }.orEmpty()
             if (MorningAlarmReviewDecision.requiresReview(current, confirmed, projection)) {
                 if (!store.beginReview()) Log.e(TAG, "无法持久化早八核对标记，本轮仍暂停写入")
+                MorningAlarmReviewNotifier.post(context)
                 return@locked Outcome.ReviewRequired
             }
-            Outcome.Executed(action(current))
-        }
-        when (outcome) {
-            Outcome.ReviewRequired -> MorningAlarmReviewNotifier.post(context)
-            is Outcome.Executed -> if (store.requiresReview()) MorningAlarmReviewNotifier.post(context)
-                else if (clearResolvedNotice) MorningAlarmReviewNotifier.cancel(context) else Unit
-            Outcome.Stale, Outcome.Unavailable -> Unit
+            val result = action(current)
+            updateReviewNotice(current.morningAlarmEnabled, store.requiresReview(), clearResolvedNotice)
+            Outcome.Executed(result)
         }
         outcome
+    }
+
+    private fun updateReviewNotice(enabled: Boolean, pending: Boolean, clearResolved: Boolean) {
+        when (MorningAlarmReviewDecision.notice(enabled, pending, clearResolved)) {
+            MorningAlarmReviewDecision.Notice.POST -> MorningAlarmReviewNotifier.post(context)
+            MorningAlarmReviewDecision.Notice.CANCEL -> MorningAlarmReviewNotifier.cancel(context)
+            MorningAlarmReviewDecision.Notice.KEEP -> Unit
+        }
     }
 
     private companion object { const val TAG = "MorningAlarmCoordinator" }

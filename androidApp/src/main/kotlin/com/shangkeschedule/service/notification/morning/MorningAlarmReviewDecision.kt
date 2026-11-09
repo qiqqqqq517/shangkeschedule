@@ -10,6 +10,15 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
 
 internal object MorningAlarmReviewDecision {
+    enum class Notice { POST, CANCEL, KEEP }
+
+    fun notice(enabled: Boolean, pending: Boolean, clearResolved: Boolean): Notice = when {
+        !enabled -> Notice.CANCEL
+        pending -> Notice.POST
+        clearResolved -> Notice.CANCEL
+        else -> Notice.KEEP
+    }
+
     fun requiresReview(settings: AppSettingsModel, confirmed: Map<DayOfWeek, LocalTime>, projection: MorningAlarmSemesterProjection.Result): Boolean {
         if (settings.morningAlarmMode != MorningAlarmMode.HYBRID_WEEKLY) return settings.morningAlarmWeeklyTimes.isNotEmpty()
         val times = settings.morningAlarmWeeklyTimes

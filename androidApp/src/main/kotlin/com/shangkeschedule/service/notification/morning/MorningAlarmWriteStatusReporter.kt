@@ -64,6 +64,12 @@ object MorningAlarmWriteStatusReporter {
         }.onFailure { Log.w(TAG, "无法显示早八闹钟状态通知", it) }
     }
 
+    /** 关闭功能后清理旧状态，重新开启时可重新计算并提示。 */
+    fun clear(context: Context) {
+        if (!MorningAlarmWriteStatusStore(context).clear()) Log.w(TAG, "无法清除早八闹钟状态")
+        clearNotification(context)
+    }
+
     private fun clearNotification(context: Context) {
         runCatching { NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID) }
     }

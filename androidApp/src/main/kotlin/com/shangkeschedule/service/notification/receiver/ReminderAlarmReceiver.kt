@@ -8,6 +8,8 @@ import androidx.core.content.getSystemService
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.service.notification.morning.MorningAlarmWriter
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
 import com.shangkeschedule.service.notification.notify.CourseReminderNotifier
 import com.shangkeschedule.service.notification.notify.MorningAlarmNotifier
 import com.shangkeschedule.service.notification.notify.PostedNotificationRegistry
@@ -89,7 +91,21 @@ class ReminderAlarmReceiver : BroadcastReceiver(), KoinComponent {
         val title = intent.getStringExtra(EXTRA_MORNING_TITLE).orEmpty()
         val courseName = intent.getStringExtra(EXTRA_MORNING_COURSE).orEmpty()
         val startTime = intent.getStringExtra(EXTRA_MORNING_START).orEmpty()
-        MorningAlarmNotifier.postFallback(ctx, title, courseName, startTime)
+        val pendingResult = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                dispatchMorningFallback(
+                    readEnabled = { runBlocking { appSettingsRepository.getAppSettingsOnce().morningAlarmEnabled } },
+                    post = { MorningAlarmNotifier.postFallback(ctx, title, courseName, startTime) }
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "无法确认早八开关，放弃兜底提醒", e)
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 
     /** 从 Intent extras 还原课程实体（不传整个对象，避免 Parcelable 依赖与体积）。 */

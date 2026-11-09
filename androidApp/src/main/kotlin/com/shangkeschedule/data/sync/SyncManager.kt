@@ -15,6 +15,7 @@ import com.shangkeschedule.data.repository.CourseNoteRepository
 import com.shangkeschedule.data.repository.CurriculumRepository
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.data.repository.WidgetRepository
+import com.shangkeschedule.service.notification.morning.MorningAlarmDisableCleanup
 import com.shangkeschedule.service.notification.alarm.ForegroundGate
 import com.shangkeschedule.service.notification.schedule.NotificationScheduler
 import com.shangkeschedule.service.notification.schedule.NotificationSyncWorker
@@ -83,6 +84,15 @@ class SyncManager(
                 } else {
                     WorkManagerHelper.cancelWebDavAutoSync(appContext)
                 }
+            }
+            .launchIn(scope)
+
+        // 关闭早八时独立清理，不依赖课程库读取或后续重排成功。
+        appSettingsRepository.getAppSettings()
+            .map { it.morningAlarmEnabled }
+            .distinctUntilChanged()
+            .onEach { enabled ->
+                if (!enabled) MorningAlarmDisableCleanup.clearIfDisabled(appContext, appSettingsRepository)
             }
             .launchIn(scope)
 

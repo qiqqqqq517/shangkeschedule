@@ -325,7 +325,7 @@ fun GeneralSettingsCard(
                     )
                 }
             )
-            writeStatus?.let { status ->
+            writeStatus?.takeIf { uiState.morningAlarmEnabled }?.let { status ->
                 SectionDivider()
                 val plannedAt = status.plannedAt
                 val expired = plannedAt != null && plannedAt <= Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())

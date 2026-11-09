@@ -114,6 +114,12 @@ internal class AlarmScheduler(private val context: Context) {
         setExact(intent, MORNING_FALLBACK_CODE, triggerAt)
     }
 
+    /** 仅撤销早八应用内兜底闹钟，不影响课程提醒。 */
+    fun cancelMorningFallback() {
+        val am = alarmManager ?: return
+        cancelByCode(am, morningFallbackCancelIntent(), MORNING_FALLBACK_CODE)
+    }
+
     /**
      * 注销本应用排的**全部**闹钟，并重置槽位分配。
      *

@@ -23,6 +23,10 @@ object MorningAlarmNotifier {
     /** 固定通知 ID：同一时刻只会有一个早八提醒（每天一节），不需要 occurrence 区分。 */
     const val NOTIFICATION_ID = 700_100
 
+    fun cancel(context: Context) {
+        runCatching { NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID) }
+    }
+
     fun postFallback(context: Context, title: String, courseName: String, startTime: String) {
         if (!NotificationPermission.canPost(context)) {
             Log.w(TAG, "通知权限未授予，早八降级提醒无法投递")

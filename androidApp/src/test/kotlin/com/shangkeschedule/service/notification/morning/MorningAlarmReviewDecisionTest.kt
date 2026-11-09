@@ -7,6 +7,7 @@ import com.shangkeschedule.notification.plan.MorningAlarmSemesterProjection
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,5 +37,18 @@ class MorningAlarmReviewDecisionTest {
         assertFalse(MorningAlarmReviewDecision.sameSettings(settings, settings.copy(skippedDates = setOf("2026-09-14"))))
         assertFalse(MorningAlarmReviewDecision.sameSettings(settings, settings.copy(currentCourseTableId = "other")))
         assertFalse(MorningAlarmReviewDecision.sameSettings(settings, settings.copy(morningAlarmLeadMinutes = 30)))
+    }
+    @Test fun disablingSuppressesPendingReviewNotice() {
+        assertEquals(MorningAlarmReviewDecision.Notice.CANCEL,
+            MorningAlarmReviewDecision.notice(enabled = false, pending = true, clearResolved = false))
+    }
+
+    @Test fun enabledReviewStillNotifiesAndResolvedInspectionDoesNotClear() {
+        assertEquals(MorningAlarmReviewDecision.Notice.POST,
+            MorningAlarmReviewDecision.notice(enabled = true, pending = true, clearResolved = false))
+        assertEquals(MorningAlarmReviewDecision.Notice.KEEP,
+            MorningAlarmReviewDecision.notice(enabled = true, pending = false, clearResolved = false))
+        assertEquals(MorningAlarmReviewDecision.Notice.CANCEL,
+            MorningAlarmReviewDecision.notice(enabled = true, pending = false, clearResolved = true))
     }
 }
