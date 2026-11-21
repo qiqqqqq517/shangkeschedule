@@ -15,6 +15,7 @@ import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.model.ScheduleGridStyle
 import com.shangkeschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.shangkeschedule.data.model.toProto
+import com.shangkeschedule.data.repository.TodoRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
 import com.shangkeschedule.data.repository.WidgetRepository
 import com.shangkeschedule.widget.agenda_list.AgendaListNativeProvider
@@ -50,6 +51,7 @@ private object WidgetDependencyContainer : KoinComponent {
 
     /** v4.67.0：「考试倒计时」组件的数据源（主库日程表）。 */
     val scheduleEventRepository: ScheduleEventRepository by inject()
+    val todoRepository: TodoRepository by inject()
 }
 
 /** 组件规格，决定「可容纳课程条数」的计算口径。 */
@@ -188,20 +190,10 @@ private suspend fun performUpdate(context: Context) {
             .toList()
 
         // 「日程清单」消费全部类别（待办 / 活动 / 作业 / 考试 / 其他），仅取前 MAX_WIDGET_AGENDA 条。
-        val agendaProtoList = upcomingEvents.asSequence()
-            .take(MAX_WIDGET_AGENDA)
-            .map { event ->
-                WidgetAgendaProto(
-                    id = event.id,
-                    title = event.title,
-                    date = event.date,
-                    start_time = event.startTime ?: "",
-                    category = event.category,
-                    location = event.location ?: "",
-                    is_all_day = event.isAllDay
-                )
-            }
-            .toList()
+        val todos = withTimeoutOrNull(2.seconds) {
+            WidgetDependencyContainer.todoRepository.getAllTodos().first()
+        }.orEmpty()
+        val agendaProtoList = buildWidgetAgenda(upcomingEvents, todos, today.toString(), MAX_WIDGET_AGENDA)
 
         // 3. 构造数据快照 (Protobuf)
         val courseProtoList = dbCourses.map { it.toProto() }

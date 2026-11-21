@@ -36,36 +36,12 @@ internal class AutoModeScheduler(
      */
     fun sync(settings: AppSettingsModel, courses: List<WidgetCourse>, now: LocalDateTime): Int {
         if (!settings.autoModeEnabled) {
-            // R41-02：关闭开关时必须**还原**已施加的勿扰/静音，不能只是「不再排新的」。
-            //
-            // 旧实现 `if (!enabled) return 0` 在第一行就返回，`reconcileState`（它之后）永不执行；
-            // 而 `NotificationScheduler.reschedule()` 已在此之前跑过 `alarms.cancelAll()`，
-            // 把已排的 END 闹钟全部注销 ⇒ 用户选 OFF 后设备**停留在勿扰/静音直到手动改回**，
-            // `AutoModeController` 落盘的「进入前状态」成为永久孤儿记录。
-            //
-            // 同仓库另两套策略在关闭时都有显式收尾（早八 `markDisabled()`、课程提醒
-            // `registry.clear()`），此处补齐第三条。还原动作幂等：`AutoModeController` 的
-            // enable=false 分支在「本就处于正常态」时是无害写入，且成功后才清记录。
-            restoreIfApplied(settings.autoControlMode)
+            check(AutoModeController.toggle(context, false, settings.autoControlMode)) { "恢复自动模式失败" }
             return 0
         }
         val scheduled = schedule(courses, now)
         reconcileState(settings, courses, now)
         return scheduled
-    }
-
-    /**
-     * 开关关闭时的收尾：若当前确实处于自动模式施加的状态，就还原。
-     *
-     * 「是否处于自动模式施加的状态」用 [AutoModeStateProbe] 的回读判据，而不是
-     * 「有没有落过记录」——后者在进入前状态恰好等于目标档（如用户自己就开着勿扰、
-     * [AutoModeController] 只在「当前并非目标档」时才记 `KEY_DND_FILTER_BEFORE`）时
-     * 会永不落盘，导致该还原的一次也不还原。
-     */
-    private fun restoreIfApplied(modeType: AutoControlMode) {
-        if (!AutoModeStateProbe.isModeOn(context, modeType)) return
-        Log.i(TAG, "自动模式已关闭，还原当前已施加的勿扰/静音")
-        AutoModeController.toggle(context, false, modeType)
     }
 
     private fun schedule(courses: List<WidgetCourse>, now: LocalDateTime): Int {
@@ -106,11 +82,10 @@ internal class AutoModeScheduler(
             date = now.date,
             time = now.time
         )
-        val currentlyOn = AutoModeStateProbe.isModeOn(context, settings.autoControlMode)
-        if (shouldBeOn == currentlyOn) return
-
-        Log.i(TAG, "自动模式状态校准：当前=$currentlyOn 应为=$shouldBeOn")
-        AutoModeController.toggle(context, shouldBeOn, settings.autoControlMode)
+        // 即使新类型已处于目标状态，也要让控制器处理旧类型的恢复记录。
+        check(AutoModeController.toggle(context, shouldBeOn, settings.autoControlMode)) {
+            "自动模式状态校准失败"
+        }
     }
 
     private companion object {

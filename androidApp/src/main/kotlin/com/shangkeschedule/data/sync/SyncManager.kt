@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.shangkeschedule.data.db.main.CourseTableDao
 import com.shangkeschedule.data.repository.ApiConfigRepository
 import com.shangkeschedule.data.repository.AppSettingsRepository
 import com.shangkeschedule.data.repository.ScheduleEventRepository
@@ -61,7 +62,8 @@ class SyncManager(
     private val scheduleEventRepository: ScheduleEventRepository,
     private val gradeRepository: GradeRepository,
     private val courseNoteRepository: CourseNoteRepository,
-    private val curriculumRepository: CurriculumRepository
+    private val curriculumRepository: CurriculumRepository,
+    private val courseTableDao: CourseTableDao
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -157,6 +159,15 @@ class SyncManager(
             .launchIn(scope)
         todoRepository.getAllTodos()
             .drop(1)
+            .debounce(300.milliseconds)
+            .onEach {
+                updateAllWidgets(appContext)
+                scheduleWebDavAutoSyncIfEnabled()
+            }
+            .launchIn(scope)
+        courseTableDao.observeBackupChanges()
+            .drop(1)
+            .debounce(800.milliseconds)
             .onEach { scheduleWebDavAutoSyncIfEnabled() }
             .launchIn(scope)
         scheduleEventRepository.getAllEvents()
@@ -220,7 +231,7 @@ class SyncManager(
                     // R41-09：内联路径的策略级失败同样必须有自愈出口；
                     // catch 分支已经会转交 Worker，但「没抛异常、只是某个策略失败」这条路
                     // 此前直接走掉 ⇒ 缺的那部分闹钟永远补不回来。
-                    if (summary.failedStrategies > 0) {
+                    if (summary.needsRetry) {
                         Log.w(
                             TAG,
                             "前台内联排程有 ${summary.failedStrategies} 个策略失败，转交 Worker 补齐"

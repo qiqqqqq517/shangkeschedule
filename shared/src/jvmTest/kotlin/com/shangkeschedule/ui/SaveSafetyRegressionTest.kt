@@ -2,6 +2,8 @@ package com.shangkeschedule.ui
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.room3.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewModelScope
@@ -38,7 +40,10 @@ class SaveSafetyRegressionTest {
         override val cacheDir = root / "cache"
         override fun getDatabasePath(dbName: String) = (root / dbName).toString()
     }
-    private val db = createMainDatabase(storage)
+    // 本组验证事务、身份和 ViewModel 生命周期；数据库文件的持久化由其他 JVM 集成测试覆盖。
+    private val db = Room.inMemoryDatabaseBuilder<MainAppDatabase>(
+        factory = { MainAppDatabaseConstructor.initialize() }
+    ).setDriver(BundledSQLiteDriver()).build()
     private val settings = AppSettingsRepository(SaveMemoryStore(emptyPreferences()), SaveMemoryStore(emptyPreferences()), db.courseTableDao(), db.courseTableConfigDao())
     private val style = StyleSettingsRepository(SaveMemoryStore(ScheduleGridStyleProto()), settings)
     private val slots = TimeSlotRepository(db, db.timeSlotDao(), db.timeSlotSchemeDao(), db.courseTableConfigDao(), db.courseDao())
@@ -60,7 +65,7 @@ class SaveSafetyRegressionTest {
         db.timeSlotDao().insertAll(listOf(TimeSlot(1, "08:00", "08:45", "table", schemeId = "summer")))
     }
     @AfterTest fun cleanup() = runBlocking {
-        store.clear()
+        withContext(Dispatchers.Main) { store.clear() }
         jobs.forEach { it.join() }
         repositories.forEach { it.close() }
         style.close()

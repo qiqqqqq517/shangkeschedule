@@ -1,6 +1,7 @@
 package com.shangkeschedule.tool
 
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.data.model.TimeSlotSchedule
 import com.shangkeschedule.data.db.main.TimeSlot
 import kotlinx.datetime.LocalDate
 
@@ -12,7 +13,8 @@ actual object CalendarAccountManager {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int?,
-        skippedDates: Set<String>?
+        skippedDates: Set<String>?,
+        timeSlotSchedule: TimeSlotSchedule?
     ): Boolean {
         return false
     }

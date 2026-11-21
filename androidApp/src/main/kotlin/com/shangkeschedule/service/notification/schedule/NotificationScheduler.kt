@@ -107,7 +107,9 @@ class NotificationScheduler(
      *
      * @return 排程概要，供调用方记录/展示
      */
-    suspend fun reschedule(): Summary {
+    suspend fun reschedule(): Summary = NotificationRescheduleGate.run { rescheduleLocked() }
+
+    private suspend fun rescheduleLocked(): Summary {
         val settings = appSettingsRepository.getAppSettingsOnce()
         val zone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(zone)
@@ -158,7 +160,9 @@ class NotificationScheduler(
                 }
                 .getOrNull()
 
-        val reminderCount = guard("课程提醒") { courseReminders.sync(settings, effective, now) } ?: 0
+        val reminders = guard("课程提醒") { courseReminders.sync(settings, effective, now) }
+        val reminderCount = reminders?.scheduled ?: 0
+        if ((reminders?.failed ?: 0) > 0) failedStrategies++
         val autoModeCount = guard("自动模式") { autoMode.sync(settings, effective, now) } ?: 0
         // 早八要自己判断「某天是否还有课」，故传**原始**课程 + 窗口天数
         val morningResult = try {
@@ -275,7 +279,9 @@ class NotificationScheduler(
          * 非零表示这轮是「残缺」的（已排的仍在、缺的没排），调用方可据此决定重试。
          */
         val failedStrategies: Int = 0
-    )
+    ) {
+        val needsRetry: Boolean get() = readFailed || failedStrategies > 0
+    }
 
     companion object {
         private const val TAG = "NotificationScheduler"

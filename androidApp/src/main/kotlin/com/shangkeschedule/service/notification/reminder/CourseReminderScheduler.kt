@@ -43,11 +43,11 @@ internal class CourseReminderScheduler(
      * @param now     当前时刻（用于丢弃已过期的提醒时刻）
      * @return 本轮实际挂上的提醒条数
      */
-    fun sync(settings: AppSettingsModel, courses: List<WidgetCourse>, now: LocalDateTime): Int {
+    fun sync(settings: AppSettingsModel, courses: List<WidgetCourse>, now: LocalDateTime): ReminderSchedulingResult {
         if (!settings.reminderEnabled) {
             // 总开关关闭：连带回收站内提醒（旧实现只清闹钟，通知留在状态栏）
             registry.clear()
-            return 0
+            return ReminderSchedulingResult(0, 0)
         }
         return schedule(courses, settings.remindBeforeMinutes, now)
     }
@@ -56,7 +56,7 @@ internal class CourseReminderScheduler(
         courses: List<WidgetCourse>,
         leadMinutes: Int,
         now: LocalDateTime
-    ): Int {
+    ): ReminderSchedulingResult {
         // 「选哪几节课、挂到哪一刻、用哪个码」在 ReminderPlan 里（纯逻辑，可单测）；
         // 本方法只负责把决策结果落到系统闹钟 + 回收失效通知。
         val entries = ReminderPlan.select(
@@ -71,19 +71,14 @@ internal class CourseReminderScheduler(
         // 抛 SecurityException（部分 OEM 对精确闹钟的数量/权限施加额外限制）就会中止整轮，
         // 导致**当天其余课程全部没有提醒**，并且连下面的 registry.pruneExcept 也一并跳过 ——
         // 后者留着会让「已删除/已改期课程」的陈旧通知继续驻留。
-        var scheduled = 0
-        for (entry in entries) {
-            try {
-                alarms.setExact(applicationIntent(entry.course), entry.code, entry.triggerAt)
-                scheduled++
-            } catch (e: Exception) {
-                AppLog.w(TAG, "课程提醒排程失败（已跳过该条，不影响其余课程）：${entry.key}", e)
-            }
-        }
+        val result = scheduleReminderEntries(entries,
+            schedule = { entry -> alarms.setExact(applicationIntent(entry.course), entry.code, entry.triggerAt) },
+            onFailure = { entry, error -> AppLog.w(TAG, "课程提醒排程失败：${entry.key}", error) }
+        )
 
         // 回收：已不在本轮计划里的提醒通知（课程被删/改期/已上完）
         registry.pruneExcept(entries.map { it.key }.toSet())
-        return scheduled
+        return result
     }
 
     /** 课程提醒广播的 Intent（接收器 = [ReminderAlarmReceiver]）。 */

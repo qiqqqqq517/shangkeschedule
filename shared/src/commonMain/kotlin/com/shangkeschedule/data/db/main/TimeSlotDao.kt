@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface TimeSlotDao {
+    @Query("SELECT * FROM time_slots WHERE courseTableId = :courseTableId ORDER BY schemeId, number")
+    fun getAllTimeSlotsByCourseTableId(courseTableId: String): Flow<List<TimeSlot>>
+
     /**
      * 获取指定课表、指定作息方案的所有时间段，并按节次编号升序排列。
      */

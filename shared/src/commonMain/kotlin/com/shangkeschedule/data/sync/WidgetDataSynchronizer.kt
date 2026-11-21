@@ -2,7 +2,7 @@ package com.shangkeschedule.data.sync
 
 import com.shangkeschedule.data.db.main.CourseTableConfig
 import com.shangkeschedule.data.db.main.CourseWithWeeks
-import com.shangkeschedule.data.db.main.TimeSlot
+import com.shangkeschedule.data.model.TimeSlotSchedule
 import com.shangkeschedule.data.db.widget.WidgetAppSettings
 import com.shangkeschedule.data.db.widget.WidgetCourse
 import com.shangkeschedule.data.repository.AppSettingsRepository
@@ -89,14 +89,14 @@ class WidgetDataSynchronizer(
 
                 // 联合监听当前课表的所有相关数据表（时间段按当前日期自动解析作息方案读取）
                 configFlow.flatMapLatest { config ->
-                    val timeSlotsFlow = timeSlotRepository.getActiveTimeSlotsByConfigFlow(source.tableId, flowOf(config))
+                    val timeSlotsFlow = timeSlotRepository.getScheduleFlow(source.tableId, flowOf(config))
 
                     combine(coursesFlow, timeSlotsFlow) { courses, timeSlots ->
                         SyncFrame(source, config, courses, timeSlots)
                     }
                 }
             } else {
-                flowOf(SyncFrame(source, null, emptyList(), emptyList()))
+                flowOf(SyncFrame(source, null, emptyList(), TimeSlotSchedule(null, emptyList(), emptyList())))
             }
         }
         .map { frame ->
@@ -167,7 +167,7 @@ class WidgetDataSynchronizer(
         val source: SyncSource,
         val config: CourseTableConfig?,
         val coursesWithWeeks: List<CourseWithWeeks>,
-        val timeSlots: List<TimeSlot>
+        val timeSlots: TimeSlotSchedule
     )
 
     /** 四元组辅助数据类，用于 combine 操作符传递多路数据 */
@@ -191,7 +191,8 @@ class WidgetDataSynchronizer(
 
         val coursesWithWeeks = if (tableId.isNotEmpty()) courseTableRepository.getCoursesWithWeeksByTableId(tableId).first() else emptyList()
         val courseConfig = if (tableId.isNotEmpty()) appSettingsRepository.getCourseConfigOnce(tableId) else null
-        val timeSlots = if (tableId.isNotEmpty()) timeSlotRepository.getActiveTimeSlotsOnce(tableId, courseConfig) else emptyList()
+        val timeSlots = if (tableId.isNotEmpty()) timeSlotRepository.getScheduleOnce(tableId, courseConfig)
+            else TimeSlotSchedule(null, emptyList(), emptyList())
 
         if (courseConfig != null) {
             performSyncUnlocked(appSettings.skippedDates, courseConfig, coursesWithWeeks, timeSlots)
@@ -213,7 +214,7 @@ class WidgetDataSynchronizer(
         skippedDates: Set<String>,
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>
+        timeSlots: TimeSlotSchedule
     ): Boolean = syncMutex.withLock {
         performSyncUnlocked(skippedDates, courseConfig, coursesWithWeeks, timeSlots)
     }
@@ -222,7 +223,7 @@ class WidgetDataSynchronizer(
         skippedDates: Set<String>,
         courseConfig: CourseTableConfig,
         coursesWithWeeks: List<CourseWithWeeks>,
-        timeSlots: List<TimeSlot>
+        timeSlots: TimeSlotSchedule
     ): Boolean = withContext(Dispatchers.IO) {
         val semesterStartDateString = courseConfig.semesterStartDate
         val semesterTotalWeeks = courseConfig.semesterTotalWeeks
@@ -249,7 +250,6 @@ class WidgetDataSynchronizer(
             firstDayOfWeek = firstDayOfWeekInt
         )
 
-        val timeSlotMap = timeSlots.associateBy { it.number }
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val alignedSemesterStartDate = startOfWeek(semesterStartDate, firstDayOfWeekInt)
 
@@ -259,6 +259,7 @@ class WidgetDataSynchronizer(
         for (i in 0 until widgetSyncDays) {
             val date = startSyncDate.plus(i, DateTimeUnit.DAY)
             val dateString = date.toString()
+            val timeSlotMap = timeSlots.forDate(date).associateBy { it.number }
             val alignedDate = startOfWeek(date, firstDayOfWeekInt)
             val diffDays = alignedSemesterStartDate.daysUntil(alignedDate)
             val weekNumber = diffDays / 7 + 1

@@ -11,10 +11,13 @@ import com.shangkeschedule.data.parser.TextImportFormat
 import com.shangkeschedule.data.parser.UniversalScheduleParser
 import com.shangkeschedule.data.repository.CourseConversionRepository
 import com.shangkeschedule.data.repository.CourseTableRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
@@ -75,13 +78,24 @@ class TextImportViewModel(
     private val _uiState = MutableStateFlow(TextImportUiState())
     val uiState: StateFlow<TextImportUiState> = _uiState.asStateFlow()
 
+    private var parseJob: Job? = null
+    private var inputRevision = 0L
+
+    private fun invalidateParse() {
+        inputRevision++
+        parseJob?.cancel()
+        parseJob = null
+    }
+
     fun updateInputText(text: String) {
-        _uiState.value = _uiState.value.copy(inputText = text, parseResult = null, error = null, detectedFormat = "")
+        invalidateParse()
+        _uiState.value = _uiState.value.copy(inputText = text, parseResult = null, error = null, detectedFormat = "", isLoading = false)
     }
 
     /** 清除已解析的文件（重新选择文件前的状态复位） */
     fun clearFile() {
-        _uiState.value = _uiState.value.copy(fileName = null, parseResult = null, error = null, detectedFormat = "")
+        invalidateParse()
+        _uiState.value = _uiState.value.copy(fileName = null, parseResult = null, error = null, detectedFormat = "", isLoading = false)
     }
 
     /**
@@ -92,18 +106,21 @@ class TextImportViewModel(
      * 输出纯文本）才显式指定。
      */
     fun parseInput() {
+        invalidateParse()
+        val revision = inputRevision
         val text = _uiState.value.inputText
         if (text.isBlank()) {
-            viewModelScope.launch {
-                _uiState.value = _uiState.value.copy(error = getString(Res.string.tivm_error_empty_input))
+            parseJob = viewModelScope.launch {
+                applyParseResult(UniversalScheduleParser.ParseResult.Error(
+                    getString(Res.string.tivm_error_empty_input)), revision)
             }
             return
         }
 
-        viewModelScope.launch {
+        parseJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val result = withContext(Dispatchers.Default) { parseTextContent(text, forcedFormat = null) }
-            applyParseResult(result)
+            applyParseResult(result, revision)
         }
     }
 
@@ -167,14 +184,17 @@ class TextImportViewModel(
      * - 其他 → UTF-8 解码文本（含 BOM 处理），走 [parseTextContent] 统一解析
      */
     fun parseFileBytes(bytes: ByteArray, fileName: String?, forcedFormat: TextImportFormat? = null) {
+        invalidateParse()
+        val revision = inputRevision
         if (bytes.isEmpty()) {
-            viewModelScope.launch {
-                _uiState.value = _uiState.value.copy(error = getString(Res.string.tivm_error_empty_file), parseResult = null)
+            parseJob = viewModelScope.launch {
+                applyParseResult(UniversalScheduleParser.ParseResult.Error(
+                    getString(Res.string.tivm_error_empty_file)), revision)
             }
             return
         }
 
-        viewModelScope.launch {
+        parseJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, fileName = fileName, parseResult = null, error = null)
 
             val result = withContext(Dispatchers.IO) {
@@ -203,11 +223,13 @@ class TextImportViewModel(
                             }
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     UniversalScheduleParser.ParseResult.Error(getString(Res.string.tivm_import_failed_fmt, e.message ?: e.javaClass.simpleName))
                 }
             }
-            applyParseResult(result)
+            applyParseResult(result, revision)
         }
     }
 
@@ -299,20 +321,22 @@ class TextImportViewModel(
      * 用 `getString` 解析成当前语言文案；码为 null 时（如分享串路径已自行本地化）
      * 才回落到文案本身。
      */
-    private suspend fun applyParseResult(result: UniversalScheduleParser.ParseResult) {
-        _uiState.value = when (result) {
-            is UniversalScheduleParser.ParseResult.Success -> _uiState.value.copy(
-                parseResult = result.model,
-                detectedFormat = result.formatCode?.let { getString(formatResOf(it)) } ?: result.format,
-                error = null,
-                isLoading = false
-            )
-            is UniversalScheduleParser.ParseResult.Error -> _uiState.value.copy(
-                error = result.code?.let { getString(errorResOf(it)) } ?: result.message,
-                parseResult = null,
-                detectedFormat = "",
-                isLoading = false
-            )
+    private suspend fun applyParseResult(result: UniversalScheduleParser.ParseResult, revision: Long) {
+        // 资源读取可挂起，须在全部异步处理完成后再次检查输入归属。
+        val format = (result as? UniversalScheduleParser.ParseResult.Success)?.let {
+            it.formatCode?.let { code -> getString(formatResOf(code)) } ?: it.format
+        }
+        val error = (result as? UniversalScheduleParser.ParseResult.Error)?.let {
+            it.code?.let { code -> getString(errorResOf(code)) } ?: it.message
+        }
+        if (revision != inputRevision) return
+        _uiState.update { state ->
+            when (result) {
+                is UniversalScheduleParser.ParseResult.Success -> state.copy(
+                    parseResult = result.model, detectedFormat = format.orEmpty(), error = null, isLoading = false)
+                is UniversalScheduleParser.ParseResult.Error -> state.copy(
+                    parseResult = null, detectedFormat = "", error = error, isLoading = false)
+            }
         }
     }
 
@@ -351,6 +375,7 @@ class TextImportViewModel(
     }
 
     fun reset() {
+        invalidateParse()
         _uiState.value = TextImportUiState()
     }
 }

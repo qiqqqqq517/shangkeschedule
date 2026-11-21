@@ -27,6 +27,9 @@ dependencies {
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.compose)
+    implementation(libs.koin.annotations)
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.lifecycle.viewmodel.compose)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
@@ -55,6 +58,40 @@ val appVersionName: String = providers.fileContents(
     }
     raw
 }.get()
+
+val appVersionCode = providers.fileContents(
+    layout.projectDirectory.file("../androidApp/build.gradle.kts")
+).asText.map { text ->
+    Regex("^\\s*versionCode\\s*=\\s*(\\d+)", RegexOption.MULTILINE)
+        .find(text)?.groupValues?.get(1)?.toInt()
+        ?: error("desktopApp: 无法解析 versionCode")
+}.get()
+val desktopBuildInfoDirectory = layout.buildDirectory.dir("generated/desktopBuildInfo/kotlin")
+val generateDesktopBuildInfo = tasks.register("generateDesktopBuildInfo") {
+    inputs.property("versionName", appVersionName)
+    inputs.property("versionCode", appVersionCode)
+    outputs.dir(desktopBuildInfoDirectory)
+    doLast {
+        val target = outputs.files.singleFile.resolve("com/shangkeschedule/DesktopBuildInfo.kt")
+        target.parentFile.mkdirs()
+        target.writeText("""
+            package com.shangkeschedule
+            internal object DesktopBuildInfo {
+                const val VERSION_CODE = ${inputs.properties.getValue("versionCode")}
+                const val VERSION_NAME = "${inputs.properties.getValue("versionName") }"
+            }
+        """.trimIndent() + "\n", Charsets.UTF_8)
+    }
+}
+kotlin.sourceSets.named("main") { kotlin.srcDir(desktopBuildInfoDirectory) }
+tasks.named("compileKotlin") { dependsOn(generateDesktopBuildInfo) }
+
+// 启动链回归使用隔离目录，不能访问用户已有桌面数据与密钥库。
+tasks.withType<Test>().configureEach {
+    environment("APPDATA", layout.buildDirectory.dir("test-app-data").get().asFile.absolutePath)
+    environment("XDG_CONFIG_HOME", layout.buildDirectory.dir("test-app-data").get().asFile.absolutePath)
+    systemProperty("user.home", layout.buildDirectory.dir("test-user-home").get().asFile.absolutePath)
+}
 
 // 保留既有诊断命令的入口别名；打包入口始终为正式 App。
 val previewMainClass = providers.gradleProperty("previewMainClass").map { requested ->

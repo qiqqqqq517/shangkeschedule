@@ -202,10 +202,7 @@ class ManageCourseTablesViewModel(
      * viewModelScope 会被取消，fire-and-forget 版本可能永远不落库，导致落在旧课表。
      */
     suspend fun switchCourseTableNow(tableId: String) {
-        val currentSettings = appSettingsRepository.getAppSettingsOnce()
-        appSettingsRepository.insertOrUpdateAppSettings(
-            currentSettings.copy(currentCourseTableId = tableId)
-        )
+        appSettingsRepository.updateCurrentCourseTableId(tableId)
     }
 
     /** 为指定本人课表创建配对情侣课表（挂起式，供 UI 结果化提示）。 */

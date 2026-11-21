@@ -12,6 +12,7 @@ import android.net.Uri
 import android.provider.CalendarContract
 import android.provider.CalendarContract.Calendars
 import com.shangkeschedule.data.db.main.CourseWithWeeks
+import com.shangkeschedule.data.model.TimeSlotSchedule
 import com.shangkeschedule.data.db.main.TimeSlot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -402,7 +403,8 @@ actual object CalendarAccountManager : KoinComponent {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int?,
-        skippedDates: Set<String>?
+        skippedDates: Set<String>?,
+        timeSlotSchedule: TimeSlotSchedule?
     ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -446,7 +448,8 @@ actual object CalendarAccountManager : KoinComponent {
                     semesterStartDate = semesterStartDate,
                     semesterTotalWeeks = semesterTotalWeeks,
                     firstDayOfWeekInt = firstDayOfWeekInt,
-                    skippedDates = skippedDates
+                    skippedDates = skippedDates,
+                    timeSlotsForDate = timeSlotSchedule?.let { schedule -> { date -> schedule.forDate(date) } }
                 ) { course, start, end, _ ->
                     val teacherDescription = if (course.teacher.isNotBlank()) {
                         // 带归属标记（v4.68.2）：差分删除据此区分「本应用写的」与

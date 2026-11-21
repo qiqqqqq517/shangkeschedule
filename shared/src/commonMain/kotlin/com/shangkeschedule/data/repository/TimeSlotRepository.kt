@@ -11,6 +11,7 @@ import com.shangkeschedule.data.db.main.TimeSlotDao
 import com.shangkeschedule.data.db.main.TimeSlotScheme
 import com.shangkeschedule.data.db.main.TimeSlotSchemeDao
 import com.shangkeschedule.data.time.currentDateFlow
+import com.shangkeschedule.data.model.TimeSlotSchedule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -151,13 +152,18 @@ class TimeSlotRepository(
         schemeMetas: List<TimeSlotScheme>,
         today: LocalDate
     ): String {
-        val fallback = config?.currentSchemeId ?: TimeSlot.DEFAULT_SCHEME_ID
-        if (config?.autoSwitchScheme != true) return fallback
-
-        val monthDay = today.monthNumber * 100 + today.dayOfMonth
-        val matched = schemeMetas.firstOrNull { it.isActiveAt(monthDay) }
-        return matched?.schemeId ?: fallback
+        return TimeSlotSchedule.resolveSchemeId(config, schemeMetas, today)
     }
+
+    fun getScheduleFlow(courseTableId: String, configFlow: Flow<CourseTableConfig?>): Flow<TimeSlotSchedule> =
+        combine(configFlow, timeSlotSchemeDao.getSchemesByCourseTableId(courseTableId),
+            timeSlotDao.getAllTimeSlotsByCourseTableId(courseTableId)) { config, schemes, slots ->
+            TimeSlotSchedule(config, schemes, slots)
+        }.distinctUntilChanged()
+
+    suspend fun getScheduleOnce(courseTableId: String, config: CourseTableConfig?): TimeSlotSchedule =
+        TimeSlotSchedule(config, timeSlotSchemeDao.getSchemesOnce(courseTableId),
+            timeSlotDao.getAllTimeSlotsByCourseTableId(courseTableId).first())
 
     /**
      * 统一入口：根据课表配置流，实时返回“当前应生效作息方案”下的时间段列表。

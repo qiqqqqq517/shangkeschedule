@@ -11,6 +11,7 @@ import com.shangkeschedule.data.model.AppSettingsModel
 import com.shangkeschedule.data.model.MorningAlarmMode
 import com.shangkeschedule.data.model.MorningAlarmWeeklyTimes
 import com.shangkeschedule.data.model.newMorningAlarmWeeklyRevision
+import com.shangkeschedule.data.model.StartScreen
 import com.shangkeschedule.data.model.AppThemeMode
 import com.shangkeschedule.data.model.AppThemePreset
 import com.shangkeschedule.data.model.AutoControlMode
@@ -256,6 +257,43 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_REFRESH_RATE_MODE] = newSettings.refreshRateMode.value
             prefs[AppSettingsModel.KEY_STAR_PROMPT_SHOWN] = newSettings.starPromptShown
         }
+    }
+
+    // 普通设置仅更新目标键，不能用滞后的 UI 快照回写其他设置。
+    suspend fun updateCurrentCourseTableId(value: String) {
+        dataStore.edit { it[AppSettingsModel.KEY_CURRENT_COURSE_TABLE_ID] = value }
+    }
+
+    suspend fun updateShowNonCurrentWeekCourses(value: Boolean) {
+        dataStore.edit { it[AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES] = value }
+    }
+
+    suspend fun updateStartScreen(value: StartScreen) {
+        dataStore.edit { it[AppSettingsModel.KEY_START_SCREEN] = value.value }
+    }
+
+    suspend fun updateThemeMode(value: AppThemeMode) {
+        dataStore.edit { it[AppSettingsModel.KEY_THEME_MODE] = value.value }
+    }
+
+    suspend fun updateDeveloperModeEnabled(value: Boolean) {
+        dataStore.edit { it[AppSettingsModel.KEY_DEVELOPER_MODE_ENABLED] = value }
+    }
+
+    suspend fun updateCoupleScheduleEnabled(value: Boolean) {
+        dataStore.edit { it[AppSettingsModel.KEY_COUPLE_SCHEDULE_ENABLED] = value }
+    }
+
+    suspend fun updateCoupleShowTimeRanges(value: Boolean) {
+        dataStore.edit { it[AppSettingsModel.KEY_COUPLE_SHOW_TIME_RANGES] = value }
+    }
+
+    suspend fun updateSelfCourseColorIndex(value: Int) {
+        dataStore.edit { it[AppSettingsModel.KEY_SELF_COURSE_COLOR_INDEX] = value }
+    }
+
+    suspend fun updateCrushCourseColorIndex(value: Int) {
+        dataStore.edit { it[AppSettingsModel.KEY_CRUSH_COURSE_COLOR_INDEX] = value }
     }
 
     /** 单独持久化应用主题预设。 */

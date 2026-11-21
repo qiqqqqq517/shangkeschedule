@@ -25,14 +25,15 @@ import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import shangkeschedule.shared.generated.resources.Res
 import shangkeschedule.shared.generated.resources.adapter_remote_update_failed
-import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.updateAndGet
 import kotlin.random.Random
 
 /** 日志模块标签。 */
 private const val TAG = "AdapterRemoteUpdater"
 
 /** 临时文件名的进程内单调递增段，配合随机段保证唯一（P1-9）。 */
-private val tempSuffixCounter = AtomicLong(0)
+private val tempSuffixCounter = MutableStateFlow(0L)
 
 /** 远程适配清单，对应私有仓库根目录的 index.json。 */
 @Serializable
@@ -358,7 +359,7 @@ class AdapterRemoteUpdater(
     }
 
     /** 生成临时文件随机后缀（不依赖平台 UUID API，纯数值即可满足唯一性）。 */
-    private fun nextTempSuffix(): String = tempSuffixCounter.incrementAndGet().toString(36) +
+    private fun nextTempSuffix(): String = tempSuffixCounter.updateAndGet { it + 1 }.toString(36) +
         "-" + Random.nextLong(0, Long.MAX_VALUE).toString(36)
 
     private suspend fun notifyVerificationFailure() {

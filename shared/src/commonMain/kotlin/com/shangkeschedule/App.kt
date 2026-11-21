@@ -556,11 +556,7 @@ fun ScreenContent(
             // 新课表：必须切过去，否则用户看到的仍是旧表，等同于「导入没成功」
             if (!importedTableId.isNullOrBlank() && importedTableId != currentTableId) {
                 runCatching {
-                    // 先读后整份改写：AppSettings 是单一 DataStore 快照，没有单独改某个字段的 setter
-                    val settings = appSettingsRepository.getAppSettingsOnce()
-                    appSettingsRepository.insertOrUpdateAppSettings(
-                        settings.copy(currentCourseTableId = importedTableId)
-                    )
+                    appSettingsRepository.updateCurrentCourseTableId(importedTableId)
                 }.onFailure { AppLog.w("App", "切换到导入的新课表失败", it) }
             }
 

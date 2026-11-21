@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
     private val appSettingsRepository: AppSettingsRepository by inject()
     private val widgetRepository: WidgetRepository by inject()
     private val morningAlarmSemesterRepository: MorningAlarmSemesterRepository by inject()
+    private var externalIntentConsumed = false
 
     /**
      * 早八前台补写用的前瞻天数。
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
 
     private companion object {
         const val TAG = "MainActivity"
+        const val STATE_EXTERNAL_INTENT_CONSUMED = "external_intent_consumed"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,10 +85,11 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         // `ACTION_PROCESS_TEXT`，文本在 `EXTRA_PROCESS_TEXT` 里 —— 冷启动走 onCreate、
         // 已在后台/前台时走 onNewIntent（launchMode=singleTask）。这里只做交接，
         // 由 AppNavigation 把「文本粘贴导入」页推到栈顶并预填。
-        handleProcessTextIntent(intent)
+        externalIntentConsumed = savedInstanceState?.getBoolean(STATE_EXTERNAL_INTENT_CONSUMED) == true
+        if (!externalIntentConsumed) handleProcessTextIntent(intent)
         // v4.67.39：桌面组件点击路由。组件点开后应落到**对应的页面**（今日/课程表/日程），
         // 而不是一个无参数的默认页。冷启动走 onCreate、热启动走 onNewIntent，两条都要接。
-        handleWidgetRouteIntent(intent)
+        if (!externalIntentConsumed) handleWidgetRouteIntent(intent)
 
         setContent {
             App()
@@ -97,8 +100,16 @@ class MainActivity : AppCompatActivity(), KoinComponent {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        externalIntentConsumed = false
         handleProcessTextIntent(intent)
         handleWidgetRouteIntent(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        // 交接位尚未被页面消费时，进程恢复仍应允许重新交接原始 Intent。
+        outState.putBoolean(STATE_EXTERNAL_INTENT_CONSUMED, externalIntentConsumed &&
+            ExternalTextImport.pending.value == null && WidgetRouteHandoff.pending.value == null)
+        super.onSaveInstanceState(outState)
     }
 
     /**
@@ -112,6 +123,8 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         if (intent == null) return
         val route = intent.getStringExtra(WidgetRoute.EXTRA_ROUTE) ?: return
         WidgetRouteHandoff.offer(route)
+        intent.removeExtra(WidgetRoute.EXTRA_ROUTE)
+        externalIntentConsumed = true
     }
 
     /**
@@ -125,6 +138,8 @@ class MainActivity : AppCompatActivity(), KoinComponent {
         val selected = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
         if (selected.isNullOrBlank()) return
         ExternalTextImport.offer(selected)
+        intent.removeExtra(Intent.EXTRA_PROCESS_TEXT)
+        externalIntentConsumed = true
     }
 
     /**

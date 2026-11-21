@@ -676,7 +676,7 @@ class CourseConversionRepository(
 
         val appSettings = appSettingsRepository.getAppSettingsOnce()
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
-        val timeSlots = timeSlotRepository.getActiveTimeSlotsOnce(tableId, courseConfig)
+        val schedule = timeSlotRepository.getScheduleOnce(tableId, courseConfig)
         val semesterStartDate = courseConfig?.semesterStartDate?.let {
             try { LocalDate.parse(it) } catch (_: Exception) { null }
         }
@@ -687,12 +687,13 @@ class CourseConversionRepository(
 
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
-            timeSlots = timeSlots,
+            timeSlots = schedule.slots,
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,
             alarmMinutes = alarmMinutes,
-            skippedDates = appSettings.skippedDates
+            skippedDates = appSettings.skippedDates,
+            timeSlotsForDate = schedule::forDate
         )
     }
 
@@ -707,7 +708,7 @@ class CourseConversionRepository(
         val courses = courseDao.getCoursesWithWeeksByTableId(currentTableId).first()
         val alarmMinutes = appSettings.remindBeforeMinutes
         val courseConfig = appSettingsRepository.getCourseConfigOnce(currentTableId)
-        val timeSlots = timeSlotRepository.getActiveTimeSlotsOnce(currentTableId, courseConfig)
+        val schedule = timeSlotRepository.getScheduleOnce(currentTableId, courseConfig)
 
         val semesterStartDate = courseConfig?.semesterStartDate?.let {
             try { LocalDate.parse(it) } catch (_: Exception) { null }
@@ -719,12 +720,13 @@ class CourseConversionRepository(
 
         return CalendarAccountManager.syncCurrentTableToSystemCalendar(
             courses = courses,
-            timeSlots = timeSlots,
+            timeSlots = schedule.slots,
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,
             alarmMinutes = alarmMinutes,
-            skippedDates = appSettings.skippedDates
+            skippedDates = appSettings.skippedDates,
+            timeSlotSchedule = schedule
         )
     }
 }

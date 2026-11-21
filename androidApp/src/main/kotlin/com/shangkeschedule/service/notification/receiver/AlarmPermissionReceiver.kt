@@ -91,12 +91,13 @@ class AlarmPermissionReceiver : BroadcastReceiver(), KoinComponent {
                 )
                 // R41-09：与 TimeChangeReceiver 同源修法 —— 策略级失败必须可自愈，
                 // 不能只留一行日志（此处尤其关键：权限刚变更，正是重排最容易失败的时刻）。
-                if (summary.failedStrategies > 0) {
+                if (summary.needsRetry) {
                     Log.w(TAG, "有 ${summary.failedStrategies} 个策略排程失败，请求重排补齐")
                     NotificationSyncWorker.enqueue(context = ctx.applicationContext)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "按新权限重排失败（保持既有排程）", e)
+                Log.e(TAG, "按新权限重排失败，请求补排", e)
+                NotificationSyncWorker.enqueue(context = ctx.applicationContext)
             } finally {
                 pendingResult.finish()
             }

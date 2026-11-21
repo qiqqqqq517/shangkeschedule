@@ -178,9 +178,7 @@ class SettingsViewModel(
      */
     fun onShowNonCurrentWeekChanged(show: Boolean) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(showNonCurrentWeekCourses = show)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateShowNonCurrentWeekCourses(show)
         }
     }
 
@@ -253,9 +251,7 @@ class SettingsViewModel(
      */
     fun onStartScreenChanged(newScreen: StartScreen) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(startScreen = newScreen)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateStartScreen(newScreen)
         }
     }
 
@@ -264,9 +260,7 @@ class SettingsViewModel(
      */
     fun onThemeModeChanged(newMode: AppThemeMode) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(themeMode = newMode)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateThemeMode(newMode)
         }
     }
 
@@ -447,9 +441,7 @@ class SettingsViewModel(
      */
     fun onDeveloperModeChanged(enabled: Boolean) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(developerModeEnabled = enabled)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateDeveloperModeEnabled(enabled)
         }
     }
 
@@ -458,9 +450,7 @@ class SettingsViewModel(
      */
     fun onCoupleScheduleEnabledChanged(enabled: Boolean) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(coupleScheduleEnabled = enabled)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateCoupleScheduleEnabled(enabled)
         }
     }
 
@@ -469,9 +459,7 @@ class SettingsViewModel(
      */
     fun onSelfCourseColorIndexChanged(colorIndex: Int) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(selfCourseColorIndex = colorIndex)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateSelfCourseColorIndex(colorIndex)
         }
     }
 
@@ -480,9 +468,7 @@ class SettingsViewModel(
      */
     fun onCrushCourseColorIndexChanged(colorIndex: Int) {
         viewModelScope.launch {
-            val currentSettings = uiState.value.appSettings
-            val updatedSettings = currentSettings.copy(crushCourseColorIndex = colorIndex)
-            appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
+            appSettingsRepository.updateCrushCourseColorIndex(colorIndex)
         }
     }
 }

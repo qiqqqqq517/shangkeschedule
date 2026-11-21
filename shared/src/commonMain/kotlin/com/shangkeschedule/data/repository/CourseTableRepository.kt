@@ -354,9 +354,7 @@ class CourseTableRepository(
         if (resolvedFallbackId != null) {
             val currentSettings = appSettingsRepository.getAppSettingsOnce()
             if (currentSettings.currentCourseTableId in deletedIds) {
-                appSettingsRepository.insertOrUpdateAppSettings(
-                    currentSettings.copy(currentCourseTableId = resolvedFallbackId)
-                )
+                appSettingsRepository.updateCurrentCourseTableId(resolvedFallbackId)
             }
         }
         database.withWriteTransaction {
@@ -368,9 +366,7 @@ class CourseTableRepository(
         if (deletedCouple) {
             val settings = appSettingsRepository.getAppSettingsOnce()
             if (settings.coupleScheduleEnabled) {
-                appSettingsRepository.insertOrUpdateAppSettings(
-                    settings.copy(coupleScheduleEnabled = false)
-                )
+                appSettingsRepository.updateCoupleScheduleEnabled(false)
             }
         }
         return true

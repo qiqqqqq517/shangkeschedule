@@ -68,7 +68,8 @@ class AutoModeAlarmReceiver : BroadcastReceiver(), KoinComponent {
             try {
                 val settings = appSettingsRepository.getAppSettingsOnce()
                 if (!settings.autoModeEnabled) {
-                    Log.d(TAG, "自动模式已关闭，忽略本次切换")
+                    AutoModeController.toggle(ctx, false, settings.autoControlMode)
+                    Log.d(TAG, "自动模式已关闭，仅恢复应用保存的状态")
                     return@launch
                 }
                 if (!enable && stillInSession(settings)) {

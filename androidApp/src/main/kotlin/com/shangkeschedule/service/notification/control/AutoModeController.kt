@@ -8,28 +8,7 @@ import androidx.core.content.getSystemService
 import com.shangkeschedule.data.model.AutoControlMode
 import com.shangkeschedule.service.PermissionNoticeNotifier
 
-/**
- * 上课自动模式控制器：开启/关闭勿扰或静音。
- *
- * 逻辑迁自旧 `CourseAlarmReceiver.toggleMode`（伴生对象静态方法），并在此后修掉四处缺陷：
- *
- * 1. **静音不再被误要求勿扰权限**。旧实现把权限检查放在 `when` 之前，
- *    `AutoControlMode.SILENT` 分支白纸黑字的注释说「铃声模式切换不需要勿扰访问权限」，
- *    代码却已被上面的检查拦掉了（设置页弹窗还额外强制拦截一次），
- *    导致只想用静音的用户被迫去开一个他根本不需要的权限。
- *
- * 2. **DND 分支权限缺失时提示用户**（保留既有的 `PermissionNoticeNotifier` 提示），
- *    而不是静默 Log 一行。
- *
- * 3. **DND 也记录并还原进入前的过滤档**（对齐 [toggleSilent] 早已有的语义）。
- *    旧实现在关闭时无条件写 `INTERRUPTION_FILTER_ALL`，
- *    等于替用户改掉了他自己打开的勿扰设置。记录一次、只还自己动过的那一次。
- *
- * 4. **切换后回读校验**。`setInterruptionFilter` / `ringerMode` 赋值都可能「看起来调用成功、
- *    实际没生效」（部分 OEM 定制会静默忽略）。旧实现无条件 `return true`，
- *    上层因此认为降噪已生效，实际用户在课上照样响铃且无从排查。
- *    现在写入后立刻读回比对，不一致就记警告并返回 `false`。
- */
+/** 仅恢复本应用记录过的系统状态；切换类型前先归还旧类型。 */
 object AutoModeController {
 
     private const val TAG = "AutoModeController"
@@ -49,10 +28,22 @@ object AutoModeController {
      * @param enableMode true = 进入勿扰/静音；false = 恢复正常
      * @return true 表示已施加**并经回读确认生效**；false 表示缺权限或系统未真正生效
      */
+    @Synchronized
     fun toggle(context: Context, enableMode: Boolean, modeType: AutoControlMode): Boolean {
+        // 所有入口共用锁，防止 START、END 与前台校准交错覆盖恢复记录。
+        for (other in AutoControlMode.entries) {
+            if (!enableMode || other != modeType) {
+                val restored = when (other) {
+                    AutoControlMode.DND -> toggleDnd(context, false)
+                    AutoControlMode.SILENT -> toggleSilent(context, false)
+                }
+                if (!restored) return false
+            }
+        }
+        if (!enableMode) return true
         return when (modeType) {
-            AutoControlMode.DND -> toggleDnd(context, enableMode)
-            AutoControlMode.SILENT -> toggleSilent(context, enableMode)
+            AutoControlMode.DND -> toggleDnd(context, true)
+            AutoControlMode.SILENT -> toggleSilent(context, true)
         }
     }
 
@@ -65,6 +56,8 @@ object AutoModeController {
      * 进入前只记录一次（连续重排/校准不会覆盖记录），还原成功后清除。
      */
     private fun toggleDnd(context: Context, enableMode: Boolean): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (!enableMode && !prefs.contains(KEY_DND_FILTER_BEFORE)) return true
         val nm = context.getSystemService<NotificationManager>()
         if (nm == null) {
             Log.w(TAG, "NotificationManager 不可用，勿扰切换跳过")
@@ -76,22 +69,26 @@ object AutoModeController {
             return false
         }
         PermissionNoticeNotifier.clear(context, PermissionNoticeNotifier.NOTICE_ID_DND)
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val current = nm.currentInterruptionFilter
+        if (enableMode && current == NotificationManager.INTERRUPTION_FILTER_PRIORITY) return true
+        if (!enableMode && current != NotificationManager.INTERRUPTION_FILTER_PRIORITY) {
+            // 用户已经自行调整过，记录不再拥有当前系统状态。
+            prefs.edit().remove(KEY_DND_FILTER_BEFORE).commit()
+            return true
+        }
 
         val applied = runCatching {
             if (enableMode) {
-                // 只在「还没记录过」时落盘，且当前并非目标档才记 ——
-                // 否则用户自己开的勿扰会被记成「我们开的」，下课就替他关掉了。
+                // 先持久化恢复记录，再改变系统；原本已在目标档的分支已提前返回。
                 if (!prefs.contains(KEY_DND_FILTER_BEFORE)) {
-                    prefs.edit()
-                        .putInt(KEY_DND_FILTER_BEFORE, nm.currentInterruptionFilter)
-                        .apply()
+                    check(prefs.edit().putInt(KEY_DND_FILTER_BEFORE, current).commit()) {
+                        "无法持久化勿扰恢复记录"
+                    }
                 }
                 nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
                 NotificationManager.INTERRUPTION_FILTER_PRIORITY
             } else {
-                // 取回进入前的档；无记录（旧版本升级而来 / 从未记录）时退回 ALL，
-                // 与旧行为一致，且是最不打扰用户的还原目标。
+                // 只有存在本应用的记录才到达这里，不能用默认值推断状态归属。
                 val restore = prefs.getInt(
                     KEY_DND_FILTER_BEFORE,
                     NotificationManager.INTERRUPTION_FILTER_ALL
@@ -136,18 +133,24 @@ object AutoModeController {
      * 进入前只记录一次（连续重排/校准不会覆盖记录），关闭成功后清除。
      */
     private fun toggleSilent(context: Context, enableMode: Boolean): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (!enableMode && !prefs.contains(KEY_RINGER_MODE_BEFORE)) return true
         val audioManager = context.getSystemService<AudioManager>()
         if (audioManager == null) {
             Log.w(TAG, "AudioManager 不可用，静音切换跳过")
             return false
         }
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val current = audioManager.ringerMode
+        if (enableMode && current == AudioManager.RINGER_MODE_SILENT) return true
+        if (!enableMode && current != AudioManager.RINGER_MODE_SILENT) {
+            prefs.edit().remove(KEY_RINGER_MODE_BEFORE).commit()
+            return true
+        }
         return try {
             if (enableMode) {
                 if (!prefs.contains(KEY_RINGER_MODE_BEFORE)) {
-                    val current = audioManager.ringerMode
-                    if (current != AudioManager.RINGER_MODE_SILENT) {
-                        prefs.edit().putInt(KEY_RINGER_MODE_BEFORE, current).apply()
+                    check(prefs.edit().putInt(KEY_RINGER_MODE_BEFORE, current).commit()) {
+                        "无法持久化静音恢复记录"
                     }
                 }
                 audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
@@ -160,8 +163,7 @@ object AutoModeController {
                     return false
                 }
             } else {
-                // 取回进入前的模式；无记录（旧版本升级而来 / 从未记录）时退回 NORMAL，
-                // 保持与旧行为一致的兜底，而不是突然保持静音。
+                // 仅归还本应用实际施加过的铃声状态。
                 val restore = prefs.getInt(KEY_RINGER_MODE_BEFORE, AudioManager.RINGER_MODE_NORMAL)
                 audioManager.ringerMode = restore
                 if (audioManager.ringerMode == restore) {

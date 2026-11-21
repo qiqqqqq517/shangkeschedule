@@ -35,9 +35,9 @@ object IcsExportTool {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         skippedDates: Set<String>? = null,
+        noinline timeSlotsForDate: ((LocalDate) -> List<TimeSlot>)? = null,
         action: (course: Course, startDateTime: LocalDateTime, endDateTime: LocalDateTime, weekNumber: Int) -> Unit
     ) {
-        val timeSlotMap = timeSlots.associateBy { it.number }
         val dayOfWeekMap = mapOf(
             1 to DayOfWeek.MONDAY,
             2 to DayOfWeek.TUESDAY,
@@ -58,27 +58,9 @@ object IcsExportTool {
             val course = courseWithWeeks.course
             val weeks = courseWithWeeks.weeks.map { it.weekNumber }
 
-            val startTime: LocalTime
-            val endTime: LocalTime
-            if (course.isCustomTime) {
-                val s = course.customStartTime ?: return@forEach
-                val e = course.customEndTime ?: return@forEach
-                try {
-                    startTime = LocalTime.parse(s)
-                    endTime = LocalTime.parse(e)
-                } catch (_: Exception) { return@forEach }
-            } else {
-                val s = timeSlotMap[course.startSection]?.startTime ?: return@forEach
-                val e = timeSlotMap[course.endSection]?.endTime ?: return@forEach
-                try {
-                    startTime = LocalTime.parse(s)
-                    endTime = LocalTime.parse(e)
-                } catch (_: Exception) { return@forEach }
-            }
-
             val dayOfWeek = dayOfWeekMap[course.day] ?: return@forEach
 
-            weeks.forEach { week ->
+            weeks.forEach instance@ { week ->
                 val dayOffset = (dayOfWeek.isoDayNumber - firstDayOfWeek.isoDayNumber + 7) % 7
                 val date = alignedSemesterStart
                     .plus((week - 1).toLong(), DateTimeUnit.WEEK)
@@ -86,9 +68,28 @@ object IcsExportTool {
 
                 val weekIndex = alignedSemesterStart.daysUntil(date) / 7 + 1
                 // R4-002：与 Widget/Today 双边截断对齐（原仅截上界，week≤0 会落盘过去日期）
-                if (weekIndex !in 1..semesterTotalWeeks) return@forEach
+                if (weekIndex !in 1..semesterTotalWeeks) return@instance
 
-                if (skippedDates?.contains(date.toString()) == true) return@forEach
+                if (skippedDates?.contains(date.toString()) == true) return@instance
+
+                val timeSlotMap = (timeSlotsForDate?.invoke(date) ?: timeSlots).associateBy { it.number }
+                val startTime: LocalTime
+                val endTime: LocalTime
+                if (course.isCustomTime) {
+                    val s = course.customStartTime ?: return@instance
+                    val e = course.customEndTime ?: return@instance
+                    try {
+                        startTime = LocalTime.parse(s)
+                        endTime = LocalTime.parse(e)
+                    } catch (_: Exception) { return@instance }
+                } else {
+                    val s = timeSlotMap[course.startSection]?.startTime ?: return@instance
+                    val e = timeSlotMap[course.endSection]?.endTime ?: return@instance
+                    try {
+                        startTime = LocalTime.parse(s)
+                        endTime = LocalTime.parse(e)
+                    } catch (_: Exception) { return@instance }
+                }
 
                 action(
                     course,
@@ -110,7 +111,8 @@ object IcsExportTool {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int? = null,
-        skippedDates: Set<String>? = null
+        skippedDates: Set<String>? = null,
+        timeSlotsForDate: ((LocalDate) -> List<TimeSlot>)? = null
     ): String {
         val ics = StringBuilder()
 
@@ -132,7 +134,7 @@ object IcsExportTool {
         val dtStampStr = formatDateTimeUtc(Clock.System.now())
 
         processCourseInstances(
-            courses, timeSlots, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates
+            courses, timeSlots, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates, timeSlotsForDate
         ) { course, start, end, _ ->
             ics.append("BEGIN:VEVENT\r\n")
             // UID 必须**稳定**：同一门课同一次课重复导出时 UID 不变，

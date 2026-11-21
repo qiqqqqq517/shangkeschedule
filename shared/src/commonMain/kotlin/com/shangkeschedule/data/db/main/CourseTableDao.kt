@@ -13,6 +13,14 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CourseTableDao {
+    /** 结果值仅作变更通知；保留等值发射，重命名和修改课程也必须触发全量备份。 */
+    @Query("""
+        SELECT (SELECT COUNT(*) FROM course_tables) + (SELECT COUNT(*) FROM courses) +
+            (SELECT COUNT(*) FROM course_weeks) + (SELECT COUNT(*) FROM time_slots) +
+            (SELECT COUNT(*) FROM time_slot_schemes) + (SELECT COUNT(*) FROM course_table_config)
+    """)
+    fun observeBackupChanges(): Flow<Long>
+
     /**
      * 获取所有课表，并按创建时间倒序排列。
      */

@@ -116,9 +116,7 @@ class CoupleScheduleViewModel(
             val settings = appSettingsRepository.getAppSettingsOnce()
             val current = courseTableRepository.getCourseTableById(settings.currentCourseTableId)
             if (current?.isCouple == true) return@launch
-            appSettingsRepository.insertOrUpdateAppSettings(
-                settings.copy(coupleScheduleEnabled = enabled)
-            )
+            appSettingsRepository.updateCoupleScheduleEnabled(enabled)
         }
     }
 
@@ -127,14 +125,14 @@ class CoupleScheduleViewModel(
      * 仅在双人同显生效时对课表页有观感影响，开关本身随时可切。
      */
     fun onCoupleShowTimeRangesChanged(enabled: Boolean) {
-        viewModelScope.launch { updateSettings { it.copy(coupleShowTimeRanges = enabled) } }
+        viewModelScope.launch { appSettingsRepository.updateCoupleShowTimeRanges(enabled) }
     }
 
-    fun onSelfCourseColorIndexChanged(index: Int) {        viewModelScope.launch { updateSettings { it.copy(selfCourseColorIndex = index) } }
+    fun onSelfCourseColorIndexChanged(index: Int) {        viewModelScope.launch { appSettingsRepository.updateSelfCourseColorIndex(index) }
     }
 
     fun onCrushCourseColorIndexChanged(index: Int) {
-        viewModelScope.launch { updateSettings { it.copy(crushCourseColorIndex = index) } }
+        viewModelScope.launch { appSettingsRepository.updateCrushCourseColorIndex(index) }
     }
 
     /**
@@ -166,7 +164,7 @@ class CoupleScheduleViewModel(
     /** 切到情侣课表单独显示；@return 是否切换成功。 */
     suspend fun switchToCouple(): Boolean {
         val couple = resolveCoupleTableOnce() ?: return false
-        updateSettings { it.copy(currentCourseTableId = couple.id) }
+        appSettingsRepository.updateCurrentCourseTableId(couple.id)
         return true
     }
 
@@ -175,7 +173,7 @@ class CoupleScheduleViewModel(
         val settings = appSettingsRepository.getAppSettingsOnce()
         val current = courseTableRepository.getCourseTableById(settings.currentCourseTableId)
         val selfId = current?.takeIf { it.isCouple }?.pairedCourseTableId ?: return false
-        appSettingsRepository.insertOrUpdateAppSettings(settings.copy(currentCourseTableId = selfId))
+        appSettingsRepository.updateCurrentCourseTableId(selfId)
         return true
     }
 
@@ -201,11 +199,7 @@ class CoupleScheduleViewModel(
 
     /** 删除情侣课表后调用：关闭双人同显开关，避免日后重建时叠加悄然生效。 */
     fun resetOverlaySwitch() {
-        viewModelScope.launch { updateSettings { it.copy(coupleScheduleEnabled = false) } }
+        viewModelScope.launch { appSettingsRepository.updateCoupleScheduleEnabled(false) }
     }
 
-    private suspend fun updateSettings(transform: (AppSettingsModel) -> AppSettingsModel) {
-        val settings = appSettingsRepository.getAppSettingsOnce()
-        appSettingsRepository.insertOrUpdateAppSettings(transform(settings))
-    }
 }

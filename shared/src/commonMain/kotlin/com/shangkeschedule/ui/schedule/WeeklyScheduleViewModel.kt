@@ -598,9 +598,7 @@ class WeeklyScheduleViewModel (
 
     fun switchCourseTable(tableId: String) {
         viewModelScope.launch {
-            val currentSettings = appSettingsRepository.getAppSettingsOnce()
-            val newSettings = currentSettings.copy(currentCourseTableId = tableId)
-            appSettingsRepository.insertOrUpdateAppSettings(newSettings)
+            appSettingsRepository.updateCurrentCourseTableId(tableId)
         }
     }
 

@@ -31,8 +31,8 @@ android {
         applicationId = "com.shangkeschedule"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 580
-        versionName = "4.83.2"
+        versionCode = 582
+        versionName = "4.83.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -117,6 +117,7 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
     implementation(libs.koin.annotations)
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.12.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     debugImplementation(libs.compose.ui.tooling)
